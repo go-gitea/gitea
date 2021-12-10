@@ -79,14 +79,17 @@
   --color-diff-added-row-border: #314a37;
   --color-diff-inactive: #353846;
   --color-error-border: #a53a37;
-  --color-error-bg: #403440;
-  --color-error-text: #d64444;
+  --color-error-bg: #482c2c;
+  --color-error-text: #ff4433;
   --color-success-border: #458a57;
-  --color-success-bg: #304440;
+  --color-success-bg: #284034;
   --color-success-text: #6cc664;
-  --color-warning-border: #aaa050;
-  --color-warning-bg: #404440;
+  --color-warning-border: #bb9d00;
+  --color-warning-bg: #3a3a30;
   --color-warning-text: #fbbd08;
+  --color-info-border: #306090;
+  --color-info-bg: #26354c;
+  --color-info-text: #38a8e8;
   /* target-based colors */
   --color-body: #383c4a;
   --color-box-header: #404652;
@@ -337,38 +340,6 @@ td.blob-hunk {
   color: #dbdbdb !important;
 }
 
-.ui .warning.header,
-.ui.warning.message {
-  background-color: #542 !important;
-  border-color: #ec8;
-}
-
-.ui.warning.message {
-  color: #ec8;
-  box-shadow: 0 0 0 1px #ec8;
-}
-
-.ui.warning.segment {
-  border-color: #ec8;
-}
-
-.ui.red.message,
-.ui.error.message {
-  background-color: #522;
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px #a04141 inset;
-}
-
-.ui .error.header,
-.ui.error.message {
-  background-color: #522 !important;
-  border-color: #a04141;
-}
-
-.ui.error.segment {
-  border-color: #a04141;
-}
-
 .ui.red.button,
 .ui.red.buttons .button {
   background-color: #7d3434;
@@ -377,18 +348,6 @@ td.blob-hunk {
 .ui.red.button:hover,
 .ui.red.buttons .button:hover {
   background-color: #984646;
-}
-
-.ui.positive.message {
-  background-color: #0d491b;
-  color: #87ab63;
-  box-shadow: 0 0 0 1px #2d693b inset, 0 0 0 0 transparent;
-}
-
-.ui.negative.message {
-  background-color: rgba(80, 23, 17, .6);
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
 }
 
 .ui.list .list > .item .header,

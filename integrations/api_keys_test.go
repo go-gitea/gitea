@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -48,7 +49,7 @@ func TestDeleteDeployKeyNoLogin(t *testing.T) {
 
 func TestCreateReadOnlyDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, repoOwner.Name)
@@ -74,7 +75,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 func TestCreateReadWriteDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, repoOwner.Name)

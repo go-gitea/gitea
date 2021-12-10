@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
@@ -30,7 +31,7 @@ type DeleteRepoFileOptions struct {
 }
 
 // DeleteRepoFile deletes a file in the given repository
-func DeleteRepoFile(repo *models.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
+func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
 	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch

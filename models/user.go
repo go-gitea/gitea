@@ -13,6 +13,7 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -151,7 +152,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
@@ -161,7 +162,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
@@ -273,7 +274,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 }
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
+func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
@@ -283,16 +284,16 @@ func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
-		repos := make([]*Repository, 0, listOptions.PageSize)
+		repos := make([]*repo_model.Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)
 	}
 
-	repos := make([]*Repository, 0, 10)
+	repos := make([]*repo_model.Repository, 0, 10)
 	return repos, sess.Find(&repos)
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -303,12 +304,12 @@ func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
-		repos := make([]*Repository, 0, listOptions.PageSize)
+		repos := make([]*repo_model.Repository, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&repos)
 		return repos, total, err
 	}
 
-	repos := make([]*Repository, 0, 10)
+	repos := make([]*repo_model.Repository, 0, 10)
 	total, err := sess.FindAndCount(&repos)
 	return repos, total, err
 }
