@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package asymkey
 
 import (
 	"strings"
@@ -13,11 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
-}
 
 func Test_SSHParsePublicKey(t *testing.T) {
 	testCases := []struct {

@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -810,7 +811,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
-		if !models.IsErrWontSign(err) {
+		if !asymkey_service.IsErrWontSign(err) {
 			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
 			return
 		}

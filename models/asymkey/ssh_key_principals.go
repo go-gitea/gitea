@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package asymkey
 
 import (
 	"errors"
@@ -76,7 +76,7 @@ func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
 func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
-		return "", ErrSSHDisabled{}
+		return "", db.ErrSSHDisabled{}
 	}
 
 	content = strings.TrimSpace(content)
