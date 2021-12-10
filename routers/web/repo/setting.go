@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -34,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
@@ -62,7 +64,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
-	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
+	signing, _ := asymkey_service.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
@@ -476,7 +478,6 @@ func SettingsPost(ctx *context.Context) {
 
 	case "signing":
 		changed := false
-
 		trustModel := repo_model.ToTrustModel(form.TrustModel)
 		if trustModel != repo.TrustModel {
 			repo.TrustModel = trustModel
@@ -673,7 +674,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 		}
 
-		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
+		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository, true); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -1029,7 +1030,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1045,7 +1046,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1057,11 +1058,11 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
-	content, err := models.CheckPublicKeyString(form.Content)
+	content, err := asymkey_model.CheckPublicKeyString(form.Content)
 	if err != nil {
-		if models.IsErrSSHDisabled(err) {
+		if db.IsErrSSHDisabled(err) {
 			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
-		} else if models.IsErrKeyUnableVerify(err) {
+		} else if asymkey_model.IsErrKeyUnableVerify(err) {
 			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
 		} else {
 			ctx.Data["HasError"] = true
@@ -1072,20 +1073,20 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
-	key, err := models.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
+	key, err := asymkey_model.AddDeployKey(ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
 	if err != nil {
 		ctx.Data["HasError"] = true
 		switch {
-		case models.IsErrDeployKeyAlreadyExist(err):
+		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
-		case models.IsErrKeyAlreadyExist(err):
+		case asymkey_model.IsErrKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
-		case models.IsErrKeyNameAlreadyUsed(err):
+		case asymkey_model.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
-		case models.IsErrDeployKeyNameAlreadyUsed(err):
+		case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
@@ -1101,7 +1102,7 @@ func DeployKeysPost(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if err := models.DeleteDeployKey(ctx.User, ctx.FormInt64("id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx.User, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package asymkey
 
 import (
 	"context"
@@ -11,8 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -169,13 +167,9 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(id int64) (*DeployKey, error) {
-	return getDeployKeyByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getDeployKeyByID(e db.Engine, id int64) (*DeployKey, error) {
+func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := e.ID(id).Get(key)
+	has, err := db.GetEngine(ctx).ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -215,68 +209,6 @@ func UpdateDeployKey(key *DeployKey) error {
 	return err
 }
 
-// DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *user_model.User, id int64) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := deleteDeployKey(ctx, doer, id); err != nil {
-		return err
-	}
-	return committer.Commit()
-}
-
-func deleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
-	sess := db.GetEngine(ctx)
-	key, err := getDeployKeyByID(sess, id)
-	if err != nil {
-		if IsErrDeployKeyNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetDeployKeyByID: %v", err)
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
-		if err != nil {
-			return fmt.Errorf("repo_model.GetRepositoryByID: %v", err)
-		}
-		has, err := isUserRepoAdmin(sess, repo, doer)
-		if err != nil {
-			return fmt.Errorf("GetUserRepoPermission: %v", err)
-		} else if !has {
-			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
-		}
-	}
-
-	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
-		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
-	}
-
-	// Check if this is the last reference to same key content.
-	has, err := sess.
-		Where("key_id = ?", key.KeyID).
-		Get(new(DeployKey))
-	if err != nil {
-		return err
-	} else if !has {
-		if err = deletePublicKeys(sess, key.KeyID); err != nil {
-			return err
-		}
-
-		// after deleted the public keys, should rewrite the public keys file
-		if err = rewriteAllPublicKeys(sess); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // ListDeployKeysOptions are options for ListDeployKeys
 type ListDeployKeysOptions struct {
 	db.ListOptions
@@ -300,12 +232,8 @@ func (opt ListDeployKeysOptions) toCond() builder.Cond {
 }
 
 // ListDeployKeys returns a list of deploy keys matching the provided arguments.
-func ListDeployKeys(opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	return listDeployKeys(db.GetEngine(db.DefaultContext), opts)
-}
-
-func listDeployKeys(e db.Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	sess := e.Where(opts.toCond())
+func ListDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
