@@ -11,8 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -209,68 +207,6 @@ func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
 func UpdateDeployKey(key *DeployKey) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).AllCols().Update(key)
 	return err
-}
-
-// DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *user_model.User, id int64) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := deleteDeployKey(ctx, doer, id); err != nil {
-		return err
-	}
-	return committer.Commit()
-}
-
-func deleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
-	sess := db.GetEngine(ctx)
-	key, err := getDeployKeyByID(sess, id)
-	if err != nil {
-		if IsErrDeployKeyNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("GetDeployKeyByID: %v", err)
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin {
-		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
-		if err != nil {
-			return fmt.Errorf("repo_model.GetRepositoryByID: %v", err)
-		}
-		has, err := isUserRepoAdmin(sess, repo, doer)
-		if err != nil {
-			return fmt.Errorf("GetUserRepoPermission: %v", err)
-		} else if !has {
-			return ErrKeyAccessDenied{doer.ID, key.ID, "deploy"}
-		}
-	}
-
-	if _, err = sess.ID(key.ID).Delete(new(DeployKey)); err != nil {
-		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
-	}
-
-	// Check if this is the last reference to same key content.
-	has, err := sess.
-		Where("key_id = ?", key.KeyID).
-		Get(new(DeployKey))
-	if err != nil {
-		return err
-	} else if !has {
-		if err = deletePublicKeys(sess, key.KeyID); err != nil {
-			return err
-		}
-
-		// after deleted the public keys, should rewrite the public keys file
-		if err = rewriteAllPublicKeys(sess); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // ListDeployKeysOptions are options for ListDeployKeys

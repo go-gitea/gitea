@@ -478,16 +478,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "signing":
 		changed := false
-
-<<<<<<< HEAD
-<<<<<<< HEAD
 		trustModel := repo_model.ToTrustModel(form.TrustModel)
-=======
-		trustModel := keys_model.ToTrustModel(form.TrustModel)
->>>>>>> 3db02666b (Move keys to models/keys)
-=======
-		trustModel := asymkey_model.ToTrustModel(form.TrustModel)
->>>>>>> c486d0ca6 (Rename models/keys -> models/asymkey)
 		if trustModel != repo.TrustModel {
 			repo.TrustModel = trustModel
 			changed = true

@@ -48,17 +48,8 @@ func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = CountOrganizations()
-<<<<<<< HEAD
-<<<<<<< HEAD
-	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
-	stats.Counter.Repo = repo_model.CountRepositories(true)
-=======
-	stats.Counter.PublicKey, _ = e.Count(new(keys.PublicKey))
-=======
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
->>>>>>> c486d0ca6 (Rename models/keys -> models/asymkey)
-	stats.Counter.Repo = CountRepositories(true)
->>>>>>> 3db02666b (Move keys to models/keys)
+	stats.Counter.Repo = repo_model.CountRepositories(true)
 	stats.Counter.Watch, _ = e.Count(new(Watch))
 	stats.Counter.Star, _ = e.Count(new(Star))
 	stats.Counter.Action, _ = e.Count(new(Action))

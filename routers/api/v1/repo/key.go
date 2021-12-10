@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -25,15 +24,7 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-<<<<<<< HEAD
-<<<<<<< HEAD
-func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
-=======
-func appendPrivateInformation(apiKey *api.DeployKey, key *keys_model.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
->>>>>>> 3db02666b (Move keys to models/keys)
-=======
-func appendPrivateInformation(apiKey *api.DeployKey, key *asymkey_model.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
->>>>>>> c486d0ca6 (Rename models/keys -> models/asymkey)
+func appendPrivateInformation(apiKey *api.DeployKey, key *asymkey_model.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	if repository.ID == key.RepoID {
 		apiKey.Repository = convert.ToRepo(repository, key.Mode)

@@ -416,17 +416,8 @@ type CreateRepoOptions struct {
 	IsMirror       bool
 	IsTemplate     bool
 	AutoInit       bool
-<<<<<<< HEAD
 	Status         repo_model.RepositoryStatus
 	TrustModel     repo_model.TrustModelType
-=======
-	Status         RepositoryStatus
-<<<<<<< HEAD
-	TrustModel     keys.TrustModelType
->>>>>>> 3db02666b (Move keys to models/keys)
-=======
-	TrustModel     asymkey_model.TrustModelType
->>>>>>> 98e1e13cc (Fix package alias)
 	MirrorInterval string
 }
 
@@ -872,11 +863,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 	var needRewriteKeysFile = len(deployKeys) > 0
 	for _, dKey := range deployKeys {
-<<<<<<< HEAD
-		if err := deleteDeployKey(ctx, doer, dKey.ID); err != nil {
-=======
 		if err := DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
->>>>>>> 3db02666b (Move keys to models/keys)
 			return fmt.Errorf("deleteDeployKeys: %v", err)
 		}
 	}
@@ -1344,21 +1331,6 @@ func UpdateRepositoryCols(repo *repo_model.Repository, cols ...string) error {
 	return updateRepositoryCols(db.GetEngine(db.DefaultContext), repo, cols...)
 }
 
-<<<<<<< HEAD
-=======
-// GetTrustModel will get the TrustModel for the repo or the default trust model
-func (repo *Repository) GetTrustModel() asymkey_model.TrustModelType {
-	trustModel := repo.TrustModel
-	if trustModel == asymkey_model.DefaultTrustModel {
-		trustModel = asymkey_model.ToTrustModel(setting.Repository.Signing.DefaultTrustModel)
-		if trustModel == asymkey_model.DefaultTrustModel {
-			return asymkey_model.CollaboratorTrustModel
-		}
-	}
-	return trustModel
-}
-
->>>>>>> 3db02666b (Move keys to models/keys)
 func updateUserStarNumbers(users []user_model.User) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
@@ -1458,7 +1430,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := getRepositoryByID(sess, key.RepoID)
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}

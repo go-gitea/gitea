@@ -70,7 +70,7 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel TrustModelType, isCodeReader func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error)) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -447,50 +447,9 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 	}
 }
 
-// TrustModelType defines the types of trust model for this repository
-type TrustModelType int
-
-// kinds of TrustModel
-const (
-	DefaultTrustModel TrustModelType = iota // default trust model
-	CommitterTrustModel
-	CollaboratorTrustModel
-	CollaboratorCommitterTrustModel
-)
-
-// String converts a TrustModelType to a string
-func (t TrustModelType) String() string {
-	switch t {
-	case DefaultTrustModel:
-		return "default"
-	case CommitterTrustModel:
-		return "committer"
-	case CollaboratorTrustModel:
-		return "collaborator"
-	case CollaboratorCommitterTrustModel:
-		return "collaboratorcommitter"
-	}
-	return "default"
-}
-
-// ToTrustModel converts a string to a TrustModelType
-func ToTrustModel(model string) TrustModelType {
-	switch strings.ToLower(strings.TrimSpace(model)) {
-	case "default":
-		return DefaultTrustModel
-	case "collaborator":
-		return CollaboratorTrustModel
-	case "committer":
-		return CommitterTrustModel
-	case "collaboratorcommitter":
-		return CollaboratorCommitterTrustModel
-	}
-	return DefaultTrustModel
-}
-
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
 // There are several trust models in Gitea
-func CalculateTrustStatus(verification *CommitVerification, repoTrustModel TrustModelType, isCodeReader func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
+func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
 	if !verification.Verified {
 		return
 	}
