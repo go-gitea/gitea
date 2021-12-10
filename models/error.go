@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -546,32 +547,6 @@ func IsErrLFSFileLocked(err error) bool {
 
 func (err ErrLFSFileLocked) Error() string {
 	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
-}
-
-// __________                           .__  __
-// \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
-//  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
-//  |    |   \  ___/|  |_> >  <_> )___ \|  ||  | (  <_> )  | \/\___  |
-//  |____|_  /\___  >   __/ \____/____  >__||__|  \____/|__|   / ____|
-//         \/     \/|__|              \/                       \/
-
-// ErrRepoNotExist represents a "RepoNotExist" kind of error.
-type ErrRepoNotExist struct {
-	ID        int64
-	UID       int64
-	OwnerName string
-	Name      string
-}
-
-// IsErrRepoNotExist checks if an error is a ErrRepoNotExist.
-func IsErrRepoNotExist(err error) bool {
-	_, ok := err.(ErrRepoNotExist)
-	return ok
-}
-
-func (err ErrRepoNotExist) Error() string {
-	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
-		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
 // ErrNoPendingRepoTransfer is an error type for repositories without a pending
@@ -1283,7 +1258,7 @@ func (err ErrPullRequestHeadRepoMissing) Error() string {
 // ErrInvalidMergeStyle represents an error if merging with disabled merge strategy
 type ErrInvalidMergeStyle struct {
 	ID    int64
-	Style MergeStyle
+	Style repo_model.MergeStyle
 }
 
 // IsErrInvalidMergeStyle checks if an error is a ErrInvalidMergeStyle.
@@ -1299,7 +1274,7 @@ func (err ErrInvalidMergeStyle) Error() string {
 
 // ErrMergeConflicts represents an error if merging fails with a conflict
 type ErrMergeConflicts struct {
-	Style  MergeStyle
+	Style  repo_model.MergeStyle
 	StdOut string
 	StdErr string
 	Err    error
@@ -1317,7 +1292,7 @@ func (err ErrMergeConflicts) Error() string {
 
 // ErrMergeUnrelatedHistories represents an error if merging fails due to unrelated histories
 type ErrMergeUnrelatedHistories struct {
-	Style  MergeStyle
+	Style  repo_model.MergeStyle
 	StdOut string
 	StdErr string
 	Err    error
@@ -1335,7 +1310,7 @@ func (err ErrMergeUnrelatedHistories) Error() string {
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict
 type ErrRebaseConflicts struct {
-	Style     MergeStyle
+	Style     repo_model.MergeStyle
 	CommitSHA string
 	StdOut    string
 	StdErr    string

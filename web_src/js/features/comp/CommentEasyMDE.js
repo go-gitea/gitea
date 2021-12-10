@@ -1,13 +1,21 @@
 import attachTribute from '../tribute.js';
 
-export function createCommentSimpleMDE($editArea) {
-  if ($editArea.length === 0) {
+/**
+ * create an EasyMDE editor for comment
+ * @param textarea jQuery or HTMLElement
+ * @returns {null|EasyMDE}
+ */
+export function createCommentEasyMDE(textarea) {
+  if (textarea instanceof jQuery) {
+    textarea = textarea[0];
+  }
+  if (!textarea) {
     return null;
   }
 
-  const simplemde = new SimpleMDE({
+  const easyMDE = new window.EasyMDE({
     autoDownloadFontAwesome: false,
-    element: $editArea[0],
+    element: textarea,
     forceSync: true,
     renderingConfig: {
       singleLineBreaks: false
@@ -50,8 +58,9 @@ export function createCommentSimpleMDE($editArea) {
       },
     ]
   });
-  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
-  simplemde.codemirror.setOption('extraKeys', {
+  const inputField = easyMDE.codemirror.getInputField();
+  inputField.classList.add('js-quick-submit');
+  easyMDE.codemirror.setOption('extraKeys', {
     Enter: () => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
@@ -65,8 +74,25 @@ export function createCommentSimpleMDE($editArea) {
       cm.execCommand('delCharBefore');
     }
   });
-  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
-  $editArea.data('simplemde', simplemde);
-  $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
-  return simplemde;
+  attachTribute(inputField, {mentions: true, emoji: true});
+
+  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
+  inputField._data_easyMDE = easyMDE;
+  textarea._data_easyMDE = easyMDE;
+  return easyMDE;
+}
+
+/**
+ * get the attached EasyMDE editor created by createCommentEasyMDE
+ * @param el jQuery or HTMLElement
+ * @returns {null|EasyMDE}
+ */
+export function getAttachedEasyMDE(el) {
+  if (el instanceof jQuery) {
+    el = el[0];
+  }
+  if (!el) {
+    return null;
+  }
+  return el._data_easyMDE;
 }

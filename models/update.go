@@ -10,14 +10,15 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
-func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []string) error {
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
 	return pushUpdateDeleteTags(db.GetEngine(ctx), repo, tags)
 }
 
-func pushUpdateDeleteTags(e db.Engine, repo *Repository, tags []string) error {
+func pushUpdateDeleteTags(e db.Engine, repo *repo_model.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -47,7 +48,7 @@ func pushUpdateDeleteTags(e db.Engine, repo *Repository, tags []string) error {
 }
 
 // PushUpdateDeleteTag must be called for any push actions to delete tag
-func PushUpdateDeleteTag(repo *Repository, tagName string) error {
+func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
 	rel, err := GetRelease(repo.ID, tagName)
 	if err != nil {
 		if IsErrReleaseNotExist(err) {
@@ -72,7 +73,7 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 }
 
 // SaveOrUpdateTag must be called for any push actions to add tag
-func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
+func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
 	rel, err := GetRelease(repo.ID, newRel.TagName)
 	if err != nil && !IsErrReleaseNotExist(err) {
 		return fmt.Errorf("GetRelease: %v", err)

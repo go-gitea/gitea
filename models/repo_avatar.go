@@ -10,59 +10,23 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"net/url"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
-// CustomAvatarRelativePath returns repository custom avatar file path.
-func (repo *Repository) CustomAvatarRelativePath() string {
-	return repo.Avatar
-}
-
-// generateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) generateRandomAvatar(e db.Engine) error {
-	idToString := fmt.Sprintf("%d", repo.ID)
-
-	seed := idToString
-	img, err := avatar.RandomImage([]byte(seed))
-	if err != nil {
-		return fmt.Errorf("RandomImage: %v", err)
-	}
-
-	repo.Avatar = idToString
-
-	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, img); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", repo.CustomAvatarRelativePath(), err)
-	}
-
-	log.Info("New random avatar created for repository: %d", repo.ID)
-
-	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
-		Iterate(new(Repository),
+		Iterate(new(repo_model.Repository),
 			func(idx int, bean interface{}) error {
-				repository := bean.(*Repository)
+				repository := bean.(*repo_model.Repository)
 				select {
 				case <-ctx.Done():
 					return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
@@ -70,55 +34,15 @@ func RemoveRandomAvatars(ctx context.Context) error {
 				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
 				if repository.Avatar == stringifiedID {
-					return repository.DeleteAvatar()
+					return DeleteRepoAvatar(repository)
 				}
 				return nil
 			})
 }
 
-// RelAvatarLink returns a relative link to the repository's avatar.
-func (repo *Repository) RelAvatarLink() string {
-	return repo.relAvatarLink(db.GetEngine(db.DefaultContext))
-}
-
-func (repo *Repository) relAvatarLink(e db.Engine) string {
-	// If no avatar - path is empty
-	avatarPath := repo.CustomAvatarRelativePath()
-	if len(avatarPath) == 0 {
-		switch mode := setting.RepoAvatar.Fallback; mode {
-		case "image":
-			return setting.RepoAvatar.FallbackImage
-		case "random":
-			if err := repo.generateRandomAvatar(e); err != nil {
-				log.Error("generateRandomAvatar: %v", err)
-			}
-		default:
-			// default behaviour: do not display avatar
-			return ""
-		}
-	}
-	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
-}
-
-// AvatarLink returns a link to the repository's avatar.
-func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(db.GetEngine(db.DefaultContext))
-}
-
-// avatarLink returns user avatar absolute link.
-func (repo *Repository) avatarLink(e db.Engine) string {
-	link := repo.relAvatarLink(e)
-	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
-	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-	}
-	// otherwise, return the link as it is
-	return link
-}
-
-// UploadAvatar saves custom avatar for repository.
+// UploadRepoAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func (repo *Repository) UploadAvatar(data []byte) error {
+func UploadRepoAvatar(repo *repo_model.Repository, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
 		return err
@@ -162,8 +86,8 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	return committer.Commit()
 }
 
-// DeleteAvatar deletes the repos's custom avatar.
-func (repo *Repository) DeleteAvatar() error {
+// DeleteRepoAvatar deletes the repos's custom avatar.
+func DeleteRepoAvatar(repo *repo_model.Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil

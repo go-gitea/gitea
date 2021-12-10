@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -87,7 +88,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
 
 	var ok bool

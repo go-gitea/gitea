@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -177,7 +177,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -236,7 +236,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) elastic.BulkableRequest {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.indexerAliasName).
@@ -244,7 +244,7 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 
