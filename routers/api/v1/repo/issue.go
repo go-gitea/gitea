@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -1220,9 +1221,9 @@ func createDep(ctx *context.APIContext, t models.DependencyType) {
 	}
 
 	form := web.GetForm(ctx).(*api.IssueMeta)
-	repo, err := models.GetRepositoryByOwnerAndName(form.Owner, form.Name)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(form.Owner, form.Name)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("IsErrRepoNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
@@ -1270,9 +1271,9 @@ func removeDep(ctx *context.APIContext, t models.DependencyType) {
 	}
 
 	form := web.GetForm(ctx).(*api.IssueMeta)
-	repo, err := models.GetRepositoryByOwnerAndName(form.Owner, form.Name)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(form.Owner, form.Name)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("IsErrRepoNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
