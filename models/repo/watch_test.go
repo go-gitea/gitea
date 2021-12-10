@@ -26,20 +26,6 @@ func TestIsWatching(t *testing.T) {
 	assert.False(t, IsWatching(unittest.NonexistentID, unittest.NonexistentID))
 }
 
-func TestWatchRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	const repoID = 3
-	const userID = 2
-
-	assert.NoError(t, WatchRepo(userID, repoID, true))
-	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
-
-	assert.NoError(t, WatchRepo(userID, repoID, false))
-	unittest.AssertNotExistsBean(t, &Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
-}
-
 func TestGetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

@@ -22,5 +22,7 @@ func TestMain(m *testing.M) {
 		"watch.yml",
 		"star.yml",
 		"topic.yml",
+		"repo_topic.yml",
+		"user.yml",
 	)
 }
