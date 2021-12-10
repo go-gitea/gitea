@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -344,13 +345,15 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	verification := models.ParseCommitWithSignature(commit)
+	verification := asymkey_model.ParseCommitWithSignature(commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(commit)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
-	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+		return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
 	}
