@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package asymkey
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -63,12 +64,8 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
-	return listGPGKeys(db.GetEngine(db.DefaultContext), uid, listOptions)
-}
-
-func listGPGKeys(e db.Engine, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
-	sess := e.Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
+func ListGPGKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
+	sess := db.GetEngine(ctx).Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}

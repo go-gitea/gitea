@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -218,7 +219,7 @@ func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_mod
 	// Determine if we should sign
 	signArg := ""
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID, signer, _ := asymkey_service.SignMerge(pr, doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 			if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -553,7 +554,7 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, er
 		return true, nil
 	}
 
-	sign, _, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	sign, _, _, err := asymkey_service.SignMerge(pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
 
 	return sign, err
 }

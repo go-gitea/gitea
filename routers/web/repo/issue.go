@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	comment_service "code.gitea.io/gitea/services/comments"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -1583,12 +1584,12 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
-			sign, key, _, err := pull.SignMerge(ctx.User, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+			sign, key, _, err := asymkey_service.SignMerge(pull, ctx.User, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
 			ctx.Data["WillSign"] = sign
 			ctx.Data["SigningKey"] = key
 			if err != nil {
-				if models.IsErrWontSign(err) {
-					ctx.Data["WontSignReason"] = err.(*models.ErrWontSign).Reason
+				if asymkey_service.IsErrWontSign(err) {
+					ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
 				} else {
 					ctx.Data["WontSignReason"] = "error"
 					log.Error("Error whilst checking if could sign pr %d in repo %s. Error: %v", pull.ID, pull.BaseRepo.FullName(), err)
