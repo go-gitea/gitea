@@ -20,6 +20,7 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -886,12 +887,13 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, &ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
+	var needRewriteKeysFile = len(deployKeys) > 0
 	for _, dKey := range deployKeys {
-		if err := deleteDeployKey(ctx, doer, dKey.ID); err != nil {
+		if err := DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
 			return fmt.Errorf("deleteDeployKeys: %v", err)
 		}
 	}
@@ -1078,6 +1080,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	committer.Close()
+
+	if needRewriteKeysFile {
+		if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
+			log.Error("RewriteAllPublicKeys failed: %v", err)
+		}
+	}
 
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be broken.
@@ -1436,4 +1444,53 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
+}
+
+// DeleteDeployKey delete deploy keys
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+	if err != nil {
+		if asymkey_model.IsErrDeployKeyNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetDeployKeyByID: %v", err)
+	}
+
+	sess := db.GetEngine(ctx)
+
+	// Check if user has access to delete this key.
+	if !doer.IsAdmin {
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetRepositoryByID: %v", err)
+		}
+		has, err := isUserRepoAdmin(sess, repo, doer)
+		if err != nil {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
+			return asymkey_model.ErrKeyAccessDenied{
+				UserID: doer.ID,
+				KeyID:  key.ID,
+				Note:   "deploy",
+			}
+		}
+	}
+
+	if _, err = sess.ID(key.ID).Delete(new(asymkey_model.DeployKey)); err != nil {
+		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
+	}
+
+	// Check if this is the last reference to same key content.
+	has, err := sess.
+		Where("key_id = ?", key.KeyID).
+		Get(new(asymkey_model.DeployKey))
+	if err != nil {
+		return err
+	} else if !has {
+		if err = asymkey_model.DeletePublicKeys(ctx, key.KeyID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -31,13 +31,15 @@ func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOption
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(doer *user_model.User, repo *repo_model.Repository) error {
+func DeleteRepository(doer *user_model.User, repo *repo_model.Repository, notify bool) error {
 	if err := pull_service.CloseRepoBranchesPulls(doer, repo); err != nil {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	// If the repo itself has webhooks, we need to trigger them before deleting it...
-	notification.NotifyDeleteRepository(doer, repo)
+	if notify {
+		// If the repo itself has webhooks, we need to trigger them before deleting it...
+		notification.NotifyDeleteRepository(doer, repo)
+	}
 
 	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
 	return err

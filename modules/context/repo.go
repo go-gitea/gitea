@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
@@ -120,7 +121,7 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := models.SignCRUDAction(r.Repository, doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := asymkey_service.SignCRUDAction(r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
@@ -128,8 +129,8 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 	}
 	wontSignReason := ""
 	if err != nil {
-		if models.IsErrWontSign(err) {
-			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+		if asymkey_service.IsErrWontSign(err) {
+			wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
 			err = nil
 		} else {
 			wontSignReason = "error"
