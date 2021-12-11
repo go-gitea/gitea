@@ -67,14 +67,16 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
-	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
+	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
+	setting.RepoRootPath = repoRootPath
+	appDataPath, err := os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = pathToGiteaRoot
 	setting.StaticRootPath = pathToGiteaRoot
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
@@ -95,7 +97,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		fatalTestError("storage.Init: %v\n", err)
 	}
 
-	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = util.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
@@ -103,10 +105,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	}
 
 	exitStatus := m.Run()
-	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = util.RemoveAll(setting.AppDataPath); err != nil {
+	if err = util.RemoveAll(appDataPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
