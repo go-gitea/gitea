@@ -103,11 +103,11 @@ func SettingsPost(ctx *context.Context) {
 			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
-				case models.IsErrRepoAlreadyExist(err):
+				case repo_model.IsErrRepoAlreadyExist(err):
 					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 				case db.IsErrNameReserved(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-				case models.IsErrRepoFilesAlreadyExist(err):
+				case repo_model.IsErrRepoFilesAlreadyExist(err):
 					ctx.Data["Err_RepoName"] = true
 					switch {
 					case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
@@ -461,7 +461,7 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 
-		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
@@ -612,7 +612,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
-			if models.IsErrRepoAlreadyExist(err) {
+			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
@@ -714,7 +714,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.SetArchiveRepoState(repo, true); err != nil {
+		if err := repo_model.SetArchiveRepoState(repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -732,7 +732,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.SetArchiveRepoState(repo, false); err != nil {
+		if err := repo_model.SetArchiveRepoState(repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -1145,7 +1145,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = models.UploadRepoAvatar(ctxRepo, data); err != nil {
+	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %v", err)
 	}
 	return nil
@@ -1165,7 +1165,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := models.DeleteRepoAvatar(ctx.Repo.Repository); err != nil {
+	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

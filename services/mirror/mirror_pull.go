@@ -60,7 +60,7 @@ func UpdateAddress(m *repo_model.Mirror, addr string) error {
 	}
 
 	m.Repo.OriginalURL = addr
-	return models.UpdateRepositoryCols(m.Repo, "original_url")
+	return repo_model.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // mirrorSyncResult contains information of a updated reference.
@@ -476,7 +476,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+	if err = repo_model.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
 		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
 		return false
 	}
@@ -539,7 +539,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := models.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
