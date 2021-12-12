@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/42wim/sshsig"
 )
 
@@ -30,7 +31,11 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *Com
 			}
 		}
 
-		committerEmailAddresses, _ := user_model.GetEmailAddresses(committer.ID)
+		committerEmailAddresses, err := user_model.GetEmailAddresses(committer.ID)
+		if err != nil {
+			log.Error("GetEmailAddresses: %v", err)
+		}
+
 		activated := false
 		for _, e := range committerEmailAddresses {
 			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {

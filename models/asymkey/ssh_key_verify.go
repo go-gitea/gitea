@@ -37,7 +37,7 @@ func VerifySSHKey(ownerID int64, fingerprint, token, signature string) (string, 
 	}
 
 	key.Verified = true
-	if _, err := db.GetEngine(ctx).ID(key.ID).SetExpr("verified", true).Update(new(PublicKey)); err != nil {
+	if _, err := db.GetEngine(ctx).ID(key.ID).Cols("verified").Update(key); err != nil {
 		return "", err
 	}
 
