@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -79,8 +79,8 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 // VerifyCert verifies the validity of the ssh certificate and returns the publickey of the signer
 // We verify that the certificate is signed with the correct CA
 // We verify that the http request is signed with the private key (of the public key mentioned in the certificate)
-func VerifyCert(r *http.Request) (*models.PublicKey, error) {
-	var validpk *models.PublicKey
+func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
+	var validpk *asymkey_model.PublicKey
 
 	// Get our certificate from the header
 	bcert, err := base64.RawStdEncoding.DecodeString(r.Header.Get("x-ssh-certificate"))
@@ -101,13 +101,13 @@ func VerifyCert(r *http.Request) (*models.PublicKey, error) {
 	cert := pk.(*ssh.Certificate)
 
 	for _, principal := range cert.ValidPrincipals {
-		validpk, err = models.SearchPublicKeyByContentExact(principal)
+		validpk, err = asymkey_model.SearchPublicKeyByContentExact(principal)
 		if err != nil {
 			log.Error("SearchPublicKeyByContentExact: %v", err)
 			return validpk, err
 		}
 
-		if models.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			continue
 		}
 
