@@ -295,13 +295,13 @@ func CanUserForkRepo(user *user_model.User, repo *repo_model.Repository) (bool, 
 }
 
 // GetForksByUserAndOrgs return forked repos of the user and owned orgs
-func (repo *Repository) GetForksByUserAndOrgs(user *user_model.User) ([]*Repository, error) {
-	var repoList []*Repository
+func GetForksByUserAndOrgs(user *user_model.User, repo *repo_model.Repository) ([]*repo_model.Repository, error) {
+	var repoList []*repo_model.Repository
 	if user == nil {
 		return repoList, nil
 	}
-	var forkedRepo *Repository
-	forkedRepo, err := repo.GetUserFork(user.ID)
+	var forkedRepo *repo_model.Repository
+	forkedRepo, err := repo_model.GetUserFork(repo.ID, user.ID)
 	if err != nil {
 		return repoList, err
 	}
@@ -313,7 +313,7 @@ func (repo *Repository) GetForksByUserAndOrgs(user *user_model.User) ([]*Reposit
 		return repoList, err
 	}
 	for _, org := range canCreateRepos {
-		forkedRepo, err := repo.GetUserFork(org.ID)
+		forkedRepo, err := repo_model.GetUserFork(repo.ID, org.ID)
 		if err != nil {
 			return repoList, err
 		}
