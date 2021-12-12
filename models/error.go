@@ -71,21 +71,6 @@ func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
 }
 
-// ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
-type ErrReachLimitOfRepo struct {
-	Limit int
-}
-
-// IsErrReachLimitOfRepo checks if an error is a ErrReachLimitOfRepo.
-func IsErrReachLimitOfRepo(err error) bool {
-	_, ok := err.(ErrReachLimitOfRepo)
-	return ok
-}
-
-func (err ErrReachLimitOfRepo) Error() string {
-	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
-}
-
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |
@@ -322,38 +307,6 @@ func (err ErrRepoTransferInProgress) Error() string {
 	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
-// ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
-type ErrRepoAlreadyExist struct {
-	Uname string
-	Name  string
-}
-
-// IsErrRepoAlreadyExist checks if an error is a ErrRepoAlreadyExist.
-func IsErrRepoAlreadyExist(err error) bool {
-	_, ok := err.(ErrRepoAlreadyExist)
-	return ok
-}
-
-func (err ErrRepoAlreadyExist) Error() string {
-	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
-// ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
-type ErrRepoFilesAlreadyExist struct {
-	Uname string
-	Name  string
-}
-
-// IsErrRepoFilesAlreadyExist checks if an error is a ErrRepoAlreadyExist.
-func IsErrRepoFilesAlreadyExist(err error) bool {
-	_, ok := err.(ErrRepoFilesAlreadyExist)
-	return ok
-}
-
-func (err ErrRepoFilesAlreadyExist) Error() string {
-	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
 type ErrForkAlreadyExist struct {
 	Uname    string
@@ -369,22 +322,6 @@ func IsErrForkAlreadyExist(err error) bool {
 
 func (err ErrForkAlreadyExist) Error() string {
 	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
-}
-
-// ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
-type ErrRepoRedirectNotExist struct {
-	OwnerID  int64
-	RepoName string
-}
-
-// IsErrRepoRedirectNotExist check if an error is an ErrRepoRedirectNotExist.
-func IsErrRepoRedirectNotExist(err error) bool {
-	_, ok := err.(ErrRepoRedirectNotExist)
-	return ok
-}
-
-func (err ErrRepoRedirectNotExist) Error() string {
-	return fmt.Sprintf("repository redirect does not exist [uid: %d, name: %s]", err.OwnerID, err.RepoName)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.

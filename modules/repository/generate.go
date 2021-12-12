@@ -267,7 +267,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return nil, err
 	}
 	if isExist {
-		return nil, models.ErrRepoFilesAlreadyExist{
+		return nil, repo_model.ErrRepoFilesAlreadyExist{
 			Uname: generateRepo.OwnerName,
 			Name:  generateRepo.Name,
 		}

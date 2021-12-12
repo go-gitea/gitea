@@ -419,3 +419,21 @@ func FilterOutRepoIdsWithoutUnitAccess(u *user_model.User, repoIDs []int64, unit
 	}
 	return repoIDs[:i], nil
 }
+
+// GetRepoReaders returns all users that have explicit read access or higher to the repository.
+func GetRepoReaders(repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeRead)
+}
+
+// GetRepoWriters returns all users that have write access to the repository.
+func GetRepoWriters(repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeWrite)
+}
+
+// IsRepoReader returns true if user has explicit read access or higher to the repository.
+func IsRepoReader(repo *repo_model.Repository, userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
+}
