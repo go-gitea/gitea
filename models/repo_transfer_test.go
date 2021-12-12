@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -17,7 +18,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 
 	transfer, err := GetPendingRepositoryTransfer(repo)
 	assert.NoError(t, err)

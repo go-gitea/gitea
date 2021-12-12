@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDeleteRepoFileOptions(repo *models.Repository) *files_service.DeleteRepoFileOptions {
+func getDeleteRepoFileOptions(repo *repo_model.Repository) *files_service.DeleteRepoFileOptions {
 	return &files_service.DeleteRepoFileOptions{
 		LastCommitID: "",
 		OldBranch:    repo.DefaultBranch,

@@ -1,6 +1,6 @@
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initCompImagePaste, initSimpleMDEImagePaste} from './comp/ImagePaste.js';
+import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -63,7 +63,7 @@ export function initRepoCommentForm() {
     });
   }
 
-  createCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+  createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCompMarkupContentPreviewTab($('.comment.form'));
   initCompImagePaste($('.comment.form'));
@@ -262,7 +262,7 @@ async function onEditContent(event) {
   const $renderContent = $segment.find('.render-content');
   const $rawContent = $segment.find('.raw-content');
   let $textarea;
-  let $simplemde;
+  let easyMDE;
 
   // Setup new form
   if ($editContentZone.html().length === 0) {
@@ -341,11 +341,11 @@ async function onEditContent(event) {
     $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
     $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
     $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
-    $simplemde = createCommentSimpleMDE($textarea);
+    easyMDE = createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
     if ($dropzone.length === 1) {
-      initSimpleMDEImagePaste($simplemde, $dropzone[0], $dropzone.find('.files'));
+      initEasyMDEImagePaste(easyMDE, $dropzone[0], $dropzone.find('.files'));
     }
 
     $editContentZone.find('.cancel.button').on('click', () => {
@@ -395,7 +395,7 @@ async function onEditContent(event) {
     });
   } else {
     $textarea = $segment.find('textarea');
-    $simplemde = $textarea.data('simplemde');
+    easyMDE = getAttachedEasyMDE($textarea);
   }
 
   // Show write/preview tab and copy raw content as needed
@@ -403,11 +403,11 @@ async function onEditContent(event) {
   $renderContent.hide();
   if ($textarea.val().length === 0) {
     $textarea.val($rawContent.text());
-    $simplemde.value($rawContent.text());
+    easyMDE.value($rawContent.text());
   }
   requestAnimationFrame(() => {
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
   });
 }
 
@@ -527,9 +527,9 @@ export function initRepository() {
       $(this).parent().hide();
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      const $simplemde = $form.find('textarea.edit_area').data('simplemde');
+      const easyMDE = getAttachedEasyMDE($form.find('textarea.edit_area'));
       $form.show();
-      $simplemde.codemirror.refresh();
+      easyMDE.codemirror.refresh();
     });
   }
 }
@@ -547,24 +547,24 @@ function initRepoIssueCommentEdit() {
     const target = $(this).data('target');
     const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
-    let $simplemde;
+    let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
       const $parent = $(this).closest('.comment-code-cloud');
       $parent.find('button.comment-form-reply').trigger('click');
-      $simplemde = $parent.find('[name="content"]').data('simplemde');
+      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
     } else {
       // for normal issue/comment page
-      $simplemde = $('#comment-form .edit_area').data('simplemde');
+      easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
     }
-    if ($simplemde) {
-      if ($simplemde.value() !== '') {
-        $simplemde.value(`${$simplemde.value()}\n\n${content}`);
+    if (easyMDE) {
+      if (easyMDE.value() !== '') {
+        easyMDE.value(`${easyMDE.value()}\n\n${content}`);
       } else {
-        $simplemde.value(`${content}`);
+        easyMDE.value(`${content}`);
       }
       requestAnimationFrame(() => {
-        $simplemde.codemirror.focus();
-        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+        easyMDE.codemirror.focus();
+        easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
     event.preventDefault();

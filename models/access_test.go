@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -22,17 +23,17 @@ func TestAccessLevel(t *testing.T) {
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 	// A public repository owned by User 2
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
-	repo3 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	assert.True(t, repo3.IsPrivate)
 
 	// Another public repository
-	repo4 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
+	repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
 	assert.False(t, repo4.IsPrivate)
 	// org. owned private repo
-	repo24 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
+	repo24 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24}).(*repo_model.Repository)
 
 	level, err := AccessLevel(user2, repo1)
 	assert.NoError(t, err)
@@ -72,10 +73,10 @@ func TestHasAccess(t *testing.T) {
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	// A public repository owned by User 2
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
-	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	assert.True(t, repo2.IsPrivate)
 
 	has, err := HasAccess(user1.ID, repo1)
@@ -95,12 +96,12 @@ func TestHasAccess(t *testing.T) {
 func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	assert.NoError(t, repo1.GetOwner())
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
-	assert.NoError(t, repo1.RecalculateAccesses())
+	assert.NoError(t, RecalculateAccesses(repo1))
 
 	access := &Access{UserID: 2, RepoID: 3}
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
@@ -112,12 +113,12 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo1.GetOwner())
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
-	assert.NoError(t, repo1.RecalculateAccesses())
+	assert.NoError(t, RecalculateAccesses(repo1))
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)

@@ -42,6 +42,16 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
+var supportedDbTypeNames []map[string]string // use a slice to keep order
+func getDbTypeNames() []map[string]string {
+	if supportedDbTypeNames == nil {
+		for _, t := range setting.SupportedDatabaseTypes {
+			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
+		}
+	}
+	return supportedDbTypeNames
+}
+
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -63,7 +73,7 @@ func Init(next http.Handler) http.Handler {
 			Data: map[string]interface{}{
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
-				"DbOptions":     setting.SupportedDatabases,
+				"DbTypeNames":   getDbTypeNames(),
 				"i18n":          locale,
 				"Language":      locale.Language(),
 				"Lang":          locale.Language(),
@@ -100,19 +110,18 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	var curDBOption = "MySQL"
-	switch setting.Database.Type {
-	case "postgres":
-		curDBOption = "PostgreSQL"
-	case "mssql":
-		curDBOption = "MSSQL"
-	case "sqlite3":
-		if setting.EnableSQLite3 {
-			curDBOption = "SQLite3"
+	curDBType := setting.Database.Type
+	var isCurDBTypeSupported bool
+	for _, dbType := range setting.SupportedDatabaseTypes {
+		if dbType == curDBType {
+			isCurDBTypeSupported = true
+			break
 		}
 	}
-
-	ctx.Data["CurDbOption"] = curDBOption
+	if !isCurDBTypeSupported {
+		curDBType = "mysql"
+	}
+	ctx.Data["CurDbType"] = curDBType
 
 	// Application general settings
 	form.AppName = setting.AppName
@@ -237,7 +246,7 @@ func SubmitInstall(ctx *context.Context) {
 		form.AppURL += "/"
 	}
 
-	ctx.Data["CurDbOption"] = form.DbType
+	ctx.Data["CurDbType"] = form.DbType
 
 	if ctx.HasError() {
 		if ctx.HasValue("Err_SMTPUser") {
@@ -261,7 +270,7 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- Basic checks are passed, now test configuration.
 
 	// Test database setting.
-	setting.Database.Type = setting.GetDBTypeByName(form.DbType)
+	setting.Database.Type = form.DbType
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd

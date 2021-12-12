@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
@@ -23,7 +23,7 @@ import (
 const content = "Wiki contents for unit tests"
 const message = "Wiki commit message for unit tests"
 
-func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
+func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
@@ -39,7 +39,7 @@ func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.Tree
 	return nil
 }
 
-func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string {
+func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName string) string {
 	entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
@@ -52,11 +52,11 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	return string(bytes)
 }
 
-func assertWikiExists(t *testing.T, repo *models.Repository, wikiName string) {
+func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
 	assert.NotNil(t, wikiEntry(t, repo, wikiName))
 }
 
-func assertWikiNotExists(t *testing.T, repo *models.Repository, wikiName string) {
+func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
 	assert.Nil(t, wikiEntry(t, repo, wikiName))
 }
 
