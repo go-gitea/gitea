@@ -125,7 +125,7 @@ export function initRepoBranchTagDropdown(selector) {
             if (this.setAction) {
               $(`#${this.branchForm}`).attr('action', url);
             } else {
-              $(`#${this.branchForm} input[name="refURL"]`).val( url);
+              $(`#${this.branchForm} input[name="refURL"]`).val(url);
             }
             $(`#${this.branchForm} input[name="ref"]`).val(item.name);
             if (item.tag) {

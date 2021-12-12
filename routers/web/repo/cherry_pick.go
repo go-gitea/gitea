@@ -23,43 +23,7 @@ import (
 
 var tplCherryPick base.TplName = "repo/editor/cherry_pick"
 
-func refCherryPick(ctx *context.Context) {
-	var err error
-	refName := ctx.FormString("ref")
-	ctx.Repo.RefName = refName
-	ctx.Repo.IsViewBranch = true
-	ctx.Repo.BranchName = ctx.Repo.RefName
-	ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
-	if err != nil {
-		ctx.ServerError("GetBranchCommit", err)
-		return
-	}
-	ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-
-	ctx.Data["BranchName"] = ctx.Repo.BranchName
-	ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-	ctx.Data["TagName"] = ctx.Repo.TagName
-	ctx.Data["CommitID"] = ctx.Repo.CommitID
-	ctx.Data["TreePath"] = ctx.Repo.TreePath
-	ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
-	ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
-	ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
-	ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
-
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
-		return
-	}
-	ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-
-	if !ctx.Repo.Repository.CanEnableEditor() || ctx.Repo.IsViewCommit {
-		ctx.NotFound("", nil)
-		return
-	}
-
-}
-
+// CherryPick handles cherrypick GETs
 func CherryPick(ctx *context.Context) {
 	ctx.Data["SHA"] = ctx.Params(":sha")
 	if ctx.FormString("cherry-pick-type") == "revert" {
@@ -90,6 +54,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.HTML(200, tplCherryPick)
 }
 
+// CherryPickPost handles cherrypick POSTs
 func CherryPickPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CherryPickForm)
 

@@ -3,7 +3,6 @@ import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 
 import 'jquery.are-you-sure';
-import { stringify } from 'json5';
 
 const {csrfToken} = window.config;
 
