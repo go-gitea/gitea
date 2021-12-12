@@ -12,7 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -27,7 +28,7 @@ import (
 //
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
-var authMethods = []Auth{
+var authMethods = []Method{
 	&OAuth2{},
 	&Basic{},
 	&Session{},
@@ -40,12 +41,12 @@ var (
 )
 
 // Methods returns the instances of all registered methods
-func Methods() []Auth {
+func Methods() []Method {
 	return authMethods
 }
 
 // Register adds the specified instance to the list of available methods
-func Register(method Auth) {
+func Register(method Method) {
 	authMethods = append(authMethods, method)
 }
 
@@ -57,7 +58,12 @@ func Init() {
 	}
 	specialInit()
 	for _, method := range Methods() {
-		err := method.Init()
+		initializable, ok := method.(Initializable)
+		if !ok {
+			continue
+		}
+
+		err := initializable.Init()
 		if err != nil {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
@@ -68,7 +74,12 @@ func Init() {
 // to release necessary resources
 func Free() {
 	for _, method := range Methods() {
-		err := method.Free()
+		freeable, ok := method.(Freeable)
+		if !ok {
+			continue
+		}
+
+		err := freeable.Free()
 		if err != nil {
 			log.Error("Could not free '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
@@ -80,11 +91,11 @@ func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
-var gitRawPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|raw/)`)
+var gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
 var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 
-func isGitRawOrLFSPath(req *http.Request) bool {
-	if gitRawPathRe.MatchString(req.URL.Path) {
+func isGitRawReleaseOrLFSPath(req *http.Request) bool {
+	if gitRawReleasePathRe.MatchString(req.URL.Path) {
 		return true
 	}
 	if setting.LFS.StartServer {
@@ -94,7 +105,7 @@ func isGitRawOrLFSPath(req *http.Request) bool {
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *models.User) {
+func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
@@ -117,7 +128,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
-		if err := models.UpdateUserCols(user, "language"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

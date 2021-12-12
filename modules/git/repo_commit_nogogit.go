@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -10,13 +11,14 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"io/ioutil"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--hash", name).RunInDir(repo.Path)
+	stdout, err := NewCommandContext(repo.Ctx, "show-ref", "--hash", name).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -33,7 +35,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, _ = wr.Write([]byte(name + "\n"))
 	shaBs, _, _, err := ReadBatchLine(rd)
@@ -46,12 +48,12 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	_, err := NewCommand("cat-file", "-e", name).RunInDir(repo.Path)
+	_, err := NewCommandContext(repo.Ctx, "cat-file", "-e", name).RunInDir(repo.Path)
 	return err == nil
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	wr, rd, cancel := repo.CatFileBatch()
+	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
@@ -74,7 +76,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
-		data, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +112,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 
 		return commit, nil
 	default:
-		log("Unknown typ: %s", typ)
+		log.Debug("Unknown typ: %s", typ)
 		_, err = rd.Discard(int(size) + 1)
 		if err != nil {
 			return nil, err
@@ -130,7 +132,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(commitID + "\n"))
 	if err != nil {

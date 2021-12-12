@@ -15,6 +15,9 @@ ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql8/indexers/issues.
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/repos.bleve
 
+[queue]
+TYPE = immediate
+
 [queue.code_indexer]
 TYPE = immediate
 
@@ -80,6 +83,7 @@ MODE                 = test,file
 ROOT_PATH            = mysql8-log
 ROUTER               = ,
 XORM                 = file
+ENABLE_SSH_LOG       = true
 
 [log.test]
 LEVEL                = Info

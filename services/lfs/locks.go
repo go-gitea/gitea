@@ -10,16 +10,17 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
-func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {
+func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *models.LFSLock, err error) {
 	if err != nil {
 		if models.IsErrLFSLockNotExist(err) {
 			ctx.JSON(http.StatusOK, api.LFSLockList{
@@ -47,7 +48,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 func GetListLockHandler(ctx *context.Context) {
 	rv := getRequestContext(ctx)
 
-	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -68,17 +69,17 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {
 		limit = 0
 	}
-	id := ctx.Query("id")
+	id := ctx.FormString("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
@@ -95,7 +96,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	path := ctx.Query("path")
+	path := ctx.FormString("path")
 	if path != "" { //Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
@@ -134,7 +135,7 @@ func PostLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -159,7 +160,7 @@ func PostLockHandler(ctx *context.Context) {
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
@@ -167,10 +168,9 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:  repository,
-		Path:  req.Path,
-		Owner: ctx.User,
+	lock, err := models.CreateLFSLock(repository, &models.LFSLock{
+		Path:    req.Path,
+		OwnerID: ctx.User.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -202,7 +202,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -224,11 +224,11 @@ func VerifyLockHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {
@@ -249,7 +249,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
 	for _, l := range lockList {
-		if l.Owner.ID == ctx.User.ID {
+		if l.OwnerID == ctx.User.ID {
 			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(l))
 		} else {
 			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))
@@ -268,7 +268,7 @@ func UnLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -293,7 +293,7 @@ func UnLockHandler(ctx *context.Context) {
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
@@ -301,7 +301,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, req.Force)
+	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.User, req.Force)
 	if err != nil {
 		if models.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")

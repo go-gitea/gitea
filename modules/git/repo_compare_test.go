@@ -6,11 +6,12 @@ package git
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +26,7 @@ func TestGetFormatPatch(t *testing.T) {
 	rd := &bytes.Buffer{}
 	err = repo.GetPatch("8d92fc95^", "8d92fc95", rd)
 	assert.NoError(t, err)
-	patchb, err := ioutil.ReadAll(rd)
+	patchb, err := io.ReadAll(rd)
 	assert.NoError(t, err)
 	patch := string(patchb)
 	assert.Regexp(t, "^From 8d92fc95", patch)

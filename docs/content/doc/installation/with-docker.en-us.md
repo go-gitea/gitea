@@ -34,8 +34,7 @@ image as a service. Since there is no database available, one can be initialized
 Create a directory like `gitea` and paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
-Also be aware that the tag `:latest` will install the current development version.
-For a stable release you can use `:1` or specify a certain release like `:{{< version >}}`.
+For a stable release you can use `:latest`, `:1` or specify a certain release like `:{{< version >}}`, but if you'd like to use the latest development version of Gitea then you could use the `:dev` tag.
 
 ```yaml
 version: "3"
@@ -304,7 +303,7 @@ services:
     - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
 ## SSH Container Passthrough
 
@@ -334,7 +333,14 @@ sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 In the next step a file named `/app/gitea/gitea` (with executable permissions) needs to be created on the host. This file will issue the SSH forwarding from the host to the container. Add the following contents to `/app/gitea/gitea`:
 
 ```bash
+#!/bin/sh
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
+```
+
+Here you should also make sure that you've set the permisson of `/app/gitea/gitea` correctly:
+
+```bash
+sudo chmod +x /app/gitea/gitea
 ```
 
 To make the forwarding work, the SSH port of the container (22) needs to be mapped to the host port 2222 in `docker-compose.yml` . Since this port does not need to be exposed to the outside world, it can be mapped to the `localhost` of the host machine:

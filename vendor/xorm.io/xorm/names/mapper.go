@@ -79,7 +79,7 @@ func (m SameMapper) Table2Obj(t string) string {
 	return t
 }
 
-// SnakeMapper implements IMapper and provides name transaltion between
+// SnakeMapper implements IMapper and provides name translation between
 // struct and database table
 type SnakeMapper struct {
 }

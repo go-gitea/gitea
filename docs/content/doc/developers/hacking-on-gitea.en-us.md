@@ -73,6 +73,8 @@ One of these three distributions of Make will run on Windows:
   - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (git bash, or mingw) are recommended, however if you only have command prompt (or potentially powershell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
+
 ## Downloading and cloning the Gitea source code
 
 The recommended method of obtaining the source code is by using `git clone`.
@@ -130,7 +132,14 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 To run and continuously rebuild when source files change:
 
 ```bash
+# for both frontend and backend
 make watch
+
+# or: watch frontend files (html/js/css) only
+make watch-frontend
+
+# or: watch backend files (go) only
+make watch-backend
 ```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
@@ -165,7 +174,9 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Either use the `watch-frontend` target mentioned above or just build once:
+Frontend development should follow [Guidelines for Frontend Development](./guidelines-frontend.md)
+
+To build with frontend resources, either use the `watch-frontend` target mentioned above or just build once:
 
 ```bash
 make build && ./gitea
@@ -185,7 +196,7 @@ SVG icons are built using the `make svg` target which compiles the icon sources 
 
 ### Building the Logo
 
-The PNG and SVG versions of the gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
+The PNG and SVG versions of the Gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
 
 The same process can also be used to generate custom logo PNGs from a SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag will update only the user-designated logo files.
 
@@ -306,6 +317,19 @@ A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
 Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
+
+## GoLand
+
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+can quickly start a debuggable Gitea instance.
+
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
+gitea project directory (which contains `main.go` and `go.mod`), 
+otherwise, the started instance's working directory is a GoLand's temporary directory 
+and prevents Gitea from loading dynamic resources (eg: templates) in a development environment.  
+
+To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
+in `Go tool arguments` of `Run/Debug Configuration`.
 
 ## Submitting PRs
 

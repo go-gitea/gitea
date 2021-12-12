@@ -69,11 +69,11 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - Logging
 - Configuration
     - Databases
-        - MySQL
-        - PostgreSQL
+        - MySQL (>=5.7)
+        - PostgreSQL (>=10)
         - SQLite3
-        - MSSQL
-        - TiDB (experimental, not recommended)
+        - MSSQL (>=2008R2 SP3)
+        - TiDB (MySQL protocol)
     - Configuration file
         - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     - Admin panel
@@ -117,7 +117,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - Configuration viewer
             - Everything in config file
         - System notices
-            - When somthing unexpected happens
+            - When something unexpected happens
         - Monitoring
             - Current processes
             - Cron jobs
@@ -155,7 +155,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Libravatar
             - Custom
         - Password
-        - Mutiple email addresses
+        - Multiple email addresses
         - SSH Keys
         - Connected applications
         - Two factor authentication

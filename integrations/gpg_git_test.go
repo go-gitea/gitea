@@ -7,16 +7,17 @@ package integrations
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -27,7 +28,7 @@ func TestGPGGit(t *testing.T) {
 	username := "user2"
 
 	// OK Set a new GPG home
-	tmpDir, err := ioutil.TempDir("", "temp-gpg")
+	tmpDir, err := os.MkdirTemp("", "temp-gpg")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
@@ -60,7 +61,7 @@ func TestGPGGit(t *testing.T) {
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
-	user := models.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username}).(*user_model.User)
 
 	setting.Repository.Signing.InitialCommit = []string{"never"}
 	setting.Repository.Signing.CRUDActions = []string{"never"}
@@ -325,7 +326,7 @@ func TestGPGGit(t *testing.T) {
 	}, false)
 }
 
-func crudActionCreateFile(t *testing.T, ctx APITestContext, user *models.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
+func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return doAPICreateFile(ctx, path, &api.CreateFileOptions{
 		FileOptions: api.FileOptions{
 			BranchName:    from,

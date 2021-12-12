@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -12,6 +13,8 @@ import (
 	"io"
 	"path"
 	"sort"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
@@ -34,21 +37,18 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		}
 		if len(unHitPaths) > 0 {
 			sort.Strings(unHitPaths)
-			commits, err := GetLastCommitForPaths(ctx, commit, treePath, unHitPaths)
+			commits, err := GetLastCommitForPaths(ctx, cache, commit, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			for pth, found := range commits {
-				if err := cache.Put(commit.ID.String(), path.Join(treePath, pth), found.ID.String()); err != nil {
-					return nil, nil, err
-				}
 				revs[pth] = found
 			}
 		}
 	} else {
 		sort.Strings(entryPaths)
-		revs, err = GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
+		revs, err = GetLastCommitForPaths(ctx, nil, commit, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -59,26 +59,30 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		commitsInfo[i] = CommitInfo{
 			Entry: entry,
 		}
+
+		// Check if we have found a commit for this entry in time
 		if entryCommit, ok := revs[entry.Name()]; ok {
 			commitsInfo[i].Commit = entryCommit
-			if entry.IsSubModule() {
-				subModuleURL := ""
-				var fullPath string
-				if len(treePath) > 0 {
-					fullPath = treePath + "/" + entry.Name()
-				} else {
-					fullPath = entry.Name()
-				}
-				if subModule, err := commit.GetSubModule(fullPath); err != nil {
-					return nil, nil, err
-				} else if subModule != nil {
-					subModuleURL = subModule.URL
-				}
-				subModuleFile := NewSubModuleFile(entryCommit, subModuleURL, entry.ID.String())
-				commitsInfo[i].SubModuleFile = subModuleFile
-			}
 		} else {
-			log("missing commit for %s", entry.Name())
+			log.Debug("missing commit for %s", entry.Name())
+		}
+
+		// If the entry if a submodule add a submodule file for this
+		if entry.IsSubModule() {
+			subModuleURL := ""
+			var fullPath string
+			if len(treePath) > 0 {
+				fullPath = treePath + "/" + entry.Name()
+			} else {
+				fullPath = entry.Name()
+			}
+			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+				return nil, nil, err
+			} else if subModule != nil {
+				subModuleURL = subModule.URL
+			}
+			subModuleFile := NewSubModuleFile(commitsInfo[i].Commit, subModuleURL, entry.ID.String())
+			commitsInfo[i].SubModuleFile = subModuleFile
 		}
 	}
 
@@ -96,7 +100,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 }
 
 func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
-	wr, rd, cancel := cache.repo.CatFileBatch()
+	wr, rd, cancel := cache.repo.CatFileBatch(ctx)
 	defer cancel()
 
 	var unHitEntryPaths []string
@@ -118,14 +122,14 @@ func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
-	revs, err := WalkGitLog(ctx, commit.repo, commit, treePath, paths...)
+	revs, err := WalkGitLog(ctx, cache, commit.repo, commit, treePath, paths...)
 	if err != nil {
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch(ctx)
 	defer cancel()
 
 	commitsMap := map[string]*Commit{}

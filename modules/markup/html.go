@@ -6,14 +6,13 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -42,16 +41,21 @@ var (
 	// While fast, this is also incorrect and lead to false positives.
 	// TODO: fix invalid linking issue
 
+	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
+
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
-	// so that abbreviated hash links can be used as well. This matches git and github useability.
+	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
 	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anySHA1Pattern allows to split url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})(/[^#\s]+)?(#\S+)?`)
+	// anySHA1Pattern splits url containing SHA into parts
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+
+	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(\.\.\.?)([0-9a-f]{40})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -66,14 +70,11 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
@@ -89,12 +90,17 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
-// FIXME: This function is not concurrent safe
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var issueFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
+	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	})
 	return issueFullPattern
 }
 
@@ -151,6 +157,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,
@@ -177,6 +184,7 @@ func PostProcess(
 
 var commitMessageProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	linkProcessor,
 	mentionProcessor,
@@ -207,6 +215,7 @@ func RenderCommitMessage(
 
 var commitMessageSubjectProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	linkProcessor,
 	mentionProcessor,
@@ -275,7 +284,7 @@ func RenderDescriptionHTML(
 }
 
 // RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown procesor
+// in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
 	content string,
 ) (string, error) {
@@ -288,7 +297,7 @@ var nulCleaner = strings.NewReplacer("\000", "")
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
-	rawHTML, err := ioutil.ReadAll(input)
+	rawHTML, err := io.ReadAll(input)
 	if err != nil {
 		return err
 	}
@@ -363,7 +372,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 		textNode(ctx, textProcs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
-			for _, attr := range node.Attr {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
@@ -376,6 +385,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			// Restrict text in links to emojis
@@ -459,17 +469,14 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias, class string) *html.Node {
-
+func createCustomEmoji(alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,
@@ -477,10 +484,8 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Data:     "img",
 		Attr:     []html.Attribute{},
 	}
-	if class != "" {
-		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/assets/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
-	}
+	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: ":" + alias + ":"})
+	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: setting.StaticURLPrefix + "/assets/img/emoji/" + alias + ".png"})
 
 	span.AppendChild(img)
 	return span
@@ -782,7 +787,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// extract repo and org name from matched link like
 		// http://localhost:3000/gituser/myrepo/issues/1
-		linkParts := strings.Split(path.Clean(link), "/")
+		linkParts := strings.Split(link, "/")
 		matchOrg := linkParts[len(linkParts)-4]
 		matchRepo := linkParts[len(linkParts)-3]
 
@@ -831,7 +836,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if exttrack && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
-			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue")
+			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -922,8 +927,53 @@ func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
 		if hash != "" {
 			text += " (" + hash + ")"
 		}
-
 		replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		node = node.NextSibling.NextSibling
+	}
+}
+
+func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
+		return
+	}
+
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		urlFull := node.Data[m[0]:m[1]]
+		text1 := base.ShortSha(node.Data[m[2]:m[3]])
+		textDots := base.ShortSha(node.Data[m[4]:m[5]])
+		text2 := base.ShortSha(node.Data[m[6]:m[7]])
+
+		hash := ""
+		if m[9] > 0 {
+			hash = node.Data[m[8]:m[9]][1:]
+		}
+
+		start := m[0]
+		end := m[1]
+
+		// If url ends in '.', it's very likely that it is not part of the
+		// actual url but used to finish a sentence.
+		if strings.HasSuffix(urlFull, ".") {
+			end--
+			urlFull = urlFull[:len(urlFull)-1]
+			if hash != "" {
+				hash = hash[:len(hash)-1]
+			} else if text2 != "" {
+				text2 = text2[:len(text2)-1]
+			}
+		}
+
+		text := text1 + textDots + text2
+		if hash != "" {
+			text += " (" + hash + ")"
+		}
+		replaceContent(node, start, end, createCodeLink(urlFull, text, "compare"))
 		node = node.NextSibling.NextSibling
 	}
 }
@@ -947,9 +997,8 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted == nil {
 			// check if this is a custom reaction
-			s := strings.Join(setting.UI.Reactions, " ") + "gitea"
-			if strings.Contains(s, alias) {
-				replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
+				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -1041,8 +1090,8 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 
-		replaceContent(node, m[2], m[3],
-			createCodeLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash), base.ShortSha(hash), "commit"))
+		link := util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling
 	}

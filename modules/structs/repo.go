@@ -172,12 +172,44 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// set to `true` to delete pr branch after merge by default
+	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash". `has_pull_requests` must be `true`.
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
+}
+
+// GenerateRepoOption options when creating repository using a template
+// swagger:model
+type GenerateRepoOption struct {
+	// The organization or person who will own the new repository
+	//
+	// required: true
+	Owner string `json:"owner"`
+	// Name of the repository to create
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Description of the repository to create
+	Description string `json:"description" binding:"MaxSize(255)"`
+	// Whether the repository is private
+	Private bool `json:"private"`
+	// include git content of default branch in template repo
+	GitContent bool `json:"git_content"`
+	// include topics in template repo
+	Topics bool `json:"topics"`
+	// include git hooks in template repo
+	GitHooks bool `json:"git_hooks"`
+	// include webhooks in template repo
+	Webhooks bool `json:"webhooks"`
+	// include avatar of the template repo
+	Avatar bool `json:"avatar"`
+	// include labels in template repo
+	Labels bool `json:"labels"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
@@ -210,12 +242,15 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
+	CodebaseService                        // 8 codebase service
 )
 
 // Name represents the service type's name
@@ -235,6 +270,12 @@ func (gt GitServiceType) Title() string {
 		return "GitLab"
 	case GogsService:
 		return "Gogs"
+	case OneDevService:
+		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
+	case CodebaseService:
+		return "Codebase"
 	case PlainGitService:
 		return "Git"
 	}
@@ -290,5 +331,8 @@ var (
 		GitlabService,
 		GiteaService,
 		GogsService,
+		OneDevService,
+		GitBucketService,
+		CodebaseService,
 	}
 )

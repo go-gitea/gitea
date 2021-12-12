@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -19,8 +20,12 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &Basic{}
+	_ Method = &Basic{}
+	_ Named  = &Basic{}
 )
+
+// BasicMethodName is the constant name of the basic authentication method
+const BasicMethodName = "basic"
 
 // Basic implements the Auth interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
@@ -30,26 +35,16 @@ type Basic struct {
 
 // Name represents the name of auth method
 func (b *Basic) Name() string {
-	return "basic"
-}
-
-// Init does nothing as the Basic implementation does not need to allocate any resources
-func (b *Basic) Init() error {
-	return nil
-}
-
-// Free does nothing as the Basic implementation does not have to release any resources
-func (b *Basic) Free() error {
-	return nil
+	return BasicMethodName
 }
 
 // Verify extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil
 	}
 
@@ -59,7 +54,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	auths := strings.SplitN(baHead, " ", 2)
-	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
+	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
 		return nil
 	}
 
@@ -81,7 +76,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
-		u, err := models.GetUserByID(uid)
+		u, err := user_model.GetUserByID(uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -94,7 +89,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
-		u, err := models.GetUserByID(token.UID)
+		u, err := user_model.GetUserByID(token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -116,12 +111,16 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
-	u, err := models.UserSignIn(uname, passwd)
+	u, source, err := UserSignIn(uname, passwd)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
 		}
 		return nil
+	}
+
+	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+		store.GetData()["SkipLocalTwoFA"] = true
 	}
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)

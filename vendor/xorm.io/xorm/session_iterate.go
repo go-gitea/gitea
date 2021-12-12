@@ -54,7 +54,7 @@ func (session *Session) Iterate(bean interface{}, fun IterFunc) error {
 		}
 		i++
 	}
-	return err
+	return rows.Err()
 }
 
 // BufferSize sets the buffersize for iterate

@@ -5,15 +5,16 @@
 package issues
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	dir, err := ioutil.TempDir("", "bleve.index")
+	dir, err := os.MkdirTemp("", "bleve.index")
 	assert.NoError(t, err)
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory")

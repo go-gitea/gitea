@@ -3,6 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
@@ -39,7 +40,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
+	actualCommitID, err := NewCommandContext(repo.Ctx, "rev-parse", "--verify", commitID).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {

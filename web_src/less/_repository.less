@@ -1,6 +1,19 @@
 .repository {
-  .commit-statuses .list > .item {
-    line-height: 2;
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
   }
 
   .repo-header {
@@ -291,7 +304,6 @@
         .svg {
           margin-left: 3px;
           margin-right: 5px;
-          color: #777777;
 
           &.octicon-reply {
             margin-right: 10px;
@@ -300,6 +312,11 @@
           &.octicon-file-directory,
           &.octicon-file-submodule {
             color: var(--color-primary);
+          }
+
+          &.octicon-file,
+          &.octicon-file-symlink-file {
+            color: var(--color-secondary-dark-7);
           }
         }
       }
@@ -414,10 +431,6 @@
             color: inherit;
             opacity: var(--opacity-disabled);
             cursor: default;
-          }
-
-          #delete-file-form {
-            display: inline-block;
           }
         }
       }
@@ -690,6 +703,15 @@
       code {
         color: var(--color-primary);
       }
+      a[data-clipboard-text] {
+        cursor: pointer;
+        svg {
+          vertical-align: middle;
+          position: relative;
+          top: -2px;
+          right: 1px;
+        }
+      }
     }
 
     .pull {
@@ -706,9 +728,11 @@
           margin-left: 10px;
           margin-top: 10px;
         }
+
         .branch-update.grid {
           .row {
             padding-bottom: 1rem;
+
             .icon {
               margin-top: 1.1rem;
             }
@@ -805,6 +829,7 @@
         .timeline-avatar {
           position: absolute;
           left: -72px;
+
           img {
             width: 40px !important;
             height: 40px !important;
@@ -816,6 +841,7 @@
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
+          vertical-align: middle;
         }
 
         &:first-child:not(.commit) {
@@ -959,6 +985,10 @@
 
       .ui.comments {
         max-width: 100%;
+
+        .avatar {
+          margin-right: .5rem;
+        }
       }
 
       .comment {
@@ -980,54 +1010,62 @@
         }
 
         .content {
-          > .merge-section {
-            background-color: var(--color-box-body);
+          @media @mediaSm {
+            .form .button {
+              width: 100%;
+              margin: 0;
 
-            .item {
-              padding: .25rem 0;
+              &:not(:last-child) {
+                margin-bottom: 1rem;
+              }
             }
+          }
+        }
 
+        .merge-section {
+          background-color: var(--color-box-body);
+
+          .item {
+            padding: .25rem 0;
+          }
+
+          .item-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0;
+            margin-top: -.25rem;
+            margin-bottom: -.25rem;
+          }
+
+          @media @mediaSm {
             .item-section {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 0;
-              margin-top: -.25rem;
-              margin-bottom: -.25rem;
-            }
-
-            .divider {
-              margin-left: -1rem;
-              margin-right: -1rem;
-            }
-
-            &.no-header {
-              #avatar-arrow();
-
-              &::after {
-                border-right-color: var(--color-box-body);
-              }
-            }
-
-            @media @mediaSm {
-              .form .button {
-                width: 100%;
-
-                &:not(:last-child) {
-                  margin-bottom: 1rem;
-                }
-              }
+              align-items: flex-start;
+              flex-direction: column;
             }
           }
 
-          .markup {
-            font-size: 14px;
+          .divider {
+            margin-left: -1rem;
+            margin-right: -1rem;
           }
 
-          .no-content {
-            color: var(--color-text-light-2);
-            font-style: italic;
+          &.no-header {
+            #avatar-arrow();
+
+            &::after {
+              border-right-color: var(--color-box-body);
+            }
           }
+        }
+
+        .markup {
+          font-size: 14px;
+        }
+
+        .no-content {
+          color: var(--color-text-light-2);
+          font-style: italic;
         }
 
         .ui.form {
@@ -1330,7 +1368,7 @@
           text-align: center;
         }
 
-        width: 175px;
+        width: 200px;
       }
     }
 
@@ -1498,6 +1536,12 @@
     th.removed,
     tr.removed {
       background-color: var(--color-diff-removed-row-bg) !important;
+    }
+
+    td.moved,
+    th.moved,
+    tr.moved {
+      background-color: var(--color-diff-moved-row-bg) !important;
     }
 
     tbody.section {
@@ -1711,6 +1755,10 @@
     }
 
     .code-diff-split {
+      .tag-code .lines-code code.code-inner {
+        padding-left: 10px !important;
+      }
+
       table,
       tbody {
         width: 100%;
@@ -1723,6 +1771,7 @@
         padding: 0;
         border-radius: 0;
       }
+
       img.emoji {
         padding: 0;
       }
@@ -1950,6 +1999,7 @@
       .wrap_remove {
         height: 38px;
       }
+
       .attachment_edit {
         width: 450px !important;
       }
@@ -2137,110 +2187,82 @@
   }
 
   .ui.attached.isSigned.isWarning {
-    border-left: 1px solid #c29393;
-    border-right: 1px solid #c29393;
+    border-left: 1px solid var(--color-error-border);
+    border-right: 1px solid var(--color-error-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c29393;
+      border-top: 1px solid var(--color-error-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fff5f5;
-      color: #d95c5c;
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
 
       .ui.text {
-        color: #d64444;
+        color: var(--color-error-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c29393;
+      border-bottom: 1px solid var(--color-error-border);
     }
   }
 
-  .ui.attached.isSigned:not(.isWarning) .pull-right {
-    padding-top: 5px;
-  }
-
   .ui.attached.isSigned.isVerified {
-    border-left: 1px solid #a3c293;
-    border-right: 1px solid #a3c293;
+    border-left: 1px solid var(--color-success-border);
+    border-right: 1px solid var(--color-success-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #a3c293;
+      border-top: 1px solid var(--color-success-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fcfff5;
-      color: #6cc644;
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
 
       .pull-right {
         color: var(--color-text);
       }
 
       .ui.text {
-        color: #21ba45;
+        color: var(--color-success-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #a3c293;
+      border-bottom: 1px solid var(--color-success-border);
     }
   }
 
-  .ui.attached.isSigned.isVerifiedUntrusted {
-    border-left: 1px solid #c2c193;
-    border-right: 1px solid #c2c193;
-
-    &.top,
-    &.message {
-      border-top: 1px solid #c2c193;
-    }
-
-    &.message {
-      box-shadow: none;
-      background-color: #fffff5;
-      color: #fbbd08;
-
-      .ui.text {
-        color: #d2ab00;
-      }
-    }
-
-    &:last-child,
-    &.bottom {
-      border-bottom: 1px solid #c2c193;
-    }
-  }
-
+  .ui.attached.isSigned.isVerifiedUntrusted,
   .ui.attached.isSigned.isVerifiedUnmatched {
-    border-left: 1px solid #c2a893;
-    border-right: 1px solid #c2a893;
+    border-left: 1px solid var(--color-warning-border);
+    border-right: 1px solid var(--color-warning-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c2a893;
+      border-top: 1px solid var(--color-warning-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fffaf5;
-      color: #f2711c;
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
 
       .ui.text {
-        color: #ee5f00;
+        color: var(--color-warning-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c2a893;
+      border-bottom: 1px solid var(--color-warning-border);
     }
   }
 
@@ -2251,6 +2273,7 @@
     .list {
       width: 100%;
       display: flex;
+      align-items: center;
 
       .item {
         width: 100%;
@@ -2258,10 +2281,12 @@
 
         &:first-of-type {
           border-radius: var(--border-radius) 0 0 var(--border-radius);
+          padding-left: .25rem;
         }
 
         &:last-of-type {
           border-radius: 0 var(--border-radius) var(--border-radius) 0;
+          padding-right: .25rem;
         }
 
         a {
@@ -2398,6 +2423,10 @@
       border-radius: 0;
       user-select: none;
 
+      @media @mediaSm {
+        display: none;
+      }
+
       .bar {
         white-space: nowrap;
         border: 0;
@@ -2415,24 +2444,6 @@
   .repository-menu .item {
     padding-top: 9px !important;
     padding-bottom: 9px !important;
-  }
-
-  &.diff .committed-by {
-    padding-top: .5rem;
-
-    .ui.avatar {
-      width: 20px;
-      height: 20px;
-    }
-
-    span {
-      margin-right: .25rem;
-
-      svg {
-        vertical-align: text-bottom;
-        margin-right: 2px;
-      }
-    }
   }
 }
 
@@ -2520,10 +2531,20 @@
   padding-top: 15px;
 }
 
+.browse-button {
+  position: absolute;
+  right: 1rem;
+  top: .75rem;
+}
+
+.commit-header-row {
+  min-height: 50px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .settings {
   .content {
-    margin-top: 2px;
-
     > .header,
     .segment {
       box-shadow: 0 1px 2px 0 var(--color-box-header);
@@ -2692,19 +2713,6 @@
       width: 15px;
       height: 15px;
     }
-
-    .precolors {
-      padding-left: 0;
-      padding-right: 0;
-      margin: 3px 10px auto;
-      width: 120px;
-
-      .color {
-        float: left;
-        width: 15px;
-        height: 15px;
-      }
-    }
   }
 }
 
@@ -2772,6 +2780,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-block !important;
+  line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
 tbody.commit-list {
@@ -2790,6 +2799,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 100%;
   }
+
   th .message-wrapper {
     display: block;
     max-width: calc(100vw - 70px);
@@ -2800,6 +2810,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 723px;
   }
+
   th .message-wrapper {
     max-width: 280px;
   }
@@ -2809,6 +2820,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 933px;
   }
+
   th .message-wrapper {
     max-width: 490px;
   }
@@ -2818,6 +2830,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 1127px;
   }
+
   th .message-wrapper {
     max-width: 680px;
   }
@@ -2932,8 +2945,23 @@ tbody.commit-list {
   align-items: center;
 }
 
+.repo-buttons .ui.labeled.button > .label:hover {
+  color: var(--color-primary-light-2);
+  background: var(--color-light);
+}
+
+.label-mimic-enabled() {
+  color: var(--color-text-dark);
+  background: var(--color-light-mimic-enabled) !important;
+
+  &:hover {
+    color: var(--color-primary-dark-1);
+  }
+}
+
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
+  .label-mimic-enabled();
 }
 
 .repo-buttons .ui.labeled.button {
@@ -2946,6 +2974,10 @@ tbody.commit-list {
 
   &.disabled {
     pointer-events: inherit !important;
+
+    > .label {
+      .label-mimic-enabled();
+    }
 
     > .button {
       pointer-events: none !important;
@@ -3079,6 +3111,10 @@ td.blob-excerpt {
 .repository-summary-language-stats {
   height: 48px;
   overflow: hidden;
+
+  @media @mediaSm {
+    height: auto;
+  }
 }
 
 .ui.form .right .ui.button {
@@ -3142,6 +3178,7 @@ td.blob-excerpt {
   transition: all .1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
+  color: var(--color-text);
 }
 
 .repository.migrate .card:hover {

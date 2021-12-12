@@ -5,50 +5,57 @@
 package dialects
 
 import (
+	"strings"
 	"time"
 
 	"xorm.io/xorm/schemas"
 )
 
-// FormatTime format time as column type
-func FormatTime(dialect Dialect, sqlTypeName string, t time.Time) (v interface{}) {
-	switch sqlTypeName {
-	case schemas.Time:
-		s := t.Format("2006-01-02 15:04:05") // time.RFC3339
-		v = s[11:19]
-	case schemas.Date:
-		v = t.Format("2006-01-02")
-	case schemas.DateTime, schemas.TimeStamp, schemas.Varchar: // !DarthPestilane! format time when sqlTypeName is schemas.Varchar.
-		if dialect.URI().DBType == schemas.ORACLE {
-			v = t
-		} else {
-			v = t.Format("2006-01-02 15:04:05")
-		}
-	case schemas.TimeStampz:
-		if dialect.URI().DBType == schemas.MSSQL {
-			v = t.Format("2006-01-02T15:04:05.9999999Z07:00")
-		} else {
-			v = t.Format(time.RFC3339Nano)
-		}
-	case schemas.BigInt, schemas.Int:
-		v = t.Unix()
-	default:
-		v = t
-	}
-	return
-}
-
 // FormatColumnTime format column time
-func FormatColumnTime(dialect Dialect, defaultTimeZone *time.Location, col *schemas.Column, t time.Time) (v interface{}) {
+func FormatColumnTime(dialect Dialect, dbLocation *time.Location, col *schemas.Column, t time.Time) (interface{}, error) {
 	if t.IsZero() {
 		if col.Nullable {
-			return nil
+			return nil, nil
 		}
-		return ""
+
+		if col.SQLType.IsNumeric() {
+			return 0, nil
+		}
 	}
 
+	var tmZone = dbLocation
 	if col.TimeZone != nil {
-		return FormatTime(dialect, col.SQLType.Name, t.In(col.TimeZone))
+		tmZone = col.TimeZone
 	}
-	return FormatTime(dialect, col.SQLType.Name, t.In(defaultTimeZone))
+
+	t = t.In(tmZone)
+
+	switch col.SQLType.Name {
+	case schemas.Date:
+		return t.Format("2006-01-02"), nil
+	case schemas.Time:
+		var layout = "15:04:05"
+		if col.Length > 0 {
+			layout += "." + strings.Repeat("0", col.Length)
+		}
+		return t.Format(layout), nil
+	case schemas.DateTime, schemas.TimeStamp:
+		var layout = "2006-01-02 15:04:05"
+		if col.Length > 0 {
+			layout += "." + strings.Repeat("0", col.Length)
+		}
+		return t.Format(layout), nil
+	case schemas.Varchar:
+		return t.Format("2006-01-02 15:04:05"), nil
+	case schemas.TimeStampz:
+		if dialect.URI().DBType == schemas.MSSQL {
+			return t.Format("2006-01-02T15:04:05.9999999Z07:00"), nil
+		} else {
+			return t.Format(time.RFC3339Nano), nil
+		}
+	case schemas.BigInt, schemas.Int:
+		return t.Unix(), nil
+	default:
+		return t, nil
+	}
 }

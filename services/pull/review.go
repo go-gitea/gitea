@@ -12,6 +12,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -19,7 +22,7 @@ import (
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
+func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 
 	var (
 		existsReview bool
@@ -58,7 +61,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +116,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
+func createCodeComment(doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
@@ -132,12 +135,12 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	head := pr.GetGitRefName()
 	if line > 0 {
 		if reviewID != 0 {
-			first, err := models.FindComments(models.FindCommentsOptions{
+			first, err := models.FindComments(&models.FindCommentsOptions{
 				ReviewID: reviewID,
 				Line:     line,
 				TreePath: treePath,
 				Type:     models.CommentTypeCode,
-				ListOptions: models.ListOptions{
+				ListOptions: db.ListOptions{
 					PageSize: 1,
 					Page:     1,
 				},
@@ -215,7 +218,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
+func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
@@ -245,7 +248,7 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	ctx := models.DefaultDBContext()
+	ctx := db.DefaultContext
 	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err
@@ -269,7 +272,7 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(reviewID int64, message string, doer *models.User, isDismiss bool) (comment *models.Comment, err error) {
+func DismissReview(reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *models.Comment, err error) {
 	review, err := models.GetReviewByID(reviewID)
 	if err != nil {
 		return

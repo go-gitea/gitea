@@ -17,6 +17,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -26,7 +30,7 @@ import (
 	"github.com/unknwon/i18n"
 )
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle models.MergeStyle) *httptest.ResponseRecorder {
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle) *httptest.ResponseRecorder {
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -61,7 +65,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -73,9 +77,9 @@ func TestPullMerge(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -83,7 +87,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -95,9 +99,9 @@ func TestPullRebase(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebase)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -105,7 +109,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -117,9 +121,9 @@ func TestPullRebaseMerge(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleRebaseMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -127,7 +131,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -140,9 +144,9 @@ func TestPullSquash(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -158,7 +162,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
-		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge)
 
 		// Check PR branch deletion
 		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
@@ -219,29 +223,29 @@ func TestCantMergeConflict(t *testing.T) {
 		session.MakeRequest(t, req, 201)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
-		user1 := models.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*models.User)
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{
+		}).(*user_model.User)
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
-		}).(*models.Repository)
+		}).(*repo_model.Repository)
 
-		pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "conflict",
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleMerge, "CONFLICT")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleRebase, "CONFLICT")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleRebase, "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 		gitRepo.Close()
@@ -256,14 +260,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		// Now we want to create a commit on a branch that is totally unrelated to our current head
 		// Drop down to pure code at this point
-		user1 := models.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*models.User)
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{
+		}).(*user_model.User)
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
-		}).(*models.Repository)
-		path := models.RepoPath(user1.Name, repo1.Name)
+		}).(*repo_model.Repository)
+		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
 		_, err := git.NewCommand("read-tree", "--empty").RunInDir(path)
 		assert.NoError(t, err)
@@ -318,14 +322,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := git.OpenRepository(path)
 		assert.NoError(t, err)
-		pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "unrelated",
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleMerge, "UNRELATED")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()

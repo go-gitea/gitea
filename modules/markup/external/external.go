@@ -7,14 +7,15 @@ package external
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -30,7 +31,7 @@ func RegisterRenderers() {
 
 // Renderer implements markup.Renderer for external tools
 type Renderer struct {
-	setting.MarkupRenderer
+	*setting.MarkupRenderer
 }
 
 // Name returns the external tool name
@@ -46,6 +47,11 @@ func (p *Renderer) NeedPostProcess() bool {
 // Extensions returns the supported extensions of the tool
 func (p *Renderer) Extensions() []string {
 	return p.FileExtensions
+}
+
+// SanitizerRules implements markup.Renderer
+func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return p.MarkupSanitizerRules
 }
 
 func envMark(envName string) string {
@@ -67,7 +73,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 	if p.IsInputFile {
 		// write to temp file
-		f, err := ioutil.TempFile("", "gitea_input")
+		f, err := os.CreateTemp("", "gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
@@ -91,7 +97,19 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	cmd := exec.Command(commands[0], args...)
+	if ctx == nil || ctx.Ctx == nil {
+		if ctx == nil {
+			log.Warn("RenderContext not provided defaulting to empty ctx")
+			ctx = &markup.RenderContext{}
+		}
+		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
+		ctx.Ctx = graceful.GetManager().ShutdownContext()
+	}
+
+	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix))
+	defer finished()
+
+	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
 		"GITEA_PREFIX_SRC="+ctx.URLPrefix,

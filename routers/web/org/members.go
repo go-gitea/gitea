@@ -26,12 +26,12 @@ func Members(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	var opts = &models.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
@@ -54,7 +54,7 @@ func Members(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := models.FindOrgMembers(&opts)
+	members, membersIsPublic, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -62,7 +62,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = models.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(http.StatusOK, tplMembers)
@@ -70,7 +70,7 @@ func Members(ctx *context.Context) {
 
 // MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
-	uid := ctx.QueryInt64("uid")
+	uid := ctx.FormInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/members")
 		return
@@ -99,14 +99,18 @@ func MembersAction(ctx *context.Context) {
 		err = org.RemoveMember(uid)
 		if models.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.Redirect(ctx.Org.OrgLink + "/members")
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": ctx.Org.OrgLink + "/members",
+			})
 			return
 		}
 	case "leave":
 		err = org.RemoveMember(ctx.User.ID)
 		if models.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
-			ctx.Redirect(ctx.Org.OrgLink + "/members")
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": ctx.Org.OrgLink + "/members",
+			})
 			return
 		}
 	}
@@ -120,9 +124,12 @@ func MembersAction(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Params(":action") != "leave" {
-		ctx.Redirect(ctx.Org.OrgLink + "/members")
-	} else {
-		ctx.Redirect(setting.AppSubURL + "/")
+	redirect := ctx.Org.OrgLink + "/members"
+	if ctx.Params(":action") == "leave" {
+		redirect = setting.AppSubURL + "/"
 	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": redirect,
+	})
 }

@@ -7,6 +7,7 @@ package pull
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -108,20 +109,28 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 	}
 	defer headGitRepo.Close()
 
-	if !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+		return "", errors.New("Head branch does not exist, can not merge")
+	}
+	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(headGitRepo.Ctx, headGitRepo.Path, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
-	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	var sha string
+	if pr.Flow == models.PullRequestFlowGithub {
+		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	} else {
+		sha, err = headGitRepo.GetRefCommitID(pr.GetGitRefName())
+	}
 	if err != nil {
-		return "", errors.Wrap(err, "GetBranchCommitID")
+		return "", err
 	}
 
 	if err := pr.LoadBaseRepo(); err != nil {
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
+	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

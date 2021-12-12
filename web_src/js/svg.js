@@ -1,5 +1,6 @@
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
+import octiconCopy from '../../public/img/svg/octicon-copy.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
@@ -13,10 +14,14 @@ import octiconProject from '../../public/img/svg/octicon-project.svg';
 import octiconRepo from '../../public/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
+import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
+
+import Vue from 'vue';
 
 export const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
+  'octicon-copy': octiconCopy,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-issue-closed': octiconIssueClosed,
@@ -30,6 +35,7 @@ export const svgs = {
   'octicon-repo': octiconRepo,
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
+  'octicon-triangle-down': octiconTriangleDown,
 };
 
 const parser = new DOMParser();
@@ -47,3 +53,19 @@ export function svg(name, size = 16, className = '') {
   if (className) svgNode.classList.add(...className.split(/\s+/));
   return serializer.serializeToString(svgNode);
 }
+
+export const SvgIcon = Vue.component('SvgIcon', {
+  props: {
+    name: {type: String, required: true},
+    size: {type: Number, default: 16},
+    className: {type: String, default: ''},
+  },
+
+  computed: {
+    svg() {
+      return svg(this.name, this.size, this.className);
+    },
+  },
+
+  template: `<span v-html="svg" />`
+});

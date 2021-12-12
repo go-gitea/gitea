@@ -13,14 +13,13 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 
 	ini "gopkg.in/ini.v1"
 )
 
 var filenameSuffix = ""
-
 var descriptionLock = sync.RWMutex{}
 var logDescriptions = make(map[string]*LogDescription)
 
@@ -121,7 +120,7 @@ func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.L
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 
@@ -203,8 +202,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	}
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)

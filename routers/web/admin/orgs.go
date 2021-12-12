@@ -6,7 +6,8 @@
 package admin
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,9 +25,10 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
 
-	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type: models.UserTypeOrganization,
-		ListOptions: models.ListOptions{
+	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
+		Actor: ctx.User,
+		Type:  user_model.UserTypeOrganization,
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
 		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},

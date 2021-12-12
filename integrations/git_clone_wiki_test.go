@@ -7,13 +7,14 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func assertFileExist(t *testing.T, p string) {
 }
 
 func assertFileEqual(t *testing.T, p string, content []byte) {
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	assert.NoError(t, err)
 	assert.EqualValues(t, content, bs)
 }
@@ -33,7 +34,7 @@ func TestRepoCloneWiki(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		defer prepareTestEnv(t)()
 
-		dstPath, err := ioutil.TempDir("", "clone_wiki")
+		dstPath, err := os.MkdirTemp("", "clone_wiki")
 		assert.NoError(t, err)
 
 		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())

@@ -6,13 +6,15 @@ package webhook
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -25,12 +27,8 @@ var (
 	_ PayloadConvertor = &DingtalkPayload{}
 )
 
-// SetSecret sets the dingtalk secret
-func (d *DingtalkPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the DingtalkPayload to json
 func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -44,7 +42,7 @@ func (d *DingtalkPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+refName), nil
+	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -53,7 +51,7 @@ func (d *DingtalkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+refName), nil
+	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Fork implements PayloadConvertor Fork method
@@ -81,7 +79,7 @@ func (d *DingtalkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		linkText = fmt.Sprintf("view commit %s...%s", p.Commits[0].ID[:7], p.Commits[len(p.Commits)-1].ID[:7])
 	}
 	if titleLink == "" {
-		titleLink = p.Repo.HTMLURL + "/src/" + branchName
+		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)
 	}
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
@@ -126,7 +124,7 @@ func (d *DingtalkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -179,12 +177,15 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 			Title:       strings.TrimSpace(title),
 			HideAvatar:  "0",
 			SingleTitle: singleTitle,
-			SingleURL:   singleURL,
+
+			// https://developers.dingtalk.com/document/app/message-link-description
+			// to open the link in browser, we should use this URL, otherwise the page is displayed inside DingTalk client, very difficult to visit non-public URLs.
+			SingleURL: "dingtalk://dingtalkclient/page/link?pc_slide=false&url=" + url.QueryEscape(singleURL),
 		},
 	}
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetDingtalkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(DingtalkPayload), p, event)
 }

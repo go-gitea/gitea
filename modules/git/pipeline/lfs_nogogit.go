@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package pipeline
@@ -62,7 +63,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
@@ -216,24 +217,15 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 		defer wg.Done()
 		defer shasToNameWriter.Close()
 		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
+			_, err := shasToNameWriter.Write([]byte(result.SHA))
+			if err != nil {
+				errChan <- err
+				break
 			}
-			var err error
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
+			_, err = shasToNameWriter.Write([]byte{'\n'})
+			if err != nil {
+				errChan <- err
+				break
 			}
 
 		}

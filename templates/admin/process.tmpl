@@ -1,0 +1,10 @@
+<h4 class="ui top attached header">
+	{{.i18n.Tr "admin.monitor.process"}}
+</h4>
+<div class="ui attached segment">
+	<div class="ui relaxed divided list">
+			{{range .Processes}}
+				{{template "admin/process-row" dict "Process" . "root" $}}
+			{{end}}
+	</div>
+</div>

@@ -181,6 +181,8 @@ func (queue *UniqueQueue) Len() int64 {
 func (queue *UniqueQueue) Close() error {
 	_ = queue.q.Close()
 	_ = queue.set.Close()
+	queue.set.lock.Lock()
+	defer queue.set.lock.Unlock()
 	if !queue.closeUnderlyingDB {
 		queue.db = nil
 		return nil

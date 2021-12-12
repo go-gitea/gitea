@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -16,20 +17,21 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/attachment"
 )
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Attachment.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
 }
 
 // UploadReleaseAttachment response for uploading release attachments
 func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Repository.Release.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
 }
 
 // UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, allowedTypes string) {
+func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	if !setting.Attachment.Enabled {
 		ctx.Error(http.StatusNotFound, "attachment is not enabled")
 		return
@@ -42,23 +44,12 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
-
-	err = upload.Verify(buf, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.User.ID, repoID, 0, header.Filename, allowedTypes)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	attach, err := models.NewAttachment(&models.Attachment{
-		UploaderID: ctx.User.ID,
-		Name:       header.Filename,
-	}, buf, file)
-	if err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
 		return
 	}
@@ -71,8 +62,8 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 
 // DeleteAttachment response for deleting issue's attachment
 func DeleteAttachment(ctx *context.Context) {
-	file := ctx.Query("file")
-	attach, err := models.GetAttachmentByUUID(file)
+	file := ctx.FormString("file")
+	attach, err := repo_model.GetAttachmentByUUID(file)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, err.Error())
 		return
@@ -81,7 +72,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
-	err = models.DeleteAttachment(attach, true)
+	err = repo_model.DeleteAttachment(attach, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
@@ -93,9 +84,9 @@ func DeleteAttachment(ctx *context.Context) {
 
 // GetAttachment serve attachements
 func GetAttachment(ctx *context.Context) {
-	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
+	attach, err := repo_model.GetAttachmentByUUID(ctx.Params(":uuid"))
 	if err != nil {
-		if models.IsErrAttachmentNotExist(err) {
+		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
@@ -103,7 +94,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := attach.LinkedRepository()
+	repository, unitType, err := models.LinkedRepository(attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return
