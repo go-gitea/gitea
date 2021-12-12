@@ -100,6 +100,7 @@ type HookResponse struct {
 // HookTask represents a hook task.
 type HookTask struct {
 	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"` // unused
 	HookID          int64
 	UUID            string
 	api.Payloader   `xorm:"-"`

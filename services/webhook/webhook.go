@@ -99,9 +99,15 @@ func getPayloadBranch(p api.Payloader) string {
 	return ""
 }
 
+// SourceContext represents the source of a webhook action. Repository and/or Owner must be set.
+type SourceContext struct {
+	Repository *repo_model.Repository
+	Owner      *user_model.User
+}
+
 // PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhook(w, event, p); err != nil {
+func PrepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+	if err := prepareWebhook(ctx, w, event, p); err != nil {
 		return err
 	}
 
@@ -124,7 +130,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -169,7 +175,13 @@ func prepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType,
 		payloader = p
 	}
 
+	repoID := int64(0)
+	if ctx.Repository != nil {
+		repoID = ctx.Repository.ID
+	}
+
 	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
+		RepoID:    repoID,
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
@@ -177,12 +189,6 @@ func prepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType,
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}
 	return nil
-}
-
-// SourceContext represents the source of a webhook action. Repository and/or Owner must be set.
-type SourceContext struct {
-	Repository *repo_model.Repository
-	Owner      *user_model.User
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
@@ -237,7 +243,7 @@ func prepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api
 	}
 
 	for _, w := range ws {
-		if err = prepareWebhook(w, event, p); err != nil {
+		if err = prepareWebhook(ctx, w, event, p); err != nil {
 			return err
 		}
 	}
