@@ -19,7 +19,7 @@ import (
 // GenerateRepository generates a repository from a template
 func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.Repository, opts models.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	if !doer.IsAdmin && !owner.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{
+		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
 		}
 	}
@@ -40,14 +40,14 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 
 		// Topics
 		if opts.Topics {
-			if err = models.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
+			if err = repo_model.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Git Hooks
 		if opts.GitHooks {
-			if err = models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
+			if err = GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
@@ -61,7 +61,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 
 		// Avatar
 		if opts.Avatar && len(templateRepo.Avatar) > 0 {
-			if err = models.GenerateAvatar(ctx, templateRepo, generateRepo); err != nil {
+			if err = generateAvatar(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}

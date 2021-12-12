@@ -1,8 +1,8 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repository
 
 import (
 	"context"
@@ -11,38 +11,18 @@ import (
 	"image/png"
 	"io"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
 
-// RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
-func RemoveRandomAvatars(ctx context.Context) error {
-	return db.GetEngine(db.DefaultContext).
-		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
-		Iterate(new(repo_model.Repository),
-			func(idx int, bean interface{}) error {
-				repository := bean.(*repo_model.Repository)
-				select {
-				case <-ctx.Done():
-					return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
-				default:
-				}
-				stringifiedID := strconv.FormatInt(repository.ID, 10)
-				if repository.Avatar == stringifiedID {
-					return DeleteRepoAvatar(repository)
-				}
-				return nil
-			})
-}
-
-// UploadRepoAvatar saves custom avatar for repository.
+// UploadAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func UploadRepoAvatar(repo *repo_model.Repository, data []byte) error {
+func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
 		return err
@@ -64,7 +44,7 @@ func UploadRepoAvatar(repo *repo_model.Repository, data []byte) error {
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
-	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
@@ -86,8 +66,8 @@ func UploadRepoAvatar(repo *repo_model.Repository, data []byte) error {
 	return committer.Commit()
 }
 
-// DeleteRepoAvatar deletes the repos's custom avatar.
-func DeleteRepoAvatar(repo *repo_model.Repository) error {
+// DeleteAvatar deletes the repos's custom avatar.
+func DeleteAvatar(repo *repo_model.Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil
@@ -103,7 +83,7 @@ func DeleteRepoAvatar(repo *repo_model.Repository) error {
 	defer committer.Close()
 
 	repo.Avatar = ""
-	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
@@ -112,4 +92,30 @@ func DeleteRepoAvatar(repo *repo_model.Repository) error {
 	}
 
 	return committer.Commit()
+}
+
+// RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
+func RemoveRandomAvatars(ctx context.Context) error {
+	return repo_model.IterateRepository(func(repository *repo_model.Repository) error {
+		select {
+		case <-ctx.Done():
+			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
+		default:
+		}
+		stringifiedID := strconv.FormatInt(repository.ID, 10)
+		if repository.Avatar == stringifiedID {
+			return DeleteAvatar(repository)
+		}
+		return nil
+	})
+}
+
+// generateAvatar generates the avatar from a template repository
+func generateAvatar(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
+	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
+		return err
+	}
+
+	return repo_model.UpdateRepositoryColsCtx(ctx, generateRepo, "avatar")
 }

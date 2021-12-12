@@ -150,7 +150,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", repo_model.WatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
@@ -190,8 +190,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&AccessToken{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Access{UserID: u.ID},
-		&Watch{UserID: u.ID},
-		&Star{UID: u.ID},
+		&repo_model.Watch{UserID: u.ID},
+		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
@@ -296,7 +296,7 @@ func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
-		And("`watch`.mode<>?", RepoWatchModeDont).
+		And("`watch`.mode<>?", repo_model.WatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)

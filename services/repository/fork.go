@@ -22,9 +22,16 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *repo_model.Repository
+	Name        string
+	Description string
+}
+
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *repo_model.Repository, err error) {
-	forkedRepo, err := models.GetUserFork(opts.BaseRepo.ID, owner.ID)
+func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo_model.Repository, err error) {
+	forkedRepo, err := repo_model.GetUserFork(opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -64,7 +64,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := models.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
+	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
