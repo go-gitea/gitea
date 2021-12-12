@@ -32,13 +32,13 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
+func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
 
 	repoIDs := issues.getRepoIDs()
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	left := len(repoIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -65,7 +65,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 }
 
 // LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*Repository, error) {
+func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
 	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 

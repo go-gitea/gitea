@@ -409,12 +409,6 @@ func Wiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	if !ctx.Repo.Repository.HasWiki() {
-		ctx.Data["Title"] = ctx.Tr("repo.wiki")
-		ctx.HTML(http.StatusOK, tplWikiStart)
-		return
-	}
-
 	switch ctx.FormString("action") {
 	case "_pages":
 		WikiPages(ctx)
@@ -435,6 +429,12 @@ func Wiki(ctx *context.Context) {
 			return
 		}
 		NewWiki(ctx)
+		return
+	}
+
+	if !ctx.Repo.Repository.HasWiki() {
+		ctx.Data["Title"] = ctx.Tr("repo.wiki")
+		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
 	}
 
@@ -622,10 +622,13 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
+	}
+	if ctx.FormString("title") != "" {
+		ctx.Data["title"] = ctx.FormString("title")
 	}
 
 	ctx.HTML(http.StatusOK, tplWikiNew)
@@ -636,7 +639,7 @@ func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -674,7 +677,7 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
@@ -694,7 +697,7 @@ func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)

@@ -20,8 +20,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -129,9 +131,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	}
 
 	repoExist := true
-	repo, err := models.GetRepositoryByName(owner.ID, reponame)
+	repo, err := repo_model.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
 				return
@@ -158,7 +160,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
-		if err := repo.GetOwner(); err != nil {
+		if err := repo.GetOwner(db.DefaultContext); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}
@@ -273,7 +275,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
 		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
-			if models.IsErrUnitTypeNotExist(err) {
+			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
 				return
 			}
@@ -295,9 +297,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 
-	dir := models.RepoPath(username, reponame)
+	dir := repo_model.RepoPath(username, reponame)
 	if isWiki {
-		dir = models.RepoPath(username, wikiRepoName)
+		dir = repo_model.RepoPath(username, wikiRepoName)
 	}
 
 	return &serviceHandler{cfg, w, r, dir, cfg.Env}

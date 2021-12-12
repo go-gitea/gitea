@@ -6,10 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -134,19 +131,4 @@ func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
 		Exist(&Issue{})
 
 	return !exists, err
-}
-
-// IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
-func (repo *Repository) IsDependenciesEnabled() bool {
-	return repo.isDependenciesEnabled(db.GetEngine(db.DefaultContext))
-}
-
-func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
-	var u *RepoUnit
-	var err error
-	if u, err = repo.getUnit(e, unit.TypeIssues); err != nil {
-		log.Trace("%s", err)
-		return setting.Service.DefaultEnableDependencies
-	}
-	return u.IssuesConfig().EnableDependencies
 }

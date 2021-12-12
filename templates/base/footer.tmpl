@@ -12,7 +12,7 @@
 	{{template "custom/body_outer_post" .}}
 
 	{{template "base/footer_content" .}}
-{{if .RequireSimpleMDE}}
+{{if .RequireEasyMDE}}
 	<script src="{{AssetUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
 	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
 	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>

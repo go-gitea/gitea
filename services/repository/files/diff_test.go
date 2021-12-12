@@ -7,7 +7,7 @@ package files
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/test"
@@ -152,7 +152,7 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	t.Run("empty repo", func(t *testing.T) {
-		diff, err := GetDiffPreview(&models.Repository{}, branch, treePath, content)
+		diff, err := GetDiffPreview(&repo_model.Repository{}, branch, treePath, content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
 	})

@@ -4,12 +4,15 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func addSSHKeyIsVerified(x *xorm.Engine) error {
-	type PublicKey struct {
-		Verified bool `xorm:"NOT NULL DEFAULT false"`
+func addProjectIssueSorting(x *xorm.Engine) error {
+	// ProjectIssue saves relation from issue to a project
+	type ProjectIssue struct {
+		Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	return x.Sync(new(PublicKey))
+	return x.Sync2(new(ProjectIssue))
 }

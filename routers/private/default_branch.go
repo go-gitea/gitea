@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -34,7 +34,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")
-	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
 		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -65,7 +65,7 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	}
 	gitRepo.Close()
 
-	if err := repo.UpdateDefaultBranch(); err != nil {
+	if err := repo_model.UpdateDefaultBranch(repo); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})
