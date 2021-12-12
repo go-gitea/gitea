@@ -10,13 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
-// ___________           __
-// \_   _____/__________|  | __
-//  |    __)/  _ \_  __ \  |/ /
-//  |     \(  <_> )  | \/    <
-//  \___  / \____/|__|  |__|_ \
-//      \/                   \/
-
 func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
 	return repos, e.
