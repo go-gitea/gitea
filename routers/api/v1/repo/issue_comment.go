@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -188,7 +189,7 @@ func isXRefCommentAccessible(user *user_model.User, c *models.Comment, issueRepo
 	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
 		if err != nil {
 			return false
 		}

@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -127,18 +128,18 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 
 	if c.Label != nil {
 		var org *user_model.User
-		var repo *models.Repository
+		var repo *repo_model.Repository
 		if c.Label.BelongsToOrg() {
 			var err error
 			org, err = user_model.GetUserByID(c.Label.OrgID)
 			if err != nil {
-				log.Error("GetCommentByID(%d): %v", c.Label.OrgID, err)
+				log.Error("GetUserByID(%d): %v", c.Label.OrgID, err)
 				return nil
 			}
 		}
 		if c.Label.BelongsToRepo() {
 			var err error
-			repo, err = models.GetRepositoryByID(c.Label.RepoID)
+			repo, err = repo_model.GetRepositoryByID(c.Label.RepoID)
 			if err != nil {
 				log.Error("GetRepositoryByID(%d): %v", c.Label.RepoID, err)
 				return nil
