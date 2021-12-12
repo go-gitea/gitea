@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -35,7 +36,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repoName := ctx.Params(":repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
-	var repo *models.Repository
+	var repo *repo_model.Repository
 
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
@@ -104,7 +105,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := models.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
@@ -116,7 +117,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	// We have to reload the repo in case its state is changed above
 	repo = nil
-	var baseRepo *models.Repository
+	var baseRepo *repo_model.Repository
 
 	// Now handle the pull request notification trailers
 	for i := range opts.OldCommitIDs {

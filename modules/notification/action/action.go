@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type actionNotifier struct {
@@ -88,7 +90,7 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *m
 }
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
-func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	act := &models.Action{
 		ActUserID: doer.ID,
@@ -100,14 +102,15 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *m
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	content := ""
-
-	if len(comment.Content) > 200 {
-		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
-	} else {
-		content = comment.Content
+	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
+	if truncatedRight != "" {
+		// in case the content is in a Latin family language, we remove the last broken word.
+		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
+		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
+			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
+		}
 	}
-	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
 
 	if issue.IsPull {
 		act.OpType = models.ActionCommentPull
@@ -148,7 +151,7 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions
 	}
 }
 
-func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *models.Repository, oldRepoName string) {
+func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
 	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
 
 	if err := models.NotifyWatchers(&models.Action{
@@ -164,7 +167,7 @@ func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *mod
 	}
 }
 
-func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *models.Repository, oldOwnerName string) {
+func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -178,7 +181,7 @@ func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *m
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (a *actionNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -191,7 +194,7 @@ func (a *actionNotifier) NotifyCreateRepository(doer *user_model.User, u *user_m
 	}
 }
 
-func (a *actionNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository) {
+func (a *actionNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -296,7 +299,7 @@ func (*actionNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *m
 	}
 }
 
-func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("Marshal: %v", err)
@@ -329,7 +332,7 @@ func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *models
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	opType := models.ActionCommitRepo
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
@@ -348,7 +351,7 @@ func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *models.Rep
 	}
 }
 
-func (a *actionNotifier) NotifyDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	opType := models.ActionDeleteBranch
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
@@ -367,7 +370,7 @@ func (a *actionNotifier) NotifyDeleteRef(doer *user_model.User, repo *models.Rep
 	}
 }
 
-func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)
@@ -388,7 +391,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *mo
 	}
 }
 
-func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
@@ -402,7 +405,7 @@ func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *models
 	}
 }
 
-func (a *actionNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),

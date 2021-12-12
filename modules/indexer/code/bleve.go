@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -181,7 +181,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 }
 
 func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -234,7 +234,7 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -271,7 +271,7 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *BleveIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
