@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -59,7 +59,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 	handler := func(idx int, bean interface{}, limit int) error {
 		var item SyncRequest
-		if m, ok := bean.(*models.Mirror); ok {
+		if m, ok := bean.(*repo_model.Mirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected mirror found: %d", m.ID)
 				return nil
@@ -68,7 +68,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 				Type:   PullMirrorType,
 				RepoID: m.RepoID,
 			}
-		} else if m, ok := bean.(*models.PushMirror); ok {
+		} else if m, ok := bean.(*repo_model.PushMirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
@@ -111,7 +111,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 
 	if pullLimit != 0 {
-		if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
+		if err := repo_model.MirrorsIterate(func(idx int, bean interface{}) error {
 			return handler(idx, bean, pullLimit)
 		}); err != nil && err != errLimit {
 			log.Error("MirrorsIterate: %v", err)
@@ -119,7 +119,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		}
 	}
 	if pushLimit != 0 {
-		if err := models.PushMirrorsIterate(func(idx int, bean interface{}) error {
+		if err := repo_model.PushMirrorsIterate(func(idx int, bean interface{}) error {
 			return handler(idx, bean, pushLimit)
 		}); err != nil && err != errLimit {
 			log.Error("PushMirrorsIterate: %v", err)

@@ -154,7 +154,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		return err
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 

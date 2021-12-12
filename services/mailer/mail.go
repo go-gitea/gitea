@@ -16,6 +16,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -176,7 +177,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *user_model.User, repo *models.Repository) {
+func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
