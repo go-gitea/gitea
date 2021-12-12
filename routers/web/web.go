@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
@@ -330,24 +331,24 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
-			m.Get("", user_setting.Security)
+			m.Get("", security.Security)
 			m.Group("/two_factor", func() {
-				m.Post("/regenerate_scratch", user_setting.RegenerateScratchTwoFactor)
-				m.Post("/disable", user_setting.DisableTwoFactor)
-				m.Get("/enroll", user_setting.EnrollTwoFactor)
-				m.Post("/enroll", bindIgnErr(forms.TwoFactorAuthForm{}), user_setting.EnrollTwoFactorPost)
+				m.Post("/regenerate_scratch", security.RegenerateScratchTwoFactor)
+				m.Post("/disable", security.DisableTwoFactor)
+				m.Get("/enroll", security.EnrollTwoFactor)
+				m.Post("/enroll", bindIgnErr(forms.TwoFactorAuthForm{}), security.EnrollTwoFactorPost)
 			})
 			m.Group("/u2f", func() {
-				m.Post("/request_register", bindIgnErr(forms.U2FRegistrationForm{}), user_setting.U2FRegister)
-				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), user_setting.U2FRegisterPost)
-				m.Post("/delete", bindIgnErr(forms.U2FDeleteForm{}), user_setting.U2FDelete)
+				m.Post("/request_register", bindIgnErr(forms.U2FRegistrationForm{}), security.U2FRegister)
+				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), security.U2FRegisterPost)
+				m.Post("/delete", bindIgnErr(forms.U2FDeleteForm{}), security.U2FDelete)
 			})
 			m.Group("/openid", func() {
-				m.Post("", bindIgnErr(forms.AddOpenIDForm{}), user_setting.OpenIDPost)
-				m.Post("/delete", user_setting.DeleteOpenID)
-				m.Post("/toggle_visibility", user_setting.ToggleOpenIDVisibility)
+				m.Post("", bindIgnErr(forms.AddOpenIDForm{}), security.OpenIDPost)
+				m.Post("/delete", security.DeleteOpenID)
+				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", user_setting.DeleteAccountLink)
+			m.Post("/account_link", security.DeleteAccountLink)
 		})
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
