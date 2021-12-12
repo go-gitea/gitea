@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/asymkey"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -72,7 +71,7 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return nil, err
@@ -120,7 +119,13 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 	stdout := &strings.Builder{}
 	stderr := &strings.Builder{}
 
-	err = git.NewCommand("apply", "--index", "--cached", "--ignore-whitespace", "--whitespace=fix").RunInDirFullPipeline(t.basePath, stdout, stderr, strings.NewReader(opts.Content))
+	args := []string{"apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary"}
+
+	if git.CheckGitVersionAtLeast("2.32") == nil {
+		args = append(args, "-3")
+	}
+
+	err = git.NewCommand(args...).RunInDirFullPipeline(t.basePath, stdout, stderr, strings.NewReader(opts.Content))
 	if err != nil {
 		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %v", stdout.String(), stderr.String(), err)
 	}

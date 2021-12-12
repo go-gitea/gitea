@@ -19,9 +19,9 @@
 		{{end}}
 		<div class="ui top attached header clearing segment pr {{$class}}">
 			{{if not $.PageIsWiki}}
-			<a class="ui blue tiny button browse-button" href="{{.SourcePath}}">
-				{{.i18n.Tr "repo.diff.browse_source"}}
-			</a>
+				<a class="ui blue tiny button browse-button" href="{{.SourcePath}}">
+					{{.i18n.Tr "repo.diff.browse_source"}}
+				</a>
 			{{end}}
 			<h3 class="mt-0"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 			{{if IsMultilineCommitMessage .Commit.Message}}
@@ -60,6 +60,39 @@
 					{{end}}
 				</div>
 				<div class="ui horizontal list df ac">
+					{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}
+						<div class="item"><button class="ui basic tiny button show-modal revert-button"
+							data-modal="#cherry-pick-modal"
+							data-modal-cherry-pick-type="revert"
+							data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
+							data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.revert-content"}}"
+							data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.revert"}}">{{.i18n.Tr "repo.commit.revert"}}</button></div>
+						<div class="item"><button class="ui basic tiny button cherry-pick-button show-modal"
+							data-modal="#cherry-pick-modal"
+							data-modal-cherry-pick-type="cherry-pick"
+							data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
+							data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.cherry-pick-content"}}"
+							data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.cherry-pick"}}">{{.i18n.Tr "repo.commit.cherry-pick"}}</button></div>
+						<div class="ui basic modal" id="cherry-pick-modal">
+							<div class="ui icon header">
+								<span id="cherry-pick-header"></span>
+							</div>
+							<div class="content center">
+								<p id="cherry-pick-content" class="branch-dropdown"></p>
+								{{template "repo/branch_dropdown" dict "root" .
+									"noTag" "true" "canCreateBranch" "false"
+									"branchForm" "branch-dropdown-form"
+									"branchURLPrefix" (printf "%s/_cherrypick/%s/" $.RepoLink .CommitID) "branchURLSuffix" ""
+									"setAction" "true" "submitForm" "true"}}
+								<form method="GET" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
+									<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
+									<input type="hidden" name="refType" value="branch">
+									<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br/>
+									<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
+								</form>
+							</div>
+						</div>
+					{{end}}
 					{{if .Parents}}
 						<div class="item">
 							{{.i18n.Tr "repo.diff.parent"}}

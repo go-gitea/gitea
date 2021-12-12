@@ -3,6 +3,7 @@ import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 
 import 'jquery.are-you-sure';
+import { stringify } from 'json5';
 
 const {csrfToken} = window.config;
 
@@ -302,7 +303,21 @@ export function initGlobalButtons() {
   });
 
   $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
+    const modalDiv = $($(this).data('modal'));
+    for (let i = 0; i < this.attributes.length; i++) {
+      const attrib = this.attributes[i];
+      if (!attrib.name.startsWith('data-modal-')) {
+        continue;
+      }
+      const id = attrib.name.substr(11);
+      const target = modalDiv.find(`#${id}`);
+      if (target.is('input')) {
+        target.val(attrib.value);
+      } else {
+        target.text(attrib.value);
+      }
+    }
+    modalDiv.modal('show');
     const colorPickers = $($(this).data('modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
