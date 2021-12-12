@@ -7,7 +7,7 @@ package doctor
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +46,7 @@ func Test_fixUnitConfig_16961(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotFixed, err := fixUnitConfig16961([]byte(tt.bs), &models.UnitConfig{})
+			gotFixed, err := fixUnitConfig16961([]byte(tt.bs), &repo_model.UnitConfig{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixUnitConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -89,7 +89,7 @@ func Test_fixExternalWikiConfig_16961(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &models.ExternalWikiConfig{}
+			cfg := &repo_model.ExternalWikiConfig{}
 			gotFixed, err := fixExternalWikiConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixExternalWikiConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
@@ -109,14 +109,14 @@ func Test_fixExternalTrackerConfig_16961(t *testing.T) {
 	tests := []struct {
 		name      string
 		bs        string
-		expected  models.ExternalTrackerConfig
+		expected  repo_model.ExternalTrackerConfig
 		wantFixed bool
 		wantErr   bool
 	}{
 		{
 			name: "normal",
 			bs:   `{"ExternalTrackerURL":"a","ExternalTrackerFormat":"b","ExternalTrackerStyle":"c"}`,
-			expected: models.ExternalTrackerConfig{
+			expected: repo_model.ExternalTrackerConfig{
 				ExternalTrackerURL:    "a",
 				ExternalTrackerFormat: "b",
 				ExternalTrackerStyle:  "c",
@@ -127,7 +127,7 @@ func Test_fixExternalTrackerConfig_16961(t *testing.T) {
 		{
 			name: "broken",
 			bs:   "&{a b c}",
-			expected: models.ExternalTrackerConfig{
+			expected: repo_model.ExternalTrackerConfig{
 				ExternalTrackerURL:    "a",
 				ExternalTrackerFormat: "b",
 				ExternalTrackerStyle:  "c",
@@ -150,7 +150,7 @@ func Test_fixExternalTrackerConfig_16961(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &models.ExternalTrackerConfig{}
+			cfg := &repo_model.ExternalTrackerConfig{}
 			gotFixed, err := fixExternalTrackerConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixExternalTrackerConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
@@ -176,7 +176,7 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 	tests := []struct {
 		name      string
 		bs        string
-		expected  models.PullRequestsConfig
+		expected  repo_model.PullRequestsConfig
 		wantFixed bool
 		wantErr   bool
 	}{
@@ -187,7 +187,7 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 		{
 			name: "broken - 1.14",
 			bs:   `&{%!s(bool=false) %!s(bool=true) %!s(bool=true) %!s(bool=true) %!s(bool=true) %!s(bool=false) %!s(bool=false)}`,
-			expected: models.PullRequestsConfig{
+			expected: repo_model.PullRequestsConfig{
 				IgnoreWhitespaceConflicts: false,
 				AllowMerge:                true,
 				AllowRebase:               true,
@@ -201,19 +201,19 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 		{
 			name: "broken - 1.15",
 			bs:   `&{%!s(bool=false) %!s(bool=true) %!s(bool=true) %!s(bool=true) %!s(bool=true) %!s(bool=false) %!s(bool=false) %!s(bool=false) merge}`,
-			expected: models.PullRequestsConfig{
+			expected: repo_model.PullRequestsConfig{
 				AllowMerge:        true,
 				AllowRebase:       true,
 				AllowRebaseMerge:  true,
 				AllowSquash:       true,
-				DefaultMergeStyle: models.MergeStyleMerge,
+				DefaultMergeStyle: repo_model.MergeStyleMerge,
 			},
 			wantFixed: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &models.PullRequestsConfig{}
+			cfg := &repo_model.PullRequestsConfig{}
 			gotFixed, err := fixPullRequestsConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixPullRequestsConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
@@ -231,14 +231,14 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 	tests := []struct {
 		name      string
 		bs        string
-		expected  models.IssuesConfig
+		expected  repo_model.IssuesConfig
 		wantFixed bool
 		wantErr   bool
 	}{
 		{
 			name: "normal",
 			bs:   `{"EnableTimetracker":true,"AllowOnlyContributorsToTrackTime":true,"EnableDependencies":true}`,
-			expected: models.IssuesConfig{
+			expected: repo_model.IssuesConfig{
 				EnableTimetracker:                true,
 				AllowOnlyContributorsToTrackTime: true,
 				EnableDependencies:               true,
@@ -247,7 +247,7 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 		{
 			name: "broken",
 			bs:   `&{%!s(bool=true) %!s(bool=true) %!s(bool=true)}`,
-			expected: models.IssuesConfig{
+			expected: repo_model.IssuesConfig{
 				EnableTimetracker:                true,
 				AllowOnlyContributorsToTrackTime: true,
 				EnableDependencies:               true,
@@ -257,7 +257,7 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &models.IssuesConfig{}
+			cfg := &repo_model.IssuesConfig{}
 			gotFixed, err := fixIssuesConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixIssuesConfig_16961() error = %v, wantErr %v", err, tt.wantErr)

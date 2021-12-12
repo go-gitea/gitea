@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -87,7 +89,7 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
 
 	var ok bool
@@ -112,9 +114,11 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 			}
 		}
 
-		c.Verification = models.ParseCommitWithSignature(c.Commit)
+		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
-		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
+		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return models.IsUserRepoAdmin(repository, user)
+		}, &keyMap)
 
 		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
@@ -235,7 +239,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	Verification *models.CommitVerification
+	Verification *asymkey_model.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64
 	Row          int

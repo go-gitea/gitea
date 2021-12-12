@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -77,7 +78,7 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 			return err
 		}
 	} else {
-		if err := models.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
+		if err := repo_model.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return err
 		}
@@ -272,7 +273,7 @@ func Repos(ctx *context.Context) {
 
 	if adoptOrDelete {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
-		repos := map[string]*models.Repository{}
+		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
 		root := user_model.UserPath(ctxUser.Name)
 		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
@@ -290,7 +291,7 @@ func Repos(ctx *context.Context) {
 				return filepath.SkipDir
 			}
 			name = name[:len(name)-4]
-			if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name {
+			if repo_model.IsUsableRepoName(name) != nil || strings.ToLower(name) != name {
 				return filepath.SkipDir
 			}
 			if count >= start && count < end {

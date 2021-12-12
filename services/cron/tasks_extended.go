@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -67,7 +68,7 @@ func registerRewriteAllPublicKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return models.RewriteAllPublicKeys()
+		return asymkey_model.RewriteAllPublicKeys()
 	})
 }
 
@@ -77,7 +78,7 @@ func registerRewriteAllPrincipalKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return models.RewriteAllPrincipalKeys()
+		return asymkey_model.RewriteAllPrincipalKeys()
 	})
 }
 
@@ -117,7 +118,7 @@ func registerRemoveRandomAvatars() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.RemoveRandomAvatars(ctx)
+		return repo_service.RemoveRandomAvatars(ctx)
 	})
 }
 
