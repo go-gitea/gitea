@@ -5,18 +5,18 @@
 package auth
 
 import (
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-// DeleteLoginSource deletes a LoginSource record in DB.
-func DeleteLoginSource(source *login.Source) error {
+// DeleteSource deletes a AuthSource record in DB.
+func DeleteSource(source *auth.Source) error {
 	count, err := db.GetEngine(db.DefaultContext).Count(&user_model.User{LoginSource: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
-		return login.ErrSourceInUse{
+		return auth.ErrSourceInUse{
 			ID: source.ID,
 		}
 	}
@@ -25,17 +25,17 @@ func DeleteLoginSource(source *login.Source) error {
 	if err != nil {
 		return err
 	} else if count > 0 {
-		return login.ErrSourceInUse{
+		return auth.ErrSourceInUse{
 			ID: source.ID,
 		}
 	}
 
-	if registerableSource, ok := source.Cfg.(login.RegisterableSource); ok {
+	if registerableSource, ok := source.Cfg.(auth.RegisterableSource); ok {
 		if err := registerableSource.UnregisterSource(); err != nil {
 			return err
 		}
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(login.Source))
+	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(auth.Source))
 	return err
 }

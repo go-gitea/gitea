@@ -8,7 +8,7 @@ import (
 	"log"
 	"sync"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"gitea.com/go-chi/session"
@@ -72,7 +72,7 @@ func (s *DBStore) Release() error {
 		return err
 	}
 
-	return login.UpdateSession(s.sid, data)
+	return auth.UpdateSession(s.sid, data)
 }
 
 // Flush deletes all session data.
@@ -98,7 +98,7 @@ func (p *DBProvider) Init(maxLifetime int64, connStr string) error {
 
 // Read returns raw session store by session ID.
 func (p *DBProvider) Read(sid string) (session.RawStore, error) {
-	s, err := login.ReadSession(sid)
+	s, err := auth.ReadSession(sid)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (p *DBProvider) Read(sid string) (session.RawStore, error) {
 
 // Exist returns true if session with given ID exists.
 func (p *DBProvider) Exist(sid string) bool {
-	has, err := login.ExistSession(sid)
+	has, err := auth.ExistSession(sid)
 	if err != nil {
 		panic("session/DB: error checking existence: " + err.Error())
 	}
@@ -127,12 +127,12 @@ func (p *DBProvider) Exist(sid string) bool {
 
 // Destroy deletes a session by session ID.
 func (p *DBProvider) Destroy(sid string) error {
-	return login.DestroySession(sid)
+	return auth.DestroySession(sid)
 }
 
 // Regenerate regenerates a session store from old session ID to new one.
 func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err error) {
-	s, err := login.RegenerateSession(oldsid, sid)
+	s, err := auth.RegenerateSession(oldsid, sid)
 	if err != nil {
 		return nil, err
 
@@ -153,7 +153,7 @@ func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err err
 
 // Count counts and returns number of sessions.
 func (p *DBProvider) Count() int {
-	total, err := login.CountSessions()
+	total, err := auth.CountSessions()
 	if err != nil {
 		panic("session/DB: error counting records: " + err.Error())
 	}
@@ -162,7 +162,7 @@ func (p *DBProvider) Count() int {
 
 // GC calls GC to clean expired sessions.
 func (p *DBProvider) GC() {
-	if err := login.CleanupSessions(p.maxLifetime); err != nil {
+	if err := auth.CleanupSessions(p.maxLifetime); err != nil {
 		log.Printf("session/DB: error garbage collecting: %v", err)
 	}
 }
