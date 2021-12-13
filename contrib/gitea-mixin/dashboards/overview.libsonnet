@@ -90,7 +90,7 @@ local prometheus = grafana.prometheus;
     ),
 
     local giteaChangesPanel = grafana.graphPanel.new(
-      'Gitea changes',
+      '',
       datasource='$datasource',
       lines=false,
       points=false,
@@ -101,13 +101,38 @@ local prometheus = grafana.prometheus;
       legend_values=true,
       legend_total=true,
     )
-                              .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval])' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
+                              .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
                               .addTargets(
       [
-        prometheus.target(expr='floor(increase(%s{%s}[$__interval]))' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
+        prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
         for metric in $._config.giteaStatMetrics
       ]
     ),
+    local giteaChangesPanelTotal = grafana.statPanel.new(
+                              '',
+                              datasource='-- Dashboard --',
+                              reducerFunction='sum',
+                              graphMode='none',
+                              colorMode='value',
+                            )
+                            + {
+                              targets+: [
+                                  {
+                                    panelId: 10, // id of giteaChangesPanel
+                                    refId: "A"
+                                  },
+                              ],
+                            }
+                            + {
+                              fieldConfig+: {
+                                defaults+: {
+                                  color: {
+                                    fixedColor: 'blue',
+                                    mode: 'fixed',
+                                  },
+                                },
+                              },
+                            },
 
     'gitea-overview.json':
       grafana.dashboard.new(
@@ -233,11 +258,20 @@ local prometheus = grafana.prometheus;
         }
       )
       .addPanel(
-        giteaChangesPanel,
+        giteaChangesPanelTotal,
         gridPos={
           x: 0,
-          y: 10,
-          w: 24,
+          y: 12,
+          w: 6,
+          h: 8,
+        }
+      )
+      .addPanel(
+        giteaChangesPanel,
+        gridPos={
+          x: 6,
+          y: 12,
+          w: 18,
           h: 8,
         }
       ),
