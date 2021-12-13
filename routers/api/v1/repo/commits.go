@@ -264,3 +264,88 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 		return
 	}
 }
+
+// GetFileHistory get a file's commit history
+func GetFileHistory(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/history/{filepath} repository repoGetFileHistory
+	// ---
+	// summary: Get the commit history of a file or directory
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file/directory
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the ref (branch/tag). Default the repository’s default branch"
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommitList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound()
+		return
+	}
+
+	ref := ctx.FormTrim("ref")
+	if len(ref) < 1 {
+		ref = ctx.Repo.Repository.DefaultBranch
+	}
+
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ref, ctx.Repo.TreePath)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
+		return
+	} else if commitsCount == 0 {
+		ctx.NotFound("FileCommitsCount", nil)
+		return
+	}
+
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ref, ctx.Repo.TreePath, page)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
+		return
+	}
+
+	userCache := make(map[string]*user_model.User)
+	apiCommits := make([]*api.Commit, len(commits))
+	for i, commit := range commits {
+		// Create json struct
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "toCommit", err)
+			return
+		}
+	}
+
+	ctx.SetLinkHeader(int(commitsCount), setting.Git.CommitsRangeSize)
+	ctx.SetTotalCountHeader(commitsCount)
+
+	ctx.JSON(http.StatusOK, &apiCommits)
+}
