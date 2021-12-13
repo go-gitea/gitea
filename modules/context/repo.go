@@ -499,10 +499,24 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = models.CanUserForkRepo(ctx.User, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("CanSignedUserFork", err)
+	canSignedUserFork, err := models.CanUserForkRepo(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
+
+	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	// canSignedUserFork is true if the current user doesn't have a fork of this repo yet or
+	// if he owns an org that doesn't have a fork of this repo yet
+	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
