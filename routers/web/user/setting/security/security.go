@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	tplSettingsSecurity    base.TplName = "user/settings/security"
-	tplSettingsTwofaEnroll base.TplName = "user/settings/twofa_enroll"
+	tplSettingsSecurity    base.TplName = "user/settings/security/security"
+	tplSettingsTwofaEnroll base.TplName = "user/settings/security/twofa_enroll"
 )
 
 // Security render change user's password page and 2FA
