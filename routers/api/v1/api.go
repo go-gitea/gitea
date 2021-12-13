@@ -971,7 +971,6 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/blobs/{sha}", context.RepoRefForAPI, repo.GetBlob)
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
-					m.Get("/history/*", context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetFileHistory)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)

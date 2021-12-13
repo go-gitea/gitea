@@ -140,7 +140,7 @@ func TestGetFileHistory(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/history/readme.md?token="+token+"&sha=good-sign", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?path=readme.md&token="+token+"&sha=good-sign", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
