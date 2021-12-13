@@ -37,6 +37,9 @@ MAILER_TYPE   = sendmail
 SENDMAIL_PATH = /usr/sbin/sendmail
 ```
 
+Then configure `sendmail` (or mailer that provide the command) to send outgoing email without accepting incoming email from outside. For example configuration,
+see [Postfix with SMTP Relay](#sendmail-example-postfix-with-smtp-relay).
+
 ## Using SMTP
 
 Directly use SMTP server as relay. This option is useful if you don't want to set up MTA on your instance but you have an account at email provider.
@@ -65,6 +68,72 @@ Please note: authentication is only supported when the SMTP server communication
 This is due to protections imposed by the Go internal libraries against STRIPTLS attacks.
 
 Note that Implicit TLS is recommended by [RFC8314](https://tools.ietf.org/html/rfc8314#section-3) since 2018.
+
+### Sendmail Example: Postfix with SMTP Relay
+
+This configuration use Postfix as mailer, configured to send email indirectly via SMTP server. Make sure that `postfix` package is installed on Gitea instance.
+
+Now, configure `/etc/postfix/main.cf` as below:
+
+```ini
+# Set the FQDN used for this instance
+myhostame = mydomain.com
+
+# Listens only on localhost
+inet_interfaces = loopback-only
+
+# Don't accept emails from outside
+mydestination = 
+
+# Relay through specified mail hub
+relayhost = [mail.mydomain.com]:465
+
+# Use TLS connection to the hub
+smtp_tls_enable = yes
+smtp_tls_security_level = encrypt
+
+# SMTPS (port 465) specific
+smtp_tls_wrappermode = yes
+
+# Enable client-side SASL authentication
+smtp_sasl_enable = yes
+
+# Use SMTP server credentials for authentication
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+
+# Forward system-generated emails by canonicalizing recipient address.
+# We can't use /etc/aliases because we deliver via mail hub instead of
+# send directly.
+recipient_canonical_maps = hash:/etc/postfix/rcpt_canonical
+```
+
+Enter SMTP server credentials in `/etc/postfix/sasl_passwd`:
+
+```txt
+# SMTP username		SMTP password
+gitea@mydomain.com	password
+```
+
+To have system-generated emails delivered to you, configure recipient canonical mapping for both `root` and `postmaster` user in `/etc/postfix/rcpt_canonical`:
+
+```txt
+# Original recipient	Destination
+root			user@mydomain.com
+postmaster		user@mydomain.com
+```
+
+Build the hash tables:
+
+```shell
+postmap /etc/postfix/sasl_passwd
+postmap /etc/postfix/rcpt_canonical
+```
+
+Restart Postfix:
+
+```shell
+systemctl restart postfix
+```
 
 ### Gmail
 
