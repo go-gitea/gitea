@@ -43,5 +43,32 @@
         description: 'Comments',
       },
     ],
+  //set this for using label colors on graphs
+  issueLabels: [
+      {
+        label: "bug",
+        color: "#ee0701"
+      },
+      {
+        label: "duplicate",
+        color: "#cccccc"
+      },
+      {
+        label: "invalid",
+        color: "#e6e6e6"
+      },
+      {
+        label: "enhancement",
+        color: "#84b6eb"
+      },
+      {
+        label: "help wanted",
+        color: "#128a0c"
+      },
+      {
+        label: "question",
+        color: "#cc317c"
+      },
+    ]
   },
 }

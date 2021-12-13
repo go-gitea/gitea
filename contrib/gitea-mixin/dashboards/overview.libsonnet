@@ -1,6 +1,31 @@
 local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 local prometheus = grafana.prometheus;
 
+
+local addIssueLabelsOverrides(labels) = 
+{
+        fieldConfig+: {
+            overrides+: [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": label.label
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "fixedColor": label.color,
+                      "mode": "fixed"
+                    }
+                  }
+                ]
+              }
+             for label in labels
+             ] 
+        }
+};
+
 {
 
   grafanaDashboards+:: {
@@ -89,19 +114,11 @@ local prometheus = grafana.prometheus;
       },
     ),
 
-    local giteaChangesPanel = grafana.graphPanel.new(
+    local giteaChangesPanelPrototype = grafana.graphPanel.new(
       '',
       datasource='$datasource',
       interval="$agg_interval",
       maxDataPoints=10000,
-
-    )
-                              .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
-                              .addTargets(
-      [
-        prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
-        for metric in $._config.giteaStatMetrics
-      ]
     )
     + {
       type: "timeseries",
@@ -115,7 +132,6 @@ local prometheus = grafana.prometheus;
           ],
         },
       },
-
       fieldConfig+: {
         defaults+: {
           noValue: "0",
@@ -123,6 +139,7 @@ local prometheus = grafana.prometheus;
             drawStyle: "bars",
             barAlignment: -1,
             fillOpacity: 50,
+            gradientMode: "hue",
             pointSize: 1,
             lineWidth: 0,
             stacking: {
@@ -132,11 +149,17 @@ local prometheus = grafana.prometheus;
           },
         }
       },
-    }
-    +
-    {
+    },
 
-     },
+    local giteaChangesPanelAll = giteaChangesPanelPrototype
+      .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
+      .addTargets(
+        [
+          prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
+          for metric in $._config.giteaStatMetrics
+        ]
+      ),
+
     local giteaChangesPanelTotal = grafana.statPanel.new(
                               '',
                               datasource='-- Dashboard --',
@@ -148,6 +171,66 @@ local prometheus = grafana.prometheus;
                               targets+: [
                                   {
                                     panelId: 10, // id of giteaChangesPanel
+                                    refId: "A"
+                                  },
+                              ],
+                            }
+                            + {
+                              fieldConfig+: {
+                                defaults+: {
+                                  color: {
+                                    fixedColor: 'blue',
+                                    mode: 'fixed',
+                                  },
+                                },
+                              },
+                            },
+
+    local giteaChangesByRepositories = giteaChangesPanelPrototype
+      .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_repository{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ repository }}', intervalFactor=1)),
+
+    local giteaChangesByRepositoriesTotal = grafana.statPanel.new(
+                              '',
+                              datasource='-- Dashboard --',
+                              reducerFunction='sum',
+                              graphMode='none',
+                              colorMode='value',
+                            )
+                            + {
+                              targets+: [
+                                  {
+                                    panelId: 12, // id of giteaChangesPanel
+                                    refId: "A"
+                                  },
+                              ],
+                            }
+                            + {
+                              fieldConfig+: {
+                                defaults+: {
+                                  color: {
+                                    fixedColor: 'blue',
+                                    mode: 'fixed',
+                                  },
+                                },
+                              },
+                            },
+
+    local giteaChangesByLabel = giteaChangesPanelPrototype
+      .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_label{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ label }}', intervalFactor=1))
+      + addIssueLabelsOverrides($._config.issueLabels),
+
+    local giteaChangesByLabelTotal = grafana.statPanel.new(
+                              '',
+                              datasource='-- Dashboard --',
+                              reducerFunction='sum',
+                              graphMode='none',
+                              colorMode='value',
+                            )
+                            + addIssueLabelsOverrides($._config.issueLabels)
+                            + {
+                              targets+: [
+                                  {
+                                    panelId: 14, // id of giteaChangesPanel
                                     refId: "A"
                                   },
                               ],
@@ -295,11 +378,47 @@ local prometheus = grafana.prometheus;
           h: 8,
         }
       )
-      .addPanel(
-        giteaChangesPanel,
+      .addPanel( // id 10
+        giteaChangesPanelAll, 
         gridPos={
           x: 6,
           y: 12,
+          w: 18,
+          h: 8,
+        }
+      )
+      .addPanel(  // by repositories split
+        giteaChangesByRepositoriesTotal,
+        gridPos={
+          x: 0,
+          y: 20,
+          w: 6,
+          h: 8,
+        }
+      )
+      .addPanel(
+        giteaChangesByRepositories, // id 12
+        gridPos={
+          x: 6,
+          y: 20,
+          w: 18,
+          h: 8,
+        }
+      )
+      .addPanel(  // by labels split
+        giteaChangesByLabelTotal,
+        gridPos={
+          x: 0,
+          y: 28,
+          w: 6,
+          h: 8,
+        }
+      )
+      .addPanel( // id 14
+        giteaChangesByLabel,
+        gridPos={
+          x: 6,
+          y: 28,
           w: 18,
           h: 8,
         }
