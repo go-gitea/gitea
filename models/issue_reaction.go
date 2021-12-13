@@ -114,8 +114,8 @@ func CountCommentReactions(comment *Comment) (int64, error) {
 // CountIssueReactions count reactions of an issue
 func CountIssueReactions(issue *Issue) (int64, error) {
 	return countReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
-		IssueID:     issue.ID,
-		CommentID:   -1,
+		IssueID:   issue.ID,
+		CommentID: -1,
 	})
 }
 

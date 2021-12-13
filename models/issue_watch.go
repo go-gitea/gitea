@@ -133,11 +133,11 @@ func CountIssueWatchers(issueID int64) (int64, error) {
 
 func countIssueWatchers(e db.Engine, issueID int64) (int64, error) {
 	return e.
-	Where("`issue_watch`.issue_id = ?", issueID).
-	And("`issue_watch`.is_watching = ?", true).
-	And("`user`.is_active = ?", true).
-	And("`user`.prohibit_login = ?", false).
-	Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
+		Where("`issue_watch`.issue_id = ?", issueID).
+		And("`issue_watch`.is_watching = ?", true).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
 }
 
 func removeIssueWatchersByRepoID(e db.Engine, userID, repoID int64) error {
