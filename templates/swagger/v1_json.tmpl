@@ -2951,6 +2951,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filepath of a file/dir",
+            "name": "path",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2958,7 +2964,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
             "in": "query"
           }
@@ -3645,61 +3651,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/string"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/git/history/{filepath}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get the commit history of a file or directory",
-        "operationId": "repoGetFileHistory",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "filepath of the file/directory",
-            "name": "filepath",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "The name of the ref (branch/tag). Default the repository’s default branch",
-            "name": "ref",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/CommitList"
           },
           "404": {
             "$ref": "#/responses/notFound"
