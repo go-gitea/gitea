@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
@@ -31,11 +32,11 @@ func TestAPIUISearchRepo(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
-	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
-	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
-	orgUser := db.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 16}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 18}).(*user_model.User)
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}).(*user_model.User)
+	orgUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17}).(*user_model.User)
 
 	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {
@@ -44,7 +45,7 @@ func TestAPIUISearchRepo(t *testing.T) {
 	setting.API.DefaultPagingNum = 10
 
 	// Map of expected results, where key is user for login
-	type expectedResults map[*models.User]struct {
+	type expectedResults map[*user_model.User]struct {
 		count           int
 		repoOwnerID     int64
 		repoName        string

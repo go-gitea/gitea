@@ -66,7 +66,7 @@ func TestAPINotification(t *testing.T) {
 
 	// -- GET /repos/{owner}/{repo}/notifications -- multiple status-types
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&status-types=pinned&token=%s", user2.Name, repo1.Name, token))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiNL)
 
 	assert.Len(t, apiNL, 2)
@@ -80,7 +80,7 @@ func TestAPINotification(t *testing.T) {
 	// -- GET /notifications/threads/{id} --
 	// get forbidden
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", 1, token))
-	resp = MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// get own
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", thread5.ID, token))
@@ -114,7 +114,7 @@ func TestAPINotification(t *testing.T) {
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
-	resp = MakeRequest(t, req, http.StatusResetContent)
+	MakeRequest(t, req, http.StatusResetContent)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -123,7 +123,7 @@ func TestAPINotification(t *testing.T) {
 
 	// -- PATCH /notifications/threads/{id} --
 	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", thread5.ID, token))
-	resp = MakeRequest(t, req, http.StatusResetContent)
+	MakeRequest(t, req, http.StatusResetContent)
 
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
 	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)

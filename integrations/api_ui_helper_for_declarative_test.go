@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
@@ -47,7 +47,7 @@ func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*
 			owner, repo, index)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doMergePullRequest Merge",
-			Do:                string(models.MergeStyleMerge),
+			Do:                string(repo_model.MergeStyleMerge),
 		})
 
 		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
@@ -59,7 +59,7 @@ func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
 			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doMergePullRequest Merge",
-				Do:                string(models.MergeStyleMerge),
+				Do:                string(repo_model.MergeStyleMerge),
 			})
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}

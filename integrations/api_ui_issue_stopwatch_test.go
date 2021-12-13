@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,8 +20,8 @@ import (
 func TestUIAPIListStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	req := NewRequestf(t, "GET", "/api/ui/user/stopwatches")

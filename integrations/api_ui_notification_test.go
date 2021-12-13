@@ -10,8 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -20,8 +21,8 @@ import (
 func TestNotification(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 
@@ -114,7 +115,7 @@ func TestNotification(t *testing.T) {
 	MakeRequest(t, req, http.StatusResetContent)
 
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
-	thread5 = db.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
 
 	// -- check notifications --

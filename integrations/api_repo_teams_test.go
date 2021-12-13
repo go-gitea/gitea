@@ -56,24 +56,24 @@ func TestAPIRepoTeams(t *testing.T) {
 
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "NonExistingTeam", token)
 	req = NewRequest(t, "GET", url)
-	res = MakeRequest(t, req, http.StatusNotFound)
+	MakeRequest(t, req, http.StatusNotFound)
 
 	// AddTeam with user4
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	res = MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	token = getUserToken(t, user.Name)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	res = MakeRequest(t, req, http.StatusNoContent)
-	res = MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 
 	// DeleteTeam
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "DELETE", url)
-	res = MakeRequest(t, req, http.StatusNoContent)
-	res = MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 }
