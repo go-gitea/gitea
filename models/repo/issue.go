@@ -31,7 +31,7 @@ func (repo *Repository) IsTimetrackerEnabled() bool {
 	return repo.IsTimetrackerEnabledCtx(db.DefaultContext)
 }
 
-// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
+// IsTimetrackerEnabledCtx returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabledCtx(ctx context.Context) bool {
 	if !setting.Service.EnableTimetracking {
 		return false
