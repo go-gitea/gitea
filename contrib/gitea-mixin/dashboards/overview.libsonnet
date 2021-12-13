@@ -76,43 +76,151 @@ local addIssueLabelsOverrides(labels) =
                              },
 
     local giteaMemoryPanel = grafana.graphPanel.new(
-      'Memory(rss) usage',
-      datasource='$datasource',
-      format='decbytes',
-      lines=true,
-      fill=1,
-      legend_show=false
-    )
-                             .addTarget(prometheus.target(expr='process_resident_memory_bytes{%s}' % giteaSelector, intervalFactor=2)),
+      'Memory usage',
+      datasource='$datasource')
+      .addTarget(prometheus.target(expr='process_resident_memory_bytes{%s}' % giteaSelector, intervalFactor=2))
+      + {
+        type: "timeseries",
+        options+: {
+          tooltip: {
+            mode: "multi"
+          },
+          legend+: {
+            displayMode: "hidden"
+          },
+        },
+        fieldConfig+: {
+          defaults+: {
+            custom+: {
+              lineInterpolation: "smooth",
+              fillOpacity: 15,
+            },
+            color: {
+              fixedColor: 'green',
+              mode: 'fixed',
+            },                         
+            unit: "decbytes"
+          },
+        },
+      },
 
     local giteaCpuPanel = grafana.graphPanel.new(
       'CPU usage',
-      datasource='$datasource',
-      format='percent',
-      lines=true,
-      fill=1,
-      legend_show=false
-    )
-                          .addTarget(prometheus.target(expr='rate(process_cpu_seconds_total{%s}[$__rate_interval])*100' % giteaSelector, intervalFactor=2)),
+      datasource='$datasource'
+      )
+      .addTarget(prometheus.target(expr='rate(process_cpu_seconds_total{%s}[$__rate_interval])*100' % giteaSelector, intervalFactor=2))
+      + {
+        type: "timeseries",
+        options+: {
+          tooltip: {
+            mode: "multi"
+          },
+          legend+: {
+            displayMode: "hidden"
+          },
+        },
+        fieldConfig+: {
+          defaults+: {
+            custom+: {
+              lineInterpolation: "smooth",
+              gradientMode: "scheme",
+              fillOpacity: 15,
+              axisSoftMin: 0,
+              axisSoftMax: 0
+            },
+            color: {
+              //mode: "continuous-BlYlRd" // from blue to red (100%)
+              "mode": "continuous-GrYlRd"
+            },
+            unit: "percent"
+          },
+          overrides: [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".+"
+              },
+              "properties": [
+                {
+                  "id": "max",
+                  "value": 100
+                },
+                {
+                  "id": "min",
+                  "value": 0
+                }
+              ]
+            }
+          ]
+        },
+      },
 
     local giteaFileDescriptorsPanel = grafana.graphPanel.new(
       'File descriptors usage',
       datasource='$datasource',
-      format='',
-      lines=true,
-      fill=1,
-      legend_show=false
-    )
-                                      .addTarget(prometheus.target(expr='process_open_fds{%s}' % giteaSelector, intervalFactor=2))
-                                      .addTarget(prometheus.target(expr='process_max_fds{%s}' % giteaSelector, intervalFactor=2))
-                                      .addSeriesOverride(
-      {
-        alias: '/process_max_fds.+/',
-        color: '#F2495C',  // red
-        dashes: true,
-        fill: 0,
-      },
-    ),
+      )
+      .addTarget(prometheus.target(expr='process_open_fds{%s}' % giteaSelector, intervalFactor=2))
+      .addTarget(prometheus.target(expr='process_max_fds{%s}' % giteaSelector, intervalFactor=2))
+      .addSeriesOverride(
+        {
+          alias: '/process_max_fds.+/',
+          color: '#F2495C',  // red
+          dashes: true,
+          fill: 0,
+        },
+      )
+      + {
+              type: "timeseries",
+              options+: {
+                tooltip: {
+                  mode: "multi"
+                },
+                legend+: {
+                  displayMode: "hidden"
+                },
+              },
+              fieldConfig+: {
+                defaults+: {
+                  custom+: {
+                    lineInterpolation: "smooth",
+                    gradientMode: "scheme",
+                    fillOpacity: 0,
+                  },
+                color: {
+                  fixedColor: 'green',
+                  mode: 'fixed',
+                },    
+                  unit: ""
+                },
+                "overrides": [
+                  {
+                    "matcher": {
+                      "id": "byFrameRefID",
+                      "options": "B"
+                    },
+                    "properties": [
+                      {
+                        "id": "custom.lineStyle",
+                        "value": {
+                          "fill": "dash",
+                          "dash": [
+                            10,
+                            10
+                          ]
+                        }
+                      },
+                      {
+                        "id": "color",
+                        "value": {
+                          "mode": "fixed",
+                          "fixedColor": "red"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+            },
 
     local giteaChangesPanelPrototype = grafana.graphPanel.new(
       '',
@@ -165,6 +273,7 @@ local addIssueLabelsOverrides(labels) =
                               datasource='-- Dashboard --',
                               reducerFunction='sum',
                               graphMode='none',
+                              textMode="value_and_name",
                               colorMode='value',
                             )
                             + {
@@ -179,8 +288,7 @@ local addIssueLabelsOverrides(labels) =
                               fieldConfig+: {
                                 defaults+: {
                                   color: {
-                                    fixedColor: 'blue',
-                                    mode: 'fixed',
+                                    mode: "palette-classic"
                                   },
                                 },
                               },
@@ -194,9 +302,11 @@ local addIssueLabelsOverrides(labels) =
                               datasource='-- Dashboard --',
                               reducerFunction='sum',
                               graphMode='none',
+                              textMode="value_and_name",
                               colorMode='value',
                             )
                             + {
+                              title: "Issues by repository",
                               targets+: [
                                   {
                                     panelId: 12, // id of giteaChangesPanel
@@ -208,8 +318,7 @@ local addIssueLabelsOverrides(labels) =
                               fieldConfig+: {
                                 defaults+: {
                                   color: {
-                                    fixedColor: 'blue',
-                                    mode: 'fixed',
+                                    mode: "palette-classic"
                                   },
                                 },
                               },
@@ -224,10 +333,12 @@ local addIssueLabelsOverrides(labels) =
                               datasource='-- Dashboard --',
                               reducerFunction='sum',
                               graphMode='none',
+                              textMode="value_and_name",
                               colorMode='value',
                             )
                             + addIssueLabelsOverrides($._config.issueLabels)
                             + {
+                              title: "Issues by labels",
                               targets+: [
                                   {
                                     panelId: 14, // id of giteaChangesPanel
@@ -239,8 +350,7 @@ local addIssueLabelsOverrides(labels) =
                               fieldConfig+: {
                                 defaults+: {
                                   color: {
-                                    fixedColor: 'blue',
-                                    mode: 'fixed',
+                                    mode: "palette-classic"
                                   },
                                 },
                               },
