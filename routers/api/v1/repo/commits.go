@@ -157,7 +157,7 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	var (
 		commitsCountTotal int64
-		commits []*git.Commit
+		commits           []*git.Commit
 	)
 
 	if len(path) == 0 {
@@ -210,7 +210,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.NotFound("FileCommitsCount", nil)
 			return
 		}
-	
+
 		commits, err = gitRepo.CommitsByFileAndRange(sha, path, listOptions.PageSize)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
