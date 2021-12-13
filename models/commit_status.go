@@ -255,6 +255,19 @@ func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db
 	return statuses, e.In("id", ids).Find(&statuses)
 }
 
+// CountLatestCommitStatus count all statuses with a unique context for a given commit.
+func CountLatestCommitStatus(repoID int64, sha string) (int64, error) {
+	return countLatestCommitStatus(db.GetEngine(db.DefaultContext), repoID, sha)
+}
+
+func countLatestCommitStatus(e db.Engine, repoID int64, sha string) (int64, error) {
+	return e.Table(&CommitStatus{}).
+		Where("repo_id = ?", repoID).And("sha = ?", sha).
+		Select("max( id ) as id").
+		GroupBy("context_hash").OrderBy("max( id ) desc").
+		Count(new(CommitStatus))
+}
+
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)

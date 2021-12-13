@@ -305,6 +305,13 @@ func GetIssueReactions(ctx *context.APIContext) {
 		})
 	}
 
+	total, err := models.CountIssueReactions(issue)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountIssueReactions", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, result)
 }
 

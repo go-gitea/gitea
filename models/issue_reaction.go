@@ -103,6 +103,29 @@ func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) 
 	return reactions, e.Find(&reactions)
 }
 
+// CountCommentReactions counts all reactions from an comment
+func CountCommentReactions(comment *Comment) (int64, error) {
+	return countReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
+		IssueID:   comment.IssueID,
+		CommentID: comment.ID,
+	})
+}
+
+// CountIssueReactions count reactions of an issue
+func CountIssueReactions(issue *Issue) (int64, error) {
+	return countReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
+		IssueID:     issue.ID,
+		CommentID:   -1,
+	})
+}
+
+func countReactions(e db.Engine, opts FindReactionsOptions) (int64, error) {
+	return e.Where(opts.toConds()).
+		In("reaction.`type`", setting.UI.Reactions).
+		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
+		Count(new(Reaction))
+}
+
 func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
 		Type:    opts.Type,

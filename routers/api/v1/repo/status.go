@@ -266,6 +266,12 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
-	// TODO: ctx.SetTotalCountHeader(count)
+	count, err := models.CountLatestCommitStatus(repo.ID, sha)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountLatestCommitStatus", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)
 }
