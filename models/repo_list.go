@@ -641,8 +641,3 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int
 	repos := make([]*repo_model.Repository, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
-
-// FindReposMapByIDs find repos as map
-func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
-	return db.GetEngine(db.DefaultContext).In("id", repoIDs).Find(&res)
-}

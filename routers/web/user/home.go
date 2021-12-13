@@ -701,14 +701,14 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 		}
 		repoIDs = append(repoIDs, id)
 		if len(repoIDs) == 500 {
-			if err := models.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+			if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
 				return nil, err
 			}
 			repoIDs = make([]int64, 0, 500)
 		}
 	}
 	if len(repoIDs) > 0 {
-		if err := models.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+		if err := repo_model.FindReposMapByIDs(repoIDs, totalRes); err != nil {
 			return nil, err
 		}
 	}
