@@ -92,14 +92,9 @@ local prometheus = grafana.prometheus;
     local giteaChangesPanel = grafana.graphPanel.new(
       '',
       datasource='$datasource',
-      lines=false,
-      points=false,
-      bars=true,
-      stack=true,
       interval="$agg_interval",
       maxDataPoints=10000,
-      legend_values=true,
-      legend_total=true,
+
     )
                               .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
                               .addTargets(
@@ -107,7 +102,41 @@ local prometheus = grafana.prometheus;
         prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
         for metric in $._config.giteaStatMetrics
       ]
-    ),
+    )
+    + {
+      type: "timeseries",
+      options+: {
+        tooltip: {
+          mode: "multi"
+        },
+        legend+: {
+          calcs+: [
+            "sum"
+          ],
+        },
+      },
+
+      fieldConfig+: {
+        defaults+: {
+          noValue: "0",
+          custom+: {
+            drawStyle: "bars",
+            barAlignment: -1,
+            fillOpacity: 50,
+            pointSize: 1,
+            lineWidth: 0,
+            stacking: {
+              group: "A",
+              mode: "normal"
+            },
+          },
+        }
+      },
+    }
+    +
+    {
+
+     },
     local giteaChangesPanelTotal = grafana.statPanel.new(
                               '',
                               datasource='-- Dashboard --',
