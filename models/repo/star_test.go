@@ -2,13 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +35,7 @@ func TestIsStaring(t *testing.T) {
 func TestRepository_GetStargazers(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	gazers, err := GetStargazers(repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	if assert.Len(t, gazers, 1) {
@@ -47,7 +46,7 @@ func TestRepository_GetStargazers(t *testing.T) {
 func TestRepository_GetStargazers2(t *testing.T) {
 	// repo with stargazers
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	gazers, err := GetStargazers(repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)

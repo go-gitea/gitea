@@ -443,10 +443,10 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx, redirectRepoID)
-			} else if models.IsErrRepoRedirectNotExist(err) {
+			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
@@ -512,8 +512,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = models.IsWatching(ctx.User.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.User.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.User.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -613,7 +613,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository

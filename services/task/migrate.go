@@ -27,9 +27,9 @@ import (
 
 func handleCreateError(owner *user_model.User, err error) error {
 	switch {
-	case models.IsErrReachLimitOfRepo(err):
+	case repo_model.IsErrReachLimitOfRepo(err):
 		return fmt.Errorf("You have already reached your limit of %d repositories", owner.MaxCreationLimit())
-	case models.IsErrRepoAlreadyExist(err):
+	case repo_model.IsErrRepoAlreadyExist(err):
 		return errors.New("The repository name is already used")
 	case db.IsErrNameReserved(err):
 		return fmt.Errorf("The repository name '%s' is reserved", err.(db.ErrNameReserved).Name)
@@ -123,7 +123,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	if models.IsErrRepoAlreadyExist(err) {
+	if repo_model.IsErrRepoAlreadyExist(err) {
 		err = errors.New("The repository name is already used")
 		return
 	}

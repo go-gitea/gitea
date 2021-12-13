@@ -108,7 +108,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 
 	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.User.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
