@@ -175,7 +175,7 @@
 
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ range .Issues }}
+					{{ range (index $.IssuesMap .ID) }}
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">

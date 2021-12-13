@@ -296,27 +296,29 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issueList, err := models.LoadIssuesFromBoardList(boards)
+	issuesMap, err := models.LoadIssuesFromBoardList(boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
 
 	linkedPrsMap := make(map[int64][]*models.Issue)
-	for _, issue := range issueList {
-		var referencedIds []int64
-		for _, comment := range issue.Comments {
-			if comment.RefIssueID != 0 && comment.RefIsPull {
-				referencedIds = append(referencedIds, comment.RefIssueID)
+	for _, issuesList := range issuesMap {
+		for _, issue := range issuesList {
+			var referencedIds []int64
+			for _, comment := range issue.Comments {
+				if comment.RefIssueID != 0 && comment.RefIsPull {
+					referencedIds = append(referencedIds, comment.RefIssueID)
+				}
 			}
-		}
 
-		if len(referencedIds) > 0 {
-			if linkedPrs, err := models.Issues(&models.IssuesOptions{
-				IssueIDs: referencedIds,
-				IsPull:   util.OptionalBoolTrue,
-			}); err == nil {
-				linkedPrsMap[issue.ID] = linkedPrs
+			if len(referencedIds) > 0 {
+				if linkedPrs, err := models.Issues(&models.IssuesOptions{
+					IssueIDs: referencedIds,
+					IsPull:   util.OptionalBoolTrue,
+				}); err == nil {
+					linkedPrsMap[issue.ID] = linkedPrs
+				}
 			}
 		}
 	}
@@ -336,6 +338,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
+	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 
 	ctx.HTML(http.StatusOK, tplProjectsView)

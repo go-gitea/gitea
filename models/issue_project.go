@@ -94,16 +94,16 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(bs project_model.BoardList) (IssueList, error) {
-	issues := make(IssueList, 0, len(bs)*10)
+func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, error) {
+	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
 		il, err := LoadIssuesFromBoard(bs[i])
 		if err != nil {
 			return nil, err
 		}
-		issues = append(issues, il...)
+		issuesMap[bs[i].ID] = il
 	}
-	return issues, nil
+	return issuesMap, nil
 }
 
 // ChangeProjectAssign changes the project associated with an issue
