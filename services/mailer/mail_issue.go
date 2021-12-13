@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -80,7 +82,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(db.DefaultContext, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -141,7 +143,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 

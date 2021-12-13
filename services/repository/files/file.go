@@ -12,14 +12,14 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetFileResponseFromCommit Constructs a FileResponse from a Commit object
-func GetFileResponseFromCommit(ctx context.Context, repo *models.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
+func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
 	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)       // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
@@ -32,7 +32,7 @@ func GetFileResponseFromCommit(ctx context.Context, repo *models.Repository, com
 }
 
 // GetFileCommitResponse Constructs a FileCommitResponse from a Commit object
-func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
+func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("repo cannot be nil")
 	}

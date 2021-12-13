@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -80,11 +81,11 @@ func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := getWatch(db.GetEngine(db.DefaultContext), user.ID, issue.RepoID)
+	w, err := repo_model.GetWatch(db.DefaultContext, user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
-	return isWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
+	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id

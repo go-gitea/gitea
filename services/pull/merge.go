@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -26,13 +28,14 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
+func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, message string) (err error) {
 	if err = pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -77,7 +80,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	if err := pr.Issue.LoadRepo(); err != nil {
 		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(); err != nil {
+	if err := pr.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
@@ -112,7 +115,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 }
 
 // rawMerge perform the merge operation without changing any pull information in database
-func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, mergeStyle models.MergeStyle, message string) (string, error) {
+func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string) (string, error) {
 	err := git.LoadGitVersion()
 	if err != nil {
 		log.Error("git.LoadGitVersion: %v", err)
@@ -217,10 +220,10 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	// Determine if we should sign
 	signArg := ""
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := pr.SignMerge(ctx, doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
-			if pr.BaseRepo.GetTrustModel() == models.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 				committer = signer
 			}
 		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
@@ -242,7 +245,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	// Merge commits.
 	switch mergeStyle {
-	case models.MergeStyleMerge:
+	case repo_model.MergeStyleMerge:
 		cmd := git.NewCommandContext(ctx, "merge", "--no-ff", "--no-commit", trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge tracking into base: %v", err)
@@ -253,11 +256,11 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 			log.Error("Unable to make final commit: %v", err)
 			return "", err
 		}
-	case models.MergeStyleRebase:
+	case repo_model.MergeStyleRebase:
 		fallthrough
-	case models.MergeStyleRebaseUpdate:
+	case repo_model.MergeStyleRebaseUpdate:
 		fallthrough
-	case models.MergeStyleRebaseMerge:
+	case repo_model.MergeStyleRebaseMerge:
 		// Checkout head branch
 		if err := git.NewCommandContext(ctx, "checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			log.Error("git checkout base prior to merge post staging rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -310,7 +313,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		errbuf.Reset()
 
 		// not need merge, just update by rebase. so skip
-		if mergeStyle == models.MergeStyleRebaseUpdate {
+		if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 			break
 		}
 
@@ -323,7 +326,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		errbuf.Reset()
 
 		cmd := git.NewCommandContext(ctx, "merge")
-		if mergeStyle == models.MergeStyleRebase {
+		if mergeStyle == repo_model.MergeStyleRebase {
 			cmd.AddArguments("--ff-only")
 		} else {
 			cmd.AddArguments("--no-ff", "--no-commit")
@@ -335,13 +338,13 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 			log.Error("Unable to merge staging into base: %v", err)
 			return "", err
 		}
-		if mergeStyle == models.MergeStyleRebaseMerge {
+		if mergeStyle == repo_model.MergeStyleRebaseMerge {
 			if err := commitAndSignNoAuthor(ctx, pr, message, signArg, tmpBasePath, env); err != nil {
 				log.Error("Unable to make final commit: %v", err)
 				return "", err
 			}
 		}
-	case models.MergeStyleSquash:
+	case repo_model.MergeStyleSquash:
 		// Merge with squash
 		cmd := git.NewCommandContext(ctx, "merge", "--squash", trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
@@ -399,7 +402,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner()
+	err = pr.HeadRepo.GetOwner(db.DefaultContext)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
@@ -420,7 +423,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	)
 
 	var pushCmd *git.Command
-	if mergeStyle == models.MergeStyleRebaseUpdate {
+	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 		// force push the rebase result to head brach
 		pushCmd = git.NewCommandContext(ctx, "push", "-f", "head_repo", stagingBranch+":"+git.BranchPrefix+pr.HeadBranch)
 	} else {
@@ -468,7 +471,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 	return nil
 }
 
-func runMergeCommand(pr *models.PullRequest, mergeStyle models.MergeStyle, cmd *git.Command, tmpBasePath string) error {
+func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.Command, tmpBasePath string) error {
 	var outbuf, errbuf strings.Builder
 	if err := cmd.RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
@@ -552,7 +555,7 @@ func IsSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_
 		return true, nil
 	}
 
-	sign, _, _, err := pr.SignMerge(ctx, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
 
 	return sign, err
 }
@@ -568,7 +571,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *use
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && models.IsUserMergeWhitelisted(pr.ProtectedBranch, user.ID, p)) {
 		return true, nil
 	}
 
@@ -642,8 +645,8 @@ func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *
 	prConfig := prUnit.PullRequestsConfig()
 
 	// Check if merge style is correct and allowed
-	if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
-		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: models.MergeStyleManuallyMerged}
+	if !prConfig.IsMergeStyleAllowed(repo_model.MergeStyleManuallyMerged) {
+		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
 	}
 
 	if len(commitID) < 40 {

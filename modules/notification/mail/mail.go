@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +30,7 @@ func NewNotifier() base.Notifier {
 	return &mailNotifier{}
 }
 
-func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyCreateIssueComment Issue[%d] #%d in [%d]", issue.ID, issue.Index, issue.RepoID))
 	defer finished()
@@ -204,7 +205,7 @@ func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
 	mailer.MailNewRelease(ctx, rel)
 }
 
-func (m *mailNotifier) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository) {
+func (m *mailNotifier) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	if err := mailer.SendRepoTransferNotifyMail(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -95,7 +96,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	err := issue.loadReactions(db.GetEngine(db.DefaultContext))
+	err := issue.loadReactions(db.DefaultContext)
 	assert.NoError(t, err)
 
 	assert.Len(t, issue.Reactions, 7)
@@ -135,7 +136,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 
 	issue1 := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: issue1.RepoID}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID}).(*repo_model.Repository)
 
 	comment1 := unittest.AssertExistsAndLoadBean(t, &Comment{ID: 1}).(*Comment)
 

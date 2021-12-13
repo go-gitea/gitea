@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -33,7 +33,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %v", err)
 		}
 		logger.Warn("Unable to open authorized_keys. (ERROR: %v). Attempting to rewrite...", err)
-		if err = models.RewriteAllPublicKeys(); err != nil {
+		if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)
 		}
@@ -54,7 +54,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
-	if err := models.RegeneratePublicKeys(regenerated); err != nil {
+	if err := asymkey_model.RegeneratePublicKeys(regenerated); err != nil {
 		logger.Critical("Unable to regenerate authorized_keys file. ERROR: %v", err)
 		return fmt.Errorf("Unable to regenerate authorized_keys file. ERROR: %v", err)
 	}
@@ -76,7 +76,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized_keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
-		err = models.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys()
 		if err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)

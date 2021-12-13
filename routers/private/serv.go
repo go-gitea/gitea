@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -33,9 +35,9 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results := private.KeyAndOwner{}
 
-	key, err := models.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(keyID)
 	if err != nil {
-		if models.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
 				Err: fmt.Sprintf("Cannot find key: %d", keyID),
 			})
@@ -49,7 +51,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results.Key = key
 
-	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
+	if key.Type == asymkey_model.KeyTypeUser || key.Type == asymkey_model.KeyTypePrincipal {
 		user, err := user_model.GetUserByID(key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -126,9 +128,9 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := models.GetRepositoryByName(owner.ID, results.RepoName)
+	repo, err := repo_model.GetRepositoryByName(owner.ID, results.RepoName)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
 			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
@@ -183,9 +185,9 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Get the Public Key represented by the keyID
-	key, err := models.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(keyID)
 	if err != nil {
-		if models.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Cannot find key: %d", keyID),
@@ -204,7 +206,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	results.UserID = key.OwnerID
 
 	// If repo doesn't exist, deploy key doesn't make sense
-	if !repoExist && key.Type == models.KeyTypeDeploy {
+	if !repoExist && key.Type == asymkey_model.KeyTypeDeploy {
 		ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 			Results: results,
 			Err:     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
@@ -215,15 +217,15 @@ func ServCommand(ctx *context.PrivateContext) {
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
 	// We'll keep hold of the deploy key here for permissions checking
-	var deployKey *models.DeployKey
+	var deployKey *asymkey_model.DeployKey
 	var user *user_model.User
-	if key.Type == models.KeyTypeDeploy {
+	if key.Type == asymkey_model.KeyTypeDeploy {
 		results.IsDeployKey = true
 
 		var err error
-		deployKey, err = models.GetDeployKeyByRepo(key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
 		if err != nil {
-			if models.IsErrDeployKeyNotExist(err) {
+			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("Public (Deploy) Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
@@ -296,7 +298,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			owner.Visibility.IsPrivate() ||
 			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
 			setting.Service.RequireSignInView) {
-		if key.Type == models.KeyTypeDeploy {
+		if key.Type == asymkey_model.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 					Results: results,
@@ -374,7 +376,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
 		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
-			if models.IsErrUnitTypeNotExist(err) {
+			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,
 					Err:     "repository wiki is disabled",

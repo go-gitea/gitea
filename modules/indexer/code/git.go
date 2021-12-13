@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,7 +28,7 @@ type repoChanges struct {
 	RemovedFilenames []string
 }
 
-func getDefaultBranchSha(ctx context.Context, repo *models.Repository) (string, error) {
+func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
 	stdout, err := git.NewCommandContext(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
 	if err != nil {
 		return "", err
@@ -37,8 +37,8 @@ func getDefaultBranchSha(ctx context.Context, repo *models.Repository) (string, 
 }
 
 // getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(ctx context.Context, repo *models.Repository, revision string) (*repoChanges, error) {
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeCode)
+func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
+	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeCode)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(ctx context.Context, repo *models.Repository, revision string) (*repoChanges, error) {
+func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
 	stdout, err := git.NewCommandContext(ctx, "ls-tree", "--full-tree", "-l", "-r", revision).
 		RunInDirBytes(repo.RepoPath())
@@ -102,7 +102,7 @@ func genesisChanges(ctx context.Context, repo *models.Repository, revision strin
 }
 
 // nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(ctx context.Context, repo *models.Repository, revision string) (*repoChanges, error) {
+func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	diffCmd := git.NewCommandContext(ctx, "diff", "--name-status",
 		repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, err := diffCmd.RunInDir(repo.RepoPath())

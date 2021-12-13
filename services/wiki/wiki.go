@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -21,6 +22,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 var (
@@ -70,7 +72,7 @@ func FilenameToName(filename string) (string, error) {
 
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
-func InitWiki(ctx context.Context, repo *models.Repository) error {
+func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.HasWiki() {
 		return nil
 	}
@@ -117,7 +119,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 }
 
 // updateWikiPage adds a new page to the repository wiki.
-func updateWikiPage(ctx context.Context, doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
@@ -224,10 +226,10 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(ctx, doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -265,18 +267,18 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func AddWikiPage(ctx context.Context, doer *user_model.User, repo *models.Repository, wikiName, content, message string) error {
+func AddWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName, content, message string) error {
 	return updateWikiPage(ctx, doer, repo, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func EditWikiPage(ctx context.Context, doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
+func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string) error {
 	return updateWikiPage(ctx, doer, repo, oldWikiName, newWikiName, content, message, false)
 }
 
 // DeleteWikiPage deletes a wiki page identified by its path.
-func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *models.Repository, wikiName string) (err error) {
+func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
@@ -342,10 +344,10 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(ctx, doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -372,8 +374,8 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func DeleteWiki(ctx context.Context, repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
+	if err := repo_model.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 

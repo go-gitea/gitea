@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -38,7 +39,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 
 	pointer, _ := lfs.ReadPointer(dataRc)
 	if pointer.IsValid() {
-		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
 			if err = dataRc.Close(); err != nil {
 				log.Error("ServeBlobOrLFS: Close: %v", err)

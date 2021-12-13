@@ -7,6 +7,7 @@ package issue
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
@@ -14,7 +15,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
+func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}

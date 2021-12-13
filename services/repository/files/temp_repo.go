@@ -15,23 +15,25 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
 type TemporaryUploadRepository struct {
 	ctx      context.Context
-	repo     *models.Repository
+	repo     *repo_model.Repository
 	gitRepo  *git.Repository
 	basePath string
 }
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
-func NewTemporaryUploadRepository(ctx context.Context, repo *models.Repository) (*TemporaryUploadRepository, error) {
+func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
 	basePath, err := models.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
@@ -57,7 +59,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				Name: branch,
 			}
 		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
-			return models.ErrRepoNotExist{
+			return repo_model.ErrRepoNotExist{
 				ID:        t.repo.ID,
 				UID:       t.repo.OwnerID,
 				OwnerName: t.repo.OwnerName,
@@ -217,10 +219,10 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 
 	// Determine if we should sign
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := t.repo.SignCRUDAction(t.ctx, author, t.basePath, "HEAD")
+		sign, keyID, signer, _ := asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
-			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 					// Add trailers
 					_, _ = messageBytes.WriteString("\n")

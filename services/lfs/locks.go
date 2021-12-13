@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/json"
@@ -19,7 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {
+func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *models.LFSLock, err error) {
 	if err != nil {
 		if models.IsErrLFSLockNotExist(err) {
 			ctx.JSON(http.StatusOK, api.LFSLockList{
@@ -47,7 +48,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 func GetListLockHandler(ctx *context.Context) {
 	rv := getRequestContext(ctx)
 
-	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -134,7 +135,7 @@ func PostLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -167,8 +168,7 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:    repository,
+	lock, err := models.CreateLFSLock(repository, &models.LFSLock{
 		Path:    req.Path,
 		OwnerID: ctx.User.ID,
 	})
@@ -202,7 +202,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -268,7 +268,7 @@ func UnLockHandler(ctx *context.Context) {
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -301,7 +301,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, req.Force)
+	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.User, req.Force)
 	if err != nil {
 		if models.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")

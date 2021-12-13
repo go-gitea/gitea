@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -26,13 +27,13 @@ import (
 	"xorm.io/builder"
 )
 
-func iterateRepositories(each func(*models.Repository) error) error {
+func iterateRepositories(each func(*repo_model.Repository) error) error {
 	err := db.Iterate(
 		db.DefaultContext,
-		new(models.Repository),
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
-			return each(bean.(*models.Repository))
+			return each(bean.(*repo_model.Repository))
 		},
 	)
 	return err
@@ -49,7 +50,7 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 }
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := iterateRepositories(func(repo *models.Repository) error {
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
@@ -85,7 +86,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 	numRepos := 0
 	numNeedUpdate := 0
 
-	if err := iterateRepositories(func(repo *models.Repository) error {
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		numRepos++
 		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
 		if err != nil {
@@ -132,13 +133,13 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		logger.Critical("Unable to create cache: %v", err)
 		return err
 	}
-	if err := iterateRepositories(func(repo *models.Repository) error {
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
 			repo.Owner = owner.(*user_model.User)
 		} else {
-			if err := repo.GetOwner(); err != nil {
+			if err := repo.GetOwner(db.DefaultContext); err != nil {
 				return err
 			}
 			cache.Add(repo.OwnerID, repo.Owner)

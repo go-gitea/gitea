@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -80,7 +81,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *m
 	}
 }
 
-func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository) {
+func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	oldMode, _ := models.AccessLevel(doer, oldRepo)
 	mode, _ := models.AccessLevel(doer, repo)
 
@@ -108,7 +109,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
@@ -120,7 +121,7 @@ func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_
 	}
 }
 
-func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository) {
 	u := repo.MustOwner()
 
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
@@ -133,7 +134,7 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *mo
 	}
 }
 
-func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
@@ -424,7 +425,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	mode, _ := models.AccessLevel(doer, repo)
 
@@ -592,7 +593,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issu
 	}
 }
 
-func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifyPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
 	defer finished()
 
@@ -737,7 +738,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName, refID string) {
+func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	apiPusher := convert.ToUser(pusher, nil)
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
@@ -777,7 +778,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *user_model.User, p
 	}
 }
 
-func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	apiPusher := convert.ToUser(pusher, nil)
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
@@ -822,7 +823,7 @@ func (m *webhookNotifier) NotifyDeleteRelease(doer *user_model.User, rel *models
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
 
-func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifySyncPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
 	defer finished()
 
@@ -848,10 +849,10 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *m
 	}
 }
 
-func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName, refID string) {
+func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	m.NotifyCreateRef(pusher, repo, refType, refFullName, refID)
 }
 
-func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
 }

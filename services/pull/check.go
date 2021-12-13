@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -71,7 +73,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, error) {
 	if pr.BaseRepo == nil {
 		var err error
-		pr.BaseRepo, err = models.GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = repo_model.GetRepositoryByID(pr.BaseRepoID)
 		if err != nil {
 			return nil, fmt.Errorf("GetRepositoryByID: %v", err)
 		}
@@ -166,7 +168,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		// When the commit author is unknown set the BaseRepo owner as merger
 		if merger == nil {
 			if pr.BaseRepo.Owner == nil {
-				if err = pr.BaseRepo.GetOwner(); err != nil {
+				if err = pr.BaseRepo.GetOwner(db.DefaultContext); err != nil {
 					log.Error("BaseRepo.GetOwner[%d]: %v", pr.ID, err)
 					return false
 				}
@@ -252,7 +254,7 @@ func testPR(id int64) {
 }
 
 // CheckPrsForBaseBranch check all pulls with bseBrannch
-func CheckPrsForBaseBranch(baseRepo *models.Repository, baseBranchName string) error {
+func CheckPrsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName string) error {
 	prs, err := models.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
 	if err != nil {
 		return err

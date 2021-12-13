@@ -9,6 +9,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -30,7 +32,7 @@ func MailNewRelease(ctx context.Context, rel *models.Release) {
 		return
 	}
 
-	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return

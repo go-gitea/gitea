@@ -85,10 +85,55 @@
 						</form>
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button{{if not $.CanSignedUserFork}} tooltip disabled{{end}}"{{if and (not $.CanSignedUserFork) $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{else if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" tabindex="0">
-							<a class="ui compact small basic button"{{if $.CanSignedUserFork}} href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{end}}>
+						<div class="ui labeled button
+							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
+								tooltip disabled
+							{{end}}"
+							{{if not $.IsSigned}}
+								data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"
+							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
+								data-content="{{$.i18n.Tr "repo.fork_from_self"}}"
+							{{end}}
+						data-position="top center" data-variation="tiny" tabindex="0">
+							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
+								{{if not $.CanSignedUserFork}}
+									{{if gt (len $.UserAndOrgForks) 1}}
+										data-modal="#fork-repo-modal"
+									{{else if eq (len $.UserAndOrgForks) 1}}
+										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
+									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
+									{{end}}
+								{{else if eq (len $.UserAndOrgForks) 0}}
+									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
+								{{else}}
+									data-modal="#fork-repo-modal"
+								{{end}}
+							>
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
+							<div class="ui small modal" id="fork-repo-modal">
+								{{svg "octicon-x" 16 "close inside"}}
+								<div class="header">
+									{{$.i18n.Tr "repo.already_forked" .Name}}
+								</div>
+								<div class="content tl">
+									<div class="ui list">
+										{{range $.UserAndOrgForks}}
+											<div class="ui item py-3">
+												<a href="{{.Link}}">
+													{{svg "octicon-repo-forked" 16 "mr-3"}}{{.FullName}}
+												</a>
+											</div>
+										{{end}}
+									</div>
+									{{if $.CanSignedUserFork}}
+									<div class="ui divider"></div>
+									<a href="{{AppSubUrl}}/repo/fork/{{.ID}}">
+										{{$.i18n.Tr "repo.fork_to_different_account"}}
+									</a>
+									{{end}}
+								</div>
+							</div>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{CountFmt .NumForks}}
 							</a>

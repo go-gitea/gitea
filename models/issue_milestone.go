@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,9 +22,9 @@ import (
 
 // Milestone represents a milestone of repository.
 type Milestone struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX"`
-	Repo            *Repository `xorm:"-"`
+	ID              int64                  `xorm:"pk autoincr"`
+	RepoID          int64                  `xorm:"INDEX"`
+	Repo            *repo_model.Repository `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -287,7 +288,7 @@ func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Is
 	}
 
 	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
-		if err := issue.loadRepo(e); err != nil {
+		if err := issue.loadRepo(ctx); err != nil {
 			return err
 		}
 
@@ -335,7 +336,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := GetRepositoryByID(m.RepoID)
+	repo, err := repo_model.GetRepositoryByID(m.RepoID)
 	if err != nil {
 		return err
 	}

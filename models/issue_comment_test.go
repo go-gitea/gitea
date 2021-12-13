@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -19,7 +20,7 @@ func TestCreateComment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	now := time.Now().Unix()

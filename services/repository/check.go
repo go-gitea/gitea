@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -27,10 +28,10 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 
 	if err := db.Iterate(
 		db.DefaultContext,
-		new(models.Repository),
+		new(repo_model.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
 		func(idx int, bean interface{}) error {
-			repo := bean.(*models.Repository)
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before fsck of %s", repo.FullName())
@@ -62,10 +63,10 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 
 	if err := db.Iterate(
 		db.DefaultContext,
-		new(models.Repository),
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
-			repo := bean.(*models.Repository)
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before GC of %s", repo.FullName())
@@ -96,7 +97,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			}
 
 			// Now update the size of the repository
-			if err := repo.UpdateSize(db.DefaultContext); err != nil {
+			if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
@@ -115,14 +116,14 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 	return nil
 }
 
-func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error) {
-	repos := make([]*models.Repository, 0, 10)
+func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, error) {
+	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
 		db.DefaultContext,
-		new(models.Repository),
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
-			repo := bean.(*models.Repository)
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())

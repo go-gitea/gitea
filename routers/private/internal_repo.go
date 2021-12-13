@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -68,8 +68,8 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 	return cancel
 }
 
-func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *models.Repository {
-	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+func loadRepository(ctx *gitea_context.PrivateContext, ownerName, repoName string) *repo_model.Repository {
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
 		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

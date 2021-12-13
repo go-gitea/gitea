@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -27,7 +28,7 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func ChangeTargetBranch(ctx context.Context, pr *models.PullRequest, doer *user_
 }
 
 func checkForInvalidation(ctx context.Context, requests models.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := models.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(repoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
@@ -531,7 +532,7 @@ func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error 
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
-func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *models.Repository) error {
+func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
 	branches, _, err := git.GetBranchesByPath(ctx, repo.RepoPath(), 0, 0)
 	if err != nil {
 		return err
@@ -582,7 +583,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
 			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 			return ""

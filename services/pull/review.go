@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -116,7 +117,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(ctx context.Context, doer *user_model.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)

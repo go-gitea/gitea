@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -39,7 +40,7 @@ func (ct *ContentType) String() string {
 
 // GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
-func GetContentsOrList(ctx context.Context, repo *models.Repository, treePath, ref string) (interface{}, error) {
+func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePath, ref string) (interface{}, error) {
 	if repo.IsEmpty {
 		return make([]interface{}, 0), nil
 	}
@@ -105,7 +106,7 @@ func GetContentsOrList(ctx context.Context, repo *models.Repository, treePath, r
 }
 
 // GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
-func GetContents(ctx context.Context, repo *models.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
+func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -227,7 +228,7 @@ func GetContents(ctx context.Context, repo *models.Repository, treePath, ref str
 }
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(ctx context.Context, repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
+func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
 	if gitRepo == nil {
 		var err error

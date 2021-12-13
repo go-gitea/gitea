@@ -5,14 +5,14 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
-func createFileInBranch(user *user_model.User, repo *models.Repository, treePath, branchName, content string) (*api.FileResponse, error) {
+func createFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) (*api.FileResponse, error) {
 	opts := &files_service.UpdateRepoFileOptions{
 		OldBranch: branchName,
 		TreePath:  treePath,
@@ -24,6 +24,6 @@ func createFileInBranch(user *user_model.User, repo *models.Repository, treePath
 	return files_service.CreateOrUpdateRepoFile(git.DefaultContext, repo, user, opts)
 }
 
-func createFile(user *user_model.User, repo *models.Repository, treePath string) (*api.FileResponse, error) {
+func createFile(user *user_model.User, repo *repo_model.Repository, treePath string) (*api.FileResponse, error) {
 	return createFileInBranch(user, repo, treePath, repo.DefaultBranch, "This is a NEW file")
 }

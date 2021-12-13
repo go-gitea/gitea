@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -21,9 +22,16 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *repo_model.Repository
+	Name        string
+	Description string
+}
+
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
-	forkedRepo, err := opts.BaseRepo.GetUserFork(owner.ID)
+func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo_model.Repository, err error) {
+	forkedRepo, err := repo_model.GetUserFork(opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +43,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 		}
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
 		OwnerName:     owner.Name,
@@ -57,7 +65,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 			return
 		}
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 
 		if exists, _ := util.IsExist(repoPath); !exists {
 			return
@@ -99,7 +107,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 
 		needsRollback = true
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, err := git.NewCommandContext(ctx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
@@ -108,7 +116,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -131,11 +139,10 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	ctx := db.DefaultContext
-	if err := repo.UpdateSize(ctx); err != nil {
+	if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed")
 	}
 
@@ -145,9 +152,9 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(repo *models.Repository) error {
+func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 	err := db.WithTx(func(ctx context.Context) error {
-		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err
 		}
