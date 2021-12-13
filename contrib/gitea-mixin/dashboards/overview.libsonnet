@@ -93,12 +93,18 @@ local prometheus = grafana.prometheus;
       'Gitea changes',
       datasource='$datasource',
       lines=false,
-      points=true
+      points=false,
+      bars=true,
+      stack=true,
+      interval="$agg_interval",
+      maxDataPoints=10000,
+      legend_values=true,
+      legend_total=true,
     )
-                              .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__rate_interval]) > 0' % [giteaSelector], legendFormat='Restart', intervalFactor=1))
+                              .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval])' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
                               .addTargets(
       [
-        prometheus.target(expr='changes(%s{%s}[$__rate_interval]) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=2)
+        prometheus.target(expr='floor(increase(%s{%s}[$__interval]))' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
         for metric in $._config.giteaStatMetrics
       ]
     ),
@@ -152,6 +158,18 @@ local prometheus = grafana.prometheus;
           refresh: 1,
           regex: '',
           type: 'query',
+        },
+      )
+     .addTemplate(
+        {
+          hide: 0,
+          label: 'aggregation interval',
+          name: 'agg_interval',
+          current: 'auto',
+          auto_min: '1m',
+          auto: true,
+          query: '1m,10m,1h,1d,7d',
+          type: 'interval',
         },
       )
       .addPanel(
