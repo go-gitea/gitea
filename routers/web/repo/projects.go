@@ -634,7 +634,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	if err = models.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}

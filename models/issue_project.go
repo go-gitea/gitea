@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // LoadProject load the project the issue was assigned to
@@ -106,7 +107,7 @@ func LoadIssuesFromBoardList(bs project_model.BoardList) (IssueList, error) {
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
+func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -120,7 +121,7 @@ func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
 	return committer.Commit()
 }
 
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newProjectID int64) error {
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
@@ -128,7 +129,7 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newPro
 		return err
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 

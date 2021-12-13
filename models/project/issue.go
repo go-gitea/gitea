@@ -5,6 +5,9 @@
 package project
 
 import (
+	"context"
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 )
 
@@ -71,12 +74,32 @@ func (p *Project) NumOpenIssues() int {
 	return int(c)
 }
 
-//  ____            _           _   ____                      _
-// |  _ \ _ __ ___ (_) ___  ___| |_| __ )  ___   __ _ _ __ __| |
-// | |_) | '__/ _ \| |/ _ \/ __| __|  _ \ / _ \ / _` | '__/ _` |
-// |  __/| | | (_) | |  __/ (__| |_| |_) | (_) | (_| | | | (_| |
-// |_|   |_|  \___// |\___|\___|\__|____/ \___/ \__,_|_|  \__,_|
-//               |__/
+// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
+	return db.WithTx(func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
+
+		issueIDs := make([]int64, 0, len(sortedIssueIDs))
+		for _, issueID := range sortedIssueIDs {
+			issueIDs = append(issueIDs, issueID)
+		}
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
+		if err != nil {
+			return err
+		}
+		if int(count) != len(sortedIssueIDs) {
+			return fmt.Errorf("all issues have to be added to a project first")
+		}
+
+		for sorting, issueID := range sortedIssueIDs {
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
 
 func (pb *Board) removeIssues(e db.Engine) error {
 	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
