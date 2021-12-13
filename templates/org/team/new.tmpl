@@ -56,14 +56,14 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="{{if .PageIsOrgTeamsNew}}read{{else}}{{.Team.Authorize}}{{end}}" {{if or .PageIsOrgTeamsNew (eq .Team.Authorize 1) (eq .Team.Authorize 2)}}checked{{end}}>
+										<input type="radio" name="permission" value="{{if .PageIsOrgTeamsNew}}read{{else}}{{.Team.AccessMode}}{{end}}" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
 										<label>{{.i18n.Tr "org.teams.general_access"}}</label>
 										<span class="help">{{.i18n.Tr "org.teams.general_access_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="admin" {{if eq .Team.Authorize 3}}checked{{end}}>
+										<input type="radio" name="permission" value="admin" {{if eq .Team.AccessMode 3}}checked{{end}}>
 										<label>{{.i18n.Tr "org.teams.admin_access"}}</label>
 										<span class="help">{{.i18n.Tr "org.teams.admin_access_helper"}}</span>
 									</div>
@@ -71,7 +71,7 @@
 							</div>
 							<div class="ui divider"></div>
 
-							<div class="team-units required grouped field"{{if eq .Team.Authorize 3}} style="display: none"{{end}}>
+							<div class="team-units required grouped field"{{if eq .Team.AccessMode 3}} style="display: none"{{end}}>
 								<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
 								<table class="ui celled table">
 									<thead>
