@@ -429,8 +429,10 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	return cond
 }
 
-func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := e.Where(opts.toCond())
+// ListWebhooksByOptsCtx gets webhooks based on options
+func ListWebhooksByOptsCtx(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
+	sess := db.GetEngine(ctx).
+		Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -440,13 +442,12 @@ func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, erro
 	}
 
 	webhooks := make([]*Webhook, 0, 10)
-	err := sess.Find(&webhooks)
-	return webhooks, err
+	return webhooks, sess.Find(&webhooks)
 }
 
 // ListWebhooksByOpts return webhooks based on options
 func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
-	return listWebhooksByOpts(db.GetEngine(db.DefaultContext), opts)
+	return ListWebhooksByOptsCtx(db.DefaultContext, opts)
 }
 
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
@@ -504,15 +505,8 @@ func UpdateWebhookLastStatus(w *Webhook) error {
 	return err
 }
 
-// deleteWebhook uses argument bean as query condition,
-// ID must be specified and do not assign unnecessary fields.
-func deleteWebhook(bean *Webhook) (err error) {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+// DeleteWebhook deletes a webhook
+func DeleteWebhook(ctx context.Context, bean *Webhook) error {
 	if count, err := db.DeleteByBean(ctx, bean); err != nil {
 		return err
 	} else if count == 0 {
@@ -520,23 +514,26 @@ func deleteWebhook(bean *Webhook) (err error) {
 	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
 		return err
 	}
-
-	return committer.Commit()
+	return nil
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
 func DeleteWebhookByRepoID(repoID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:     id,
-		RepoID: repoID,
+	return db.WithTx(func(ctx context.Context) error {
+		return DeleteWebhook(ctx, &Webhook{
+			ID:     id,
+			RepoID: repoID,
+		})
 	})
 }
 
 // DeleteWebhookByOrgID deletes webhook of organization by given ID.
 func DeleteWebhookByOrgID(orgID, id int64) error {
-	return deleteWebhook(&Webhook{
-		ID:    id,
-		OrgID: orgID,
+	return db.WithTx(func(ctx context.Context) error {
+		return DeleteWebhook(ctx, &Webhook{
+			ID:    id,
+			OrgID: orgID,
+		})
 	})
 }
 

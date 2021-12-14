@@ -766,7 +766,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
-		&webhook.HookTask{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&Milestone{RepoID: repoID},
@@ -783,9 +782,19 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Star{RepoID: repoID},
 		&Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
-		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	// Delete Webhooks and related objects
+	hooks, err := webhook.ListWebhooksByOptsCtx(ctx, &webhook.ListWebhookOptions{RepoID: repoID})
+	if err != nil {
+		return err
+	}
+	for _, hook := range hooks {
+		if err := webhook.DeleteWebhook(ctx, hook); err != nil {
+			return err
+		}
 	}
 
 	// Delete Labels and related objects
