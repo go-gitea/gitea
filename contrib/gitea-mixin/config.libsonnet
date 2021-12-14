@@ -3,6 +3,10 @@
     local c = self,
     dashboardNamePrefix: 'Gitea',
     dashboardTags: ['gitea'],
+    dashboardPeriod: 'now-1h',
+    dashboardTimezone: 'utc',
+    dashboardRefresh: '1m',
+
 
     // add or remove metrics from dashboard
     giteaStatMetrics: [

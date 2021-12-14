@@ -369,11 +369,11 @@ local addIssueLabelsOverrides(labels) =
     'gitea-overview.json':
       grafana.dashboard.new(
         '%s Overview' % $._config.dashboardNamePrefix,
-        time_from='now-1h',
+        time_from='%s' % $._config.dashboardPeriod,
         editable=false,
         tags=($._config.dashboardTags),
-        timezone='utc',
-        refresh='1m',
+        timezone='%s' % $._config.dashboardTimezone,
+        refresh='%s' % $._config.dashboardRefresh,
         graphTooltip='shared_crosshair',
         uid='gitea-overview'
       )
