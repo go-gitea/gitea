@@ -231,7 +231,7 @@ func (ctx *Context) NotFound(logMsg string, logErr error) {
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "notFoundInternal: %s: %v", logMsg, logErr)
+		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -263,7 +263,7 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "serverErrorInternal: %s: %v", logMsg, logErr)
+		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
