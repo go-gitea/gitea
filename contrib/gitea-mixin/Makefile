@@ -1,16 +1,20 @@
 JSONNET_FMT := jsonnetfmt -n 2 --max-blank-lines 1 --string-style s --comment-style s
 
-default: vendor build dashboards_out
+.PHONY: all
+all: build dashboards_out
 
-all: fmt build
-
-vendor: 
+vendor: jsonnetfile.json
 	jb install
 
+.PHONY: build
+build: vendor
+
+.PHONY: fmt
 fmt:
 	find . -name 'vendor' -prune -o -name '*.libsonnet' -print -o -name '*.jsonnet' -print | \
 		xargs -n 1 -- $(JSONNET_FMT) -i
 
+.PHONY: lint
 lint: build
 	find . -name 'vendor' -prune -o -name '*.libsonnet' -print -o -name '*.jsonnet' -print | \
 		while read f; do \
@@ -22,4 +26,6 @@ dashboards_out: mixin.libsonnet config.libsonnet $(wildcard dashboards/*)
 	@mkdir -p dashboards_out
 	jsonnet -J vendor -m dashboards_out lib/dashboards.jsonnet
 
-build: vendor
+.PHONY: clean
+clean:
+	rm -rf dashboards_out
