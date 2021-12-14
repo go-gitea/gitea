@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	repo_router "code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
@@ -359,14 +360,14 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenEvents *big.Int
-	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
+	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{repo_router.HiddenCommentTypesSettingsKey})
 	if err != nil {
 		ctx.ServerError("GetSettings", err)
 		return
 	}
-	if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
+	if eventsRaw[repo_router.HiddenCommentTypesSettingsKey] != nil && eventsRaw[repo_router.HiddenCommentTypesSettingsKey].SettingValue != "" {
 		var ok bool
-		hiddenEvents, ok = new(big.Int).SetString(eventsRaw["hidden_comment_types"].SettingValue, 10)
+		hiddenEvents, ok = new(big.Int).SetString(eventsRaw[repo_router.HiddenCommentTypesSettingsKey].SettingValue, 10)
 		if !ok {
 			hiddenEvents = nil
 			log.Error("SetString: error")
@@ -448,7 +449,7 @@ func UpdateUserShownComments(ctx *context.Context) {
 
 	bitset := form.Bitset()
 	json := bitset.String()
-	err := user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
+	err := user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: repo_router.HiddenCommentTypesSettingsKey, SettingValue: string(json)})
 	if err != nil {
 		ctx.ServerError("SetSetting", err)
 		return

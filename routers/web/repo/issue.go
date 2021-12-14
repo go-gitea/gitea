@@ -67,6 +67,8 @@ var (
 		".github/ISSUE_TEMPLATE.md",
 		".github/issue_template.md",
 	}
+
+	HiddenCommentTypesSettingsKey = "hidden_comment_types"
 )
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -1638,14 +1640,14 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	var hiddenEvents *big.Int
 	if ctx.IsSigned {
-		eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
+		eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{HiddenCommentTypesSettingsKey})
 		if err != nil {
 			ctx.ServerError("GetSettings", err)
 			return
 		}
-		if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
+		if eventsRaw[HiddenCommentTypesSettingsKey] != nil && eventsRaw[HiddenCommentTypesSettingsKey].SettingValue != "" {
 			var ok bool
-			hiddenEvents, ok = new(big.Int).SetString(eventsRaw["hidden_comment_types"].SettingValue, 10)
+			hiddenEvents, ok = new(big.Int).SetString(eventsRaw[HiddenCommentTypesSettingsKey].SettingValue, 10)
 			if !ok {
 				hiddenEvents = nil
 				log.Error("SetString: error")
