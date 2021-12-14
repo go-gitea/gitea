@@ -274,31 +274,32 @@ local addIssueLabelsOverrides(labels) =
         ]
       ),
 
-    local giteaChangesPanelTotal = grafana.statPanel.new(
-                                     '',
-                                     datasource='-- Dashboard --',
-                                     reducerFunction='sum',
-                                     graphMode='none',
-                                     textMode='value_and_name',
-                                     colorMode='value',
-                                   )
-                                   + {
-                                     targets+: [
-                                       {
-                                         panelId: 10,  // id of giteaChangesPanel
-                                         refId: 'A',
-                                       },
-                                     ],
-                                   }
-                                   + {
-                                     fieldConfig+: {
-                                       defaults+: {
-                                         color: {
-                                           mode: 'palette-classic',
-                                         },
-                                       },
-                                     },
-                                   },
+    local giteaChangesPanelTotal =
+      grafana.statPanel.new(
+        '',
+        datasource='-- Dashboard --',
+        reducerFunction='sum',
+        graphMode='none',
+        textMode='value_and_name',
+        colorMode='value',
+      )
+      + {
+        targets+: [
+          {
+            panelId: 10,  // id of giteaChangesPanel
+            refId: 'A',
+          },
+        ],
+      }
+      + {
+        fieldConfig+: {
+          defaults+: {
+            color: {
+              mode: 'palette-classic',
+            },
+          },
+        },
+      },
 
     local giteaChangesByRepositories =
       giteaChangesPanelPrototype
@@ -429,120 +430,19 @@ local addIssueLabelsOverrides(labels) =
           type: 'interval',
         },
       )
-      .addPanel(
-        grafana.row.new(title='General'), gridPos={
-          x: 0,
-          y: 0,
-          w: 0,
-          h: 0,
-        },
-      )
-      .addPanel(
-        giteaStatsPanel, gridPos={
-          x: 0,
-          y: 0,
-          w: 16,
-          h: 4,
-        }
-      )
-      .addPanel(
-        giteaUptimePanel, gridPos={
-          x: 16,
-          y: 0,
-          w: 8,
-          h: 4,
-        }
-      )
-      .addPanel(
-        giteaMemoryPanel, gridPos={
-          x: 0,
-          y: 4,
-          w: 8,
-          h: 6,
-        }
-      )
-      .addPanel(
-        giteaCpuPanel, gridPos={
-          x: 8,
-          y: 4,
-          w: 8,
-          h: 6,
-        }
-      )
-      .addPanel(
-        giteaFileDescriptorsPanel, gridPos={
-          x: 16,
-          y: 4,
-          w: 8,
-          h: 6,
-        }
-      )
-      .addPanel(
-        grafana.row.new(
-          title='Changes',
-          collapse=false
-        ),
-        gridPos={
-          x: 0,
-          y: 10,
-          w: 24,
-          h: 8,
-        }
-      )
-      .addPanel(
-        giteaChangesPanelTotal,
-        gridPos={
-          x: 0,
-          y: 12,
-          w: 6,
-          h: 8,
-        }
-      )
-      .addPanel(  // id 10
-        giteaChangesPanelAll,
-        gridPos={
-          x: 6,
-          y: 12,
-          w: 18,
-          h: 8,
-        }
-      )
-      .addPanel(  // by repositories split
-        giteaChangesByRepositoriesTotal,
-        gridPos={
-          x: 0,
-          y: 20,
-          w: 6,
-          h: 8,
-        }
-      )
-      .addPanel(
-        giteaChangesByRepositories,  // id 12
-        gridPos={
-          x: 6,
-          y: 20,
-          w: 18,
-          h: 8,
-        }
-      )
-      .addPanel(  // by labels split
-        giteaChangesByLabelTotal,
-        gridPos={
-          x: 0,
-          y: 28,
-          w: 6,
-          h: 8,
-        }
-      )
-      .addPanel(  // id 14
-        giteaChangesByLabel,
-        gridPos={
-          x: 6,
-          y: 28,
-          w: 18,
-          h: 8,
-        }
-      ),
+      .addPanel(grafana.row.new(title='General'), gridPos={ x: 0, y: 0, w: 0, h: 0 },)
+      .addPanel(giteaStatsPanel, gridPos={ x: 0, y: 0, w: 16, h: 4 })
+      .addPanel(giteaUptimePanel, gridPos={ x: 16, y: 0, w: 8, h: 4 })
+      .addPanel(giteaMemoryPanel, gridPos={ x: 0, y: 4, w: 8, h: 6 })
+      .addPanel(giteaCpuPanel, gridPos={ x: 8, y: 4, w: 8, h: 6 })
+      .addPanel(giteaFileDescriptorsPanel, gridPos={ x: 16, y: 4, w: 8, h: 6 })
+      .addPanel(grafana.row.new(title='Changes', collapse=false), gridPos={ x: 0, y: 10, w: 24, h: 8 })
+      .addPanel(giteaChangesPanelTotal, gridPos={ x: 0, y: 12, w: 6, h: 8 })
+      .addPanel(giteaChangesPanelAll, gridPos={ x: 6, y: 12, w: 18, h: 8 })  // id 10
+      .addPanel(giteaChangesByRepositoriesTotal, gridPos={ x: 0, y: 20, w: 6, h: 8 })  // by repositories split
+      .addPanel(giteaChangesByRepositories, gridPos={ x: 6, y: 20, w: 18, h: 8 })  // id 12
+      .addPanel(giteaChangesByLabelTotal, gridPos={ x: 0, y: 28, w: 6, h: 8 })
+      .addPanel(giteaChangesByLabel, gridPos={ x: 6, y: 28, w: 18, h: 8 }),  // id 14
 
   },
 }
