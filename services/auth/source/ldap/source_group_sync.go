@@ -96,19 +96,5 @@ func removeMappedMemberships(user *user_model.User, ldapTeamRemove map[string][]
 				log.Error("LDAP group sync: Could not remove user from team: %v", err)
 			}
 		}
-		if remainingTeams, err := models.GetUserOrgTeams(org.ID, user.ID); err == nil && len(remainingTeams) == 0 {
-			// only remove organization membership when no team memberships are left for this organization
-			if isMember, err := models.IsOrganizationMember(org.ID, user.ID); isMember && err == nil {
-				log.Trace("LDAP group sync: removing user [%s] from organization [%s]", user.Name, org.Name)
-			} else {
-				continue
-			}
-			err = org.RemoveMember(user.ID)
-			if err != nil {
-				log.Error("LDAP group sync: Could not remove user from organization: %v", err)
-			}
-		} else if err != nil {
-			log.Error("LDAP group sync: Could not find users [id: %d] teams for given organization [%s]", user.ID, org.Name)
-		}
 	}
 }
