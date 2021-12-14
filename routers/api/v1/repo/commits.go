@@ -11,7 +11,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -188,7 +189,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	userCache := make(map[string]*models.User)
+	userCache := make(map[string]*user_model.User)
 
 	apiCommits := make([]*api.Commit, len(commits))
 	for i, commit := range commits {
@@ -248,7 +249,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
 		repoPath,
 		ctx.Params(":sha"),

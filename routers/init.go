@@ -13,9 +13,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -25,27 +25,27 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
-	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
+	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/repository"
+	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/repository/archiver"
+	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/session"
@@ -73,7 +73,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repository.NewContext)
+	mustInit(repo_service.NewContext)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -85,10 +85,10 @@ func syncAppPathForGit(ctx context.Context) error {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
 
 		log.Info("re-sync repository hooks ...")
-		mustInitCtx(ctx, repo_module.SyncRepositoryHooks)
+		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(models.RewriteAllPublicKeys)
+		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
 		return appstate.AppState.Set(runtimeState)
@@ -96,9 +96,8 @@ func syncAppPathForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInit is for global configuration reload-able.
-func GlobalInit(ctx context.Context) {
-	setting.NewContext()
+// GlobalInitInstalled is for global installed configuration.
+func GlobalInitInstalled(ctx context.Context) {
 	if !setting.InstallLock {
 		log.Fatal("Gitea is not installed")
 	}

@@ -13,11 +13,10 @@ import (
 	"context"
 	"io"
 	"math"
-	"os"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -26,7 +25,7 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	writeID := func(id string) error {
@@ -68,35 +67,28 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	var checker *CheckAttributeReader
 
 	if CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 		if err == nil {
 			defer deleteTemporaryFile()
-			tmpWorkTree, err := os.MkdirTemp("", "empty-work-dir")
-			if err == nil {
-				defer func() {
-					_ = util.RemoveAll(tmpWorkTree)
-				}()
-
-				checker = &CheckAttributeReader{
-					Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
-					Repo:       repo,
-					IndexFile:  indexFilename,
-					WorkTree:   tmpWorkTree,
-				}
-				ctx, cancel := context.WithCancel(DefaultContext)
-				if err := checker.Init(ctx); err != nil {
-					log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-				} else {
-					go func() {
-						err = checker.Run()
-						if err != nil {
-							log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-							cancel()
-						}
-					}()
-				}
-				defer cancel()
+			checker = &CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+				Repo:       repo,
+				IndexFile:  indexFilename,
+				WorkTree:   worktree,
 			}
+			ctx, cancel := context.WithCancel(repo.Ctx)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil {
+						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+						cancel()
+					}
+				}()
+			}
+			defer cancel()
 		}
 	}
 
@@ -104,6 +96,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	var content []byte
 	sizes := make(map[string]int64)
 	for _, f := range entries {
+		select {
+		case <-repo.Ctx.Done():
+			return sizes, repo.Ctx.Err()
+		default:
+		}
+
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
@@ -138,7 +136,23 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 					sizes[language] += f.Size()
 					continue
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
+					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
+
+						sizes[language] += f.Size()
+						continue
+					}
 				}
+
 			}
 		}
 

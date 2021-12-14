@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -414,7 +416,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
+		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
 		ContentType:     webhook.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
@@ -468,7 +470,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID),
+		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
 		ContentType:     webhook.ContentTypeJSON,
 		HTTPMethod:      "PUT",
 		HookEvent:       ParseHookEvent(form.WebhookForm),
@@ -976,7 +978,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 		return
 	}
 	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID)
+	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID))
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
@@ -1020,7 +1022,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 		return
 	}
 	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID)
+	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID))
 
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
@@ -1148,7 +1150,7 @@ func TestWebhook(ctx *context.Context) {
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
 	if commit == nil {
-		ghost := models.NewGhostUser()
+		ghost := user_model.NewGhostUser()
 		commit = &git.Commit{
 			ID:            git.MustIDFromString(git.EmptySHA),
 			Author:        ghost.NewGitSig(),
@@ -1157,12 +1159,12 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
 		Message: commit.Message(),
-		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
+		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		Author: &api.PayloadUser{
 			Name:  commit.Author.Name,
 			Email: commit.Author.Email,
@@ -1179,7 +1181,7 @@ func TestWebhook(ctx *context.Context) {
 		After:      commit.ID.String(),
 		Commits:    []*api.PayloadCommit{apiCommit},
 		HeadCommit: apiCommit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:     apiUser,
 		Sender:     apiUser,
 	}

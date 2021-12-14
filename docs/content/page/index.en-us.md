@@ -73,7 +73,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - PostgreSQL (>=10)
         - SQLite3
         - MSSQL (>=2008R2 SP3)
-        - TiDB (experimental, not recommended)
+        - TiDB (MySQL protocol)
     - Configuration file
         - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
     - Admin panel

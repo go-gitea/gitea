@@ -14,9 +14,10 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	db_install "code.gitea.io/gitea/models/db/install"
 	"code.gitea.io/gitea/models/migrations"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -41,6 +42,16 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
+var supportedDbTypeNames []map[string]string // use a slice to keep order
+func getDbTypeNames() []map[string]string {
+	if supportedDbTypeNames == nil {
+		for _, t := range setting.SupportedDatabaseTypes {
+			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
+		}
+	}
+	return supportedDbTypeNames
+}
+
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -62,7 +73,7 @@ func Init(next http.Handler) http.Handler {
 			Data: map[string]interface{}{
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
-				"DbOptions":     setting.SupportedDatabases,
+				"DbTypeNames":   getDbTypeNames(),
 				"i18n":          locale,
 				"Language":      locale.Language(),
 				"Lang":          locale.Language(),
@@ -72,7 +83,7 @@ func Init(next http.Handler) http.Handler {
 				"TmplLoadTimes": func() string {
 					return time.Since(startTime).String()
 				},
-				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
+				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
 		for _, lang := range translation.AllLangs() {
@@ -99,19 +110,18 @@ func Install(ctx *context.Context) {
 	form.DbSchema = setting.Database.Schema
 	form.Charset = setting.Database.Charset
 
-	var curDBOption = "MySQL"
-	switch setting.Database.Type {
-	case "postgres":
-		curDBOption = "PostgreSQL"
-	case "mssql":
-		curDBOption = "MSSQL"
-	case "sqlite3":
-		if setting.EnableSQLite3 {
-			curDBOption = "SQLite3"
+	curDBType := setting.Database.Type
+	var isCurDBTypeSupported bool
+	for _, dbType := range setting.SupportedDatabaseTypes {
+		if dbType == curDBType {
+			isCurDBTypeSupported = true
+			break
 		}
 	}
-
-	ctx.Data["CurDbOption"] = curDBOption
+	if !isCurDBTypeSupported {
+		curDBType = "mysql"
+	}
+	ctx.Data["CurDbType"] = curDBType
 
 	// Application general settings
 	form.AppName = setting.AppName
@@ -161,11 +171,82 @@ func Install(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplInstall)
 }
 
+func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
+	var err error
+
+	if (setting.Database.Type == "sqlite3") &&
+		len(setting.Database.Path) == 0 {
+		ctx.Data["Err_DbPath"] = true
+		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, form)
+		return false
+	}
+
+	// Check if the user is trying to re-install in an installed database
+	db.UnsetDefaultEngine()
+	defer db.UnsetDefaultEngine()
+
+	if err = db.InitEngine(ctx); err != nil {
+		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
+			ctx.Data["Err_DbType"] = true
+			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, form)
+		} else {
+			ctx.Data["Err_DbSetting"] = true
+			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
+		}
+		return false
+	}
+
+	err = db_install.CheckDatabaseConnection()
+	if err != nil {
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
+		return false
+	}
+
+	hasPostInstallationUser, err := db_install.HasPostInstallationUsers()
+	if err != nil {
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "user", err), tplInstall, form)
+		return false
+	}
+	dbMigrationVersion, err := db_install.GetMigrationVersion()
+	if err != nil {
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
+		return false
+	}
+
+	if hasPostInstallationUser && dbMigrationVersion > 0 {
+		log.Error("The database is likely to have been used by Gitea before, database migration version=%d", dbMigrationVersion)
+		confirmed := form.ReinstallConfirmFirst && form.ReinstallConfirmSecond && form.ReinstallConfirmThird
+		if !confirmed {
+			ctx.Data["Err_DbInstalledBefore"] = true
+			ctx.RenderWithErr(ctx.Tr("install.reinstall_error"), tplInstall, form)
+			return false
+		}
+
+		log.Info("User confirmed reinstallation of Gitea into a pre-existing database")
+	}
+
+	if hasPostInstallationUser || dbMigrationVersion > 0 {
+		log.Info("Gitea will be installed in a database with: hasPostInstallationUser=%v, dbMigrationVersion=%v", hasPostInstallationUser, dbMigrationVersion)
+	}
+
+	return true
+}
+
 // SubmitInstall response for submit install items
 func SubmitInstall(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.InstallForm)
 	var err error
-	ctx.Data["CurDbOption"] = form.DbType
+
+	form := *web.GetForm(ctx).(*forms.InstallForm)
+
+	// fix form values
+	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
+		form.AppURL += "/"
+	}
+
+	ctx.Data["CurDbType"] = form.DbType
 
 	if ctx.HasError() {
 		if ctx.HasValue("Err_SMTPUser") {
@@ -186,10 +267,10 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	// Pass basic check, now test configuration.
-	// Test database setting.
+	// ---- Basic checks are passed, now test configuration.
 
-	setting.Database.Type = setting.GetDBTypeByName(form.DbType)
+	// Test database setting.
+	setting.Database.Type = form.DbType
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd
@@ -201,22 +282,13 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.LogSQL = !setting.IsProd
 	setting.PasswordHashAlgo = form.PasswordAlgorithm
 
-	if (setting.Database.Type == "sqlite3") &&
-		len(setting.Database.Path) == 0 {
-		ctx.Data["Err_DbPath"] = true
-		ctx.RenderWithErr(ctx.Tr("install.err_empty_db_path"), tplInstall, &form)
+	if !checkDatabase(ctx, &form) {
 		return
 	}
 
-	// Set test engine.
-	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
-		if strings.Contains(err.Error(), `Unknown database type: sqlite3`) {
-			ctx.Data["Err_DbType"] = true
-			ctx.RenderWithErr(ctx.Tr("install.sqlite3_not_available", "https://docs.gitea.io/en-us/install-from-binary/"), tplInstall, &form)
-		} else {
-			ctx.Data["Err_DbSetting"] = true
-			ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
-		}
+	// Prepare AppDataPath, it is very important for Gitea
+	if err = setting.PrepareAppDataPath(); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.invalid_app_data_path", err), tplInstall, &form)
 		return
 	}
 
@@ -264,13 +336,13 @@ func SubmitInstall(ctx *context.Context) {
 	// Check admin user creation
 	if len(form.AdminName) > 0 {
 		// Ensure AdminName is valid
-		if err := models.IsUsableUsername(form.AdminName); err != nil {
+		if err := user_model.IsUsableUsername(form.AdminName); err != nil {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminName"] = true
-			if models.IsErrNameReserved(err) {
+			if db.IsErrNameReserved(err) {
 				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
 				return
-			} else if models.IsErrNamePatternNotAllowed(err) {
+			} else if db.IsErrNamePatternNotAllowed(err) {
 				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
 				return
 			}
@@ -299,9 +371,14 @@ func SubmitInstall(ctx *context.Context) {
 		}
 	}
 
-	if form.AppURL[len(form.AppURL)-1] != '/' {
-		form.AppURL += "/"
+	// Init the engine with migration
+	if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err != nil {
+		db.UnsetDefaultEngine()
+		ctx.Data["Err_DbSetting"] = true
+		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
+		return
 	}
+	db.UnsetDefaultEngine()
 
 	// Save settings.
 	cfg := ini.Empty()
@@ -344,12 +421,12 @@ func SubmitInstall(ctx *context.Context) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
-		var secretKey string
-		if secretKey, err = generate.NewJwtSecretBase64(); err != nil {
+		var lfsJwtSecret string
+		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(secretKey)
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -390,15 +467,29 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
-	var secretKey string
-	if secretKey, err = generate.NewSecretKey(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+
+	var internalToken string
+	if internalToken, err = generate.NewInternalToken(); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
 		return
 	}
-	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
+
+	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
+	if setting.SecretKey == "" {
+		var secretKey string
+		if secretKey, err = generate.NewSecretKey(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+	}
+
 	if len(form.PasswordAlgorithm) > 0 {
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}
+
+	log.Info("Save settings to custom config file %s", setting.CustomConf)
 
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
@@ -411,20 +502,22 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	// Re-read settings
-	ReloadSettings(ctx)
+	// ---- All checks are passed
+
+	// Reload settings (and re-initialize database connection)
+	reloadSettings(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
-		u := &models.User{
+		u := &user_model.User{
 			Name:     form.AdminName,
 			Email:    form.AdminEmail,
 			Passwd:   form.AdminPasswd,
 			IsAdmin:  true,
 			IsActive: true,
 		}
-		if err = models.CreateUser(u); err != nil {
-			if !models.IsErrUserAlreadyExist(err) {
+		if err = user_model.CreateUser(u); err != nil {
+			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
@@ -432,7 +525,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = models.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays

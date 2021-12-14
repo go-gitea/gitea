@@ -6,11 +6,12 @@ package ldap
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // SyncLdapGroupsToTeams maps LDAP groups to organization and team memberships
-func (source *Source) SyncLdapGroupsToTeams(user *models.User, ldapTeamAdd map[string][]string, ldapTeamRemove map[string][]string, orgCache map[string]*models.User, teamCache map[string]*models.Team) {
+func (source *Source) SyncLdapGroupsToTeams(user *user_model.User, ldapTeamAdd map[string][]string, ldapTeamRemove map[string][]string, orgCache map[string]*models.Organization, teamCache map[string]*models.Team) {
 	var err error
 	if source.TeamGroupMapRemoval {
 		// when the user is not a member of configs LDAP group, remove mapped organizations/teams memberships
@@ -62,7 +63,7 @@ func (source *Source) SyncLdapGroupsToTeams(user *models.User, ldapTeamAdd map[s
 // remove membership to organizations/teams if user is not member of corresponding LDAP group
 // e.g. lets assume user is member of LDAP group "x", but LDAP group team map contains LDAP groups "x" and "y"
 // then users membership gets removed for all organizations/teams mapped by LDAP group "y"
-func removeMappedMemberships(user *models.User, ldapTeamRemove map[string][]string, orgCache map[string]*models.User, teamCache map[string]*models.Team) {
+func removeMappedMemberships(user *user_model.User, ldapTeamRemove map[string][]string, orgCache map[string]*models.Organization, teamCache map[string]*models.Team) {
 	var err error
 	for orgName, teamNames := range ldapTeamRemove {
 		org, ok := orgCache[orgName]

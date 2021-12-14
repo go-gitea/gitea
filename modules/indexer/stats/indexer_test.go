@@ -9,21 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	_ "code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/ini.v1"
-
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func TestRepoStatsIndex(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
 	setting.NewQueueService()
@@ -33,12 +33,12 @@ func TestRepoStatsIndex(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	repo, err := models.GetRepositoryByID(1)
+	repo, err := repo_model.GetRepositoryByID(1)
 	assert.NoError(t, err)
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", status.CommitSha)
-	langs, err := repo.GetTopLanguageStats(5)
+	langs, err := repo_model.GetTopLanguageStats(repo, 5)
 	assert.NoError(t, err)
 	assert.Empty(t, langs)
 }

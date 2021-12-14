@@ -11,21 +11,21 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
+	_ "code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1"
-
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func TestBleveSearchIssues(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
 	tmpIndexerDir, err := os.MkdirTemp("", "issues-indexer")
@@ -74,7 +74,7 @@ func TestBleveSearchIssues(t *testing.T) {
 }
 
 func TestDBSearchIssues(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)

@@ -6,6 +6,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -159,7 +160,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
+	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + url.PathEscape(ctx.Org.Organization.Name) + "/public_members/" + url.PathEscape(userToCheck.Name)
 	ctx.Redirect(redirectURL, 302)
 }
 
@@ -189,7 +190,12 @@ func IsPublicMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
+	is, err := models.IsPublicMembership(ctx.Org.Organization.ID, userToCheck.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsPublicMembership", err)
+		return
+	}
+	if is {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()

@@ -115,7 +115,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	log.DelNamedLogger(log.DEFAULT)
 
 	// Read configuration file
-	setting.NewContext()
+	setting.LoadAllowEmpty()
 
 	pats, err := getPatterns(c.Args())
 	if err != nil {

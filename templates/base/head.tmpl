@@ -46,11 +46,17 @@
 			]).values()),
 			{{end}}
 			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
+			i18n: {
+				copy_success: '{{.i18n.Tr "copy_success"}}',
+				copy_error: '{{.i18n.Tr "copy_error"}}',
+			}
 		};
+		{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
+		window.config.pageData = window.config.pageData || {};
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireSimpleMDE}}
+{{if .RequireEasyMDE}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
 {{end}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
@@ -98,10 +104,10 @@
 <meta property="og:site_name" content="{{AppName}}" />
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>

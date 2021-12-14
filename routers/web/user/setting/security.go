@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -42,7 +43,7 @@ func DeleteAccountLink(ctx *context.Context) {
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {
-		if _, err := models.RemoveAccountLink(ctx.User, id); err != nil {
+		if _, err := user_model.RemoveAccountLink(ctx.User, id); err != nil {
 			ctx.Flash.Error("RemoveAccountLink: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.remove_account_link_success"))
@@ -75,7 +76,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["Tokens"] = tokens
 
-	accountLinks, err := models.ListAccountLinks(ctx.User)
+	accountLinks, err := user_model.ListAccountLinks(ctx.User)
 	if err != nil {
 		ctx.ServerError("ListAccountLinks", err)
 		return
@@ -107,7 +108,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	openid, err := models.GetUserOpenIDs(ctx.User.ID)
+	openid, err := user_model.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return

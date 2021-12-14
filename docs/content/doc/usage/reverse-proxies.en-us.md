@@ -60,7 +60,7 @@ We can tune the performance in splitting requests into categories static and dyn
 CSS files, JavaScript files, images and web fonts are static content.
 The front page, a repository view or issue list is dynamic content.
 
-Nginx can serve static resources directly and proxy only the dynamic requests to gitea.
+Nginx can serve static resources directly and proxy only the dynamic requests to Gitea.
 Nginx is optimized for serving static content, while the proxying of large responses might be the opposite of that
 (see [https://serverfault.com/q/587386](https://serverfault.com/q/587386)).
 
@@ -80,7 +80,7 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /_/static {
+    location /_/static/assets {
         alias /path/to/gitea/public;
     }
 
@@ -95,7 +95,7 @@ server {
 Set `[server] STATIC_URL_PREFIX = http://cdn.example.com/gitea` in your configuration.
 
 ```apacheconf
-# application server running gitea
+# application server running Gitea
 server {
     listen 80;
     server_name git.example.com;

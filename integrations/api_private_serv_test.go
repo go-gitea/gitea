@@ -9,8 +9,10 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/private"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +27,7 @@ func TestAPIPrivateNoServ(t *testing.T) {
 		assert.Equal(t, int64(1), key.ID)
 		assert.Equal(t, "user2@localhost", key.Name)
 
-		deployKey, err := models.AddDeployKey(1, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
+		deployKey, err := asymkey_model.AddDeployKey(1, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
 		assert.NoError(t, err)
 
 		key, user, err = private.ServNoCommand(ctx, deployKey.KeyID)
@@ -42,7 +44,7 @@ func TestAPIPrivateServ(t *testing.T) {
 		defer cancel()
 
 		// Can push to a repo we own
-		results, err := private.ServCommand(ctx, 1, "user2", "repo1", models.AccessModeWrite, "git-upload-pack", "")
+		results, err := private.ServCommand(ctx, 1, "user2", "repo1", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.NoError(t, err)
 		assert.False(t, results.IsWiki)
 		assert.False(t, results.IsDeployKey)
@@ -55,17 +57,17 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, int64(1), results.RepoID)
 
 		// Cannot push to a private repo we're not associated with
-		results, err = private.ServCommand(ctx, 1, "user15", "big_test_private_1", models.AccessModeWrite, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, 1, "user15", "big_test_private_1", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Cannot pull from a private repo we're not associated with
-		results, err = private.ServCommand(ctx, 1, "user15", "big_test_private_1", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, 1, "user15", "big_test_private_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Can pull from a public repo we're not associated with
-		results, err = private.ServCommand(ctx, 1, "user15", "big_test_public_1", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, 1, "user15", "big_test_public_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.NoError(t, err)
 		assert.False(t, results.IsWiki)
 		assert.False(t, results.IsDeployKey)
@@ -78,16 +80,16 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, int64(17), results.RepoID)
 
 		// Cannot push to a public repo we're not associated with
-		results, err = private.ServCommand(ctx, 1, "user15", "big_test_public_1", models.AccessModeWrite, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, 1, "user15", "big_test_public_1", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Add reading deploy key
-		deployKey, err := models.AddDeployKey(19, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", true)
+		deployKey, err := asymkey_model.AddDeployKey(19, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", true)
 		assert.NoError(t, err)
 
 		// Can pull from repo we're a deploy key for
-		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.NoError(t, err)
 		assert.False(t, results.IsWiki)
 		assert.True(t, results.IsDeployKey)
@@ -100,31 +102,31 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, int64(19), results.RepoID)
 
 		// Cannot push to a private repo with reading key
-		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", models.AccessModeWrite, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Cannot pull from a private repo we're not associated with
-		results, err = private.ServCommand(ctx, deployKey.ID, "user15", "big_test_private_2", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.ID, "user15", "big_test_private_2", perm.AccessModeRead, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Cannot pull from a public repo we're not associated with
-		results, err = private.ServCommand(ctx, deployKey.ID, "user15", "big_test_public_1", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.ID, "user15", "big_test_public_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Add writing deploy key
-		deployKey, err = models.AddDeployKey(20, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
+		deployKey, err = asymkey_model.AddDeployKey(20, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
 		assert.NoError(t, err)
 
 		// Cannot push to a private repo with reading key
-		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", models.AccessModeWrite, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.Error(t, err)
 		assert.Empty(t, results)
 
 		// Can pull from repo we're a writing deploy key for
-		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_2", models.AccessModeRead, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_2", perm.AccessModeRead, "git-upload-pack", "")
 		assert.NoError(t, err)
 		assert.False(t, results.IsWiki)
 		assert.True(t, results.IsDeployKey)
@@ -137,7 +139,7 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, int64(20), results.RepoID)
 
 		// Can push to repo we're a writing deploy key for
-		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_2", models.AccessModeWrite, "git-upload-pack", "")
+		results, err = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_2", perm.AccessModeWrite, "git-upload-pack", "")
 		assert.NoError(t, err)
 		assert.False(t, results.IsWiki)
 		assert.True(t, results.IsDeployKey)

@@ -6,11 +6,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // DefaultContext is the default context to run xorm queries in
@@ -44,15 +44,6 @@ func (ctx *Context) Engine() Engine {
 	return ctx.e
 }
 
-// NewSession returns a new session
-func (ctx *Context) NewSession() *xorm.Session {
-	e, ok := ctx.e.(*xorm.Engine)
-	if ok {
-		return e.NewSession()
-	}
-	return nil
-}
-
 // Value shadows Value for context.Context but allows us to get ourselves and an Engined object
 func (ctx *Context) Value(key interface{}) interface{} {
 	if key == EnginedContextKey {
@@ -64,7 +55,6 @@ func (ctx *Context) Value(key interface{}) interface{} {
 // Engined structs provide an Engine
 type Engined interface {
 	Engine() Engine
-	NewSession() *xorm.Session
 }
 
 // GetEngine will get a db Engine from this context or return an Engine restricted to this context
@@ -77,24 +67,6 @@ func GetEngine(ctx context.Context) Engine {
 		return enginedInterface.(Engined).Engine()
 	}
 	return x.Context(ctx)
-}
-
-// NewSession will get a db Session from this context or return a session restricted to this context
-func NewSession(ctx context.Context) *xorm.Session {
-	if engined, ok := ctx.(Engined); ok {
-		return engined.NewSession()
-	}
-
-	enginedInterface := ctx.Value(EnginedContextKey)
-	if enginedInterface != nil {
-		sess := enginedInterface.(Engined).NewSession()
-		if sess != nil {
-			return sess.Context(ctx)
-		}
-		return nil
-	}
-
-	return x.NewSession().Context(ctx)
 }
 
 // Committer represents an interface to Commit or Close the Context
@@ -154,4 +126,29 @@ func Iterate(ctx context.Context, tableBean interface{}, cond builder.Cond, fun 
 func Insert(ctx context.Context, beans ...interface{}) error {
 	_, err := GetEngine(ctx).Insert(beans...)
 	return err
+}
+
+// Exec executes a sql with args
+func Exec(ctx context.Context, sqlAndArgs ...interface{}) (sql.Result, error) {
+	return GetEngine(ctx).Exec(sqlAndArgs...)
+}
+
+// GetByBean filled empty fields of the bean according non-empty fields to query in database.
+func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
+	return GetEngine(ctx).Get(bean)
+}
+
+// DeleteByBean deletes all records according non-empty fields of the bean as conditions.
+func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
+	return GetEngine(ctx).Delete(bean)
+}
+
+// CountByBean counts the number of database records according non-empty fields of the bean as conditions.
+func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
+	return GetEngine(ctx).Count(bean)
+}
+
+// TableName returns the table name according a bean object
+func TableName(bean interface{}) string {
+	return x.TableName(bean)
 }

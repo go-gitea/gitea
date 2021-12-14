@@ -38,7 +38,7 @@
 						{{end}}
 					</div>
 					<!-- todo finish all file status, now modify, add, delete and rename -->
-					<span class="status {{DiffTypeToStr .GetType}} poping up" data-content="{{DiffTypeToStr .GetType}}" data-variation="inverted tiny" data-position="right center">&nbsp;</span>
+					<span class="status {{DiffTypeToStr .GetType}} tooltip" data-content="{{DiffTypeToStr .GetType}}" data-position="right center">&nbsp;</span>
 					<a class="file mono" href="#diff-{{.Index}}">{{.Name}}</a>
 				</li>
 			{{end}}
@@ -87,8 +87,8 @@
 						<div class="diff-file-header-actions df ac">
 							{{if $showFileViewToggle}}
 								<div class="ui compact icon buttons">
-									<span class="ui tiny basic button poping up file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</span>
-									<span class="ui tiny basic button poping up file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
 								</div>
 							{{end}}
 							{{if $file.IsProtected}}
@@ -96,9 +96,9 @@
 							{{end}}
 							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 								{{if $file.IsDeleted}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{else}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
 						</div>
@@ -112,13 +112,14 @@
 											{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
 										{{else}}
 											{{$.i18n.Tr "repo.diff.file_suppressed"}}
+											<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.i18n.Tr "repo.diff.load"}}</a>
 										{{end}}
 									{{else}}
 										{{$.i18n.Tr "repo.diff.bin_not_shown"}}
 									{{end}}
 								</div>
 							{{else}}
-								<table class="chroma">
+								<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 									{{if $.IsSplitStyle}}
 										{{template "repo/diff/section_split" dict "file" . "root" $}}
 									{{else}}

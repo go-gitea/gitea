@@ -48,13 +48,12 @@ func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
 
 		return db.db, nil
 	}
-	dataDir := connection
 	uri := ToLevelDBURI(connection)
 	db = &levelDBHolder{
 		name: []string{connection, uri.String()},
 	}
 
-	dataDir = path.Join(uri.Host, uri.Path)
+	dataDir := path.Join(uri.Host, uri.Path)
 	opts := &opt.Options{}
 	for k, v := range uri.Query() {
 		switch replacer.Replace(strings.ToLower(k)) {

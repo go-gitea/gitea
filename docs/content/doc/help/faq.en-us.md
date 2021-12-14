@@ -162,7 +162,7 @@ Gitea supports three official themes right now, `gitea` (light), `arc-green` (da
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`  
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
 ## SSHD vs built-in SSH

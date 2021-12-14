@@ -9,27 +9,31 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
 	sr := source.SearchEntry(userName, password, source.loginSource.Type == login.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
-		return nil, models.ErrUserNotExist{Name: userName}
+		return nil, user_model.ErrUserNotExist{Name: userName}
 	}
 
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
-	if isExist, err := models.IsUserExist(0, sr.Username); err != nil {
+	if isExist, err := user_model.IsUserExist(0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
 		if user == nil {
-			user, err = models.GetUserByName(sr.Username)
+			user, err = user_model.GetUserByName(sr.Username)
 			if err != nil {
 				return nil, err
 			}
@@ -47,7 +51,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = models.UpdateUserCols(user, cols...)
+				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -57,12 +61,12 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 
 	if user != nil {
 		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
-			orgCache := make(map[string]*models.User)
+			orgCache := make(map[string]*models.Organization)
 			teamCache := make(map[string]*models.Team)
 			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
 		}
-		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
-			return user, models.RewriteAllPublicKeys()
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
+			return user, asymkey_model.RewriteAllPublicKeys()
 		}
 		return user, nil
 	}
@@ -76,7 +80,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
 	}
 
-	user = &models.User{
+	user = &user_model.User{
 		LowerName:    strings.ToLower(sr.Username),
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
@@ -89,21 +93,21 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		IsRestricted: sr.IsRestricted,
 	}
 
-	err := models.CreateUser(user)
+	err := user_model.CreateUser(user)
 	if err != nil {
 		return user, err
 	}
 
 	mailer.SendRegisterNotifyMail(user)
 
-	if isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
-		err = models.RewriteAllPublicKeys()
+	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
+		err = asymkey_model.RewriteAllPublicKeys()
 	}
 	if err == nil && len(source.AttributeAvatar) > 0 {
-		_ = user.UploadAvatar(sr.Avatar)
+		_ = user_service.UploadAvatar(user, sr.Avatar)
 	}
 	if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
-		orgCache := make(map[string]*models.User)
+		orgCache := make(map[string]*models.Organization)
 		teamCache := make(map[string]*models.Team)
 		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
 	}

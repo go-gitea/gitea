@@ -10,7 +10,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -43,7 +47,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	} else {
 		return
 	}
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -58,10 +62,10 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeRead,
+		Mode:    perm.AccessModeRead,
 	})
 }
 
@@ -72,7 +76,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 		return
 	}
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -88,16 +92,16 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 }
 
 func TestCollaborationPost(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -105,12 +109,12 @@ func TestCollaborationPost(t *testing.T) {
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
-	u := &models.User{
+	u := &user_model.User{
 		LowerName: "user2",
-		Type:      models.UserTypeIndividual,
+		Type:      user_model.UserTypeIndividual,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:    2,
 		Owner: u,
 	}
@@ -126,14 +130,14 @@ func TestCollaborationPost(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 9)
@@ -142,7 +146,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 	ctx.Req.Form.Set("collaborator", "user9")
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			LowerName: "user2",
 		},
 	}
@@ -157,7 +161,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -165,12 +169,12 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
-	u := &models.User{
+	u := &user_model.User{
 		LowerName: "user2",
-		Type:      models.UserTypeIndividual,
+		Type:      user_model.UserTypeIndividual,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:    2,
 		Owner: u,
 	}
@@ -186,7 +190,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -199,7 +203,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -207,7 +211,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 	ctx.Req.Form.Set("collaborator", "user34")
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			LowerName: "user2",
 		},
 	}
@@ -221,14 +225,14 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 }
 
 func TestAddTeamPost(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -236,14 +240,14 @@ func TestAddTeamPost(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -261,14 +265,14 @@ func TestAddTeamPost(t *testing.T) {
 }
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -276,14 +280,14 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: false,
@@ -302,14 +306,14 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 }
 
 func TestAddTeamPost_AddTeamTwice(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -317,14 +321,14 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -343,24 +347,24 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 }
 
 func TestAddTeamPost_NonExistentTeam(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team-non-existent")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -376,14 +380,14 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org3",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -391,14 +395,14 @@ func TestDeleteTeam(t *testing.T) {
 		OrgID: 3,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      3,
 		Owner:   org,
 		OwnerID: 3,
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        3,
 			LowerName:                 "org3",
 			RepoAdminChangeTeamAccess: true,

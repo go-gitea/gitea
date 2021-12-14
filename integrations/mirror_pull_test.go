@@ -9,9 +9,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
@@ -22,9 +24,9 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
@@ -41,13 +43,13 @@ func TestMirrorPull(t *testing.T) {
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
-		Status:      models.RepositoryBeingMigrated,
+		Status:      repo_model.RepositoryBeingMigrated,
 	})
 	assert.NoError(t, err)
 
 	ctx := context.Background()
 
-	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts)
+	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
@@ -72,7 +74,7 @@ func TestMirrorPull(t *testing.T) {
 		IsTag:        true,
 	}, nil, ""))
 
-	err = mirror.GetMirror()
+	_, err = repo_model.GetMirrorByRepoID(mirror.ID)
 	assert.NoError(t, err)
 
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
