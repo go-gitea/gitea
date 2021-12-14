@@ -217,7 +217,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	infoPath = ctx.Params("*")
 	var infos []string
 	if infoPath == "" {
-		infos = []string{ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository.DefaultBranch}
+		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
 	} else {
 		infos = strings.SplitN(infoPath, "...", 2)
 		if len(infos) != 2 {
