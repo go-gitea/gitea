@@ -23,7 +23,7 @@ func (source *Source) SyncLdapGroupsToTeams(user *user_model.User, ldapTeamAdd m
 			org, err = models.GetOrgByName(orgName)
 			if err != nil {
 				// organization must be created before LDAP group sync
-				log.Debug("LDAP group sync: Could not find organisation %s: %v", orgName, err)
+				log.Warn("LDAP group sync: Could not find organisation %s: %v", orgName, err)
 				continue
 			}
 			orgCache[orgName] = org
@@ -42,7 +42,7 @@ func (source *Source) SyncLdapGroupsToTeams(user *user_model.User, ldapTeamAdd m
 				team, err = org.GetTeam(teamName)
 				if err != nil {
 					// team must be created before LDAP group sync
-					log.Debug("LDAP group sync: Could not find team %s: %v", teamName, err)
+					log.Warn("LDAP group sync: Could not find team %s: %v", teamName, err)
 					continue
 				}
 				teamCache[orgName+teamName] = team
@@ -71,7 +71,7 @@ func removeMappedMemberships(user *user_model.User, ldapTeamRemove map[string][]
 			org, err = models.GetOrgByName(orgName)
 			if err != nil {
 				// organization must be created before LDAP group sync
-				log.Debug("LDAP group sync: Could not find organisation %s: %v", orgName, err)
+				log.Warn("LDAP group sync: Could not find organisation %s: %v", orgName, err)
 				continue
 			}
 			orgCache[orgName] = org
@@ -82,7 +82,7 @@ func removeMappedMemberships(user *user_model.User, ldapTeamRemove map[string][]
 				team, err = org.GetTeam(teamName)
 				if err != nil {
 					// team must must be created before LDAP group sync
-					log.Debug("LDAP group sync: Could not find team %s: %v", teamName, err)
+					log.Warn("LDAP group sync: Could not find team %s: %v", teamName, err)
 					continue
 				}
 			}
