@@ -236,6 +236,14 @@
 					{{end}}
 				</div>
 		</div>
+		{{if and .PageIsComparePull .HeadRepo.IsFork}}
+			<div class="inline field">
+				<div class="ui checkbox" id="allow-edits-by-maintainers">
+					<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers"}}</strong></label>
+					<input name="allow_edits_by_maintainers" type="checkbox">
+				</div>
+			</div>
+		{{end}}
 		<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 	</div>
 </form>

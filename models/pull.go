@@ -69,15 +69,16 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID      int64                  `xorm:"INDEX"`
-	HeadRepo        *repo_model.Repository `xorm:"-"`
-	BaseRepoID      int64                  `xorm:"INDEX"`
-	BaseRepo        *repo_model.Repository `xorm:"-"`
-	HeadBranch      string
-	HeadCommitID    string `xorm:"-"`
-	BaseBranch      string
-	ProtectedBranch *ProtectedBranch `xorm:"-"`
-	MergeBase       string           `xorm:"VARCHAR(40)"`
+	HeadRepoID              int64                  `xorm:"INDEX"`
+	HeadRepo                *repo_model.Repository `xorm:"-"`
+	BaseRepoID              int64                  `xorm:"INDEX"`
+	BaseRepo                *repo_model.Repository `xorm:"-"`
+	HeadBranch              string
+	HeadCommitID            string `xorm:"-"`
+	BaseBranch              string
+	ProtectedBranch         *ProtectedBranch `xorm:"-"`
+	MergeBase               string           `xorm:"VARCHAR(40)"`
+	AllowEditsByMaintainers bool
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`

@@ -1121,14 +1121,15 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID: ci.HeadRepo.ID,
-		BaseRepoID: repo.ID,
-		HeadBranch: ci.HeadBranch,
-		BaseBranch: ci.BaseBranch,
-		HeadRepo:   ci.HeadRepo,
-		BaseRepo:   repo,
-		MergeBase:  ci.CompareInfo.MergeBase,
-		Type:       models.PullRequestGitea,
+		HeadRepoID:              ci.HeadRepo.ID,
+		BaseRepoID:              repo.ID,
+		HeadBranch:              ci.HeadBranch,
+		BaseBranch:              ci.BaseBranch,
+		HeadRepo:                ci.HeadRepo,
+		BaseRepo:                repo,
+		MergeBase:               ci.CompareInfo.MergeBase,
+		Type:                    models.PullRequestGitea,
+		AllowEditsByMaintainers: form.AllowEditsByMaintainers,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.

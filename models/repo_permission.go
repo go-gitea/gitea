@@ -266,6 +266,25 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
+	var pr *PullRequest
+	pr, err = GetUnmergedPullRequest(ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, PullRequestFlowGithub) // TODO fix this
+	if err != nil {
+		if !IsErrPullRequestNotExist(err) {
+			return
+		}
+	} else {
+		if pr.AllowEditsByMaintainers {
+			prPerm, prPermErr := getUserRepoPermission(db.DefaultContext, pr.HeadRepo, user)
+			if err != nil {
+				err = prPermErr
+				return
+			}
+			if prPerm.CanWrite(unit.TypeCode) {
+				perm.UnitsMode[unit.TypeCode] = perm_model.AccessModeWrite
+			}
+		}
+	}
+
 	// remove no permission units
 	perm.Units = make([]*repo_model.RepoUnit, 0, len(repo.Units))
 	for t := range perm.UnitsMode {
