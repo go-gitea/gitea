@@ -278,7 +278,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
-	var apiUsers []*api.User
+	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
 		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
 	}
