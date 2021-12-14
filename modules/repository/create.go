@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -19,9 +20,9 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{
+		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
 		}
 	}
@@ -37,7 +38,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 		}
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
 		OwnerName:                       u.Name,
@@ -55,7 +56,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 		TrustModel:                      opts.TrustModel,
 	}
 
-	var rollbackRepo *models.Repository
+	var rollbackRepo *repo_model.Repository
 
 	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
@@ -67,7 +68,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			return nil
 		}
 
-		repoPath := models.RepoPath(u.Name, repo.Name)
+		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -82,7 +83,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
 			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
-			return models.ErrRepoFilesAlreadyExist{
+			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
@@ -106,7 +107,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			}
 		}
 
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 

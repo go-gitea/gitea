@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -28,7 +28,7 @@ func TopicsPost(ctx *context.Context) {
 		topics = strings.Split(topicsStr, ",")
 	}
 
-	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topics)
+	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topics)
 
 	if len(validTopics) > 25 {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
@@ -46,7 +46,7 @@ func TopicsPost(ctx *context.Context) {
 		return
 	}
 
-	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
+	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

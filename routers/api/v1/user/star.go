@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -121,7 +122,7 @@ func IsStarring(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
@@ -148,7 +149,7 @@ func Star(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
@@ -176,7 +177,7 @@ func Unstar(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
