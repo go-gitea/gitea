@@ -69,6 +69,7 @@ var (
 		".github/issue_template.md",
 	}
 
+	// HiddenCommentTypesSettingsKey is the settings key for hidden comment types
 	HiddenCommentTypesSettingsKey = "hidden_comment_types"
 )
 
