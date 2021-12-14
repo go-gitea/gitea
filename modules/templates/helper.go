@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -97,6 +98,7 @@ func NewFuncMap() []template.FuncMap {
 		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
+		"Md2html":       Md2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
@@ -617,6 +619,16 @@ func SafeJS(raw string) template.JS {
 // Str2html render Markdown text to HTML
 func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
+}
+
+// Md2html render Markdown text to HTML (non-sanitize)
+func Md2html(raw string) template.HTML {
+	var err error
+	var RenderedContent string
+	if RenderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
+		return template.HTML(err.Error())
+	}
+	return template.HTML(RenderedContent)
 }
 
 // Escape escapes a HTML string
