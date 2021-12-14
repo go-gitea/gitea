@@ -1,163 +1,167 @@
 local grafana = import 'github.com/grafana/grafonnet-lib/grafonnet/grafana.libsonnet';
 local prometheus = grafana.prometheus;
 
-
-local addIssueLabelsOverrides(labels) = 
-{
-        fieldConfig+: {
-            overrides+: [
-              {
-                "matcher": {
-                  "id": "byRegexp",
-                  "options": label.label
-                },
-                "properties": [
-                  {
-                    "id": "color",
-                    "value": {
-                      "fixedColor": label.color,
-                      "mode": "fixed"
-                    }
-                  }
-                ]
-              }
-             for label in labels
-             ] 
+local addIssueLabelsOverrides(labels) =
+  {
+    fieldConfig+: {
+      overrides+: [
+        {
+          matcher: {
+            id: 'byRegexp',
+            options: label.label,
+          },
+          properties: [
+            {
+              id: 'color',
+              value: {
+                fixedColor: label.color,
+                mode: 'fixed',
+              },
+            },
+          ],
         }
-};
+        for label in labels
+      ],
+    },
+  };
 
 {
 
   grafanaDashboards+:: {
 
     local giteaSelector = 'job="$job", instance="$instance"',
-    local giteaStatsPanel = grafana.statPanel.new(
-                              'Gitea stats',
-                              datasource='$datasource',
-                              reducerFunction='last',
-                              graphMode='none',
-                              colorMode='value',
-                            )
-                            .addTargets(
-                              [
-                                prometheus.target(expr='%s{%s}' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=10)
-                                for metric in $._config.giteaStatMetrics
-                              ]
-                            )
-                            + {
-                              fieldConfig+: {
-                                defaults+: {
-                                  color: {
-                                    fixedColor: 'blue',
-                                    mode: 'fixed',
-                                  },
-                                },
-                              },
-                            },
+    local giteaStatsPanel =
+      grafana.statPanel.new(
+        'Gitea stats',
+        datasource='$datasource',
+        reducerFunction='last',
+        graphMode='none',
+        colorMode='value',
+      )
+      .addTargets(
+        [
+          prometheus.target(expr='%s{%s}' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=10)
+          for metric in $._config.giteaStatMetrics
+        ]
+      )
+      + {
+        fieldConfig+: {
+          defaults+: {
+            color: {
+              fixedColor: 'blue',
+              mode: 'fixed',
+            },
+          },
+        },
+      },
 
-    local giteaUptimePanel = grafana.statPanel.new(
-                               'Uptime',
-                               datasource='$datasource',
-                               reducerFunction='last',
-                               graphMode='area',
-                               colorMode='value',
-                             )
-                             .addTarget(prometheus.target(expr='time()-process_start_time_seconds{%s}' % giteaSelector, intervalFactor=1))
-                             + {
-                               fieldConfig+: {
-                                 defaults+: {
-                                   color: {
-                                     fixedColor: 'blue',
-                                     mode: 'fixed',
-                                   },
-                                   unit: 's',
-                                 },
-                               },
-                             },
+    local giteaUptimePanel =
+      grafana.statPanel.new(
+        'Uptime',
+        datasource='$datasource',
+        reducerFunction='last',
+        graphMode='area',
+        colorMode='value',
+      )
+      .addTarget(prometheus.target(expr='time()-process_start_time_seconds{%s}' % giteaSelector, intervalFactor=1))
+      + {
+        fieldConfig+: {
+          defaults+: {
+            color: {
+              fixedColor: 'blue',
+              mode: 'fixed',
+            },
+            unit: 's',
+          },
+        },
+      },
 
-    local giteaMemoryPanel = grafana.graphPanel.new(
-      'Memory usage',
-      datasource='$datasource')
+    local giteaMemoryPanel =
+      grafana.graphPanel.new(
+        'Memory usage',
+        datasource='$datasource'
+      )
       .addTarget(prometheus.target(expr='process_resident_memory_bytes{%s}' % giteaSelector, intervalFactor=2))
       + {
-        type: "timeseries",
+        type: 'timeseries',
         options+: {
           tooltip: {
-            mode: "multi"
+            mode: 'multi',
           },
           legend+: {
-            displayMode: "hidden"
+            displayMode: 'hidden',
           },
         },
         fieldConfig+: {
           defaults+: {
             custom+: {
-              lineInterpolation: "smooth",
+              lineInterpolation: 'smooth',
               fillOpacity: 15,
             },
             color: {
               fixedColor: 'green',
               mode: 'fixed',
-            },                         
-            unit: "decbytes"
+            },
+            unit: 'decbytes',
           },
         },
       },
 
-    local giteaCpuPanel = grafana.graphPanel.new(
-      'CPU usage',
-      datasource='$datasource'
+    local giteaCpuPanel =
+      grafana.graphPanel.new(
+        'CPU usage',
+        datasource='$datasource'
       )
       .addTarget(prometheus.target(expr='rate(process_cpu_seconds_total{%s}[$__rate_interval])*100' % giteaSelector, intervalFactor=2))
       + {
-        type: "timeseries",
+        type: 'timeseries',
         options+: {
           tooltip: {
-            mode: "multi"
+            mode: 'multi',
           },
           legend+: {
-            displayMode: "hidden"
+            displayMode: 'hidden',
           },
         },
         fieldConfig+: {
           defaults+: {
             custom+: {
-              lineInterpolation: "smooth",
-              gradientMode: "scheme",
+              lineInterpolation: 'smooth',
+              gradientMode: 'scheme',
               fillOpacity: 15,
               axisSoftMin: 0,
-              axisSoftMax: 0
+              axisSoftMax: 0,
             },
             color: {
-              //mode: "continuous-BlYlRd" // from blue to red (100%)
-              "mode": "continuous-GrYlRd"
+              mode: 'continuous-GrYlRd',  // from green to red (100%)
             },
-            unit: "percent"
+            unit: 'percent',
           },
           overrides: [
             {
-              "matcher": {
-                "id": "byRegexp",
-                "options": ".+"
+              matcher: {
+                id: 'byRegexp',
+                options: '.+',
               },
-              "properties": [
+              properties: [
                 {
-                  "id": "max",
-                  "value": 100
+                  id: 'max',
+                  value: 100,
                 },
                 {
-                  "id": "min",
-                  "value": 0
-                }
-              ]
-            }
-          ]
+                  id: 'min',
+                  value: 0,
+                },
+              ],
+            },
+          ],
         },
       },
 
-    local giteaFileDescriptorsPanel = grafana.graphPanel.new(
-      'File descriptors usage',
-      datasource='$datasource',
+    local giteaFileDescriptorsPanel =
+      grafana.graphPanel.new(
+        'File descriptors usage',
+        datasource='$datasource',
       )
       .addTarget(prometheus.target(expr='process_open_fds{%s}' % giteaSelector, intervalFactor=2))
       .addTarget(prometheus.target(expr='process_max_fds{%s}' % giteaSelector, intervalFactor=2))
@@ -170,96 +174,98 @@ local addIssueLabelsOverrides(labels) =
         },
       )
       + {
-              type: "timeseries",
-              options+: {
-                tooltip: {
-                  mode: "multi"
-                },
-                legend+: {
-                  displayMode: "hidden"
-                },
-              },
-              fieldConfig+: {
-                defaults+: {
-                  custom+: {
-                    lineInterpolation: "smooth",
-                    gradientMode: "scheme",
-                    fillOpacity: 0,
-                  },
-                color: {
-                  fixedColor: 'green',
-                  mode: 'fixed',
-                },    
-                  unit: ""
-                },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byFrameRefID",
-                      "options": "B"
-                    },
-                    "properties": [
-                      {
-                        "id": "custom.lineStyle",
-                        "value": {
-                          "fill": "dash",
-                          "dash": [
-                            10,
-                            10
-                          ]
-                        }
-                      },
-                      {
-                        "id": "color",
-                        "value": {
-                          "mode": "fixed",
-                          "fixedColor": "red"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              },
-            },
-
-    local giteaChangesPanelPrototype = grafana.graphPanel.new(
-      '',
-      datasource='$datasource',
-      interval="$agg_interval",
-      maxDataPoints=10000,
-    )
-    + {
-      type: "timeseries",
-      options+: {
-        tooltip: {
-          mode: "multi"
+        type: 'timeseries',
+        options+: {
+          tooltip: {
+            mode: 'multi',
+          },
+          legend+: {
+            displayMode: 'hidden',
+          },
         },
-        legend+: {
-          calcs+: [
-            "sum"
+        fieldConfig+: {
+          defaults+: {
+            custom+: {
+              lineInterpolation: 'smooth',
+              gradientMode: 'scheme',
+              fillOpacity: 0,
+            },
+            color: {
+              fixedColor: 'green',
+              mode: 'fixed',
+            },
+            unit: '',
+          },
+          overrides: [
+            {
+              matcher: {
+                id: 'byFrameRefID',
+                options: 'B',
+              },
+              properties: [
+                {
+                  id: 'custom.lineStyle',
+                  value: {
+                    fill: 'dash',
+                    dash: [
+                      10,
+                      10,
+                    ],
+                  },
+                },
+                {
+                  id: 'color',
+                  value: {
+                    mode: 'fixed',
+                    fixedColor: 'red',
+                  },
+                },
+              ],
+            },
           ],
         },
       },
-      fieldConfig+: {
-        defaults+: {
-          noValue: "0",
-          custom+: {
-            drawStyle: "bars",
-            barAlignment: -1,
-            fillOpacity: 50,
-            gradientMode: "hue",
-            pointSize: 1,
-            lineWidth: 0,
-            stacking: {
-              group: "A",
-              mode: "normal"
+
+    local giteaChangesPanelPrototype =
+      grafana.graphPanel.new(
+        '',
+        datasource='$datasource',
+        interval='$agg_interval',
+        maxDataPoints=10000,
+      )
+      + {
+        type: 'timeseries',
+        options+: {
+          tooltip: {
+            mode: 'multi',
+          },
+          legend+: {
+            calcs+: [
+              'sum',
+            ],
+          },
+        },
+        fieldConfig+: {
+          defaults+: {
+            noValue: '0',
+            custom+: {
+              drawStyle: 'bars',
+              barAlignment: -1,
+              fillOpacity: 50,
+              gradientMode: 'hue',
+              pointSize: 1,
+              lineWidth: 0,
+              stacking: {
+                group: 'A',
+                mode: 'normal',
+              },
             },
           },
-        }
+        },
       },
-    },
 
-    local giteaChangesPanelAll = giteaChangesPanelPrototype
+    local giteaChangesPanelAll =
+      giteaChangesPanelPrototype
       .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
       .addTargets(
         [
@@ -269,92 +275,96 @@ local addIssueLabelsOverrides(labels) =
       ),
 
     local giteaChangesPanelTotal = grafana.statPanel.new(
-                              '',
-                              datasource='-- Dashboard --',
-                              reducerFunction='sum',
-                              graphMode='none',
-                              textMode="value_and_name",
-                              colorMode='value',
-                            )
-                            + {
-                              targets+: [
-                                  {
-                                    panelId: 10, // id of giteaChangesPanel
-                                    refId: "A"
-                                  },
-                              ],
-                            }
-                            + {
-                              fieldConfig+: {
-                                defaults+: {
-                                  color: {
-                                    mode: "palette-classic"
-                                  },
-                                },
-                              },
-                            },
+                                     '',
+                                     datasource='-- Dashboard --',
+                                     reducerFunction='sum',
+                                     graphMode='none',
+                                     textMode='value_and_name',
+                                     colorMode='value',
+                                   )
+                                   + {
+                                     targets+: [
+                                       {
+                                         panelId: 10,  // id of giteaChangesPanel
+                                         refId: 'A',
+                                       },
+                                     ],
+                                   }
+                                   + {
+                                     fieldConfig+: {
+                                       defaults+: {
+                                         color: {
+                                           mode: 'palette-classic',
+                                         },
+                                       },
+                                     },
+                                   },
 
-    local giteaChangesByRepositories = giteaChangesPanelPrototype
+    local giteaChangesByRepositories =
+      giteaChangesPanelPrototype
       .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_repository{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ repository }}', intervalFactor=1)),
 
-    local giteaChangesByRepositoriesTotal = grafana.statPanel.new(
-                              '',
-                              datasource='-- Dashboard --',
-                              reducerFunction='sum',
-                              graphMode='none',
-                              textMode="value_and_name",
-                              colorMode='value',
-                            )
-                            + {
-                              title: "Issues by repository",
-                              targets+: [
-                                  {
-                                    panelId: 12, // id of giteaChangesPanel
-                                    refId: "A"
-                                  },
-                              ],
-                            }
-                            + {
-                              fieldConfig+: {
-                                defaults+: {
-                                  color: {
-                                    mode: "palette-classic"
-                                  },
-                                },
-                              },
-                            },
+    local giteaChangesByRepositoriesTotal =
+      grafana.statPanel.new(
+        '',
+        datasource='-- Dashboard --',
+        reducerFunction='sum',
+        graphMode='none',
+        textMode='value_and_name',
+        colorMode='value',
+      )
+      + {
+        title: 'Issues by repository',
+        targets+: [
+          {
+            panelId: 12,  // id of giteaChangesPanel
+            refId: 'A',
+          },
+        ],
+      }
+      + {
+        fieldConfig+: {
+          defaults+: {
+            color: {
+              mode: 'palette-classic',
+            },
+          },
+        },
+      },
 
-    local giteaChangesByLabel = giteaChangesPanelPrototype
+    local giteaChangesByLabel =
+      giteaChangesPanelPrototype
       .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_label{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ label }}', intervalFactor=1))
       + addIssueLabelsOverrides($._config.issueLabels),
 
-    local giteaChangesByLabelTotal = grafana.statPanel.new(
-                              '',
-                              datasource='-- Dashboard --',
-                              reducerFunction='sum',
-                              graphMode='none',
-                              textMode="value_and_name",
-                              colorMode='value',
-                            )
-                            + addIssueLabelsOverrides($._config.issueLabels)
-                            + {
-                              title: "Issues by labels",
-                              targets+: [
-                                  {
-                                    panelId: 14, // id of giteaChangesPanel
-                                    refId: "A"
-                                  },
-                              ],
-                            }
-                            + {
-                              fieldConfig+: {
-                                defaults+: {
-                                  color: {
-                                    mode: "palette-classic"
-                                  },
-                                },
-                              },
-                            },
+    local giteaChangesByLabelTotal =
+      grafana.statPanel.new(
+        '',
+        datasource='-- Dashboard --',
+        reducerFunction='sum',
+        graphMode='none',
+        textMode='value_and_name',
+        colorMode='value',
+      )
+      + addIssueLabelsOverrides($._config.issueLabels)
+      + {
+        title: 'Issues by labels',
+        targets+: [
+          {
+            panelId: 14,  // id of giteaChangesPanel
+            refId: 'A',
+          },
+        ],
+      }
+      + {
+        fieldConfig+: {
+          defaults+: {
+            color: {
+              mode: 'palette-classic',
+            },
+          },
+        },
+      },
 
     'gitea-overview.json':
       grafana.dashboard.new(
@@ -407,7 +417,7 @@ local addIssueLabelsOverrides(labels) =
           type: 'query',
         },
       )
-     .addTemplate(
+      .addTemplate(
         {
           hide: 0,
           label: 'aggregation interval',
@@ -488,8 +498,8 @@ local addIssueLabelsOverrides(labels) =
           h: 8,
         }
       )
-      .addPanel( // id 10
-        giteaChangesPanelAll, 
+      .addPanel(  // id 10
+        giteaChangesPanelAll,
         gridPos={
           x: 6,
           y: 12,
@@ -507,7 +517,7 @@ local addIssueLabelsOverrides(labels) =
         }
       )
       .addPanel(
-        giteaChangesByRepositories, // id 12
+        giteaChangesByRepositories,  // id 12
         gridPos={
           x: 6,
           y: 20,
@@ -524,7 +534,7 @@ local addIssueLabelsOverrides(labels) =
           h: 8,
         }
       )
-      .addPanel( // id 14
+      .addPanel(  // id 14
         giteaChangesByLabel,
         gridPos={
           x: 6,
