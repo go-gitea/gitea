@@ -89,7 +89,14 @@ export function initAdminCommon() {
     }
   }
 
-  function onVerifyGroupMembershipChange() {
+  function onVerifyGroupMembershipChange(event) {
+    if ($(event.target).attr('id') === 'team_group_map_removal' && $('#team_group_map_removal').is(':checked')) {
+      $('#team_group_map_enabled').prop('checked', true);
+      $('#team_group_map_enabled').prop('disabled', true);
+    } else if ($(event.target).attr('id') === 'team_group_map_removal') {
+      $('#team_group_map_enabled').prop('checked', false);
+      $('#team_group_map_enabled').prop('disabled', false);
+    }
     if ($('#groups_enabled').is(':checked') || $('#team_group_map_enabled').is(':checked') || $('#team_group_map_removal').is(':checked')) {
       $('#groups_enabled_change').show();
     } else {
@@ -158,18 +165,14 @@ export function initAdminCommon() {
     $('#use_paged_search').on('change', onUsePagedSearchChange);
     $('#oauth2_provider').on('change', () => onOAuth2Change(true));
     $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
-    $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
-    $('#team_group_map_enabled').on('change', onVerifyGroupMembershipChange);
-    $('#team_group_map_removal').on('change', onVerifyGroupMembershipChange);
+    $('.ldap_group_options').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
-      $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
-      $('#team_group_map_enabled').on('change', onVerifyGroupMembershipChange);
-      $('#team_group_map_removal').on('change', onVerifyGroupMembershipChange);
+      $('.ldap_group_options').on('change', onVerifyGroupMembershipChange);
       onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
