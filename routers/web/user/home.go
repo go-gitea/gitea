@@ -839,7 +839,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // ShowGPGKeys output all the public GPG keys of user by uid
@@ -878,7 +878,7 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		}
 	}
 	writer.Close()
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // Email2User show user page via email
