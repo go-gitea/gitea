@@ -683,7 +683,7 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	return getRepositoryByID(e, repo.TemplateID)
 }
 
-// TemplateRepo returns the repository link
+// TemplateRepo returns the repository, which is template of this repository
 func (repo *Repository) TemplateRepo() *Repository {
 	repos, err := GetTemplateRepo(repo)
 	if err != nil {
