@@ -137,7 +137,8 @@ func (r *Review) LoadReviewerTeam() error {
 	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
 }
 
-func (r *Review) loadAttributes(ctx context.Context) (err error) {
+// LoadAttributes loads all attributes except CodeComments
+func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	e := db.GetEngine(ctx)
 	if err = r.loadIssue(e); err != nil {
 		return
@@ -152,11 +153,6 @@ func (r *Review) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 	return
-}
-
-// LoadAttributes loads all attributes except CodeComments
-func (r *Review) LoadAttributes(ctx context.Context) error {
-	return r.loadAttributes(ctx)
 }
 
 func getReviewByID(e db.Engine, id int64) (*Review, error) {
