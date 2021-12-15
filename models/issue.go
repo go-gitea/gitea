@@ -789,12 +789,12 @@ func (issue *Issue) ChangePrivate(doer *user_model.User, isConfidential bool) (e
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
-	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
 	opts := &CreateCommentOptions{
-		Type:            CommenTypeConfidentialChanged,
+		Type:            CommentTypeConfidentialChanged,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,

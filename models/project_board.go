@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -51,8 +52,8 @@ type ProjectBoard struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
-	Issues []*Issue    `xorm:"-"`
-	Repo   *Repository `xorm:"-"`
+	Issues []*Issue               `xorm:"-"`
+	Repo   *repo_model.Repository `xorm:"-"`
 }
 
 func init() {
