@@ -26,14 +26,25 @@ var tplCherryPick base.TplName = "repo/editor/cherry_pick"
 // CherryPick handles cherrypick GETs
 func CherryPick(ctx *context.Context) {
 	ctx.Data["SHA"] = ctx.Params(":sha")
+	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx.Params(":sha"))
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("Missing Commit", err)
+			return
+		}
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+
 	if ctx.FormString("cherry-pick-type") == "revert" {
 		ctx.Data["CherryPickType"] = "revert"
 		ctx.Data["commit_summary"] = "revert " + ctx.Params(":sha")
-		ctx.Data["commit_message"] = ""
+		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		ctx.Data["commit_summary"] = "cherry-pick " + ctx.Params(":sha")
-		ctx.Data["commit_message"] = ""
+		splits := strings.SplitN(cherryPickCommit.Message(), "\n", 2)
+		ctx.Data["commit_summary"] = splits[0]
+		ctx.Data["commit_message"] = splits[1]
 	}
 
 	ctx.Data["RequireHighlightJS"] = true

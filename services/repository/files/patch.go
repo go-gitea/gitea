@@ -32,8 +32,7 @@ type ApplyDiffPatchOptions struct {
 	Signoff      bool
 }
 
-// ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *user_model.User) error {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -44,29 +43,28 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 
 	// oldBranch must exist for this operation
 	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
-		return nil, err
+		return err
 	}
-
 	// A NewBranch can be specified for the patch to be applied to.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
 		existingBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
 		if existingBranch != nil {
-			return nil, models.ErrBranchAlreadyExists{
+			return models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
 		}
 		if err != nil && !git.IsErrBranchNotExist(err) {
-			return nil, err
+			return err
 		}
 	} else {
 		protectedBranch, err := models.GetProtectedBranchBy(repo.ID, opts.OldBranch)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if protectedBranch != nil && !protectedBranch.CanUserPush(doer.ID) {
-			return nil, models.ErrUserCannotCommit{
+			return models.ErrUserCannotCommit{
 				UserName: doer.LowerName,
 			}
 		}
@@ -74,13 +72,21 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
-					return nil, err
+					return err
 				}
-				return nil, models.ErrUserCannotCommit{
+				return models.ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
 			}
 		}
+	}
+	return nil
+}
+
+// ApplyDiffPatch applies a patch to the given repository
+func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	if err := opts.Validate(repo, doer); err != nil {
+		return nil, err
 	}
 
 	message := strings.TrimSpace(opts.Message)
@@ -114,6 +120,12 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %v", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
+		if commit.ID.String() != opts.LastCommitID {
+			return nil, models.ErrCommitIDDoesNotMatch{
+				GivenCommitID:   opts.LastCommitID,
+				CurrentCommitID: opts.LastCommitID,
+			}
+		}
 	}
 
 	stdout := &strings.Builder{}
