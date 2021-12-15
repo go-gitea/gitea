@@ -272,7 +272,7 @@ local addIssueLabelsOverrides(labels) =
           prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
           for metric in $._config.giteaStatMetrics
         ]
-      ) + { id: 200 }, // some unique number, beyond the maximum number of panels in the dashboard,
+      ) + { id: 200 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
     local giteaChangesPanelTotal =
       grafana.statPanel.new(
@@ -304,7 +304,7 @@ local addIssueLabelsOverrides(labels) =
     local giteaChangesByRepositories =
       giteaChangesPanelPrototype
       .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_repository{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ repository }}', intervalFactor=1))
-      + { id: 210 }, // some unique number, beyond the maximum number of panels in the dashboard,
+      + { id: 210 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
     local giteaChangesByRepositoriesTotal =
       grafana.statPanel.new(
@@ -316,6 +316,7 @@ local addIssueLabelsOverrides(labels) =
         colorMode='value',
       )
       + {
+        id: 211,
         title: 'Issues by repository',
         targets+: [
           {
@@ -338,7 +339,7 @@ local addIssueLabelsOverrides(labels) =
       giteaChangesPanelPrototype
       .addTarget(prometheus.target(expr='floor(increase(gitea_issues_by_label{%s}[$__interval])) > 0' % [giteaSelector], legendFormat='{{ label }}', intervalFactor=1))
       + addIssueLabelsOverrides($._config.issueLabels)
-      + { id: 220 }, // some unique number, beyond the maximum number of panels in the dashboard,
+      + { id: 220 },  // some unique number, beyond the maximum number of panels in the dashboard,
 
     local giteaChangesByLabelTotal =
       grafana.statPanel.new(
@@ -351,6 +352,7 @@ local addIssueLabelsOverrides(labels) =
       )
       + addIssueLabelsOverrides($._config.issueLabels)
       + {
+        id: 221,
         title: 'Issues by labels',
         targets+: [
           {
@@ -440,17 +442,23 @@ local addIssueLabelsOverrides(labels) =
       .addPanel(giteaFileDescriptorsPanel, gridPos={ x: 16, y: 4, w: 8, h: 6 })
       .addPanel(grafana.row.new(title='Changes', collapse=false), gridPos={ x: 0, y: 10, w: 24, h: 8 })
       .addPanel(giteaChangesPanelTotal, gridPos={ x: 0, y: 12, w: 6, h: 8 })
-      .addPanel(giteaChangesByRepositoriesTotal, gridPos={ x: 0, y: 20, w: 6, h: 8 })
-      .addPanel(giteaChangesByLabelTotal, gridPos={ x: 0, y: 28, w: 6, h: 8 })
-      + 
-      // use patching instead of .addPanel() to keep static ids
+      +  // use patching instead of .addPanel() to keep static ids
       {
-        panels+: [
-          giteaChangesPanelAll + { gridPos: { x: 6, y: 12, w: 18, h: 8 }},
-          giteaChangesByLabel + {gridPos: { x: 6, y: 28, w: 18, h: 8 }},
-          giteaChangesByRepositories + { gridPos: { x: 6, y: 20, w: 18, h: 8 }},
-        ]
-      }
-
+        panels+: std.flattenArrays([
+          [
+            giteaChangesPanelAll { gridPos: { x: 6, y: 12, w: 18, h: 8 } },
+          ],
+          if $._config.showIssuesByRepository then
+            [
+              giteaChangesByRepositoriesTotal { gridPos: { x: 0, y: 20, w: 6, h: 8 } },
+              giteaChangesByRepositories { gridPos: { x: 6, y: 20, w: 18, h: 8 } },
+            ] else [],
+          if $._config.showIssuesByLabel then
+            [
+              giteaChangesByLabelTotal { gridPos: { x: 0, y: 28, w: 6, h: 8 } },
+              giteaChangesByLabel { gridPos: { x: 6, y: 28, w: 18, h: 8 } },
+            ] else [],
+        ]),
+      },
   },
 }

@@ -7,6 +7,11 @@
     dashboardTimezone: 'utc',
     dashboardRefresh: '1m',
 
+    // please see https://docs.gitea.io/en-us/config-cheat-sheet/#metrics-metrics
+    // Show issue by repository metrics with format gitea_issues_by_repository{repository="org/repo"} 5. Requires Gitea 1.16.0 with ENABLED_ISSUE_BY_REPOSITORY set to true.
+    showIssuesByRepository: true,
+    // Show graphs for issue by label metrics with format gitea_issues_by_label{label="bug"} 2. Requires Gitea 1.16.0 with ENABLED_ISSUE_BY_LABEL set to true.
+    showIssuesByLabel: false,
 
     // add or remove metrics from dashboard
     giteaStatMetrics: [
