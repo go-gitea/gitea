@@ -34,7 +34,7 @@ local addIssueLabelsOverrides(labels) =
       grafana.statPanel.new(
         'Gitea stats',
         datasource='$datasource',
-        reducerFunction='last',
+        reducerFunction='lastNotNull',
         graphMode='none',
         colorMode='value',
       )
@@ -276,7 +276,7 @@ local addIssueLabelsOverrides(labels) =
 
     local giteaChangesPanelTotal =
       grafana.statPanel.new(
-        '',
+        'Changes',
         datasource='-- Dashboard --',
         reducerFunction='sum',
         graphMode='none',
@@ -308,7 +308,7 @@ local addIssueLabelsOverrides(labels) =
 
     local giteaChangesByRepositoriesTotal =
       grafana.statPanel.new(
-        '',
+        'Issues by repository',
         datasource='-- Dashboard --',
         reducerFunction='sum',
         graphMode='none',
@@ -317,7 +317,6 @@ local addIssueLabelsOverrides(labels) =
       )
       + {
         id: 211,
-        title: 'Issues by repository',
         targets+: [
           {
             panelId: giteaChangesByRepositories.id,
@@ -343,7 +342,7 @@ local addIssueLabelsOverrides(labels) =
 
     local giteaChangesByLabelTotal =
       grafana.statPanel.new(
-        '',
+        'Issues by labels',
         datasource='-- Dashboard --',
         reducerFunction='sum',
         graphMode='none',
@@ -353,7 +352,6 @@ local addIssueLabelsOverrides(labels) =
       + addIssueLabelsOverrides($._config.issueLabels)
       + {
         id: 221,
-        title: 'Issues by labels',
         targets+: [
           {
             panelId: giteaChangesByLabel.id,
