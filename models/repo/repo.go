@@ -690,7 +690,7 @@ func (repo *Repository) TemplateRepo() *Repository {
 		log.Error("TemplateRepo: %v", err)
 		return nil
 	}
-	return repos
+	return repo
 }
 
 func countRepositories(userID int64, private bool) int64 {
