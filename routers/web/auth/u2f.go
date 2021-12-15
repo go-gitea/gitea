@@ -133,7 +133,7 @@ func U2FSign(ctx *context.Context) {
 			if redirect == "" {
 				redirect = setting.AppSubURL + "/"
 			}
-			ctx.PlainText(200, []byte(redirect))
+			ctx.PlainTextBytes(200, []byte(redirect))
 			return
 		}
 	}
