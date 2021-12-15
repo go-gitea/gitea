@@ -98,7 +98,7 @@ func NewFuncMap() []template.FuncMap {
 		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
-		"Md2html":       Md2html,
+		"Markdown2html": Markdown2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
@@ -622,14 +622,15 @@ func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
 }
 
-// Md2html render Markdown text to HTML (non-sanitize)
-func Md2html(raw string) template.HTML {
+// Markdown2html render Markdown text to HTML (non-sanitize)
+func Markdown2html(raw string) template.HTML {
 	var err error
 	var renderedContent string
-	if RenderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
-		return template.HTML(err.Error())
+	if renderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
+		log.Warning("Markdown2html: Invalid markdown? %v", err)
+		return template.HTML(markup.Sanitize(raw)) // this was gitea 1.15.* behaviour
 	}
-	return template.HTML(RenderedContent)
+	return template.HTML(renderedContent)
 }
 
 // Escape escapes a HTML string
