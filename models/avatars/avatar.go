@@ -112,15 +112,15 @@ func GenerateUserAvatarFastLink(userName string, size int) string {
 	if size < 0 {
 		size = 0
 	}
-	return setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
+	return setting.AppSubURL + "/user/avatar/" + url.PathEscape(userName) + "/" + strconv.Itoa(size)
 }
 
 // GenerateUserAvatarImageLink returns a link for `User.Avatar` image file: "/avatars/${User.Avatar}"
 func GenerateUserAvatarImageLink(userAvatar string, size int) string {
 	if size > 0 {
-		return setting.AppSubURL + "/avatars/" + userAvatar + "?size=" + strconv.Itoa(size)
+		return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar) + "?size=" + strconv.Itoa(size)
 	}
-	return setting.AppSubURL + "/avatars/" + userAvatar
+	return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar)
 }
 
 // generateRecognizedAvatarURL generate a recognized avatar (Gravatar/Libravatar) URL, it modifies the URL so the parameter is passed by a copy
@@ -155,7 +155,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 			return generateRecognizedAvatarURL(*avatarURL, size)
 		}
 		// for non-final link, we should return fast (use a 302 redirection link)
-		urlStr := setting.AppSubURL + "/avatar/" + emailHash
+		urlStr := setting.AppSubURL + "/avatar/" + url.PathEscape(emailHash)
 		if size > 0 {
 			urlStr += "?size=" + strconv.Itoa(size)
 		}

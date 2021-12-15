@@ -119,7 +119,7 @@
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
-				{{if not (or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb"))}}
+				{{if not (eq .DbCfg.Type "sqlite3")}}
 					<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
 					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
@@ -133,7 +133,7 @@
 					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
 					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}
-				{{if or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb")}}
+				{{if eq .DbCfg.Type "sqlite3"}}
 					<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
 					<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}}</dd>
 				{{end}}

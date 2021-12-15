@@ -84,14 +84,14 @@ menu:
 
 ## Database (`database`)
 
-- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql`, `tidb` 或 `sqlite3`。
+- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql` 或 `sqlite3`。
 - `HOST`: 数据库服务器地址和端口。
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
 - `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
-- `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
+- `PATH`: SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
 - `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
@@ -335,7 +335,7 @@ IS_INPUT_FILE = false
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 - `ALLOWED_DOMAINS`: **\<empty\>**: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项将会被忽略。
+- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项有更高的优先级拒绝这里的域名。
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918
 - `SKIP_TLS_VERIFY`: **false**: 允许忽略 TLS 认证
 

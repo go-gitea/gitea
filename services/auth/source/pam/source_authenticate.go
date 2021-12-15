@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
@@ -19,11 +19,11 @@ import (
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
 	pamLogin, err := pam.Auth(source.ServiceName, userName, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 		return nil, err
 	}
@@ -39,18 +39,18 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 	if idx > -1 {
 		username = pamLogin[:idx]
 	}
-	if models.ValidateEmail(email) != nil {
+	if user_model.ValidateEmail(email) != nil {
 		if source.EmailDomain != "" {
 			email = fmt.Sprintf("%s@%s", username, source.EmailDomain)
 		} else {
 			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
 		}
-		if models.ValidateEmail(email) != nil {
+		if user_model.ValidateEmail(email) != nil {
 			email = uuid.New().String() + "@localhost"
 		}
 	}
 
-	user = &models.User{
+	user = &user_model.User{
 		LowerName:   strings.ToLower(username),
 		Name:        username,
 		Email:       email,
@@ -61,7 +61,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		IsActive:    true,
 	}
 
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return user, err
 	}
 

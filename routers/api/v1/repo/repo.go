@@ -12,6 +12,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -25,20 +30,20 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
+var searchOrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc": {
-		"alpha":   models.SearchOrderByAlphabetically,
-		"created": models.SearchOrderByOldest,
-		"updated": models.SearchOrderByLeastUpdated,
-		"size":    models.SearchOrderBySize,
-		"id":      models.SearchOrderByID,
+		"alpha":   db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"size":    db.SearchOrderBySize,
+		"id":      db.SearchOrderByID,
 	},
 	"desc": {
-		"alpha":   models.SearchOrderByAlphabeticallyReverse,
-		"created": models.SearchOrderByNewest,
-		"updated": models.SearchOrderByRecentUpdated,
-		"size":    models.SearchOrderBySizeReverse,
-		"id":      models.SearchOrderByIDReverse,
+		"alpha":   db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"size":    db.SearchOrderBySizeReverse,
+		"id":      db.SearchOrderByIDReverse,
 	},
 }
 
@@ -212,7 +217,7 @@ func Search(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
+		if err = repo.GetOwner(db.DefaultContext); err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
@@ -238,7 +243,7 @@ func Search(ctx *context.APIContext) {
 }
 
 // CreateUserRepo create a repository for a user
-func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
+func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.CreateRepoOption) {
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
@@ -252,14 +257,14 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		IsPrivate:     opt.Private,
 		AutoInit:      opt.AutoInit,
 		DefaultBranch: opt.DefaultBranch,
-		TrustModel:    models.ToTrustModel(opt.TrustModel),
+		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
 		IsTemplate:    opt.Template,
 	})
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-		} else if models.IsErrNameReserved(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		} else if db.IsErrNameReserved(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -268,12 +273,12 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	}
 
 	// reload repo from db to get a real state after creation
-	repo, err = models.GetRepositoryByID(repo.ID)
+	repo, err = repo_model.GetRepositoryByID(repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -373,9 +378,9 @@ func Generate(ctx *context.APIContext) {
 	ctxUser := ctx.User
 	var err error
 	if form.Owner != ctxUser.Name {
-		ctxUser, err = models.GetUserByName(form.Owner)
+		ctxUser, err = user_model.GetUserByName(form.Owner)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusNotFound, map[string]interface{}{
 					"error": "request owner `" + form.Owner + "` does not exist",
 				})
@@ -392,7 +397,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.User.IsAdmin {
-			canCreate, err := ctxUser.CanCreateOrgRepo(ctx.User.ID)
+			canCreate, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -405,10 +410,10 @@ func Generate(ctx *context.APIContext) {
 
 	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-		} else if models.IsErrNameReserved(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		} else if db.IsErrNameReserved(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -417,7 +422,7 @@ func Generate(ctx *context.APIContext) {
 	}
 	log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
@@ -488,7 +493,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if !models.HasOrgOrUserVisible(org, ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -503,7 +508,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 			return
 		}
 	}
-	CreateUserRepo(ctx, org, *opt)
+	CreateUserRepo(ctx, org.AsUser(), *opt)
 }
 
 // Get one repository
@@ -549,9 +554,9 @@ func GetByID(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
-	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
+	repo, err := repo_model.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
@@ -624,7 +629,7 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := models.GetRepositoryByID(ctx.Repo.Repository.ID)
+	repo, err := repo_model.GetRepositoryByID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -645,12 +650,12 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if repo.LowerName != strings.ToLower(newRepoName) {
 		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
-			case models.IsErrRepoAlreadyExist(err):
+			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
-			case models.IsErrNameReserved(err):
+			case db.IsErrNameReserved(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
-			case models.IsErrNamePatternNotAllowed(err):
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(db.ErrNamePatternNotAllowed).Pattern), err)
 			default:
 				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
 			}
@@ -734,11 +739,11 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	var units []models.RepoUnit
-	var deleteUnitTypes []models.UnitType
+	var units []repo_model.RepoUnit
+	var deleteUnitTypes []unit_model.Type
 
 	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
@@ -751,29 +756,29 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				return err
 			}
 
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalTracker,
-				Config: &models.ExternalTrackerConfig{
+				Type:   unit_model.TypeExternalTracker,
+				Config: &repo_model.ExternalTrackerConfig{
 					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
 					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
 					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !models.UnitTypeIssues.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
-			var config *models.IssuesConfig
+			var config *repo_model.IssuesConfig
 
 			if opts.InternalTracker != nil {
-				config = &models.IssuesConfig{
+				config = &repo_model.IssuesConfig{
 					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
 					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
 				}
-			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
+			} else if unit, err := repo.GetUnit(unit_model.TypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
-				config = &models.IssuesConfig{
+				config = &repo_model.IssuesConfig{
 					EnableTimetracker:                true,
 					AllowOnlyContributorsToTrackTime: true,
 					EnableDependencies:               true,
@@ -782,24 +787,24 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				config = unit.IssuesConfig()
 			}
 
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeIssues,
+				Type:   unit_model.TypeIssues,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		} else if !*opts.HasIssues {
-			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 			}
-			if !models.UnitTypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			if !unit_model.TypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 			}
 		}
 	}
 
 	if opts.HasWiki != nil {
-		if *opts.HasWiki && opts.ExternalWiki != nil && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
@@ -807,42 +812,42 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				return err
 			}
 
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalWiki,
-				Config: &models.ExternalWikiConfig{
+				Type:   unit_model.TypeExternalWiki,
+				Config: &repo_model.ExternalWikiConfig{
 					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
-		} else if *opts.HasWiki && opts.ExternalWiki == nil && !models.UnitTypeWiki.UnitGlobalDisabled() {
-			config := &models.UnitConfig{}
-			units = append(units, models.RepoUnit{
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !unit_model.TypeWiki.UnitGlobalDisabled() {
+			config := &repo_model.UnitConfig{}
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeWiki,
+				Type:   unit_model.TypeWiki,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else if !*opts.HasWiki {
-			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			if !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 			}
-			if !models.UnitTypeWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			if !unit_model.TypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 			}
 		}
 	}
 
 	if opts.HasPullRequests != nil {
-		if *opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+		if *opts.HasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
-			unit, err := repo.GetUnit(models.UnitTypePullRequests)
-			var config *models.PullRequestsConfig
+			unit, err := repo.GetUnit(unit_model.TypePullRequests)
+			var config *repo_model.PullRequestsConfig
 			if err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
-				config = &models.PullRequestsConfig{
+				config = &repo_model.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     false,
 					AllowMerge:                    true,
 					AllowRebase:                   true,
@@ -851,7 +856,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowManualMerge:              true,
 					AutodetectManualMerge:         false,
 					DefaultDeleteBranchAfterMerge: false,
-					DefaultMergeStyle:             models.MergeStyleMerge,
+					DefaultMergeStyle:             repo_model.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -882,31 +887,31 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				config.DefaultDeleteBranchAfterMerge = *opts.DefaultDeleteBranchAfterMerge
 			}
 			if opts.DefaultMergeStyle != nil {
-				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)
+				config.DefaultMergeStyle = repo_model.MergeStyle(*opts.DefaultMergeStyle)
 			}
 
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypePullRequests,
+				Type:   unit_model.TypePullRequests,
 				Config: config,
 			})
-		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		} else if !*opts.HasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 	}
 
-	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
 		if *opts.HasProjects {
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeProjects,
+				Type:   unit_model.TypeProjects,
 			})
 		} else {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 	}
 
-	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+	if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
 	}
@@ -926,14 +931,14 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
@@ -954,14 +959,16 @@ func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) erro
 			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
 			return err
 		}
-		if err := repo.GetMirror(); err != nil {
+		mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+		if err != nil {
 			log.Error("Failed to get mirror: %s", err)
 			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
 			return err
 		}
 		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
-			repo.Mirror.Interval = interval
-			if err := models.UpdateMirror(repo.Mirror); err != nil {
+			mirror.Interval = interval
+			mirror.Repo = repo
+			if err := repo_model.UpdateMirror(mirror); err != nil {
 				log.Error("Failed to Set Mirror Interval: %s", err)
 				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
 				return err
@@ -1003,7 +1010,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := repo.CanUserDelete(ctx.User)
+	canDelete, err := models.CanUserDelete(repo, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return
@@ -1016,7 +1023,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.Repo.GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
+	if err := repo_service.DeleteRepository(ctx.User, repo, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}

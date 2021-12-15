@@ -7,9 +7,11 @@ export function initRepoWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
-  let hasSimpleMDE = true;
+  let hasEasyMDE = true;
+
   if ($editArea.length > 0) {
-    const simplemde = new SimpleMDE({
+    const $form = $('.repository.wiki.new .ui.form');
+    const easyMDE = new window.EasyMDE({
       autoDownloadFontAwesome: false,
       element: $editArea[0],
       forceSync: true,
@@ -34,7 +36,7 @@ export function initRepoWikiForm() {
         };
 
         setTimeout(() => {
-          if (!simplemde.isSideBySideActive()) {
+          if (!easyMDE.isSideBySideActive()) {
             render();
           } else {
             // delay preview by keystroke counting
@@ -50,7 +52,7 @@ export function initRepoWikiForm() {
             sideBySideTimeout = setTimeout(render, 600);
           }
         }, 0);
-        if (!simplemde.isSideBySideActive()) {
+        if (!easyMDE.isSideBySideActive()) {
           return 'Loading...';
         }
         return preview.innerHTML;
@@ -104,8 +106,7 @@ export function initRepoWikiForm() {
           name: 'revert-to-textarea',
           action(e) {
             e.toTextArea();
-            hasSimpleMDE = false;
-            const $form = $('.repository.wiki.new .ui.form');
+            hasEasyMDE = false;
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
             $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
@@ -116,7 +117,24 @@ export function initRepoWikiForm() {
         },
       ]
     });
-    $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+
+    const $markdownEditorTextArea = $(easyMDE.codemirror.getInputField());
+    $markdownEditorTextArea.addClass('js-quick-submit');
+
+    $form.on('submit', function (e) {
+      // The original edit area HTML element is hidden and replaced by the
+      // SimpleMDE/EasyMDE editor, breaking HTML5 input validation if the text area is empty.
+      // This is a workaround for this upstream bug.
+      // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
+      const input = $editArea.val();
+      if (!input.length) {
+        e.preventDefault();
+        $markdownEditorTextArea.prop('required', true);
+        this.reportValidity();
+      } else {
+        $markdownEditorTextArea.prop('required', false);
+      }
+    });
 
     setTimeout(() => {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
@@ -125,7 +143,7 @@ export function initRepoWikiForm() {
       const $bPreview = $('.editor-toolbar button.preview');
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
       $bEdit.on('click', (e) => {
-        if (!hasSimpleMDE) {
+        if (!hasEasyMDE) {
           return false;
         }
         e.stopImmediatePropagation();
@@ -136,7 +154,7 @@ export function initRepoWikiForm() {
         return false;
       });
       $bPrev.on('click', (e) => {
-        if (!hasSimpleMDE) {
+        if (!hasEasyMDE) {
           return false;
         }
         e.stopImmediatePropagation();

@@ -9,7 +9,6 @@
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
-				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear" 16 "mb-3"}}</a>{{end}}
 			</div>
 			{{if $.RenderedDescription}}<p class="render-content markup">{{$.RenderedDescription|Str2html}}</p>{{end}}
 			<div class="text grey meta">
@@ -19,20 +18,11 @@
 		</div>
 	</div>
 
-	<div class="ui divider"></div>
+	{{template "org/menu" .}}
 
 	<div class="ui container">
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui eleven wide column">
-				{{if .CanCreateOrgRepo}}
-					<div class="text right">
-						{{if not .DisableNewPullMirrors}}
-							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
-						{{end}}
-						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
-					</div>
-					<div class="ui divider"></div>
-				{{end}}
 				{{template "explore/repo_search" .}}
 				{{template "explore/repo_list" .}}
 				{{template "base/paginate" .}}
@@ -50,7 +40,7 @@
 				<div class="ui attached segment members">
 					{{$isMember := .IsOrganizationMember}}
 					{{range .Members}}
-						{{if or $isMember (.IsPublicMember $.Org.ID)}}
+						{{if or $isMember (call $.IsPublicMember .ID)}}
 							<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">
 								{{avatar .}}
 							</a>
@@ -68,10 +58,10 @@
 					<div class="ui attached table segment teams">
 						{{range .Teams}}
 							<div class="item">
-								<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong class="team-name">{{.Name}}</strong></a>
+								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
-									<a href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong>{{.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
-									<a href="{{$.OrgLink}}/teams/{{.LowerName}}/repositories"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
+									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
+									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
 						{{end}}

@@ -272,13 +272,10 @@ github.com/gliderlabs/ssh
 # github.com/go-asn1-ber/asn1-ber v1.5.3
 ## explicit
 github.com/go-asn1-ber/asn1-ber
-# github.com/go-chi/chi v1.5.4
-## explicit
-github.com/go-chi/chi
-github.com/go-chi/chi/middleware
 # github.com/go-chi/chi/v5 v5.0.4
 ## explicit
 github.com/go-chi/chi/v5
+github.com/go-chi/chi/v5/middleware
 # github.com/go-chi/cors v1.2.0
 ## explicit
 github.com/go-chi/cors
@@ -455,18 +452,14 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v37 v37.0.0
+# github.com/google/go-github/v39 v39.2.0
 ## explicit
-github.com/google/go-github/v37/github
+github.com/google/go-github/v39/github
 # github.com/google/go-querystring v1.1.0
-## explicit
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/context v1.1.1
-## explicit
-github.com/gorilla/context
 # github.com/gorilla/css v1.0.0
 github.com/gorilla/css/scanner
 # github.com/gorilla/feeds v1.1.1
@@ -511,9 +504,6 @@ github.com/hashicorp/hcl/json/token
 github.com/huandu/xstrings
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
-# github.com/issue9/identicon v1.2.0
-## explicit
-github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 ## explicit
 github.com/jaytaylor/html2text
@@ -565,10 +555,6 @@ github.com/klauspost/pgzip
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.4.0
-## explicit
-github.com/lafriks/xormstore
-github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.10.2
 ## explicit
 github.com/lib/pq

@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.
@@ -92,7 +94,7 @@ func RefEndName(refStr string) string {
 
 // RefURL returns the absolute URL for a ref in a repository
 func RefURL(repoURL, ref string) string {
-	refName := RefEndName(ref)
+	refName := util.PathEscapeSegments(RefEndName(ref))
 	switch {
 	case strings.HasPrefix(ref, BranchPrefix):
 		return repoURL + "/src/branch/" + refName

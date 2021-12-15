@@ -286,11 +286,6 @@
 							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
 							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 						</div>
-					</div>
-
-					<div class="oauth2_use_custom_url inline field">
-						<div class="ui checkbox">
-							<label><strong>{{.i18n.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
 							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if $cfg.CustomURLMapping}}checked{{end}}>
 						</div>
 					</div>
@@ -323,6 +318,33 @@
 						<input id="{{.Name}}_email_url" value="{{.CustomURLSettings.EmailURL.Value}}" data-available="{{.CustomURLSettings.EmailURL.Available}}" data-required="{{.CustomURLSettings.EmailURL.Required}}" type="hidden" />
 						<input id="{{.Name}}_tenant" value="{{.CustomURLSettings.Tenant.Value}}" data-available="{{.CustomURLSettings.Tenant.Available}}" data-required="{{.CustomURLSettings.Tenant.Required}}" type="hidden" />
 					{{end}}{{end}}
+
+					<div class="field">
+						<label for="oauth2_scopes">{{.i18n.Tr "admin.auths.oauth2_scopes"}}</label>
+						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{Join $cfg.Scopes "," }}{{end}}">
+					</div>
+					<div class="field">
+						<label for="oauth2_required_claim_name">{{.i18n.Tr "admin.auths.oauth2_required_claim_name"}}</label>
+						<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" values="{{$cfg.RequiredClaimName}}">
+						<p class="help">{{.i18n.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
+					</div>
+					<div class="field">
+						<label for="oauth2_required_claim_value">{{.i18n.Tr "admin.auths.oauth2_required_claim_value"}}</label>
+						<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" values="{{$cfg.RequiredClaimValue}}">
+						<p class="help">{{.i18n.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
+					</div>
+					<div class="field">
+						<label for="oauth2_group_claim_name">{{.i18n.Tr "admin.auths.oauth2_group_claim_name"}}</label>
+						<input id="oauth2_group_claim_name" name="oauth2_group_claim_name" value="{{$cfg.GroupClaimName}}">
+					</div>
+					<div class="field">
+						<label for="oauth2_admin_group">{{.i18n.Tr "admin.auths.oauth2_admin_group"}}</label>
+						<input id="oauth2_admin_group" name="oauth2_admin_group" value="{{$cfg.AdminGroup}}">
+					</div>
+					<div class="field">
+						<label for="oauth2_restricted_group">{{.i18n.Tr "admin.auths.oauth2_restricted_group"}}</label>
+						<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{$cfg.RestrictedGroup}}">
+					</div>
 				{{end}}
 
 				<!-- SSPI -->

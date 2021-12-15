@@ -6,22 +6,26 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(repo *models.Repository, mode models.AccessMode) *api.Repository {
+func ToRepo(repo *repo_model.Repository, mode perm.AccessMode) *api.Repository {
 	return innerToRepo(repo, mode, false)
 }
 
-func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool) *api.Repository {
+func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	cloneLink := repo.CloneLink()
 	permission := &api.Permission{
-		Admin: mode >= models.AccessModeAdmin,
-		Push:  mode >= models.AccessModeWrite,
-		Pull:  mode >= models.AccessModeRead,
+		Admin: mode >= perm.AccessModeAdmin,
+		Push:  mode >= perm.AccessModeWrite,
+		Pull:  mode >= perm.AccessModeRead,
 	}
 	if !isParent {
 		err := repo.GetBaseRepo()
@@ -37,7 +41,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
-	if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -45,7 +49,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -56,9 +60,9 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -71,8 +75,8 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	defaultMergeStyle := models.MergeStyleMerge
-	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+	defaultMergeStyle := repo_model.MergeStyleMerge
+	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
@@ -83,11 +87,11 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(models.UnitTypeProjects); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeProjects); err == nil {
 		hasProjects = true
 	}
 
-	if err := repo.GetOwner(); err != nil {
+	if err := repo.GetOwner(db.DefaultContext); err != nil {
 		return nil
 	}
 
@@ -95,7 +99,9 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 
 	mirrorInterval := ""
 	if repo.IsMirror {
-		if err := repo.GetMirror(); err == nil {
+		var err error
+		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 		}
 	}

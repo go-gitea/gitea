@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -62,7 +63,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 // DeleteAttachment response for deleting issue's attachment
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
-	attach, err := models.GetAttachmentByUUID(file)
+	attach, err := repo_model.GetAttachmentByUUID(file)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, err.Error())
 		return
@@ -71,7 +72,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
-	err = models.DeleteAttachment(attach, true)
+	err = repo_model.DeleteAttachment(attach, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
@@ -83,9 +84,9 @@ func DeleteAttachment(ctx *context.Context) {
 
 // GetAttachment serve attachements
 func GetAttachment(ctx *context.Context) {
-	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
+	attach, err := repo_model.GetAttachmentByUUID(ctx.Params(":uuid"))
 	if err != nil {
-		if models.IsErrAttachmentNotExist(err) {
+		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
@@ -93,7 +94,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := attach.LinkedRepository()
+	repository, unitType, err := models.LinkedRepository(attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return

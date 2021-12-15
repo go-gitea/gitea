@@ -1,50 +1,41 @@
 export function initInstall() {
-  if ($('.install').length === 0) {
+  if ($('.page-content.install').length === 0) {
     return;
   }
 
-  if ($('#db_host').val() === '') {
-    $('#db_host').val('127.0.0.1:3306');
-    $('#db_user').val('gitea');
-    $('#db_name').val('gitea');
-  }
+  const defaultDbUser = 'gitea';
+  const defaultDbName = 'gitea';
+
+  const defaultDbHosts = {
+    mysql: '127.0.0.1:3306',
+    postgres: '127.0.0.1:5432',
+    mssql: '127.0.0.1:1433'
+  };
+
+  const $dbHost = $('#db_host');
+  const $dbUser = $('#db_user');
+  const $dbName = $('#db_name');
 
   // Database type change detection.
   $('#db_type').on('change', function () {
-    const sqliteDefault = 'data/gitea.db';
-    const tidbDefault = 'data/gitea_tidb';
-
     const dbType = $(this).val();
-    if (dbType === 'SQLite3') {
-      $('#sql_settings').hide();
-      $('#pgsql_settings').hide();
-      $('#mysql_settings').hide();
-      $('#sqlite_settings').show();
+    $('div[data-db-setting-for]').hide();
+    $(`div[data-db-setting-for=${dbType}]`).show();
 
-      if (dbType === 'SQLite3' && $('#db_path').val() === tidbDefault) {
-        $('#db_path').val(sqliteDefault);
+    if (dbType !== 'sqlite3') {
+      // for most remote database servers
+      $(`div[data-db-setting-for=common-host]`).show();
+      const lastDbHost = $dbHost.val();
+      const isDbHostDefault = !lastDbHost || Object.values(defaultDbHosts).includes(lastDbHost);
+      if (isDbHostDefault) {
+        $dbHost.val(defaultDbHosts[dbType] ?? '');
       }
-      return;
-    }
-
-    const dbDefaults = {
-      MySQL: '127.0.0.1:3306',
-      PostgreSQL: '127.0.0.1:5432',
-      MSSQL: '127.0.0.1:1433'
-    };
-
-    $('#sqlite_settings').hide();
-    $('#sql_settings').show();
-
-    $('#pgsql_settings').toggle(dbType === 'PostgreSQL');
-    $('#mysql_settings').toggle(dbType === 'MySQL');
-    $.each(dbDefaults, (_type, defaultHost) => {
-      if ($('#db_host').val() === defaultHost) {
-        $('#db_host').val(dbDefaults[dbType]);
-        return false;
+      if (!$dbUser.val() && !$dbName.val()) {
+        $dbUser.val(defaultDbUser);
+        $dbName.val(defaultDbName);
       }
-    });
-  });
+    } // else: for SQLite3, the default path is always prepared by backend code (setting)
+  }).trigger('change');
 
   // TODO: better handling of exclusive relations.
   $('#offline-mode input').on('change', function () {

@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -356,6 +357,10 @@ var migrations = []Migration{
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
 	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	// v202 -> v203
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
+	// v203 -> v204
+	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -791,8 +796,14 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		tableSQL := string(res[0]["sql"])
 
+		// Get the string offset for column definitions: `CREATE TABLE ( column-definitions... )`
+		columnDefinitionsIndex := strings.Index(tableSQL, "(")
+		if columnDefinitionsIndex < 0 {
+			return errors.New("couldn't find column definitions")
+		}
+
 		// Separate out the column definitions
-		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+		tableSQL = tableSQL[columnDefinitionsIndex:]
 
 		// Remove the required columnNames
 		for _, name := range columnNames {

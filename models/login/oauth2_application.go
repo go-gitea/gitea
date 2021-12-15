@@ -190,11 +190,12 @@ type UpdateOAuth2ApplicationOptions struct {
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	sess := db.NewSession(db.DefaultContext)
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
-	defer sess.Close()
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	app, err := getOAuth2ApplicationByID(sess, opts.ID)
 	if err != nil {
@@ -212,7 +213,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 	}
 	app.ClientSecret = ""
 
-	return app, sess.Commit()
+	return app, committer.Commit()
 }
 
 func updateOAuth2Application(e db.Engine, app *OAuth2Application) error {
@@ -222,7 +223,7 @@ func updateOAuth2Application(e db.Engine, app *OAuth2Application) error {
 	return nil
 }
 
-func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
+func deleteOAuth2Application(sess db.Engine, id, userid int64) error {
 	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
 		return err
 	} else if deleted == 0 {
@@ -251,15 +252,15 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := deleteOAuth2Application(sess, id, userid); err != nil {
+	defer committer.Close()
+	if err := deleteOAuth2Application(db.GetEngine(ctx), id, userid); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.

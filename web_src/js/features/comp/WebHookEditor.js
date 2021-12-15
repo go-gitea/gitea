@@ -1,6 +1,6 @@
 const {csrfToken} = window.config;
 
-export function initWebHookEditor() {
+export function initCompWebHookEditor() {
   if ($('.new.webhook').length === 0) {
     return;
   }

@@ -21,7 +21,7 @@ const baseOptions = {
 
 function getEditorconfig(input) {
   try {
-    return JSON.parse(input.dataset.editorconfig);
+    return JSON.parse(input.getAttribute('data-editorconfig'));
   } catch {
     return null;
   }
@@ -45,7 +45,7 @@ function getLanguage(filename) {
 function updateEditor(monaco, editor, filename, lineWrapExts) {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
-  const language = model.getModeId();
+  const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }
@@ -132,14 +132,15 @@ function getFileBasedOptions(filename, lineWrapExts) {
 export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
-  const markdownExts = (textarea.dataset.markdownFileExts || '').split(',');
-  const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',');
+  const markdownExts = (textarea.getAttribute('data-markdown-file-exts') || '').split(',');
+  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
   const isMarkdown = markdownExts.includes(extname(filename));
   const editorConfig = getEditorconfig(filenameInput);
 
   if (previewLink) {
     if (isMarkdown && (previewFileModes || []).includes('markdown')) {
-      previewLink.dataset.url = previewLink.dataset.url.replace(/(.*)\/.*/i, `$1/markdown`);
+      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markdown`);
+      previewLink.setAttribute('data-url', newUrl);
       previewLink.style.display = '';
     } else {
       previewLink.style.display = 'none';
