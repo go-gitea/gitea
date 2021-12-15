@@ -71,7 +71,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 }
 
 // FindCommentReactions returns a ReactionList of all reactions from an comment
-func FindCommentReactions(comment *Comment) (ReactionList, error) {
+func FindCommentReactions(comment *Comment) (ReactionList, int64, error) {
 	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
 		IssueID:   comment.IssueID,
 		CommentID: comment.ID,
@@ -79,7 +79,7 @@ func FindCommentReactions(comment *Comment) (ReactionList, error) {
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList, error) {
+func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList, int64, error) {
 	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
 		ListOptions: listOptions,
 		IssueID:     issue.ID,
@@ -87,20 +87,22 @@ func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList,
 	})
 }
 
-func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) {
-	e = e.
+func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, int64, error) {
+	sess := e.
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page != 0 {
-		e = db.SetEnginePagination(e, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
-		return reactions, e.Find(&reactions)
+		count, err := sess.FindAndCount(&reactions)
+		return reactions, count, err
 	}
 
 	reactions := make([]*Reaction, 0, 10)
-	return reactions, e.Find(&reactions)
+	count, err := sess.FindAndCount(&reactions)
+	return reactions, count, err
 }
 
 func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
@@ -120,7 +122,7 @@ func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 		findOpts.CommentID = opts.Comment.ID
 	}
 
-	existingR, err := findReactions(e, findOpts)
+	existingR, _, err := findReactions(e, findOpts)
 	if err != nil {
 		return nil, err
 	}
