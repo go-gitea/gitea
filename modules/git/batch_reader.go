@@ -27,6 +27,17 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
+func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
+	stderr := strings.Builder{}
+	err := NewCommandContext(ctx, "rev-parse").
+		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
+		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
+	if err != nil {
+		return ConcatenateError(err, (&stderr).String())
+	}
+	return nil
+}
+
 // CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	batchStdinReader, batchStdinWriter := io.Pipe()
