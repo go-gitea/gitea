@@ -238,7 +238,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return nil
 	}
 	e := db.GetEngine(ctx)
-	reactions, err := findReactions(e, FindReactionsOptions{
+	reactions, _, err := findReactions(e, FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	if err != nil {
