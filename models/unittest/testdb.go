@@ -104,7 +104,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
-	ownerDirs, err := os.ReadDir(pathToGiteaRoot)
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
 	}
@@ -117,10 +117,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 			fatalTestError("unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(pathToGiteaRoot, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
-			_ = os.MkdirAll(filepath.Join(pathToGiteaRoot, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
-			_ = os.MkdirAll(filepath.Join(pathToGiteaRoot, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
-			_ = os.MkdirAll(filepath.Join(pathToGiteaRoot, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
 		}
 	}
 
