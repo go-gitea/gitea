@@ -427,7 +427,6 @@ local addIssueLabelsOverrides(labels) =
           hide: 0,
           label: 'aggregation interval',
           name: 'agg_interval',
-          current: 'auto',
           auto_min: '1m',
           auto: true,
           query: '1m,10m,1h,1d,7d',
