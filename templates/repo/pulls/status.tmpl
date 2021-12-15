@@ -27,7 +27,7 @@
 				{{end}}
 				<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.i18n.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 			</div>
-			<div class="ui status-segment markup">{{.Description|Md2html}}</div>
+			<div class="ui markup mt-4">{{.Description|Md2html}}</div>
 		</div>
 	{{end}}
 {{end}}
