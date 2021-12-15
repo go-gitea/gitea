@@ -683,6 +683,16 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	return getRepositoryByID(e, repo.TemplateID)
 }
 
+// TemplateRepo returns the repository link
+func (repo *Repository) TemplateRepo() *Repository {
+	repos, err := GetTemplateRepo(repo)
+	if err != nil {
+		log.Error("TemplateRepo: %v", err)
+		return nil
+	}
+	return repos
+}
+
 func countRepositories(userID int64, private bool) int64 {
 	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
 
