@@ -78,7 +78,7 @@
 			<div class="ui attached segment">
 				{{$.i18n.Tr "repo.settings.mirror_settings.docs" | Safe}}
 				<table class="ui table">
-					{{if or .Repository.IsMirror .Repository.PushMirrors}}
+					{{if or .Repository.IsMirror .PushMirrors}}
 					<thead>
 						<tr>
 							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -166,7 +166,7 @@
 					<thead><tr><th colspan="4"></th></tr></thead>
 					{{end}}
 					<tbody>
-						{{range .Repository.PushMirrors}}
+						{{range .PushMirrors}}
 						<tr>
 							{{$address := MirrorRemoteAddress .}}
 							<td>{{$address.Address}}</td>

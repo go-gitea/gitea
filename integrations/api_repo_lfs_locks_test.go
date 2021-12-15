@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
@@ -24,7 +24,7 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = false
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -40,7 +40,7 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = true
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", lfs.MediaType)
@@ -56,12 +56,12 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) //in org 3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) //in org 3
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // own by org 3
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository) // own by org 3
 
 	tests := []struct {
 		user       *user_model.User
-		repo       *models.Repository
+		repo       *repo_model.Repository
 		path       string
 		httpResult int
 		addTime    []int
@@ -83,7 +83,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 
 	resultsTests := []struct {
 		user        *user_model.User
-		repo        *models.Repository
+		repo        *repo_model.Repository
 		totalCount  int
 		oursCount   int
 		theirsCount int
@@ -97,7 +97,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 
 	deleteTests := []struct {
 		user   *user_model.User
-		repo   *models.Repository
+		repo   *repo_model.Repository
 		lockID string
 	}{}
 
@@ -145,7 +145,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 			assert.EqualValues(t, test.user.DisplayName(), lock.Owner.Name)
 			deleteTests = append(deleteTests, struct {
 				user   *user_model.User
-				repo   *models.Repository
+				repo   *repo_model.Repository
 				lockID string
 			}{test.user, test.repo, lock.ID})
 		}

@@ -221,9 +221,9 @@ type Comment struct {
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
-	RefRepo    *Repository `xorm:"-"`
-	RefIssue   *Issue      `xorm:"-"`
-	RefComment *Comment    `xorm:"-"`
+	RefRepo    *repo_model.Repository `xorm:"-"`
+	RefIssue   *Issue                 `xorm:"-"`
+	RefComment *Comment               `xorm:"-"`
 
 	Commits     []*SignCommitWithStatuses `xorm:"-"`
 	OldCommit   string                    `xorm:"-"`
@@ -318,7 +318,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.loadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -347,7 +347,7 @@ func (c *Comment) APIURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.loadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -368,7 +368,7 @@ func (c *Comment) IssueURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.loadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -384,7 +384,7 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.loadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -538,7 +538,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			return err
 		}
 
-		if err = c.Issue.Repo.GetOwner(); err != nil {
+		if err = c.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -591,11 +591,11 @@ func (c *Comment) LoadTime() error {
 	return err
 }
 
-func (c *Comment) loadReactions(e db.Engine, repo *Repository) (err error) {
+func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, err = findReactions(e, FindReactionsOptions{
+	c.Reactions, _, err = findReactions(e, FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})
@@ -610,7 +610,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *Repository) (err error) {
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(repo *Repository) error {
+func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
 	return c.loadReactions(db.GetEngine(db.DefaultContext), repo)
 }
 
@@ -677,7 +677,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.loadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -766,7 +766,7 @@ func createComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		return nil, err
 	}
 
-	if err = opts.Repo.getOwner(e); err != nil {
+	if err = opts.Repo.GetOwner(ctx); err != nil {
 		return nil, err
 	}
 
@@ -845,7 +845,7 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -869,7 +869,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
-	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return
 	}
 
@@ -900,7 +900,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 type CreateCommentOptions struct {
 	Type  CommentType
 	Doer  *user_model.User
-	Repo  *Repository
+	Repo  *repo_model.Repository
 	Issue *Issue
 	Label *Label
 
@@ -957,7 +957,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 }
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(doer *user_model.User, repo *Repository, issue *Issue, content, commitSHA string) error {
+func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue *Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
@@ -1165,11 +1165,11 @@ func deleteComment(e db.Engine, comment *Comment) error {
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
-func fetchCodeComments(e db.Engine, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
+func fetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
 }
 
-func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
+func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
 	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1180,7 +1180,7 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_mode
 		ReviewID: review.ID,
 	}
 
-	comments, err := findCodeComments(e, opts, issue, currentUser, review)
+	comments, err := findCodeComments(ctx, opts, issue, currentUser, review)
 	if err != nil {
 		return nil, err
 	}
@@ -1194,7 +1194,7 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_mode
 	return pathToLineToComment, nil
 }
 
-func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
+func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
 	var comments []*Comment
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1203,7 +1203,7 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 	if review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
-
+	e := db.GetEngine(ctx)
 	if err := e.Where(conds).
 		Join("INNER", "issue", "issue.id = comment.issue_id").
 		Asc("comment.created_unix").
@@ -1212,7 +1212,7 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 		return nil, err
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1272,12 +1272,12 @@ func FetchCodeCommentsByLine(issue *Issue, currentUser *user_model.User, treePat
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.GetEngine(db.DefaultContext), opts, issue, currentUser, nil)
+	return findCodeComments(db.DefaultContext, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(db.GetEngine(db.DefaultContext), issue, currentUser)
+	return fetchCodeComments(db.DefaultContext, issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
@@ -1336,7 +1336,7 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -33,7 +34,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 
 	testSubscription := func(issue *models.Issue, isWatching bool) {
 
-		issueRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/check?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, token)
 		req := NewRequest(t, "GET", urlStr)
@@ -54,7 +55,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	testSubscription(issue4, false)
 	testSubscription(issue5, false)
 
-	issue1Repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue1.RepoID}).(*models.Repository)
+	issue1Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID}).(*repo_model.Repository)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue1Repo.OwnerName, issue1Repo.Name, issue1.Index, owner.Name, token)
 	req := NewRequest(t, "DELETE", urlStr)
 	session.MakeRequest(t, req, http.StatusCreated)
@@ -64,7 +65,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	testSubscription(issue1, false)
 
-	issue5Repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue5.RepoID}).(*models.Repository)
+	issue5Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue5.RepoID}).(*repo_model.Repository)
 	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/%s?token=%s", issue5Repo.OwnerName, issue5Repo.Name, issue5.Index, owner.Name, token)
 	req = NewRequest(t, "PUT", urlStr)
 	session.MakeRequest(t, req, http.StatusCreated)

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -86,20 +87,20 @@ func init() {
 	db.RegisterModel(new(Review))
 }
 
-func (r *Review) loadCodeComments(e db.Engine) (err error) {
+func (r *Review) loadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return
 	}
-	if err = r.loadIssue(e); err != nil {
+	if err = r.loadIssue(db.GetEngine(ctx)); err != nil {
 		return
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
 	return
 }
 
 // LoadCodeComments loads CodeComments
 func (r *Review) LoadCodeComments() error {
-	return r.loadCodeComments(db.GetEngine(db.DefaultContext))
+	return r.loadCodeComments(db.DefaultContext)
 }
 
 func (r *Review) loadIssue(e db.Engine) (err error) {
@@ -137,11 +138,12 @@ func (r *Review) LoadReviewerTeam() error {
 	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
 }
 
-func (r *Review) loadAttributes(e db.Engine) (err error) {
+func (r *Review) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadCodeComments(e); err != nil {
+	if err = r.loadCodeComments(ctx); err != nil {
 		return
 	}
 	if err = r.loadReviewer(e); err != nil {
@@ -155,7 +157,7 @@ func (r *Review) loadAttributes(e db.Engine) (err error) {
 
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
+	return r.loadAttributes(db.DefaultContext)
 }
 
 func getReviewByID(e db.Engine, id int64) (*Review, error) {
@@ -236,15 +238,15 @@ type CreateReviewOptions struct {
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewer(issue *Issue, reviewers ...*user_model.User) (bool, error) {
-	return isOfficialReviewer(db.GetEngine(db.DefaultContext), issue, reviewers...)
+	return isOfficialReviewer(db.DefaultContext, issue, reviewers...)
 }
 
-func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*user_model.User) (bool, error) {
-	pr, err := getPullRequestByIssueID(e, issue.ID)
+func isOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
+	pr, err := getPullRequestByIssueID(db.GetEngine(ctx), issue.ID)
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(e); err != nil {
+	if err = pr.loadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -252,7 +254,7 @@ func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*user_model.User
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+		official, err := isUserOfficialReviewer(ctx, pr.ProtectedBranch, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -263,15 +265,15 @@ func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*user_model.User
 
 // IsOfficialReviewerTeam check if reviewer in this team can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewerTeam(issue *Issue, team *Team) (bool, error) {
-	return isOfficialReviewerTeam(db.GetEngine(db.DefaultContext), issue, team)
+	return isOfficialReviewerTeam(db.DefaultContext, issue, team)
 }
 
-func isOfficialReviewerTeam(e db.Engine, issue *Issue, team *Team) (bool, error) {
-	pr, err := getPullRequestByIssueID(e, issue.ID)
+func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *Team) (bool, error) {
+	pr, err := getPullRequestByIssueID(db.GetEngine(ctx), issue.ID)
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(e); err != nil {
+	if err = pr.loadProtectedBranch(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -386,7 +388,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+			if official, err = isOfficialReviewer(ctx, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -404,7 +406,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			return nil, nil, err
 		}
 	} else {
-		if err := review.loadCodeComments(sess); err != nil {
+		if err := review.loadCodeComments(ctx); err != nil {
 			return nil, nil, err
 		}
 		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
@@ -416,7 +418,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+			if official, err = isOfficialReviewer(ctx, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -648,7 +650,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, nil
 	}
 
-	official, err := isOfficialReviewer(sess, issue, reviewer, doer)
+	official, err := isOfficialReviewer(ctx, issue, reviewer, doer)
 	if err != nil {
 		return nil, err
 	} else if official {
@@ -706,7 +708,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 		return nil, err
 	}
 
-	official, err := isOfficialReviewer(sess, issue, reviewer)
+	official, err := isOfficialReviewer(ctx, issue, reviewer)
 	if err != nil {
 		return nil, err
 	} else if official {
@@ -757,11 +759,11 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *user_model.User) (
 		return nil, nil
 	}
 
-	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	official, err := isOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	} else if !official {
-		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+		if official, err = isOfficialReviewer(ctx, issue, doer); err != nil {
 			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
 		}
 	}
@@ -820,7 +822,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *user_model.User
 		return nil, err
 	}
 
-	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	official, err := isOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	}

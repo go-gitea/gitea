@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
@@ -126,7 +127,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 }
 
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
-	r := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 
 	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
@@ -157,7 +158,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 }
 
 func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRequest {
-	r := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}

@@ -76,14 +76,14 @@ export function initCompImagePaste($target) {
   });
 }
 
-export function initSimpleMDEImagePaste(simplemde, dropzone, files) {
+export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
   const uploadUrl = dropzone.getAttribute('data-upload-url');
-  simplemde.codemirror.on('paste', async (_, e) => {
+  easyMDE.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
       const data = await uploadFile(img, uploadUrl);
-      const pos = simplemde.codemirror.getCursor();
-      simplemde.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
+      const pos = easyMDE.codemirror.getCursor();
+      easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
     }

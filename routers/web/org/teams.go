@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -178,10 +179,10 @@ func TeamsRepoAction(ctx *context.Context) {
 	switch action {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
-		var repo *models.Repository
-		repo, err = models.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
+		var repo *repo_model.Repository
+		repo, err = repo_model.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
+			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 				return

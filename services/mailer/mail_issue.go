@@ -8,6 +8,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -77,7 +80,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(db.DefaultContext, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -116,6 +119,10 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited map[int64]bool, fromMention bool) error {
 	langMap := make(map[string][]*user_model.User)
+	checkUnit := unit.TypeIssues
+	if ctx.Issue.IsPull {
+		checkUnit = unit.TypePullRequests
+	}
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
@@ -139,7 +146,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			return err
 		}
 
-		if !perm.CanReadIssuesOrPulls(ctx.Issue.IsPull) || !ctx.Issue.CanSeeIssue(user.ID, &perm) {
+		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) || !ctx.Issue.CanSeeIssue(user.ID, &perm) {
 			continue
 		}
 

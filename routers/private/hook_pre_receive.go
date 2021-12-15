@@ -134,7 +134,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("ok"))
+	ctx.PlainText(http.StatusOK, "ok")
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
@@ -363,7 +363,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = ctx.Repo.Repository.GetProtectedTags()
+		ctx.protectedTags, err = models.GetProtectedTags(ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

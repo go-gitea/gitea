@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -36,8 +37,8 @@ func parseBool16961(bs []byte) (bool, error) {
 	return false, fmt.Errorf("unexpected bool format: %s", string(bs))
 }
 
-func fixUnitConfig16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err error) {
-	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+func fixUnitConfig16961(bs []byte, cfg *repo_model.UnitConfig) (fixed bool, err error) {
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -50,8 +51,8 @@ func fixUnitConfig16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err erro
 	return true, nil
 }
 
-func fixExternalWikiConfig16961(bs []byte, cfg *models.ExternalWikiConfig) (fixed bool, err error) {
-	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+func fixExternalWikiConfig16961(bs []byte, cfg *repo_model.ExternalWikiConfig) (fixed bool, err error) {
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -66,8 +67,8 @@ func fixExternalWikiConfig16961(bs []byte, cfg *models.ExternalWikiConfig) (fixe
 	return true, nil
 }
 
-func fixExternalTrackerConfig16961(bs []byte, cfg *models.ExternalTrackerConfig) (fixed bool, err error) {
-	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+func fixExternalTrackerConfig16961(bs []byte, cfg *repo_model.ExternalTrackerConfig) (fixed bool, err error) {
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -91,8 +92,8 @@ func fixExternalTrackerConfig16961(bs []byte, cfg *models.ExternalTrackerConfig)
 	return true, nil
 }
 
-func fixPullRequestsConfig16961(bs []byte, cfg *models.PullRequestsConfig) (fixed bool, err error) {
-	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+func fixPullRequestsConfig16961(bs []byte, cfg *repo_model.PullRequestsConfig) (fixed bool, err error) {
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -169,12 +170,12 @@ func fixPullRequestsConfig16961(bs []byte, cfg *models.PullRequestsConfig) (fixe
 		return
 	}
 
-	cfg.DefaultMergeStyle = models.MergeStyle(string(bytes.Join(parts[8:], []byte{' '})))
+	cfg.DefaultMergeStyle = repo_model.MergeStyle(string(bytes.Join(parts[8:], []byte{' '})))
 	return true, nil
 }
 
-func fixIssuesConfig16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err error) {
-	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+func fixIssuesConfig16961(bs []byte, cfg *repo_model.IssuesConfig) (fixed bool, err error) {
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -208,7 +209,7 @@ func fixIssuesConfig16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err 
 	return true, nil
 }
 
-func fixBrokenRepoUnit16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, err error) {
+func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed bool, err error) {
 	// Shortcut empty or null values
 	if len(bs) == 0 {
 		return false, nil
@@ -216,33 +217,33 @@ func fixBrokenRepoUnit16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, e
 
 	switch unit.Type(repoUnit.Type) {
 	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
-		cfg := &models.UnitConfig{}
+		cfg := &repo_model.UnitConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixUnitConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case unit.TypeExternalWiki:
-		cfg := &models.ExternalWikiConfig{}
+		cfg := &repo_model.ExternalWikiConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixExternalWikiConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case unit.TypeExternalTracker:
-		cfg := &models.ExternalTrackerConfig{}
+		cfg := &repo_model.ExternalTrackerConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixExternalTrackerConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case unit.TypePullRequests:
-		cfg := &models.PullRequestsConfig{}
+		cfg := &repo_model.PullRequestsConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixPullRequestsConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case unit.TypeIssues:
-		cfg := &models.IssuesConfig{}
+		cfg := &repo_model.IssuesConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixIssuesConfig16961(bs, cfg); !fixed {
 			return false, err
@@ -275,7 +276,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 			unit := bean.(*RepoUnit)
 
 			bs := unit.Config
-			repoUnit := &models.RepoUnit{
+			repoUnit := &repo_model.RepoUnit{
 				ID:          unit.ID,
 				RepoID:      unit.RepoID,
 				Type:        unit.Type,
@@ -291,7 +292,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 				return nil
 			}
 
-			return models.UpdateRepoUnit(repoUnit)
+			return repo_model.UpdateRepoUnit(repoUnit)
 		},
 	)
 
