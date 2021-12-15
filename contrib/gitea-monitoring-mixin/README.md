@@ -7,8 +7,8 @@ Gitea Mixin is a set of configurable Grafana dashboards based on the metrics exp
 You can manually generate dashboards, but first you should install some tools:
 
 ```bash
-go get github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb
-go get github.com/google/go-jsonnet/cmd/jsonnet
+go install github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb@latest
+go install github.com/google/go-jsonnet/cmd/jsonnet@latest
 # or in brew: brew install go-jsonnet
 ```
 
@@ -16,8 +16,8 @@ For linting and formatting, you would also need `mixtool` and `jsonnetfmt` insta
 have a working Go development environment, it's easiest to run the following:
 
 ```bash
-go get github.com/monitoring-mixins/mixtool/cmd/mixtool
-go get github.com/google/go-jsonnet/cmd/jsonnetfmt
+go install github.com/monitoring-mixins/mixtool/cmd/mixtool@latest
+go install github.com/google/go-jsonnet/cmd/jsonnetfmt@latest
 ```
 
 The files in `dashboards_out` need to be imported
