@@ -625,7 +625,7 @@ func Str2html(raw string) template.HTML {
 // Md2html render Markdown text to HTML (non-sanitize)
 func Md2html(raw string) template.HTML {
 	var err error
-	var RenderedContent string
+	var renderedContent string
 	if RenderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
 		return template.HTML(err.Error())
 	}
