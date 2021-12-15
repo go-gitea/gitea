@@ -250,7 +250,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 			perm.UnitsMode = nil
 			return
 		}
-		// Check if the team has acces to private issues.
+		// Check if the team has access to private issues.
 		if team.CanSeePrivateIssues {
 			perm.SeePrivateIssue = true
 		}
