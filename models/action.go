@@ -263,7 +263,7 @@ func (a *Action) GetRefLink() string {
 	case len(a.RefName) == 40 && git.SHAPattern.MatchString(a.RefName):
 		return a.GetRepoLink() + "/src/commit/" + a.RefName
 	default:
-		log.Warn("Unexpected ref type for GetBranchLink: %s in %d", a.RefName, a.RepoID)
+		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
 		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
 	}
 }
