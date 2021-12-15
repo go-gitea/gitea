@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/markbates/goth"
 )
 
