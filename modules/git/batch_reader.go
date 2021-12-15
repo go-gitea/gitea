@@ -27,6 +27,9 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
+// EnsureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
+// Run before opening git cat-file.
+// This is needed otherwise the git cat-file will hang for invalid repositories.
 func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommandContext(ctx, "rev-parse").
