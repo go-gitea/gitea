@@ -31,7 +31,7 @@
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{$.i18n.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) .GetTag (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
