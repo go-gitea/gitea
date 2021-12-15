@@ -1,6 +1,7 @@
 
 ###################################
 #Build stage
+FROM node:16.13.1-alpine AS node
 FROM golang:1.17-alpine3.13 AS build-env
 
 ARG GOPROXY
@@ -12,7 +13,13 @@ ENV TAGS "bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
 #Build deps
-RUN apk --no-cache add build-base git nodejs npm
+COPY --from=node /usr/lib /usr/lib
+COPY --from=node /usr/local/share /usr/local/share
+COPY --from=node /usr/local/lib /usr/local/lib
+COPY --from=node /usr/local/include /usr/local/include
+COPY --from=node /usr/local/bin /usr/local/bin
+
+RUN apk --no-cache add build-base git npm
 
 #Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
