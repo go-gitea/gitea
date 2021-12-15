@@ -269,7 +269,7 @@ local addIssueLabelsOverrides(labels) =
       .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__interval]) > 0' % [giteaSelector], legendFormat='Restarts', intervalFactor=1))
       .addTargets(
         [
-          prometheus.target(expr='floor(increase(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
+          prometheus.target(expr='floor(delta(%s{%s}[$__interval])) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
           for metric in $._config.giteaStatMetrics
         ]
       ) + { id: 200 },  // some unique number, beyond the maximum number of panels in the dashboard,
