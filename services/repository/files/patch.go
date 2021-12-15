@@ -32,6 +32,7 @@ type ApplyDiffPatchOptions struct {
 	Signoff      bool
 }
 
+// Validate validates the provided options
 func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *user_model.User) error {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
