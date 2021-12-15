@@ -205,6 +205,25 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+		}
+	}
 
 	if err := deleteDB(); err != nil {
 		t.Errorf("unable to reset database: %v", err)
