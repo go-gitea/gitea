@@ -627,7 +627,7 @@ func Markdown2html(raw string) template.HTML {
 	var err error
 	var renderedContent string
 	if renderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
-		log.Warning("Markdown2html: Invalid markdown? %v", err)
+		log.Warn("Markdown2html: Invalid markdown? %v", err)
 		return template.HTML(markup.Sanitize(raw)) // this was gitea 1.15.* behaviour
 	}
 	return template.HTML(renderedContent)
