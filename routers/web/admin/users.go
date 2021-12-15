@@ -273,6 +273,11 @@ func EditUserPost(ctx *context.Context) {
 			ctx.RenderWithErr(errMsg, tplUserNew, &form)
 			return
 		}
+		if err := models.ValidateEmail(form.Email); err != nil {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserNew, &form)
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
@@ -307,7 +312,9 @@ func EditUserPost(ctx *context.Context) {
 
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
-	u.Email = form.Email
+	email := strings.TrimSpace(form.Email)
+	emailChanged := !strings.EqualFold(u.Email, email)
+	u.Email = email
 	u.Website = form.Website
 	u.Location = form.Location
 	u.MaxRepoCreation = form.MaxRepoCreation
@@ -327,7 +334,7 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := models.UpdateUser(u); err != nil {
+	if err := models.UpdateUser(u, emailChanged); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)

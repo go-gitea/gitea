@@ -4,6 +4,37 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.7](https://github.com/go-gitea/gitea/releases/tag/v1.15.7) - 2021-12-01
+
+* ENHANCEMENTS
+  * Only allow webhook to send requests to allowed hosts (#17482) (#17510)
+  * Fix login redirection links (#17451) (#17473)
+* BUGFIXES
+  * Fix database inconsistent when admin change user email (#17549) (#17840)
+  * Use correct user on releases (#17806) (#17818)
+  * Fix commit count in tag view (#17698) (#17790)
+  * Fix close issue but time watcher still running (#17643) (#17761)
+  * Fix Migrate Description (#17692) (#17727)
+  * Fix bug when project board get open issue number (#17703) (#17726)
+  * Return 400 but not 500 when request archive with wrong format (#17691) (#17700)
+  * Fix bug when read mysql database max lifetime (#17682) (#17690)
+  * Fix database deadlock when update issue labels (#17649) (#17665)
+  * Fix bug on detect issue/comment writer (#17592)
+  * Remove appSubUrl from pasted images (#17572) (#17588)
+  * Make `ParsePatch` more robust (#17573) (#17580)
+  * Fix stats upon searching issues (#17566) (#17578)
+  * Escape issue titles in comments list (#17555) (#17556)
+  * Fix zero created time bug on commit api (#17546) (#17547)
+  * Fix database keyword quote problem on migration v161 (#17522) (#17523)
+  * Fix email with + when active (#17518) (#17520)
+  * Stop double encoding blame commit messages (#17498) (#17500)
+  * Quote the table name in CountOrphanedObjects (#17487) (#17488)
+  * Run Migrate in Install rather than just SyncTables (#17475) (#17486)
+* BUILD
+  * Fix golangci-lint warnings (#17598 et al) (#17668)
+* MISC
+  * Preserve color when inverting emojis (#17797) (#17799)
+
 ## [1.15.6](https://github.com/go-gitea/gitea/releases/tag/v1.15.6) - 2021-10-28
 
 * BUGFIXES

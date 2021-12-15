@@ -212,7 +212,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 			},
 			Issue:      convert.ToAPIIssue(issue),
 			Repository: convert.ToRepo(issue.Repo, mode),
-			Sender:     convert.ToUser(issue.Poster, nil),
+			Sender:     convert.ToUser(doer, nil),
 		})
 	}
 
@@ -766,12 +766,12 @@ func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookRele
 		return
 	}
 
-	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	mode, _ := models.AccessLevel(doer, rel.Repo)
 	if err := webhook_services.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
-		Sender:     convert.ToUser(rel.Publisher, nil),
+		Sender:     convert.ToUser(doer, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

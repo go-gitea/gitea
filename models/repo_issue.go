@@ -21,13 +21,18 @@ func (repo *Repository) CanEnableTimetracker() bool {
 
 // IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabled() bool {
+	return repo.isTimetrackerEnabled(x)
+}
+
+// IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
+func (repo *Repository) isTimetrackerEnabled(e Engine) bool {
 	if !setting.Service.EnableTimetracking {
 		return false
 	}
 
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {
 		return setting.Service.DefaultEnableTimetracking
 	}
 	return u.IssuesConfig().EnableTimetracker

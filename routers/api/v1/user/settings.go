@@ -74,7 +74,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		ctx.User.KeepActivityPrivate = *form.HideActivity
 	}
 
-	if err := models.UpdateUser(ctx.User); err != nil {
+	if err := models.UpdateUser(ctx.User, false); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
