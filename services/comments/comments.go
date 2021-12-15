@@ -72,8 +72,8 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 }
 
 // ResolveComment hides/unhides the comment
-func ResolveComment(c *models.Comment, doer *user_model.User, isResolve bool) error {
-	return models.ResolveComment(doer, c, isResolve)
+func ResolveComment(c *models.Comment, doer *user_model.User, isResolve bool, resolveReason models.ResolveReason) error {
+	return models.ResolveComment(doer, c, isResolve, resolveReason)
 
 	// Add NotifyResolveComment here?
 }

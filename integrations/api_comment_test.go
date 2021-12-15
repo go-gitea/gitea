@@ -198,8 +198,32 @@ func TestAPIHideComment(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", reqURL, map[string]string{
 		"_csrf":  csrf,
 		"action": "Resolve",
+		"reason": "1",
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: comment.Content, ResolveDoerID: repoOwner.ID})
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: comment.Content, ResolveDoerID: repoOwner.ID, ResolveReason: 1})
+
+	req = NewRequestWithValues(t, "POST", reqURL, map[string]string{
+		"_csrf":  csrf,
+		"action": "UnResolve",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: comment.Content, ResolveDoerID: 0, ResolveReason: 0})
+
+	req = NewRequestWithValues(t, "POST", reqURL, map[string]string{
+		"_csrf":  csrf,
+		"action": "Resolve",
+		"reason": "0",
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: comment.Content, ResolveDoerID: 0, ResolveReason: 0})
+
+	req = NewRequestWithValues(t, "POST", reqURL, map[string]string{
+		"_csrf":  csrf,
+		"action": "Resolve",
+		"reason": "20",
+	})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: comment.Content, ResolveDoerID: 0, ResolveReason: 0})
 }

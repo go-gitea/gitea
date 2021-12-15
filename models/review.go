@@ -870,7 +870,7 @@ func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (
 			return nil
 		}
 
-		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? resolve_reason=? WHERE id=?", doer.ID, ResolveReasonResolved, comment.ID); err != nil {
 			return err
 		}
 	} else {
@@ -878,7 +878,7 @@ func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (
 			return nil
 		}
 
-		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `comment` SET resolve_doer_id=? resolve_reason=? WHERE id=?", 0, ResolveReasonNone, comment.ID); err != nil {
 			return err
 		}
 	}

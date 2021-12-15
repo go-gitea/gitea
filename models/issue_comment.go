@@ -8,6 +8,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -147,6 +148,33 @@ func (rd RoleDescriptor) HasRole(role string) bool {
 	return (bitValue > 0)
 }
 
+// ResolveReason describes why a comment was hidden
+type ResolveReason int
+
+// Enumerate all the hideable reasons
+const (
+	ResolveReasonNone ResolveReason = iota
+	ResolveReasonResolved
+	ResolveReasonSpam
+	ResolveReasonAbuse
+	ResolveReasonOfftopic
+	ResolveReasonOutdated
+	ResolveReasonDuplicate
+	ResolveReasonOther
+)
+
+// IsValid checks if r is a valid value for ResolveReason
+func (r ResolveReason) IsValid() error {
+	switch r {
+	case ResolveReasonNone, ResolveReasonResolved,
+		ResolveReasonSpam, ResolveReasonAbuse,
+		ResolveReasonOfftopic, ResolveReasonOutdated,
+		ResolveReasonDuplicate, ResolveReasonOther:
+		return nil
+	}
+	return errors.New("invalid ResolveReason type")
+}
+
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64            `xorm:"pk autoincr"`
@@ -177,6 +205,7 @@ type Comment struct {
 	AssigneeTeamID   int64            `xorm:"NOT NULL DEFAULT 0"`
 	AssigneeTeam     *Team            `xorm:"-"`
 	ResolveDoerID    int64
+	ResolveReason    ResolveReason
 	ResolveDoer      *user_model.User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
@@ -1142,21 +1171,21 @@ func deleteComment(e db.Engine, comment *Comment) error {
 }
 
 // ResolveComment hides/unhides the comment
-func ResolveComment(doer *user_model.User, comment *Comment, isResolve bool) error {
+func ResolveComment(doer *user_model.User, comment *Comment, isResolve bool, resolveReason ResolveReason) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := resolveComment(db.GetEngine(ctx), doer, comment, isResolve); err != nil {
+	if err := resolveComment(db.GetEngine(ctx), doer, comment, isResolve, resolveReason); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func resolveComment(e db.Engine, doer *user_model.User, comment *Comment, isResolve bool) (err error) {
+func resolveComment(e db.Engine, doer *user_model.User, comment *Comment, isResolve bool, resolveReason ResolveReason) (err error) {
 	if !(comment.Type == CommentTypeCode || comment.Type == CommentTypeComment) {
 		return nil
 	}
@@ -1165,7 +1194,7 @@ func resolveComment(e db.Engine, doer *user_model.User, comment *Comment, isReso
 		if comment.ResolveDoerID != 0 {
 			return nil
 		}
-		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=?, resolve_reason=? WHERE id=?", doer.ID, resolveReason, comment.ID); err != nil {
 			return err
 		}
 	} else {
@@ -1173,7 +1202,7 @@ func resolveComment(e db.Engine, doer *user_model.User, comment *Comment, isReso
 			return nil
 		}
 
-		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=?, resolve_reason=? WHERE id=?", 0, 0, comment.ID); err != nil {
 			return err
 		}
 	}

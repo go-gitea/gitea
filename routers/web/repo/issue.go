@@ -2265,9 +2265,37 @@ func DeleteComment(ctx *context.Context) {
 func HideComment(ctx *context.Context) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	action := ctx.FormString("action")
+	var resolveReason models.ResolveReason
+
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
+	}
+
+	if action != "Resolve" && action != "UnResolve" {
+		ctx.Error(http.StatusBadRequest)
+		return
+	}
+
+	//if action is resolve, get resolve reason from form
+	if action == "Resolve" {
+		intResolveReason, err := strconv.Atoi(ctx.FormString("reason"))
+		if err != nil {
+			ctx.Error(http.StatusBadRequest)
+			return
+		}
+
+		resolveReason = models.ResolveReason(intResolveReason)
+		//Can't have a reason set to none if resolving
+		if resolveReason == models.ResolveReasonNone {
+			ctx.Error(http.StatusBadRequest)
+			return
+		}
+		err = resolveReason.IsValid()
+		if err != nil {
+			ctx.Error(http.StatusBadRequest)
+			return
+		}
 	}
 
 	if err := comment.LoadIssue(); err != nil {
@@ -2283,14 +2311,9 @@ func HideComment(ctx *context.Context) {
 		return
 	}
 
-	if action == "Resolve" || action == "UnResolve" {
-		err = models.ResolveComment(ctx.User, comment, action == "Resolve")
-		if err != nil {
-			ctx.ServerError("ResolveComment", err)
-			return
-		}
-	} else {
-		ctx.Error(http.StatusBadRequest)
+	err = models.ResolveComment(ctx.User, comment, action == "Resolve", resolveReason)
+	if err != nil {
+		ctx.ServerError("ResolveComment", err)
 		return
 	}
 
