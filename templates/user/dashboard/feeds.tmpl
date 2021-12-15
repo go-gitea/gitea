@@ -64,10 +64,10 @@
 							{{$.i18n.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 21}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.approve_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.approve_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 22}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reject_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.reject_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 23}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_pull" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
