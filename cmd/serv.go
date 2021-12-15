@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -57,18 +59,18 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
 	if debug {
 		setting.RunMode = "dev"
 	}
 }
 
 var (
-	allowedCommands = map[string]models.AccessMode{
-		"git-upload-pack":    models.AccessModeRead,
-		"git-upload-archive": models.AccessModeRead,
-		"git-receive-pack":   models.AccessModeWrite,
-		lfsAuthenticateVerb:  models.AccessModeNone,
+	allowedCommands = map[string]perm.AccessMode{
+		"git-upload-pack":    perm.AccessModeRead,
+		"git-upload-archive": perm.AccessModeRead,
+		"git-receive-pack":   perm.AccessModeWrite,
+		lfsAuthenticateVerb:  perm.AccessModeNone,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -128,9 +130,9 @@ func runServ(c *cli.Context) error {
 			return fail("Internal error", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
-		case models.KeyTypeDeploy:
+		case asymkey_model.KeyTypeDeploy:
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
-		case models.KeyTypePrincipal:
+		case asymkey_model.KeyTypePrincipal:
 			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
 		default:
 			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
@@ -214,9 +216,9 @@ func runServ(c *cli.Context) error {
 
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
-			requestedMode = models.AccessModeWrite
+			requestedMode = perm.AccessModeWrite
 		} else if lfsVerb == "download" {
-			requestedMode = models.AccessModeRead
+			requestedMode = perm.AccessModeRead
 		} else {
 			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}

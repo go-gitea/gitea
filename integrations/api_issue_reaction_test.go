@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -23,12 +24,12 @@ func TestAPIIssuesReactions(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
 		owner.Name, issue.Repo.Name, issue.Index, token)
 
@@ -36,24 +37,24 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	resp := session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Delete not allowed reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	//Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	//Add existing reaction
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
@@ -82,13 +83,13 @@ func TestAPICommentReactions(t *testing.T) {
 	_ = comment.LoadIssue()
 	issue := comment.Issue
 	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions?token=%s",
 		owner.Name, issue.Repo.Name, comment.ID, token)
 
@@ -96,24 +97,24 @@ func TestAPICommentReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	resp := session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Delete none existing reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	//Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "+1",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	//Add existing reaction
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)

@@ -15,9 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1"
+	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {

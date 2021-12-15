@@ -9,13 +9,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user3, err := GetUserByID(3)
+	user3, err := user_model.GetUserByID(3)
 	assert.NoError(t, err)
 
 	issue1, err := GetIssueByID(1)

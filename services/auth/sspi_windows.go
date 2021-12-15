@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -83,7 +83,7 @@ func (s *SSPI) Free() error {
 // If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	if !s.shouldAuthenticate(req) {
 		return nil
 	}
@@ -126,9 +126,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 	log.Info("Authenticated as %s\n", username)
 
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(username)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 			return nil
 		}
@@ -184,9 +184,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) {
+func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
-	user := &models.User{
+	user := &user_model.User{
 		Name:                         username,
 		Email:                        email,
 		KeepEmailPrivate:             true,
@@ -195,9 +195,9 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
 		Avatar:                       avatars.DefaultAvatarLink(),
-		EmailNotificationsPreference: models.EmailNotificationsDisabled,
+		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return nil, err
 	}
 

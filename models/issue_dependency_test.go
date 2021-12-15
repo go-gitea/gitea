@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +17,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1, err := GetUserByID(1)
+	user1, err := user_model.GetUserByID(1)
 	assert.NoError(t, err)
 
 	issue1, err := GetIssueByID(1)

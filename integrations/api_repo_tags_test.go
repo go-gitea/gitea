@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -19,7 +19,7 @@ import (
 
 func TestAPIRepoTags(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -62,10 +62,10 @@ func TestAPIRepoTags(t *testing.T) {
 
 	// delete tag
 	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
-	resp = session.MakeRequest(t, delReq, http.StatusNoContent)
+	session.MakeRequest(t, delReq, http.StatusNoContent)
 
 	// check if it's gone
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func createNewTagUsingAPI(t *testing.T, session *TestSession, token string, ownerName, repoName, name, target, msg string) *api.Tag {

@@ -10,19 +10,21 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
-	unittest.AssertNotExistsBean(t, &models.User{ID: userID})
-	unittest.AssertNotExistsBean(t, &models.Follow{UserID: userID})
-	unittest.AssertNotExistsBean(t, &models.Follow{FollowID: userID})
-	unittest.AssertNotExistsBean(t, &models.Repository{OwnerID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.Follow{FollowID: userID})
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: userID})
 	unittest.AssertNotExistsBean(t, &models.Access{UserID: userID})
 	unittest.AssertNotExistsBean(t, &models.OrgUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &models.IssueUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &models.TeamUser{UID: userID})
-	unittest.AssertNotExistsBean(t, &models.Star{UID: userID})
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID})
 }
 
 func TestUserDeleteAccount(t *testing.T) {
@@ -37,7 +39,7 @@ func TestUserDeleteAccount(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	assertUserDeleted(t, 8)
-	unittest.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &user_model.User{})
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
@@ -52,5 +54,5 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	// user should not have been deleted, because the user still owns repos
-	unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 }

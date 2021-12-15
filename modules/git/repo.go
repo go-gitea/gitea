@@ -211,8 +211,8 @@ type PushOptions struct {
 }
 
 // Push pushs local commits to given remote branch.
-func Push(repoPath string, opts PushOptions) error {
-	cmd := NewCommand("push")
+func Push(ctx context.Context, repoPath string, opts PushOptions) error {
+	cmd := NewCommandContext(ctx, "push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
@@ -371,7 +371,7 @@ func parseSize(objects string) *CountObject {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(repoPath string) (time.Time, error) {
-	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return time.Time{}, err

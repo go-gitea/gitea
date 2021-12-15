@@ -5,7 +5,10 @@
 package models
 
 import (
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
 )
@@ -127,7 +130,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }
@@ -156,24 +159,24 @@ func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
 func CountNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(repo_model.Repository))
 }
 
 // FixNullArchivedRepository sets is_archived to false where it is null
 func FixNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&repo_model.Repository{
 		IsArchived: false,
 	})
 }
 
 // CountWrongUserType count OrgUser who have wrong type
 func CountWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(user_model.User))
 }
 
 // FixWrongUserType fix OrgUser who have wrong type
 func FixWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&user_model.User{Type: 1})
 }
 
 // CountCommentTypeLabelWithEmptyLabel count label comments with empty label

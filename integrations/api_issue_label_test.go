@@ -10,9 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -21,8 +22,8 @@ import (
 func TestAPIModifyLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels?token=%s", owner.Name, repo.Name, token)
@@ -84,17 +85,17 @@ func TestAPIModifyLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }
 
 func TestAPIAddIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
 	_ = unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID, ID: 2}).(*models.Label)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -114,10 +115,10 @@ func TestAPIAddIssueLabels(t *testing.T) {
 func TestAPIReplaceIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
 	label := unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID}).(*models.Label)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -140,8 +141,8 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 func TestAPIModifyOrgLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	user := "user1"
 	session := loginUser(t, user)
 	token := getTokenForLoggedInUser(t, session)
@@ -204,6 +205,6 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }

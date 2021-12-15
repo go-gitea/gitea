@@ -28,7 +28,7 @@
 					{{ $commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String) }}
 					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
-							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 						{{end}}
 					</span>
@@ -80,7 +80,8 @@
 				<td class="message nine wide">
 					<span class="truncate">
 						{{if $commit}}
-							<a href="{{$.RepoLink}}/commit/{{PathEscape $commit.ID.String}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
+							{{RenderCommitMessageLinkSubject $commit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}

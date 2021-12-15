@@ -18,9 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
-
 	"github.com/urfave/cli"
+	"xorm.io/xorm"
 )
 
 // CmdDoctor represents the available doctor sub-command.
@@ -88,7 +87,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 	setting.InitDBConfig()
 
 	setting.EnableXORMLog = ctx.Bool("debug")

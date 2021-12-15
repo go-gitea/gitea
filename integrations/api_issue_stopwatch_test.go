@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,8 +20,8 @@ import (
 func TestAPIListStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -44,8 +46,8 @@ func TestAPIStopStopWatches(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -60,8 +62,8 @@ func TestAPICancelStopWatches(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -76,8 +78,8 @@ func TestAPIStartStopWatches(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)

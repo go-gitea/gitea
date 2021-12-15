@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,19 +21,19 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Assign multiple users
-	user2, err := GetUserByID(2)
+	user2, err := user_model.GetUserByID(2)
 	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user2.ID)
-	assert.NoError(t, err)
-
-	user3, err := GetUserByID(3)
-	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user3.ID)
+	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
-	user1, err := GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	user3, err := user_model.GetUserByID(3)
 	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&User{ID: 1}, user1.ID)
+	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user3.ID)
+	assert.NoError(t, err)
+
+	user1, err := user_model.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	assert.NoError(t, err)
+	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user1.ID)
 	assert.NoError(t, err)
 
 	// Check if he got removed
@@ -43,7 +45,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assignees, err := GetAssigneesByIssue(issue)
 	assert.NoError(t, err)
 
-	var expectedAssignees []*User
+	var expectedAssignees []*user_model.User
 	expectedAssignees = append(expectedAssignees, user2, user3)
 
 	for in, assignee := range assignees {
@@ -56,7 +58,7 @@ func TestUpdateAssignee(t *testing.T) {
 	assert.True(t, isAssigned)
 
 	// This user should not be assigned
-	isAssigned, err = IsUserAssignedToIssue(issue, &User{ID: 4})
+	isAssigned, err = IsUserAssignedToIssue(issue, &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 }
@@ -64,14 +66,14 @@ func TestUpdateAssignee(t *testing.T) {
 func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_ = unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	_ = unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{}, IDs)
 
-	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	_, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
 	assert.Error(t, err)
 
 	IDs, err = MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})

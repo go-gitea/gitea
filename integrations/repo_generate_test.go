@@ -10,22 +10,22 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, templateRepoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
-	generateOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
+	generateOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: generateOwnerName}).(*user_model.User)
 
 	// Step0: check the existence of the generated repo
 	req := NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
-	resp := session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Step1: go to the main page of template repo
 	req = NewRequestf(t, "GET", "/%s/%s", templateOwnerName, templateRepoName)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the "Use this template" button
 	htmlDoc := NewHTMLParser(t, resp.Body)

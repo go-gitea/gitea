@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -23,7 +24,7 @@ func TestAPITeam(t *testing.T) {
 
 	teamUser := unittest.AssertExistsAndLoadBean(t, &models.TeamUser{}).(*models.TeamUser)
 	team := unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamUser.TeamID}).(*models.Team)
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -37,7 +38,7 @@ func TestAPITeam(t *testing.T) {
 
 	// non team member user will not access the teams details
 	teamUser2 := unittest.AssertExistsAndLoadBean(t, &models.TeamUser{ID: 3}).(*models.TeamUser)
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: teamUser2.UID}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID}).(*user_model.User)
 
 	session = loginUser(t, user2.Name)
 	token = getTokenForLoggedInUser(t, session)
@@ -48,11 +49,11 @@ func TestAPITeam(t *testing.T) {
 	_ = session.MakeRequest(t, req, http.StatusUnauthorized)
 
 	// Get an admin user able to create, update and delete teams.
-	user = unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session)
 
-	org := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 6}).(*models.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 6}).(*user_model.User)
 
 	// Create team.
 	teamToCreate := &api.CreateTeamOption{
@@ -139,8 +140,8 @@ type TeamSearchResults struct {
 func TestAPITeamSearch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	org := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 
 	var results TeamSearchResults
 
@@ -155,11 +156,11 @@ func TestAPITeamSearch(t *testing.T) {
 	assert.Equal(t, "test_team", results.Data[0].Name)
 
 	// no access if not organization member
-	user5 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	session = loginUser(t, user5.Name)
 	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "team")
 	req.Header.Add("X-Csrf-Token", csrf)
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 }

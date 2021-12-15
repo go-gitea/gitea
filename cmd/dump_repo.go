@@ -88,7 +88,6 @@ func runDumpRepository(ctx *cli.Context) error {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	setting.InitDBConfig()
 
 	var (
 		serviceType structs.GitServiceType

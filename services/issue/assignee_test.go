@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +21,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	issue, err := models.GetIssueWithAttrsByID(1)
 	assert.NoError(t, err)
 
-	user1, err := models.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	user1, err := user_model.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
 
 	// Check if he got removed
@@ -28,7 +30,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.True(t, isAssigned)
 
 	// Clean everyone
-	err = DeleteNotPassedAssignee(issue, user1, []*models.User{})
+	err = DeleteNotPassedAssignee(issue, user1, []*user_model.User{})
 	assert.NoError(t, err)
 
 	// Check they're gone

@@ -10,22 +10,22 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *httptest.ResponseRecorder {
-	forkOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: forkOwnerName}).(*models.User)
+	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName}).(*user_model.User)
 
 	// Step0: check the existence of the to-fork repo
 	req := NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
-	resp := session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Step1: go to the main page of repo
 	req = NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the fork button
 	htmlDoc := NewHTMLParser(t, resp.Body)

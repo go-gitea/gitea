@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +30,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
 	assert.NoError(t, err)
@@ -62,7 +64,7 @@ func TestNotification_GetIssue(t *testing.T) {
 
 func TestGetNotificationCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	cnt, err := GetNotificationCount(user, NotificationStatusRead)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, cnt)
@@ -74,7 +76,7 @@ func TestGetNotificationCount(t *testing.T) {
 
 func TestSetNotificationStatus(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	notf := unittest.AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusRead}).(*Notification)
 	_, err := SetNotificationStatus(notf.ID, user, NotificationStatusPinned)
@@ -90,7 +92,7 @@ func TestSetNotificationStatus(t *testing.T) {
 
 func TestUpdateNotificationStatuses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	notfUnread := unittest.AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusUnread}).(*Notification)
 	notfRead := unittest.AssertExistsAndLoadBean(t,

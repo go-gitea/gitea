@@ -14,7 +14,7 @@
 	<input id="repo-clone-url" value="{{if $.PageIsWiki}}{{$.WikiCloneLink.SSH}}{{else}}{{$.CloneLink.SSH}}{{end}}" readonly>
 {{end}}
 {{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
-	<button class="ui basic icon button poping up" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
+	<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
 		{{svg "octicon-paste"}}
 	</button>
 {{end}}
@@ -24,7 +24,7 @@
 		const sshButton = document.getElementById('repo-clone-ssh');
 		const httpsButton = document.getElementById('repo-clone-https');
 		const input = document.getElementById('repo-clone-url');
-		if (input) input.value = (isSSH ? sshButton : httpsButton).dataset.link;
+		if (input) input.value = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
 		if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
 		if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
 		setTimeout(() => {
