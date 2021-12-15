@@ -24,32 +24,32 @@
 							{{end}}
 						{{else if eq .GetOpType 6}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.create_issue" ((printf "%s/issues/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.create_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 7}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.create_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.create_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 8}}
 							{{$.i18n.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 9}}
 							{{$.i18n.Tr "action.push_tag" (.GetRepoLink|Escape) (.GetRefLink|Escape) (.ShortRepoPath|Escape) .GetTag | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.comment_issue" ((printf "%s/issues/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.comment_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 11}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.merge_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.merge_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 12}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.close_issue" ((printf "%s/issues/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.close_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 13}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reopen_issue" ((printf "%s/issues/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.reopen_issue" ((printf "%s/issues/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 14}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.close_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.close_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 15}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reopen_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.reopen_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 16}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.delete_tag" (.GetRepoLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
@@ -64,10 +64,10 @@
 							{{$.i18n.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 21}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.approve_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.approve_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 22}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reject_pull_request" ((printf "%s/pulls/%d" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.reject_pull_request" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 23}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_pull" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
