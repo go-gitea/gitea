@@ -623,17 +623,17 @@ func Str2html(raw string) template.HTML {
 }
 
 // RenderMarkup render markdown/markup specified in type to sanitized HTML
-func RenderMarkup(Type string, raw string) template.HTML {
+func RenderMarkup(markupType string, raw string) template.HTML {
 	var err error
 	var renderedContent string
 
-	if Type == "markdown" {
+	if markupType == "markdown" {
 		if renderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
 			log.Warn("Markdown2html: Invalid markdown? %v", err)
 			return template.HTML(html.EscapeString(raw))
 		}
 		return template.HTML(markup.Sanitize(renderedContent))
-	} else if Type == "markup" {
+	} else if markupType == "markup" {
 		if renderedContent, err = markup.RenderString(&markup.RenderContext{}, raw); err != nil {
 			log.Warn("Markdown2html: Invalid markup? %v", err)
 			return template.HTML(html.EscapeString(raw))
@@ -641,7 +641,7 @@ func RenderMarkup(Type string, raw string) template.HTML {
 		return template.HTML(markup.Sanitize(renderedContent))
 	}
 
-	return template.HTML(fmt.Sprintf(`Unsupported markup: :%s:`, Type))
+	return template.HTML(fmt.Sprintf(`Unsupported markup: :%s:`, markupType))
 }
 
 // Escape escapes a HTML string
