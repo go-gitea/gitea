@@ -630,7 +630,7 @@ func Markdown2html(raw string) template.HTML {
 		log.Warn("Markdown2html: Invalid markdown? %v", err)
 		return template.HTML(html.EscapeString(raw))
 	}
-	return template.HTML(renderedContent)
+	return template.HTML(markup.Sanitize(renderedContent))
 }
 
 // Escape escapes a HTML string
