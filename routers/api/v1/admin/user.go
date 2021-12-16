@@ -9,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -21,11 +24,12 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
-func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
+func parseLoginSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName string) {
 	if sourceID == 0 {
 		return
 	}
@@ -70,7 +74,7 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
 		Email:              form.Email,
@@ -102,20 +106,20 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 
-	var overwriteDefault *models.CreateUserOverwriteOptions
+	var overwriteDefault *user_model.CreateUserOverwriteOptions
 	if form.Visibility != "" {
-		overwriteDefault = &models.CreateUserOverwriteOptions{
+		overwriteDefault = &user_model.CreateUserOverwriteOptions{
 			Visibility: api.VisibilityModes[form.Visibility],
 		}
 	}
 
-	if err := models.CreateUser(u, overwriteDefault); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
 			user_model.IsErrEmailInvalid(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateUser", err)
@@ -183,7 +187,7 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
+		if u.Salt, err = user_model.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
@@ -202,12 +206,21 @@ func EditUser(ctx *context.APIContext) {
 	if form.FullName != nil {
 		u.FullName = *form.FullName
 	}
+	var emailChanged bool
 	if form.Email != nil {
-		u.Email = *form.Email
-		if len(u.Email) == 0 {
+		email := strings.TrimSpace(*form.Email)
+		if len(email) == 0 {
 			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
 			return
 		}
+
+		if err := user_model.ValidateEmail(email); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+
+		emailChanged = !strings.EqualFold(u.Email, email)
+		u.Email = email
 	}
 	if form.Website != nil {
 		u.Website = *form.Website
@@ -246,7 +259,7 @@ func EditUser(ctx *context.APIContext) {
 		u.IsRestricted = *form.Restricted
 	}
 
-	if err := models.UpdateUser(u); err != nil {
+	if err := user_model.UpdateUser(u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -370,10 +383,10 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrKeyNotExist(err) {
+	if err := asymkey_service.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if models.IsErrKeyAccessDenied(err) {
+		} else if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUserPublicKey", err)
@@ -409,10 +422,10 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.User,
-		Type:        models.UserTypeIndividual,
-		OrderBy:     models.SearchOrderByAlphabetically,
+		Type:        user_model.UserTypeIndividual,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 	})
 	if err != nil {

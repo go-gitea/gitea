@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
@@ -145,10 +144,10 @@ func SignInOpenIDPost(ctx *context.Context) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-	log.Trace("Incoming call to: " + ctx.Req.URL.String())
+	log.Trace("Incoming call to: %s", ctx.Req.URL.String())
 
 	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
-	log.Trace("Full URL: " + fullURL)
+	log.Trace("Full URL: %s", fullURL)
 
 	var id, err = openid.Verify(fullURL)
 	if err != nil {
@@ -158,14 +157,14 @@ func signInOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Verified ID: " + id)
+	log.Trace("Verified ID: %s", id)
 
 	/* Now we should seek for the user and log him in, or prompt
 	 * to register if not found */
 
-	u, err := models.GetUserByOpenID(id)
+	u, err := user_model.GetUserByOpenID(id)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 				Openid: id,
 			})
@@ -181,7 +180,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("User with openid " + id + " does not exist, should connect or register")
+	log.Trace("User with openid: %s does not exist, should connect or register", id)
 
 	parsedURL, err := url.Parse(fullURL)
 	if err != nil {
@@ -200,12 +199,12 @@ func signInOpenIDVerify(ctx *context.Context) {
 	email := values.Get("openid.sreg.email")
 	nickname := values.Get("openid.sreg.nickname")
 
-	log.Trace("User has email=" + email + " and nickname=" + nickname)
+	log.Trace("User has email=%s and nickname=%s", email, nickname)
 
 	if email != "" {
-		u, err = models.GetUserByEmail(email)
+		u, err = user_model.GetUserByEmail(email)
 		if err != nil {
-			if !models.IsErrUserNotExist(err) {
+			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
@@ -214,14 +213,14 @@ func signInOpenIDVerify(ctx *context.Context) {
 			log.Error("signInOpenIDVerify: %v", err)
 		}
 		if u != nil {
-			log.Trace("Local user " + u.LowerName + " has OpenID provided email " + email)
+			log.Trace("Local user %s has OpenID provided email %s", u.LowerName, email)
 		}
 	}
 
 	if u == nil && nickname != "" {
-		u, _ = models.GetUserByName(nickname)
+		u, _ = user_model.GetUserByName(nickname)
 		if err != nil {
-			if !models.IsErrUserNotExist(err) {
+			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 					Openid: id,
 				})
@@ -229,7 +228,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 			}
 		}
 		if u != nil {
-			log.Trace("Local user " + u.LowerName + " has OpenID provided nickname " + nickname)
+			log.Trace("Local user %s has OpenID provided nickname %s", u.LowerName, nickname)
 		}
 	}
 
@@ -294,7 +293,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	u, _, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
 		} else {
 			ctx.ServerError("ConnectOpenIDPost", err)
@@ -419,7 +418,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,

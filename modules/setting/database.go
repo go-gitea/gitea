@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	// SupportedDatabases includes all supported databases type
-	SupportedDatabases = []string{"MySQL", "PostgreSQL", "MSSQL"}
-	dbTypes            = map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
+	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
+	// DatabaseTypeNames contains the friendly names for all database types
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
@@ -51,11 +52,6 @@ var (
 		IterateBufferSize: 50,
 	}
 )
-
-// GetDBTypeByName returns the database type as it defined on XORM according the given name
-func GetDBTypeByName(name string) string {
-	return dbTypes[name]
-}
 
 // InitDBConfig loads the database settings
 func InitDBConfig() {

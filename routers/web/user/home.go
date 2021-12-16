@@ -15,8 +15,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -43,7 +46,7 @@ const (
 )
 
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *models.User {
+func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
@@ -72,6 +75,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
+	cnt, _ := models.GetOrganizationCount(db.DefaultContext, ctxUser)
+	ctx.Data["UserOrgsCount"] = cnt
 
 	var uid int64
 	if ctxUser != nil {
@@ -93,7 +98,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	var err error
-	var mirrors []*models.Repository
+	var mirrors []*repo_model.Repository
 	if ctxUser.IsOrganization() {
 		var env models.AccessibleReposEnvironment
 		if ctx.Org.Team != nil {
@@ -111,15 +116,15 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		mirrors, err = ctxUser.GetMirrorRepositories()
+		mirrors, err = repo_model.GetUserMirrorRepositories(ctxUser.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorRepositories", err)
+			ctx.ServerError("GetUserMirrorRepositories", err)
 			return
 		}
 	}
 	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
 
-	if err := models.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
+	if err := repo_model.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
 		ctx.ServerError("MirrorRepositoryList.LoadAttributes", err)
 		return
 	}
@@ -521,7 +526,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// showReposMap maps repository IDs to their Repository pointers.
 	showReposMap, err := repoIDMap(ctxUser, issueCountByRepo, unitType)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
 			return
 		}
@@ -725,7 +730,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser *user_model.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
@@ -735,7 +740,7 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit
 			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
-		userRepoIDs, err = ctxUser.GetActiveAccessRepoIDs(unitType)
+		userRepoIDs, err = models.GetActiveAccessRepoIDs(ctxUser, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -750,7 +755,7 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit
 
 // getActiveTeamOrOrgRepoIds gets RepoIDs for ctxUser as Organization.
 // Should be called if and only if ctxUser.IsOrganization == true.
-func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
+func getActiveTeamOrOrgRepoIds(ctxUser *user_model.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	var env models.AccessibleReposEnvironment
@@ -775,7 +780,7 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 	return orgRepoIDs, nil
 }
 
-func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
+func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
 	if len(keyword) == 0 {
 		return []int64{}, nil
 	}
@@ -792,15 +797,15 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*models.Repository, error) {
-	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
+func repoIDMap(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
+	repoByID := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
 	for id := range issueCountByRepo {
 		if id <= 0 {
 			continue
 		}
 		if _, ok := repoByID[id]; !ok {
-			repo, err := models.GetRepositoryByID(id)
-			if models.IsErrRepoNotExist(err) {
+			repo, err := repo_model.GetRepositoryByID(id)
+			if repo_model.IsErrRepoNotExist(err) {
 				return nil, err
 			} else if err != nil {
 				return nil, fmt.Errorf("GetRepositoryByID: [%d]%v", id, err)
@@ -823,7 +828,7 @@ func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType 
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid, db.ListOptions{})
+	keys, err := asymkey_model.ListPublicKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -834,12 +839,12 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
@@ -847,9 +852,9 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
-		e, err := models.GPGKeyToEntity(k)
+		e, err := asymkey_model.GPGKeyToEntity(k)
 		if err != nil {
-			if models.IsErrGPGKeyImportNotExist(err) {
+			if asymkey_model.IsErrGPGKeyImportNotExist(err) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
 				continue //Skip previous import without backup of imported armored key
 			}
@@ -873,14 +878,14 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		}
 	}
 	writer.Close()
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // Email2User show user page via email
 func Email2User(ctx *context.Context) {
-	u, err := models.GetUserByEmail(ctx.FormString("email"))
+	u, err := user_model.GetUserByEmail(ctx.FormString("email"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound("GetUserByEmail", err)
 		} else {
 			ctx.ServerError("GetUserByEmail", err)

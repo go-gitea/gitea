@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -72,7 +74,7 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLog string) error {
+func issueAddTime(issue *models.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
@@ -84,7 +86,7 @@ func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLo
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error) {
+func getIssueFromRef(repo *repo_model.Repository, index int64) (*models.Issue, error) {
 	issue, err := models.GetIssueByIndex(repo.ID, index)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -96,7 +98,7 @@ func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
+func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -107,7 +109,7 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 		}
 
 		refMarked := make(map[markKey]bool)
-		var refRepo *models.Repository
+		var refRepo *repo_model.Repository
 		var refIssue *models.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {

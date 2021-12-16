@@ -12,7 +12,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,8 +34,8 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	setting.Migrations.AllowLocalNetworks = true
 	assert.NoError(t, migrations.Init())
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	srcRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	mirrorRepo, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
 		Name: "test-push-mirror",
@@ -44,7 +46,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	doCreatePushMirror(ctx, fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(ctx.Username), url.PathEscape(mirrorRepo.Name)), user.LowerName, userPassword)(t)
 
-	mirrors, err := models.GetPushMirrorsByRepoID(srcRepo.ID)
+	mirrors, err := repo_model.GetPushMirrorsByRepoID(srcRepo.ID)
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 

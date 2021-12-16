@@ -12,7 +12,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -114,10 +117,10 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
-		var u *models.User
-		u, err = models.GetUserByName(uname)
+		var u *user_model.User
+		u, err = user_model.GetUserByName(uname)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 			} else {
@@ -176,10 +179,10 @@ func TeamsRepoAction(ctx *context.Context) {
 	switch action {
 	case "add":
 		repoName := path.Base(ctx.FormString("repo_name"))
-		var repo *models.Repository
-		repo, err = models.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
+		var repo *repo_model.Repository
+		repo, err = repo_model.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
+			if repo_model.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 				return
@@ -234,12 +237,12 @@ func NewTeamPost(ctx *context.Context) {
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		Authorize:               models.ParseAccessMode(form.Permission),
+		Authorize:               perm.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
-	if t.Authorize < models.AccessModeOwner {
+	if t.Authorize < perm.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, &models.TeamUnit{
@@ -257,7 +260,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -324,7 +327,7 @@ func EditTeamPost(ctx *context.Context) {
 	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
-		auth := models.ParseAccessMode(form.Permission)
+		auth := perm.ParseAccessMode(form.Permission)
 
 		t.Name = form.TeamName
 		if t.Authorize != auth {
@@ -338,7 +341,7 @@ func EditTeamPost(ctx *context.Context) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < models.AccessModeOwner {
+	if t.Authorize < perm.AccessModeOwner {
 		var units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
@@ -360,7 +363,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}

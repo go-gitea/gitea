@@ -11,7 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -102,7 +103,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
@@ -139,9 +140,9 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlame)
 }
 
-func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*models.UserCommit, map[string]string) {
+func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
 	// store commit data by SHA to look up avatar info etc
-	commitNames := make(map[string]*models.UserCommit)
+	commitNames := make(map[string]*user_model.UserCommit)
 	// previousCommits contains links from SHA to parent SHA,
 	// if parent also contains the current TreePath.
 	previousCommits := make(map[string]string)
@@ -195,14 +196,14 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 	}
 
 	// populate commit email addresses to later look up avatars.
-	for _, c := range models.ValidateCommitsWithEmails(commits) {
+	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
 		commitNames[c.ID.String()] = c
 	}
 
 	return commitNames, previousCommits
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*models.UserCommit, previousCommits map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
 	language := ""

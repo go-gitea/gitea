@@ -5,7 +5,6 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 )
@@ -25,7 +24,14 @@ type Source struct {
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
-	SkipLocalTwoFA                bool `json:",omitempty"`
+
+	Scopes             []string
+	RequiredClaimName  string
+	RequiredClaimValue string
+	GroupClaimName     string
+	AdminGroup         string
+	RestrictedGroup    string
+	SkipLocalTwoFA     bool `json:",omitempty"`
 
 	// reference to the loginSource
 	loginSource *login.Source
@@ -33,7 +39,7 @@ type Source struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	return json.UnmarshalHandleDoubleEncode(bs, &source)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.

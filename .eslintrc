@@ -6,7 +6,7 @@ ignorePatterns:
 
 parserOptions:
   sourceType: module
-  ecmaVersion: 2021
+  ecmaVersion: latest
 
 plugins:
   - eslint-plugin-unicorn
@@ -109,7 +109,7 @@ rules:
   github/no-implicit-buggy-globals: [0]
   github/no-inner-html: [0]
   github/no-innerText: [2]
-  github/no-then: [2]
+  github/no-then: [0]
   github/no-useless-passive: [2]
   github/prefer-observers: [0]
   github/require-passive-events: [2]
@@ -384,6 +384,7 @@ rules:
   unicorn/no-array-instanceof: [0]
   unicorn/no-array-method-this-argument: [2]
   unicorn/no-array-push-push: [2]
+  unicorn/no-await-expression-member: [0]
   unicorn/no-console-spaces: [0]
   unicorn/no-document-cookie: [2]
   unicorn/no-empty-file: [2]
@@ -419,6 +420,7 @@ rules:
   unicorn/prefer-array-index-of: [2]
   unicorn/prefer-array-some: [2]
   unicorn/prefer-at: [0]
+  unicorn/prefer-code-point: [2]
   unicorn/prefer-dataset: [2]
   unicorn/prefer-date-now: [2]
   unicorn/prefer-default-parameters: [0]

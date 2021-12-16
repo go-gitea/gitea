@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -35,7 +36,6 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
-	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/cron"
@@ -44,6 +44,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
 
@@ -87,7 +88,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(models.RewriteAllPublicKeys)
+		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
 		return appstate.AppState.Set(runtimeState)
@@ -95,9 +96,8 @@ func syncAppPathForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInit is for global configuration reload-able.
-func GlobalInit(ctx context.Context) {
-	setting.NewContext()
+// GlobalInitInstalled is for global installed configuration.
+func GlobalInitInstalled(ctx context.Context) {
 	if !setting.InstallLock {
 		log.Fatal("Gitea is not installed")
 	}

@@ -28,7 +28,7 @@ export function initCommonIssue() {
       action,
       issueIDs,
       elementId
-    ).then(() => { // eslint-disable-line github/no-then
+    ).then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the
       // checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {

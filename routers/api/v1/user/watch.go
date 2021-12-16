@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -16,7 +18,7 @@ import (
 )
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
-func getWatchedRepos(user *models.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
+func getWatchedRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
 	watchedRepos, total, err := models.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, 0, err
@@ -121,7 +123,7 @@ func IsWatching(ctx *context.APIContext) {
 	//   "404":
 	//     description: User is not watching this repo or repo do not exist
 
-	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
@@ -155,7 +157,7 @@ func Watch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
 
-	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -191,7 +193,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return
@@ -200,6 +202,6 @@ func Unwatch(ctx *context.APIContext) {
 }
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo
-func subscriptionURL(repo *models.Repository) string {
+func subscriptionURL(repo *repo_model.Repository) string {
 	return repo.APIURL() + "/subscription"
 }

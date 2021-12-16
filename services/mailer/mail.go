@@ -16,6 +16,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -66,7 +67,7 @@ func SendTestMail(email string) error {
 }
 
 // sendUserMail sends a mail to the user
-func sendUserMail(language string, u *models.User, tpl base.TplName, code, subject, info string) {
+func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
 	locale := translation.NewLocale(language)
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
@@ -94,7 +95,7 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 }
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(locale translation.Locale, u *models.User) {
+func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -103,7 +104,7 @@ func SendActivateAccountMail(locale translation.Locale, u *models.User) {
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(u *models.User) {
+func SendResetPasswordMail(u *user_model.User) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -113,7 +114,7 @@ func SendResetPasswordMail(u *models.User) {
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *models.User, email *user_model.EmailAddress) {
+func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -145,7 +146,7 @@ func SendActivateEmailMail(u *models.User, email *user_model.EmailAddress) {
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(u *models.User) {
+func SendRegisterNotifyMail(u *user_model.User) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -176,7 +177,7 @@ func SendRegisterNotifyMail(u *models.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -209,7 +210,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*models.User, fromMention bool, info string) ([]*Message, error) {
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
 	var (
 		subject string
 		link    string
@@ -337,7 +338,7 @@ func createReference(issue *models.Issue, comment *models.Comment) string {
 	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
-func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *models.User) map[string]string {
+func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
 	repo := ctx.Issue.Repo
 
 	return map[string]string{
@@ -381,7 +382,7 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) error {
+func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content string, comment *models.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -392,7 +393,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 		return err
 	}
 
-	langMap := make(map[string][]*models.User)
+	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
 		langMap[user.Language] = append(langMap[user.Language], user)
 	}

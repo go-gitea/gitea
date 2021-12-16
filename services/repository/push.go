@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -75,7 +77,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return nil
 	}
 
-	repo, err := models.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %v", err)
 	}
@@ -87,13 +89,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(db.DefaultContext); err != nil {
+	if err = models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
-	var pusher *models.User
+	var pusher *user_model.User
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
@@ -102,7 +104,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
 					return err
 				}
 			}
@@ -133,7 +135,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
 					return err
 				}
 			}
@@ -164,7 +166,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 							}
 						}
 						// Update the is empty and default_branch columns
-						if err := models.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+						if err := repo_model.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
 							return fmt.Errorf("UpdateRepositoryCols: %v", err)
 						}
 					}
@@ -208,7 +210,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err = models.RemoveDeletedBranch(repo.ID, branch); err != nil {
+				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
@@ -225,7 +227,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
-			if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+			if err = repo_model.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		} else {
@@ -237,7 +239,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	// Change repository last updated time.
-	if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
+	if err := repo_model.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 		return fmt.Errorf("UpdateRepositoryUpdatedTime: %v", err)
 	}
 
@@ -245,7 +247,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 }
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
-func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
+func PushUpdateAddDeleteTags(repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
 	return db.WithTx(func(ctx context.Context) error {
 		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
@@ -255,7 +257,7 @@ func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, a
 }
 
 // pushUpdateAddTags updates a number of add tags
-func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
+func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -276,7 +278,7 @@ func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *gi
 
 	newReleases := make([]*models.Release, 0, len(lowerTags)-len(relMap))
 
-	emailToUser := make(map[string]*models.User)
+	emailToUser := make(map[string]*user_model.User)
 
 	for i, lowerTag := range lowerTags {
 		tag, err := gitRepo.GetTag(tags[i])
@@ -295,15 +297,15 @@ func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *gi
 		if sig == nil {
 			sig = commit.Committer
 		}
-		var author *models.User
+		var author *user_model.User
 		var createdAt = time.Unix(1, 0)
 
 		if sig != nil {
 			var ok bool
 			author, ok = emailToUser[sig.Email]
 			if !ok {
-				author, err = models.GetUserByEmailContext(ctx, sig.Email)
-				if err != nil && !models.IsErrUserNotExist(err) {
+				author, err = user_model.GetUserByEmailContext(ctx, sig.Email)
+				if err != nil && !user_model.IsErrUserNotExist(err) {
 					return fmt.Errorf("GetUserByEmail: %v", err)
 				}
 				if author != nil {

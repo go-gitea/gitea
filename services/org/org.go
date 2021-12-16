@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -22,7 +24,7 @@ func DeleteOrganization(org *models.Organization) error {
 	defer commiter.Close()
 
 	// Check ownership of repository.
-	count, err := models.GetRepositoryCount(ctx, org.ID)
+	count, err := repo_model.GetRepositoryCount(ctx, org.ID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {
@@ -40,7 +42,7 @@ func DeleteOrganization(org *models.Organization) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := models.UserPath(org.Name)
+	path := user_model.UserPath(org.Name)
 
 	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)

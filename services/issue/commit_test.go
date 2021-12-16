@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -44,8 +46,8 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		},
 	}
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repo.Owner = user
 
 	commentBean := &models.Comment{
@@ -74,7 +76,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close #1",
 		},
 	}
-	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -100,7 +102,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close " + setting.AppURL + repo.FullName() + "/pulls/1",
 		},
 	}
-	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",
@@ -130,8 +132,8 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 		},
 	}
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repo.Owner = user
 
 	issueBean := &models.Issue{RepoID: repo.ID, Index: 4}
@@ -144,7 +146,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// Test that push to a non-default branch closes an issue.
 	pushCommits := []*repository.PushCommit{
@@ -158,7 +160,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -178,7 +180,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 
 func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// Test that a push to default branch closes issue in another repo
 	// If the user also has push permissions to that repo
@@ -193,7 +195,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -213,7 +215,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 
 func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// Test that a push to default branch closes issue in another repo
 	// If the user also has push permissions to that repo
@@ -228,7 +230,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -248,7 +250,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 
 func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 10}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10}).(*user_model.User)
 
 	// Test that a push with close reference *can not* close issue
 	// If the committer doesn't have push rights in that repo
@@ -271,7 +273,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 6}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 6}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",
