@@ -44,7 +44,7 @@ const (
 	TplActivate base.TplName = "user/auth/activate"
 )
 
-// AutoSignIn reads cookie and try to auto-
+// AutoSignIn reads cookie and try to auto-login.
 func AutoSignIn(ctx *context.Context) (bool, error) {
 	if !db.HasEngine {
 		return false, nil
@@ -122,7 +122,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 }
 
 func checkAutoLogin(ctx *context.Context) bool {
-	// Check auto-
+	// Check auto-login
 	isSucceed, err := AutoSignIn(ctx)
 	if err != nil {
 		ctx.ServerError("AutoSignIn", err)
@@ -149,7 +149,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 func SignIn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	// Check auto-
+	// Check auto-login
 	if checkAutoLogin(ctx) {
 		return
 	}

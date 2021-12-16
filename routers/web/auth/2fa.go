@@ -27,7 +27,7 @@ var (
 func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	// Check auto-auth.
+	// Check auto-login.
 	if checkAutoLogin(ctx) {
 		return
 	}
@@ -100,7 +100,7 @@ func TwoFactorPost(ctx *context.Context) {
 func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
-	// Check auto-auth.
+	// Check auto-login.
 	if checkAutoLogin(ctx) {
 		return
 	}

@@ -27,7 +27,7 @@ var tplU2F base.TplName = "user/auth/u2f"
 func U2F(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 	ctx.Data["RequireU2F"] = true
-	// Check auto-auth.
+	// Check auto-login.
 	if checkAutoLogin(ctx) {
 		return
 	}
