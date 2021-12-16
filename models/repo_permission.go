@@ -21,6 +21,9 @@ type Permission struct {
 	AccessMode perm_model.AccessMode
 	Units      []*repo_model.RepoUnit
 	UnitsMode  map[unit.Type]perm_model.AccessMode
+
+	User *user_model.User
+	Repo *repo_model.Repository // TODO try to move to Permission.Units
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -102,6 +105,35 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
+// CanWriteToBranch checks if the branch is writable by the user
+func (p *Permission) CanWriteToBranch(branch string) bool {
+	if p.CanWrite(unit.TypeCode) || p.User == nil {
+		return p.CanWrite(unit.TypeCode)
+	}
+
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Repo.ID, branch)
+	if err != nil {
+		return false
+	}
+
+	for _, pr := range prs {
+		err = pr.LoadBaseRepo()
+		if err != nil {
+			continue
+		}
+		if pr.AllowEditsFromMaintainers {
+			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, p.User)
+			if err != nil {
+				continue
+			}
+			if prPerm.CanWrite(unit.TypeCode) {
+				return prPerm.CanWrite(unit.TypeCode)
+			}
+		}
+	}
+	return false
+}
+
 // ColorFormat writes a colored string for these Permissions
 func (p *Permission) ColorFormat(s fmt.State) {
 	noColor := log.ColorBytes(log.Reset)
@@ -163,6 +195,10 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 				perm)
 		}()
 	}
+
+	perm.Repo = repo
+	perm.User = user
+
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
@@ -262,25 +298,6 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.UnitsMode[u.Type]; !ok {
 				perm.UnitsMode[u.Type] = perm_model.AccessModeRead
-			}
-		}
-	}
-
-	var pr *PullRequest
-	pr, err = GetUnmergedPullRequest(ci.HeadRepo.ID, ctx.Repo.Repository.ID, ci.HeadBranch, ci.BaseBranch, PullRequestFlowGithub) // TODO fix this
-	if err != nil {
-		if !IsErrPullRequestNotExist(err) {
-			return
-		}
-	} else {
-		if pr.AllowEditsByMaintainers {
-			prPerm, prPermErr := getUserRepoPermission(db.DefaultContext, pr.HeadRepo, user)
-			if err != nil {
-				err = prPermErr
-				return
-			}
-			if prPerm.CanWrite(unit.TypeCode) {
-				perm.UnitsMode[unit.TypeCode] = perm_model.AccessModeWrite
 			}
 		}
 	}

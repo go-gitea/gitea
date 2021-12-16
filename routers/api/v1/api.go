@@ -270,6 +270,15 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
+func reqRepoBranchWriter(ctx *context.APIContext) {
+	options := web.GetForm(ctx).(api.FileOptionInterface)
+	if !ctx.Repo.CanWriteToBranch(options.Branch()) && !ctx.IsUserSiteAdmin() {
+		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
+		return
+	}
+}
+
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -976,10 +985,10 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
-						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
-						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
-						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
-					}, reqRepoWriter(unit.TypeCode), reqToken())
+						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
+					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {

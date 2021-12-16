@@ -287,6 +287,20 @@ export function initRepoPullRequestMergeInstruction() {
   });
 }
 
+export function initRepoPullRequestAllowEditsFromMaintainers() {
+  $('#allow-edits-from-maintainers input').on('change', function () {
+    let url = '';
+    if ($(this).is(':checked')) { // allow edits
+      url = `${window.location}/allow_edits`;
+    } else { // disallow edits
+      url = `${window.location}/disallow_edits`;
+    }
+    $.post(url, {
+      _csrf: csrfToken
+    });
+  });
+}
+
 export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({

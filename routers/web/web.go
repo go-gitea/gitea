@@ -494,6 +494,7 @@ func RegisterRoutes(m *web.Route) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
+	canEnableEditor := context.CanEnableEditor()
 	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
@@ -798,12 +799,12 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
 					Get(repo.UploadFile).
 					Post(bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePost)
-			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
+			}, context.RepoRefByType(context.RepoRefBranch), canEnableEditor, repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
 			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+		}, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -957,6 +958,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Post("/merge", context.RepoMustNotBeArchived(), bindIgnErr(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
+			m.Post("/allow_edits", repo.AllowEdits)
+			m.Post("/disallow_edits", repo.DisallowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)

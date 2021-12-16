@@ -114,7 +114,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 		return false, false, err
 	}
 
-	if pull.AllowEditsByMaintainers {
+	if pull.AllowEditsFromMaintainers {
 		mergeAllowedMaintainer, err := IsUserAllowedToMerge(pr, baseRepoPerm, user)
 		if err != nil {
 			return false, false, err

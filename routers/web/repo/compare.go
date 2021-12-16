@@ -393,6 +393,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
+	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
 	// Now we need to assert that the ctx.User has permission to read
 	// the baseRepo's code and pulls

@@ -78,7 +78,7 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+	return r.IsViewBranch && r.Permission.CanWriteToBranch(r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.

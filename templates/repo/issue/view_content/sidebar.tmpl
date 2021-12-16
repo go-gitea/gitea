@@ -646,17 +646,17 @@
 				</div>
 			</div>
 		{{end}}
-	</div>
 
-	{{if and .Issue.IsPull .IsIssuePoster}}
-		{{if .Issue.PullRequest.HeadRepo.IsFork}}
-			<div class="inline field">
-				<div class="ui checkbox" id="allow-edits-by-maintainers">
-					<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers"}}</strong></label>
-					<input name="allow_edits_by_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowEditsByMaintainers}}checked{{end}}>
+		{{if and .Issue.IsPull .IsIssuePoster}}
+			{{if not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox" data-failed="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}" id="allow-edits-from-maintainers">
+						<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<input name="allow_edits_from_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowEditsFromMaintainers}}checked{{end}}>
+					</div>
 				</div>
-			</div>
+			{{end}}
 		{{end}}
-	{{end}}
-
+	</div>
 </div>

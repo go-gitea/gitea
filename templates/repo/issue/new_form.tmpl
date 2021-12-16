@@ -236,11 +236,11 @@
 					{{end}}
 				</div>
 		</div>
-		{{if and .PageIsComparePull .HeadRepo.IsFork}}
+		{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName))}}
 			<div class="inline field">
-				<div class="ui checkbox" id="allow-edits-by-maintainers">
-					<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_by_maintainers"}}</strong></label>
-					<input name="allow_edits_by_maintainers" type="checkbox">
+				<div class="ui checkbox" id="allow-edits-from-maintainers">
+					<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+					<input name="allow_edits_from_maintainers" type="checkbox">
 				</div>
 			</div>
 		{{end}}

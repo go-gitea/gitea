@@ -1129,7 +1129,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		BaseRepo:                repo,
 		MergeBase:               ci.CompareInfo.MergeBase,
 		Type:                    models.PullRequestGitea,
-		AllowEditsByMaintainers: form.AllowEditsByMaintainers,
+		AllowEditsFromMaintainers: form.AllowEditsFromMaintainers,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -1426,5 +1426,54 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"base_branch": pr.BaseBranch,
+	})
+}
+
+// AllowEdits allow edits from maintainers to PRs
+func AllowEdits(ctx *context.Context) {
+	updateAllowEditsStatus(ctx, true)
+}
+
+// DisallowEdits disallow edits from maintainers to PRs
+func DisallowEdits(ctx *context.Context) {
+	updateAllowEditsStatus(ctx, false)
+}
+
+func updateAllowEditsStatus(ctx *context.Context, allow bool) {
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.ServerError("GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.ServerError("LoadIssue", err)
+		return
+	}
+
+	issue := pr.Issue
+	if !issue.IsPull {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
+	if !ctx.IsSigned || !issue.IsPoster(ctx.User.ID) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	err = pr.UpdateAllowEdits(allow)
+	if err != nil {
+		ctx.ServerError("UpdateAllowEdits", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"allow_edits": pr.AllowEditsFromMaintainers,
 	})
 }

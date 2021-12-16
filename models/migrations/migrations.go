@@ -362,7 +362,7 @@ var migrations = []Migration{
 	// v203 -> v204
 	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
 	// v204 -> v205
-	NewMigration("ADd allow edits by maintainers to PullRequest table", addAllowEditsByMaintainers),
+	NewMigration("ADd allow edits from maintainers to PullRequest table", addAllowEditsFromMaintainers),
 }
 
 // GetCurrentDBVersion returns the current db version

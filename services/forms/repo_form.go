@@ -413,7 +413,7 @@ type CreateIssueForm struct {
 	AssigneeID              int64
 	Content                 string
 	Files                   []string
-	AllowEditsByMaintainers bool
+	AllowEditsFromMaintainers bool
 }
 
 // Validate validates the fields
