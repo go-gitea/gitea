@@ -221,18 +221,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	} else {
 		infos = strings.SplitN(infoPath, "...", 2)
 		if len(infos) != 2 {
-			infos = []string{baseRepo.DefaultBranch, infoPath}
-			if strings.Contains(infoPath, "..") {
-				infos = strings.SplitN(infoPath, "..", 2)
+			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
 				ci.DirectComparison = true
 				ctx.Data["PageIsComparePull"] = false
+			} else {
+				infos = []string{baseRepo.DefaultBranch, infoPath}
 			}
-		}
-
-		if len(infos) != 2 {
-			log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-			ctx.NotFound("CompareAndPullRequest", nil)
-			return nil
 		}
 	}
 
