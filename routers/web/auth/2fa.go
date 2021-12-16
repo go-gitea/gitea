@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
-
-	"github.com/markbates/goth"
 )
 
 var (
@@ -78,13 +76,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			gothUser := ctx.Session.Get("linkAccountGothUser")
-			if gothUser == nil {
-				ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
-				return
-			}
-
-			err = externalaccount.LinkAccountToUser(u, gothUser.(goth.User))
+			err = externalaccount.LinkAccountFromStore(ctx.Session, ctx.User)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return

@@ -995,7 +995,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			cols = append(cols, "is_admin", "is_restricted")
 		}
 
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
