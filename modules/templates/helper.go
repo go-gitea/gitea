@@ -632,7 +632,12 @@ func RenderMarkup(Type string, raw string) template.HTML {
 			log.Warn("Markdown2html: Invalid markdown? %v", err)
 			return template.HTML(html.EscapeString(raw))
 		}
+		return template.HTML(markup.Sanitize(renderedContent))
 	} else if Type == "markup" {
+		if renderedContent, err = markup.RenderString(&markup.RenderContext{}, raw); err != nil {
+			log.Warn("Markdown2html: Invalid markup? %v", err)
+			return template.HTML(html.EscapeString(raw))
+		}
 		return template.HTML(markup.Sanitize(renderedContent))
 	}
 
