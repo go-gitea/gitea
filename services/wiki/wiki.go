@@ -22,6 +22,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 var (
@@ -225,7 +226,7 @@ func updateWikiPage(doer *user_model.User, repo *repo_model.Repository, oldWikiN
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := models.SignWikiCommit(repo, doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -343,7 +344,7 @@ func DeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, wikiName
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := models.SignWikiCommit(repo, doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -374,7 +375,7 @@ func DeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, wikiName
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(repo *repo_model.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+	if err := repo_model.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 

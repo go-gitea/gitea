@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	stdcharset "golang.org/x/net/html/charset"
@@ -458,9 +459,9 @@ func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, 
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := models.SignCRUDAction(repo, doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), branchName)
 			if err != nil {
-				if !models.IsErrWontSign(err) {
+				if !asymkey_service.IsErrWontSign(err) {
 					return err
 				}
 				return models.ErrUserCannotCommit{

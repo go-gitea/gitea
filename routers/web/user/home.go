@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -827,7 +828,7 @@ func repoIDMap(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitT
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid, db.ListOptions{})
+	keys, err := asymkey_model.ListPublicKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -838,12 +839,12 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
@@ -851,9 +852,9 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
-		e, err := models.GPGKeyToEntity(k)
+		e, err := asymkey_model.GPGKeyToEntity(k)
 		if err != nil {
-			if models.IsErrGPGKeyImportNotExist(err) {
+			if asymkey_model.IsErrGPGKeyImportNotExist(err) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
 				continue //Skip previous import without backup of imported armored key
 			}
@@ -877,7 +878,7 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		}
 	}
 	writer.Close()
-	ctx.PlainText(200, buf.Bytes())
+	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
 
 // Email2User show user page via email

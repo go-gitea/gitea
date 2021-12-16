@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -65,7 +65,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
-	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
@@ -90,7 +90,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
-	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
@@ -116,7 +116,7 @@ func TestCreateUserKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
-	unittest.AssertExistsAndLoadBean(t, &models.PublicKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
 		ID:      newPublicKey.ID,
 		OwnerID: user.ID,
 		Name:    rawKeyBody.Title,

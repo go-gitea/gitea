@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -31,11 +32,11 @@ func DeleteUser(u *user_model.User) error {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
@@ -60,14 +61,15 @@ func DeleteUser(u *user_model.User) error {
 		return fmt.Errorf("DeleteUser: %v", err)
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return err
 	}
+	committer.Close()
 
-	if err = models.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 		return err
 	}
-	if err = models.RewriteAllPrincipalKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(); err != nil {
 		return err
 	}
 

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/unknwon/com"
 )
@@ -134,7 +135,7 @@ func initRepoCommit(tmpPath string, repo *repo_model.Repository, u *user_model.U
 	}
 
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, signer, _ := asymkey_service.SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 
@@ -183,7 +184,7 @@ func checkInitRepository(owner, name string) (err error) {
 		return err
 	}
 	if isExist {
-		return models.ErrRepoFilesAlreadyExist{
+		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: owner,
 			Name:  name,
 		}

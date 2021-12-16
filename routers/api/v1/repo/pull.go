@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -810,7 +811,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
-		if !models.IsErrWontSign(err) {
+		if !asymkey_service.IsErrWontSign(err) {
 			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
 			return
 		}
@@ -955,7 +956,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// Check if current user has fork of repository or in the same repository.
-	headRepo := models.GetForkedRepo(headUser.ID, baseRepo.ID)
+	headRepo := repo_model.GetForkedRepo(headUser.ID, baseRepo.ID)
 	if headRepo == nil && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
 		ctx.NotFound("GetForkedRepo")
@@ -1232,10 +1233,10 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	ctx.SetLinkHeader(totalNumberOfCommits, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumberOfCommits))
 
-	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
-	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
 	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)

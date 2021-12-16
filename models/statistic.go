@@ -5,6 +5,7 @@
 package models
 
 import (
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -47,10 +48,10 @@ func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
+	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo = repo_model.CountRepositories(true)
-	stats.Counter.Watch, _ = e.Count(new(Watch))
-	stats.Counter.Star, _ = e.Count(new(Star))
+	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
+	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Action, _ = e.Count(new(Action))
 	stats.Counter.Access, _ = e.Count(new(Access))
 

@@ -22,7 +22,7 @@ func TestForkRepository(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 
-	fork, err := ForkRepository(user, user, models.ForkRepoOptions{
+	fork, err := ForkRepository(user, user, ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        "test",
 		Description: "test",

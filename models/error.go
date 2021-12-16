@@ -28,19 +28,6 @@ func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
 }
 
-// ErrSSHDisabled represents an "SSH disabled" error.
-type ErrSSHDisabled struct{}
-
-// IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
-func IsErrSSHDisabled(err error) bool {
-	_, ok := err.(ErrSSHDisabled)
-	return ok
-}
-
-func (err ErrSSHDisabled) Error() string {
-	return "SSH is disabled"
-}
-
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
 type ErrUserOwnRepos struct {
 	UID int64
@@ -82,21 +69,6 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
-}
-
-// ErrReachLimitOfRepo represents a "ReachLimitOfRepo" kind of error.
-type ErrReachLimitOfRepo struct {
-	Limit int
-}
-
-// IsErrReachLimitOfRepo checks if an error is a ErrReachLimitOfRepo.
-func IsErrReachLimitOfRepo(err error) bool {
-	_, ok := err.(ErrReachLimitOfRepo)
-	return ok
-}
-
-func (err ErrReachLimitOfRepo) Error() string {
-	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
 //  __      __.__ __   .__
@@ -149,254 +121,6 @@ func IsErrWikiInvalidFileName(err error) bool {
 
 func (err ErrWikiInvalidFileName) Error() string {
 	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
-}
-
-// __________     ___.   .__  .__          ____  __.
-// \______   \__ _\_ |__ |  | |__| ____   |    |/ _|____ ___.__.
-//  |     ___/  |  \ __ \|  | |  |/ ___\  |      <_/ __ <   |  |
-//  |    |   |  |  / \_\ \  |_|  \  \___  |    |  \  ___/\___  |
-//  |____|   |____/|___  /____/__|\___  > |____|__ \___  > ____|
-//                     \/             \/          \/   \/\/
-
-// ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.
-type ErrKeyUnableVerify struct {
-	Result string
-}
-
-// IsErrKeyUnableVerify checks if an error is a ErrKeyUnableVerify.
-func IsErrKeyUnableVerify(err error) bool {
-	_, ok := err.(ErrKeyUnableVerify)
-	return ok
-}
-
-func (err ErrKeyUnableVerify) Error() string {
-	return fmt.Sprintf("Unable to verify key content [result: %s]", err.Result)
-}
-
-// ErrKeyNotExist represents a "KeyNotExist" kind of error.
-type ErrKeyNotExist struct {
-	ID int64
-}
-
-// IsErrKeyNotExist checks if an error is a ErrKeyNotExist.
-func IsErrKeyNotExist(err error) bool {
-	_, ok := err.(ErrKeyNotExist)
-	return ok
-}
-
-func (err ErrKeyNotExist) Error() string {
-	return fmt.Sprintf("public key does not exist [id: %d]", err.ID)
-}
-
-// ErrKeyAlreadyExist represents a "KeyAlreadyExist" kind of error.
-type ErrKeyAlreadyExist struct {
-	OwnerID     int64
-	Fingerprint string
-	Content     string
-}
-
-// IsErrKeyAlreadyExist checks if an error is a ErrKeyAlreadyExist.
-func IsErrKeyAlreadyExist(err error) bool {
-	_, ok := err.(ErrKeyAlreadyExist)
-	return ok
-}
-
-func (err ErrKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [owner_id: %d, finger_print: %s, content: %s]",
-		err.OwnerID, err.Fingerprint, err.Content)
-}
-
-// ErrKeyNameAlreadyUsed represents a "KeyNameAlreadyUsed" kind of error.
-type ErrKeyNameAlreadyUsed struct {
-	OwnerID int64
-	Name    string
-}
-
-// IsErrKeyNameAlreadyUsed checks if an error is a ErrKeyNameAlreadyUsed.
-func IsErrKeyNameAlreadyUsed(err error) bool {
-	_, ok := err.(ErrKeyNameAlreadyUsed)
-	return ok
-}
-
-func (err ErrKeyNameAlreadyUsed) Error() string {
-	return fmt.Sprintf("public key already exists [owner_id: %d, name: %s]", err.OwnerID, err.Name)
-}
-
-// ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
-type ErrGPGNoEmailFound struct {
-	FailedEmails []string
-	ID           string
-}
-
-// IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
-func IsErrGPGNoEmailFound(err error) bool {
-	_, ok := err.(ErrGPGNoEmailFound)
-	return ok
-}
-
-func (err ErrGPGNoEmailFound) Error() string {
-	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
-}
-
-// ErrGPGInvalidTokenSignature represents a "ErrGPGInvalidTokenSignature" kind of error.
-type ErrGPGInvalidTokenSignature struct {
-	Wrapped error
-	ID      string
-}
-
-// IsErrGPGInvalidTokenSignature checks if an error is a ErrGPGInvalidTokenSignature.
-func IsErrGPGInvalidTokenSignature(err error) bool {
-	_, ok := err.(ErrGPGInvalidTokenSignature)
-	return ok
-}
-
-func (err ErrGPGInvalidTokenSignature) Error() string {
-	return "the provided signature does not sign the token with the provided key"
-}
-
-// ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
-type ErrGPGKeyParsing struct {
-	ParseError error
-}
-
-// IsErrGPGKeyParsing checks if an error is a ErrGPGKeyParsing.
-func IsErrGPGKeyParsing(err error) bool {
-	_, ok := err.(ErrGPGKeyParsing)
-	return ok
-}
-
-func (err ErrGPGKeyParsing) Error() string {
-	return fmt.Sprintf("failed to parse gpg key %s", err.ParseError.Error())
-}
-
-// ErrGPGKeyNotExist represents a "GPGKeyNotExist" kind of error.
-type ErrGPGKeyNotExist struct {
-	ID int64
-}
-
-// IsErrGPGKeyNotExist checks if an error is a ErrGPGKeyNotExist.
-func IsErrGPGKeyNotExist(err error) bool {
-	_, ok := err.(ErrGPGKeyNotExist)
-	return ok
-}
-
-func (err ErrGPGKeyNotExist) Error() string {
-	return fmt.Sprintf("public gpg key does not exist [id: %d]", err.ID)
-}
-
-// ErrGPGKeyImportNotExist represents a "GPGKeyImportNotExist" kind of error.
-type ErrGPGKeyImportNotExist struct {
-	ID string
-}
-
-// IsErrGPGKeyImportNotExist checks if an error is a ErrGPGKeyImportNotExist.
-func IsErrGPGKeyImportNotExist(err error) bool {
-	_, ok := err.(ErrGPGKeyImportNotExist)
-	return ok
-}
-
-func (err ErrGPGKeyImportNotExist) Error() string {
-	return fmt.Sprintf("public gpg key import does not exist [id: %s]", err.ID)
-}
-
-// ErrGPGKeyIDAlreadyUsed represents a "GPGKeyIDAlreadyUsed" kind of error.
-type ErrGPGKeyIDAlreadyUsed struct {
-	KeyID string
-}
-
-// IsErrGPGKeyIDAlreadyUsed checks if an error is a ErrKeyNameAlreadyUsed.
-func IsErrGPGKeyIDAlreadyUsed(err error) bool {
-	_, ok := err.(ErrGPGKeyIDAlreadyUsed)
-	return ok
-}
-
-func (err ErrGPGKeyIDAlreadyUsed) Error() string {
-	return fmt.Sprintf("public key already exists [key_id: %s]", err.KeyID)
-}
-
-// ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
-type ErrGPGKeyAccessDenied struct {
-	UserID int64
-	KeyID  int64
-}
-
-// IsErrGPGKeyAccessDenied checks if an error is a ErrGPGKeyAccessDenied.
-func IsErrGPGKeyAccessDenied(err error) bool {
-	_, ok := err.(ErrGPGKeyAccessDenied)
-	return ok
-}
-
-// Error pretty-prints an error of type ErrGPGKeyAccessDenied.
-func (err ErrGPGKeyAccessDenied) Error() string {
-	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d]",
-		err.UserID, err.KeyID)
-}
-
-// ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
-type ErrKeyAccessDenied struct {
-	UserID int64
-	KeyID  int64
-	Note   string
-}
-
-// IsErrKeyAccessDenied checks if an error is a ErrKeyAccessDenied.
-func IsErrKeyAccessDenied(err error) bool {
-	_, ok := err.(ErrKeyAccessDenied)
-	return ok
-}
-
-func (err ErrKeyAccessDenied) Error() string {
-	return fmt.Sprintf("user does not have access to the key [user_id: %d, key_id: %d, note: %s]",
-		err.UserID, err.KeyID, err.Note)
-}
-
-// ErrDeployKeyNotExist represents a "DeployKeyNotExist" kind of error.
-type ErrDeployKeyNotExist struct {
-	ID     int64
-	KeyID  int64
-	RepoID int64
-}
-
-// IsErrDeployKeyNotExist checks if an error is a ErrDeployKeyNotExist.
-func IsErrDeployKeyNotExist(err error) bool {
-	_, ok := err.(ErrDeployKeyNotExist)
-	return ok
-}
-
-func (err ErrDeployKeyNotExist) Error() string {
-	return fmt.Sprintf("Deploy key does not exist [id: %d, key_id: %d, repo_id: %d]", err.ID, err.KeyID, err.RepoID)
-}
-
-// ErrDeployKeyAlreadyExist represents a "DeployKeyAlreadyExist" kind of error.
-type ErrDeployKeyAlreadyExist struct {
-	KeyID  int64
-	RepoID int64
-}
-
-// IsErrDeployKeyAlreadyExist checks if an error is a ErrDeployKeyAlreadyExist.
-func IsErrDeployKeyAlreadyExist(err error) bool {
-	_, ok := err.(ErrDeployKeyAlreadyExist)
-	return ok
-}
-
-func (err ErrDeployKeyAlreadyExist) Error() string {
-	return fmt.Sprintf("public key already exists [key_id: %d, repo_id: %d]", err.KeyID, err.RepoID)
-}
-
-// ErrDeployKeyNameAlreadyUsed represents a "DeployKeyNameAlreadyUsed" kind of error.
-type ErrDeployKeyNameAlreadyUsed struct {
-	RepoID int64
-	Name   string
-}
-
-// IsErrDeployKeyNameAlreadyUsed checks if an error is a ErrDeployKeyNameAlreadyUsed.
-func IsErrDeployKeyNameAlreadyUsed(err error) bool {
-	_, ok := err.(ErrDeployKeyNameAlreadyUsed)
-	return ok
-}
-
-func (err ErrDeployKeyNameAlreadyUsed) Error() string {
-	return fmt.Sprintf("public key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
 }
 
 //    _____                                   ___________     __
@@ -583,38 +307,6 @@ func (err ErrRepoTransferInProgress) Error() string {
 	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
-// ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
-type ErrRepoAlreadyExist struct {
-	Uname string
-	Name  string
-}
-
-// IsErrRepoAlreadyExist checks if an error is a ErrRepoAlreadyExist.
-func IsErrRepoAlreadyExist(err error) bool {
-	_, ok := err.(ErrRepoAlreadyExist)
-	return ok
-}
-
-func (err ErrRepoAlreadyExist) Error() string {
-	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
-// ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
-type ErrRepoFilesAlreadyExist struct {
-	Uname string
-	Name  string
-}
-
-// IsErrRepoFilesAlreadyExist checks if an error is a ErrRepoAlreadyExist.
-func IsErrRepoFilesAlreadyExist(err error) bool {
-	_, ok := err.(ErrRepoFilesAlreadyExist)
-	return ok
-}
-
-func (err ErrRepoFilesAlreadyExist) Error() string {
-	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
 // ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
 type ErrForkAlreadyExist struct {
 	Uname    string
@@ -630,22 +322,6 @@ func IsErrForkAlreadyExist(err error) bool {
 
 func (err ErrForkAlreadyExist) Error() string {
 	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
-}
-
-// ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
-type ErrRepoRedirectNotExist struct {
-	OwnerID  int64
-	RepoName string
-}
-
-// IsErrRepoRedirectNotExist check if an error is an ErrRepoRedirectNotExist.
-func IsErrRepoRedirectNotExist(err error) bool {
-	_, ok := err.(ErrRepoRedirectNotExist)
-	return ok
-}
-
-func (err ErrRepoRedirectNotExist) Error() string {
-	return fmt.Sprintf("repository redirect does not exist [uid: %d, name: %s]", err.OwnerID, err.RepoName)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
@@ -876,22 +552,6 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
-}
-
-// ErrWontSign explains the first reason why a commit would not be signed
-// There may be other reasons - this is just the first reason found
-type ErrWontSign struct {
-	Reason signingMode
-}
-
-func (e *ErrWontSign) Error() string {
-	return fmt.Sprintf("wont sign: %s", e.Reason)
-}
-
-// IsErrWontSign checks if an error is a ErrWontSign
-func IsErrWontSign(err error) bool {
-	_, ok := err.(*ErrWontSign)
-	return ok
 }
 
 // __________                             .__

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -217,7 +218,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 
 	// Determine if we should sign
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := models.SignCRUDAction(t.repo, author, t.basePath, "HEAD")
+		sign, keyID, signer, _ := asymkey_service.SignCRUDAction(t.repo.RepoPath(), author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
 			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {

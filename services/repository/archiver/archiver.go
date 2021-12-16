@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
@@ -171,7 +170,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		rd.Close()
 	}()
 	var done = make(chan error)
-	repo, err := models.LoadArchiverRepo(archiver)
+	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
 	}

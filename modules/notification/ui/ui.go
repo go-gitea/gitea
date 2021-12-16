@@ -6,6 +6,7 @@ package ui
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -122,7 +123,7 @@ func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest, ment
 		return
 	}
 	toNotify := make(map[int64]struct{}, 32)
-	repoWatchers, err := models.GetRepoWatchersIDs(pr.Issue.RepoID)
+	repoWatchers, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, pr.Issue.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return

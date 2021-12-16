@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -230,11 +231,11 @@ type CommitStatusIndex struct {
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
+func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
 	return getLatestCommitStatus(db.GetEngine(db.DefaultContext), repoID, sha, listOptions)
 }
 
-func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
+func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
 	ids := make([]int64, 0, 10)
 	sess := e.Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
@@ -243,15 +244,15 @@ func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db
 
 	sess = db.SetSessionPagination(sess, &listOptions)
 
-	err := sess.Find(&ids)
+	count, err := sess.FindAndCount(&ids)
 	if err != nil {
-		return nil, err
+		return nil, count, err
 	}
 	statuses := make([]*CommitStatus, 0, len(ids))
 	if len(ids) == 0 {
-		return statuses, nil
+		return statuses, count, nil
 	}
-	return statuses, e.In("id", ids).Find(&statuses)
+	return statuses, count, e.In("id", ids).Find(&statuses)
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
@@ -328,18 +329,18 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 type SignCommitWithStatuses struct {
 	Status   *CommitStatus
 	Statuses []*CommitStatus
-	*SignCommit
+	*asymkey_model.SignCommit
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ParseCommitsWithStatus(oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {
 		commit := &SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
+		statuses, _, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

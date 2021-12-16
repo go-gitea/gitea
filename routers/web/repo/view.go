@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -138,6 +139,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
+	}
+
+	if ctx.Repo.TreePath != "" {
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
 	// 3 for the extensions in exts[] in order
@@ -373,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -777,9 +782,11 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
 
-		verification := models.ParseCommitWithSignature(latestCommit)
+		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
-		if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
@@ -787,7 +794,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -819,7 +826,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := repo_model.FindTopics(&repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -928,7 +935,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["PageIsWatchers"] = true
 
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return models.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }
 
@@ -938,7 +945,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return models.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 
@@ -954,7 +961,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := models.GetForks(ctx.Repo.Repository, db.ListOptions{
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})

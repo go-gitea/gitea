@@ -12,6 +12,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -149,7 +150,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", repo_model.WatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
@@ -189,8 +190,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&AccessToken{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Access{UserID: u.ID},
-		&Watch{UserID: u.ID},
-		&Star{UID: u.ID},
+		&repo_model.Watch{UserID: u.ID},
+		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
@@ -234,23 +235,23 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 
 	// ***** START: PublicKey *****
-	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := listGPGKeys(e, u.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %v", err)
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
-		if _, err = e.Delete(&GPGKeyImport{KeyID: key.KeyID}); err != nil {
+		if _, err = e.Delete(&asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
 			return fmt.Errorf("deleteGPGKeyImports: %v", err)
 		}
 	}
-	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
 	// ***** END: GPGPublicKey *****
@@ -295,7 +296,7 @@ func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
-		And("`watch`.mode<>?", RepoWatchModeDont).
+		And("`watch`.mode<>?", repo_model.WatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)

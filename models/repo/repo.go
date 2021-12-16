@@ -25,6 +25,20 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+var (
+	reservedRepoNames    = []string{".", ".."}
+	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
+)
+
+// IsUsableRepoName returns true when repository is usable
+func IsUsableRepoName(name string) error {
+	if db.AlphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return db.ErrNameCharsNotAllowed{Name: name}
+	}
+	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
+}
+
 // TrustModelType defines the types of trust model for this repository
 type TrustModelType int
 
@@ -298,10 +312,11 @@ func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 
 // GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
-	return repo.getUnit(db.DefaultContext, tp)
+	return repo.GetUnitCtx(db.DefaultContext, tp)
 }
 
-func (repo *Repository) getUnit(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
+// GetUnitCtx returns a RepoUnit object
+func (repo *Repository) GetUnitCtx(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.LoadUnits(ctx); err != nil {
 		return nil, err
 	}
@@ -668,6 +683,16 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	return getRepositoryByID(e, repo.TemplateID)
 }
 
+// TemplateRepo returns the repository, which is template of this repository
+func (repo *Repository) TemplateRepo() *Repository {
+	repo, err := GetTemplateRepo(repo)
+	if err != nil {
+		log.Error("TemplateRepo: %v", err)
+		return nil
+	}
+	return repo
+}
+
 func countRepositories(userID int64, private bool) int64 {
 	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
 
@@ -733,4 +758,26 @@ func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
+}
+
+// IterateRepository iterate repositories
+func IterateRepository(f func(repo *Repository) error) error {
+	var start int
+	batchSize := setting.Database.IterateBufferSize
+	for {
+		repos := make([]*Repository, 0, batchSize)
+		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&repos); err != nil {
+			return err
+		}
+		if len(repos) == 0 {
+			return nil
+		}
+		start += len(repos)
+
+		for _, repo := range repos {
+			if err := f(repo); err != nil {
+				return err
+			}
+		}
+	}
 }
