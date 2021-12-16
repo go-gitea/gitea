@@ -124,13 +124,13 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	}
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=112",
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=84",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/"+
 			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
-			"?d=identicon&s=112",
+			"?d=identicon&s=84",
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 

@@ -339,7 +339,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 
 	if len(compareInfo.Commits) != 0 {
 		sha := compareInfo.Commits[0].ID.String()
-		commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -393,7 +393,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 			return nil
 		}
-		commitStatuses, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -482,7 +482,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
@@ -771,7 +771,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	if err = pull_service.Update(issue.PullRequest, ctx.User, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
-			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 				"Message": ctx.Tr("repo.pulls.merge_conflict"),
 				"Summary": ctx.Tr("repo.pulls.merge_conflict_summary"),
 				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
@@ -785,7 +785,7 @@ func UpdatePullRequest(ctx *context.Context) {
 			return
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
-			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
 				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
@@ -940,7 +940,7 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
-			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 				"Message": ctx.Tr("repo.editor.merge_conflict"),
 				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
 				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
@@ -954,7 +954,7 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
-			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
 				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
@@ -983,7 +983,7 @@ func MergePullRequest(ctx *context.Context) {
 			if len(message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.pulls.push_rejected"),
 					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
@@ -1143,7 +1143,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			if len(message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.pulls.push_rejected"),
 					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
