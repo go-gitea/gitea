@@ -432,6 +432,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.NotFound("ParseCompareInfo", nil)
 			return nil
 		}
+		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
 	// If we have a rootRepo and it's different from:

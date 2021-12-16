@@ -648,7 +648,7 @@
 		{{end}}
 
 		{{if and .Issue.IsPull .IsIssuePoster}}
-			{{if not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)}}
+			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox" data-failed="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}" id="allow-edits-from-maintainers">

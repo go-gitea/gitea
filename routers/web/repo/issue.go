@@ -1510,6 +1510,7 @@ func ViewIssue(ctx *context.Context) {
 						canDelete = true
 						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 					}
+					ctx.Data["CanWriteToHeadRepo"] = true
 				}
 			}
 
