@@ -752,7 +752,7 @@ type CherryPickForm struct {
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
-	Revert        bool `binding:"Required"`
+	Revert        bool
 	Signoff       bool
 }
 
