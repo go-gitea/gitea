@@ -98,7 +98,7 @@ func NewFuncMap() []template.FuncMap {
 		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
-		"Markdown2html": Markdown2html,
+		"RenderMarkup":  RenderMarkup,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
 		"RawTimeSince":  timeutil.RawTimeSince,
@@ -623,14 +623,20 @@ func Str2html(raw string) template.HTML {
 }
 
 // Markdown2html render Markdown text to sanitized HTML
-func Markdown2html(raw string) template.HTML {
+func RenderMarkup(Type string, raw string) template.HTML {
 	var err error
 	var renderedContent string
-	if renderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
-		log.Warn("Markdown2html: Invalid markdown? %v", err)
-		return template.HTML(html.EscapeString(raw))
+
+	if Type == "markdown" {
+		if renderedContent, err = markdown.RenderString(&markup.RenderContext{}, raw); err != nil {
+			log.Warn("Markdown2html: Invalid markdown? %v", err)
+			return template.HTML(html.EscapeString(raw))
+		}
+	} else if Type == "markup" {
+		return template.HTML(markup.Sanitize(renderedContent))
 	}
-	return template.HTML(markup.Sanitize(renderedContent))
+
+	return template.HTML(fmt.Sprintf(`Unsupported markup: :%s:`, Type))
 }
 
 // Escape escapes a HTML string
