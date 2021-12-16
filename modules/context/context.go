@@ -669,6 +669,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			var locale = middleware.Locale(resp, req)
 			var startTime = time.Now()
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
+
+			chiCtx := chi.RouteContext(req.Context())
+			chiCtx.RoutePath = req.URL.EscapedPath()
+
 			var ctx = Context{
 				Resp:    NewResponse(resp),
 				Cache:   mc.GetCache(),

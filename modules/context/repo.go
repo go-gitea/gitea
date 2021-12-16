@@ -833,7 +833,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 					setting.AppSubURL,
 					strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")),
 					ctx.Repo.BranchNameSubURL(),
-					ctx.Repo.TreePath))
+					util.PathEscapeSegments(ctx.Repo.TreePath)))
 				return
 			}
 		}
