@@ -50,8 +50,8 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Org = CountOrganizations()
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo = repo_model.CountRepositories(true)
-	stats.Counter.Watch, _ = e.Count(new(Watch))
-	stats.Counter.Star, _ = e.Count(new(Star))
+	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
+	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Action, _ = e.Count(new(Action))
 	stats.Counter.Access, _ = e.Count(new(Access))
 

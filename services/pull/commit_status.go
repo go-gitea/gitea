@@ -130,7 +130,7 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

@@ -102,7 +102,7 @@ func migrateAvatars(dstStorage storage.ObjectStorage) error {
 }
 
 func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
-	return models.IterateRepository(func(repo *repo_model.Repository) error {
+	return repo_model.IterateRepository(func(repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
 		return err
 	})

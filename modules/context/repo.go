@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -305,14 +306,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 	if username == "" || reponame == "" {
-		ctx.PlainText(400, []byte("invalid repository path"))
+		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
+	ctx.PlainText(http.StatusOK, com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
 			"GoGetImport": ComposeGoGetImport(username, reponame),
 			"CloneLink":   repo_model.ComposeHTTPSCloneURL(username, reponame),
-		})))
+		}))
 }
 
 // RedirectToRepo redirect to a differently-named repository
@@ -443,10 +444,10 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx, redirectRepoID)
-			} else if models.IsErrRepoRedirectNotExist(err) {
+			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
@@ -499,10 +500,24 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = models.CanUserForkRepo(ctx.User, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("CanSignedUserFork", err)
+	canSignedUserFork, err := models.CanUserForkRepo(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
+
+	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.User, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	// canSignedUserFork is true if the current user doesn't have a fork of this repo yet or
+	// if he owns an org that doesn't have a fork of this repo yet
+	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
@@ -512,8 +527,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = models.IsWatching(ctx.User.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.User.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.User.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -613,7 +628,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -883,7 +898,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				}
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
-					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
 			} else {

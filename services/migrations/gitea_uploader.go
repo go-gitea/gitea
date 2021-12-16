@@ -154,7 +154,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		}
 	}
 	topics = topics[:c]
-	return models.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.repo.ID, topics...)
 }
 
 // CreateMilestones creates milestones
@@ -980,5 +980,5 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return models.UpdateRepositoryCols(g.repo, "status")
+	return repo_model.UpdateRepositoryCols(g.repo, "status")
 }

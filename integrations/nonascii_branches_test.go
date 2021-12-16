@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"testing"
 
@@ -157,6 +158,41 @@ func TestNonasciiBranches(t *testing.T) {
 		{
 			from:   "Ё%2F%E4%BA%BA",
 			to:     "tag/%D0%81/%E4%BA%BA",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/%25%252525mightnotplaywell",
+			to:     "branch/Plus+Is+Not+Space/%25%252525mightnotplaywell",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/%25253Fisnotaquestion%25253F",
+			to:     "branch/Plus+Is+Not+Space/%25253Fisnotaquestion%25253F",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("%3Fis?and#afile"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("%3Fis?and#afile"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/10%25.md",
+			to:     "branch/Plus+Is+Not+Space/10%25.md",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("This+file%20has 1space"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("This+file%20has 1space"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("This+file%2520has 2 spaces"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("This+file%2520has 2 spaces"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("£15&$6.txt"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("£15&$6.txt"),
 			status: http.StatusOK,
 		},
 	}

@@ -50,6 +50,11 @@ func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error
 		return nil, errors.New("no such file or directory")
 	}
 
+	// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
+		return nil, err
+	}
+
 	repo := &Repository{
 		Path:     repoPath,
 		tagCache: newObjectCache(),
