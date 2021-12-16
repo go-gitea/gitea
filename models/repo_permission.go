@@ -23,7 +23,6 @@ type Permission struct {
 	UnitsMode  map[unit.Type]perm_model.AccessMode
 
 	User *user_model.User
-	Repo *repo_model.Repository // TODO try to move to Permission.Units
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -111,7 +110,7 @@ func (p *Permission) CanWriteToBranch(branch string) bool {
 		return p.CanWrite(unit.TypeCode)
 	}
 
-	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Repo.ID, branch)
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
 	if err != nil {
 		return false
 	}
@@ -196,7 +195,6 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}()
 	}
 
-	perm.Repo = repo
 	perm.User = user
 
 	// anonymous user visit private repo.
