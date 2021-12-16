@@ -115,7 +115,7 @@ func (r *indexerNotifier) NotifyDeleteRepository(doer *user_model.User, repo *re
 	}
 }
 
-func (r *indexerNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (r *indexerNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.UpdateRepoIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)

@@ -264,7 +264,7 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 
 // CommitsBetween returns a list that contains commits between [before, last).
 // If before is detached (removed by reset + push) it is not included.
-func (repo *Repository) CommitsBetween(last *Commit, before *Commit) ([]*Commit, error) {
+func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
@@ -284,7 +284,7 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) ([]*Commit,
 }
 
 // CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
-func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit, skip int) ([]*Commit, error) {
+func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip int) ([]*Commit, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
