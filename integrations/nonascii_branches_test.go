@@ -84,7 +84,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "Plus+Is+Not+Space/Файл.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
@@ -115,7 +115,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "タグ/ファイル.md",
-			to:     "tag/%e3%82%bf%e3%82%b0/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
+			to:     "tag/%e3%82%bf%e3%82%b0/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusOK,
 		},
 		// Files
@@ -126,12 +126,12 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "Файл.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
 			from:   "ファイル.md",
-			to:     "branch/Plus+Is+Not+Space/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
+			to:     "branch/Plus+Is+Not+Space/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusNotFound, // it's not on default branch
 		},
 		// Same but url-encoded (few tests)
@@ -147,7 +147,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "%D0%A4%D0%B0%D0%B9%D0%BB.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
