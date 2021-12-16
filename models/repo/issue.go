@@ -28,13 +28,18 @@ func (repo *Repository) CanEnableTimetracker() bool {
 
 // IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabled() bool {
+	return repo.IsTimetrackerEnabledCtx(db.DefaultContext)
+}
+
+// IsTimetrackerEnabledCtx returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
+func (repo *Repository) IsTimetrackerEnabledCtx(ctx context.Context) bool {
 	if !setting.Service.EnableTimetracking {
 		return false
 	}
 
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(unit.TypeIssues); err != nil {
+	if u, err = repo.GetUnitCtx(ctx, unit.TypeIssues); err != nil {
 		return setting.Service.DefaultEnableTimetracking
 	}
 	return u.IssuesConfig().EnableTimetracker
@@ -59,7 +64,7 @@ func (repo *Repository) IsDependenciesEnabled() bool {
 func (repo *Repository) IsDependenciesEnabledCtx(ctx context.Context) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.getUnit(ctx, unit.TypeIssues); err != nil {
+	if u, err = repo.GetUnitCtx(ctx, unit.TypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

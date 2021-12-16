@@ -51,5 +51,5 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }

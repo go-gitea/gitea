@@ -593,7 +593,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err e
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, err = findReactions(e, FindReactionsOptions{
+	c.Reactions, _, err = findReactions(e, FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})

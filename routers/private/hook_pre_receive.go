@@ -134,7 +134,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("ok"))
+	ctx.PlainText(http.StatusOK, "ok")
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {

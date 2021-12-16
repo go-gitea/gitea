@@ -141,6 +141,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
+	if ctx.Repo.TreePath != "" {
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
+	}
+
 	// 3 for the extensions in exts[] in order
 	// the last one is for a readme that doesn't
 	// strictly match an extension
@@ -374,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -790,7 +794,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}

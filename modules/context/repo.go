@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -305,14 +306,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 	if username == "" || reponame == "" {
-		ctx.PlainText(400, []byte("invalid repository path"))
+		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
+	ctx.PlainText(http.StatusOK, com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
 			"GoGetImport": ComposeGoGetImport(username, reponame),
 			"CloneLink":   repo_model.ComposeHTTPSCloneURL(username, reponame),
-		})))
+		}))
 }
 
 // RedirectToRepo redirect to a differently-named repository
@@ -897,7 +898,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				}
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
-					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
 			} else {

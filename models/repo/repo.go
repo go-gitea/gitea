@@ -312,10 +312,11 @@ func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 
 // GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
-	return repo.getUnit(db.DefaultContext, tp)
+	return repo.GetUnitCtx(db.DefaultContext, tp)
 }
 
-func (repo *Repository) getUnit(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
+// GetUnitCtx returns a RepoUnit object
+func (repo *Repository) GetUnitCtx(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.LoadUnits(ctx); err != nil {
 		return nil, err
 	}

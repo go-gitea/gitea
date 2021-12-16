@@ -15,14 +15,12 @@ import (
 	"github.com/markbates/goth"
 )
 
-// LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
+func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
 	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	externalLoginUser := &user_model.ExternalLoginUser{
+	return &user_model.ExternalLoginUser{
 		ExternalID:        gothUser.UserID,
 		UserID:            user.ID,
 		LoginSourceID:     loginSource.ID,
@@ -40,6 +38,14 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 		AccessTokenSecret: gothUser.AccessTokenSecret,
 		RefreshToken:      gothUser.RefreshToken,
 		ExpiresAt:         gothUser.ExpiresAt,
+	}, nil
+}
+
+// LinkAccountToUser link the gothUser to the user
+func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+	if err != nil {
+		return err
 	}
 
 	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
@@ -61,4 +67,14 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	}
 
 	return nil
+}
+
+// UpdateExternalUser updates external user's information
+func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
+	externalLoginUser, err := toExternalLoginUser(user, gothUser)
+	if err != nil {
+		return err
+	}
+
+	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
 }
