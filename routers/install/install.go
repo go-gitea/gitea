@@ -80,9 +80,7 @@ func Init(next http.Handler) http.Handler {
 				"AllLangs":      translation.AllLangs(),
 				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
-				"TmplLoadTimes": func() string {
-					return time.Since(startTime).String()
-				},
+
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
@@ -554,7 +552,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 
-	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+	ctx.RespHeader().Add("Refresh", "1; url="+setting.AppURL+"user/login")
 	ctx.HTML(http.StatusOK, tplPostInstall)
 
 	// Now get the http.Server from this request and shut it down
