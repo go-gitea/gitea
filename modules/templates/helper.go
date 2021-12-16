@@ -632,13 +632,13 @@ func RenderMarkup(markupType string, raw string) template.HTML {
 			log.Warn("Markdown2html: Invalid markdown? %v", err)
 			return template.HTML(html.EscapeString(raw))
 		}
-		return template.HTML(markup.Sanitize(renderedContent))
+		return template.HTML(markup.Sanitize(raw))
 	} else if markupType == "markup" {
 		if renderedContent, err = markup.RenderString(&markup.RenderContext{}, raw); err != nil {
 			log.Warn("Markdown2html: Invalid markup? %v", err)
 			return template.HTML(html.EscapeString(raw))
 		}
-		return template.HTML(markup.Sanitize(renderedContent))
+		return template.HTML(markup.Sanitize(raw))
 	}
 
 	return template.HTML(fmt.Sprintf(`Unsupported markup: :%s:`, markupType))
