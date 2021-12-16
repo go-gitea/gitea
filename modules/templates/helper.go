@@ -622,7 +622,7 @@ func Str2html(raw string) template.HTML {
 	return template.HTML(markup.Sanitize(raw))
 }
 
-// Markdown2html render Markdown text to HTML (non-sanitize)
+// Markdown2html render Markdown text to sanitized HTML
 func Markdown2html(raw string) template.HTML {
 	var err error
 	var renderedContent string
