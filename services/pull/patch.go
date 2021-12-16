@@ -99,6 +99,68 @@ func TestPatch(pr *models.PullRequest) error {
 }
 
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+	if _, err := git.NewCommand("read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
+		log.Error("Unable to run read-tree -m! Error: %v", err)
+		return false, fmt.Errorf("Unable to run read-tree -m! Error: %v", err)
+	}
+
+	diffReader, diffWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to open stderr pipe: %v", err)
+		return false, fmt.Errorf("Unable to open stderr pipe: %v", err)
+	}
+	defer func() {
+		_ = diffReader.Close()
+		_ = diffWriter.Close()
+	}()
+	stderr := &strings.Builder{}
+
+	conflict := false
+	numberOfConflicts := 0
+	err = git.NewCommand("diff", "--name-status", "--diff-filter=U").
+		RunInDirTimeoutEnvFullPipelineFunc(
+			nil, -1, tmpBasePath,
+			diffWriter, stderr, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				// Close the writer end of the pipe to begin processing
+				_ = diffWriter.Close()
+				defer func() {
+					// Close the reader on return to terminate the git command if necessary
+					_ = diffReader.Close()
+				}()
+
+				// Now scan the output from the command
+				scanner := bufio.NewScanner(diffReader)
+				for scanner.Scan() {
+					line := scanner.Text()
+					split := strings.SplitN(line, "\t", 2)
+					file := ""
+					if len(split) == 2 {
+						file = split[1]
+					}
+
+					if file != "" {
+						conflict = true
+						if numberOfConflicts < 10 {
+							pr.ConflictedFiles = append(pr.ConflictedFiles, file)
+						}
+						numberOfConflicts++
+					}
+				}
+
+				return nil
+			})
+
+	if err != nil {
+		return false, fmt.Errorf("git diff --name-status --filter=U: %v", git.ConcatenateError(err, stderr.String()))
+	}
+
+	if !conflict {
+		return false, nil
+	}
+
+	// OK read-tree has failed so we need to try a different thing
+
 	// 1. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
@@ -176,7 +238,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}()
 
 	// 7. Run the check command
-	conflict := false
+	conflict = false
 	err = git.NewCommand(args...).
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
