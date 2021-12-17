@@ -297,16 +297,16 @@ export function initRepoPullRequestAllowEditsFromMaintainers() {
       url = `${url}/disallow_edits`;
     }
     $.ajax({
-      url: url,
-      type: "POST",
+      url,
+      type: 'POST',
       data: {
         _csrf: csrfToken
       },
-      error: function () {
-        let labelElem = document.getElementById('allow-edits-from-maintainers-label');
+      error: () => {
+        const $labelElem = document.getElementById('allow-edits-from-maintainers-label');
         $label.popup('destroy');
-        const oldContent = labelElem.getAttribute('data-content');
-        labelElem.setAttribute('data-content', $label.data('failed'));
+        const oldContent = $labelElem.getAttribute('data-content');
+        $labelElem.setAttribute('data-content', $label.data('failed'));
         $label.popup('show');
         labelElem.setAttribute('data-content', oldContent || '');
       },
