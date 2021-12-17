@@ -5,8 +5,6 @@
 package context
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -34,8 +32,6 @@ func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 // CanEnableEditor returns a middleware for requiring repository write to the specific branch
 func CanEnableEditor() func(ctx *Context) {
 	return func(ctx *Context) {
-		//RepoRefByType(RepoRefBranch)(ctx)
-		fmt.Println(ctx.Repo.BranchName)
 		if !ctx.Repo.Permission.CanWriteToBranch(ctx.Repo.BranchName) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
