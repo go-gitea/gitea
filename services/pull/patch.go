@@ -254,6 +254,22 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	if !conflict {
+		treeHash, err := git.NewCommandContext(ctx, "write-tree").RunInDir(tmpBasePath)
+		if err != nil {
+			return false, err
+		}
+		treeHash = strings.TrimSpace(treeHash)
+		baseTree, err := gitRepo.GetTree("base")
+		if err != nil {
+			return false, err
+		}
+		if treeHash == baseTree.ID.String() {
+			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
+			pr.Status = models.PullRequestStatusEmpty
+			pr.ConflictedFiles = []string{}
+			pr.ChangedProtectedFiles = []string{}
+		}
+
 		return false, nil
 	}
 
