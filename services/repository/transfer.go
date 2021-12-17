@@ -58,7 +58,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, newRepoName string) error {
-	log.Trace("ChangeRepositoryName: %s/%s -> ", doer.Name, repo.Name, newRepoName)
+	log.Trace("ChangeRepositoryName: %s/%s -> %s", doer.Name, repo.Name, newRepoName)
 
 	oldRepoName := repo.Name
 
