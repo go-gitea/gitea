@@ -275,6 +275,12 @@ func (b *BleveIndexer) Index(repo *repo_model.Repository, sha string, changes *r
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
+
 		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
 		defer cancel()
 

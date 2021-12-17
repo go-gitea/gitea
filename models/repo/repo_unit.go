@@ -242,3 +242,29 @@ func UpdateRepoUnit(unit *RepoUnit) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(unit.ID).Update(unit)
 	return err
 }
+
+// UpdateRepositoryUnits updates a repository's units
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	// Delete existing settings of units before adding again
+	for _, u := range units {
+		deleteUnitTypes = append(deleteUnitTypes, u.Type)
+	}
+
+	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
+		return err
+	}
+
+	if len(units) > 0 {
+		if err = db.Insert(ctx, units); err != nil {
+			return err
+		}
+	}
+
+	return committer.Commit()
+}

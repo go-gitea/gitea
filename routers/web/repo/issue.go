@@ -108,7 +108,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 
 	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
 		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.User.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
@@ -2343,7 +2343,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.HTMLString(string(tplReactions), map[string]interface{}{
+	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
 		"ctx":       ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/issues/%d/reactions", ctx.Repo.RepoLink, issue.Index),
 		"Reactions": issue.Reactions.GroupByType(),
@@ -2443,7 +2443,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		return
 	}
 
-	html, err := ctx.HTMLString(string(tplReactions), map[string]interface{}{
+	html, err := ctx.RenderToString(tplReactions, map[string]interface{}{
 		"ctx":       ctx.Data,
 		"ActionURL": fmt.Sprintf("%s/comments/%d/reactions", ctx.Repo.RepoLink, comment.ID),
 		"Reactions": comment.Reactions.GroupByType(),
@@ -2565,7 +2565,7 @@ func updateAttachments(item interface{}, files []string) error {
 }
 
 func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
-	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+	attachHTML, err := ctx.RenderToString(tplAttachment, map[string]interface{}{
 		"ctx":         ctx.Data,
 		"Attachments": attachments,
 		"Content":     content,

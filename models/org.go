@@ -794,7 +794,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = watchRepo(sess, userID, repoID, false); err != nil {
+		if err = repo_model.WatchRepoCtx(ctx, userID, repoID, false); err != nil {
 			return err
 		}
 	}

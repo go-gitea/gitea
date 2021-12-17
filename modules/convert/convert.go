@@ -334,7 +334,7 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 }
 
 // ToTopicResponse convert from models.Topic to api.TopicResponse
-func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
+func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
 		ID:        topic.ID,
 		Name:      topic.Name,

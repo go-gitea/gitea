@@ -118,7 +118,7 @@ func registerRemoveRandomAvatars() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.RemoveRandomAvatars(ctx)
+		return repo_service.RemoveRandomAvatars(ctx)
 	})
 }
 
