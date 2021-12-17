@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -205,11 +205,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(commitsCountTotal)
 
 	// kept for backwards compatibility
-	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
-	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
-	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.RespHeader().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
+	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(pageCount))
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
 	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
@@ -249,7 +249,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
 		repoPath,
 		ctx.Params(":sha"),

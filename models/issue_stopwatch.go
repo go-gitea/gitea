@@ -156,7 +156,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -177,7 +177,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -207,7 +207,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -248,11 +248,7 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if err := issue.loadRepo(e); err != nil {
-			return err
-		}
-
-		if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		if err := issue.loadRepo(ctx); err != nil {
 			return err
 		}
 

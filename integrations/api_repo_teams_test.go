@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,7 +21,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// publicOrgRepo = user3/repo21
-	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
+	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32}).(*repo_model.Repository)
 	// user4
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)

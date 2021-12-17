@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const TestAppURL = "http://localhost:3000/"
+const TestOrgRepo = "gogits/gogs"
+const TestRepoURL = TestAppURL + TestOrgRepo + "/"
 
 // alphanumLink an HTML link to an alphanumeric-style issue
 func alphanumIssueLink(baseURL, class, name string) string {
@@ -52,7 +52,7 @@ var alphanumericMetas = map[string]string{
 	"style":  IssueNameStyleAlphanumeric,
 }
 
-// these values should match the Repo const above
+// these values should match the TestOrgRepo const above
 var localMetas = map[string]string{
 	"user": "gogits",
 	"repo": "gogs",
@@ -90,8 +90,7 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 }
 
 func TestRender_IssueIndexPattern2(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	// numeric: render inputs with valid mentions
 	test := func(s, expectedFmt, marker string, indices ...int) {
@@ -108,7 +107,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, path), "ref-issue", index, marker)
+			links[i] = numericIssueLink(util.URLJoin(TestRepoURL, path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{Metas: localMetas})
@@ -152,8 +151,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	// alphanumeric: render inputs without valid mentions
 	test := func(s string) {
@@ -178,8 +176,7 @@ func TestRender_IssueIndexPattern3(t *testing.T) {
 }
 
 func TestRender_IssueIndexPattern4(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	// alphanumeric: render inputs with valid mentions
 	test := func(s, expectedFmt string, names ...string) {
@@ -197,7 +194,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
 	if ctx.URLPrefix == "" {
-		ctx.URLPrefix = AppSubURL
+		ctx.URLPrefix = TestAppURL
 	}
 
 	var buf strings.Builder
@@ -207,13 +204,12 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *Rend
 }
 
 func TestRender_AutoLink(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	test := func(input, expected string) {
 		var buffer strings.Builder
 		err := PostProcess(&RenderContext{
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, strings.NewReader(input), &buffer)
 		assert.Equal(t, err, nil)
@@ -221,7 +217,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 		buffer.Reset()
 		err = PostProcess(&RenderContext{
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
 		}, strings.NewReader(input), &buffer)
@@ -230,11 +226,11 @@ func TestRender_AutoLink(t *testing.T) {
 	}
 
 	// render valid issue URLs
-	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
-		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "ref-issue", 3333, "#"))
+	test(util.URLJoin(TestRepoURL, "issues", "3333"),
+		numericIssueLink(util.URLJoin(TestRepoURL, "issues"), "ref-issue", 3333, "#"))
 
 	// render valid commit URLs
-	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
+	tmp := util.URLJoin(TestRepoURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
 	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24</code></a>")
 	tmp += "#diff-2"
 	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
@@ -245,13 +241,12 @@ func TestRender_AutoLink(t *testing.T) {
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	test := func(input, expected string) {
 		var result strings.Builder
 		err := postProcess(&RenderContext{
-			URLPrefix: AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, []processor{fullIssuePatternProcessor}, strings.NewReader(input), &result)
 		assert.NoError(t, err)

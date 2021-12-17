@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -141,7 +142,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		return avatar
 	}
 
-	size := avatars.DefaultAvatarPixelSize * avatars.AvatarRenderedSizeFactor
+	size := avatars.DefaultAvatarPixelSize * setting.Avatar.RenderedSizeFactor
 
 	u, ok := pc.emailUsers[email]
 	if !ok {
