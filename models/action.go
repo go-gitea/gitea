@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -250,6 +251,21 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
 	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
+}
+
+// GetRefLink returns the action's ref link.
+func (a *Action) GetRefLink() string {
+	switch {
+	case strings.HasPrefix(a.RefName, git.BranchPrefix):
+		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
+	case strings.HasPrefix(a.RefName, git.TagPrefix):
+		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
+	case len(a.RefName) == 40 && git.SHAPattern.MatchString(a.RefName):
+		return a.GetRepoLink() + "/src/commit/" + a.RefName
+	default:
+		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
+		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
+	}
 }
 
 // GetTag returns the action's repository tag.
