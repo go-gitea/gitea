@@ -335,6 +335,10 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
+	if len(c.String("password")) < setting.MinPasswordLength {
+		return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
+	}
+
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}

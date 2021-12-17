@@ -1748,8 +1748,23 @@ func MustChangePasswordPost(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplMustChangePassword, &form)
 		return
 	}
+	if !password.IsComplexEnough(form.Password) {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		return
+	}
+	pwned, err := password.IsPwned(ctx, form.Password)
+	if pwned {
+		ctx.Data["Err_Password"] = true
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.RenderWithErr(errMsg, tplMustChangePassword, &form)
+		return
+	}
 
-	var err error
 	if err = u.SetPassword(form.Password); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
