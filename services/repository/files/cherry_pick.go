@@ -12,8 +12,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/pull"
 )
 
 // CherryPick cherrypicks or reverts a commit to the given repository
@@ -75,12 +78,18 @@ func CherryPick(repo *repo_model.Repository, doer *user_model.User, revert bool,
 		right, base = base, right
 	}
 
-	stdout := &strings.Builder{}
-	stderr := &strings.Builder{}
+	description := fmt.Sprintf("CherryPick %s onto %s", right, opts.OldBranch)
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), description)
+	defer finished()
 
-	err = git.NewCommand("read-tree", "-m", base, opts.LastCommitID, right).RunInDirFullPipeline(t.basePath, stdout, stderr, nil)
+	conflict, _, err := pull.AttemptThreeWayMerge(ctx,
+		t.basePath, t.gitRepo, base, opts.LastCommitID, right, description)
 	if err != nil {
-		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %v", stdout.String(), stderr.String(), err)
+		return nil, fmt.Errorf("failed to three-way merge %s onto %s: %v", right, opts.OldBranch, err)
+	}
+
+	if conflict {
+		return nil, fmt.Errorf("failed to merge due to conflicts")
 	}
 
 	treeHash, err := t.WriteTree()

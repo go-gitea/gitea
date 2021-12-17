@@ -213,19 +213,20 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 	return nil
 }
 
-func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
-	ctx, cancel, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("checkConflicts: pr[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index))
-	defer finished()
+// AttemptThreeWayMerge will attempt to three way merge using git read-tree and then follow the git merge-one-file algorithm to attempt to resolve basic conflicts
+func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repository, base, ours, theirs, description string) (bool, []string, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, err := git.NewCommandContext(ctx, "read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
+	if _, err := git.NewCommandContext(ctx, "read-tree", "-m", base, ours, theirs).RunInDir(gitPath); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
-		return false, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
+		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
 	}
 
 	// Then we use git ls-files -u to list the unmerged files and collate the triples in unmergedfiles
 	unmerged := make(chan *unmergedFile)
-	go unmergedFiles(ctx, tmpBasePath, unmerged)
+	go unmergedFiles(ctx, gitPath, unmerged)
 
 	defer func() {
 		cancel()
@@ -236,6 +237,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 	numberOfConflicts := 0
 	conflict := false
+	conflictedFiles := make([]string, 0, 5)
 
 	for file := range unmerged {
 		if file == nil {
@@ -243,22 +245,35 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		}
 		if file.err != nil {
 			cancel()
-			return false, file.err
+			return false, nil, file.err
 		}
 
 		// OK now we have the unmerged file triplet attempt to merge it
-		if err := attemptMerge(ctx, file, tmpBasePath, gitRepo); err != nil {
+		if err := attemptMerge(ctx, file, gitPath, gitRepo); err != nil {
 			if conflictErr, ok := err.(*errMergeConflict); ok {
-				log.Trace("Conflict: %s in PR[%d] %s/%s#%d", conflictErr.filename, pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
+				log.Trace("Conflict: %s in %s", conflictErr.filename, description)
 				conflict = true
 				if numberOfConflicts < 10 {
-					pr.ConflictedFiles = append(pr.ConflictedFiles, conflictErr.filename)
+					conflictedFiles = append(conflictedFiles, conflictErr.filename)
 				}
 				numberOfConflicts++
 				continue
 			}
-			return false, err
+			return false, nil, err
 		}
+	}
+	return conflict, conflictedFiles, nil
+}
+
+func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("checkConflicts: %s", description))
+	defer finished()
+
+	conflict, _, err := AttemptThreeWayMerge(ctx,
+		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
+	if err != nil {
+		return false, err
 	}
 
 	if !conflict {
