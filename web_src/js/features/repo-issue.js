@@ -308,7 +308,7 @@ export function initRepoPullRequestAllowEditsFromMaintainers() {
         const oldContent = $labelElem.getAttribute('data-content');
         $labelElem.setAttribute('data-content', $label.data('failed'));
         $label.popup('show');
-        labelElem.setAttribute('data-content', oldContent || '');
+        $labelElem.setAttribute('data-content', oldContent || '');
       },
     });
   });
