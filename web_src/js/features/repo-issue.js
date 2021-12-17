@@ -289,11 +289,13 @@ export function initRepoPullRequestMergeInstruction() {
 
 export function initRepoPullRequestAllowEditsFromMaintainers() {
   $('#allow-edits-from-maintainers input').on('change', function () {
-    let url = '';
+    const $label = $('#allow-edits-from-maintainers label');
+    let url = $label.data('url');
+    console.log(url)
     if (this.checked) { // allow edits
-      url = `${window.location}/allow_edits`;
+      url = `${url}/allow_edits`;
     } else { // disallow edits
-      url = `${window.location}/disallow_edits`;
+      url = `${url}/disallow_edits`;
     }
     $.post(url, {
       _csrf: csrfToken
