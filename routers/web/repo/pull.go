@@ -1456,13 +1456,12 @@ func updateAllowEditsStatus(ctx *context.Context, allow bool) {
 		return
 	}
 
-	issue := pr.Issue
-	if !issue.IsPull {
+	if !pr.Issue.IsPull {
 		ctx.Error(http.StatusNotFound)
 		return
 	}
 
-	if !ctx.IsSigned || !issue.IsPoster(ctx.User.ID) {
+	if !ctx.IsSigned || !pr.Issue.IsPoster(ctx.User.ID) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
