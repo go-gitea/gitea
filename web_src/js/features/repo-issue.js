@@ -291,14 +291,25 @@ export function initRepoPullRequestAllowEditsFromMaintainers() {
   $('#allow-edits-from-maintainers input').on('change', function () {
     const $label = $('#allow-edits-from-maintainers label');
     let url = $label.data('url');
-    console.log(url)
     if (this.checked) { // allow edits
       url = `${url}/allow_edits`;
     } else { // disallow edits
       url = `${url}/disallow_edits`;
     }
-    $.post(url, {
-      _csrf: csrfToken
+    $.ajax({
+      url: url,
+      type: "POST",
+      data: {
+        _csrf: csrfToken
+      },
+      error: function () {
+        let labelElem = document.getElementById('allow-edits-from-maintainers-label');
+        $label.popup('destroy');
+        const oldContent = labelElem.getAttribute('data-content');
+        labelElem.setAttribute('data-content', $label.data('failed'));
+        $label.popup('show');
+        labelElem.setAttribute('data-content', oldContent || '');
+      },
     });
   });
 }

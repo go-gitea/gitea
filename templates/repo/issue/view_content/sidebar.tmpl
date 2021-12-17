@@ -651,8 +651,8 @@
 			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
 				<div class="ui divider"></div>
 				<div class="inline field">
-					<div class="ui checkbox" data-failed="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}" id="allow-edits-from-maintainers">
-						<label class="tooltip" data-url="{{.Issue.Link}}" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+					<div class="ui checkbox" id="allow-edits-from-maintainers">
+						<label id="allow-edits-from-maintainers-label" class="tooltip" data-url="{{.Issue.Link}}" data-failed="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
 						<input name="allow_edits_from_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowEditsFromMaintainers}}checked{{end}}>
 					</div>
 				</div>
