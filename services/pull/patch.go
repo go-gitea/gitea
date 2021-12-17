@@ -101,16 +101,23 @@ func TestPatch(pr *models.PullRequest) error {
 	return nil
 }
 
-func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository, markConflict func(string)) error {
+type errMergeConflict struct {
+	filename string
+}
+
+func (e *errMergeConflict) Error() string {
+	return fmt.Sprintf("conflict detected at: %s", e.filename)
+}
+
+func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
 		//
-		// Conflict <==> the stage1 !Equivalent to the undeleted one
+		// Conflict <==> the stage1 !SameAs to the undeleted one
 		if (file.stage2 != nil && !file.stage1.SameAs(file.stage2)) || (file.stage3 != nil && !file.stage1.SameAs(file.stage3)) {
 			// Conflict!
-			markConflict(file.stage1.path)
-			return nil
+			return &errMergeConflict{file.stage1.path}
 		}
 
 		// Not a genuine conflict and we can simply remove the file from the index
@@ -127,8 +134,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// 3. Added in both with the same sha but the modes are different
 		//
 		// Conflict! (Not sure that this can actually happen but we should handle)
-		markConflict(file.stage2.path)
-		return nil
+		return &errMergeConflict{file.stage2.path}
 	case file.stage1 == nil && file.stage2 == nil && file.stage3 != nil:
 		// 4. Added in theirs but not ours:
 		//
@@ -138,25 +144,21 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// 5. Created by new in both
 		//
 		// Conflict!
-		markConflict(file.stage2.path)
-		return nil
+		return &errMergeConflict{file.stage2.path}
 	case file.stage2 != nil && file.stage3 != nil:
 		// 5. Modified in both - we should try to merge in the changes but first:
 		//
 		if file.stage2.mode == "120000" || file.stage3.mode == "120000" {
 			// 5a. Conflicting symbolic link change
-			markConflict(file.stage2.path)
-			return nil
+			return &errMergeConflict{file.stage2.path}
 		}
 		if file.stage2.mode == "160000" || file.stage3.mode == "160000" {
 			// 5b. Conflicting submodule change
-			markConflict(file.stage2.path)
-			return nil
+			return &errMergeConflict{file.stage2.path}
 		}
 		if file.stage2.mode != file.stage3.mode {
 			// 5c. Conflicting mode change
-			markConflict(file.stage2.path)
-			return nil
+			return &errMergeConflict{file.stage2.path}
 		}
 
 		// Need to get the objects from the object db to attempt to merge
@@ -189,8 +191,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
 		_, conflictErr := git.NewCommandContext(ctx, "merge-file", base, root, head).RunInDir(tmpBasePath)
 		if conflictErr != nil {
-			markConflict(file.stage2.path)
-			return nil
+			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
@@ -202,11 +203,11 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		return gitRepo.AddObjectToIndex(file.stage2.mode, git.MustIDFromString(hash), file.stage2.path)
 	default:
 		if file.stage1 != nil {
-			markConflict(file.stage1.path)
+			return &errMergeConflict{file.stage1.path}
 		} else if file.stage2 != nil {
-			markConflict(file.stage2.path)
+			return &errMergeConflict{file.stage2.path}
 		} else if file.stage3 != nil {
-			markConflict(file.stage2.path)
+			return &errMergeConflict{file.stage3.path}
 		}
 	}
 	return nil
@@ -235,14 +236,6 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 	numberOfConflicts := 0
 	conflict := false
-	markConflict := func(filepath string) {
-		log.Trace("Conflict: %s in PR[%d] %s/%s#%d", filepath, pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
-		conflict = true
-		if numberOfConflicts < 10 {
-			pr.ConflictedFiles = append(pr.ConflictedFiles, filepath)
-		}
-		numberOfConflicts++
-	}
 
 	for file := range unmerged {
 		if file == nil {
@@ -254,7 +247,16 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		}
 
 		// OK now we have the unmerged file triplet attempt to merge it
-		if err := attemptMerge(ctx, file, tmpBasePath, gitRepo, markConflict); err != nil {
+		if err := attemptMerge(ctx, file, tmpBasePath, gitRepo); err != nil {
+			if conflictErr, ok := err.(*errMergeConflict); ok {
+				log.Trace("Conflict: %s in PR[%d] %s/%s#%d", conflictErr.filename, pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
+				conflict = true
+				if numberOfConflicts < 10 {
+					pr.ConflictedFiles = append(pr.ConflictedFiles, conflictErr.filename)
+				}
+				numberOfConflicts++
+				continue
+			}
 			return false, err
 		}
 	}
