@@ -713,7 +713,8 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 		if !ok {
 			gitRepo, err = git.OpenRepository(issue.Repo.RepoPath())
 			if err != nil {
-				return nil, err
+				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
+				continue
 			}
 			gitRepos[issue.RepoID] = gitRepo
 		}
