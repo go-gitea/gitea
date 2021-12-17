@@ -301,7 +301,7 @@ export function initGlobalButtons() {
     event.preventDefault();
   });
 
-  $('.show-modal.button').on('click', function () {
+  $('.show-modal').on('click', function () {
     const modalDiv = $($(this).data('modal'));
     for (let i = 0; i < this.attributes.length; i++) {
       const attrib = this.attributes[i];
