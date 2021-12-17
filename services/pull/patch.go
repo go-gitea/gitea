@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -164,19 +165,26 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
 		root = strings.TrimSpace(root)
-		defer util.Remove(root)
+		defer func() {
+			_ = util.Remove(filepath.Join(tmpBasePath, root))
+		}()
+
 		base, err := git.NewCommandContext(ctx, "unpack-file", file.stage2.sha).RunInDir(tmpBasePath)
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
-		base = strings.TrimSpace(base)
-		defer util.Remove(base)
+		base = strings.TrimSpace(filepath.Join(tmpBasePath, base))
+		defer func() {
+			_ = util.Remove(base)
+		}()
 		head, err := git.NewCommandContext(ctx, "unpack-file", file.stage3.sha).RunInDir(tmpBasePath)
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
 		head = strings.TrimSpace(head)
-		defer util.Remove(head)
+		defer func() {
+			_ = util.Remove(filepath.Join(tmpBasePath, head))
+		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
 		_, conflictErr := git.NewCommandContext(ctx, "merge-file", base, root, head).RunInDir(tmpBasePath)
@@ -199,8 +207,6 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			markConflict(file.stage2.path)
 		} else if file.stage3 != nil {
 			markConflict(file.stage2.path)
-		} else {
-			// This shouldn't happen!
 		}
 	}
 	return nil
@@ -273,7 +279,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		return false, nil
 	}
 
-	// OK read-tree has failed so we need to try a different thing - this might actually suceed where the above fails due to whitespace handling.
+	// OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
 
 	// 1. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
