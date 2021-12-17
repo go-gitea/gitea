@@ -87,7 +87,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.gz", "tar.xz", "tar.bz2"},
+	Enum:    []string{"zip", "rar", "tar", "sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4"},
 	Default: "zip",
 }
 
@@ -153,12 +153,16 @@ func fatal(format string, args ...interface{}) {
 func runDump(ctx *cli.Context) error {
 	var file *os.File
 	fileName := ctx.String("file")
+	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
 		err := log.DelLogger("console")
 		if err != nil {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
+	} else {
+		fileName = strings.TrimSuffix(fileName, path.Ext(fileName))
+		fileName += "." + outType
 	}
 	setting.NewContext()
 	// make sure we are logging to the console no matter what the configuration tells us do to
@@ -197,7 +201,6 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	verbose := ctx.Bool("verbose")
-	outType := ctx.String("type")
 	var iface interface{}
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
