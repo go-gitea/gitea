@@ -290,7 +290,7 @@ export function initRepoPullRequestMergeInstruction() {
 export function initRepoPullRequestAllowEditsFromMaintainers() {
   $('#allow-edits-from-maintainers input').on('change', function () {
     let url = '';
-    if ($(this).is(':checked')) { // allow edits
+    if (this.checked) { // allow edits
       url = `${window.location}/allow_edits`;
     } else { // disallow edits
       url = `${window.location}/disallow_edits`;
