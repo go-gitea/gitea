@@ -216,14 +216,8 @@ func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 	}
 
 	if accept {
-		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
-			return err
-		}
-	} else {
-		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
-			return err
-		}
+		return repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
 	}
 
-	return nil
+	return models.CancelRepositoryTransfer(ctx.Repo.Repository)
 }
