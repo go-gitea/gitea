@@ -90,14 +90,23 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 
 	isSucceed = true
 
+	// Save the session first
+	_ = ctx.Session.Release()
+
+	// Then regenerate the ID - which should copy the previous data
+	newSess, _ := ctx.Session.RegenerateID(ctx.Resp, ctx.Req)
+
+	// Then flush the old session to delete it
+	_ = ctx.Session.Flush()
+
 	// Set session IDs
-	if err := ctx.Session.Set("uid", u.ID); err != nil {
+	if err := newSess.Set("uid", u.ID); err != nil {
 		return false, err
 	}
-	if err := ctx.Session.Set("uname", u.Name); err != nil {
+	if err := newSess.Set("uname", u.Name); err != nil {
 		return false, err
 	}
-	if err := ctx.Session.Release(); err != nil {
+	if err := newSess.Release(); err != nil {
 		return false, err
 	}
 
@@ -233,26 +242,35 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
+	// Save the current session
+	_ = ctx.Session.Release()
+
+	// Regenerate the session - this will copy the data from the old session
+	newSess, _ := ctx.Session.RegenerateID(ctx.Resp, ctx.Req)
+
+	// Delete the old session
+	_ = ctx.Session.Flush()
+
 	// User will need to use 2FA TOTP or U2F, save data
-	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
+	if err := newSess.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
 	}
 
-	if err := ctx.Session.Set("twofaRemember", form.Remember); err != nil {
+	if err := newSess.Set("twofaRemember", form.Remember); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaRemember in session", err)
 		return
 	}
 
 	if hasTOTPtwofa {
 		// User will need to use U2F, save data
-		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
+		if err := newSess.Set("totpEnrolled", u.ID); err != nil {
 			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
 			return
 		}
 	}
 
-	if err := ctx.Session.Release(); err != nil {
+	if err := newSess.Release(); err != nil {
 		ctx.ServerError("UserSignIn: Unable to save session", err)
 		return
 	}
@@ -526,6 +544,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, o
 			setting.CookieRememberName, u.Name, days)
 	}
 
+	// Delete the openid, 2fa and linkaccount data
 	_ = ctx.Session.Delete("openid_verified_uri")
 	_ = ctx.Session.Delete("openid_signin_remember")
 	_ = ctx.Session.Delete("openid_determined_email")
@@ -534,13 +553,25 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, o
 	_ = ctx.Session.Delete("twofaRemember")
 	_ = ctx.Session.Delete("u2fChallenge")
 	_ = ctx.Session.Delete("linkAccount")
-	if err := ctx.Session.Set("uid", u.ID); err != nil {
+
+	// Save the session
+	_ = ctx.Session.Release()
+
+	// Regenerate the session copying the old data to the new one
+	newSess, _ := ctx.Session.RegenerateID(ctx.Resp, ctx.Req)
+
+	// delete the old session
+	_ = ctx.Session.Flush()
+
+	// Now set our login data
+	if err := newSess.Set("uid", u.ID); err != nil {
 		log.Error("Error setting uid %d in session: %v", u.ID, err)
 	}
-	if err := ctx.Session.Set("uname", u.Name); err != nil {
+	if err := newSess.Set("uname", u.Name); err != nil {
 		log.Error("Error setting uname %s session: %v", u.Name, err)
 	}
-	if err := ctx.Session.Release(); err != nil {
+
+	if err := newSess.Release(); err != nil {
 		log.Error("Unable to store session: %v", err)
 	}
 
@@ -799,13 +830,23 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
-		if err := ctx.Session.Set("uid", u.ID); err != nil {
+		// save the current session
+		_ = ctx.Session.Release()
+
+		// regenerate the session - copying  data from the old session to the new.
+		newSess, _ := ctx.Session.RegenerateID(ctx.Resp, ctx.Req)
+
+		// delete the old session
+		ctx.Session.Flush()
+
+		// Set session IDs
+		if err := newSess.Set("uid", u.ID); err != nil {
 			log.Error("Error setting uid in session: %v", err)
 		}
-		if err := ctx.Session.Set("uname", u.Name); err != nil {
+		if err := newSess.Set("uname", u.Name); err != nil {
 			log.Error("Error setting uname in session: %v", err)
 		}
-		if err := ctx.Session.Release(); err != nil {
+		if err := newSess.Release(); err != nil {
 			log.Error("Error storing session: %v", err)
 		}
 
@@ -1199,7 +1240,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	handleSignIn(ctx, u, false)
 }
 
 // HandleSignOut resets the session and sets the cookies
@@ -1563,13 +1604,23 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := ctx.Session.Set("uid", user.ID); err != nil {
+	// save the old session
+	_ = ctx.Session.Release()
+
+	// Regenerate the session copying the old data to the new session
+	newSess, _ := ctx.Session.RegenerateID(ctx.Resp, ctx.Req)
+
+	// delete the old session
+	ctx.Session.Flush()
+
+	// Set session IDs
+	if err := newSess.Set("uid", user.ID); err != nil {
 		log.Error("Error setting uid in session[%s]: %v", ctx.Session.ID(), err)
 	}
-	if err := ctx.Session.Set("uname", user.Name); err != nil {
+	if err := newSess.Set("uname", user.Name); err != nil {
 		log.Error("Error setting uname in session[%s]: %v", ctx.Session.ID(), err)
 	}
-	if err := ctx.Session.Release(); err != nil {
+	if err := newSess.Release(); err != nil {
 		log.Error("Error storing session[%s]: %v", ctx.Session.ID(), err)
 	}
 
