@@ -159,7 +159,6 @@ func AcceptTransfer(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
-
 }
 
 // RejectTransfer reject a repo transfer
@@ -203,6 +202,10 @@ func RejectTransfer(ctx *context.APIContext) {
 func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
 	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 	if err != nil {
+		if models.IsErrNoPendingTransfer(err) {
+			ctx.NotFound()
+			return nil
+		}
 		return err
 	}
 
