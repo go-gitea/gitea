@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ import (
 func Test_newIssueUsers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	newIssue := &Issue{
 		RepoID:   repo.ID,
 		PosterID: 4,
@@ -28,7 +29,7 @@ func Test_newIssueUsers(t *testing.T) {
 	// artificially insert new issue
 	unittest.AssertSuccessfulInsert(t, newIssue)
 
-	assert.NoError(t, newIssueUsers(db.GetEngine(db.DefaultContext), repo, newIssue))
+	assert.NoError(t, newIssueUsers(db.DefaultContext, repo, newIssue))
 
 	// issue_user table should now have entries for new issue
 	unittest.AssertExistsAndLoadBean(t, &IssueUser{IssueID: newIssue.ID, UID: newIssue.PosterID})

@@ -71,6 +71,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -157,13 +158,13 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.Repo.Owner = owner
 
 		// Get repository.
-		repo, err := models.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+			if repo_model.IsErrRepoNotExist(err) {
+				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
-				} else if models.IsErrRepoRedirectNotExist(err) {
+				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
 					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)

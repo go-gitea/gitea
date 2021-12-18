@@ -5,11 +5,11 @@
 package updatechecker
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/appstate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
