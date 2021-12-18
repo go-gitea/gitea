@@ -782,6 +782,11 @@ func getUserName(gothUser *goth.User) string {
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
+	}
+
 	if err := ctx.Session.Set("linkAccountGothUser", gothUser); err != nil {
 		log.Error("Error setting linkAccountGothUser in session: %v", err)
 	}
@@ -880,6 +885,11 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
+	}
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
@@ -1091,6 +1101,11 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		}
 
 		handleSignIn(ctx, u, remember)
+		return
+	}
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
 		return
 	}
 
