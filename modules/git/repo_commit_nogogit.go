@@ -38,7 +38,10 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	wr, rd, cancel := repo.CatFileBatchCheck()
 	defer cancel()
-	_, _ = wr.Write([]byte(name + "\n"))
+	_, err := wr.Write([]byte(name + "\n"))
+	if err != nil {
+		return "", err
+	}
 	shaBs, _, _, err := ReadBatchLine(rd)
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}

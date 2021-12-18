@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -167,6 +168,10 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if len(form.Password) != 0 {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
+			return
+		}
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)

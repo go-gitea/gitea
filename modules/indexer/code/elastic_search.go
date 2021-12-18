@@ -248,6 +248,11 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
 
 		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
 		defer cancel()
