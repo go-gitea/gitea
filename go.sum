@@ -48,8 +48,8 @@ gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1 h1:Z7DcvTkxt8ovcENgPsQ
 gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
 gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5 h1:J/1i8u40TbcLP/w2w2KCkgW2PelIqYkD5UOwu8IOvVU=
 gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5/go.mod h1:hQ9SYHKdOX968wJglb/NMQ+UqpOKwW4L+EYdvkWjHSo=
-gitea.com/go-chi/session v0.0.0-20211013065435-7d334f340c09 h1:1+K+6uOXrnSfLHXvu8jpuoNEWA3/NULOlLSRZwaij+c=
-gitea.com/go-chi/session v0.0.0-20211013065435-7d334f340c09/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
+gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8 h1:tJQRXgZigkLeeW9LPlps9G9aMoE6LAmqigLA+wxmd1Q=
+gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
 gitea.com/lunny/levelqueue v0.4.1 h1:RZ+AFx5gBsZuyqCvofhAkPQ9uaVDPJnsULoJZIYaJNw=
 gitea.com/lunny/levelqueue v0.4.1/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
