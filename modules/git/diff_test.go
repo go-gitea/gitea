@@ -83,7 +83,6 @@ index d46c152..a7d2d55 100644
 func TestCutDiffAroundLineIssue17875(t *testing.T) {
 	result, err := CutDiffAroundLine(strings.NewReader(issue17875Diff), 23, false, 3)
 	assert.NoError(t, err)
-	// resultByLine := strings.Split(result, "\n")
 	expected := `diff --git a/Geschäftsordnung.md b/Geschäftsordnung.md
 --- a/Geschäftsordnung.md
 +++ b/Geschäftsordnung.md
