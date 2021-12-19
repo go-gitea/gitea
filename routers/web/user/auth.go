@@ -856,7 +856,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 		}
 
 		if err := resetLocale(ctx, u); err != nil {
-			ctx.ServerError("UpdateUserCols", err)
+			ctx.ServerError("resetLocale", err)
 			return
 		}
 
