@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.15.8](https://github.com/go-gitea/gitea/releases/tag/v1.15.8) - 2021-12-19
 
 * BUGFIXES
+  * Stop printing 03d after escaped characters in logs (#18030) (#18034) 
   * Reset locale on login (#18023) (#18025)
   * Fix reset password email template (#17025) (#18022)
   * Fix outType on gitea dump (#18000) (#18016)
