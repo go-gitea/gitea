@@ -153,7 +153,6 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 
 	for scanner.Scan() {
 		lof := scanner.Text()
-		fmt.Printf("%03d: %s\n", currentLine, lof)
 		// Add header to enable parsing
 
 		if isHeader(lof, inHunk) {
