@@ -327,6 +327,7 @@
 							<div class="ui form merge-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
+									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
 									</div>
@@ -352,6 +353,7 @@
 							<div class="ui form rebase-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
+									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<button class="ui green button" type="submit" name="do" value="rebase">
 										{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
 									</button>
@@ -371,6 +373,7 @@
 							<div class="ui form rebase-merge-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
+									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
 									</div>
@@ -396,6 +399,7 @@
 							<div class="ui form squash-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}
+									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
 									</div>
@@ -421,6 +425,7 @@
 								<div class="ui form manually-merged-fields" style="display: none">
 									<form action="{{.Link}}/merge" method="post">
 										{{.CsrfTokenHtml}}
+										<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 										<div class="field">
 											<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
 										</div>
