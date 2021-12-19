@@ -41,11 +41,18 @@
 					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.i18n.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
+					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
+						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.ssh_key_verify"}}</a>
+					{{end}}
+
 				</div>
 				<div class="left floated content">
 					<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
+						{{if .Verified}}
+							<span class="tooltip" data-content="{{$.i18n.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.ssh_key_verified"}}</strong></span>
+						{{end}}
 						<strong>{{.Name}}</strong>
 						<div class="print meta">
 								{{.Fingerprint}}
@@ -55,6 +62,37 @@
 						</div>
 				</div>
 			</div>
+			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
+				<div class="ui segment">
+					<h4>{{$.i18n.Tr "settings.ssh_token_required"}}</h4>
+					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="title" value="none">
+						<input type="hidden" name="content" value="{{.Content}}">
+						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
+						<div class="field">
+							<label for="token">{{$.i18n.Tr "settings.ssh_token"}}</label>
+							<input readonly="" value="{{$.TokenToSign}}">
+							<div class="help">
+								<p>{{$.i18n.Tr "settings.ssh_token_help"}}</p>
+								<p><code>{{$.i18n.Tr "settings.ssh_token_code" $.TokenToSign}}</code></p>
+							</div>
+							<br>
+						</div>
+						<div class="field">
+							<label for="signature">{{$.i18n.Tr "settings.ssh_token_signature"}}</label>
+							<textarea id="ssh-key-signature" name="signature" placeholder="{{$.i18n.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+						</div>
+						<input name="type" type="hidden" value="verify_ssh">
+						<button class="ui green button">
+							{{$.i18n.Tr "settings.ssh_key_verify"}}
+						</button>
+						<a class="ui red button" href="{{$.Link}}">
+							{{$.i18n.Tr "settings.cancel"}}
+						</a>
+					</form>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>
