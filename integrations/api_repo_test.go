@@ -536,6 +536,10 @@ func TestAPIAcceptTransfer(t *testing.T) {
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
 	session.MakeRequest(t, req, http.StatusForbidden)
 
+	// try to accept repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2","repo1" , token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
 	// accept transfer
 	session = loginUser(t, "user4")
 	token = getTokenForLoggedInUser(t, session)
@@ -557,6 +561,10 @@ func TestAPIRejectTransfer(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
 	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to reject repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2","repo1" , token))
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// reject transfer
 	session = loginUser(t, "user4")
