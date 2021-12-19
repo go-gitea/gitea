@@ -106,7 +106,7 @@ func isGitRawReleaseOrLFSPath(req *http.Request) bool {
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
+func handleSignIn(resp http.ResponseWriter, req *http.Request, user *user_model.User) {
 	// We need to regenerate the session...
 	sess, err := session.RegenerateSession(resp, req)
 	if err != nil {

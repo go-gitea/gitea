@@ -145,7 +145,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 	// Make sure requests to API paths and PWA resources do not create a new session
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
-		handleSignIn(w, req, sess, user)
+		handleSignIn(w, req, user)
 	}
 
 	log.Trace("SSPI Authorization: Logged in user %-v", user)
