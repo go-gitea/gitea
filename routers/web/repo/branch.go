@@ -56,7 +56,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
-		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -379,7 +379,7 @@ func CreateBranch(ctx *context.Context) {
 			if len(e.Message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(e.Message),

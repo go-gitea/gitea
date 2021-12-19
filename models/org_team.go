@@ -114,6 +114,14 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 // ColorFormat provides a basic color format for a Team
 func (t *Team) ColorFormat(s fmt.State) {
+	if t == nil {
+		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			log.NewColoredIDValue(0),
+			0)
+		return
+	}
 	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
 		log.NewColoredIDValue(t.ID),
 		t.Name,
@@ -238,7 +246,7 @@ func (t *Team) addRepository(ctx context.Context, repo *repo_model.Repository) (
 			return fmt.Errorf("getMembers: %v", err)
 		}
 		for _, u := range t.Members {
-			if err = watchRepo(e, u.ID, repo.ID, true); err != nil {
+			if err = repo_model.WatchRepoCtx(ctx, u.ID, repo.ID, true); err != nil {
 				return fmt.Errorf("watchRepo: %v", err)
 			}
 		}
@@ -341,7 +349,7 @@ func (t *Team) removeAllRepositories(ctx context.Context) (err error) {
 				continue
 			}
 
-			if err = watchRepo(e, user.ID, repo.ID, false); err != nil {
+			if err = repo_model.WatchRepoCtx(ctx, user.ID, repo.ID, false); err != nil {
 				return err
 			}
 
@@ -399,7 +407,7 @@ func (t *Team) removeRepository(ctx context.Context, repo *repo_model.Repository
 			continue
 		}
 
-		if err = watchRepo(e, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepoCtx(ctx, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
 
@@ -857,7 +865,7 @@ func AddTeamMember(team *Team, userID int64) error {
 			return err
 		}
 		if setting.Service.AutoWatchNewRepos {
-			if err = watchRepo(sess, userID, repo.ID, true); err != nil {
+			if err = repo_model.WatchRepoCtx(ctx, userID, repo.ID, true); err != nil {
 				return err
 			}
 		}

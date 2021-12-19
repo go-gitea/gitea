@@ -166,7 +166,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 							}
 						}
 						// Update the is empty and default_branch columns
-						if err := models.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+						if err := repo_model.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
 							return fmt.Errorf("UpdateRepositoryCols: %v", err)
 						}
 					}
@@ -227,7 +227,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
-			if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+			if err = repo_model.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		} else {
@@ -239,7 +239,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	// Change repository last updated time.
-	if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
+	if err := repo_model.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 		return fmt.Errorf("UpdateRepositoryUpdatedTime: %v", err)
 	}
 

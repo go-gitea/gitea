@@ -31,14 +31,12 @@
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
-					<a class="title" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-						{{RenderEmoji .Title}}
-						{{if .IsPull }}
-							{{if (index $.CommitStatus .PullRequest.ID)}}
-								{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
-							{{end}}
+					<a class="title tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
+					{{if .IsPull}}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
-					</a>
+					{{end}}
 					<span class="labels-list ml-2">
 						{{range .Labels}}
 							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
@@ -126,14 +124,14 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
-						<a class="ui assignee tooltip" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
+						<a class="ui assignee tooltip tdn" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
 							{{avatar .}}
 						</a>
 					{{end}}
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{if .NumComments}}
-						<a href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						<a class="tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
 						</a>
 					{{end}}

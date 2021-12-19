@@ -141,7 +141,7 @@ func (issue *Issue) isTimetrackerEnabled(ctx context.Context) bool {
 		log.Error(fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
-	return issue.Repo.IsTimetrackerEnabled()
+	return issue.Repo.IsTimetrackerEnabledCtx(ctx)
 }
 
 // GetPullRequest returns the issue pull request
@@ -238,7 +238,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return nil
 	}
 	e := db.GetEngine(ctx)
-	reactions, err := findReactions(e, FindReactionsOptions{
+	reactions, _, err := findReactions(e, FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	if err != nil {

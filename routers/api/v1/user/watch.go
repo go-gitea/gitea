@@ -123,7 +123,7 @@ func IsWatching(ctx *context.APIContext) {
 	//   "404":
 	//     description: User is not watching this repo or repo do not exist
 
-	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
@@ -157,7 +157,7 @@ func Watch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
 
-	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -193,7 +193,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return
