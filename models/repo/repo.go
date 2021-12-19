@@ -173,6 +173,13 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
+	if repo == nil {
+		log.ColorFprintf(s, "%d:%s/%s",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			"<nil>")
+		return
+	}
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
 		repo.OwnerName,
@@ -682,6 +689,16 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	}
 
 	return getRepositoryByID(e, repo.TemplateID)
+}
+
+// TemplateRepo returns the repository, which is template of this repository
+func (repo *Repository) TemplateRepo() *Repository {
+	repo, err := GetTemplateRepo(repo)
+	if err != nil {
+		log.Error("TemplateRepo: %v", err)
+		return nil
+	}
+	return repo
 }
 
 func countRepositories(userID int64, private bool) int64 {

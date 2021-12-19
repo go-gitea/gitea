@@ -558,9 +558,48 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+
+			<div class="ui divider"></div>
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="admin_index">
+				{{if .CodeIndexerEnabled}}
+					<h4 class="ui header">{{.i18n.Tr "repo.settings.admin_code_indexer"}}</h4>
+					<div class="inline fields">
+						<label>{{.i18n.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+						<span class="field">
+							{{if .CodeIndexerStatus}}
+								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
+									<span class="shortsha">{{ShortSha .CodeIndexerStatus.CommitSha}}</span>
+								</a>
+							{{else}}
+									<span>{{.i18n.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+							{{end}}
+						</span>
+						<div class="field">
+							<button class="ui green button" name="request_reindex_type" value="code">{{$.i18n.Tr "repo.settings.reindex_button"}}</button>
+						</div>
+					</div>
+				{{end}}
+				<h4 class="ui header">{{.i18n.Tr "repo.settings.admin_stats_indexer"}}</h4>
+				<div class="inline fields">
+					<label>{{.i18n.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					<span class="field">
+						{{if .StatsIndexerStatus}}
+							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
+								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
+							</a>
+						{{else}}
+							<span>{{.i18n.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+						{{end}}
+					</span>
+					<div class="field">
+						<button class="ui green button" name="request_reindex_type" value="stats">{{$.i18n.Tr "repo.settings.reindex_button"}}</button>
+					</div>
 				</div>
 			</form>
 		</div>

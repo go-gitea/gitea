@@ -37826,7 +37826,7 @@ a {
 
 a:hover {
   color: #1e70bf;
-  text-decoration: none;
+  text-decoration: underline;
 }
 
 /*******************************

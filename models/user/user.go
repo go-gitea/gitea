@@ -160,6 +160,12 @@ type SearchOrganizationsOptions struct {
 
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
+	if u == nil {
+		log.ColorFprintf(s, "%d:%s",
+			log.NewColoredIDValue(0),
+			log.NewColoredValue("<nil>"))
+		return
+	}
 	log.ColorFprintf(s, "%d:%s",
 		log.NewColoredIDValue(u.ID),
 		log.NewColoredValue(u.Name))

@@ -154,8 +154,6 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions
 }
 
 func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
-	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
-
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,

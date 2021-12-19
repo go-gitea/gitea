@@ -216,21 +216,19 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	)
 
 	infoPath = ctx.Params("*")
-	infos := strings.SplitN(infoPath, "...", 2)
-
-	if len(infos) != 2 {
-		infos = []string{baseRepo.DefaultBranch, infoPath}
-		if strings.Contains(infoPath, "..") {
-			infos = strings.SplitN(infoPath, "..", 2)
-			ci.DirectComparison = true
-			ctx.Data["PageIsComparePull"] = false
+	var infos []string
+	if infoPath == "" {
+		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
+	} else {
+		infos = strings.SplitN(infoPath, "...", 2)
+		if len(infos) != 2 {
+			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
+				ci.DirectComparison = true
+				ctx.Data["PageIsComparePull"] = false
+			} else {
+				infos = []string{baseRepo.DefaultBranch, infoPath}
+			}
 		}
-	}
-
-	if len(infos) != 2 {
-		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -686,6 +684,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."
 	ctx.Data["CompareSeparator"] = "..."
@@ -763,7 +762,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireEasyMDE"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
