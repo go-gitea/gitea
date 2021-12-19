@@ -42,7 +42,7 @@ index d8e4c92..19dc8ad 100644
  /
 `
 
-var issue_17875_diff = `diff --git a/Geschäftsordnung.md b/Geschäftsordnung.md
+var issue17875Diff = `diff --git a/Geschäftsordnung.md b/Geschäftsordnung.md
 index d46c152..a7d2d55 100644
 --- a/Geschäftsordnung.md
 +++ b/Geschäftsordnung.md
@@ -80,8 +80,8 @@ index d46c152..a7d2d55 100644
 +5. Bei Präsenzveranstungen gelten außerdem die Hygienevorschriften des Veranstaltungsorts. Bei Regelkollision greift die restriktivere Regel.
 \ No newline at end of file`
 
-func TestCutDiffAroundLine_17875(t *testing.T) {
-	result, err := CutDiffAroundLine(strings.NewReader(issue_17875_diff), 23, false, 3)
+func TestCutDiffAroundLineIssue17875(t *testing.T) {
+	result, err := CutDiffAroundLine(strings.NewReader(issue17875Diff), 23, false, 3)
 	assert.NoError(t, err)
 	// resultByLine := strings.Split(result, "\n")
 	expected := `diff --git a/Geschäftsordnung.md b/Geschäftsordnung.md
