@@ -2959,8 +2959,8 @@ $(() => {
 function showDeletePopup() {
   const $this = $(this);
   let filter = '';
-  if ($this.attr('id')) {
-    filter += `#${$this.attr('id')}`;
+  if ($this.attr('modal-id')) {
+    filter += `#${$this.attr('modal-id')}`;
   }
 
   const dialog = $(`.delete.modal${filter}`);
