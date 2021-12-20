@@ -225,7 +225,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			toNotify[id] = struct{}{}
 		}
 		if !(issue.IsPull && HasWorkInProgressPrefix(issue.Title)) {
-			repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID)
 			if err != nil {
 				return err
 			}

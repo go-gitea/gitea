@@ -184,7 +184,7 @@ func checkInitRepository(owner, name string) (err error) {
 		return err
 	}
 	if isExist {
-		return models.ErrRepoFilesAlreadyExist{
+		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: owner,
 			Name:  name,
 		}

@@ -120,7 +120,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 			return models.IsUserRepoAdmin(repository, user)
 		}, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
+		statuses, _, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
