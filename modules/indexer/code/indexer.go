@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -42,7 +42,7 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
-	Index(repo *models.Repository, sha string, changes *repoChanges) error
+	Index(repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
@@ -83,8 +83,8 @@ var (
 )
 
 func index(indexer Indexer, repoID int64) error {
-	repo, err := models.GetRepositoryByID(repoID)
-	if models.IsErrRepoNotExist(err) {
+	repo, err := repo_model.GetRepositoryByID(repoID)
+	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
 	}
 	if err != nil {
@@ -106,7 +106,7 @@ func index(indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+	return repo_model.UpdateIndexerStatus(repo, repo_model.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer
@@ -256,7 +256,7 @@ func Init() {
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *models.Repository) {
+func UpdateRepoIndexer(repo *repo_model.Repository) {
 	indexData := &IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
@@ -297,7 +297,7 @@ func populateRepoIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		ids, err := models.GetUnindexedRepos(models.RepoIndexerTypeCode, maxRepoID, 0, 50)
+		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

@@ -6,6 +6,8 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -72,7 +74,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *m
 	}
 }
 
-func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository) {
+func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	oldMode, _ := models.AccessLevel(doer, oldRepo)
 	mode, _ := models.AccessLevel(doer, repo)
 
@@ -91,7 +93,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 	if u.IsOrganization() {
 		if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
-			Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+			Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 			Organization: convert.ToUser(u, nil),
 			Sender:       convert.ToUser(doer, nil),
 		}); err != nil {
@@ -100,11 +102,11 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
-		Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
 		Sender:       convert.ToUser(doer, nil),
 	}); err != nil {
@@ -112,12 +114,12 @@ func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_
 	}
 }
 
-func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository) {
 	u := repo.MustOwner()
 
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoDeleted,
-		Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
 		Sender:       convert.ToUser(doer, nil),
 	}); err != nil {
@@ -125,11 +127,11 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *mo
 	}
 }
 
-func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (m *webhookNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
-		Repository:   convert.ToRepo(repo, models.AccessModeOwner),
+		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
 		Sender:       convert.ToUser(doer, nil),
 	}); err != nil {
@@ -401,7 +403,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	mode, _ := models.AccessLevel(doer, repo)
 
@@ -504,7 +506,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
-			Repository:  convert.ToRepo(issue.Repo, models.AccessModeNone),
+			Repository:  convert.ToRepo(issue.Repo, perm.AccessModeNone),
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
@@ -563,7 +565,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issu
 	}
 }
 
-func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -578,7 +580,7 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *model
 		CompareURL: setting.AppURL + commits.CompareURL,
 		Commits:    apiCommits,
 		HeadCommit: apiHeadCommit,
-		Repo:       convert.ToRepo(repo, models.AccessModeOwner),
+		Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
 		Pusher:     apiPusher,
 		Sender:     apiPusher,
 	}); err != nil {
@@ -696,9 +698,9 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(repo, models.AccessModeNone)
+	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
@@ -740,16 +742,16 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *user_model.User, p
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
-		Repository:  convert.ToRepo(pr.Issue.Repo, models.AccessModeNone),
+		Repository:  convert.ToRepo(pr.Issue.Repo, perm.AccessModeNone),
 		Sender:      convert.ToUser(doer, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
 	}
 }
 
-func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	apiPusher := convert.ToUser(pusher, nil)
-	apiRepo := convert.ToRepo(repo, models.AccessModeNone)
+	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventDelete, &api.DeletePayload{
@@ -769,12 +771,12 @@ func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.Hook
 		return
 	}
 
-	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	mode, _ := models.AccessLevel(doer, rel.Repo)
 	if err := webhook_services.PrepareWebhooks(rel.Repo, webhook.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
-		Sender:     convert.ToUser(rel.Publisher, nil),
+		Sender:     convert.ToUser(doer, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -792,7 +794,7 @@ func (m *webhookNotifier) NotifyDeleteRelease(doer *user_model.User, rel *models
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
 
-func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	apiPusher := convert.ToUser(pusher, nil)
 	apiCommits, apiHeadCommit, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -807,7 +809,7 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *m
 		CompareURL: setting.AppURL + commits.CompareURL,
 		Commits:    apiCommits,
 		HeadCommit: apiHeadCommit,
-		Repo:       convert.ToRepo(repo, models.AccessModeOwner),
+		Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
 		Pusher:     apiPusher,
 		Sender:     apiPusher,
 	}); err != nil {
@@ -815,10 +817,10 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *m
 	}
 }
 
-func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	m.NotifyCreateRef(pusher, repo, refType, refFullName)
 }
 
-func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
 }

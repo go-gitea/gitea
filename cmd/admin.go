@@ -14,6 +14,7 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
@@ -298,6 +299,36 @@ var (
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
+		cli.StringSliceFlag{
+			Name:  "scopes",
+			Value: nil,
+			Usage: "Scopes to request when to authenticate against this OAuth2 source",
+		},
+		cli.StringFlag{
+			Name:  "required-claim-name",
+			Value: "",
+			Usage: "Claim name that has to be set to allow users to login with this source",
+		},
+		cli.StringFlag{
+			Name:  "required-claim-value",
+			Value: "",
+			Usage: "Claim value that has to be set to allow users to login with this source",
+		},
+		cli.StringFlag{
+			Name:  "group-claim-name",
+			Value: "",
+			Usage: "Claim name providing group names for this source",
+		},
+		cli.StringFlag{
+			Name:  "admin-group",
+			Value: "",
+			Usage: "Group Claim value for administrator users",
+		},
+		cli.StringFlag{
+			Name:  "restricted-group",
+			Value: "",
+			Usage: "Group Claim value for restricted users",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -348,6 +379,10 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
+	if len(c.String("password")) < setting.MinPasswordLength {
+		return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
+	}
+
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
@@ -625,7 +660,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return models.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys()
 }
 
 func parseOAuth2Config(c *cli.Context) *oauth2.Source {
@@ -648,6 +683,12 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
 		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
+		Scopes:                        c.StringSlice("scopes"),
+		RequiredClaimName:             c.String("required-claim-name"),
+		RequiredClaimValue:            c.String("required-claim-value"),
+		GroupClaimName:                c.String("group-claim-name"),
+		AdminGroup:                    c.String("admin-group"),
+		RestrictedGroup:               c.String("restricted-group"),
 	}
 }
 
@@ -708,6 +749,28 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("icon-url") {
 		oAuth2Config.IconURL = c.String("icon-url")
+	}
+
+	if c.IsSet("scopes") {
+		oAuth2Config.Scopes = c.StringSlice("scopes")
+	}
+
+	if c.IsSet("required-claim-name") {
+		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
+
+	}
+	if c.IsSet("required-claim-value") {
+		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
+	}
+
+	if c.IsSet("group-claim-name") {
+		oAuth2Config.GroupClaimName = c.String("group-claim-name")
+	}
+	if c.IsSet("admin-group") {
+		oAuth2Config.AdminGroup = c.String("admin-group")
+	}
+	if c.IsSet("restricted-group") {
+		oAuth2Config.RestrictedGroup = c.String("restricted-group")
 	}
 
 	// update custom URL mapping

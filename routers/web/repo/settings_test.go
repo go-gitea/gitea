@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -59,10 +62,10 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeRead,
+		Mode:    perm.AccessModeRead,
 	})
 }
 
@@ -89,10 +92,10 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 }
 
@@ -111,7 +114,7 @@ func TestCollaborationPost(t *testing.T) {
 		Type:      user_model.UserTypeIndividual,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:    2,
 		Owner: u,
 	}
@@ -127,7 +130,7 @@ func TestCollaborationPost(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -171,7 +174,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 		Type:      user_model.UserTypeIndividual,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:    2,
 		Owner: u,
 	}
@@ -187,7 +190,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -237,7 +240,7 @@ func TestAddTeamPost(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
@@ -277,7 +280,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
@@ -318,7 +321,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 		OrgID: 26,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
@@ -354,7 +357,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 		Type:      user_model.UserTypeOrganization,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      43,
 		Owner:   org,
 		OwnerID: 26,
@@ -392,7 +395,7 @@ func TestDeleteTeam(t *testing.T) {
 		OrgID: 3,
 	}
 
-	re := &models.Repository{
+	re := &repo_model.Repository{
 		ID:      3,
 		Owner:   org,
 		OwnerID: 3,

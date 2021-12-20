@@ -304,7 +304,6 @@
         .svg {
           margin-left: 3px;
           margin-right: 5px;
-          color: #777777;
 
           &.octicon-reply {
             margin-right: 10px;
@@ -313,6 +312,11 @@
           &.octicon-file-directory,
           &.octicon-file-submodule {
             color: var(--color-primary);
+          }
+
+          &.octicon-file,
+          &.octicon-file-symlink-file {
+            color: var(--color-secondary-dark-7);
           }
         }
       }
@@ -2036,26 +2040,8 @@
     }
 
     &.new {
-      .CodeMirror {
-        .CodeMirror-code {
-          font-family: var(--fonts-monospace);
-
-          .cm-comment {
-            background: inherit;
-          }
-        }
-      }
-
-      .editor-preview {
-        background-color: white;
-      }
-
       .ui.attached.tabular.menu.previewtabs {
         margin-bottom: 15px;
-
-        & + .field .editor-toolbar:not(.fullscreen) a.fa-eye {
-          display: none;
-        }
       }
     }
 
@@ -2183,110 +2169,82 @@
   }
 
   .ui.attached.isSigned.isWarning {
-    border-left: 1px solid #c29393;
-    border-right: 1px solid #c29393;
+    border-left: 1px solid var(--color-error-border);
+    border-right: 1px solid var(--color-error-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c29393;
+      border-top: 1px solid var(--color-error-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fff5f5;
-      color: #d95c5c;
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
 
       .ui.text {
-        color: #d64444;
+        color: var(--color-error-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c29393;
+      border-bottom: 1px solid var(--color-error-border);
     }
   }
 
-  .ui.attached.isSigned:not(.isWarning) .pull-right {
-    padding-top: 5px;
-  }
-
   .ui.attached.isSigned.isVerified {
-    border-left: 1px solid #a3c293;
-    border-right: 1px solid #a3c293;
+    border-left: 1px solid var(--color-success-border);
+    border-right: 1px solid var(--color-success-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #a3c293;
+      border-top: 1px solid var(--color-success-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fcfff5;
-      color: #6cc644;
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
 
       .pull-right {
         color: var(--color-text);
       }
 
       .ui.text {
-        color: #21ba45;
+        color: var(--color-success-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #a3c293;
+      border-bottom: 1px solid var(--color-success-border);
     }
   }
 
-  .ui.attached.isSigned.isVerifiedUntrusted {
-    border-left: 1px solid #c2c193;
-    border-right: 1px solid #c2c193;
-
-    &.top,
-    &.message {
-      border-top: 1px solid #c2c193;
-    }
-
-    &.message {
-      box-shadow: none;
-      background-color: #fffff5;
-      color: #fbbd08;
-
-      .ui.text {
-        color: #d2ab00;
-      }
-    }
-
-    &:last-child,
-    &.bottom {
-      border-bottom: 1px solid #c2c193;
-    }
-  }
-
+  .ui.attached.isSigned.isVerifiedUntrusted,
   .ui.attached.isSigned.isVerifiedUnmatched {
-    border-left: 1px solid #c2a893;
-    border-right: 1px solid #c2a893;
+    border-left: 1px solid var(--color-warning-border);
+    border-right: 1px solid var(--color-warning-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c2a893;
+      border-top: 1px solid var(--color-warning-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fffaf5;
-      color: #f2711c;
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
 
       .ui.text {
-        color: #ee5f00;
+        color: var(--color-warning-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c2a893;
+      border-bottom: 1px solid var(--color-warning-border);
     }
   }
 
@@ -2469,24 +2427,6 @@
     padding-top: 9px !important;
     padding-bottom: 9px !important;
   }
-
-  &.diff .committed-by {
-    padding-top: .5rem;
-
-    .ui.avatar {
-      width: 20px;
-      height: 20px;
-    }
-
-    span {
-      margin-right: .25rem;
-
-      svg {
-        vertical-align: text-bottom;
-        margin-right: 2px;
-      }
-    }
-  }
 }
 
 // End of .repository
@@ -2573,10 +2513,20 @@
   padding-top: 15px;
 }
 
+.browse-button {
+  position: absolute;
+  right: 1rem;
+  top: .75rem;
+}
+
+.commit-header-row {
+  min-height: 50px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .settings {
   .content {
-    margin-top: 2px;
-
     > .header,
     .segment {
       box-shadow: 0 1px 2px 0 var(--color-box-header);
@@ -2778,7 +2728,8 @@
 #delete-repo-modal,
 #delete-wiki-modal,
 #convert-fork-repo-modal,
-#convert-mirror-repo-modal {
+#convert-mirror-repo-modal,
+#fork-repo-modal {
   .ui.message {
     width: 100% !important;
   }
@@ -2865,20 +2816,6 @@ tbody.commit-list {
 
   th .message-wrapper {
     max-width: 680px;
-  }
-}
-
-.commit-summary a {
-  &:hover {
-    text-decoration: underline solid;
-  }
-
-  &.default-link {
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline solid;
-    }
   }
 }
 
@@ -3043,13 +2980,12 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword,
-.commit-body .issue-keyword:hover {
-  border-bottom: 1px dotted var(--color-text-light-2);
+.issue-keyword {
+  border-bottom: 1px dotted var(--color-text-light-3) !important;
 }
 
 .issue-keyword:hover {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .file-header {

@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -80,7 +82,7 @@ func (org *Organization) LoadTeams() ([]*Team, error) {
 }
 
 // GetMembers returns all members of organization.
-func (org *Organization) GetMembers() (UserList, map[int64]bool, error) {
+func (org *Organization) GetMembers() (user_model.UserList, map[int64]bool, error) {
 	return FindOrgMembers(&FindOrgMembersOpts{
 		OrgID: org.ID,
 	})
@@ -148,7 +150,7 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 }
 
 // FindOrgMembers loads organization members according conditions
-func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) {
+func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
 	ous, err := GetOrgUsersByOrgID(opts)
 	if err != nil {
 		return nil, nil, err
@@ -161,7 +163,7 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		idsIsPublic[ou.UID] = ou.IsPublic
 	}
 
-	users, err := GetUsersByIDs(ids)
+	users, err := user_model.GetUsersByIDs(ids)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -263,7 +265,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		OrgID:                   org.ID,
 		LowerName:               strings.ToLower(ownerTeamName),
 		Name:                    ownerTeamName,
-		Authorize:               AccessModeOwner,
+		Authorize:               perm.AccessModeOwner,
 		NumMembers:              1,
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
@@ -420,8 +422,8 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 }
 
 // GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
-func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (AccessMode, error) {
-	var authorize AccessMode
+func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode, error) {
+	var authorize perm.AccessMode
 	_, err := db.GetEngine(db.DefaultContext).
 		Select("max(team.authorize)").
 		Table("team").
@@ -442,7 +444,7 @@ func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*user_model.User, 
 	return users, e.
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": perm.AccessModeOwner})).
 		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
@@ -564,7 +566,7 @@ func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error)
 		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where("`team_user`.uid=?", userID).
-		And("`team`.authorize=?", AccessModeOwner).
+		And("`team`.authorize=?", perm.AccessModeOwner).
 		Asc("`user`.name").
 		Find(&orgs)
 }
@@ -624,7 +626,7 @@ func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").
 		Join("INNER", "`team`", "`team`.id = `team_user`.team_id").
 		Where(builder.Eq{"`team_user`.uid": userID}).
-		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
+		And(builder.Eq{"`team`.authorize": perm.AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})))).
 		Asc("`user`.name").
 		Find(&orgs)
 }
@@ -792,7 +794,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = watchRepo(sess, userID, repoID, false); err != nil {
+		if err = repo_model.WatchRepoCtx(ctx, userID, repoID, false); err != nil {
 			return err
 		}
 	}
@@ -883,7 +885,7 @@ func (org *Organization) getUserTeamIDs(e db.Engine, userID int64) ([]int64, err
 }
 
 // TeamsWithAccessToRepo returns all teams that have given access level to the repository.
-func (org *Organization) TeamsWithAccessToRepo(repoID int64, mode AccessMode) ([]*Team, error) {
+func (org *Organization) TeamsWithAccessToRepo(repoID int64, mode perm.AccessMode) ([]*Team, error) {
 	return GetTeamsWithAccessToRepo(org.ID, repoID, mode)
 }
 
@@ -903,8 +905,8 @@ func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
-	Repos(page, pageSize int) ([]*Repository, error)
-	MirrorRepos() ([]*Repository, error)
+	Repos(page, pageSize int) ([]*repo_model.Repository, error)
+	MirrorRepos() ([]*repo_model.Repository, error)
 	AddKeyword(keyword string)
 	SetSort(db.SearchOrderBy)
 }
@@ -986,7 +988,7 @@ func (env *accessibleReposEnv) CountRepos() (int64, error) {
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
-		Count(&Repository{})
+		Count(&repo_model.Repository{})
 	if err != nil {
 		return 0, fmt.Errorf("count user repositories in organization: %v", err)
 	}
@@ -1010,13 +1012,13 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Repository, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserRepositoryIDs: %v", err)
 	}
 
-	repos := make([]*Repository, 0, len(repoIDs))
+	repos := make([]*repo_model.Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}
@@ -1039,13 +1041,13 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
+func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
 		return nil, fmt.Errorf("MirrorRepoIDs: %v", err)
 	}
 
-	repos := make([]*Repository, 0, len(repoIDs))
+	repos := make([]*repo_model.Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}

@@ -323,6 +323,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
+	ctx.SetTotalCountHeader(int64(len(entries)))
 	ctx.JSON(http.StatusOK, pages)
 }
 
@@ -432,6 +433,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }
 

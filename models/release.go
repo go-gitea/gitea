@@ -25,12 +25,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64            `xorm:"pk autoincr"`
-	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository      `xorm:"-"`
-	PublisherID      int64            `xorm:"INDEX"`
-	Publisher        *user_model.User `xorm:"-"`
-	TagName          string           `xorm:"INDEX UNIQUE(n)"`
+	ID               int64                  `xorm:"pk autoincr"`
+	RepoID           int64                  `xorm:"INDEX UNIQUE(n)"`
+	Repo             *repo_model.Repository `xorm:"-"`
+	PublisherID      int64                  `xorm:"INDEX"`
+	Publisher        *user_model.User       `xorm:"-"`
+	TagName          string                 `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -55,7 +55,7 @@ func init() {
 func (r *Release) loadAttributes(e db.Engine) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
+		r.Repo, err = repo_model.GetRepositoryByID(r.RepoID)
 		if err != nil {
 			return err
 		}
@@ -369,4 +369,90 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 			"original_author_id": 0,
 		})
 	return err
+}
+
+// PushUpdateDeleteTagsContext updates a number of delete tags with context
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
+	return pushUpdateDeleteTags(db.GetEngine(ctx), repo, tags)
+}
+
+func pushUpdateDeleteTags(e db.Engine, repo *repo_model.Repository, tags []string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	if _, err := e.
+		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
+		In("lower_tag_name", lowerTags).
+		Delete(new(Release)); err != nil {
+		return fmt.Errorf("Delete: %v", err)
+	}
+
+	if _, err := e.
+		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
+		In("lower_tag_name", lowerTags).
+		Cols("is_draft", "num_commits", "sha1").
+		Update(&Release{
+			IsDraft: true,
+		}); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+
+	return nil
+}
+
+// PushUpdateDeleteTag must be called for any push actions to delete tag
+func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
+	rel, err := GetRelease(repo.ID, tagName)
+	if err != nil {
+		if IsErrReleaseNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+	if rel.IsTag {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
+			return fmt.Errorf("Delete: %v", err)
+		}
+	} else {
+		rel.IsDraft = true
+		rel.NumCommits = 0
+		rel.Sha1 = ""
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// SaveOrUpdateTag must be called for any push actions to add tag
+func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
+	rel, err := GetRelease(repo.ID, newRel.TagName)
+	if err != nil && !IsErrReleaseNotExist(err) {
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+
+	if rel == nil {
+		rel = newRel
+		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
+			return fmt.Errorf("InsertOne: %v", err)
+		}
+	} else {
+		rel.Sha1 = newRel.Sha1
+		rel.CreatedUnix = newRel.CreatedUnix
+		rel.NumCommits = newRel.NumCommits
+		rel.IsDraft = false
+		if rel.IsTag && newRel.PublisherID > 0 {
+			rel.PublisherID = newRel.PublisherID
+		}
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+	return nil
 }
