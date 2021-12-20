@@ -26,7 +26,7 @@ type RepositoryRestorer struct {
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
-func NewRepositoryRestorer(ctx context.Context, baseDir string, owner, repoName string) (*RepositoryRestorer, error) {
+func NewRepositoryRestorer(ctx context.Context, baseDir, owner, repoName string) (*RepositoryRestorer, error) {
 	baseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return nil, err

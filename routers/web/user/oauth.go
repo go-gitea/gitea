@@ -723,7 +723,7 @@ func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
 	ctx.JSON(http.StatusBadRequest, acErr)
 }
 
-func handleServerError(ctx *context.Context, state string, redirectURI string) {
+func handleServerError(ctx *context.Context, state, redirectURI string) {
 	handleAuthorizeError(ctx, AuthorizeError{
 		ErrorCode:        ErrorCodeServerError,
 		ErrorDescription: "A server error occurred",

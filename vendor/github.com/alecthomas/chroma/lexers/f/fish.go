@@ -74,7 +74,7 @@ func fishRules() Rules {
 			{`&&|\|\||&|\||\^|<|>`, Operator, nil},
 			{`\s+`, Text, nil},
 			{`\b\d+\b`, LiteralNumber, nil},
-			{`--?[^\d][\w-]*`, NameAttribute, nil},
+			{`(?<=\s+)--?[^\d][\w-]*`, NameAttribute, nil},
 			{".+?", Text, nil},
 		},
 		"string": {
