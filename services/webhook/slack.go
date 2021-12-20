@@ -85,7 +85,7 @@ func SlackShortTextFormatter(s string) string {
 }
 
 // SlackLinkFormatter creates a link compatible with slack
-func SlackLinkFormatter(url string, text string) string {
+func SlackLinkFormatter(url, text string) string {
 	return fmt.Sprintf("<%s|%s>", url, SlackTextFormatter(text))
 }
 
