@@ -363,7 +363,7 @@ func Action(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.FormString("action") {
 	case "follow":
 		err = user_model.FollowUser(ctx.User.ID, u.ID)
 	case "unfollow":
@@ -371,7 +371,7 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
 		return
 	}
 	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
