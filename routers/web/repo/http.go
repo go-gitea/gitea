@@ -126,7 +126,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		return
 	}
 	if !owner.IsOrganization() && !owner.IsActive {
-		ctx.HandleText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
+		ctx.PlainText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -134,7 +134,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	repo, err := repo_model.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
+			if redirectRepoID, err := repo_model.LookupRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
 				return
 			}
@@ -147,7 +147,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// Don't allow pushing if the repo is archived
 	if repoExist && repo.IsArchived && !isPull {
-		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
+		ctx.PlainText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return
 	}
 
@@ -182,7 +182,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			_, err = login.GetTwoFactorByUID(ctx.User.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
-				ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
+				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
 			} else if !login.IsErrTwoFactorNotEnrolled(err) {
 				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
@@ -191,7 +191,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if !ctx.User.IsActive || ctx.User.ProhibitLogin {
-			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
+			ctx.PlainText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
@@ -208,12 +208,12 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			}
 
 			if !p.CanAccess(accessMode, unitType) {
-				ctx.HandleText(http.StatusForbidden, "User permission denied")
+				ctx.PlainText(http.StatusForbidden, "User permission denied")
 				return
 			}
 
 			if !isPull && repo.IsMirror {
-				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+				ctx.PlainText(http.StatusForbidden, "mirror repository is read-only")
 				return
 			}
 		}
@@ -240,21 +240,21 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if !repoExist {
 		if !receivePack {
-			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			ctx.PlainText(http.StatusNotFound, "Repository not found")
 			return
 		}
 
 		if isWiki { // you cannot send wiki operation before create the repository
-			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			ctx.PlainText(http.StatusNotFound, "Repository not found")
 			return
 		}
 
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
-			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
+			ctx.PlainText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
 		}
 		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
-			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
+			ctx.PlainText(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
 
@@ -276,7 +276,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		// Ensure the wiki is enabled before we allow access to it
 		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
-				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
+				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return
 			}
 			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
@@ -338,10 +338,10 @@ func dummyInfoRefs(ctx *context.Context) {
 		infoRefsCache = refs
 	})
 
-	ctx.Header().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
-	ctx.Header().Set("Pragma", "no-cache")
-	ctx.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
-	ctx.Header().Set("Content-Type", "application/x-git-receive-pack-advertisement")
+	ctx.RespHeader().Set("Expires", "Fri, 01 Jan 1980 00:00:00 GMT")
+	ctx.RespHeader().Set("Pragma", "no-cache")
+	ctx.RespHeader().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+	ctx.RespHeader().Set("Content-Type", "application/x-git-receive-pack-advertisement")
 	_, _ = ctx.Write(packetWrite("# service=git-receive-pack\n"))
 	_, _ = ctx.Write([]byte("0000"))
 	_, _ = ctx.Write(infoRefsCache)

@@ -25,7 +25,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) error {
+func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
 	if verbose {
 		log.Info("Adding file %s\n", filePath)
 	}
@@ -48,7 +48,7 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 	})
 }
 
-func isSubdir(upper string, lower string) (bool, error) {
+func isSubdir(upper, lower string) (bool, error) {
 	if relPath, err := filepath.Rel(upper, lower); err != nil {
 		return false, err
 	} else if relPath == "." || !strings.HasPrefix(relPath, ".") {
@@ -86,7 +86,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.gz", "tar.xz", "tar.bz2"},
+	Enum:    []string{"zip", "rar", "tar", "sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4"},
 	Default: "zip",
 }
 
@@ -152,12 +152,16 @@ func fatal(format string, args ...interface{}) {
 func runDump(ctx *cli.Context) error {
 	var file *os.File
 	fileName := ctx.String("file")
+	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
 		err := log.DelLogger("console")
 		if err != nil {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
+	} else {
+		fileName = strings.TrimSuffix(fileName, path.Ext(fileName))
+		fileName += "." + outType
 	}
 	setting.LoadFromExisting()
 
@@ -200,7 +204,6 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	verbose := ctx.Bool("verbose")
-	outType := ctx.String("type")
 	var iface interface{}
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))

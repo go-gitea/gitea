@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/sync"
 )
@@ -57,6 +58,8 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, newRepoName string) error {
+	log.Trace("ChangeRepositoryName: %s/%s -> %s", doer.Name, repo.Name, newRepoName)
+
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
@@ -64,12 +67,13 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := models.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
+	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
+	repo.Name = newRepoName
 	notification.NotifyRenameRepository(doer, repo, oldRepoName)
 
 	return nil

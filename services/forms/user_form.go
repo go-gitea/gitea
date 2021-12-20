@@ -349,12 +349,13 @@ func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding
 
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
-	Type       string `binding:"OmitEmpty"`
-	Title      string `binding:"Required;MaxSize(50)"`
-	Content    string `binding:"Required"`
-	Signature  string `binding:"OmitEmpty"`
-	KeyID      string `binding:"OmitEmpty"`
-	IsWritable bool
+	Type        string `binding:"OmitEmpty"`
+	Title       string `binding:"Required;MaxSize(50)"`
+	Content     string `binding:"Required"`
+	Signature   string `binding:"OmitEmpty"`
+	KeyID       string `binding:"OmitEmpty"`
+	Fingerprint string `binding:"OmitEmpty"`
+	IsWritable  bool
 }
 
 // Validate validates the fields

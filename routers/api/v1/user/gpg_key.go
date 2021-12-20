@@ -157,7 +157,7 @@ func GetVerificationToken(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	token := asymkey_model.VerificationToken(ctx.User, 1)
-	ctx.PlainText(http.StatusOK, []byte(token))
+	ctx.PlainText(http.StatusOK, token)
 }
 
 // VerifyUserGPGKey creates new GPG key to given user by ID.

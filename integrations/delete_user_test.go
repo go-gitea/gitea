@@ -24,7 +24,7 @@ func assertUserDeleted(t *testing.T, userID int64) {
 	unittest.AssertNotExistsBean(t, &models.OrgUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &models.IssueUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &models.TeamUser{UID: userID})
-	unittest.AssertNotExistsBean(t, &models.Star{UID: userID})
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID})
 }
 
 func TestUserDeleteAccount(t *testing.T) {
