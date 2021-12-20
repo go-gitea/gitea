@@ -188,12 +188,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(author, committer *user_model.User, treeHash string, message string, signoff bool) (string, error) {
+func (t *TemporaryUploadRepository) CommitTree(author, committer *user_model.User, treeHash, message string, signoff bool) (string, error) {
 	return t.CommitTreeWithDate(author, committer, treeHash, message, signoff, time.Now(), time.Now())
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_model.User, treeHash string, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_model.User, treeHash, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -263,7 +263,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 }
 
 // Push the provided commitHash to the repository branch by the provided user
-func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash string, branch string) error {
+func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.gitRepo.Ctx, t.basePath, git.PushOptions{
