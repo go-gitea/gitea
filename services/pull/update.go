@@ -55,7 +55,7 @@ func Update(pull *models.PullRequest, doer *user_model.User, message string, reb
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
-	_, err = rawMerge(pr, doer, style, message)
+	_, err = rawMerge(pr, doer, style, "", message)
 
 	defer func() {
 		if rebase {

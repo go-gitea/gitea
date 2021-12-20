@@ -1,5 +1,5 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
-<input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
+<input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
 <input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}">
 <form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
 	{{$.CsrfTokenHtml}}
@@ -7,7 +7,7 @@
 
 <div class="ui {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
-		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
+		<span class="text branch-name">{{if .Reference}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
 	</div>
 	<div class="menu">
@@ -32,7 +32,7 @@
 			</div>
 		</div>
 		<div id="branch-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}">
-			{{if .Issue.Ref}}
+			{{if .Reference}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{$.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Branches}}
@@ -40,7 +40,7 @@
 			{{end}}
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}" style="display: none">
-			{{if .Issue.Ref}}
+			{{if .Reference}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Tags}}

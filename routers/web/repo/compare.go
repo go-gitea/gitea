@@ -41,7 +41,7 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
 	ctx.Data["BaseCommit"] = base
 	ctx.Data["HeadCommit"] = head
 
@@ -73,7 +73,7 @@ func RawCommitURL(owner, name string, commit *git.Commit) string {
 }
 
 // setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
 	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
 	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
@@ -215,21 +215,19 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	)
 
 	infoPath = ctx.Params("*")
-	infos := strings.SplitN(infoPath, "...", 2)
-
-	if len(infos) != 2 {
-		infos = []string{baseRepo.DefaultBranch, infoPath}
-		if strings.Contains(infoPath, "..") {
-			infos = strings.SplitN(infoPath, "..", 2)
-			ci.DirectComparison = true
-			ctx.Data["PageIsComparePull"] = false
+	var infos []string
+	if infoPath == "" {
+		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
+	} else {
+		infos = strings.SplitN(infoPath, "...", 2)
+		if len(infos) != 2 {
+			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
+				ci.DirectComparison = true
+				ctx.Data["PageIsComparePull"] = false
+			} else {
+				infos = []string{baseRepo.DefaultBranch, infoPath}
+			}
 		}
-	}
-
-	if len(infos) != 2 {
-		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -853,7 +851,7 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight int, chunkSize int) ([]*gitdiff.DiffLine, error) {
+func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
 	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
 		return nil, err

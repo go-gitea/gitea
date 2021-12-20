@@ -362,6 +362,8 @@ var migrations = []Migration{
 	// v203 -> v204
 	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
 	// v204 -> v205
+	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
+	// v205 -> v206
 	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowEditsFromMaintainers),
 }
 

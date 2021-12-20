@@ -4,15 +4,12 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func addAllowEditsFromMaintainers(x *xorm.Engine) error {
-	// PullRequest represents relation between pull request and repositories.
-	type PullRequest struct {
-		AllowEditsFromMaintainers bool
+func addSSHKeyIsVerified(x *xorm.Engine) error {
+	type PublicKey struct {
+		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(PullRequest))
+	return x.Sync(new(PublicKey))
 }
