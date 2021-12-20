@@ -47,8 +47,8 @@ gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e h1:zgPGaf3kXP0cVm9J0l8
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
 gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e h1:YjaQU6XFicdhPN+MlGolcXO8seYY2+EY5g7vZPB17CQ=
 gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e/go.mod h1:nfA7JaGv3hbGQ1ktdhAsZhdS84qKffI8NMlHr+Opsog=
-gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee h1:9U6HuKUBt/cGK6T/64dEuz0r7Yp97WAAEJvXHDlY3ws=
-gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee/go.mod h1:Ozg8IchVNb/Udg+ui39iHRYqVHSvf3C99ixdpLR8Vu0=
+gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8 h1:tJQRXgZigkLeeW9LPlps9G9aMoE6LAmqigLA+wxmd1Q=
+gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
 gitea.com/lunny/levelqueue v0.4.1 h1:RZ+AFx5gBsZuyqCvofhAkPQ9uaVDPJnsULoJZIYaJNw=
 gitea.com/lunny/levelqueue v0.4.1/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
@@ -325,8 +325,9 @@ github.com/go-asn1-ber/asn1-ber v1.5.3/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkPro
 github.com/go-chi/chi v1.5.1/go.mod h1:REp24E+25iKvxgeTfHmdUoL5x15kBiDBlnIl5bCwe2k=
 github.com/go-chi/chi v1.5.4 h1:QHdzF2szwjqVV4wmByUnTcsbIg7UGaQ0tPF2t5GcAIs=
 github.com/go-chi/chi v1.5.4/go.mod h1:uaf8YgoFazUOkPBG7fxPftUylNumIev9awIWOENIuEg=
-github.com/go-chi/chi/v5 v5.0.1 h1:ALxjCrTf1aflOlkhMnCUP86MubbWFrzB3gkRPReLpTo=
 github.com/go-chi/chi/v5 v5.0.1/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
+github.com/go-chi/chi/v5 v5.0.4 h1:5e494iHzsYBiyXQAHHuI4tyJS9M3V84OuX3ufIIGHFo=
+github.com/go-chi/chi/v5 v5.0.4/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-chi/cors v1.2.0 h1:tV1g1XENQ8ku4Bq3K9ub2AtgG+p16SmzeMSGTwrOKdE=
 github.com/go-chi/cors v1.2.0/go.mod h1:sSbTewc+6wYHBBCW7ytsFSn836hqM7JxpglAy2Vzc58=
 github.com/go-enry/go-enry/v2 v2.7.1 h1:WCqtfyteIz61GYk9lRVy8HblvIv4cP9GIiwm/6txCbU=
