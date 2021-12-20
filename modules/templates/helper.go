@@ -526,7 +526,7 @@ func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 }
 
 // AvatarHTML creates the HTML for an avatar
-func AvatarHTML(src string, size int, class string, name string) template.HTML {
+func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
 
 	if name == "" {
@@ -596,7 +596,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 

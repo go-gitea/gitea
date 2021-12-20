@@ -101,8 +101,31 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 		return false, err
 	}
 
+	if err := resetLocale(ctx, u); err != nil {
+		return false, err
+	}
+
 	middleware.DeleteCSRFCookie(ctx.Resp)
 	return true, nil
+}
+
+func resetLocale(ctx *context.Context, u *user_model.User) error {
+	// Language setting of the user overwrites the one previously set
+	// If the user does not have a locale set, we save the current one.
+	if len(u.Language) == 0 {
+		u.Language = ctx.Locale.Language()
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
+			return err
+		}
+	}
+
+	middleware.SetLocaleCookie(ctx.Resp, u.Language, 0)
+
+	if ctx.Locale.Language() != u.Language {
+		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+	}
+
+	return nil
 }
 
 func checkAutoLogin(ctx *context.Context) bool {
@@ -518,7 +541,7 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 	handleSignInFull(ctx, u, remember, true)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, obeyRedirect bool) string {
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days)
@@ -830,6 +853,11 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 		// update external user information
 		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
 			log.Error("UpdateExternalUser failed: %v", err)
+		}
+
+		if err := resetLocale(ctx, u); err != nil {
+			ctx.ServerError("resetLocale", err)
+			return
 		}
 
 		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
@@ -1571,6 +1599,11 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 	if err := ctx.Session.Release(); err != nil {
 		log.Error("Error storing session[%s]: %v", ctx.Session.ID(), err)
+	}
+
+	if err := resetLocale(ctx, user); err != nil {
+		ctx.ServerError("resetLocale", err)
+		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))

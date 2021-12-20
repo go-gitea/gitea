@@ -102,7 +102,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (m *webhookNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
@@ -127,7 +127,7 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *re
 	}
 }
 
-func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (m *webhookNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	// Add to hook queue for created repo after session commit.
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
