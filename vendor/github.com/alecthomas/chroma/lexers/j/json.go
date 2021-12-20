@@ -23,6 +23,9 @@ func jsonRules() Rules {
 		"whitespace": {
 			{`\s+`, Text, nil},
 		},
+		"comment": {
+			{`//.*?\n`, CommentSingle, nil},
+		},
 		"simplevalue": {
 			{`(true|false|null)\b`, KeywordConstant, nil},
 			{`-?(0|[1-9]\d*)(\.\d+[eE](\+|-)?\d+|[eE](\+|-)?\d+|\.\d+)`, LiteralNumberFloat, nil},
@@ -37,18 +40,21 @@ func jsonRules() Rules {
 		},
 		"objectvalue": {
 			Include("whitespace"),
+			Include("comment"),
 			{`"(\\\\|\\"|[^"])*"`, NameTag, Push("objectattribute")},
 			{`\}`, Punctuation, Pop(1)},
 		},
 		"arrayvalue": {
 			Include("whitespace"),
 			Include("value"),
+			Include("comment"),
 			{`,`, Punctuation, nil},
 			{`\]`, Punctuation, Pop(1)},
 		},
 		"value": {
 			Include("whitespace"),
 			Include("simplevalue"),
+			Include("comment"),
 			{`\{`, Punctuation, Push("objectvalue")},
 			{`\[`, Punctuation, Push("arrayvalue")},
 		},

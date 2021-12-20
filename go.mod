@@ -17,7 +17,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
 	github.com/PuerkitoBio/goquery v1.7.0
 	github.com/RoaringBitmap/roaring v0.9.1 // indirect
-	github.com/alecthomas/chroma v0.9.2
+	github.com/alecthomas/chroma v0.9.4
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/blevesearch/bleve/v2 v2.0.6
