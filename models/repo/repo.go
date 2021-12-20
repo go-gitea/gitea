@@ -173,6 +173,13 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
+	if repo == nil {
+		log.ColorFprintf(s, "%d:%s/%s",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			"<nil>")
+		return
+	}
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
 		repo.OwnerName,

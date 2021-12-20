@@ -152,8 +152,6 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions
 }
 
 func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
-	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
-
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -181,7 +179,7 @@ func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *r
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (a *actionNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
