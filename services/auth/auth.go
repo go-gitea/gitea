@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -95,6 +96,14 @@ func isGitRawReleaseOrLFSPath(req *http.Request) bool {
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
 func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *models.User) {
+	// We need to regenerate the session...
+	newSess, err := session.RegenerateSession(resp, req)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error regenerating session: %v", err))
+	} else {
+		sess = newSess
+	}
+
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
@@ -103,7 +112,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	_ = sess.Delete("twofaRemember")
 	_ = sess.Delete("u2fChallenge")
 	_ = sess.Delete("linkAccount")
-	err := sess.Set("uid", user.ID)
+	err = sess.Set("uid", user.ID)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
