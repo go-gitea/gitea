@@ -66,12 +66,12 @@
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
 							<li class="follow">
 								{{if .SignedUser.IsFollowing .Owner.ID}}
-									<form method="post" action="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">
+									<form method="post" action="{{.Link}}?action=unfollow&redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
 										<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.i18n.Tr "user.unfollow"}}</button>
 									</form>
 								{{else}}
-									<form method="post" action="{{.Link}}/action/follow?redirect_to={{$.Link}}">
+									<form method="post" action="{{.Link}}?action=follow&redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
 										<button type="submit" class="ui basic green button">{{svg "octicon-person"}} {{.i18n.Tr "user.follow"}}</button>
 									</form>
