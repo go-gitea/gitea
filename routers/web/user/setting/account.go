@@ -243,7 +243,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx.User); err != nil {
+	if err := user.DeleteUser(ctx, ctx.User, false); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

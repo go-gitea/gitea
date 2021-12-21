@@ -386,18 +386,19 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(u); err != nil {
+	purge := false
+	if ctx.FormString("purge") != "" {
+		purge = true
+	}
+
+	if err = user_service.DeleteUser(ctx, u, purge); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
-			})
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
-			})
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
@@ -406,9 +407,7 @@ func DeleteUser(ctx *context.Context) {
 	log.Trace("Account deleted by admin (%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/users",
-	})
+	ctx.Redirect(setting.AppSubURL + "/admin/users")
 }
 
 // AvatarPost response for change user's avatar request

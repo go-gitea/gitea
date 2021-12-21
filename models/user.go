@@ -144,7 +144,7 @@ func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
 }
 
 // DeleteUser deletes models associated to an user.
-func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
@@ -207,8 +207,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
-		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
 
 		// Delete Comments
 		const batchSize = 50

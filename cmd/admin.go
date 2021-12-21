@@ -149,6 +149,10 @@ var (
 				Name:  "email,e",
 				Usage: "Email of the user to delete",
 			},
+			cli.BoolFlag{
+				Name:  "purge",
+				Usage: "Purge user, all their repositories, organizations and comments",
+			},
 		},
 		Action: runDeleteUser,
 	}
@@ -571,7 +575,12 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(user)
+	purge := false
+	if c.IsSet("purge") {
+		purge = c.Bool("purge")
+	}
+
+	return user_service.DeleteUser(ctx, user, purge)
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {

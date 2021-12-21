@@ -308,7 +308,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(u); err != nil {
+	if err := user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)

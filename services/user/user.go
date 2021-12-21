@@ -27,9 +27,50 @@ import (
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *user_model.User) error {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
+	if purge {
+		// Delete all repos belonging to this user
+		for page := 1; ; page++ {
+			repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+				ListOptions: db.ListOptions{
+					PageSize: models.RepositoryListDefaultPageSize,
+					Page:     page,
+				},
+				Private: true,
+				OwnerID: u.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("SearchRepositoryByName: %v", err)
+			}
+			if len(repos) == 0 {
+				break
+			}
+			for _, repo := range repos {
+				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
+					return fmt.Errorf("unable to delete repositories for %s[%d]. Error: %v", u.Name, u.ID, err)
+				}
+			}
+		}
+
+		// Delete Orgs
+		orgs, err := models.GetUserOrgsList(u)
+		if err != nil {
+			return fmt.Errorf("unable to org list for %s[%d]. Error: %v", u.Name, u.ID, err)
+		}
+		for _, org := range orgs {
+			if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+				if models.IsErrLastOrgOwner(err) {
+					err = models.DeleteOrganization(ctx, org)
+				}
+				if err != nil {
+					return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %v", u.Name, u.ID, org.Name, org.ID, err)
+				}
+			}
+		}
 	}
 
 	ctx, committer, err := db.TxContext()
@@ -57,7 +98,7 @@ func DeleteUser(u *user_model.User) error {
 		return models.ErrUserHasOrgs{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u); err != nil {
+	if err := models.DeleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %v", err)
 	}
 
@@ -108,7 +149,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
-		if err := DeleteUser(u); err != nil {
+		if err := DeleteUser(ctx, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) {
 				continue
