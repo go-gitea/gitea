@@ -74,4 +74,24 @@ func TestCreateNewTagProtected(t *testing.T) {
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
 	})
+
+	// Cleanup
+	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		IncludeTags: true,
+		TagNames:    []string{"v-1", "v-1.1"},
+	})
+	assert.NoError(t, err)
+
+	for _, release := range releases {
+		err = models.DeleteReleaseByID(release.ID)
+		assert.NoError(t, err)
+	}
+
+	protectedTags, err := models.GetProtectedTags(repo.ID)
+	assert.NoError(t, err)
+
+	for _, protectedTag := range protectedTags {
+		err = models.DeleteProtectedTag(protectedTag)
+		assert.NoError(t, err)
+	}
 }
