@@ -1,5 +1,3 @@
-
-###################################
 #Build stage
 FROM golang:1.17-alpine3.15 AS build-env
 
