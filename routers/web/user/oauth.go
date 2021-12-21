@@ -251,7 +251,7 @@ type userInfoResponse struct {
 func InfoOAuth(ctx *context.Context) {
 	if ctx.User == nil || ctx.Data["AuthedMethod"] != (&auth.OAuth2{}).Name() {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
-		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
+		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
@@ -301,7 +301,7 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 func IntrospectOAuth(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
-		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
+		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
@@ -723,7 +723,7 @@ func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
 	ctx.JSON(http.StatusBadRequest, acErr)
 }
 
-func handleServerError(ctx *context.Context, state string, redirectURI string) {
+func handleServerError(ctx *context.Context, state, redirectURI string) {
 	handleAuthorizeError(ctx, AuthorizeError{
 		ErrorCode:        ErrorCodeServerError,
 		ErrorDescription: "A server error occurred",

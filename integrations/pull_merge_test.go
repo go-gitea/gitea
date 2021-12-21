@@ -241,11 +241,11 @@ func TestCantMergeConflict(t *testing.T) {
 		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "CONFLICT")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleRebase, "CONFLICT")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 		gitRepo.Close()
@@ -329,7 +329,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "UNRELATED")
+		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()

@@ -310,7 +310,7 @@ func testIssueWithBean(t *testing.T, user string, repoID int64, title, content s
 	return issueURL, issue
 }
 
-func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string) {
+func testIssueChangeInfo(t *testing.T, user, issueURL, info, value string) {
 	session := loginUser(t, user)
 
 	req := NewRequest(t, "GET", issueURL)

@@ -114,6 +114,14 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 // ColorFormat provides a basic color format for a Team
 func (t *Team) ColorFormat(s fmt.State) {
+	if t == nil {
+		log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			log.NewColoredIDValue(0),
+			0)
+		return
+	}
 	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
 		log.NewColoredIDValue(t.ID),
 		t.Name,
