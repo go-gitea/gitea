@@ -11,5 +11,5 @@ func addSSHKeyIsVerified(x *xorm.Engine) error {
 		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync(new(PublicKey))
+	return x.Sync2(new(PublicKey))
 }

@@ -485,9 +485,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/{username}", func() {
-		m.Post("/action/{action}", user.Action)
-	}, reqSignIn)
+	m.Post("/{username}", reqSignIn, user.Action)
 
 	if !setting.IsProd {
 		m.Get("/template/*", dev.TemplatePreview)

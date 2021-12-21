@@ -260,7 +260,7 @@ func Sessioner(options ...Options) func(next http.Handler) http.Handler {
 				return
 			}
 
-			if err = sess.Release(); err != nil {
+			if err = s.RawStore.Release(); err != nil {
 				panic("session(release): " + err.Error())
 			}
 		})
@@ -272,6 +272,26 @@ func GetSession(req *http.Request) Store {
 	sessCtx := req.Context().Value("Session")
 	sess, _ := sessCtx.(*store)
 	return sess
+}
+
+// RegenerateSession
+func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, error) {
+	sess, ok := GetSession(req).(*store)
+	if !ok {
+		return nil, fmt.Errorf("no session in request context")
+	}
+
+	oldRawStore := sess.RawStore
+	if err := oldRawStore.Release(); err != nil {
+		return nil, err
+	}
+
+	store, err := sess.RegenerateID(resp, req)
+	if err != nil {
+		return nil, err
+	}
+	sess.RawStore = store
+	return sess, nil
 }
 
 // Provider is the interface that provides session manipulations.

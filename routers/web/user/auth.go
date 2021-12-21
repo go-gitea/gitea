@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -89,6 +90,10 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	isSucceed = true
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		return false, fmt.Errorf("unable to RegenerateSession: Error: %w", err)
+	}
 
 	// Set session IDs
 	if err := ctx.Session.Set("uid", u.ID); err != nil {
@@ -256,6 +261,11 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("UserSignIn: Unable to set regenerate session", err)
+		return
+	}
+
 	// User will need to use 2FA TOTP or U2F, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
@@ -419,6 +429,9 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		}
 
 		handleSignInFull(ctx, u, remember, false)
+		if ctx.Written() {
+			return
+		}
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
@@ -526,6 +539,9 @@ func U2FSign(ctx *context.Context) {
 				}
 			}
 			redirect := handleSignInFull(ctx, user, remember, false)
+			if ctx.Written() {
+				return
+			}
 			if redirect == "" {
 				redirect = setting.AppSubURL + "/"
 			}
@@ -538,7 +554,11 @@ func U2FSign(ctx *context.Context) {
 
 // This handles the final part of the sign-in process of the user.
 func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
-	handleSignInFull(ctx, u, remember, true)
+	redirect := handleSignInFull(ctx, u, remember, true)
+	if ctx.Written() {
+		return
+	}
+	ctx.Redirect(redirect)
 }
 
 func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
@@ -549,6 +569,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 			setting.CookieRememberName, u.Name, days)
 	}
 
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return setting.AppSubURL + "/"
+	}
+
+	// Delete the openid, 2fa and linkaccount data
 	_ = ctx.Session.Delete("openid_verified_uri")
 	_ = ctx.Session.Delete("openid_signin_remember")
 	_ = ctx.Session.Delete("openid_determined_email")
@@ -572,7 +598,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
 		if err := user_model.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
-			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			ctx.ServerError("UpdateUserCols Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -779,6 +805,11 @@ func getUserName(gothUser *goth.User) string {
 }
 
 func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
+	}
+
 	if err := ctx.Session.Set("linkAccountGothUser", gothUser); err != nil {
 		log.Error("Error setting linkAccountGothUser in session: %v", err)
 	}
@@ -822,6 +853,12 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 	// If this user is enrolled in 2FA and this source doesn't override it,
 	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
 	if !needs2FA {
+		if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+			ctx.ServerError("RegenerateSession", err)
+			return
+		}
+
+		// Set session IDs
 		if err := ctx.Session.Set("uid", u.ID); err != nil {
 			log.Error("Error setting uid in session: %v", err)
 		}
@@ -876,6 +913,11 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
+	}
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
@@ -1090,6 +1132,11 @@ func linkAccount(ctx *context.Context, u *user_model.User, gothUser goth.User, r
 		return
 	}
 
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
+	}
+
 	// User needs to use 2FA, save data and redirect to 2FA page.
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		log.Error("Error setting twofaUid in session: %v", err)
@@ -1227,7 +1274,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	handleSignIn(ctx, u, false)
 }
 
 // HandleSignOut resets the session and sets the cookies
@@ -1370,7 +1417,7 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.sign_up_successful"))
-	handleSignInFull(ctx, u, false, true)
+	handleSignIn(ctx, u, false)
 }
 
 // createAndHandleCreatedUser calls createUserInContext and
@@ -1591,6 +1638,13 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
+		ctx.ServerError("ActivateUserEmail", err)
+		return
+	}
+
+	// Set session IDs
 	if err := ctx.Session.Set("uid", user.ID); err != nil {
 		log.Error("Error setting uid in session[%s]: %v", ctx.Session.ID(), err)
 	}
@@ -1862,11 +1916,14 @@ func ResetPasswdPost(ctx *context.Context) {
 
 		handleSignInFull(ctx, u, remember, false)
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
+		if ctx.Written() {
+			return
+		}
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
 
-	handleSignInFull(ctx, u, remember, true)
+	handleSignIn(ctx, u, remember)
 }
 
 // MustChangePassword renders the page to change a user's password
