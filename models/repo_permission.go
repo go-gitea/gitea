@@ -106,7 +106,7 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 
 // CanWriteToBranch checks if the branch is writable by the user
 func (p *Permission) CanWriteToBranch(branch string) bool {
-	if p.CanWrite(unit.TypeCode) || p.User == nil {
+	if p.CanWrite(unit.TypeCode) {
 		return p.CanWrite(unit.TypeCode)
 	}
 
