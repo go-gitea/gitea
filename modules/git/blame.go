@@ -114,16 +114,6 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	gitRepo := RepositoryFromContext(ctx, repoPath)
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = OpenRepositoryCtx(ctx, repoPath)
-		if err != nil {
-			return nil, err
-		}
-		gitRepo.Close()
-	}
-
 	return createBlameReader(ctx, repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
 }
 
