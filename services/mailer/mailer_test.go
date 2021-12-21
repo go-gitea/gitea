@@ -14,12 +14,12 @@ import (
 )
 
 func TestGenerateMessageID(t *testing.T) {
-	setting.LoadForTest(`
-[mailer]
-ENABLED = true
-FROM = test@domain.com
-`)
-	setting.NewServices()
+	var mailService = setting.Mailer{
+		From: "test@gitea.com",
+	}
+
+	setting.MailService = &mailService
+	setting.Domain = "localhost"
 
 	date := time.Date(2000, 01, 02, 03, 04, 05, 06, time.UTC)
 	m := NewMessageFrom(nil, "display-name", "from-address", "subject", "body")

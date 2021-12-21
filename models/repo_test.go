@@ -5,11 +5,6 @@
 package models
 
 import (
-	"bytes"
-	"crypto/md5"
-	"fmt"
-	"image"
-	"image/png"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -21,6 +16,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestWatchRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	const repoID = 3
+	const userID = 2
+
+	assert.NoError(t, repo_model.WatchRepo(userID, repoID, true))
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+
+	assert.NoError(t, repo_model.WatchRepo(userID, repoID, false))
+	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
+}
 
 func TestMetas(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -88,77 +97,6 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)
-}
-
-func TestGetUserFork(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// User13 has repo 11 forked from repo10
-	repo, err := repo_model.GetRepositoryByID(10)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	repo, err = GetUserFork(repo.ID, 13)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-
-	repo, err = repo_model.GetRepositoryByID(9)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	repo, err = GetUserFork(repo.ID, 13)
-	assert.NoError(t, err)
-	assert.Nil(t, repo)
-}
-
-func TestRepoAPIURL(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
-}
-
-func TestUploadAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
-}
-
-func TestUploadBigAvatar(t *testing.T) {
-	// Generate BIG image
-	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.Error(t, err)
-}
-
-func TestDeleteAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.NoError(t, err)
-
-	err = DeleteRepoAvatar(repo)
-	assert.NoError(t, err)
-
-	assert.Equal(t, "", repo.Avatar)
 }
 
 func TestDoctorUserStarNum(t *testing.T) {

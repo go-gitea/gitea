@@ -746,7 +746,8 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 		if !ok {
 			gitRepo, err = git.OpenRepository(issue.Repo.RepoPath())
 			if err != nil {
-				return nil, err
+				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
+				continue
 			}
 			gitRepos[issue.RepoID] = gitRepo
 		}
@@ -782,7 +783,7 @@ func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statu
 		return nil, err
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	statusList, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

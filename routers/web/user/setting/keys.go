@@ -184,6 +184,28 @@ func KeysPost(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+	case "verify_ssh":
+		token := asymkey_model.VerificationToken(ctx.User, 1)
+		lastToken := asymkey_model.VerificationToken(ctx.User, 0)
+
+		fingerprint, err := asymkey_model.VerifySSHKey(ctx.User.ID, form.Fingerprint, token, form.Signature)
+		if err != nil && asymkey_model.IsErrSSHInvalidTokenSignature(err) {
+			fingerprint, err = asymkey_model.VerifySSHKey(ctx.User.ID, form.Fingerprint, lastToken, form.Signature)
+		}
+		if err != nil {
+			ctx.Data["HasSSHVerifyError"] = true
+			switch {
+			case asymkey_model.IsErrSSHInvalidTokenSignature(err):
+				loadKeysData(ctx)
+				ctx.Data["Err_Signature"] = true
+				ctx.Data["Fingerprint"] = err.(asymkey_model.ErrSSHInvalidTokenSignature).Fingerprint
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
+			default:
+				ctx.ServerError("VerifySSH", err)
+			}
+		}
+		ctx.Flash.Success(ctx.Tr("settings.verify_ssh_key_success", fingerprint))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 
 	default:
 		ctx.Flash.Warning("Function not implemented")
@@ -268,4 +290,5 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["Principals"] = principals
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
+	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
 }

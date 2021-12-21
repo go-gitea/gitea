@@ -35,7 +35,7 @@ func (err ErrFileTypeForbidden) Error() string {
 var wildcardTypeRe = regexp.MustCompile(`^[a-z]+/\*$`)
 
 // Verify validates whether a file is allowed to be uploaded.
-func Verify(buf []byte, fileName string, allowedTypesStr string) error {
+func Verify(buf []byte, fileName, allowedTypesStr string) error {
 	allowedTypesStr = strings.ReplaceAll(allowedTypesStr, "|", ",") // compat for old config format
 
 	allowedTypes := []string{}

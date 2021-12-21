@@ -214,18 +214,12 @@ details summary > * {
   background: transparent;
 }
 
-.CodeMirror-cursor {
-  border-color: var(--color-caret) !important;
-}
-
-::selection,
-.CodeMirror-selected {
+::selection {
   background: var(--color-primary-light-1) !important;
   color: var(--color-white) !important;
 }
 
 ::placeholder,
-.CodeMirror-placeholder,
 .ui.dropdown:not(.button) > .default.text,
 .ui.default.dropdown:not(.button) > .text {
   color: var(--color-placeholder-text) !important;
@@ -236,6 +230,7 @@ a,
 .ui.breadcrumb a {
   color: var(--color-primary);
   cursor: pointer;
+  text-decoration-skip-ink: all;
 }
 
 a.muted {
@@ -245,7 +240,19 @@ a.muted {
 a:hover,
 a.muted:hover,
 .ui.breadcrumb a:hover {
-  color: var(--color-primary-dark-2);
+  color: var(--color-primary);
+}
+
+a.label,
+.repository-menu a,
+.ui.search .results a,
+.ui .menu a,
+.issue-keyword a {
+  text-decoration: none !important;
+}
+
+.ui.breadcrumb a:hover {
+  text-decoration: underline !important;
 }
 
 .ui.breadcrumb .divider {
@@ -265,10 +272,6 @@ a.muted:hover,
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
-}
-
-.CodeMirror-focused {
-  border-color: var(--color-primary) !important;
 }
 
 /* currently used for search bar dropdowns in repo search and explore code */

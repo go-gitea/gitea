@@ -27,7 +27,7 @@ type CompareInfo struct {
 }
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
-func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (string, string, error) {
+func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
 	if tmpRemote == "" {
 		tmpRemote = "origin"
 	}
@@ -237,7 +237,11 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	return NewCommandContext(repo.Ctx, "diff", "-p", "--binary", base, head).
+	if CheckGitVersionAtLeast("1.7.7") == nil {
+		return NewCommandContext(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).
+			RunInDirPipeline(repo.Path, w, nil)
+	}
+	return NewCommandContext(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).
 		RunInDirPipeline(repo.Path, w, nil)
 }
 

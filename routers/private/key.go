@@ -28,7 +28,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	deployKey, err := asymkey_model.GetDeployKeyByRepo(keyID, repoID)
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
-			ctx.PlainText(http.StatusOK, []byte("success"))
+			ctx.PlainText(http.StatusOK, "success")
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -44,7 +44,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
@@ -59,5 +59,5 @@ func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte(publicKey.AuthorizedString()))
+	ctx.PlainText(http.StatusOK, publicKey.AuthorizedString())
 }

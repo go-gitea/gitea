@@ -98,13 +98,18 @@ func Transfer(ctx *context.APIContext) {
 		}
 	}
 
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
+		ctx.Repo.GitRepo = nil
+	}
+
 	if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if models.IsErrRepoTransferInProgress(err) {
 			ctx.Error(http.StatusConflict, "CreatePendingRepositoryTransfer", err)
 			return
 		}
 
-		if models.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "CreatePendingRepositoryTransfer", err)
 			return
 		}
