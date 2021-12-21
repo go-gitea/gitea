@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -230,6 +231,11 @@ func signInOpenIDVerify(ctx *context.Context) {
 		if u != nil {
 			log.Trace("Local user %s has OpenID provided nickname %s", u.LowerName, nickname)
 		}
+	}
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
 	}
 
 	if err := ctx.Session.Set("openid_verified_uri", id); err != nil {

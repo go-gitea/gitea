@@ -111,7 +111,7 @@ func (csv *csvReader) readNextRow() ([]string, error) {
 }
 
 // CreateCsvDiff creates a tabular diff based on two CSV readers.
-func CreateCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
+func CreateCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*TableDiffSection, error) {
 	if baseReader != nil && headReader != nil {
 		return createCsvDiff(diffFile, baseReader, headReader)
 	}
@@ -149,7 +149,7 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 	return []*TableDiffSection{{Rows: rows}}, nil
 }
 
-func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
+func createCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*TableDiffSection, error) {
 	// Given the baseReader and headReader, we are going to create CSV Reader for each, baseCSVReader and b respectively
 	baseCSVReader, err := createCsvReader(baseReader, maxRowsToInspect)
 	if err != nil {
@@ -346,7 +346,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 }
 
 // getColumnMapping creates a mapping of columns between a and b
-func getColumnMapping(baseCSVReader *csvReader, headCSVReader *csvReader) ([]int, []int) {
+func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 	baseRow, _ := baseCSVReader.GetRow(0)
 	headRow, _ := headCSVReader.GetRow(0)
 
