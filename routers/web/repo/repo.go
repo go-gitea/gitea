@@ -319,6 +319,11 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 	}
 
 	if accept {
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+			ctx.Repo.GitRepo = nil
+		}
+
 		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			return err
 		}
