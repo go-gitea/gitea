@@ -86,7 +86,8 @@ func init() {
 	db.RegisterModel(new(Review))
 }
 
-func (r *Review) loadCodeComments(ctx context.Context) (err error) {
+// LoadCodeComments loads CodeComments
+func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return
 	}
@@ -95,11 +96,6 @@ func (r *Review) loadCodeComments(ctx context.Context) (err error) {
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
 	return
-}
-
-// LoadCodeComments loads CodeComments
-func (r *Review) LoadCodeComments(ctx context.Context) error {
-	return r.loadCodeComments(ctx)
 }
 
 func (r *Review) loadIssue(e db.Engine) (err error) {
@@ -143,7 +139,7 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadCodeComments(ctx); err != nil {
+	if err = r.LoadCodeComments(ctx); err != nil {
 		return
 	}
 	if err = r.loadReviewer(e); err != nil {
@@ -401,7 +397,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			return nil, nil, err
 		}
 	} else {
-		if err := review.loadCodeComments(ctx); err != nil {
+		if err := review.LoadCodeComments(ctx); err != nil {
 			return nil, nil, err
 		}
 		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
