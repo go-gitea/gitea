@@ -939,7 +939,7 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err = pull_service.Merge(ctx, pr, ctx.User, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), message); err != nil {
+	if err = pull_service.Merge(ctx, pr, ctx.User, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
@@ -980,6 +980,11 @@ func MergePullRequest(ctx *context.Context) {
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
+			ctx.Redirect(issue.Link())
+			return
+		} else if models.IsErrSHADoesNotMatch(err) {
+			log.Debug("MergeHeadOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.Redirect(issue.Link())
 			return
 		} else if git.IsErrPushRejected(err) {

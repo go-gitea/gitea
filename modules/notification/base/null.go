@@ -122,7 +122,7 @@ func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *model
 }
 
 // NotifyCreateRepository places a place holder function
-func (*NullNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (*NullNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // NotifyDeleteRepository places a place holder function
@@ -134,7 +134,7 @@ func (*NullNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *
 }
 
 // NotifyMigrateRepository places a place holder function
-func (*NullNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func (*NullNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers

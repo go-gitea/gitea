@@ -606,7 +606,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string, units []string) error {
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
 	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
