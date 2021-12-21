@@ -5,3 +5,4 @@
 /.eslintrc linguist-language=YAML
 /.stylelintrc linguist-language=YAML
 /web_src/fomantic/build/** linguist-generated
+Dockerfile.* linguist-language=Dockerfile

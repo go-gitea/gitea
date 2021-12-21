@@ -210,14 +210,14 @@ func NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
 }
 
 // NotifyCreateRepository notifies create repository to notifiers
-func NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyCreateRepository(doer, u, repo)
 	}
 }
 
 // NotifyMigrateRepository notifies create repository to notifiers
-func NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
+func NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
 	}

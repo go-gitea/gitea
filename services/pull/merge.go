@@ -34,7 +34,7 @@ import (
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, message string) (err error) {
+func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (err error) {
 	if err = pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -59,7 +59,7 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 	}()
 
-	pr.MergedCommitID, err = rawMerge(pr, doer, mergeStyle, message)
+	pr.MergedCommitID, err = rawMerge(pr, doer, mergeStyle, expectedHeadCommitID, message)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 }
 
 // rawMerge perform the merge operation without changing any pull information in database
-func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, message string) (string, error) {
+func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
 	err := git.LoadGitVersion()
 	if err != nil {
 		log.Error("git.LoadGitVersion: %v", err)
@@ -136,6 +136,20 @@ func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_mod
 	baseBranch := "base"
 	trackingBranch := "tracking"
 	stagingBranch := "staging"
+
+	if expectedHeadCommitID != "" {
+		trackingCommitID, err := git.NewCommand("show-ref", "--hash", git.BranchPrefix+trackingBranch).RunInDir(tmpBasePath)
+		if err != nil {
+			log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
+			return "", fmt.Errorf("getDiffTree: %v", err)
+		}
+		if strings.TrimSpace(trackingCommitID) != expectedHeadCommitID {
+			return "", models.ErrSHADoesNotMatch{
+				GivenSHA:   expectedHeadCommitID,
+				CurrentSHA: trackingCommitID,
+			}
+		}
+	}
 
 	var outbuf, errbuf strings.Builder
 

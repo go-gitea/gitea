@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/pam"
@@ -187,6 +188,9 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
+		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		RequiredClaimName:             form.Oauth2RequiredClaimName,
+		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
 	}
 }
@@ -329,8 +333,8 @@ func EditAuthSource(ctx *context.Context) {
 				break
 			}
 		}
-
 	}
+
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
 

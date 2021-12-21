@@ -65,7 +65,7 @@ func goGet(ctx *context.Context) {
 	if appURL.Scheme == string(setting.HTTP) {
 		insecure = "--insecure "
 	}
-	ctx.Header().Set("Content-Type", "text/html")
+	ctx.RespHeader().Set("Content-Type", "text/html")
 	ctx.Status(http.StatusOK)
 	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
 <html>

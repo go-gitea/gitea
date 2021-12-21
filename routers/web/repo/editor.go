@@ -52,7 +52,7 @@ func renderCommitRights(ctx *context.Context) bool {
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
 // based on given tree path.
-func getParentTreeFields(treePath string) (treeNames []string, treePaths []string) {
+func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 	if len(treePath) == 0 {
 		return treeNames, treePaths
 	}
@@ -307,7 +307,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -319,7 +319,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
 				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
 				"Details": utils.SanitizeFlashErrorString(err.Error()),
@@ -376,7 +376,7 @@ func DiffPreviewPost(ctx *context.Context) {
 	}
 
 	if diff.NumFiles == 0 {
-		ctx.PlainText(200, []byte(ctx.Tr("repo.editor.no_changes_to_show")))
+		ctx.PlainText(http.StatusOK, ctx.Tr("repo.editor.no_changes_to_show"))
 		return
 	}
 	ctx.Data["File"] = diff.Files[0]
@@ -501,7 +501,7 @@ func DeleteFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
@@ -704,7 +704,7 @@ func UploadFilePost(ctx *context.Context) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
 					"Message": ctx.Tr("repo.editor.push_rejected"),
 					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
 					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
