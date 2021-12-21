@@ -146,7 +146,7 @@ func TestGetFileHistory(t *testing.T) {
 	var apiData []api.Commit
 	DecodeJSON(t, resp, &apiData)
 
-	assert.Len(t, apiData, 3)
-	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
+	assert.Len(t, apiData, 1)
+	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 }
