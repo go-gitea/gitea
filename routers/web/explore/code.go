@@ -24,7 +24,7 @@ const (
 // Code render explore code page
 func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(setting.AppSubURL+"/explore", 302)
+		ctx.Redirect(setting.AppSubURL+"/explore", http.StatusTemporaryRedirect)
 		return
 	}
 

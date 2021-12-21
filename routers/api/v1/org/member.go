@@ -161,7 +161,7 @@ func IsMember(ctx *context.APIContext) {
 	}
 
 	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + url.PathEscape(ctx.Org.Organization.Name) + "/public_members/" + url.PathEscape(userToCheck.Name)
-	ctx.Redirect(redirectURL, 302)
+	ctx.Redirect(redirectURL, http.StatusTemporaryRedirect)
 }
 
 // IsPublicMember check if a user is a public member of an organization

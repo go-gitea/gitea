@@ -73,7 +73,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 
 		branch := ctx.FormString("branch")
 		if !ctx.Repo.GitRepo.IsBranchExist(branch) {
-			ctx.Status(404)
+			ctx.Status(http.StatusNotFound)
 			return
 		} else if repo.DefaultBranch != branch {
 			repo.DefaultBranch = branch

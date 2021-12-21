@@ -1205,7 +1205,7 @@ func TriggerTask(ctx *context.Context) {
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, "", "")
-	ctx.Status(202)
+	ctx.Status(http.StatusAccepted)
 }
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged

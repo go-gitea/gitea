@@ -785,7 +785,7 @@ func UploadFileToServer(ctx *context.Context) {
 func RemoveUploadFileFromServer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RemoveUploadFileForm)
 	if len(form.File) == 0 {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
@@ -795,7 +795,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 	}
 
 	log.Trace("Upload file removed: %s", form.File)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetUniquePatchBranchName Gets a unique branch name for a new patch branch

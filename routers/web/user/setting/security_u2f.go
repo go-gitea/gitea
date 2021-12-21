@@ -82,7 +82,7 @@ func U2FRegisterPost(ctx *context.Context) {
 		ctx.ServerError("u2f.Register", err)
 		return
 	}
-	ctx.Status(200)
+	ctx.Status(http.StatusOK)
 }
 
 // U2FDelete deletes an security key by id
@@ -91,14 +91,14 @@ func U2FDelete(ctx *context.Context) {
 	reg, err := login.GetU2FRegistrationByID(form.ID)
 	if err != nil {
 		if login.IsErrU2FRegistrationNotExist(err) {
-			ctx.Status(200)
+			ctx.Status(http.StatusOK)
 			return
 		}
 		ctx.ServerError("GetU2FRegistrationByID", err)
 		return
 	}
 	if reg.UserID != ctx.User.ID {
-		ctx.Status(401)
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
 	if err := login.DeleteRegistration(reg); err != nil {

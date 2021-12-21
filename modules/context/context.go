@@ -379,7 +379,7 @@ func (ctx *Context) JSON(status int, content interface{}) {
 
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
-	code := http.StatusFound
+	code := http.StatusTemporaryRedirect
 	if len(status) == 1 {
 		code = status[0]
 	}

@@ -94,7 +94,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 
 	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), http.StatusPermanentRedirect)
 	})
 
 	gob.Register(&u2f.Challenge{})
@@ -137,17 +137,17 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 
 	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
 		if !git.SupportProcReceive {
-			rw.WriteHeader(404)
+			rw.WriteHeader(http.StatusNotFound)
 			return
 		}
 		rw.Header().Set("content-type", "text/json;charset=UTF-8")
 		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
 		if err != nil {
 			log.Error("fail to write result: err: %v", err)
-			rw.WriteHeader(500)
+			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		rw.WriteHeader(200)
+		rw.WriteHeader(http.StatusOK)
 	})
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary

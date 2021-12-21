@@ -1886,7 +1886,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 	// TODO: Not support 'clear' now
 	if action != "attach" && action != "detach" {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
@@ -1901,7 +1901,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				"UpdatePullReviewRequest: refusing to add review request for non-PR issue %-v#%d",
 				issue.Repo, issue.Index,
 			)
-			ctx.Status(403)
+			ctx.Status(http.StatusForbidden)
 			return
 		}
 		if reviewID < 0 {
@@ -1916,7 +1916,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					"UpdatePullReviewRequest: refusing to add team review request for %s#%d owned by non organization UID[%d]",
 					issue.Repo.FullName(), issue.Index, issue.Repo.ID,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 
@@ -1930,7 +1930,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				log.Warn(
 					"UpdatePullReviewRequest: refusing to add team review request for UID[%d] team %s to %s#%d owned by UID[%d]",
 					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 
@@ -1942,7 +1942,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 						team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
 						err,
 					)
-					ctx.Status(403)
+					ctx.Status(http.StatusForbidden)
 					return
 				}
 				ctx.ServerError("IsValidTeamReviewRequest", err)
@@ -1965,7 +1965,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					reviewID, issue.Repo, issue.Index,
 					err,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 			ctx.ServerError("GetUserByID", err)
@@ -1980,7 +1980,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					reviewer, issue.Repo, issue.Index,
 					err,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 			ctx.ServerError("isValidReviewRequest", err)
@@ -2261,7 +2261,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	ctx.Status(200)
+	ctx.Status(http.StatusOK)
 }
 
 // ChangeIssueReaction create a reaction for issue

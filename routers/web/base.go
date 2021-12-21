@@ -45,18 +45,18 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				if err != nil {
 					if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 						log.Warn("Unable to find %s %s", prefix, rPath)
-						http.Error(w, "file not found", 404)
+						http.Error(w, "file not found", http.StatusNotFound)
 						return
 					}
 					log.Error("Error whilst getting URL for %s %s. Error: %v", prefix, rPath, err)
-					http.Error(w, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath), 500)
+					http.Error(w, fmt.Sprintf("Error whilst getting URL for %s %s", prefix, rPath), http.StatusInternalServerError)
 					return
 				}
 				http.Redirect(
 					w,
 					req,
 					u.String(),
-					301,
+					http.StatusPermanentRedirect,
 				)
 			})
 		}
@@ -77,7 +77,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
 			if rPath == "" {
-				http.Error(w, "file not found", 404)
+				http.Error(w, "file not found", http.StatusNotFound)
 				return
 			}
 			rPath = path.Clean("/" + filepath.ToSlash(rPath))
@@ -93,11 +93,11 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
 					log.Warn("Unable to find %s %s", prefix, rPath)
-					http.Error(w, "file not found", 404)
+					http.Error(w, "file not found", http.StatusNotFound)
 					return
 				}
 				log.Error("Error whilst opening %s %s. Error: %v", prefix, rPath, err)
-				http.Error(w, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath), 500)
+				http.Error(w, fmt.Sprintf("Error whilst opening %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
 			defer fr.Close()
@@ -105,7 +105,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			_, err = io.Copy(w, fr)
 			if err != nil {
 				log.Error("Error whilst rendering %s %s. Error: %v", prefix, rPath, err)
-				http.Error(w, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath), 500)
+				http.Error(w, fmt.Sprintf("Error whilst rendering %s %s", prefix, rPath), http.StatusInternalServerError)
 				return
 			}
 		})
@@ -159,7 +159,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
-					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))
+					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
 					}

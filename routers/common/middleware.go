@@ -66,9 +66,9 @@ func Middlewares() []func(http.Handler) http.Handler {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 					if setting.IsProd {
-						http.Error(resp, http.StatusText(500), 500)
+						http.Error(resp, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					} else {
-						http.Error(resp, combinedErr, 500)
+						http.Error(resp, combinedErr, http.StatusInternalServerError)
 					}
 				}
 			}()

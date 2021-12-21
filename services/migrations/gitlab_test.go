@@ -25,7 +25,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	}
 
 	resp, err := http.Get("https://gitlab.com/gitea/test_repo")
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 

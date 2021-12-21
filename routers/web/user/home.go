@@ -152,7 +152,7 @@ func Dashboard(ctx *context.Context) {
 func Milestones(ctx *context.Context) {
 	if unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -324,7 +324,7 @@ func Milestones(ctx *context.Context) {
 func Pulls(ctx *context.Context) {
 	if unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Pull request overview page not available as it is globally disabled.")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -337,7 +337,7 @@ func Pulls(ctx *context.Context) {
 func Issues(ctx *context.Context) {
 	if unit.TypeIssues.UnitGlobalDisabled() {
 		log.Debug("Issues overview page not available as it is globally disabled.")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 

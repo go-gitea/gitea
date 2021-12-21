@@ -1143,7 +1143,7 @@ func TestWebhook(ctx *context.Context) {
 	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByID: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -1187,10 +1187,10 @@ func TestWebhook(ctx *context.Context) {
 	}
 	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.test_delivery_success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 

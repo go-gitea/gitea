@@ -59,10 +59,10 @@ func DeleteNotices(ctx *context.Context) {
 
 	if err := admin_model.DeleteNoticesByIDs(ids); err != nil {
 		ctx.Flash.Error("DeleteNoticesByIDs: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Success(ctx.Tr("admin.notices.delete_success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 

@@ -59,7 +59,7 @@ func Init(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
 			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
+			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
 			return
 		}
 		var locale = middleware.Locale(resp, req)

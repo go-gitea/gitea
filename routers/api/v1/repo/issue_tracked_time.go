@@ -288,7 +288,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteTime delete a specific time by id

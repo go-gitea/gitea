@@ -43,7 +43,7 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		var ret = struct {
 			Err string `json:"err"`
 		}{}

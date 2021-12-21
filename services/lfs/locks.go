@@ -52,7 +52,7 @@ func GetListLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have pull access to list locks",
 		})
 		return
@@ -139,7 +139,7 @@ func PostLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to create locks",
 		})
 		return
@@ -164,7 +164,7 @@ func PostLockHandler(ctx *context.Context) {
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
@@ -206,7 +206,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to verify locks",
 		})
 		return
@@ -272,7 +272,7 @@ func UnLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to delete locks",
 		})
 		return
@@ -297,7 +297,7 @@ func UnLockHandler(ctx *context.Context) {
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
