@@ -211,7 +211,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = gitRepo.CommitsByFileAndRange(sha, path, listOptions.PageSize)
+		commits, err = gitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 			return
