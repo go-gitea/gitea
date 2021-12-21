@@ -31,6 +31,34 @@ func init() {
 	db.RegisterModel(new(Setting))
 }
 
+// ErrUserSettingIsNotExist represents an error that a setting is not exist with special key
+type ErrUserSettingIsNotExist struct {
+	Key string
+}
+
+// Error implements error
+func (err ErrUserSettingIsNotExist) Error() string {
+	return fmt.Sprintf("Setting[%s] is not exist", err.Key)
+}
+
+// IsErrUserSettingIsNotExist return true if err is ErrSettingIsNotExist
+func IsErrUserSettingIsNotExist(err error) bool {
+	_, ok := err.(ErrUserSettingIsNotExist)
+	return ok
+}
+
+// GetSetting returns specific setting
+func GetSetting(uid int64, key string) (*Setting, error) {
+	v, err := GetUserSettings(uid, []string{key})
+	if err != nil {
+		return nil, err
+	}
+	if len(v) == 0 {
+		return nil, ErrUserSettingIsNotExist{key}
+	}
+	return v[key], nil
+}
+
 // GetUserSettings returns specific settings from user
 func GetUserSettings(uid int64, keys []string) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, len(keys))

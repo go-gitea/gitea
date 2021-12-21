@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
@@ -87,7 +87,7 @@ func DeleteUser(u *user_model.User) error {
 	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
 
@@ -95,7 +95,7 @@ func DeleteUser(u *user_model.User) error {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
 	}

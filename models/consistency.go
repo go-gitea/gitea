@@ -5,9 +5,9 @@
 package models
 
 import (
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -131,7 +131,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }

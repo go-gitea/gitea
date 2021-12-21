@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -77,8 +77,8 @@ func InitGitServices() {
 }
 
 func syncAppPathForGit(ctx context.Context) error {
-	runtimeState := new(appstate.RuntimeState)
-	if err := appstate.AppState.Get(runtimeState); err != nil {
+	runtimeState := new(system.RuntimeState)
+	if err := system.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
@@ -91,7 +91,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
-		return appstate.AppState.Set(runtimeState)
+		return system.AppState.Set(runtimeState)
 	}
 	return nil
 }
@@ -136,7 +136,7 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-	mustInit(appstate.Init)
+	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()

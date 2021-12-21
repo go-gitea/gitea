@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package appstate
+package system
 
 // StateStore is the interface to get/set app state items
 type StateStore interface {
