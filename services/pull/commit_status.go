@@ -105,15 +105,11 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 	}
 
 	// check if all required status checks are successful
-	headGitRepo := git.RepositoryFromContext(ctx, pr.HeadRepo.RepoPath())
-	if headGitRepo == nil {
-		var err error
-		headGitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
-		if err != nil {
-			return "", errors.Wrap(err, "OpenRepository")
-		}
-		defer headGitRepo.Close()
+	headGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+	if err != nil {
+		return "", errors.Wrap(err, "OpenRepository")
 	}
+	defer closer.Close()
 
 	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
@@ -123,7 +119,6 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 	}
 
 	var sha string
-	var err error
 	if pr.Flow == models.PullRequestFlowGithub {
 		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	} else {

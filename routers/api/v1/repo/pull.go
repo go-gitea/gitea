@@ -1193,15 +1193,12 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 
 	var prInfo *git.CompareInfo
-	baseGitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
-	if baseGitRepo == nil {
-		baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer baseGitRepo.Close()
+	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
 	}
+	defer closer.Close()
 
 	if pr.HasMerged {
 		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)

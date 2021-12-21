@@ -40,15 +40,11 @@ func DeleteRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return nil, err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
+	defer closer.Close()
 
 	// oldBranch must exist for this operation
 	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {

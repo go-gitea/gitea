@@ -65,15 +65,11 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
 	if code {
-		gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-		if gitRepo == nil {
-			var err error
-			gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-			if err != nil {
-				return nil, fmt.Errorf("OpenRepository: %v", err)
-			}
-			defer gitRepo.Close()
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+		if err != nil {
+			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
+		defer closer.Close()
 
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
@@ -86,15 +82,11 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %v", err)
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer closer.Close()
 
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {

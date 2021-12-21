@@ -36,15 +36,11 @@ func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiff
 
 // GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
 func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo := RepositoryFromContext(ctx, repoPath)
-	if repo == nil {
-		var err error
-		repo, err = OpenRepositoryCtx(ctx, repoPath)
-		if err != nil {
-			return fmt.Errorf("OpenRepository: %v", err)
-		}
-		defer repo.Close()
+	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer closer.Close()
 
 	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }

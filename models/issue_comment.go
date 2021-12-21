@@ -706,14 +706,11 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo := git.RepositoryFromContext(ctx, repoPath)
-		if gitRepo == nil {
-			gitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
-			if err != nil {
-				return err
-			}
-			defer gitRepo.Close()
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+		if err != nil {
+			return err
 		}
+		defer closer.Close()
 
 		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
@@ -1320,15 +1317,11 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo := git.RepositoryFromContext(ctx, repoPath)
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
-		if err != nil {
-			return nil, false, err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
+	if err != nil {
+		return nil, false, err
 	}
+	defer closer.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {

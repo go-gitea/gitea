@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 	"time"
@@ -590,20 +591,14 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 		}
 	}
 
-	gitRepo := git.RepositoryFromContext(ctx, pr.HeadRepo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
-		if err != nil {
-			log.Error("Unable to open head repository: Error: %v", err)
-			return ""
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
+	if err != nil {
+		log.Error("Unable to open head repository: Error: %v", err)
+		return ""
 	}
+	defer closer.Close()
 
 	var headCommit *git.Commit
-	var err error
-
 	if pr.Flow == models.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
@@ -795,15 +790,11 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *models.PullRequest, branchNa
 	if err = pr.LoadBaseRepo(); err != nil {
 		return false, err
 	}
-	baseGitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
-	if baseGitRepo == nil {
-		var err error
-		baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			return false, err
-		}
-		defer baseGitRepo.Close()
+	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		return false, err
 	}
+	defer closer.Close()
 
 	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
 	if err != nil {
@@ -816,13 +807,14 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *models.PullRequest, branchNa
 	var headGitRepo *git.Repository
 	if pr.HeadRepoID == pr.BaseRepoID {
 		headGitRepo = baseGitRepo
-	} else if headGitRepo := git.RepositoryFromContext(ctx, pr.HeadRepo.RepoPath()); headGitRepo == nil {
-		var err error
-		headGitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+	} else {
+		var closer io.Closer
+
+		headGitRepo, closer, err = git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			return false, err
 		}
-		defer headGitRepo.Close()
+		defer closer.Close()
 	}
 
 	var headCommit *git.Commit

@@ -58,15 +58,11 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	}
 	treePath = cleanTreePath
 
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return nil, err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
+	defer closer.Close()
 
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref)
@@ -121,15 +117,11 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	treePath = cleanTreePath
 
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return nil, err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
+	defer closer.Close()
 
 	// Get the commit object for the ref
 	commit, err := gitRepo.GetCommit(ref)
@@ -229,15 +221,11 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
 func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, sha string) (*api.GitBlobResponse, error) {
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return nil, err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
 	}
+	defer closer.Close()
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err

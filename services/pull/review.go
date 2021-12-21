@@ -126,15 +126,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
-	gitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %v", err)
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer closer.Close()
 
 	invalidated := false
 	head := pr.GetGitRefName()

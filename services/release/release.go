@@ -148,14 +148,11 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
-	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
-	if gitRepo == nil {
-		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
-		if err != nil {
-			return err
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return err
 	}
+	defer closer.Close()
 
 	rel := &models.Release{
 		RepoID:       repo.ID,

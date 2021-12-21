@@ -32,15 +32,11 @@ func DownloadDiffOrPatch(ctx context.Context, pr *models.PullRequest, w io.Write
 		return err
 	}
 
-	gitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
-	if gitRepo == nil {
-		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
-		if err != nil {
-			return fmt.Errorf("OpenRepository: %v", err)
-		}
-		defer gitRepo.Close()
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer closer.Close()
 
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)

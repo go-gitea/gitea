@@ -4,7 +4,10 @@
 
 package git
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
@@ -28,4 +31,19 @@ func RepositoryFromContext(ctx context.Context, path string) *Repository {
 	}
 
 	return nil
+}
+
+type nopCloser func()
+
+func (nopCloser) Close() error { return nil }
+
+// RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
+func RepositoryFromContextOrOpen(ctx context.Context, path string) (*Repository, io.Closer, error) {
+	gitRepo := RepositoryFromContext(ctx, path)
+	if gitRepo != nil {
+		return gitRepo, nopCloser(nil), nil
+	}
+
+	gitRepo, err := OpenRepositoryCtx(ctx, path)
+	return gitRepo, gitRepo, err
 }
