@@ -9,7 +9,7 @@ require (
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
-	gitea.com/go-chi/session v0.0.0-20211013065435-7d334f340c09
+	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
 	gitea.com/lunny/levelqueue v0.4.1
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/Microsoft/go-winio v0.5.0 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
 	github.com/PuerkitoBio/goquery v1.7.0
 	github.com/RoaringBitmap/roaring v0.9.1 // indirect
-	github.com/alecthomas/chroma v0.9.2
+	github.com/alecthomas/chroma v0.9.4
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/blevesearch/bleve/v2 v2.0.6

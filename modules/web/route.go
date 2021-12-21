@@ -251,7 +251,7 @@ func (r *Route) Any(pattern string, h ...interface{}) {
 }
 
 // Route delegate special methods
-func (r *Route) Route(pattern string, methods string, h ...interface{}) {
+func (r *Route) Route(pattern, methods string, h ...interface{}) {
 	p := r.getPattern(pattern)
 	ms := strings.Split(methods, ",")
 	var middlewares = r.getMiddlewares(h)

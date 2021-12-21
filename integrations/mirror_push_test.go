@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -68,6 +69,12 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, srcCommit.ID, mirrorCommit.ID)
+
+	// Cleanup
+	doRemovePushMirror(ctx, fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(ctx.Username), url.PathEscape(mirrorRepo.Name)), user.LowerName, userPassword, int(mirrors[0].ID))(t)
+	mirrors, err = repo_model.GetPushMirrorsByRepoID(srcRepo.ID)
+	assert.NoError(t, err)
+	assert.Len(t, mirrors, 0)
 }
 
 func doCreatePushMirror(ctx APITestContext, address, username, password string) func(t *testing.T) {
@@ -77,6 +84,27 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
 			"_csrf":                csrf,
 			"action":               "push-mirror-add",
+			"push_mirror_address":  address,
+			"push_mirror_username": username,
+			"push_mirror_password": password,
+			"push_mirror_interval": "0",
+		})
+		ctx.Session.MakeRequest(t, req, http.StatusFound)
+
+		flashCookie := ctx.Session.GetCookie("macaron_flash")
+		assert.NotNil(t, flashCookie)
+		assert.Contains(t, flashCookie.Value, "success")
+	}
+}
+
+func doRemovePushMirror(ctx APITestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
+	return func(t *testing.T) {
+		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
+
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), map[string]string{
+			"_csrf":                csrf,
+			"action":               "push-mirror-remove",
+			"push_mirror_id":       strconv.Itoa(pushMirrorID),
 			"push_mirror_address":  address,
 			"push_mirror_username": username,
 			"push_mirror_password": password,

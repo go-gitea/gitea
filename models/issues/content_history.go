@@ -146,7 +146,7 @@ type IssueContentListItem struct {
 }
 
 // FetchIssueContentHistoryList fetch list
-func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
+func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
 	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name,"+
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
@@ -168,7 +168,7 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentI
 }
 
 // HasIssueContentHistory check if a ContentHistory entry exists
-func HasIssueContentHistory(dbCtx context.Context, issueID int64, commentID int64) (bool, error) {
+func HasIssueContentHistory(dbCtx context.Context, issueID, commentID int64) (bool, error) {
 	exists, err := db.GetEngine(dbCtx).Cols("id").Exist(&ContentHistory{
 		IssueID:   issueID,
 		CommentID: commentID,

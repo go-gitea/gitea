@@ -217,6 +217,8 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 				} else {
 					otherLine++
 				}
+			case '\\':
+				// FIXME: handle `\ No newline at end of file`
 			default:
 				currentLine++
 				otherLine++

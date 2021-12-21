@@ -783,9 +783,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -848,9 +845,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -928,9 +922,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -949,9 +940,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -996,9 +984,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -1017,9 +1002,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
