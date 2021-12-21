@@ -49,6 +49,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	var redirects = map[string]string{
+		"/user2/repo1/":                              "/user2/repo1",
 		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
