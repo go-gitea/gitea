@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -144,10 +145,10 @@ func SignInOpenIDPost(ctx *context.Context) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-	log.Trace("Incoming call to: " + ctx.Req.URL.String())
+	log.Trace("Incoming call to: %s", ctx.Req.URL.String())
 
 	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
-	log.Trace("Full URL: " + fullURL)
+	log.Trace("Full URL: %s", fullURL)
 
 	var id, err = openid.Verify(fullURL)
 	if err != nil {
@@ -157,7 +158,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Verified ID: " + id)
+	log.Trace("Verified ID: %s", id)
 
 	/* Now we should seek for the user and log him in, or prompt
 	 * to register if not found */
@@ -180,7 +181,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("User with openid " + id + " does not exist, should connect or register")
+	log.Trace("User with openid: %s does not exist, should connect or register", id)
 
 	parsedURL, err := url.Parse(fullURL)
 	if err != nil {
@@ -199,7 +200,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	email := values.Get("openid.sreg.email")
 	nickname := values.Get("openid.sreg.nickname")
 
-	log.Trace("User has email=" + email + " and nickname=" + nickname)
+	log.Trace("User has email=%s and nickname=%s", email, nickname)
 
 	if email != "" {
 		u, err = user_model.GetUserByEmail(email)
@@ -213,7 +214,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 			log.Error("signInOpenIDVerify: %v", err)
 		}
 		if u != nil {
-			log.Trace("Local user " + u.LowerName + " has OpenID provided email " + email)
+			log.Trace("Local user %s has OpenID provided email %s", u.LowerName, email)
 		}
 	}
 
@@ -228,8 +229,13 @@ func signInOpenIDVerify(ctx *context.Context) {
 			}
 		}
 		if u != nil {
-			log.Trace("Local user " + u.LowerName + " has OpenID provided nickname " + nickname)
+			log.Trace("Local user %s has OpenID provided nickname %s", u.LowerName, nickname)
 		}
+	}
+
+	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
+		ctx.ServerError("RegenerateSession", err)
+		return
 	}
 
 	if err := ctx.Session.Set("openid_verified_uri", id); err != nil {

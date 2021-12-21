@@ -1115,7 +1115,7 @@ func generateSaveInternalToken() {
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
+func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
@@ -1134,7 +1134,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 }
 
 // MakeManifestData generates web app manifest JSON
-func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
+func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 	type manifestIcon struct {
 		Src   string `json:"src"`
 		Type  string `json:"type"`
