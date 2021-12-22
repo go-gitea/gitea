@@ -5,6 +5,7 @@
 package common
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -53,25 +54,30 @@ func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 		if trigger == LogRequestStart {
 			// when a request starts, we have no information about the handler function information, we only have the request path
 			_ = logger.Log(0, log.DEBUG, "router: started %v %s for %s", log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
-		} else if trigger == LogRequestExecuting {
+			return
+		}
+
+		handlerFuncInfo := fmt.Sprintf("%s:%d(%s)", funcFileShort, funcLine, funcNameShort)
+		if trigger == LogRequestExecuting {
 			message := "still-executing"
 			level := log.WARN
 			if isLongPolling {
 				level = log.INFO
 				message = "long-polling"
 			}
-			_ = logger.Log(0, level, "router: %s:%d(%s) %s %v %s for %s, elapsed %v",
-				funcFileShort, funcLine, funcNameShort,
+			_ = logger.Log(0, level, "router: %s %v %s for %s, elapsed %v @ %s",
 				message,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(reqRec.startTime)),
+				handlerFuncInfo,
 			)
 		} else {
 			if reqRec.panicError != nil {
-				_ = logger.Log(0, log.WARN, "router: %s:%d(%s) failed %v %s for %s, panic in %v, err=%v",
+				_ = logger.Log(0, log.WARN, "router: failed %v %s for %s, panic in %v @ %s, err=%v",
 					funcFileShort, funcLine, funcNameShort,
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 					log.ColoredTime(time.Since(reqRec.startTime)),
+					handlerFuncInfo,
 					reqRec.panicError,
 				)
 			} else {
@@ -79,10 +85,11 @@ func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 				if v, ok := reqRec.responseWriter.(gitea_context.ResponseWriter); ok {
 					status = v.Status()
 				}
-				_ = logger.Log(0, log.INFO, "router: %s:%d(%s) completed %v %s for %s, %v %v in %v",
-					funcFileShort, funcLine, funcNameShort,
+				_ = logger.Log(0, log.INFO, "router: completed %v %s for %s, %v %v in %v @ %s",
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
-					log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(reqRec.startTime)))
+					log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(reqRec.startTime)),
+					handlerFuncInfo,
+				)
 			}
 		}
 	}
