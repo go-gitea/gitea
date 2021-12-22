@@ -110,6 +110,10 @@ func (p *Permission) CanWriteToBranch(branch string) bool {
 		return p.CanWrite(unit.TypeCode)
 	}
 
+	if len(p.Units) < 1 {
+		return false
+	}
+
 	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
 	if err != nil {
 		return false
