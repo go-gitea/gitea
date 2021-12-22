@@ -1082,7 +1082,7 @@ func RegisterRoutes(m *web.Route) {
 		escapedPath := req.URL.EscapedPath()
 		if len(escapedPath) > 1 && escapedPath[len(escapedPath)-1] == '/' {
 			http.Redirect(w, req, setting.AppSubURL+escapedPath[:len(escapedPath)-1], http.StatusTemporaryRedirect)
-				return
+			return
 		}
 		ctx := context.GetContext(req)
 		ctx.NotFound("", nil)
