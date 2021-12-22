@@ -130,7 +130,8 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 	return info
 }
 
-type contextKeyLogRequestRecordStruct struct {}
+type contextKeyLogRequestRecordStruct struct{}
+
 var contextKeyLogRequestRecord contextKeyLogRequestRecordStruct
 
 func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
