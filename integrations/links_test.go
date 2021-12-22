@@ -61,6 +61,16 @@ func TestRedirectsNoLogin(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusFound)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
 	}
+
+	var temporaryRedirects = map[string]string{
+		"/user2/repo1/": "/user2/repo1",
+	}
+	for link, redirectLink := range temporaryRedirects {
+		req := NewRequest(t, "GET", link)
+		resp := MakeRequest(t, req, http.StatusTemporaryRedirect)
+		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+	}
+
 }
 
 func TestNoLoginNotExist(t *testing.T) {
