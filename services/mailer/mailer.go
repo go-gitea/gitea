@@ -253,6 +253,73 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 	return client.Quit()
 }
 
+type crlfConverter struct {
+	danglingCR bool
+	w          io.Writer
+}
+
+func (c *crlfConverter) Write(bs []byte) (n int, err error) {
+	if len(bs) == 0 {
+		if c.danglingCR {
+			_, err := c.w.Write([]byte{'\r'})
+			if err != nil {
+				return 0, err
+			}
+			c.danglingCR = false
+		}
+		return c.w.Write(bs)
+	}
+	if c.danglingCR {
+		if bs[0] != '\n' {
+			_, err := c.w.Write([]byte{'\r'})
+			if err != nil {
+				return 0, err
+			}
+		}
+		c.danglingCR = false
+	}
+	if bs[len(bs)-1] == '\r' {
+		c.danglingCR = true
+		bs = bs[:len(bs)-1]
+	}
+	idx := bytes.Index(bs, []byte{'\r', '\n'})
+	for idx >= 0 {
+		count, err := c.w.Write(bs[:idx])
+		n += count
+		if err != nil {
+			return n, err
+		}
+		count, err = c.w.Write([]byte{'\n'})
+		if count == 1 {
+			n += 2
+		}
+		if err != nil {
+			return n, err
+		}
+		bs = bs[idx+2:]
+		idx = bytes.Index(bs, []byte{'\r', '\n'})
+	}
+	if len(bs) > 0 {
+		count, err := c.w.Write(bs)
+		n += count
+		if err != nil {
+			return n, err
+		}
+	}
+	if c.danglingCR {
+		n++
+	}
+	return
+}
+
+func (c *crlfConverter) Close() (err error) {
+	if c.danglingCR {
+		_, err = c.w.Write([]byte{'\r'})
+		c.danglingCR = false
+	}
+	return
+}
+
 // Sender sendmail mail sender
 type sendmailSender struct {
 }
@@ -290,13 +357,22 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	}
 
-	_, err = msg.WriteTo(pipe)
+	if setting.MailService.SendmailConvertCRLF {
+		converter := &crlfConverter{
+			w: pipe,
+		}
+		_, err = msg.WriteTo(converter)
+		if err == nil {
+			err = converter.Close()
+		}
+	} else {
+		_, err = msg.WriteTo(pipe)
+	}
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
-
 	if err != nil {
 		return err
 	} else if closeError != nil {

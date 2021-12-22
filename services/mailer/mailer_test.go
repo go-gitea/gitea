@@ -5,6 +5,7 @@
 package mailer
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -36,4 +37,45 @@ func TestGenerateMessageID(t *testing.T) {
 	m.SetHeader("Message-ID", "<msg-d@domain.com>")
 	gm = m.ToMessage()
 	assert.Equal(t, "<msg-d@domain.com>", gm.GetHeader("Message-ID")[0])
+}
+
+func TestCRLFConverter(t *testing.T) {
+	type testcaseType struct {
+		input    []string
+		expected string
+	}
+	testcases := []testcaseType{
+		{
+			input:    []string{"This h\ras a \r", "\nnewline\r\n"},
+			expected: "This h\ras a \nnewline\n",
+		},
+		{
+			input:    []string{"This\r\n has a \r\n\r", "\n\r\nnewline\r\n"},
+			expected: "This\n has a \n\n\nnewline\n",
+		},
+		{
+			input:    []string{"This has a \r", "\nnewline\r"},
+			expected: "This has a \nnewline\r",
+		},
+		{
+			input:    []string{"This has a \r", "newline\r"},
+			expected: "This has a \rnewline\r",
+		},
+	}
+	for _, testcase := range testcases {
+		out := &strings.Builder{}
+		converter := &crlfConverter{w: out}
+		realsum, sum := 0, 0
+		for _, in := range testcase.input {
+			n, err := converter.Write([]byte(in))
+			assert.NoError(t, err)
+			assert.Equal(t, len(in), n)
+			sum += n
+			realsum += len(in)
+		}
+		err := converter.Close()
+		assert.NoError(t, err)
+		assert.Equal(t, realsum, sum)
+		assert.Equal(t, testcase.expected, out.String())
+	}
 }
