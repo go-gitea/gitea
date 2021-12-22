@@ -39,7 +39,7 @@ type logRequestRecord struct {
 	isLongPolling  bool
 	httpRequest    *http.Request
 	responseWriter http.ResponseWriter
-	funcInfo       *LogFuncInfo
+	funcInfo       *FuncInfo
 	funcInfoMu     sync.RWMutex
 	panicError     interface{}
 }
@@ -51,8 +51,8 @@ type logContextHandler struct {
 	reqRecordCount     uint64
 }
 
-// LogFuncInfo contains information about the function to be logged by the router log
-type LogFuncInfo struct {
+// FuncInfo contains information about the function to be logged by the router log
+type FuncInfo struct {
 	file      string
 	shortFile string
 	line      int
@@ -60,8 +60,8 @@ type LogFuncInfo struct {
 	shortName string
 }
 
-var funcInfoMap = map[uintptr]*LogFuncInfo{}
-var funcInfoNameMap = map[string]*LogFuncInfo{}
+var funcInfoMap = map[uintptr]*FuncInfo{}
+var funcInfoNameMap = map[string]*FuncInfo{}
 var funcInfoMapMu sync.RWMutex
 
 // shortenFilename generates a short source code filename from a full package path, eg: "code.gitea.io/routers/common/logger_context.go" => "common/logger_context.go"
@@ -105,11 +105,11 @@ func trimAnonymousFunctionSuffix(name string) string {
 	return name
 }
 
-// convertToLogFuncInfo take a runtime.Func and convert it to a logFuncInfo, fill in shorten filename, etc
-func convertToLogFuncInfo(f *runtime.Func) *LogFuncInfo {
+// convertToFuncInfo take a runtime.Func and convert it to a logFuncInfo, fill in shorten filename, etc
+func convertToFuncInfo(f *runtime.Func) *FuncInfo {
 	file, line := f.FileLine(f.Entry())
 
-	info := &LogFuncInfo{
+	info := &FuncInfo{
 		file: strings.ReplaceAll(file, "\\", "/"),
 		line: line,
 		name: f.Name(),
@@ -132,8 +132,8 @@ func convertToLogFuncInfo(f *runtime.Func) *LogFuncInfo {
 	return info
 }
 
-func copyInfo(l *LogFuncInfo) *LogFuncInfo {
-	return &LogFuncInfo{
+func copyFuncInfo(l *FuncInfo) *FuncInfo {
+	return &FuncInfo{
 		file:      l.file,
 		shortFile: l.shortFile,
 		line:      l.line,
@@ -155,8 +155,8 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 	record.isLongPolling = true
 }
 
-// GetFuncInfo returns the LogFuncInfo for a provided function and friendlyname
-func GetFuncInfo(fn interface{}, friendlyName ...string) *LogFuncInfo {
+// GetFuncInfo returns the FuncInfo for a provided function and friendlyname
+func GetFuncInfo(fn interface{}, friendlyName ...string) *FuncInfo {
 	// ptr represents the memory position of the function passed in as v.
 	// This will be used as program counter in FuncForPC below
 	ptr := reflect.ValueOf(fn).Pointer()
@@ -180,13 +180,13 @@ func GetFuncInfo(fn interface{}, friendlyName ...string) *LogFuncInfo {
 	if ok {
 		if len(friendlyName) == 1 {
 			name := friendlyName[0]
-			info = copyInfo(info)
+			info = copyFuncInfo(info)
 			info.shortName = name
 
 			funcInfoNameMap[name] = info
 			funcInfoMapMu.Lock()
 			funcInfoNameMap[name] = info
-			funcInfoMapMu.Lock()
+			funcInfoMapMu.Unlock()
 		}
 		return info
 	}
@@ -196,7 +196,7 @@ func GetFuncInfo(fn interface{}, friendlyName ...string) *LogFuncInfo {
 	// Get the runtime.func for this function (if we can)
 	f := runtime.FuncForPC(ptr)
 	if f != nil {
-		info = convertToLogFuncInfo(f)
+		info = convertToFuncInfo(f)
 
 		// cache this info globally
 		funcInfoMapMu.Lock()
@@ -205,7 +205,7 @@ func GetFuncInfo(fn interface{}, friendlyName ...string) *LogFuncInfo {
 		// if we have been provided with a friendlyName override the short name we've generated
 		if len(friendlyName) == 1 {
 			name := friendlyName[0]
-			info = copyInfo(info)
+			info = copyFuncInfo(info)
 			info.shortName = name
 			funcInfoNameMap[name] = info
 		}
@@ -215,7 +215,7 @@ func GetFuncInfo(fn interface{}, friendlyName ...string) *LogFuncInfo {
 }
 
 //UpdateContextHandler updates a context's func info by a real handler func `fn`
-func UpdateContextHandler(ctx context.Context, funcInfo *LogFuncInfo) {
+func UpdateContextHandler(ctx context.Context, funcInfo *FuncInfo) {
 	record, ok := ctx.Value(contextKeyLogRequestRecord).(*logRequestRecord)
 	if !ok {
 		return

@@ -290,6 +290,6 @@ func init() {
 	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
 	if prefix == filename {
 		// in case the source code file is moved, we can not trim the suffix, the code above should also be updated.
-		panic("can not detect correct package prefix, please update file: " + filename)
+		panic("unable to detect correct package prefix, please update file: " + filename)
 	}
 }
