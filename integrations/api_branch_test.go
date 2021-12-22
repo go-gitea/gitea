@@ -37,7 +37,7 @@ func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPSta
 	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branch_protections/%s?token=%s", branchName, token)
 	resp := session.MakeRequest(t, req, expectedHTTPStatus)
 
-	if resp.Code == 200 {
+	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.BranchName)
@@ -52,7 +52,7 @@ func testAPICreateBranchProtection(t *testing.T, branchName string, expectedHTTP
 	})
 	resp := session.MakeRequest(t, req, expectedHTTPStatus)
 
-	if resp.Code == 201 {
+	if resp.Code == http.StatusCreated {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.BranchName)
@@ -65,7 +65,7 @@ func testAPIEditBranchProtection(t *testing.T, branchName string, body *api.Bran
 	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1/branch_protections/"+branchName+"?token="+token, body)
 	resp := session.MakeRequest(t, req, expectedHTTPStatus)
 
-	if resp.Code == 200 {
+	if resp.Code == http.StatusOK {
 		var branchProtection api.BranchProtection
 		DecodeJSON(t, resp, &branchProtection)
 		assert.EqualValues(t, branchName, branchProtection.BranchName)

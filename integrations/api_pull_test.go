@@ -77,7 +77,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Base:  "master",
 		Title: "create a failure pr",
 	})
-	session.MakeRequest(t, req, 201)
+	session.MakeRequest(t, req, http.StatusCreated)
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
@@ -105,7 +105,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
 
-	res := session.MakeRequest(t, req, 201)
+	res := session.MakeRequest(t, req, http.StatusCreated)
 	pull := new(api.PullRequest)
 	DecodeJSON(t, res, pull)
 
@@ -165,7 +165,7 @@ func TestAPIEditPull(t *testing.T) {
 		Title: "create a success pr",
 	})
 	pull := new(api.PullRequest)
-	resp := session.MakeRequest(t, req, 201)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "master", pull.Base.Name)
 
@@ -173,12 +173,12 @@ func TestAPIEditPull(t *testing.T) {
 		Base:  "feature/1",
 		Title: "edit a this pr",
 	})
-	resp = session.MakeRequest(t, req, 201)
+	resp = session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "feature/1", pull.Base.Name)
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
 		Base: "not-exist",
 	})
-	session.MakeRequest(t, req, 404)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }

@@ -209,7 +209,7 @@ func (ctx *APIContext) RequireCSRF() {
 	if len(headerToken) > 0 || len(formValueToken) > 0 {
 		Validate(ctx.Context, ctx.csrf)
 	} else {
-		ctx.Context.Error(401, "Missing CSRF token.")
+		ctx.Context.Error(http.StatusUnauthorized, "Missing CSRF token.")
 	}
 }
 
@@ -234,7 +234,7 @@ func (ctx *APIContext) CheckForOTP() {
 		return
 	}
 	if !ok {
-		ctx.Context.Error(401)
+		ctx.Context.Error(http.StatusUnauthorized)
 		return
 	}
 }

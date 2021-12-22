@@ -24,31 +24,31 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 	}{
 		{
 			p:    "user2/repo1/info/refs",
-			code: 200,
+			code: http.StatusOK,
 		},
 		{
 			p:    "user2/repo1/HEAD",
-			code: 200,
+			code: http.StatusOK,
 		},
 		{
 			p:    "user2/repo1/objects/info/alternates",
-			code: 404,
+			code: http.StatusNotFound,
 		},
 		{
 			p:    "user2/repo1/objects/info/http-alternates",
-			code: 404,
+			code: http.StatusNotFound,
 		},
 		{
 			p:    "user2/repo1/../../custom/conf/app.ini",
-			code: 404,
+			code: http.StatusNotFound,
 		},
 		{
 			p:    "user2/repo1/objects/info/../../../../custom/conf/app.ini",
-			code: 404,
+			code: http.StatusNotFound,
 		},
 		{
 			p:    `user2/repo1/objects/info/..\..\..\..\custom\conf\app.ini`,
-			code: 400,
+			code: http.StatusBadRequest,
 		},
 	}
 

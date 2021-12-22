@@ -220,7 +220,7 @@ func TestCantMergeConflict(t *testing.T) {
 			Base:  "base",
 			Title: "create a conflicting pr",
 		})
-		session.MakeRequest(t, req, 201)
+		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -317,7 +317,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Base:  "base",
 			Title: "create an unrelated pr",
 		})
-		session.MakeRequest(t, req, 201)
+		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := git.OpenRepository(path)

@@ -130,7 +130,7 @@ func IsMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a member
-	//   "302":
+	//   "307":
 	//     description: redirection to /orgs/{org}/public_members/{username}
 	//   "404":
 	//     description: user is not a member
