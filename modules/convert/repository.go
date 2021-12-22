@@ -111,10 +111,10 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	if repo.Status == repo_model.RepositoryPendingTransfer {
 		t, err := models.GetPendingRepositoryTransfer(repo)
 		if err != nil && !models.IsErrNoPendingTransfer(err) {
-			log.Debug("GetPendingRepositoryTransfer", err)
+			log.Warn("GetPendingRepositoryTransfer", err)
 		} else {
 			if err := t.LoadAttributes(); err != nil {
-				log.Debug("LoadAttributes of RepoTransfer", err)
+				log.Warn("LoadAttributes of RepoTransfer", err)
 			} else {
 				transfer = ToRepoTransfer(t)
 			}
