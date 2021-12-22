@@ -430,7 +430,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 				"protected":                 "on",
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
-			ctx.Session.MakeRequest(t, req, http.StatusFound)
+			ctx.Session.MakeRequest(t, req, http.StatusTemporaryRedirect)
 		} else {
 			user, err := user_model.GetUserByName(userToWhitelist)
 			assert.NoError(t, err)
@@ -443,7 +443,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 				"whitelist_users":           strconv.FormatInt(user.ID, 10),
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
-			ctx.Session.MakeRequest(t, req, http.StatusFound)
+			ctx.Session.MakeRequest(t, req, http.StatusTemporaryRedirect)
 		}
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie("macaron_flash")

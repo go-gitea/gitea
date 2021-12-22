@@ -120,7 +120,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect)
 }
 
 func TestLDAPUserSignin(t *testing.T) {
@@ -187,7 +187,7 @@ func TestLDAPAuthChange(t *testing.T) {
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect)
 
 	req = NewRequest(t, "GET", href)
 	resp = session.MakeRequest(t, req, http.StatusOK)
