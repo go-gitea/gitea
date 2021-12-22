@@ -28,6 +28,7 @@ import (
 )
 
 func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
+	funcInfo := common.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {
 		if storageSetting.ServeDirect {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -40,6 +41,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					next.ServeHTTP(w, req)
 					return
 				}
+				common.UpdateContextHandler(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 				u, err := objStore.URL(rPath, path.Base(rPath))
@@ -74,6 +76,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				next.ServeHTTP(w, req)
 				return
 			}
+			common.UpdateContextHandler(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")

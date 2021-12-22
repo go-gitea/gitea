@@ -41,10 +41,10 @@ func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 		reqRec.funcInfoMu.RLock()
 		isLongPolling := reqRec.isLongPolling
 		if reqRec.funcInfo != nil {
-			funcFileShort, funcLine, funcNameShort = reqRec.funcInfo.funcFileShort, reqRec.funcInfo.funcLine, reqRec.funcInfo.funcNameShort
+			funcFileShort, funcLine, funcNameShort = reqRec.funcInfo.shortFile, reqRec.funcInfo.line, reqRec.funcInfo.shortName
 		} else {
-			// we might not find all handlers, so if a handler is not processed by our `UpdateContextHandlerFuncInfo`, we won't know its information
-			// in such case, we should debug to find what handler it is and use `UpdateContextHandlerFuncInfo` to report its information
+			// we might not find all handlers, so if a handler is not processed by our `UpdateContextHandler`, we won't know its information
+			// in such case, we should debug to find what handler it is and use `UpdateContextHandler` to report its information
 			funcFileShort = "unknown-handler"
 		}
 		reqRec.funcInfoMu.RUnlock()

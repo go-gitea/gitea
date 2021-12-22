@@ -88,7 +88,7 @@ func Routes() *web.Route {
 	r.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory: path.Join(setting.StaticRootPath, "public"),
 		Prefix:    public.AssetsURLPathPrefix,
-	}), "AssetsHandler"))
+	}), "InstallAssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -107,12 +107,10 @@ func Routes() *web.Route {
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 
-	handlerNotFound := func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, setting.AppURL, http.StatusFound)
-	}
-	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		common.UpdateContextHandlerFuncInfo(req.Context(), handlerNotFound)
-		handlerNotFound(w, req)
-	})
+	r.NotFound(web.Wrap(installNotFound))
 	return r
+}
+
+func installNotFound(w http.ResponseWriter, req *http.Request) {
+	http.Redirect(w, req, setting.AppURL, http.StatusFound)
 }
