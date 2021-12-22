@@ -17411,9 +17411,7 @@
           "x-go-name": "PRURL"
         },
         "ref_action": {
-          "description": "action that was used to reference issue/PR\n0 means the cross-reference is simply a comment\n1 means the cross-reference should close an issue if it is resolved\n2 means the cross-reference should reopen an issue if it is resolved\n3 means the cross-reference will no longer affect the source",
-          "type": "integer",
-          "format": "int64",
+          "type": "string",
           "x-go-name": "RefAction"
         },
         "ref_comment": {
@@ -17444,9 +17442,7 @@
           "$ref": "#/definitions/TrackedTime"
         },
         "type": {
-          "description": "Type specifies the type of an event.\n0 Plain comment, can be associated with a commit (CommitID \u003e 0) and a line (LineNum \u003e 0)\n1 Reopen issue/pull request\n2 Close issue/pull request\n3 References.\n4 Reference from a commit (not part of a pull request)\n5 Reference from a comment\n6 Reference from a pull request\n7 Labels changed (if Body is \"1\", label was added, if not it was removed)\n8 Milestone changed\n9 Assignees changed\n10 Change Title\n11 Delete Branch\n12 Start a stopwatch for time tracking\n13 Stop a stopwatch for time tracking\n14 Add time manual for time tracking\n15 Cancel a stopwatch for time tracking\n16 Added a due date\n17 Modified the due date\n18 Removed a due date\n19 Dependency added\n20 Dependency removed\n21 Not returned; use review API to get more information\n22 Reviews a pull request by giving general feedback; use review API to get more information\n23 Lock an issue, giving only collaborators access\n24 Unlocks a previously locked issue\n25 Change pull request's target branch\n26 Delete time manual for time tracking\n27 add or remove Request from one\n28 merge pull request\n29 push to PR head branch (information about the push is included in Body)\n30 Project changed\n31 Project board changed\n32 Dismiss Review\n33 Change issue ref",
-          "type": "integer",
-          "format": "int64",
+          "type": "string",
           "x-go-name": "Type"
         },
         "updated_at": {
