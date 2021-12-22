@@ -66,7 +66,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 
 	comment := &api.TimelineComment{
 		ID:       c.ID,
-		Type:     int64(c.Type),
+		Type:     c.Type.String(),
 		Poster:   ToUser(c.Poster, nil),
 		HTMLURL:  c.HTMLURL(),
 		IssueURL: c.IssueURL(),
@@ -84,7 +84,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 		OldRef: c.OldRef,
 		NewRef: c.NewRef,
 
-		RefAction:    int64(c.RefAction),
+		RefAction:    c.RefAction.String(),
 		RefCommitSHA: c.CommitSHA,
 
 		ReviewID: c.ReviewID,

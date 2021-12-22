@@ -65,6 +65,15 @@ const (
 	XRefActionNeutered // 3
 )
 
+func (a XRefAction) String() string {
+	return []string{
+		"none",
+		"closes",
+		"reopens",
+		"neutered",
+	}[a]
+}
+
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
 	Index   int64
