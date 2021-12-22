@@ -1,4 +1,4 @@
-import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
@@ -256,6 +256,7 @@ export function initRepoCommentForm() {
 
 async function onEditContent(event) {
   event.preventDefault();
+
   $(this).closest('.dropdown').find('.menu').toggle('visible');
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
@@ -341,7 +342,7 @@ async function onEditContent(event) {
     $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
     $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
     $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
-    easyMDE = createCommentEasyMDE($textarea);
+    easyMDE = await createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
     if ($dropzone.length === 1) {

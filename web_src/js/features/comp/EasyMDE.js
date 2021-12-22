@@ -1,11 +1,55 @@
 import attachTribute from '../tribute.js';
 
+const {appSubUrl} = window.config;
+
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.async = true;
+    script.addEventListener('load', () => {
+      resolve();
+    });
+    script.addEventListener('error', (e) => {
+      reject(e.error);
+    });
+    document.body.appendChild(script);
+    script.src = url;
+  });
+}
+
+export async function importEasyMDE() {
+  // for CodeMirror: the plugins should be loaded dynamically
+  // https://github.com/codemirror/CodeMirror/issues/5484
+  // https://github.com/codemirror/CodeMirror/issues/4838
+
+  const [{default: EasyMDE}, {default: CodeMirror}] = await Promise.all([
+    import(/* webpackChunkName: "easymde" */'easymde'),
+    import(/* webpackChunkName: "codemirror" */'codemirror'),
+    import(/* webpackChunkName: "easymde" */'easymde/dist/easymde.min.css'),
+  ]);
+
+  // CodeMirror plugins must be loaded by a "Plain browser env"
+  window.CodeMirror = CodeMirror;
+  await Promise.all([
+    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/addon/mode/loadmode.js`),
+    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/mode/meta.js`),
+  ]);
+
+  // the loadmode.js/meta.js would set the modeURL/modeInfo properties, so we check it to make sure our loading works
+  if (!CodeMirror.modeURL || !CodeMirror.modeInfo) {
+    throw new Error('failed to load plugins for CodeMirror');
+  }
+
+  CodeMirror.modeURL = `${appSubUrl}/assets/vendor/plugins/codemirror/mode/%N/%N.js`;
+  return EasyMDE;
+}
+
 /**
  * create an EasyMDE editor for comment
  * @param textarea jQuery or HTMLElement
  * @returns {null|EasyMDE}
  */
-export function createCommentEasyMDE(textarea) {
+export async function createCommentEasyMDE(textarea) {
   if (textarea instanceof jQuery) {
     textarea = textarea[0];
   }
@@ -13,12 +57,13 @@ export function createCommentEasyMDE(textarea) {
     return null;
   }
 
-  const easyMDE = new window.EasyMDE({
+  const EasyMDE = await importEasyMDE();
+  const easyMDE = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: textarea,
     forceSync: true,
     renderingConfig: {
-      singleLineBreaks: false
+      singleLineBreaks: false,
     },
     indentWithTabs: false,
     tabSize: 4,
@@ -56,7 +101,7 @@ export function createCommentEasyMDE(textarea) {
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
-    ]
+    ],
   });
   const inputField = easyMDE.codemirror.getInputField();
   inputField.classList.add('js-quick-submit');
@@ -72,13 +117,12 @@ export function createCommentEasyMDE(textarea) {
         cm.getInputField().trigger('input');
       }
       cm.execCommand('delCharBefore');
-    }
+    },
   });
   attachTribute(inputField, {mentions: true, emoji: true});
 
-  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
-  inputField._data_easyMDE = easyMDE;
-  textarea._data_easyMDE = easyMDE;
+  setAttachedEasyMDE(inputField, easyMDE);
+  setAttachedEasyMDE(textarea, easyMDE);
   return easyMDE;
 }
 
@@ -95,4 +139,15 @@ export function getAttachedEasyMDE(el) {
     return null;
   }
   return el._data_easyMDE;
+}
+
+function setAttachedEasyMDE(el, easyMDE) {
+  if (el instanceof jQuery) {
+    el = el[0];
+  }
+  if (!el) {
+    return;
+  }
+  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
+  el._data_easyMDE = easyMDE;
 }
