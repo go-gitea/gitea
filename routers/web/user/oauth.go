@@ -445,7 +445,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 				log.Error("Unable to update nonce: %v", err)
 			}
 		}
-		ctx.Redirect(redirect.String(), http.StatusTemporaryRedirect)
+		ctx.Redirect(redirect.String(), http.StatusSeeOther)
 		return
 	}
 
@@ -527,7 +527,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	ctx.Redirect(redirect.String(), http.StatusTemporaryRedirect)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
@@ -748,5 +748,5 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("error_description", authErr.ErrorDescription)
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
-	ctx.Redirect(redirect.String(), http.StatusTemporaryRedirect)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
