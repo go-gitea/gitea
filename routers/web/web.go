@@ -298,7 +298,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", events.Events)
+	m.Any("/user/events", common.MarkLongPolling, events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)

@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"time"
 
-	giteaContext "code.gitea.io/gitea/modules/context"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // NewLoggerHandlerV2 is a handler that will log the routing to the default gitea log
@@ -20,23 +21,24 @@ import (
 //	  the mutexes work in fast path for most cases (atomic incr) because there is seldom concurrency writings.
 // So generally speaking, the `logger context` doesn't cost much, using v2 with `logger context` will not affect performance
 // Instead, the performance may be improved because now only 1 log is outputted for each request.
-func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
+func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 	lh := logContextHandler{
-		logLevel:         level,
 		requestRecordMap: map[uint64]*logRequestRecord{},
 	}
 	lh.startSlowQueryDetector(3 * time.Second)
 
 	lh.printLog = func(trigger LogRequestTrigger, reqRec *logRequestRecord) {
-		if trigger == LogRequestStart {
+		if trigger == LogRequestStart && !log.DEBUG.IsEnabledOn(setting.RouterLogLevel) {
+			// for performance, if the START message shouldn't be logged, we just return as early as possible
+			// developers could set both `log.LEVEL=debug` and `log.ROUTER_LOG_LEVEL=debug` to get the "started" request messages.
 			return
 		}
 
 		funcFileShort := ""
 		funcLine := 0
 		funcNameShort := ""
-
 		reqRec.funcInfoMu.RLock()
+		isLongPolling := reqRec.isLongPolling
 		if reqRec.funcInfo != nil {
 			funcFileShort, funcLine, funcNameShort = reqRec.funcInfo.funcFileShort, reqRec.funcInfo.funcLine, reqRec.funcInfo.funcNameShort
 		} else {
@@ -48,15 +50,25 @@ func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
 
 		logger := log.GetLogger("router")
 		req := reqRec.httpRequest
-		if trigger == LogRequestExecuting {
-			_ = logger.Log(0, lh.logLevel, "handler: %s:%d(%s) still-executing %v %s for %s, elapsed %v",
+		if trigger == LogRequestStart {
+			// when a request starts, we have no information about the handler function information, we only have the request path
+			_ = logger.Log(0, log.DEBUG, "router: started %v %s for %s", log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
+		} else if trigger == LogRequestExecuting {
+			message := "still-executing"
+			level := log.WARN
+			if isLongPolling {
+				level = log.INFO
+				message = "long-polling"
+			}
+			_ = logger.Log(0, level, "router: %s:%d(%s) %s %v %s for %s, elapsed %v",
 				funcFileShort, funcLine, funcNameShort,
+				message,
 				log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 				log.ColoredTime(time.Since(reqRec.startTime)),
 			)
 		} else {
 			if reqRec.panicError != nil {
-				_ = logger.Log(0, lh.logLevel, "handler: %s:%d(%s) failed %v %s for %s, panic in %v, err=%v",
+				_ = logger.Log(0, log.WARN, "router: %s:%d(%s) failed %v %s for %s, panic in %v, err=%v",
 					funcFileShort, funcLine, funcNameShort,
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 					log.ColoredTime(time.Since(reqRec.startTime)),
@@ -64,10 +76,10 @@ func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
 				)
 			} else {
 				var status int
-				if v, ok := reqRec.responseWriter.(giteaContext.ResponseWriter); ok {
+				if v, ok := reqRec.responseWriter.(gitea_context.ResponseWriter); ok {
 					status = v.Status()
 				}
-				_ = logger.Log(0, lh.logLevel, "handler: %s:%d(%s) completed %v %s for %s, %v %v in %v",
+				_ = logger.Log(0, log.INFO, "router: %s:%d(%s) completed %v %s for %s, %v %v in %v",
 					funcFileShort, funcLine, funcNameShort,
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 					log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(reqRec.startTime)))

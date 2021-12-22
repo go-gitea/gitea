@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 )
 
 // LogRequestTrigger indicates when the logger is triggered
@@ -37,6 +36,7 @@ type LogPrinter func(trigger LogRequestTrigger, reqRec *logRequestRecord)
 type logRequestRecord struct {
 	recordIndex    uint64
 	startTime      time.Time
+	isLongPolling  bool
 	httpRequest    *http.Request
 	responseWriter http.ResponseWriter
 	funcInfo       *logFuncInfo
@@ -45,7 +45,6 @@ type logRequestRecord struct {
 }
 
 type logContextHandler struct {
-	logLevel           log.Level
 	printLog           LogPrinter
 	requestRecordMap   map[uint64]*logRequestRecord
 	requestRecordMapMu sync.Mutex
@@ -131,7 +130,16 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 	return info
 }
 
-var contextKeyLogRequestRecord interface{} = "logRequestRecord"
+type contextKeyLogRequestRecordStruct struct {}
+var contextKeyLogRequestRecord contextKeyLogRequestRecordStruct
+
+func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
+	record, ok := req.Context().Value(contextKeyLogRequestRecord).(*logRequestRecord)
+	if !ok {
+		return
+	}
+	record.isLongPolling = true
+}
 
 //UpdateContextHandlerFuncInfo updates a context's func info by a real handler func `fn`
 func UpdateContextHandlerFuncInfo(ctx context.Context, fn interface{}, friendlyName ...string) {

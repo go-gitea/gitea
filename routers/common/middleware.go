@@ -46,20 +46,18 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 	handlers = append(handlers, middleware.StripSlashes)
 
-	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			var routerLogHandler func(http.Handler) http.Handler
-			if setting.RouterLogHandler == "v1" {
-				routerLogHandler = NewLoggerHandlerV1(setting.RouterLogLevel)
-			} else if setting.RouterLogHandler == "v2" {
-				routerLogHandler = NewLoggerHandlerV2(setting.RouterLogLevel)
-			}
-			if routerLogHandler == nil {
-				log.Warn("unknown router log handler '%s', fall back to v2")
-				routerLogHandler = NewLoggerHandlerV2(setting.RouterLogLevel)
-			}
-			handlers = append(handlers, routerLogHandler)
+	if !setting.DisableRouterLog {
+		var routerLogHandler func(http.Handler) http.Handler
+		if setting.RouterLogHandler == "v1" {
+			routerLogHandler = NewLoggerHandlerV1(setting.RouterLogLevel)
+		} else if setting.RouterLogHandler == "v2" {
+			routerLogHandler = NewLoggerHandlerV2()
 		}
+		if routerLogHandler == nil {
+			log.Warn("unknown router log handler '%s', fall back to v2")
+			routerLogHandler = NewLoggerHandlerV2()
+		}
+		handlers = append(handlers, routerLogHandler)
 	}
 	if setting.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())

@@ -54,3 +54,13 @@ func TestLevelMarshalUnmarshalJSON(t *testing.T) {
 func makeTestLevelBytes(level string) []byte {
 	return []byte(fmt.Sprintf(`{"level":"%s"}`, level))
 }
+
+func TestLevelIsEnabled(t *testing.T) {
+	assert.True(t, INFO.IsEnabledOn(DEBUG))
+	assert.True(t, INFO.IsEnabledOn(INFO))
+	assert.False(t, INFO.IsEnabledOn(ERROR))
+
+	assert.False(t, ERROR.IsEnabledOn(NONE))
+	assert.False(t, NONE.IsEnabledOn(ERROR))
+	assert.False(t, NONE.IsEnabledOn(NONE))
+}
