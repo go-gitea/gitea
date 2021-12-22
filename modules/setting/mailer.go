@@ -74,7 +74,7 @@ func newMailService() {
 
 		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
-		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(false),
+		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
