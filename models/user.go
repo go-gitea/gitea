@@ -316,11 +316,11 @@ func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
-func IsUserVisibleToViewer(u *user_model.User, viewer *user_model.User) bool {
+func IsUserVisibleToViewer(u, viewer *user_model.User) bool {
 	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
 }
 
-func isUserVisibleToViewer(e db.Engine, u *user_model.User, viewer *user_model.User) bool {
+func isUserVisibleToViewer(e db.Engine, u, viewer *user_model.User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}

@@ -2951,6 +2951,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filepath of a file/dir",
+            "name": "path",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2958,7 +2964,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
             "in": "query"
           }
@@ -15578,6 +15584,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -15670,6 +15680,10 @@
         "force_merge": {
           "type": "boolean",
           "x-go-name": "ForceMerge"
+        },
+        "head_commit_id": {
+          "type": "string",
+          "x-go-name": "HeadCommitID"
         }
       },
       "x-go-name": "MergePullRequestForm",
