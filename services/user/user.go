@@ -33,12 +33,27 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	}
 
 	if purge {
+		// Disable the user first
+		if err := user_model.UpdateUserCols(ctx, &user_model.User{
+			ID:              u.ID,
+			IsActive:        false,
+			IsRestricted:    true,
+			IsAdmin:         false,
+			ProhibitLogin:   true,
+			Passwd:          "",
+			Salt:            "",
+			PasswdHashAlgo:  "",
+			MaxRepoCreation: 0,
+		}, "is_active", "is_restricted", "is_admin", "prohibit_login", "max_repo_creation", "passwd", "salt", "passwd_hash_algo"); err != nil {
+			return fmt.Errorf("unable to disable user: %s[%d] prior to purge. UpdateUserCols: %w", u.Name, u.ID, err)
+		}
+
 		// Delete all repos belonging to this user
-		for page := 1; ; page++ {
-			repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+		for {
+			repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
 				ListOptions: db.ListOptions{
 					PageSize: models.RepositoryListDefaultPageSize,
-					Page:     page,
+					Page:     1,
 				},
 				Private: true,
 				OwnerID: u.ID,
@@ -57,17 +72,29 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 
 		// Delete Orgs
-		orgs, err := models.GetUserOrgsList(u)
-		if err != nil {
-			return fmt.Errorf("unable to org list for %s[%d]. Error: %v", u.Name, u.ID, err)
-		}
-		for _, org := range orgs {
-			if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
-				if models.IsErrLastOrgOwner(err) {
-					err = models.DeleteOrganization(ctx, org)
-				}
-				if err != nil {
-					return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %v", u.Name, u.ID, org.Name, org.ID, err)
+		for {
+			orgs, err := models.FindOrgs(models.FindOrgOptions{
+				ListOptions: db.ListOptions{
+					PageSize: models.RepositoryListDefaultPageSize,
+					Page:     1,
+				},
+				UserID:         u.ID,
+				IncludePrivate: true,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to find org list for %s[%d]. Error: %v", u.Name, u.ID, err)
+			}
+			if len(orgs) == 0 {
+				break
+			}
+			for _, org := range orgs {
+				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+					if models.IsErrLastOrgOwner(err) {
+						err = models.DeleteOrganization(ctx, org)
+					}
+					if err != nil {
+						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %v", u.Name, u.ID, org.Name, org.ID, err)
+					}
 				}
 			}
 		}
@@ -80,7 +107,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	defer committer.Close()
 
 	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation.
+	//	cannot perform delete operation. This causes a race with the purge above
+	//  however consistency requires that we ensure that this is the case
 
 	// Check ownership of repository.
 	count, err := repo_model.GetRepositoryCount(ctx, u.ID)
@@ -118,7 +146,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	//	so just keep error logs of those operations.
 	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		err = fmt.Errorf("failed to RemoveAll %s: %v", path, err)
 		_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
@@ -126,7 +154,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			err = fmt.Errorf("failed to remove %s: %v", avatarPath, err)
 			_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
