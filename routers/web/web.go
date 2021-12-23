@@ -544,6 +544,20 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.UpdateOrgSettingForm{}), org.SettingsPost)
 				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
+				m.Group("/applications", func() {
+					m.Combo("").Get(org.Applications).
+						Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.ApplicationsPost)
+					m.Group("/{id}", func() {
+						m.Combo("").Get(org.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.EditApplicationPost)
+						m.Post("/regenerate_secret", org.ApplicationsRegenerateSecret)
+						m.Post("/delete", org.DeleteApplication)
+					})
+				}, func(ctx *context.Context) {
+					if !setting.OAuth2.Enable {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
+				})
 
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
@@ -581,6 +595,8 @@ func RegisterRoutes(m *web.Route) {
 				})
 
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
+			}, func(ctx *context.Context) {
+				ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 			})
 		}, context.OrgAssignment(true, true))
 	}, reqSignIn)
