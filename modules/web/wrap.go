@@ -7,6 +7,7 @@ package web
 import (
 	goctx "context"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/routers/common"
@@ -78,7 +79,7 @@ func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.
 }
 
 // MiddleAPI wrap a context function as a chi middleware
-func MiddleAPI(f func(ctx *context.APIContext)) func(netx http.Handler) http.Handler {
+func MiddleAPI(f func(ctx *context.APIContext)) func(next http.Handler) http.Handler {
 	funcInfo := common.GetFuncInfo(f)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -91,4 +92,21 @@ func MiddleAPI(f func(ctx *context.APIContext)) func(netx http.Handler) http.Han
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
+}
+
+// WrapWithPrefix wraps a provided handler function at a prefix
+func WrapWithPrefix(pathPrefix string, handler http.HandlerFunc, friendlyName ...string) func(next http.Handler) http.Handler {
+	funcInfo := common.GetFuncInfo(handler, friendlyName...)
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if !strings.HasPrefix(req.URL.Path, pathPrefix) {
+				next.ServeHTTP(resp, req)
+				return
+			}
+			common.UpdateContextHandler(req.Context(), funcInfo)
+			handler(resp, req)
+		})
+	}
+
 }

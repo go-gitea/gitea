@@ -74,7 +74,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
+	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
 		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),

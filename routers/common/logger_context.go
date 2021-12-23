@@ -228,22 +228,6 @@ func UpdateContextHandler(ctx context.Context, funcInfo *FuncInfo) {
 
 }
 
-// WrapContextHandler wraps a log context handler for a router handler
-func WrapContextHandler(pathPrefix string, handler http.HandlerFunc, friendlyName ...string) func(next http.Handler) http.Handler {
-	funcInfo := GetFuncInfo(handler, friendlyName...)
-
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, pathPrefix) {
-				next.ServeHTTP(resp, req)
-				return
-			}
-			UpdateContextHandler(req.Context(), funcInfo)
-			handler(resp, req)
-		})
-	}
-}
-
 //UpdateContextHandlerPanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
 func UpdateContextHandlerPanicError(ctx context.Context, err interface{}) {
 	if reqRec, ok := ctx.Value(contextKeyLogRequestRecord).(*logRequestRecord); ok {

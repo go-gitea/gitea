@@ -85,7 +85,7 @@ func Routes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
+	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory: path.Join(setting.StaticRootPath, "public"),
 		Prefix:    public.AssetsURLPathPrefix,
 	}), "InstallAssetsHandler"))
