@@ -6,9 +6,14 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -188,6 +193,8 @@ func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions
 var shortStatFormat = regexp.MustCompile(
 	`\s*(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?`)
 
+var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
+
 func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	if len(stdout) == 0 || stdout == "\n" {
 		return 0, 0, 0, nil
@@ -266,4 +273,58 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 		return repo.GetDiffBinary(base, head, w)
 	}
 	return err
+}
+
+// ReadPullHead will fetch a pull ref if possible or return an error
+func (repo *Repository) ReadPullHead(prID int64) (commitSHA string, err error) {
+	headPath := fmt.Sprintf("refs/pull/%d/head", prID)
+	fullHeadPath := filepath.Join(repo.Path, headPath)
+	loadHead, err := os.Open(fullHeadPath)
+	if err != nil {
+		return "", err
+	}
+	defer loadHead.Close()
+	// Read only the first line of the patch - usually it contains the first commit made in patch
+	scanner := bufio.NewScanner(loadHead)
+	scanner.Scan()
+	commitHead := scanner.Text()
+	if len(commitHead) != 40 {
+		return "", errors.New("head file doesn't contain valid commit ID")
+	}
+	return commitHead, nil
+}
+
+// ReadPatchCommit will check if a diff patch exists and return stats
+func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
+	// Migrated repositories download patches to "pulls" location
+	patchFile := fmt.Sprintf("pulls/%d.patch", prID)
+	loadPatch, err := os.Open(filepath.Join(repo.Path, patchFile))
+	if err != nil {
+		return "", err
+	}
+	defer loadPatch.Close()
+	// Read only the first line of the patch - usually it contains the first commit made in patch
+	scanner := bufio.NewScanner(loadPatch)
+	scanner.Scan()
+	// Parse the Patch stats, sometimes Migration returns a 404 for the patch file
+	commitSHAGroups := patchCommits.FindStringSubmatch(scanner.Text())
+	if len(commitSHAGroups) != 0 {
+		commitSHA = commitSHAGroups[1]
+	} else {
+		return "", errors.New("patch file doesn't contain valid commit ID")
+	}
+	return commitSHA, nil
+}
+
+// WritePullHead will populate a PR head retrieved from patch file
+func (repo *Repository) WritePullHead(prID int64, commitSHA string) error {
+	headPath := fmt.Sprintf("refs/pull/%d", prID)
+	fullHeadPath := filepath.Join(repo.Path, headPath)
+	// Create missing directory just in case
+	if err := os.MkdirAll(fullHeadPath, os.ModePerm); err != nil {
+		return err
+	}
+	commitBytes := []byte(commitSHA)
+	pullPath := filepath.Join(fullHeadPath, "head")
+	return ioutil.WriteFile(pullPath, commitBytes, os.ModePerm)
 }
