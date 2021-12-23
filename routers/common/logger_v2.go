@@ -29,7 +29,7 @@ func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 	lh.startSlowQueryDetector(3 * time.Second)
 
 	lh.printLog = func(trigger LogRequestTrigger, reqRec *logRequestRecord) {
-		if trigger == LogRequestStart && !log.DEBUG.IsEnabledOn(setting.RouterLogLevel) {
+		if trigger == LogRequestStart && setting.RouterLogLevel > log.DEBUG {
 			// for performance, if the START message shouldn't be logged, we just return as early as possible
 			// developers could set both `log.LEVEL=debug` and `log.ROUTER_LOG_LEVEL=debug` to get the "started" request messages.
 			return
