@@ -34,7 +34,7 @@ func Open(uriStr string) (io.ReadCloser, error) {
 		if err != nil {
 			return nil, err
 		}
-		return f.Body, err
+		return f.Body, nil
 	case "file":
 		return os.Open(u.Path)
 	default:
