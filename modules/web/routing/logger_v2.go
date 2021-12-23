@@ -29,9 +29,9 @@ func NewLoggerHandlerV2() func(next http.Handler) http.Handler {
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 	return func(trigger Event, record *requestRecord) {
-		if trigger == StartEvent && setting.RouterLogLevel > log.DEBUG {
-			// for performance, if the START message shouldn't be logged, we just return as early as possible
-			// developers could set both `log.LEVEL=debug` and `log.ROUTER_LOG_LEVEL=debug` to get the "started" request messages.
+		if trigger == StartEvent && setting.LogLevel > log.DEBUG {
+			// for performance, if the "started" message shouldn't be logged, we just return as early as possible
+			// developers could set both `log.LEVEL=Debug` to get the "started" request messages.
 			return
 		}
 
@@ -74,7 +74,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 			)
 		} else {
 			if record.panicError != nil {
-				logger.Warn("router: failed %v %s for %s, panic in %v @ %s, err=%v",
+				_ = logger.Log(0, log.WARN, "router: failed %v %s for %s, panic in %v @ %s, err=%v",
 					shortFilename, line, shortName,
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 					log.ColoredTime(time.Since(record.startTime)),
@@ -86,7 +86,7 @@ func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 				if v, ok := record.responseWriter.(context.ResponseWriter); ok {
 					status = v.Status()
 				}
-				logger.Info("router: completed %v %s for %s, %v %v in %v @ %s",
+				_ = logger.Log(0, setting.RouterLogLevel, "router: completed %v %s for %s, %v %v in %v @ %s",
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
 					log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(status)), log.ColoredTime(time.Since(record.startTime)),
 					handlerFuncInfo,

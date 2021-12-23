@@ -28,23 +28,29 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 }
 
 func wrapInternal(handlers []wrappedHandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+	return func(resp http.ResponseWriter, req *http.Request) {
+		var defers []func()
+		defer func() {
+			for i := len(defers) - 1; i >= 0; i-- {
+				defers[i]()
+			}
+		}()
 		for i := 0; i < len(handlers); i++ {
 			handler := handlers[i]
 			others := handlers[i+1:]
-			done, deferable := handler(resp, req, others...)
-			if deferable != nil {
-				defer deferable()
+			done, deferrable := handler(resp, req, others...)
+			if deferrable != nil {
+				defers = append(defers, deferrable)
 			}
 			if done {
 				return
 			}
 		}
-	})
+	}
 }
 
 // Middle wrap a context function as a chi middleware
-func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
+func Middle(f func(ctx *context.Context)) func(next http.Handler) http.Handler {
 	funcInfo := routing.GetFuncInfo(f)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -108,5 +114,4 @@ func WrapWithPrefix(pathPrefix string, handler http.HandlerFunc, friendlyName ..
 			handler(resp, req)
 		})
 	}
-
 }
