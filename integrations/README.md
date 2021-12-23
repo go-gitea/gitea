@@ -65,7 +65,7 @@ For SQLite:
 make test-sqlite#GPG
 ```
 
-For other databases(replace MSSQL to MySQL, MySQL8, PGSQL):
+For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG
