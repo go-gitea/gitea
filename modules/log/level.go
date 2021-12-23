@@ -74,12 +74,6 @@ func (l Level) String() string {
 	return "info"
 }
 
-// IsEnabledOn checks whether the log level is enabled on targetLevel.
-// eg: INFO logs are enabled (outputted) on DEBUG / INFO, but not WARN / ERROR
-func (l Level) IsEnabledOn(targetLevel Level) bool {
-	return l >= targetLevel && l != NONE
-}
-
 // Color returns the color string for this Level
 func (l Level) Color() *[]byte {
 	color, ok := levelToColor[l]

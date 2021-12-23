@@ -73,7 +73,7 @@ var (
 	wayTooLong = ColorBytes(BgMagenta)
 )
 
-// ColoredTime adds colors for time on log, it always formats the duration in Millisecond unit
+// ColoredTime converts the provided time to a ColoredValue for logging. The duration is always formatted in milliseconds.
 func ColoredTime(duration time.Duration) *ColoredValue {
 	// the output of in Millisecond is more readable:
 	// * before: "100.1ms" "100.1μs" "100.1s"

@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/api/v1/misc"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -74,7 +74,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
+	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
 		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),
@@ -298,7 +298,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", common.MarkLongPolling, events.Events)
+	m.Any("/user/events", routing.MarkLongPolling, events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
