@@ -186,7 +186,17 @@ func (a *Action) GetRepoPath() string {
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath() string {
-	return path.Join(a.ShortRepoUserName(), a.ShortRepoName())
+	act := new(Action)
+	name := a.ShortRepoName()
+	ok, err := db.GetEngine(db.DefaultContext).Where("op_type = 2 AND repo_id = ? AND id > ?", a.RepoID, a.ID).Get(act)
+	if err != nil {
+		log.Error("GetRepoNameAcordingToAction: %v", err)
+		return "500 when get RepoName"
+	}
+	if ok {
+		name = act.Content
+	}
+	return path.Join(a.ShortRepoUserName(), name)
 }
 
 // GetRepoLink returns relative link to action repository.
