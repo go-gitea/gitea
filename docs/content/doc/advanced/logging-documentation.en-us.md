@@ -81,8 +81,8 @@ Please note, setting the `LEVEL` of this logger to a level above
 
 You can control the output format by setting a log handler to `ROUTER_LOG_HANDLER`.
 Now Gitea has two log handlers:
-* `v1` is the default handler for Gitea before 1.16
-* `v2` is the default handler for Gitea from 1.16, it's more meaningful and friendly.
+* `router_logger_v1` is the default handler for Gitea before 1.16
+* `router_logger_v2` is the default handler for Gitea from 1.16, it's more meaningful and friendly.
 
 If you have applications depending on the log format (eg: fail2ban), please make sure you use the correct log handler and log format.
 

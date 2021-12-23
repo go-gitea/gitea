@@ -45,7 +45,7 @@ func (manager *requestRecordsManager) startSlowQueryDetector(threshold time.Dura
 		// If a request has been running for a long time (eg: /user/events), we also print a log with "still-executing" message
 		// After the "still-executing" log is printed, the record will be removed from the map to prevent from duplicated logs in future
 
-		// We do not care about accurate duration here. It just does the check periodically, 0.5s or 1.5ms are all OK.
+		// We do not care about accurate duration here. It just does the check periodically, 0.5s or 1.5s are all OK.
 		t := time.NewTicker(time.Second)
 		for {
 			select {

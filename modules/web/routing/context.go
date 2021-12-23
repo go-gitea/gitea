@@ -9,9 +9,9 @@ import (
 	"net/http"
 )
 
-type contextKeyStruct struct{}
+type contextKeyType struct{}
 
-var contextKey contextKeyStruct
+var contextKey contextKeyType
 
 //UpdateFuncInfo updates a context's func info
 func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
@@ -20,7 +20,6 @@ func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
 		return
 	}
 
-	// update our current record
 	record.lock.Lock()
 	record.funcInfo = funcInfo
 	record.lock.Unlock()
