@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/modules/web/routing"
 )
 
 // Wrap converts all kinds of routes to standard library one
@@ -45,10 +45,10 @@ func wrapInternal(handlers []wrappedHandlerFunc) http.HandlerFunc {
 
 // Middle wrap a context function as a chi middleware
 func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
-	funcInfo := common.GetFuncInfo(f)
+	funcInfo := routing.GetFuncInfo(f)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			f(ctx)
 			if ctx.Written() {
@@ -61,10 +61,10 @@ func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 
 // MiddleCancel wrap a context function as a chi middleware
 func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.Handler) http.Handler {
-	funcInfo := common.GetFuncInfo(f)
+	funcInfo := routing.GetFuncInfo(f)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			cancel := f(ctx)
 			if cancel != nil {
@@ -80,10 +80,10 @@ func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.
 
 // MiddleAPI wrap a context function as a chi middleware
 func MiddleAPI(f func(ctx *context.APIContext)) func(next http.Handler) http.Handler {
-	funcInfo := common.GetFuncInfo(f)
+	funcInfo := routing.GetFuncInfo(f)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetAPIContext(req)
 			f(ctx)
 			if ctx.Written() {
@@ -96,7 +96,7 @@ func MiddleAPI(f func(ctx *context.APIContext)) func(next http.Handler) http.Han
 
 // WrapWithPrefix wraps a provided handler function at a prefix
 func WrapWithPrefix(pathPrefix string, handler http.HandlerFunc, friendlyName ...string) func(next http.Handler) http.Handler {
-	funcInfo := common.GetFuncInfo(handler, friendlyName...)
+	funcInfo := routing.GetFuncInfo(handler, friendlyName...)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -104,7 +104,7 @@ func WrapWithPrefix(pathPrefix string, handler http.HandlerFunc, friendlyName ..
 				next.ServeHTTP(resp, req)
 				return
 			}
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			handler(resp, req)
 		})
 	}

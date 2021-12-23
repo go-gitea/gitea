@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/routing"
 
 	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5/middleware"
@@ -49,13 +50,13 @@ func Middlewares() []func(http.Handler) http.Handler {
 	if !setting.DisableRouterLog {
 		var routerLogHandler func(http.Handler) http.Handler
 		if setting.RouterLogHandler == "v1" {
-			routerLogHandler = NewLoggerHandlerV1(setting.RouterLogLevel)
+			routerLogHandler = routing.NewLoggerHandlerV1(setting.RouterLogLevel)
 		} else if setting.RouterLogHandler == "v2" {
-			routerLogHandler = NewLoggerHandlerV2()
+			routerLogHandler = routing.NewLoggerHandlerV2()
 		}
 		if routerLogHandler == nil {
 			log.Warn("unknown router log handler '%s', fall back to v2")
-			routerLogHandler = NewLoggerHandlerV2()
+			routerLogHandler = routing.NewLoggerHandlerV2()
 		}
 		handlers = append(handlers, routerLogHandler)
 	}
@@ -71,7 +72,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 			// and send a simple error page that should not panic anymore.
 			defer func() {
 				if err := recover(); err != nil {
-					UpdateContextHandlerPanicError(req.Context(), err)
+					routing.UpdatePanicError(req.Context(), err)
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%v", combinedErr)
 					if setting.IsProd {

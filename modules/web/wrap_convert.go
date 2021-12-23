@@ -10,17 +10,17 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/modules/web/routing"
 )
 
 type wrappedHandlerFunc func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func())
 
 func convertHandler(handler interface{}) wrappedHandlerFunc {
-	funcInfo := common.GetFuncInfo(handler)
+	funcInfo := routing.GetFuncInfo(handler)
 	switch t := handler.(type) {
 	case http.HandlerFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			t(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
@@ -29,7 +29,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(http.ResponseWriter, *http.Request):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			t(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
@@ -39,7 +39,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 
 	case func(ctx *context.Context):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			t(ctx)
 			done = ctx.Written()
@@ -47,7 +47,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(ctx *context.Context) goctx.CancelFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			deferable = t(ctx)
 			done = ctx.Written()
@@ -55,7 +55,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(*context.APIContext):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetAPIContext(req)
 			t(ctx)
 			done = ctx.Written()
@@ -63,7 +63,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(*context.PrivateContext):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetPrivateContext(req)
 			t(ctx)
 			done = ctx.Written()
@@ -71,7 +71,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(*context.PrivateContext) goctx.CancelFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			ctx := context.GetPrivateContext(req)
 			deferable = t(ctx)
 			done = ctx.Written()
@@ -83,7 +83,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			if len(others) > 0 {
 				next = wrapInternal(others)
 			}
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			t(next).ServeHTTP(resp, req)
 			return
 		}

@@ -21,14 +21,14 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
 
 func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
-	funcInfo := common.GetFuncInfo(storageHandler, prefix)
+	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {
 		if storageSetting.ServeDirect {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -41,7 +41,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					next.ServeHTTP(w, req)
 					return
 				}
-				common.UpdateContextHandler(req.Context(), funcInfo)
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 				u, err := objStore.URL(rPath, path.Base(rPath))
@@ -76,7 +76,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				next.ServeHTTP(w, req)
 				return
 			}
-			common.UpdateContextHandler(req.Context(), funcInfo)
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
@@ -130,7 +130,7 @@ func Recovery() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					common.UpdateContextHandlerPanicError(req.Context(), err)
+					routing.UpdatePanicError(req.Context(), err)
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%s", combinedErr)
 
