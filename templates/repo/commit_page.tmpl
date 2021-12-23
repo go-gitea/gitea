@@ -21,7 +21,7 @@
 			<div class="df">
 				<h3 class="mt-0 f1"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
-					<div class=" ui">
+					<div class="ui">
 						<a class="ui blue tiny button" href="{{.SourcePath}}">
 							{{.i18n.Tr "repo.diff.browse_source"}}
 						</a>
