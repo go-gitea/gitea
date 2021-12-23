@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"io"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/util"
@@ -63,18 +62,18 @@ func TestReadWritePullHead(t *testing.T) {
 	assert.NoError(t, err)
 	defer repo.Close()
 	// Try to open non-existing Pull
-	_, err = repo.ReadPullHead(0)
+	_, err = repo.GetRefCommitID(PullPrefix + "0/head")
 	assert.Error(t, err)
 	// Write a fake sha1 with only 40 zeros
-	newCommit := strings.Repeat("0", 40)
-	err = repo.WritePullHead(1, newCommit)
+	newCommit := "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"
+	err = repo.SetReference(PullPrefix+"1/head", newCommit)
 	assert.NoError(t, err)
-	headFile := filepath.Join(repo.Path, "refs/pull/1/head")
 	// Remove file after the test
-	defer util.Remove(headFile)
-	assert.FileExists(t, headFile)
+	defer func() {
+		_ = repo.RemoveReference(PullPrefix + "1/head")
+	}()
 	// Read the file created
-	headContents, err := repo.ReadPullHead(1)
+	headContents, err := repo.GetRefCommitID(PullPrefix + "1/head")
 	assert.NoError(t, err)
 	assert.Len(t, string(headContents), 40)
 	assert.True(t, string(headContents) == newCommit)
