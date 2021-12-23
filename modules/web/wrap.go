@@ -18,7 +18,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 		panic("No handlers found")
 	}
 
-	ourHandlers := make([]ourHandlerFunc, 0, len(handlers))
+	ourHandlers := make([]wrappedHandlerFunc, 0, len(handlers))
 
 	for _, handler := range handlers {
 		ourHandlers = append(ourHandlers, convertHandler(handler))
@@ -26,7 +26,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 	return wrapInternal(ourHandlers)
 }
 
-func wrapInternal(handlers []ourHandlerFunc) http.HandlerFunc {
+func wrapInternal(handlers []wrappedHandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		for i := 0; i < len(handlers); i++ {
 			handler := handlers[i]

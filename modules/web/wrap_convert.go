@@ -13,13 +13,13 @@ import (
 	"code.gitea.io/gitea/routers/common"
 )
 
-type ourHandlerFunc func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func())
+type wrappedHandlerFunc func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func())
 
-func convertHandler(handler interface{}) ourHandlerFunc {
+func convertHandler(handler interface{}) wrappedHandlerFunc {
 	funcInfo := common.GetFuncInfo(handler)
 	switch t := handler.(type) {
 	case http.HandlerFunc:
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			t(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
@@ -28,7 +28,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(http.ResponseWriter, *http.Request):
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			t(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
@@ -38,7 +38,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 		}
 
 	case func(ctx *context.Context):
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			t(ctx)
@@ -46,7 +46,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(ctx *context.Context) goctx.CancelFunc:
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			ctx := context.GetContext(req)
 			deferable = t(ctx)
@@ -54,7 +54,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(*context.APIContext):
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			ctx := context.GetAPIContext(req)
 			t(ctx)
@@ -62,7 +62,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(*context.PrivateContext):
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			ctx := context.GetPrivateContext(req)
 			t(ctx)
@@ -70,7 +70,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(*context.PrivateContext) goctx.CancelFunc:
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			common.UpdateContextHandler(req.Context(), funcInfo)
 			ctx := context.GetPrivateContext(req)
 			deferable = t(ctx)
@@ -78,7 +78,7 @@ func convertHandler(handler interface{}) ourHandlerFunc {
 			return
 		}
 	case func(http.Handler) http.Handler:
-		return func(resp http.ResponseWriter, req *http.Request, others ...ourHandlerFunc) (done bool, deferable func()) {
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferable func()) {
 			var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 			if len(others) > 0 {
 				next = wrapInternal(others)
