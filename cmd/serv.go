@@ -191,7 +191,7 @@ func runServ(c *cli.Context) error {
 		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
-	if setting.EnablePprof || c.Bool("enable-pprof") {
+	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
 			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}

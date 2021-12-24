@@ -2951,6 +2951,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filepath of a file/dir",
+            "name": "path",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2958,7 +2964,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
             "in": "query"
           }
@@ -9885,6 +9891,84 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/transfer/accept": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Accept a repo transfer",
+        "operationId": "acceptRepoTransfer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to transfer",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to transfer",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/transfer/reject": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reject a repo transfer",
+        "operationId": "rejectRepoTransfer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to transfer",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to transfer",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -16884,6 +16968,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoTransfer": {
+      "description": "RepoTransfer represents a pending repo transfer",
+      "type": "object",
+      "properties": {
+        "doer": {
+          "$ref": "#/definitions/User"
+        },
+        "recipient": {
+          "$ref": "#/definitions/User"
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Team"
+          },
+          "x-go-name": "Teams"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Repository": {
       "description": "Repository represents a repository",
       "type": "object",
@@ -17035,6 +17139,9 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Releases"
+        },
+        "repo_transfer": {
+          "$ref": "#/definitions/RepoTransfer"
         },
         "size": {
           "type": "integer",
