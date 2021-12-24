@@ -107,7 +107,9 @@ should be taken when changing its template. The main benefit of this
 logger is that Gitea can now log accesses in a standard log format so
 standard tools may be used.
 
-You can enable this logger using `ENABLE_ACCESS_LOG`.
+You can enable this logger using `ENABLE_ACCESS_LOG`. Its outputs are
+configured by setting the `ACCESS` value in the `[log]` section of the
+configuration. `ACCESS` defaults to `file` if unset.
 
 Each output sublogger for this logger is configured in
 `[log.sublogger.access]` sections. There are certain default values
