@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -275,25 +274,6 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 	return err
 }
 
-// ReadPullHead will fetch a pull ref if possible or return an error
-func (repo *Repository) ReadPullHead(prID int64) (commitSHA string, err error) {
-	headPath := fmt.Sprintf("refs/pull/%d/head", prID)
-	fullHeadPath := filepath.Join(repo.Path, headPath)
-	loadHead, err := os.Open(fullHeadPath)
-	if err != nil {
-		return "", err
-	}
-	defer loadHead.Close()
-	// Read only the first line of the patch - usually it contains the first commit made in patch
-	scanner := bufio.NewScanner(loadHead)
-	scanner.Scan()
-	commitHead := scanner.Text()
-	if len(commitHead) != 40 {
-		return "", errors.New("head file doesn't contain valid commit ID")
-	}
-	return commitHead, nil
-}
-
 // ReadPatchCommit will check if a diff patch exists and return stats
 func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
 	// Migrated repositories download patches to "pulls" location
@@ -314,17 +294,4 @@ func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error
 		return "", errors.New("patch file doesn't contain valid commit ID")
 	}
 	return commitSHA, nil
-}
-
-// WritePullHead will populate a PR head retrieved from patch file
-func (repo *Repository) WritePullHead(prID int64, commitSHA string) error {
-	headPath := fmt.Sprintf("refs/pull/%d", prID)
-	fullHeadPath := filepath.Join(repo.Path, headPath)
-	// Create missing directory just in case
-	if err := os.MkdirAll(fullHeadPath, os.ModePerm); err != nil {
-		return err
-	}
-	commitBytes := []byte(commitSHA)
-	pullPath := filepath.Join(fullHeadPath, "head")
-	return ioutil.WriteFile(pullPath, commitBytes, os.ModePerm)
 }
