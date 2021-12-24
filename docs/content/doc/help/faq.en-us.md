@@ -31,7 +31,7 @@ On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory
 The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
 The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
+This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).  
 On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
@@ -45,7 +45,7 @@ To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
 In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
 [Example (requires login)](https://try.gitea.io/repo/migrate)
 
-To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
+To migrate from GitLab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
@@ -229,7 +229,7 @@ following things:
 - On the client:
   - Ensure the public and private ssh keys are added to the correct Gitea user.
   - Make sure there are no issues in the remote url. In particular, ensure the name of the
-    git user (before the `@`) is spelled correctly.
+    Git user (before the `@`) is spelled correctly.
   - Ensure public and private ssh keys are correct on client machine.
 - On the server:
   - Make sure the repository exists and is correctly named.
