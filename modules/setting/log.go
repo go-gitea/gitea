@@ -257,6 +257,8 @@ func newAccessLogService() {
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
 		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
 	)
+	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
+	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
