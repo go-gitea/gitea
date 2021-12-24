@@ -6,9 +6,13 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -188,6 +192,8 @@ func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions
 var shortStatFormat = regexp.MustCompile(
 	`\s*(\d+) files? changed(?:, (\d+) insertions?\(\+\))?(?:, (\d+) deletions?\(-\))?`)
 
+var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
+
 func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	if len(stdout) == 0 || stdout == "\n" {
 		return 0, 0, 0, nil
@@ -266,4 +272,26 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 		return repo.GetDiffBinary(base, head, w)
 	}
 	return err
+}
+
+// ReadPatchCommit will check if a diff patch exists and return stats
+func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
+	// Migrated repositories download patches to "pulls" location
+	patchFile := fmt.Sprintf("pulls/%d.patch", prID)
+	loadPatch, err := os.Open(filepath.Join(repo.Path, patchFile))
+	if err != nil {
+		return "", err
+	}
+	defer loadPatch.Close()
+	// Read only the first line of the patch - usually it contains the first commit made in patch
+	scanner := bufio.NewScanner(loadPatch)
+	scanner.Scan()
+	// Parse the Patch stats, sometimes Migration returns a 404 for the patch file
+	commitSHAGroups := patchCommits.FindStringSubmatch(scanner.Text())
+	if len(commitSHAGroups) != 0 {
+		commitSHA = commitSHAGroups[1]
+	} else {
+		return "", errors.New("patch file doesn't contain valid commit ID")
+	}
+	return commitSHA, nil
 }
