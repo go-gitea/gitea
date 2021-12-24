@@ -122,9 +122,8 @@ const (
 )
 
 // WithRole enable a specific tag on the RoleDescriptor.
-func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
-	rd |= (1 << role)
-	return rd
+func (rd *RoleDescriptor) WithRole(role RoleDescriptor) {
+	*rd |= (1 << role)
 }
 
 func stringToRoleDescriptor(role string) RoleDescriptor {
