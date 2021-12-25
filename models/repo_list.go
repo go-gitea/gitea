@@ -227,6 +227,7 @@ func userMentionedRepoCond(id string, userID int64) builder.Cond {
 	)
 }
 
+// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
 func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
 	return builder.In(id,
 		builder.Select("repo_id").From("team_repo").Where(
@@ -253,7 +254,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 		))
 }
 
-// userCollaborationRepoCond return user as collabrators repositories list
+// userCollaborationRepoCond returns user as collabrators repositories list
 func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
@@ -264,10 +265,12 @@ func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
+// userOrgTeamRepoCond selects repos that the given user has access to through team membership
 func userOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
 }
 
+// userOrgTeamRepoBuilder returns repo ids where user's teams can access.
 func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 	return builder.Select("`team_repo`.repo_id").
 		From("team_repo").
@@ -275,12 +278,14 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
+// userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
 		Where(builder.Eq{"`team_unit`.`type`": unitType})
 }
 
+// userOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
 func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
@@ -288,6 +293,7 @@ func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) 
 	)
 }
 
+// userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
 func userOrgPublicRepoCond(userID int64) builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
@@ -299,6 +305,7 @@ func userOrgPublicRepoCond(userID int64) builder.Cond {
 	)
 }
 
+// userOrgPublicRepoCondPrivate returns the condition that one user could access all public repositories in private organizations
 func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
@@ -315,6 +322,7 @@ func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
 	)
 }
 
+// userOrgPublicUnitRepoCond returns the condition that one user could access all public repositories in the special organization
 func userOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 	return userOrgPublicRepoCond(userID).
 		And(builder.Eq{"`repository`.owner_id": orgID})
