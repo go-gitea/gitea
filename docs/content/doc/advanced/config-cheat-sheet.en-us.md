@@ -477,7 +477,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 
 ## Security (`security`)
 
-- `INSTALL_LOCK`: **false**: Controls access to the install page.  When set to "true", the page is not accessible.
+- `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This should be changed.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
 - `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
