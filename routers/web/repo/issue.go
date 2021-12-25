@@ -734,7 +734,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	return string(bytes), true
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
 	templateCandidates := make([]string, 0, len(possibleFiles))
 	if ctx.FormString("template") != "" {
 		for _, dirName := range possibleDirs {

@@ -4,6 +4,25 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.8](https://github.com/go-gitea/gitea/releases/tag/v1.15.8) - 2021-12-20
+
+* BUGFIXES
+  * Move POST /{username}/action/{action} to simply POST /{username} (#18045) (#18046)
+  * Fix delete u2f keys bug (#18040) (#18042)
+  * Reset Session ID on login (#18018) (#18041)
+  * Prevent off-by-one error on comments on newly appended lines (#18029) (#18035)
+  * Stop printing 03d after escaped characters in logs (#18030) (#18034)
+  * Reset locale on login (#18023) (#18025)
+  * Fix reset password email template (#17025) (#18022)
+  * Fix outType on gitea dump (#18000) (#18016)
+  * Ensure complexity, minlength and isPwned are checked on password setting (#18005) (#18015)
+  * Fix rename notification bug (#18011)
+  * Prevent double decoding of % in url params  (#17997) (#18001)
+  * Prevent hang in git cat-file if the repository is not a valid repository (Partial #17991) (#17992)
+  * Prevent deadlock in create issue (#17970) (#17982)
+* TESTING
+  * Use non-expiring key. (#17984) (#17985)
+
 ## [1.15.7](https://github.com/go-gitea/gitea/releases/tag/v1.15.7) - 2021-12-01
 
 * ENHANCEMENTS

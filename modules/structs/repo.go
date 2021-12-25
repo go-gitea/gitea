@@ -93,6 +93,7 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
+	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -336,3 +337,10 @@ var (
 		CodebaseService,
 	}
 )
+
+// RepoTransfer represents a pending repo transfer
+type RepoTransfer struct {
+	Doer      *User   `json:"doer"`
+	Recipient *User   `json:"recipient"`
+	Teams     []*Team `json:"teams"`
+}
