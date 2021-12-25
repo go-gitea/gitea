@@ -99,7 +99,7 @@ const (
 	// 28 merge pull request
 	CommentTypeMergePull
 	// 29 push to PR head branch
-	CommentTypePullPush
+	CommentTypePullRequestPush
 	// 30 Project changed
 	CommentTypeProject
 	// 31 Project board changed
@@ -685,7 +685,7 @@ func (c *Comment) CodeCommentURL() string {
 
 // LoadPushCommits Load push commits
 func (c *Comment) LoadPushCommits() (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
 		return nil
 	}
 
@@ -1285,7 +1285,7 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 	}
 
 	ops := &CreateCommentOptions{
-		Type: CommentTypePullPush,
+		Type: CommentTypePullRequestPush,
 		Doer: pusher,
 		Repo: pr.BaseRepo,
 	}

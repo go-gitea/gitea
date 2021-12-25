@@ -453,7 +453,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
-		case models.CommentTypePullPush:
+		case models.CommentTypePullRequestPush:
 			name = "push"
 		default:
 			name = "default"

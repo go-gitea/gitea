@@ -6,7 +6,6 @@
 package forms
 
 import (
-	"math/big"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -266,117 +265,6 @@ type UpdateLanguageForm struct {
 func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// UpdateCommentTypeForm form for updating profile
-type UpdateCommentTypeForm struct {
-	Reference    bool
-	Labels       bool
-	Milestone    bool
-	Assignee     bool
-	Title        bool
-	Branch       bool // delete branch
-	Time         bool
-	Deadline     bool
-	Dependencies bool
-	Lock         bool
-	Target       bool // target branch
-	Requests     bool // review requests
-	Push         bool // push to PR
-	Project      bool
-	Ref          bool // issue ref
-}
-
-// Validate validates the fields
-func (f *UpdateCommentTypeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// IsHidden checks if the given commentType is visible
-func (f *UpdateCommentTypeForm) IsHidden(commentType int) bool {
-	bitset := f.Bitset()
-	return bitset.Bit(commentType) != 0
-}
-
-// Bitset created the bitset to the update comment form
-func (f *UpdateCommentTypeForm) Bitset() big.Int {
-	var bitset big.Int
-	types := []struct {
-		variable bool
-		types    []int
-	}{
-		{
-			variable: f.Reference,
-			types:    []int{3, 4, 5, 6},
-		},
-		{
-			variable: f.Labels,
-			types:    []int{7},
-		},
-		{
-			variable: f.Milestone,
-			types:    []int{8},
-		},
-		{
-			variable: f.Assignee,
-			types:    []int{9},
-		},
-		{
-			variable: f.Title,
-			types:    []int{10},
-		},
-		{
-			variable: f.Branch,
-			types:    []int{11},
-		},
-		{
-			variable: f.Time,
-			types:    []int{12, 13, 14, 15, 26},
-		},
-		{
-			variable: f.Deadline,
-			types:    []int{16, 17, 18},
-		},
-		{
-			variable: f.Dependencies,
-			types:    []int{19, 20},
-		},
-		{
-			variable: f.Lock,
-			types:    []int{23, 24},
-		},
-		{
-			variable: f.Target,
-			types:    []int{25},
-		},
-		{
-			variable: f.Requests,
-			types:    []int{27},
-		},
-		{
-			variable: f.Push,
-			types:    []int{29},
-		},
-		{
-			variable: f.Project,
-			types:    []int{30, 31},
-		},
-		{
-			variable: f.Ref,
-			types:    []int{33},
-		},
-	}
-	for _, v := range types {
-		for _, w := range v.types {
-			var bitSetVar uint
-			if v.variable {
-				bitSetVar = 1
-			}
-			bitset.SetBit(&bitset, w, bitSetVar)
-		}
-	}
-	return bitset
 }
 
 // Avatar types
