@@ -107,3 +107,10 @@ func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
 		Find(&archivers)
 	return archivers, err
 }
+
+// SetArchiveRepoState sets if a repo is archived
+func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
+	repo.IsArchived = isArchived
+	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
+	return
+}

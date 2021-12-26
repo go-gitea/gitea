@@ -81,13 +81,13 @@ Here's how to run the test suite:
 |``make lint-frontend`` | lint frontend files  |
 |``make lint-backend``  | lint backend files   |
 
-- run test code (Suggest run in linux)  
+- run test code (Suggest run in Linux)  
 
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
 |``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for sqlite |  
-|[More detail message about integrations](integrations/README.md)  |
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |  
+|[More details about integrations](integrations/README.md)  |
 
 ## Vendoring
 
@@ -106,7 +106,7 @@ You can find more information on how to get started with it on the [Modules Wiki
 ## Translation
 
 We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
-The only translation that is maintained in this git repository is
+The only translation that is maintained in this Git repository is
 [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
 and is synced regularly to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
@@ -157,7 +157,7 @@ import (
 
 ## Design guideline
 
-To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
+To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The Gitea code is divided into the following parts:
 
 - **integration:** Integrations tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
@@ -223,7 +223,7 @@ Additionally you could add a line at the end of your commit message.
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-If you set your `user.name` and `user.email` git configs, you can add the
+If you set your `user.name` and `user.email` Git configs, you can add the
 line to the end of your commit automatically with `git commit -s`.
 
 We assume in good faith that the information you provide is legally binding.
@@ -268,7 +268,7 @@ to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
 For security reasons, Maintainers should use 2FA for their accounts and
-if possible provide gpg signed commits.
+if possible provide GPG signed commits.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
@@ -326,13 +326,13 @@ they served:
 
 ## Versions
 
-Gitea has the `master` branch as a tip branch and has version branches
+Gitea has the `main` branch as a tip branch and has version branches
 such as `release/v0.9`. `release/v0.9` is a release branch and we will
 tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept
 pull requests on the `release/v0.9` branch and publish a `v0.9.1` tag,
-after bringing the bug fix also to the master branch.
+after bringing the bug fix also to the main branch.
 
-Since the `master` branch is a tip version, if you wish to use Gitea
+Since the `main` branch is a tip version, if you wish to use Gitea
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
@@ -340,14 +340,14 @@ be reviewed by two maintainers and must pass the automatic tests.
 ## Releasing Gitea
 
 * Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
-* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
+* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+* If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
   * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
   * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
 * If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
 * Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
-* If needed send PR for changelog on branch `master`.
+* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
+* If needed send PR for changelog on branch `main`.
 * Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 
 ## Copyright

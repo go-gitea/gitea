@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -125,7 +126,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 	} else if nameChanged {
-		if err := models.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
+		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}

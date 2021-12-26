@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -196,7 +197,7 @@ func Profile(ctx *context.Context) {
 	topicOnly := ctx.FormBool("topic")
 
 	var (
-		repos   []*models.Repository
+		repos   []*repo_model.Repository
 		count   int64
 		total   int
 		orderBy db.SearchOrderBy
@@ -362,7 +363,7 @@ func Action(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.FormString("action") {
 	case "follow":
 		err = user_model.FollowUser(ctx.User.ID, u.ID)
 	case "unfollow":
@@ -370,7 +371,7 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
 		return
 	}
 	// FIXME: We should check this URL and make sure that it's a valid Gitea URL

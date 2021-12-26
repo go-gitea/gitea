@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -53,7 +53,7 @@ func goGet(ctx *context.Context) {
 	}
 	branchName := setting.Repository.DefaultBranch
 
-	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err == nil && len(repo.DefaultBranch) > 0 {
 		branchName = repo.DefaultBranch
 	}
@@ -65,7 +65,7 @@ func goGet(ctx *context.Context) {
 	if appURL.Scheme == string(setting.HTTP) {
 		insecure = "--insecure "
 	}
-	ctx.Header().Set("Content-Type", "text/html")
+	ctx.RespHeader().Set("Content-Type", "text/html")
 	ctx.Status(http.StatusOK)
 	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
 <html>
@@ -79,7 +79,7 @@ func goGet(ctx *context.Context) {
 </html>
 `, map[string]string{
 		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
-		"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
+		"CloneLink":      repo_model.ComposeHTTPSCloneURL(ownerName, repoName),
 		"GoDocDirectory": prefix + "{/dir}",
 		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
 		"Insecure":       insecure,

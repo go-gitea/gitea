@@ -15,22 +15,24 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
 type TemporaryUploadRepository struct {
-	repo     *models.Repository
+	repo     *repo_model.Repository
 	gitRepo  *git.Repository
 	basePath string
 }
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
-func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepository, error) {
+func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
 	basePath, err := models.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
@@ -56,7 +58,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 				Name: branch,
 			}
 		} else if matched, _ := regexp.MatchString(".* repository .* does not exist.*", stderr); matched {
-			return models.ErrRepoNotExist{
+			return repo_model.ErrRepoNotExist{
 				ID:        t.repo.ID,
 				UID:       t.repo.OwnerID,
 				OwnerName: t.repo.OwnerName,
@@ -186,12 +188,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(author, committer *user_model.User, treeHash string, message string, signoff bool) (string, error) {
+func (t *TemporaryUploadRepository) CommitTree(author, committer *user_model.User, treeHash, message string, signoff bool) (string, error) {
 	return t.CommitTreeWithDate(author, committer, treeHash, message, signoff, time.Now(), time.Now())
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_model.User, treeHash string, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_model.User, treeHash, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -216,10 +218,10 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 
 	// Determine if we should sign
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, signer, _ := asymkey_service.SignCRUDAction(t.repo.RepoPath(), author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
-			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 					// Add trailers
 					_, _ = messageBytes.WriteString("\n")
@@ -261,7 +263,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 }
 
 // Push the provided commitHash to the repository branch by the provided user
-func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash string, branch string) error {
+func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash, branch string) error {
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.gitRepo.Ctx, t.basePath, git.PushOptions{

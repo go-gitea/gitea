@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 // IssueUser represents an issue-user relation.
@@ -24,8 +25,8 @@ func init() {
 	db.RegisterModel(new(IssueUser))
 }
 
-func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
+func newIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
+	assignees, err := getRepoAssignees(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)
 	}
@@ -50,10 +51,7 @@ func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
 		})
 	}
 
-	if _, err = e.Insert(issueUsers); err != nil {
-		return err
-	}
-	return nil
+	return db.Insert(ctx, issueUsers)
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.

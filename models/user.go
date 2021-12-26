@@ -12,7 +12,9 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -148,10 +150,10 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", repo_model.WatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_watches: %v", err)
 	}
 	// ***** END: Watch *****
@@ -161,7 +163,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(repo_model.Repository)); err != nil {
 		return fmt.Errorf("decrease repository num_stars: %v", err)
 	}
 	// ***** END: Star *****
@@ -188,8 +190,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&AccessToken{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Access{UserID: u.ID},
-		&Watch{UserID: u.ID},
-		&Star{UID: u.ID},
+		&repo_model.Watch{UserID: u.ID},
+		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
@@ -233,23 +235,23 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 
 	// ***** START: PublicKey *****
-	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := listGPGKeys(e, u.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %v", err)
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
-		if _, err = e.Delete(&GPGKeyImport{KeyID: key.KeyID}); err != nil {
+		if _, err = e.Delete(&asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
 			return fmt.Errorf("deleteGPGKeyImports: %v", err)
 		}
 	}
-	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
 	// ***** END: GPGPublicKey *****
@@ -273,7 +275,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 }
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
+func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
@@ -283,18 +285,18 @@ func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
-		repos := make([]*Repository, 0, listOptions.PageSize)
+		repos := make([]*repo_model.Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)
 	}
 
-	repos := make([]*Repository, 0, 10)
+	repos := make([]*repo_model.Repository, 0, 10)
 	return repos, sess.Find(&repos)
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*repo_model.Repository, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
-		And("`watch`.mode<>?", RepoWatchModeDont).
+		And("`watch`.mode<>?", repo_model.WatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
@@ -303,22 +305,22 @@ func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
-		repos := make([]*Repository, 0, listOptions.PageSize)
+		repos := make([]*repo_model.Repository, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&repos)
 		return repos, total, err
 	}
 
-	repos := make([]*Repository, 0, 10)
+	repos := make([]*repo_model.Repository, 0, 10)
 	total, err := sess.FindAndCount(&repos)
 	return repos, total, err
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
-func IsUserVisibleToViewer(u *user_model.User, viewer *user_model.User) bool {
+func IsUserVisibleToViewer(u, viewer *user_model.User) bool {
 	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
 }
 
-func isUserVisibleToViewer(e db.Engine, u *user_model.User, viewer *user_model.User) bool {
+func isUserVisibleToViewer(e db.Engine, u, viewer *user_model.User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}

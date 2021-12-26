@@ -87,7 +87,7 @@ func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
 }
 
 // MatrixLinkFormatter creates a link compatible with Matrix
-func MatrixLinkFormatter(url string, text string) string {
+func MatrixLinkFormatter(url, text string) string {
 	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(text))
 }
 

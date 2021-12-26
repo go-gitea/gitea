@@ -101,7 +101,7 @@ Admin operations:
         - `gitea admin user change-password --username myname --password asecurepassword`
   - `regenerate`
     - Options:
-      - `hooks`: Regenerate git-hooks for all repositories
+      - `hooks`: Regenerate Git Hooks for all repositories
       - `keys`: Regenerate authorized_keys file
     - Examples:
       - `gitea admin regenerate hooks`
@@ -129,6 +129,13 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
+        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Addtional scopes to request for this OAuth2 source. (Optional)
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
+        - `--group-claim-name`: Claim name providing group names for this source. (Optional)
+        - `--admin-group`: Group Claim value for administrator users. (Optional)
+        - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -145,6 +152,13 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
+        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Addtional scopes to request for this OAuth2 source.
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
+        - `--group-claim-name`: Claim name providing group names for this source. (Optional)
+        - `--admin-group`: Group Claim value for administrator users. (Optional)
+        - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
@@ -465,7 +479,7 @@ Manage running server operations:
 
 ### dump-repo
 
-Dump-repo dumps repository data from git/github/gitea/gitlab:
+Dump-repo dumps repository data from Git/GitHub/Gitea/GitLab:
 
 - Options:
   - `--git_service service` : Git service, it could be `git`, `github`, `gitea`, `gitlab`, If clone_addr could be recognized, this could be ignored.

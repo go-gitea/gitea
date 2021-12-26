@@ -63,6 +63,7 @@ func GetTree(ctx *context.APIContext) {
 	if tree, err := files_service.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.FormInt("page"), ctx.FormInt("per_page"), ctx.FormBool("recursive")); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err.Error())
 	} else {
+		ctx.SetTotalCountHeader(int64(tree.TotalCount))
 		ctx.JSON(http.StatusOK, tree)
 	}
 }

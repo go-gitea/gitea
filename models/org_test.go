@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -160,13 +161,13 @@ func TestUser_RemoveMember(t *testing.T) {
 func TestUser_RemoveOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{OwnerID: org.ID}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: org.ID}).(*repo_model.Repository)
 
 	// remove a repo that does belong to org
 	unittest.AssertExistsAndLoadBean(t, &TeamRepo{RepoID: repo.ID, OrgID: org.ID})
 	assert.NoError(t, org.RemoveOrgRepo(repo.ID))
 	unittest.AssertNotExistsBean(t, &TeamRepo{RepoID: repo.ID, OrgID: org.ID})
-	unittest.AssertExistsAndLoadBean(t, &Repository{ID: repo.ID}) // repo should still exist
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}) // repo should still exist
 
 	// remove a repo that does not belong to org
 	assert.NoError(t, org.RemoveOrgRepo(repo.ID))
@@ -177,7 +178,7 @@ func TestUser_RemoveOrgRepo(t *testing.T) {
 	unittest.CheckConsistencyFor(t,
 		&user_model.User{ID: org.ID},
 		&Team{OrgID: org.ID},
-		&Repository{ID: repo.ID})
+		&repo_model.Repository{ID: repo.ID})
 }
 
 func TestCreateOrganization(t *testing.T) {
@@ -541,10 +542,10 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.Repos(1, 100)
 		assert.NoError(t, err)
-		expectedRepos := make([]*Repository, len(expectedRepoIDs))
+		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
-				&Repository{ID: repoID}).(*Repository)
+				&repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		}
 		assert.Equal(t, expectedRepos, repos)
 	}
@@ -560,10 +561,10 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 		assert.NoError(t, err)
 		repos, err := env.MirrorRepos()
 		assert.NoError(t, err)
-		expectedRepos := make([]*Repository, len(expectedRepoIDs))
+		expectedRepos := make([]*repo_model.Repository, len(expectedRepoIDs))
 		for i, repoID := range expectedRepoIDs {
 			expectedRepos[i] = unittest.AssertExistsAndLoadBean(t,
-				&Repository{ID: repoID}).(*Repository)
+				&repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		}
 		assert.Equal(t, expectedRepos, repos)
 	}

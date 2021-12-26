@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -14,12 +15,12 @@ import (
 type Notifier interface {
 	Run()
 
-	NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository)
-	NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository)
-	NotifyDeleteRepository(doer *user_model.User, repo *models.Repository)
-	NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository)
-	NotifyRenameRepository(doer *user_model.User, repo *models.Repository, oldRepoName string)
-	NotifyTransferRepository(doer *user_model.User, repo *models.Repository, oldOwnerName string)
+	NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository)
+	NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository)
+	NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository)
+	NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository)
+	NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string)
+	NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, oldOwnerName string)
 
 	NotifyNewIssue(issue *models.Issue, mentions []*user_model.User)
 	NotifyIssueChangeStatus(*user_model.User, *models.Issue, *models.Comment, bool)
@@ -42,7 +43,7 @@ type Notifier interface {
 	NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment)
 	NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment)
 
-	NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+	NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 		issue *models.Issue, comment *models.Comment, mentions []*user_model.User)
 	NotifyUpdateComment(*user_model.User, *models.Comment, string)
 	NotifyDeleteComment(*user_model.User, *models.Comment)
@@ -51,13 +52,13 @@ type Notifier interface {
 	NotifyUpdateRelease(doer *user_model.User, rel *models.Release)
 	NotifyDeleteRelease(doer *user_model.User, rel *models.Release)
 
-	NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
-	NotifyDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
+	NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
 
-	NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
-	NotifySyncDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
+	NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
+	NotifySyncDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)
 
-	NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository)
+	NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository)
 }

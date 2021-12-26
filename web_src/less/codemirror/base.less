@@ -1,0 +1,41 @@
+.EasyMDEContainer .CodeMirror {
+  color: var(--color-input-text);
+  background-color: var(--color-input-background);
+  border-color: var(--color-secondary);
+  font: 14px var(--fonts-monospace);
+
+  &.cm-s-default {
+    border-radius: var(--border-radius);
+    padding: 0 !important;
+  }
+
+  &.CodeMirror-fullscreen.CodeMirror-focused {
+    border-right: 1px solid var(--color-primary) !important;
+  }
+}
+
+.CodeMirror-cursor {
+  border-color: var(--color-caret) !important;
+}
+
+.CodeMirror .cm-comment {
+  background: inherit !important;
+}
+
+.CodeMirror .CodeMirror-code {
+  font: 14px var(--fonts-monospace);
+}
+
+.CodeMirror-selected {
+  background: var(--color-primary-light-1) !important;
+  color: var(--color-white) !important;
+}
+
+.CodeMirror-placeholder {
+  color: var(--color-placeholder-text) !important;
+  opacity: 1 !important;
+}
+
+.CodeMirror-focused {
+  border-color: var(--color-primary) !important;
+}

@@ -3,6 +3,7 @@ package chroma
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -237,6 +238,12 @@ func MustNewLazyLexer(config *Config, rulesFunc func() Rules) *RegexLexer {
 func NewLazyLexer(config *Config, rulesFunc func() Rules) (*RegexLexer, error) {
 	if config == nil {
 		config = &Config{}
+	}
+	for _, glob := range append(config.Filenames, config.AliasFilenames...) {
+		_, err := filepath.Match(glob, "")
+		if err != nil {
+			return nil, fmt.Errorf("%s: %q is not a valid glob: %w", config.Name, glob, err)
+		}
 	}
 	return &RegexLexer{
 		config:       config,

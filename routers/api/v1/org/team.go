@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -508,14 +509,15 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		repos[i] = convert.ToRepo(repo, access)
 	}
+	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
-func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
-	repo, err := models.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
+func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
+	repo, err := repo_model.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)

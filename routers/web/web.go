@@ -484,9 +484,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/{username}", func() {
-		m.Post("/action/{action}", user.Action)
-	}, reqSignIn)
+	m.Post("/{username}", reqSignIn, user.Action)
 
 	if !setting.IsProd {
 		m.Get("/template/*", dev.TemplatePreview)
@@ -702,6 +700,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
+		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
@@ -718,7 +717,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
-		m.Group("/issues", func() {
+		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
@@ -1079,4 +1078,9 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
+	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		ctx := context.GetContext(req)
+		ctx.NotFound("", nil)
+	})
+
 }

@@ -20,7 +20,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -137,6 +139,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	entries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
+	}
+
+	if ctx.Repo.TreePath != "" {
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
 	// 3 for the extensions in exts[] in order
@@ -269,7 +275,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile && setting.LFS.StartServer {
 			pointer, _ := lfs.ReadPointerFromBuffer(buf)
 			if pointer.IsValid() {
-				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+				meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 					return
@@ -372,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -394,7 +400,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
@@ -443,7 +449,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	// Check LFS Lock
-	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	lfsLock, err := models.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
@@ -641,7 +647,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := ctx.Repo.Repository.ReadBy(ctx.User.ID); err != nil {
+			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.User.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}
@@ -776,9 +782,11 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
 
-		verification := models.ParseCommitWithSignature(latestCommit)
+		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
-		if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
@@ -786,7 +794,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -808,7 +816,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 }
 
 func renderLanguageStats(ctx *context.Context) {
-	langs, err := ctx.Repo.Repository.GetTopLanguageStats(5)
+	langs, err := repo_model.GetTopLanguageStats(ctx.Repo.Repository, 5)
 	if err != nil {
 		ctx.ServerError("Repo.GetTopLanguageStats", err)
 		return
@@ -818,7 +826,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := repo_model.FindTopics(&repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -832,8 +840,30 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.HTML(http.StatusOK, tplRepoEMPTY)
-		return
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
+		if err != nil {
+			ctx.ServerError("GitRepo.IsEmpty", err)
+			return
+		}
+		if reallyEmpty {
+			ctx.HTML(http.StatusOK, tplRepoEMPTY)
+			return
+		}
+		// the repo is not really empty, so we should update the modal in database
+		// such problem may be caused by:
+		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
+		// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
+		// it's possible for a repository to be non-empty by that flag but still 500
+		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
+		ctx.Repo.Repository.IsEmpty = false
+		if err = repo_model.UpdateRepositoryCols(ctx.Repo.Repository, "is_empty"); err != nil {
+			ctx.ServerError("UpdateRepositoryCols", err)
+			return
+		}
+		if err = models.UpdateRepoSize(db.DefaultContext, ctx.Repo.Repository); err != nil {
+			ctx.ServerError("UpdateRepoSize", err)
+			return
+		}
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -926,7 +956,9 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
 
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
+		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+	}, tplWatchers)
 }
 
 // Stars render repository's starred users
@@ -935,7 +967,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return models.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 
@@ -951,7 +983,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})
@@ -961,7 +993,7 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(); err != nil {
+		if err = fork.GetOwner(db.DefaultContext); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}
