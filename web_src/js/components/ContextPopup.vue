@@ -16,6 +16,10 @@
         </div>
       </div>
     </div>
+    <div v-if="!loading && issue === null">
+      <p><small>Error occured</small></p>
+      <p>The referenced issue couldn't be found.</p>
+    </div>
   </div>
 </template>
 
@@ -114,6 +118,13 @@ export default {
       this.loading = true;
       $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
         this.issue = issue;
+        this.loading = false;
+        this.$nextTick(() => {
+          if (callback) {
+            callback();
+          }
+        });
+      }).fail(() => {
         this.loading = false;
         this.$nextTick(() => {
           if (callback) {
