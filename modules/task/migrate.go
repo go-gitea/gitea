@@ -58,6 +58,9 @@ func runMigrateTask(t *models.Task) (err error) {
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
+		// Ensure that the repo loaded before we zero out the repo ID from the task - thus ensuring that we can delete it
+		_ = t.LoadRepo()
+
 		t.RepoID = 0
 		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)

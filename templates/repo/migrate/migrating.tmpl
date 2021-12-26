@@ -25,7 +25,11 @@
 								<p id="repo_migrating_progress_message"></p>
 							</div>
 							<div id="repo_migrating_failed" hidden>
-								<p>{{.i18n.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
+								{{if .CloneAddr}}
+									<p>{{.i18n.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
+								{{else}}
+									<p>{{.i18n.Tr "repo.migrate.migrating_failed" "<nil>" | Safe}}</p>
+								{{end}}
 								<p id="repo_migrating_failed_error"></p>
 							</div>
 							{{if and .Failed .Permission.IsAdmin}}
