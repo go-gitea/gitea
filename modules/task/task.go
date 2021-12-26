@@ -92,7 +92,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	var task = models.Task{
+	var task = &models.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
@@ -100,7 +100,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		PayloadContent: string(bs),
 	}
 
-	if err := models.CreateTask(&task); err != nil {
+	if err := models.CreateTask(task); err != nil {
 		return nil, err
 	}
 
@@ -128,5 +128,5 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	return &task, nil
+	return task, nil
 }
