@@ -1034,13 +1034,13 @@ func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue 
 	}
 
 	// By default the poster has no roles on the comment.
-	roleDescriptor := new(models.RoleDescriptor)
+	roleDescriptor := models.RoleDescriptorNone
 
 	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
 		// If the poster isn't a admin, enable the owner role.
 		if !poster.IsAdmin {
-			roleDescriptor.WithRole(models.RoleDescriptorOwner)
+			roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
 		} else {
 
 			// Otherwise check if poster is the real repo admin.
@@ -1049,7 +1049,7 @@ func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue 
 				return models.RoleDescriptorNone, err
 			}
 			if ok {
-				roleDescriptor.WithRole(models.RoleDescriptorOwner)
+				roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
 			}
 		}
 	}
@@ -1057,15 +1057,15 @@ func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue 
 	// Is the poster can write issues or pulls to the repo, enable the Writer role.
 	// Only enable this if the poster doesn't have the owner role already.
 	if !roleDescriptor.HasRole("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		roleDescriptor.WithRole(models.RoleDescriptorWriter)
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorWriter)
 	}
 
 	// If the poster is the actual poster of the issue, enable Poster role.
 	if issue.IsPoster(poster.ID) {
-		roleDescriptor.WithRole(models.RoleDescriptorPoster)
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorPoster)
 	}
 
-	return *roleDescriptor, nil
+	return roleDescriptor, nil
 }
 
 func getBranchData(ctx *context.Context, issue *models.Issue) {
