@@ -338,8 +338,6 @@ var (
 	EnableXORMLog      bool
 
 	DisableRouterLog bool
-	RouterLogLevel   log.Level
-	RouterLogHandler string
 
 	EnableAccessLog   bool
 	AccessLogTemplate string
@@ -606,8 +604,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
-	RouterLogLevel = log.FromString(Cfg.Section("log").Key("ROUTER_LOG_LEVEL").MustString("Info"))
-	RouterLogHandler = Cfg.Section("log").Key("ROUTER_LOG_HANDLER").MustString("router_logger_v2")
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")

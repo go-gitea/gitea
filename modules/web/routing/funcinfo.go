@@ -5,6 +5,7 @@
 package routing
 
 import (
+	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
@@ -22,6 +23,14 @@ type FuncInfo struct {
 	line      int
 	name      string
 	shortName string
+}
+
+// String returns a string form of the FuncInfo for logging
+func (info *FuncInfo) String() string {
+	if info == nil {
+		return "unknown-handler"
+	}
+	return fmt.Sprintf("%s:%d(%s)", info.shortFile, info.line, info.shortName)
 }
 
 // GetFuncInfo returns the FuncInfo for a provided function and friendlyname
