@@ -68,9 +68,6 @@ var (
 		".github/ISSUE_TEMPLATE.md",
 		".github/issue_template.md",
 	}
-
-	// HiddenCommentTypesSettingsKey is the settings key for hidden comment types
-	HiddenCommentTypesSettingsKey = "hidden_comment_types"
 )
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -1476,7 +1473,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypePullPush {
+		} else if comment.Type == models.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
 			if err = comment.LoadPushCommits(); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
@@ -1648,29 +1645,21 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
-	var hiddenEvents *big.Int
+	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+
+	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {
-		eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{HiddenCommentTypesSettingsKey})
+		val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
 		if err != nil {
-			ctx.ServerError("GetSettings", err)
+			ctx.ServerError("GetUserSetting", err)
 			return
 		}
-		if eventsRaw[HiddenCommentTypesSettingsKey] != nil && eventsRaw[HiddenCommentTypesSettingsKey].SettingValue != "" {
-			var ok bool
-			hiddenEvents, ok = new(big.Int).SetString(eventsRaw[HiddenCommentTypesSettingsKey].SettingValue, 10)
-			if !ok {
-				hiddenEvents = nil
-				log.Error("SetString: error")
-			}
-		}
+		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
 	}
-	ctx.Data["IsEventShown"] = func(commentType models.CommentType) bool {
-		if hiddenEvents == nil {
-			return true
-		}
-		return hiddenEvents.Bit(int(commentType)) == 0
+	ctx.Data["ShouldShowCommentType"] = func(commentType models.CommentType) bool {
+		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
 	}
-	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

@@ -71,100 +71,94 @@
 
 		<!-- Shown comment event types -->
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.shown_comments"}}
+			{{.i18n.Tr "settings.hidden_comment_types"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}/shown_comments" method="post">
+			<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="reference" type="checkbox" {{if(call .IsHidden 3)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_ref"}}</label>
+						<input name="reference" type="checkbox" {{if(call .IsCommentTypeGroupChecked "reference")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_reference"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="labels" type="checkbox" {{if (call .IsHidden 7)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_labels"}}</label>
+						<input name="label" type="checkbox" {{if (call .IsCommentTypeGroupChecked "label")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_label"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="milestone" type="checkbox" {{if (call .IsHidden 8)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_milestone"}}</label>
+						<input name="milestone" type="checkbox" {{if (call .IsCommentTypeGroupChecked "milestone")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_milestone"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="assignee" type="checkbox" {{if (call .IsHidden 9)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_assignees"}}</label>
+						<input name="assignee" type="checkbox" {{if (call .IsCommentTypeGroupChecked "assignee")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_assignee"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="title" type="checkbox" {{if (call .IsHidden 10)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_title"}}</label>
+						<input name="title" type="checkbox" {{if (call .IsCommentTypeGroupChecked "title")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_title"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="branch" type="checkbox" {{if (call .IsHidden 11)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_delete_branch"}}</label>
+						<input name="branch" type="checkbox" {{if (call .IsCommentTypeGroupChecked "branch")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_branch"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="time" type="checkbox" {{if (call .IsHidden 12)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_time"}}</label>
+						<input name="time_tracking" type="checkbox" {{if (call .IsCommentTypeGroupChecked "time_tracking")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_time_tracking"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="deadline" type="checkbox" {{if (call .IsHidden 16)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_deadline"}}</label>
+						<input name="deadline" type="checkbox" {{if (call .IsCommentTypeGroupChecked "deadline")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_deadline"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="dependencies" type="checkbox" {{if (call .IsHidden 19)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_dependencies"}}</label>
+						<input name="dependency" type="checkbox" {{if (call .IsCommentTypeGroupChecked "dependency")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_dependency"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="lock" type="checkbox" {{if (call .IsHidden 23)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_lock_status"}}</label>
+						<input name="lock" type="checkbox" {{if (call .IsCommentTypeGroupChecked "lock")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_lock"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="target" type="checkbox" {{if (call .IsHidden 25)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_target"}}</label>
-					</div>
-				</div>
-				<div class="inline field">
-					<div class="ui checkbox">
-						<input name="requests" type="checkbox" {{if (call .IsHidden 27)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_review_request"}}</label>
+						<input name="review_request" type="checkbox" {{if (call .IsCommentTypeGroupChecked "review_request")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_review_request"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="push" type="checkbox" {{if (call .IsHidden 29)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_pr_push"}}</label>
+						<input name="pull_request_push" type="checkbox" {{if (call .IsCommentTypeGroupChecked "pull_request_push")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_pull_request_push"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="project" type="checkbox" {{if (call .IsHidden 30)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_project"}}</label>
+						<input name="project" type="checkbox" {{if (call .IsCommentTypeGroupChecked "project")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_project"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="ref" type="checkbox" {{if (call .IsHidden 33)}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.comment_type_changed_ref"}}</label>
+						<input name="issue_ref" type="checkbox" {{if (call .IsCommentTypeGroupChecked "issue_ref")}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.comment_type_group_issue_ref"}}</label>
 					</div>
 				</div>
 				<div class="field">

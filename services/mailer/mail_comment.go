@@ -19,7 +19,7 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 	}
 
 	content := c.Content
-	if c.Type == models.CommentTypePullPush {
+	if c.Type == models.CommentTypePullRequestPush {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(

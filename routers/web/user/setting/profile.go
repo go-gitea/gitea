@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	repo_router "code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
@@ -360,26 +359,16 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	var hiddenEvents *big.Int
-	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{repo_router.HiddenCommentTypesSettingsKey})
+	var hiddenCommentTypes *big.Int
+	val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
-		ctx.ServerError("GetSettings", err)
+		ctx.ServerError("GetUserSetting", err)
 		return
 	}
-	if eventsRaw[repo_router.HiddenCommentTypesSettingsKey] != nil && eventsRaw[repo_router.HiddenCommentTypesSettingsKey].SettingValue != "" {
-		var ok bool
-		hiddenEvents, ok = new(big.Int).SetString(eventsRaw[repo_router.HiddenCommentTypesSettingsKey].SettingValue, 10)
-		if !ok {
-			hiddenEvents = nil
-			log.Error("SetString: error")
-		}
-	}
+	hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
 
-	ctx.Data["IsHidden"] = func(commentType int) bool {
-		if hiddenEvents == nil {
-			return false
-		}
-		return hiddenEvents.Bit(commentType) != 0
+	ctx.Data["IsCommentTypeGroupChecked"] = func(commentTypeGroup string) bool {
+		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
 	}
 
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
@@ -442,22 +431,15 @@ func UpdateUserLang(ctx *context.Context) {
 
 }
 
-// UpdateUserShownComments update a user's shown comment types
-func UpdateUserShownComments(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateCommentTypeForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAppearance"] = true
-
-	bitset := form.Bitset()
-	json := bitset.String()
-	err := user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: repo_router.HiddenCommentTypesSettingsKey, SettingValue: string(json)})
+// UpdateUserHiddenComments update a user's shown comment types
+func UpdateUserHiddenComments(ctx *context.Context) {
+	err := user_model.SetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
 	if err != nil {
-		ctx.ServerError("SetSetting", err)
+		ctx.ServerError("SetUserSetting", err)
 		return
 	}
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
-
 }

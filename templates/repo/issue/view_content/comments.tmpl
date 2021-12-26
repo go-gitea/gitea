@@ -1,6 +1,6 @@
 {{ template "base/alert" }}
 {{range .Issue.Comments}}
-	{{if call $.IsEventShown .Type}}
+	{{if call $.ShouldShowCommentType .Type}}
 		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
