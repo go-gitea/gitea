@@ -642,6 +642,9 @@ func Auth(authMethod auth.Auth) func(*Context) {
 	return func(ctx *Context) {
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
@@ -669,9 +672,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			var locale = middleware.Locale(resp, req)
 			var startTime = time.Now()
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
-
-			chiCtx := chi.RouteContext(req.Context())
-			chiCtx.RoutePath = req.URL.EscapedPath()
 
 			var ctx = Context{
 				Resp:    NewResponse(resp),
