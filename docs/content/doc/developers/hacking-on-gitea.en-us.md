@@ -67,8 +67,8 @@ sudo yum install make
 One of these three distributions of Make will run on Windows:
 
 - [Single binary build](http://www.equation.com/servlet/equation.cmd?fa=make). Copy somewhere and add to `PATH`.
-  - [32-bits version](ftp://ftp.equation.com/make/32/make.exe)
-  - [64-bits version](ftp://ftp.equation.com/make/64/make.exe)
+  - [32-bits version](http://www.equation.com/ftpdir/make/32/make.exe)
+  - [64-bits version](http://www.equation.com/ftpdir/make/64/make.exe)
 - [MinGW-w64](https://www.mingw-w64.org) / [MSYS2](https://www.msys2.org/).
   - MSYS2 is a collection of tools and libraries providing you with an easy-to-use environment for building, installing and running native Windows software, it includes MinGW-w64. 
   - In MingGW-w64, the binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
