@@ -17,8 +17,8 @@
       </div>
     </div>
     <div v-if="!loading && issue === null">
-      <p><small>Error occured</small></p>
-      <p>The referenced issue couldn't be found.</p>
+      <p><small>{{ errorTitle }}</small></p>
+      <p>{{ errorBody }}</p>
     </div>
   </div>
 </template>
@@ -27,6 +27,7 @@
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl} = window.config;
+const {issue_not_found, error_occurred} = window.config.i18n;
 
 // NOTE: see models/issue_label.go for similar implementation
 const srgbToLinear = (color) => {
@@ -57,6 +58,14 @@ export default {
   }),
 
   computed: {
+    errorTitle() {
+      return error_occurred;
+    },
+
+    errorBody() {
+      return issue_not_found;
+    },
+
     createdAt() {
       return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
     },
