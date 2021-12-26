@@ -3509,6 +3509,9 @@
           "403": {
             "$ref": "#/responses/forbidden"
           },
+          "409": {
+            "description": "The repository with the same name already exists."
+          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -13376,6 +13379,11 @@
       "description": "CreateForkOption options for creating a fork",
       "type": "object",
       "properties": {
+        "name": {
+          "description": "name of the forked repository",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "organization": {
           "description": "organization name, if forking into an organization",
           "type": "string",

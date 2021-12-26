@@ -33,6 +33,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/forgot_password",
 		"/api/swagger",
 		"/user2/repo1",
+		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/assets/img/404.png",
@@ -61,16 +62,6 @@ func TestRedirectsNoLogin(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusFound)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
 	}
-
-	var temporaryRedirects = map[string]string{
-		"/user2/repo1/": "/user2/repo1",
-	}
-	for link, redirectLink := range temporaryRedirects {
-		req := NewRequest(t, "GET", link)
-		resp := MakeRequest(t, req, http.StatusTemporaryRedirect)
-		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
-	}
-
 }
 
 func TestNoLoginNotExist(t *testing.T) {
