@@ -187,7 +187,7 @@ func TestAPIHideComment(t *testing.T) {
 	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{},
 		unittest.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, repoOwner.Name)

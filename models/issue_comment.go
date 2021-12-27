@@ -205,8 +205,8 @@ type Comment struct {
 	AssigneeTeamID   int64            `xorm:"NOT NULL DEFAULT 0"`
 	AssigneeTeam     *Team            `xorm:"-"`
 	ResolveDoerID    int64
-	ResolveReason    ResolveReason
 	ResolveDoer      *user_model.User `xorm:"-"`
+	ResolveReason    ResolveReason
 	OldTitle         string
 	NewTitle         string
 	OldRef           string
