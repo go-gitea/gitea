@@ -60,6 +60,6 @@ git config --global uploadpack.allowfilter true
 
 See [GitHub blog post: Get up to speed with partial clone](https://github.blog/2020-12-21-get-up-to-speed-with-partial-clone-and-shallow-clone/)
 for common use cases of clone filters (blobless and treeless clones), and
-[Gitlab docs for partial clone](https://docs.gitlab.com/ee/topics/git/partial_clone.html)
+[GitLab docs for partial clone](https://docs.gitlab.com/ee/topics/git/partial_clone.html)
 for more advanced use cases (such as filter by file size and remove
 filters to turn partial clone into full clone).

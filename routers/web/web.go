@@ -484,9 +484,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Group("/{username}", func() {
-		m.Post("/action/{action}", user.Action)
-	}, reqSignIn)
+	m.Post("/{username}", reqSignIn, user.Action)
 
 	if !setting.IsProd {
 		m.Get("/template/*", dev.TemplatePreview)
@@ -1080,4 +1078,9 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
+	m.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		ctx := context.GetContext(req)
+		ctx.NotFound("", nil)
+	})
+
 }
