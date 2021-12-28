@@ -1711,13 +1711,15 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := db.GetEngine(db.DefaultContext).Where(cond)
-		s.Join("INNER", "repository", "issue.repo_id = repository.id")
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
-		if opts.IsArchived != util.OptionalBoolNone {
-			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+		if opts.UserID > 0 || opts.IsArchived != util.OptionalBoolNone {
+			s.Join("INNER", "repository", "issue.repo_id = repository.id")
+			if opts.IsArchived != util.OptionalBoolNone {
+				s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+			}
 		}
 		return s
 	}

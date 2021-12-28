@@ -315,7 +315,7 @@ func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
 				Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
 				Where(builder.Eq{
 					"`org_user`.uid":    userID,
-					"`user`.type":       user_model.UserTypeOrganization,
+					"`user`.`type`":     user_model.UserTypeOrganization,
 					"`user`.visibility": structs.VisibleTypePrivate,
 				}),
 		),
