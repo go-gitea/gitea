@@ -64,7 +64,7 @@ services:
 
 ## Ports
 
-To bind the integrated openSSH daemon and the webserver on a different port, adjust
+To bind the integrated OpenSSH daemon and the webserver on a different port, adjust
 the port section. It's common to just change the host port and keep the ports within
 the container like they are.
 

@@ -16,16 +16,16 @@ menu:
 # Migration Features
 
 Complete migrations were introduced in Gitea 1.9.0. It defines two interfaces to support migrating
-repository data from other git host platforms to Gitea or, in the future, migrating Gitea data to other
-git host platforms.  
-Currently, migrations from Github, Gitlab, and other Gitea instances are implemented.
+repository data from other Git host platforms to Gitea or, in the future, migrating Gitea data to other
+Git host platforms.  
+Currently, migrations from GitHub, GitLab, and other Gitea instances are implemented.
 
 First of all, Gitea defines some standard objects in packages [modules/migration](https://github.com/go-gitea/gitea/tree/main/modules/migration).  
 They are `Repository`, `Milestone`, `Release`, `ReleaseAsset`, `Label`, `Issue`, `Comment`, `PullRequest`, `Reaction`, `Review`, `ReviewComment`.
 
 ## Downloader Interfaces
 
-To migrate from a new git host platform, there are two steps to be updated.
+To migrate from a new Git host platform, there are two steps to be updated.
 
 - You should implement a `Downloader` which will be used to get repository information.
 - You should implement a `DownloaderFactory` which will be used to detect if the URL matches and create the above `Downloader`.
