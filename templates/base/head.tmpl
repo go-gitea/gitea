@@ -46,6 +46,7 @@
 			]).values()),
 			{{end}}
 			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
+			{{/* this global i18n object should only contain gereral texts. for specalized texts, it should be provied inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 			i18n: {
 				copy_success: '{{.i18n.Tr "copy_success"}}',
 				copy_error: '{{.i18n.Tr "copy_error"}}',
