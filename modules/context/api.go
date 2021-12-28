@@ -30,10 +30,12 @@ type APIContext struct {
 	Org *APIOrganization
 }
 
-// APIError is error format response
+// Currently, we have the following common fields in error response:
 // * message: the message for end users (it shouldn't be used for error type detection)
 //            if we need to indicate some errors, we should introduce some new fields like ErrorCode or ErrorType
 // * url:     the swagger document URL
+
+// APIError is error format response
 // swagger:response error
 type APIError struct {
 	Message string `json:"message"`
