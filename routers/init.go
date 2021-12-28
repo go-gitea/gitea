@@ -40,6 +40,7 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
+
 	"gitea.com/go-chi/session"
 )
 
