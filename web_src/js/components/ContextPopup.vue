@@ -17,8 +17,8 @@
       </div>
     </div>
     <div v-if="!loading && issue === null">
-      <p><small>{{ errorTitle }}</small></p>
-      <p>{{ errorBody }}</p>
+      <p><small>{{ i18nErrorOccurred }}</small></p>
+      <p>{{ i18nErrorMessage }}</p>
     </div>
   </div>
 </template>
@@ -26,8 +26,7 @@
 <script>
 import {SvgIcon} from '../svg.js';
 
-const {appSubUrl} = window.config;
-const {issue_not_found, error_occurred} = window.config.i18n;
+const {appSubUrl, i18n} = window.config;
 
 // NOTE: see models/issue_label.go for similar implementation
 const srgbToLinear = (color) => {
@@ -54,18 +53,12 @@ export default {
 
   data: () => ({
     loading: false,
-    issue: null
+    issue: null,
+    i18nErrorOccurred: i18n.error_occurred,
+    i18nErrorMessage: null,
   }),
 
   computed: {
-    errorTitle() {
-      return error_occurred;
-    },
-
-    errorBody() {
-      return issue_not_found;
-    },
-
     createdAt() {
       return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
     },
@@ -125,21 +118,20 @@ export default {
   methods: {
     load(data, callback) {
       this.loading = true;
-      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
+      this.i18nErrorMessage = null;
+      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`).done((issue) => {
         this.issue = issue;
+      }).fail((jqXHR) => {
+        if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+          this.i18nErrorMessage = jqXHR.responseJSON.message;
+        } else {
+          this.i18nErrorMessage = i18n.network_error;
+        }
+      }).always(() => {
         this.loading = false;
-        this.$nextTick(() => {
-          if (callback) {
-            callback();
-          }
-        });
-      }).fail(() => {
-        this.loading = false;
-        this.$nextTick(() => {
-          if (callback) {
-            callback();
-          }
-        });
+        if (callback) {
+          this.$nextTick(callback);
+        }
       });
     }
   }

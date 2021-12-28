@@ -31,6 +31,9 @@ type APIContext struct {
 }
 
 // APIError is error format response
+// * message: the message for end users (it shouldn't be used for error type detection)
+//            if we need to indicate some errors, we should introduce some new fields like ErrorCode or ErrorType
+// * url:     the swagger document URL
 // swagger:response error
 type APIError struct {
 	Message string `json:"message"`
@@ -47,8 +50,8 @@ type APIValidationError struct {
 // APIInvalidTopicsError is error format response to invalid topics
 // swagger:response invalidTopicsError
 type APIInvalidTopicsError struct {
-	Topics  []string `json:"invalidTopics"`
-	Message string   `json:"message"`
+	Message       string   `json:"message"`
+	InvalidTopics []string `json:"invalidTopics"`
 }
 
 //APIEmpty is an empty response
@@ -122,9 +125,9 @@ func (ctx *APIContext) InternalServerError(err error) {
 	})
 }
 
-var (
-	apiContextKey interface{} = "default_api_context"
-)
+type apiContextKeyType struct{}
+
+var apiContextKey = apiContextKeyType{}
 
 // WithAPIContext set up api context in request
 func WithAPIContext(req *http.Request, ctx *APIContext) *http.Request {
@@ -351,7 +354,7 @@ func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
-	var message = "Not Found"
+	var message = ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -367,9 +370,9 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	}
 
 	ctx.JSON(http.StatusNotFound, map[string]interface{}{
-		"message":           message,
-		"documentation_url": setting.API.SwaggerURL,
-		"errors":            errors,
+		"message": message,
+		"url":     setting.API.SwaggerURL,
+		"errors":  errors,
 	})
 }
 
