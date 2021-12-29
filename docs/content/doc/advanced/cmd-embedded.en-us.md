@@ -85,7 +85,7 @@ The default is the current directory.
 The `--custom` flag tells Gitea to extract the files directly into the `custom` directory.
 For this to work, the command needs to know the location of the `app.ini` configuration
 file (`--config`) and, depending of the configuration, be ran from the directory where
-gitea normally starts. See [Customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) for details.
+Gitea normally starts. See [Customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) for details.
 
 The `--overwrite` flag allows any existing files in the destination directory to be overwritten.
 

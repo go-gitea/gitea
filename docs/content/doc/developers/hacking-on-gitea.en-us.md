@@ -67,13 +67,15 @@ sudo yum install make
 One of these three distributions of Make will run on Windows:
 
 - [Single binary build](http://www.equation.com/servlet/equation.cmd?fa=make). Copy somewhere and add to `PATH`.
-  - [32-bits version](ftp://ftp.equation.com/make/32/make.exe)
-  - [64-bits version](ftp://ftp.equation.com/make/64/make.exe)
-- [MinGW](http://www.mingw.org/) includes a build.
-  - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
+  - [32-bits version](http://www.equation.com/ftpdir/make/32/make.exe)
+  - [64-bits version](http://www.equation.com/ftpdir/make/64/make.exe)
+- [MinGW-w64](https://www.mingw-w64.org) / [MSYS2](https://www.msys2.org/).
+  - MSYS2 is a collection of tools and libraries providing you with an easy-to-use environment for building, installing and running native Windows software, it includes MinGW-w64. 
+  - In MingGW-w64, the binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
+  - In MSYS2, you can use `make` directly. See [MSYS2 Porting](https://www.msys2.org/wiki/Porting/).
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
-**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (git bash, or mingw) are recommended, however if you only have command prompt (or potentially powershell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (Git bash, or MinGW) are recommended, however if you only have command prompt (or potentially PowerShell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
 
 ## Downloading and cloning the Gitea source code
 
@@ -264,7 +266,7 @@ in `models/migrations/`. You can ensure that your migrations work for the main
 database types using:
 
 ```bash
-make test-sqlite-migration # with sqlite switched for the appropriate database
+make test-sqlite-migration # with SQLite switched for the appropriate database
 ```
 
 ## Testing
@@ -282,7 +284,7 @@ have written integration tests; however, these are database dependent.
 TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
-will run the integration tests in an sqlite environment. Integration tests
+will run the integration tests in an SQLite environment. Integration tests
 require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
@@ -308,7 +310,7 @@ make trans-copy clean build
 ```
 
 You will require a copy of [Hugo](https://gohugo.io/) to run this task. Please
-note: this may generate a number of untracked git objects, which will need to
+note: this may generate a number of untracked Git objects, which will need to
 be cleaned up.
 
 ## Visual Studio Code

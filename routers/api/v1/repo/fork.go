@@ -97,6 +97,8 @@ func CreateFork(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -126,13 +128,24 @@ func CreateFork(ctx *context.APIContext) {
 		forker = org.AsUser()
 	}
 
+	var name string
+	if form.Name == nil {
+		name = repo.Name
+	} else {
+		name = *form.Name
+	}
+
 	fork, err := repo_service.ForkRepository(ctx.User, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
-		Name:        repo.Name,
+		Name:        name,
 		Description: repo.Description,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		if repo_model.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusConflict, "ForkRepository", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		}
 		return
 	}
 
