@@ -445,7 +445,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 				log.Error("Unable to update nonce: %v", err)
 			}
 		}
-		ctx.Redirect(redirect.String(), http.StatusSeeOther)
+		ctx.Redirect(redirect.String())
 		return
 	}
 

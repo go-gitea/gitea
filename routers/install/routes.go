@@ -107,7 +107,7 @@ func Routes() *web.Route {
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, setting.AppURL, http.StatusTemporaryRedirect)
+		http.Redirect(w, req, setting.AppURL, http.StatusSeeOther)
 	})
 	return r
 }

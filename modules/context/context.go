@@ -137,7 +137,7 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
 // HasAPIError returns true if error occurs in form validation.
@@ -379,7 +379,7 @@ func (ctx *Context) JSON(status int, content interface{}) {
 
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
-	code := http.StatusTemporaryRedirect
+	code := http.StatusSeeOther
 	if len(status) == 1 {
 		code = status[0]
 	}

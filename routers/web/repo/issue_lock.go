@@ -43,7 +43,7 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }
 
 // UnlockIssue unlocks a previously locked issue.
@@ -68,5 +68,5 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }
