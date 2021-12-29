@@ -69,7 +69,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdConvert,
 		cmd.CmdDoctor,
 		cmd.CmdManager,
-		cmd.Cmdembedded,
+		cmd.CmdEmbedded,
 		cmd.CmdMigrateStorage,
 		cmd.CmdDocs,
 		cmd.CmdDumpRepository,

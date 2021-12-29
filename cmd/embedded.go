@@ -26,9 +26,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Cmdembedded represents the available extract sub-command.
+// CmdEmbedded represents the available extract sub-command.
 var (
-	Cmdembedded = cli.Command{
+	CmdEmbedded = cli.Command{
 		Name:        "embedded",
 		Usage:       "Extract embedded resources",
 		Description: "A command for extracting embedded resources, like templates and images",
@@ -109,13 +109,12 @@ type asset struct {
 }
 
 func initEmbeddedExtractor(c *cli.Context) error {
+	// we need setting.CustomPath later, so we have to load settings
+	setting.LoadAllowEmpty()
 
 	// Silence the console logger
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
-
-	// Read configuration file
-	setting.LoadAllowEmpty()
 
 	pats, err := getPatterns(c.Args())
 	if err != nil {
