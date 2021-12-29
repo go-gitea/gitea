@@ -72,13 +72,17 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
 
+			commits := repository.NewPushCommits()
+			commits.HeadCommit = repository.CommitToPushCommit(commit)
+			commits.CompareURL = rel.Repo.ComposeCompareURL(git.EmptySHA, commit.ID.String())
+
 			notification.NotifyPushCommits(
 				rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: git.TagPrefix + rel.TagName,
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
-				}, repository.NewPushCommits())
+				}, commits)
 			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
