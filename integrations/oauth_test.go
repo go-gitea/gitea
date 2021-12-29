@@ -28,7 +28,7 @@ func TestNoClientID(t *testing.T) {
 func TestLoginRedirect(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
-	assert.Contains(t, MakeRequest(t, req, http.StatusTemporaryRedirect).Body.String(), "/user/login")
+	assert.Contains(t, MakeRequest(t, req, http.StatusSeeOther).Body.String(), "/user/login")
 }
 
 func TestShowAuthorize(t *testing.T) {
@@ -46,7 +46,7 @@ func TestRedirectWithExistingGrant(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", defaultAuthorize)
 	ctx := loginUser(t, "user1")
-	resp := ctx.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
 	u, err := resp.Result().Location()
 	assert.NoError(t, err)
 	assert.Equal(t, "thestate", u.Query().Get("state"))

@@ -42,7 +42,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
 	})
-	resp = session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	return resp
 }

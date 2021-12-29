@@ -28,7 +28,7 @@ func TestChangeDefaultBranch(t *testing.T) {
 		"action": "default_branch",
 		"branch": "DefaultBranch",
 	})
-	session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	csrf = GetCSRF(t, session, branchesURL)
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{

@@ -133,7 +133,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 		"title":   title,
 		"content": content,
 	})
-	resp = session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	issueURL := test.RedirectURL(resp)
 	req = NewRequest(t, "GET", issueURL)
@@ -164,7 +164,7 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 		"content": content,
 		"status":  status,
 	})
-	resp = session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -330,16 +330,16 @@ func TestIssueRedirect(t *testing.T) {
 
 	// Test external tracker where style not set (shall default numeric)
 	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
-	resp := session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with numeric style
 	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
-	resp = session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with alphanumeric style (for a pull request)
 	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
-	resp = session.MakeRequest(t, req, http.StatusTemporaryRedirect)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
 }

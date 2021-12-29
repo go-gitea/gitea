@@ -122,7 +122,7 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.EqualValues(t, http.StatusTemporaryRedirect, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 	}
@@ -174,7 +174,7 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.EqualValues(t, http.StatusTemporaryRedirect, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 		if title != "Home" {
