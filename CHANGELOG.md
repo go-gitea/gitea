@@ -4,9 +4,10 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-28
+## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
 
 * BUGFIXES
+  * Fix: unstable sort skips/duplicates issues across pages (#18094) (#18095)
   * Revert "Fix delete u2f keys bug (#18042)" (#18107)
   * Migrating wiki don't require token, so we should move it out of the require form (#17645) (#18104)
   * Prevent NPE if gitea uploader fails to open url (#18080) (#18101)
