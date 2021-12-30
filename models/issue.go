@@ -1145,17 +1145,17 @@ type IssuesOptions struct {
 func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	switch sortType {
 	case "oldest":
-		sess.Asc("issue.created_unix")
+		sess.Asc("issue.created_unix").Asc("issue.id")
 	case "recentupdate":
-		sess.Desc("issue.updated_unix")
+		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
 	case "leastupdate":
-		sess.Asc("issue.updated_unix")
+		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
 	case "mostcomment":
-		sess.Desc("issue.num_comments")
+		sess.Desc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
 	case "leastcomment":
-		sess.Asc("issue.num_comments")
+		sess.Asc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
 	case "priority":
-		sess.Desc("issue.priority")
+		sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
@@ -1163,17 +1163,25 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
 				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END ASC")
+				"ELSE issue.deadline_unix END ASC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	case "farduedate":
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
 				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END DESC")
+				"ELSE issue.deadline_unix END DESC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	case "priorityrepo":
-		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
+		sess.OrderBy("CASE " +
+			"WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 " +
+			"ELSE 2 END ASC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	default:
-		sess.Desc("issue.created_unix")
+		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
 }
 
