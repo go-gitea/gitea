@@ -15,6 +15,7 @@
 package search
 
 import (
+	"encoding/json"
 	"reflect"
 	"sort"
 
@@ -43,7 +44,7 @@ func init() {
 
 type FacetBuilder interface {
 	StartDoc()
-	UpdateVisitor(field string, term []byte)
+	UpdateVisitor(term []byte)
 	EndDoc()
 
 	Result() *FacetResult
@@ -53,10 +54,11 @@ type FacetBuilder interface {
 }
 
 type FacetsBuilder struct {
-	indexReader index.IndexReader
-	facetNames  []string
-	facets      []FacetBuilder
-	fields      []string
+	indexReader   index.IndexReader
+	facetNames    []string
+	facets        []FacetBuilder
+	facetsByField map[string][]FacetBuilder
+	fields        []string
 }
 
 func NewFacetsBuilder(indexReader index.IndexReader) *FacetsBuilder {
@@ -80,8 +82,13 @@ func (fb *FacetsBuilder) Size() int {
 }
 
 func (fb *FacetsBuilder) Add(name string, facetBuilder FacetBuilder) {
+	if fb.facetsByField == nil {
+		fb.facetsByField = map[string][]FacetBuilder{}
+	}
+
 	fb.facetNames = append(fb.facetNames, name)
 	fb.facets = append(fb.facets, facetBuilder)
+	fb.facetsByField[facetBuilder.Field()] = append(fb.facetsByField[facetBuilder.Field()], facetBuilder)
 	fb.fields = append(fb.fields, facetBuilder.Field())
 }
 
@@ -102,8 +109,10 @@ func (fb *FacetsBuilder) EndDoc() {
 }
 
 func (fb *FacetsBuilder) UpdateVisitor(field string, term []byte) {
-	for _, facetBuilder := range fb.facets {
-		facetBuilder.UpdateVisitor(field, term)
+	if facetBuilders, ok := fb.facetsByField[field]; ok {
+		for _, facetBuilder := range facetBuilders {
+			facetBuilder.UpdateVisitor(term)
+		}
 	}
 }
 
@@ -112,27 +121,73 @@ type TermFacet struct {
 	Count int    `json:"count"`
 }
 
-type TermFacets []*TermFacet
-
-func (tf TermFacets) Add(termFacet *TermFacet) TermFacets {
-	for _, existingTerm := range tf {
-		if termFacet.Term == existingTerm.Term {
-			existingTerm.Count += termFacet.Count
-			return tf
-		}
-	}
-	// if we got here it wasn't already in the existing terms
-	tf = append(tf, termFacet)
-	return tf
+type TermFacets struct {
+	termFacets []*TermFacet
+	termLookup map[string]*TermFacet
 }
 
-func (tf TermFacets) Len() int      { return len(tf) }
-func (tf TermFacets) Swap(i, j int) { tf[i], tf[j] = tf[j], tf[i] }
-func (tf TermFacets) Less(i, j int) bool {
-	if tf[i].Count == tf[j].Count {
-		return tf[i].Term < tf[j].Term
+func (tf *TermFacets) Terms() []*TermFacet {
+	return tf.termFacets
+}
+
+func (tf *TermFacets) TrimToTopN(n int) {
+	tf.termFacets = tf.termFacets[:n]
+}
+
+func (tf *TermFacets) Add(termFacets ...*TermFacet) {
+	for _, termFacet := range termFacets {
+		if tf.termLookup == nil {
+			tf.termLookup = map[string]*TermFacet{}
+		}
+
+		if term, ok := tf.termLookup[termFacet.Term]; ok {
+			term.Count += termFacet.Count
+			return
+		}
+
+		// if we got here it wasn't already in the existing terms
+		tf.termFacets = append(tf.termFacets, termFacet)
+		tf.termLookup[termFacet.Term] = termFacet
 	}
-	return tf[i].Count > tf[j].Count
+}
+
+func (tf *TermFacets) Len() int {
+	// Handle case where *TermFacets is not fully initialized in index_impl.go.init()
+	if tf == nil {
+		return 0
+	}
+
+	return len(tf.termFacets)
+}
+func (tf *TermFacets) Swap(i, j int) {
+	tf.termFacets[i], tf.termFacets[j] = tf.termFacets[j], tf.termFacets[i]
+}
+func (tf *TermFacets) Less(i, j int) bool {
+	if tf.termFacets[i].Count == tf.termFacets[j].Count {
+		return tf.termFacets[i].Term < tf.termFacets[j].Term
+	}
+	return tf.termFacets[i].Count > tf.termFacets[j].Count
+}
+
+// TermFacets used to be a type alias for []*TermFacet.
+// To maintain backwards compatibility, we have to implement custom
+// JSON marshalling.
+func (tf *TermFacets) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tf.termFacets)
+}
+
+func (tf *TermFacets) UnmarshalJSON(b []byte) error {
+	termFacets := []*TermFacet{}
+	err := json.Unmarshal(b, &termFacets)
+	if err != nil {
+		return err
+	}
+
+	for _, termFacet := range termFacets {
+		tf.Add(termFacet)
+	}
+
+	return nil
 }
 
 type NumericRangeFacet struct {
@@ -246,7 +301,7 @@ type FacetResult struct {
 	Total         int                `json:"total"`
 	Missing       int                `json:"missing"`
 	Other         int                `json:"other"`
-	Terms         TermFacets         `json:"terms,omitempty"`
+	Terms         *TermFacets        `json:"terms,omitempty"`
 	NumericRanges NumericRangeFacets `json:"numeric_ranges,omitempty"`
 	DateRanges    DateRangeFacets    `json:"date_ranges,omitempty"`
 }
@@ -254,7 +309,7 @@ type FacetResult struct {
 func (fr *FacetResult) Size() int {
 	return reflectStaticSizeFacetResult + size.SizeOfPtr +
 		len(fr.Field) +
-		len(fr.Terms)*(reflectStaticSizeTermFacet+size.SizeOfPtr) +
+		fr.Terms.Len()*(reflectStaticSizeTermFacet+size.SizeOfPtr) +
 		len(fr.NumericRanges)*(reflectStaticSizeNumericRangeFacet+size.SizeOfPtr) +
 		len(fr.DateRanges)*(reflectStaticSizeDateRangeFacet+size.SizeOfPtr)
 }
@@ -264,8 +319,8 @@ func (fr *FacetResult) Merge(other *FacetResult) {
 	fr.Missing += other.Missing
 	fr.Other += other.Other
 	if fr.Terms != nil && other.Terms != nil {
-		for _, term := range other.Terms {
-			fr.Terms = fr.Terms.Add(term)
+		for _, term := range other.Terms.termFacets {
+			fr.Terms.Add(term)
 		}
 	}
 	if fr.NumericRanges != nil && other.NumericRanges != nil {
@@ -283,12 +338,12 @@ func (fr *FacetResult) Merge(other *FacetResult) {
 func (fr *FacetResult) Fixup(size int) {
 	if fr.Terms != nil {
 		sort.Sort(fr.Terms)
-		if len(fr.Terms) > size {
-			moveToOther := fr.Terms[size:]
+		if fr.Terms.Len() > size {
+			moveToOther := fr.Terms.termFacets[size:]
 			for _, mto := range moveToOther {
 				fr.Other += mto.Count
 			}
-			fr.Terms = fr.Terms[0:size]
+			fr.Terms.termFacets = fr.Terms.termFacets[0:size]
 		}
 	} else if fr.NumericRanges != nil {
 		sort.Sort(fr.NumericRanges)
