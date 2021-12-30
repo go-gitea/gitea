@@ -769,17 +769,3 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	writer.Close()
 	ctx.PlainTextBytes(http.StatusOK, buf.Bytes())
 }
-
-// Email2User show user page via email
-func Email2User(ctx *context.Context) {
-	u, err := user_model.GetUserByEmail(ctx.FormString("email"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByEmail", err)
-		} else {
-			ctx.ServerError("GetUserByEmail", err)
-		}
-		return
-	}
-	ctx.Redirect(u.HomeLink())
-}
