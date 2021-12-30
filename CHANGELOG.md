@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
 
 * BUGFIXES
+  * Fix wrong redirect on org labels (#18128) (#18134)
   * Fix: unstable sort skips/duplicates issues across pages (#18094) (#18095)
   * Revert "Fix delete u2f keys bug (#18042)" (#18107)
   * Migrating wiki don't require token, so we should move it out of the require form (#17645) (#18104)
@@ -18,7 +19,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add NotFound handler (#18062) (#18067)
   * Ensure that git repository is closed before transfer (#18049) (#18057)
   * Use common sessioner for API and web routes (#18114)
-  * Fix wrong redirect on org labels (#18134)
 * TRANSLATION
   * Fix code search result hint on zh-CN (#18053)
 
