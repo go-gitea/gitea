@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add NotFound handler (#18062) (#18067)
   * Ensure that git repository is closed before transfer (#18049) (#18057)
   * Use common sessioner for API and web routes (#18114)
+  * Fix wrong redirect on org labels (#18134)
 * TRANSLATION
   * Fix code search result hint on zh-CN (#18053)
 
