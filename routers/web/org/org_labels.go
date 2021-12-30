@@ -94,7 +94,7 @@ func DeleteLabel(ctx *context.Context) {
 func InitializeLabels(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
-		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+		ctx.Redirect(ctx.Org.OrgLink + "/labels")
 		return
 	}
 
