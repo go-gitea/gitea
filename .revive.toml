@@ -24,3 +24,4 @@ warningCode = 1
 [rule.indent-error-flow]
 [rule.errorf]
 [rule.duplicated-imports]
+[rule.modifies-value-receiver]

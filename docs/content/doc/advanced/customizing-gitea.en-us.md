@@ -287,7 +287,7 @@ To add a custom license, add a file with the license text to `$GITEA_CUSTOM/opti
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea).
+Locales are managed via our [Crowdin](https://crowdin.com/project/gitea).
 You can override a locale by placing an altered locale file in `$GITEA_CUSTOM/options/locale`.
 Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/main/options/locale) source folder and these should be used as examples for your changes.
 
