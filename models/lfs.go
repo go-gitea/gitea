@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -148,7 +149,7 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 
 // LFSObjectIsAssociated checks if a provided Oid is associated
 func LFSObjectIsAssociated(oid string) (bool, error) {
-	return x.Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	return db.GetEngine(db.DefaultContext).Exist(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
@@ -168,34 +169,40 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		oidMap[meta.Oid] = meta
 	}
 
-	newMetas := make([]*LFSMetaObject, 0, len(metas))
-
 	if !user.IsAdmin {
-		cond := builder.In("`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user)))
-		if err := sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
+		newMetas := make([]*LFSMetaObject, 0, len(metas))
+		cond := builder.In(
+			"`lfs_meta_object`.repository_id",
+			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user)),
+		)
+		err = sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas)
+		if err != nil {
 			return err
 		}
 		if len(newMetas) != len(oidMap) {
-			return fmt.Errorf("can not collect all LFS objects from database, expected %d, actually %d", len(oidMap), len(newMetas))
+			return fmt.Errorf("unable collect all LFS objects from database, expected %d, actually %d", len(oidMap), len(newMetas))
 		}
 		for i := range newMetas {
 			newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 			newMetas[i].RepositoryID = repoID
 		}
-		if _, err := sess.InsertMulti(newMetas); err != nil {
+		if err = db.Insert(ctx, newMetas); err != nil {
 			return err
 		}
 	} else {
-		// admin can associate any LFS object to any repository, and we do not care about duplicated errors
+		// admin can associate any LFS object to any repository, and we do not care about errors (eg: duplicated unique key),
+		// even if error occurs, it won't hurt users and won't make things worse
 		for i := range metas {
-			_, _ = sess.Insert(&LFSMetaObject{
+			_, err = sess.Insert(&LFSMetaObject{
 				Pointer:      lfs.Pointer{Oid: metas[i].Oid, Size: metas[i].Size},
 				RepositoryID: repoID,
 			})
+			if err != nil {
+				log.Warn("failed to insert LFS meta object into database, err=%v", err)
+			}
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IterateLFS iterates lfs object
