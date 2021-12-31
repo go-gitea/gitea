@@ -76,7 +76,6 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer

@@ -47,11 +47,11 @@ a,	b	c
 	e	f
 g	h	i
 j		l
-m	n,	
+m	n,
 p	q	r
 		u
 v	w	x
-y		
+y
 		`,
 			expectedRows: [][]string{
 				{"col1", "col2", "col3"},
@@ -74,7 +74,7 @@ y
  a, b, c
 d,e,f
  ,h, i
-j, , 
+j, ,
  , , `,
 			expectedRows: [][]string{
 				{"col1", "col2", "col3"},
@@ -353,7 +353,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 	quoted,
 text,"	a
 2	"some,
-quoted,	
+quoted,
 	text,"	b
 3	"some,
 quoted,
@@ -459,7 +459,7 @@ func TestGuessFromBeforeAfterQuotes(t *testing.T) {
 	quoted,
 text,"	a
 2	"some,
-quoted,	
+quoted,
 	text,"	b
 3	"some,
 quoted,
@@ -547,6 +547,10 @@ func (l mockLocale) Language() string {
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
+}
+
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
 }
 
 func TestFormatError(t *testing.T) {
