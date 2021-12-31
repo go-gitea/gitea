@@ -400,26 +400,6 @@ func HasAccess(userID int64, repo *repo_model.Repository) (bool, error) {
 	return hasAccess(db.DefaultContext, userID, repo)
 }
 
-// FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
-func FilterOutRepoIdsWithoutUnitAccess(u *user_model.User, repoIDs []int64, units ...unit.Type) ([]int64, error) {
-	i := 0
-	for _, rID := range repoIDs {
-		repo, err := repo_model.GetRepositoryByID(rID)
-		if err != nil {
-			return nil, err
-		}
-		perm, err := GetUserRepoPermission(repo, u)
-		if err != nil {
-			return nil, err
-		}
-		if perm.CanReadAny(units...) {
-			repoIDs[i] = rID
-			i++
-		}
-	}
-	return repoIDs[:i], nil
-}
-
 // GetRepoReaders returns all users that have explicit read access or higher to the repository.
 func GetRepoReaders(repo *repo_model.Repository) (_ []*user_model.User, err error) {
 	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeRead)
