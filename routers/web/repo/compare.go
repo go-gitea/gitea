@@ -736,6 +736,10 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("LoadIssue", err)
+				return
+			}
 			ctx.Data["PullRequest"] = pr
 			ctx.HTML(http.StatusOK, tplCompareDiff)
 			return

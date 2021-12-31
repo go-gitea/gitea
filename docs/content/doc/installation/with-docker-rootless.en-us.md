@@ -19,7 +19,7 @@ Gitea provides automatically updated Docker images within its Docker Hub organiz
 possible to always use the latest stable tag or to use another service that handles updating
 Docker images.
 
-The rootless image use Gitea internal ssh to provide git protocol and doesn't support openssh.
+The rootless image use Gitea internal SSH to provide Git protocol and doesn't support OpenSSH.
 
 This reference setup guides users through the setup based on `docker-compose`, but the installation
 of `docker-compose` is out of scope of this documentation. To install `docker-compose` itself, follow

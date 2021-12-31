@@ -498,6 +498,85 @@ func TestAPIRepoTransfer(t *testing.T) {
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
 }
 
+func transfer(t *testing.T) *repo_model.Repository {
+	//create repo to move
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+	repoName := "moveME"
+	apiRepo := new(api.Repository)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
+		Name:        repoName,
+		Description: "repo move around",
+		Private:     false,
+		Readme:      "Default",
+		AutoInit:    true,
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, apiRepo)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
+		NewOwner: "user4",
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	return repo
+}
+
+func TestAPIAcceptTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to accept with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to accept repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// accept transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusAccepted)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user4", apiRepo.Owner.UserName)
+}
+
+func TestAPIRejectTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to reject with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to reject repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// reject transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user2", apiRepo.Owner.UserName)
+}
+
 func TestAPIGenerateRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
