@@ -183,20 +183,19 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 			newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 			newMetas[i].RepositoryID = repoID
 		}
+		if _, err := sess.InsertMulti(newMetas); err != nil {
+			return err
+		}
 	} else {
-		// admin can associate any LFS object to any repository
+		// admin can associate any LFS object to any repository, and we do not care about duplicated errors
 		for i := range metas {
-			newMetas = append(newMetas, &LFSMetaObject{
+			_, _ = sess.Insert(&LFSMetaObject{
 				Pointer:      lfs.Pointer{Oid: metas[i].Oid, Size: metas[i].Size},
 				RepositoryID: repoID,
 			})
 		}
 	}
-	if err := db.Insert(ctx, newMetas); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return sess.Commit()
 }
 
 // IterateLFS iterates lfs object
