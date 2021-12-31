@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -47,6 +48,12 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}, "is_active", "is_restricted", "is_admin", "prohibit_login", "max_repo_creation", "passwd", "salt", "passwd_hash_algo"); err != nil {
 			return fmt.Errorf("unable to disable user: %s[%d] prior to purge. UpdateUserCols: %w", u.Name, u.ID, err)
 		}
+
+		// Force any logged in sessions to log out
+		// FIXME: We also need to tell the session manager to log them out too.
+		eventsource.GetManager().SendMessage(u.ID, &eventsource.Event{
+			Name: "logout",
+		})
 
 		// Delete all repos belonging to this user
 		for {
