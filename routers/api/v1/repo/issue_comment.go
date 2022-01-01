@@ -164,10 +164,10 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	opts := &models.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		IssueID: issue.ID,
-		Since:   since,
-		Before:  before,
-		Type:    models.CommentTypeUnknown,
+		IssueID:     issue.ID,
+		Since:       since,
+		Before:      before,
+		Type:        models.CommentTypeUnknown,
 	}
 
 	comments, err := models.FindComments(opts)
