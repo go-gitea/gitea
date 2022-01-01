@@ -49,6 +49,13 @@ var (
 	giteaHostInit         sync.Once
 	giteaHost             string
 	giteaIssuePullPattern *regexp.Regexp
+
+	actionStrings = []string{
+		"none",
+		"closes",
+		"reopens",
+		"neutered",
+	}
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -66,12 +73,7 @@ const (
 )
 
 func (a XRefAction) String() string {
-	return []string{
-		"none",
-		"closes",
-		"reopens",
-		"neutered",
-	}[a]
+	return actionStrings[a]
 }
 
 // IssueReference contains an unverified cross-reference to a local issue or pull request
