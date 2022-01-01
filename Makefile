@@ -157,7 +157,7 @@ all: build
 .PHONY: help
 help:
 	@echo "Make Routines:"
-	@echo " - \"\"                             equivalent to \"build\""
+	@echo " - \"\"                               equivalent to \"build\""
 	@echo " - build                            build everything"
 	@echo " - frontend                         build frontend files"
 	@echo " - backend                          build backend files"
