@@ -277,7 +277,7 @@ There are two types of test run by Gitea: Unit tests and Integration Tests.
 ### Unit Tests
 
 Unit tests are covered by `*_test.go` in `go test` system.
-You can set environment variable `GITEA_UNIT_TESTS_VERBOSE=1` to see detail logs during the test.
+You can set the environment variable `GITEA_UNIT_TESTS_LOG_SQL=1` to display all SQL statements when running the tests in verbose mode (i.e. when `GOTESTFLAGS=-v` is set).
 
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make test # Runs the unit tests
