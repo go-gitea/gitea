@@ -8,178 +8,65 @@ package git
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
 	"strings"
-	"time"
 	"unsafe"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/git/cmd"
 )
 
 var (
 	// globalCommandArgs global command args for external package setting
 	globalCommandArgs []string
 
-	// defaultCommandExecutionTimeout default command execution timeout duration
-	defaultCommandExecutionTimeout = 360 * time.Second
+	// cmdService represents a command service
+	cmdService cmd.Service
 )
 
-// DefaultLocale is the default LC_ALL to run git commands in.
-const DefaultLocale = "C"
-
-// Command represents a command with its subcommands or arguments.
-type Command struct {
-	name             string
-	args             []string
-	parentContext    context.Context
-	desc             string
-	globalArgsLength int
-}
-
-func (c *Command) String() string {
-	if len(c.args) == 0 {
-		return c.name
-	}
-	return fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
+// CommandProxy represents a command proxy with its subcommands or arguments.
+type CommandProxy struct {
+	cmd.Command
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(ctx context.Context, args ...string) *Command {
-	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(globalCommandArgs))
-	copy(cargs, globalCommandArgs)
-	return &Command{
-		name:             GitExecutable,
-		args:             append(cargs, args...),
-		parentContext:    ctx,
-		globalArgsLength: len(globalCommandArgs),
+// NewCommand creates and returns a new Git Command based on given command and arguments.
+func NewCommand(ctx context.Context, args ...string) *CommandProxy {
+	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return &CommandProxy{
+		Command: cmdService.NewCommand(ctx, len(cargs), append(cargs, args...)...),
 	}
 }
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-func NewCommandNoGlobals(args ...string) *Command {
+func NewCommandNoGlobals(args ...string) *CommandProxy {
 	return NewCommandContextNoGlobals(DefaultContext, args...)
 }
 
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
-func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
-	return &Command{
-		name:          GitExecutable,
-		args:          args,
-		parentContext: ctx,
+func NewCommandContextNoGlobals(ctx context.Context, args ...string) *CommandProxy {
+	return &CommandProxy{
+		Command: cmdService.NewCommand(ctx, 0, args...),
 	}
 }
 
 // SetParentContext sets the parent context for this command
-func (c *Command) SetParentContext(ctx context.Context) *Command {
-	c.parentContext = ctx
+func (c *CommandProxy) SetParentContext(ctx context.Context) *CommandProxy {
+	c.Command.SetParentContext(ctx)
 	return c
 }
 
 // SetDescription sets the description for this command which be returned on
 // c.String()
-func (c *Command) SetDescription(desc string) *Command {
-	c.desc = desc
+func (c *CommandProxy) SetDescription(desc string) *CommandProxy {
+	c.Command.SetDescription(desc)
 	return c
 }
 
 // AddArguments adds new argument(s) to the command.
-func (c *Command) AddArguments(args ...string) *Command {
-	c.args = append(c.args, args...)
+func (c *CommandProxy) AddArguments(args ...string) *CommandProxy {
+	c.Command.AddArguments(args...)
 	return c
-}
-
-// RunOpts represents parameters to run the command
-type RunOpts struct {
-	Env            []string
-	Timeout        time.Duration
-	Dir            string
-	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	PipelineFunc   func(context.Context, context.CancelFunc) error
-}
-
-// Run runs the command with the RunOpts
-func (c *Command) Run(opts *RunOpts) error {
-	if opts == nil {
-		opts = &RunOpts{}
-	}
-	if opts.Timeout <= 0 {
-		opts.Timeout = defaultCommandExecutionTimeout
-	}
-
-	if len(opts.Dir) == 0 {
-		log.Debug("%s", c)
-	} else {
-		log.Debug("%s: %v", opts.Dir, c)
-	}
-
-	desc := c.desc
-	if desc == "" {
-		args := c.args[c.globalArgsLength:]
-		var argSensitiveURLIndexes []int
-		for i, arg := range c.args {
-			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
-				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
-			}
-		}
-		if len(argSensitiveURLIndexes) > 0 {
-			args = make([]string, len(c.args))
-			copy(args, c.args)
-			for _, urlArgIndex := range argSensitiveURLIndexes {
-				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
-			}
-		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
-	}
-
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
-	defer finished()
-
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if opts.Env == nil {
-		cmd.Env = os.Environ()
-	} else {
-		cmd.Env = opts.Env
-	}
-
-	cmd.Env = append(
-		cmd.Env,
-		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		// avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_TERMINAL_PROMPT=0",
-		// ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_NO_REPLACE_OBJECTS=1",
-	)
-
-	process.SetSysProcAttribute(cmd)
-	cmd.Dir = opts.Dir
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
-	cmd.Stdin = opts.Stdin
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	if opts.PipelineFunc != nil {
-		err := opts.PipelineFunc(ctx, cancel)
-		if err != nil {
-			cancel()
-			_ = cmd.Wait()
-			return err
-		}
-	}
-
-	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
-		return err
-	}
-
-	return ctx.Err()
 }
 
 type RunStdError interface {
@@ -213,8 +100,11 @@ func bytesToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
+// RunOpts is an alias of cmd.RunOpts
+type RunOpts = cmd.RunOpts
+
 // RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+func (c *CommandProxy) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
 	stdout = bytesToString(stdoutBytes)
 	stderr = bytesToString(stderrBytes)
@@ -226,7 +116,7 @@ func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr Run
 }
 
 // RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+func (c *CommandProxy) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
 	if opts == nil {
 		opts = &RunOpts{}
 	}

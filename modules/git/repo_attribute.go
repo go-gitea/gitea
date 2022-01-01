@@ -120,7 +120,7 @@ type CheckAttributeReader struct {
 	stdinReader io.ReadCloser
 	stdinWriter *os.File
 	stdOut      attributeWriter
-	cmd         *Command
+	cmd         *CommandProxy
 	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc

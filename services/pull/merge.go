@@ -280,13 +280,13 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
 
-	var gitConfigCommand func() *git.Command
+	var gitConfigCommand func() *git.CommandProxy
 	if git.CheckGitVersionAtLeast("1.8.0") == nil {
-		gitConfigCommand = func() *git.Command {
+		gitConfigCommand = func() *git.CommandProxy {
 			return git.NewCommand(ctx, "config", "--local")
 		}
 	} else {
-		gitConfigCommand = func() *git.Command {
+		gitConfigCommand = func() *git.CommandProxy {
 			return git.NewCommand(ctx, "config")
 		}
 	}
@@ -600,7 +600,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		pr.ID,
 	)
 
-	var pushCmd *git.Command
+	var pushCmd *git.CommandProxy
 	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
 		// force push the rebase result to head branch
 		pushCmd = git.NewCommand(ctx, "push", "-f", "head_repo", stagingBranch+":"+git.BranchPrefix+pr.HeadBranch)
@@ -668,7 +668,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 	return nil
 }
 
-func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.Command, tmpBasePath string) error {
+func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.CommandProxy, tmpBasePath string) error {
 	var outbuf, errbuf strings.Builder
 	if err := cmd.Run(&git.RunOpts{
 		Dir:    tmpBasePath,

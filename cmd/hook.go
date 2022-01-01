@@ -218,6 +218,9 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
+	if err := git.Init(ctx); err != nil {
+		return fail("Git init failed", err.Error())
+	}
 	supportProcRecive := false
 	if git.CheckGitVersionAtLeast("2.29") == nil {
 		supportProcRecive = true
@@ -498,6 +501,9 @@ Gitea or set your environment appropriately.`, "")
 	ctx, cancel := installSignals()
 	defer cancel()
 
+	if err := git.Init(ctx); err != nil {
+		return fail("Git init failed", err.Error())
+	}
 	if git.CheckGitVersionAtLeast("2.29") != nil {
 		return fail("Internal Server Error", "git not support proc-receive.")
 	}

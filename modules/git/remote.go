@@ -15,7 +15,7 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 	if err != nil {
 		return nil, err
 	}
-	var cmd *Command
+	var cmd *CommandProxy
 	if CheckGitVersionAtLeast("2.7") == nil {
 		cmd = NewCommand(ctx, "remote", "get-url", remoteName)
 	} else {

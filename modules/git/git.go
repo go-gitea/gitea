@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git/cmd"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -92,8 +93,11 @@ func SetExecutablePath(path string) error {
 		return fmt.Errorf("git not found: %w", err)
 	}
 	GitExecutable = absPath
+	return nil
+}
 
-	err = LoadGitVersion()
+func checkGitVersion() error {
+	err := LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
@@ -114,7 +118,6 @@ func SetExecutablePath(path string) error {
 		}
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), GitVersionRequired, moreHint)
 	}
-
 	return nil
 }
 
@@ -136,10 +139,15 @@ func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
-		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+		cmd.SetDefaultCommandTimout(time.Duration(setting.Git.Timeout.Default) * time.Second)
+	}
+	if err := SetExecutablePath(setting.Git.Path); err != nil {
+		return err
 	}
 
-	if err := SetExecutablePath(setting.Git.Path); err != nil {
+	cmdService = cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
+
+	if err := checkGitVersion(); err != nil {
 		return err
 	}
 
@@ -159,11 +167,6 @@ func Init(ctx context.Context) error {
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
-	}
-
-	// Save current git version on init to gitVersion otherwise it would require an RWMutex
-	if err := LoadGitVersion(); err != nil {
-		return err
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults

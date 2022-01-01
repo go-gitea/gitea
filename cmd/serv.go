@@ -151,6 +151,9 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(words) < 2 {
+		if err := git.Init(ctx); err != nil {
+			return fail("Git init failed", err.Error())
+		}
 		if git.CheckGitVersionAtLeast("2.29") == nil {
 			// for AGit Flow
 			if cmd == "ssh_info" {
