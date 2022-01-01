@@ -236,7 +236,6 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	}()
 
 	numberOfConflicts := 0
-	pr.ConflictedFiles = make([]string, 0, 5)
 	conflict := false
 	conflictedFiles := make([]string, 0, 5)
 
