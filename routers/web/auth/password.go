@@ -254,12 +254,15 @@ func ResetPasswdPost(ctx *context.Context) {
 		}
 
 		handleSignInFull(ctx, u, remember, false)
+		if ctx.Written() {
+			return
+		}
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
 
-	handleSignInFull(ctx, u, remember, true)
+	handleSignIn(ctx, u, remember)
 }
 
 // MustChangePassword renders the page to change a user's password
@@ -300,7 +303,23 @@ func MustChangePasswordPost(ctx *context.Context) {
 		return
 	}
 
-	var err error
+	if !password.IsComplexEnough(form.Password) {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplMustChangePassword, &form)
+		return
+	}
+	pwned, err := password.IsPwned(ctx, form.Password)
+	if pwned {
+		ctx.Data["Err_Password"] = true
+		errMsg := ctx.Tr("auth.password_pwned")
+		if err != nil {
+			log.Error(err.Error())
+			errMsg = ctx.Tr("auth.password_pwned_err")
+		}
+		ctx.RenderWithErr(errMsg, tplMustChangePassword, &form)
+		return
+	}
+
 	if err = u.SetPassword(form.Password); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

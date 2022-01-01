@@ -76,7 +76,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx.Session, ctx.User)
+			err = externalaccount.LinkAccountFromStore(ctx.Session, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return
@@ -154,6 +154,9 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		}
 
 		handleSignInFull(ctx, u, remember, false)
+		if ctx.Written() {
+			return
+		}
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return

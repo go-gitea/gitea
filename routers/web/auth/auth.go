@@ -334,7 +334,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, o
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
 		if err := user_model.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
-			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			ctx.ServerError("UpdateUserCols Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
 	}

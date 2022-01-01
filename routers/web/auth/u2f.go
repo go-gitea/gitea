@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/externalaccount"
 
-	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
 
@@ -117,23 +116,19 @@ func U2FSign(ctx *context.Context) {
 			}
 
 			if ctx.Session.Get("linkAccount") != nil {
-				gothUser := ctx.Session.Get("linkAccountGothUser")
-				if gothUser == nil {
-					ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
-					return
-				}
-
-				err = externalaccount.LinkAccountToUser(user, gothUser.(goth.User))
-				if err != nil {
+				if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
 					ctx.ServerError("UserSignIn", err)
 					return
 				}
 			}
 			redirect := handleSignInFull(ctx, user, remember, false)
+			if ctx.Written() {
+				return
+			}
 			if redirect == "" {
 				redirect = setting.AppSubURL + "/"
 			}
-			ctx.PlainTextBytes(200, []byte(redirect))
+			ctx.PlainText(200, redirect)
 			return
 		}
 	}
