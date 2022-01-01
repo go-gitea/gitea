@@ -403,7 +403,7 @@ func (ac *arrayContainer) iorRun16(rc *runContainer16) container {
 		var result container
 		result = ac
 		for _, run := range rc.iv {
-			result = result.iaddRange(int(run.start), int(run.start)+int(run.length))
+			result = result.iaddRange(int(run.start), int(run.start)+int(run.length)+1)
 		}
 		return result
 	}
