@@ -15,7 +15,7 @@ menu:
 
 # Webhooks
 
-Gitea supports web hooks for repository events. This can be configured in the settings
+Gitea supports webhooks for repository events. This can be configured in the settings
 page `/:username/:reponame/settings/hooks` by a repository admin. Webhooks can also be configured on a per-organization and whole system basis.
 All event pushes are POST requests. The methods currently supported are:
 

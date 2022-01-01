@@ -736,6 +736,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+				m.Post("/transfer/accept", reqToken(), repo.AcceptTransfer)
+				m.Post("/transfer/reject", reqToken(), repo.RejectTransfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)

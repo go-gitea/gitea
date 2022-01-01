@@ -1186,6 +1186,9 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
+	Org            *Organization    // issues permission scope
+	Team           *Team            // issues permission scope
+	User           *user_model.User // issues permission scope
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1193,17 +1196,17 @@ type IssuesOptions struct {
 func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	switch sortType {
 	case "oldest":
-		sess.Asc("issue.created_unix")
+		sess.Asc("issue.created_unix").Asc("issue.id")
 	case "recentupdate":
-		sess.Desc("issue.updated_unix")
+		sess.Desc("issue.updated_unix").Desc("issue.created_unix").Desc("issue.id")
 	case "leastupdate":
-		sess.Asc("issue.updated_unix")
+		sess.Asc("issue.updated_unix").Asc("issue.created_unix").Asc("issue.id")
 	case "mostcomment":
-		sess.Desc("issue.num_comments")
+		sess.Desc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
 	case "leastcomment":
-		sess.Asc("issue.num_comments")
+		sess.Asc("issue.num_comments").Desc("issue.created_unix").Desc("issue.id")
 	case "priority":
-		sess.Desc("issue.priority")
+		sess.Desc("issue.priority").Desc("issue.created_unix").Desc("issue.id")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
@@ -1211,19 +1214,27 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
 				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END ASC")
+				"ELSE issue.deadline_unix END ASC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	case "farduedate":
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
 				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
-				"ELSE issue.deadline_unix END DESC")
+				"ELSE issue.deadline_unix END DESC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	case "priorityrepo":
-		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
+		sess.OrderBy("CASE " +
+			"WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 " +
+			"ELSE 2 END ASC").
+			Desc("issue.created_unix").
+			Desc("issue.id")
 	case "project-column-sorting":
-		sess.Asc("project_issue.sorting")
+		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
 	default:
-		sess.Desc("issue.created_unix")
+		sess.Desc("issue.created_unix").Desc("issue.id")
 	}
 }
 
@@ -1329,6 +1340,44 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 				From("milestone").
 				Where(builder.In("name", opts.IncludeMilestones)))
 	}
+
+	if opts.User != nil {
+		sess.And(
+			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
+		)
+	}
+}
+
+// issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
+	var cond = builder.NewCond()
+	var unitType = unit.TypeIssues
+	if isPull {
+		unitType = unit.TypePullRequests
+	}
+	if org != nil {
+		if team != nil {
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+		} else {
+			cond = cond.And(
+				builder.Or(
+					userOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
+					userOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+				),
+			)
+		}
+	} else {
+		cond = cond.And(
+			builder.Or(
+				userOwnedRepoCond(userID),                          // owned repos
+				userCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
+				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
+				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+			),
+		)
+	}
+	return cond
 }
 
 func applyReposCondition(sess *xorm.Session, repoIDs []int64) *xorm.Session {
@@ -1638,15 +1687,16 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID      int64
-	RepoIDs     []int64
-	UserRepoIDs []int64
-	FilterMode  int
-	IsPull      bool
-	IsClosed    bool
-	IssueIDs    []int64
-	IsArchived  util.OptionalBool
-	LabelIDs    []int64
+	UserID     int64
+	RepoIDs    []int64
+	FilterMode int
+	IsPull     bool
+	IsClosed   bool
+	IssueIDs   []int64
+	IsArchived util.OptionalBool
+	LabelIDs   []int64
+	Org        *Organization
+	Team       *Team
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1663,28 +1713,34 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
+	if opts.UserID > 0 {
+		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
+	}
+
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := db.GetEngine(db.DefaultContext).Where(cond)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
-		if opts.IsArchived != util.OptionalBoolNone {
-			s.Join("INNER", "repository", "issue.repo_id = repository.id").
-				And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+		if opts.UserID > 0 || opts.IsArchived != util.OptionalBoolNone {
+			s.Join("INNER", "repository", "issue.repo_id = repository.id")
+			if opts.IsArchived != util.OptionalBoolNone {
+				s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+			}
 		}
 		return s
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).
+		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).
+		stats.ClosedCount, err = sess(cond).
 			And("issue.is_closed = ?", true).
 			Count(new(Issue))
 		if err != nil {
@@ -1760,7 +1816,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		return nil, err
 	}
 
-	stats.YourRepositoriesCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).Count(new(Issue))
+	stats.YourRepositoriesCount, err = sess(cond).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}

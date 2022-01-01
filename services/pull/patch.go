@@ -235,6 +235,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}()
 
 	numberOfConflicts := 0
+	pr.ConflictedFiles = make([]string, 0, 5)
 	conflict := false
 
 	for file := range unmerged {
