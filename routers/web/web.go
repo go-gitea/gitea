@@ -376,7 +376,6 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/activate", user.ActivatePost, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
-		m.Get("/email2user", user.Email2User)
 		m.Get("/recover_account", user.ResetPasswd)
 		m.Post("/recover_account", user.ResetPasswdPost)
 		m.Get("/forgot_password", user.ForgotPasswd)

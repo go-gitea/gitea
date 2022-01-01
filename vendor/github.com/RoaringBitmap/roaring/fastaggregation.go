@@ -33,15 +33,6 @@ main:
 				s2 = x2.highlowcontainer.getKeyAtIndex(pos2)
 			} else {
 				c1 := x1.highlowcontainer.getContainerAtIndex(pos1)
-				switch t := c1.(type) {
-				case *arrayContainer:
-					c1 = t.toBitmapContainer()
-				case *runContainer16:
-					if !t.isFull() {
-						c1 = t.toBitmapContainer()
-					}
-				}
-
 				answer.highlowcontainer.appendContainer(s1, c1.lazyOR(x2.highlowcontainer.getContainerAtIndex(pos2)), false)
 				pos1++
 				pos2++
@@ -89,18 +80,7 @@ main:
 				}
 				s2 = x2.highlowcontainer.getKeyAtIndex(pos2)
 			} else {
-				c1 := x1.highlowcontainer.getContainerAtIndex(pos1)
-				switch t := c1.(type) {
-				case *arrayContainer:
-					c1 = t.toBitmapContainer()
-				case *runContainer16:
-					if !t.isFull() {
-						c1 = t.toBitmapContainer()
-					}
-				case *bitmapContainer:
-					c1 = x1.highlowcontainer.getWritableContainerAtIndex(pos1)
-				}
-
+				c1 := x1.highlowcontainer.getWritableContainerAtIndex(pos1)
 				x1.highlowcontainer.containers[pos1] = c1.lazyIOR(x2.highlowcontainer.getContainerAtIndex(pos2))
 				x1.highlowcontainer.needCopyOnWrite[pos1] = false
 				pos1++

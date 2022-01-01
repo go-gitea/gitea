@@ -16,14 +16,13 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
 	github.com/PuerkitoBio/goquery v1.7.0
-	github.com/RoaringBitmap/roaring v0.9.1 // indirect
 	github.com/alecthomas/chroma v0.9.4
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
-	github.com/blevesearch/bleve/v2 v2.0.6
+	github.com/blevesearch/bleve/v2 v2.3.0
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.14.1
+	github.com/caddyserver/certmagic v0.15.2
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
@@ -79,7 +78,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.16
-	github.com/miekg/dns v1.1.43 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.12
 	github.com/minio/sha256-simd v1.0.0 // indirect
