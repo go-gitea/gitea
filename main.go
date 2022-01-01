@@ -27,7 +27,7 @@ import (
 
 var (
 	// Version holds the current Gitea version
-	Version = "development"
+	Version = "1.16.9999+dev-main"
 	// Tags holds the build tags used
 	Tags = ""
 	// MakeVersion holds the current Make version if built with make
