@@ -270,7 +270,7 @@ func (dm *DocumentMatch) Complete(prealloc []Location) []Location {
 		var needsDedupe bool
 
 		for i, ftl := range dm.FieldTermLocations {
-			if lastField != ftl.Field {
+			if i == 0 || lastField != ftl.Field {
 				lastField = ftl.Field
 
 				if dm.Locations == nil {

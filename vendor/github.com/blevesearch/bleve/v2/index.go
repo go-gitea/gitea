@@ -16,6 +16,7 @@ package bleve
 
 import (
 	"context"
+
 	"github.com/blevesearch/bleve/v2/index/upsidedown"
 
 	"github.com/blevesearch/bleve/v2/document"
@@ -306,3 +307,15 @@ type Builder interface {
 func NewBuilder(path string, mapping mapping.IndexMapping, config map[string]interface{}) (Builder, error) {
 	return newBuilder(path, mapping, config)
 }
+
+// IndexCopyable is an index which supports an online copy operation
+// of the index.
+type IndexCopyable interface {
+	// CopyTo creates a fully functional copy of the index at the
+	// specified destination directory implementation.
+	CopyTo(d index.Directory) error
+}
+
+// FileSystemDirectory is the default implementation for the
+// index.Directory interface.
+type FileSystemDirectory string
