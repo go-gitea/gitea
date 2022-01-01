@@ -18,6 +18,7 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
+	"net"
 	"reflect"
 	"time"
 
@@ -76,7 +77,7 @@ func (dm *DocumentMapping) Validate(cache *registry.Cache) error {
 			}
 		}
 		switch field.Type {
-		case "text", "datetime", "number", "boolean", "geopoint":
+		case "text", "datetime", "number", "boolean", "geopoint", "IP":
 		default:
 			return fmt.Errorf("unknown field type: '%s'", field.Type)
 		}
@@ -517,8 +518,14 @@ func (dm *DocumentMapping) processProperty(property interface{}, path []string, 
 	case reflect.Map, reflect.Slice:
 		if subDocMapping != nil {
 			for _, fieldMapping := range subDocMapping.Fields {
-				if fieldMapping.Type == "geopoint" {
+				switch fieldMapping.Type {
+				case "geopoint":
 					fieldMapping.processGeoPoint(property, pathString, path, indexes, context)
+				case "IP":
+					ip, ok := property.(net.IP)
+					if ok {
+						fieldMapping.processIP(ip, pathString, path, indexes, context)
+					}
 				}
 			}
 		}
@@ -528,7 +535,7 @@ func (dm *DocumentMapping) processProperty(property interface{}, path []string, 
 			switch property := property.(type) {
 			case encoding.TextMarshaler:
 				// ONLY process TextMarshaler if there is an explicit mapping
-				// AND all of the fiels are of type text
+				// AND all of the fields are of type text
 				// OTHERWISE process field without TextMarshaler
 				if subDocMapping != nil {
 					allFieldsText := true

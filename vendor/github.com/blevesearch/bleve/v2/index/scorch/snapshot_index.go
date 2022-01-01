@@ -18,6 +18,8 @@ import (
 	"container/heap"
 	"encoding/binary"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"sync"
@@ -29,6 +31,7 @@ import (
 	segment "github.com/blevesearch/scorch_segment_api/v2"
 	"github.com/blevesearch/vellum"
 	lev "github.com/blevesearch/vellum/levenshtein"
+	bolt "go.etcd.io/bbolt"
 )
 
 // re usable, threadsafe levenshtein builders
@@ -426,6 +429,8 @@ func (i *IndexSnapshot) Document(id string) (rv index.Document, err error) {
 			rvd.AddField(document.NewTextField(name, arrayPos, value))
 		case 'n':
 			rvd.AddField(document.NewNumericFieldFromBytes(name, arrayPos, value))
+		case 'i':
+			rvd.AddField(document.NewIPFieldFromBytes(name, arrayPos, value))
 		case 'd':
 			rvd.AddField(document.NewDateTimeFieldFromBytes(name, arrayPos, value))
 		case 'b':
@@ -761,4 +766,47 @@ OUTER:
 		rv = append(rv, as)
 	}
 	return rv
+}
+
+func (i *IndexSnapshot) CopyTo(d index.Directory) error {
+	// get the root bolt file.
+	w, err := d.GetWriter(filepath.Join("store", "root.bolt"))
+	if err != nil || w == nil {
+		return fmt.Errorf("failed to create the root.bolt file, err: %v", err)
+	}
+	rootFile, ok := w.(*os.File)
+	if !ok {
+		return fmt.Errorf("invalid root.bolt file found")
+	}
+
+	copyBolt, err := bolt.Open(rootFile.Name(), 0600, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		w.Close()
+		if cerr := copyBolt.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+
+	// start a write transaction
+	tx, err := copyBolt.Begin(true)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = prepareBoltSnapshot(i, tx, "", i.parent.segPlugin, d)
+	if err != nil {
+		_ = tx.Rollback()
+		return fmt.Errorf("error backing up index snapshot: %v", err)
+	}
+
+	// commit bolt data
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("error commit tx to backup root bolt: %v", err)
+	}
+
+	return copyBolt.Sync()
 }
