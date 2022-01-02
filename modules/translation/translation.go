@@ -103,6 +103,7 @@ func (l *locale) Tr(format string, args ...interface{}) string {
 
 // Language specific rules for translating plural texts
 var trNLangRules = map[string]func(int64) int{
+	// the default rule is "en-US" if a language isn't listed here
 	"en-US": func(cnt int64) int {
 		if cnt == 1 {
 			return 0
