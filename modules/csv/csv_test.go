@@ -22,13 +22,11 @@ func TestCreateReader(t *testing.T) {
 	assert.Equal(t, ',', rd.Comma)
 }
 
-func decodeSlashes(s string) string {
+func decodeSlashes(t *testing.T, s string) string {
 	s = strings.ReplaceAll(s, "\n", "\\n")
 	s = strings.ReplaceAll(s, "\"", "\\\"")
 	decoded, err := strconv.Unquote(`"` + s + `"`)
-	if err != nil {
-		panic("unable to decode string:" + err.Error() + "\n" + s)
-	}
+	assert.NoError(t, err, "unable to decode string")
 	return decoded
 }
 
@@ -99,7 +97,7 @@ j, ,\x20
 	}
 
 	for n, c := range cases {
-		rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(decodeSlashes(c.csv)))
+		rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(decodeSlashes(t, c.csv)))
 		assert.NoError(t, err, "case %d: should not throw error: %v\n", n, err)
 		assert.EqualValues(t, c.expectedDelimiter, rd.Comma, "case %d: delimiter should be '%c', got '%c'", n, c.expectedDelimiter, rd.Comma)
 		rows, err := rd.ReadAll()
@@ -232,7 +230,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(decodeSlashes(c.csv)))
+		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -297,7 +295,7 @@ abc   | |123
 	}
 
 	for n, c := range cases {
-		modifiedText := removeQuotedString(decodeSlashes(c.text))
+		modifiedText := removeQuotedString(decodeSlashes(t, c.text))
 		assert.EqualValues(t, c.expectedText, modifiedText, "case %d: modified text should be equal", n)
 	}
 }
@@ -452,7 +450,7 @@ jkl`,
 	}
 
 	for n, c := range cases {
-		delimiter := guessDelimiter([]byte(decodeSlashes(c.csv)))
+		delimiter := guessDelimiter([]byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -544,7 +542,7 @@ a|"he said, ""here I am"""`,
 	}
 
 	for n, c := range cases {
-		delimiter := guessFromBeforeAfterQuotes([]byte(decodeSlashes(c.csv)))
+		delimiter := guessFromBeforeAfterQuotes([]byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
