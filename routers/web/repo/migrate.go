@@ -78,7 +78,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case models.IsErrReachLimitOfRepo(err):
 		var msg string
-		maxCreationLimit := ctx.User.MaxCreationLimit()
+		maxCreationLimit := owner.MaxCreationLimit()
 		if maxCreationLimit == 1 {
 			msg = ctx.Tr("repo.form.reach_limit_of_creation_1", maxCreationLimit)
 		} else {
