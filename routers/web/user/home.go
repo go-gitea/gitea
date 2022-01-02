@@ -238,7 +238,7 @@ func Milestones(ctx *context.Context) {
 	}
 	sort.Sort(showRepos)
 
-	for i := 0; i < len(milestones); {
+	for i := 0; i < len(milestones); i++ {
 		for _, repo := range showRepos {
 			if milestones[i].RepoID == repo.ID {
 				milestones[i].Repo = repo
@@ -268,7 +268,6 @@ func Milestones(ctx *context.Context) {
 				return
 			}
 		}
-		i++
 	}
 
 	milestoneStats, err := models.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)

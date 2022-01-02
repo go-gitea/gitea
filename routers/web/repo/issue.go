@@ -2471,7 +2471,7 @@ func addParticipant(poster *user_model.User, participants []*user_model.User) []
 
 func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 	// Remove comments that the user has no permissions to see
-	for i := 0; i < len(issue.Comments); {
+	for i := 0; i < len(issue.Comments); i++ {
 		c := issue.Comments[i]
 		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
 			var err error
@@ -2489,7 +2489,6 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 				continue
 			}
 		}
-		i++
 	}
 	return nil
 }
