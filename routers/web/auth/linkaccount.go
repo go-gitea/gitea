@@ -278,6 +278,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
+		return
 	}
 
 	u := &user_model.User{
@@ -295,5 +296,5 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/user/login")
+	handleSignIn(ctx, u, false)
 }

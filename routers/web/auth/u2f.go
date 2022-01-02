@@ -128,7 +128,7 @@ func U2FSign(ctx *context.Context) {
 			if redirect == "" {
 				redirect = setting.AppSubURL + "/"
 			}
-			ctx.PlainText(200, redirect)
+			ctx.PlainText(http.StatusOK, redirect)
 			return
 		}
 	}
