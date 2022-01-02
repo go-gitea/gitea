@@ -5,9 +5,11 @@
 package markdown_test
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -18,11 +20,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	AppURL    = "http://localhost:3000/"
-	Repo      = "gogits/gogs"
-	AppSubURL = AppURL + Repo + "/"
-)
+func TestMain(m *testing.M) {
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+}
+
+const AppURL = "http://localhost:3000/"
+const Repo = "gogits/gogs"
+const AppSubURL = AppURL + Repo + "/"
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
