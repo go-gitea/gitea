@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package login
+package auth
 
 import (
 	"strings"
@@ -34,10 +34,10 @@ func (source *TestSource) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
 
-func TestDumpLoginSource(t *testing.T) {
+func TestDumpAuthSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	loginSourceSchema, err := db.TableInfo(new(Source))
+	authSourceSchema, err := db.TableInfo(new(Source))
 	assert.NoError(t, err)
 
 	RegisterTypeConfig(OAuth2, new(TestSource))
@@ -54,7 +54,7 @@ func TestDumpLoginSource(t *testing.T) {
 
 	sb := new(strings.Builder)
 
-	db.DumpTables([]*schemas.Table{loginSourceSchema}, sb)
+	db.DumpTables([]*schemas.Table{authSourceSchema}, sb)
 
 	assert.Contains(t, sb.String(), `"Provider":"ConvertibleSourceName"`)
 }

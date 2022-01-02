@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -16,14 +16,14 @@ import (
 )
 
 func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
-	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	authSource, err := auth.GetActiveOAuth2SourceByName(gothUser.Provider)
 	if err != nil {
 		return nil, err
 	}
 	return &user_model.ExternalLoginUser{
 		ExternalID:        gothUser.UserID,
 		UserID:            user.ID,
-		LoginSourceID:     loginSource.ID,
+		LoginSourceID:     authSource.ID,
 		RawData:           gothUser.RawData,
 		Provider:          gothUser.Provider,
 		Email:             gothUser.Email,

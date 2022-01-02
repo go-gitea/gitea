@@ -3,12 +3,11 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package login
+package auth
 
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -84,10 +83,7 @@ type RegisterableSource interface {
 	UnregisterSource() error
 }
 
-// SourceSettable configurations can have their loginSource set on them
-type SourceSettable interface {
-	SetLoginSource(*Source)
-}
+var registeredConfigs = map[Type]func() Config{}
 
 // RegisterTypeConfig register a config for a provided type
 func RegisterTypeConfig(typ Type, exemplar Config) {
@@ -105,7 +101,10 @@ func RegisterTypeConfig(typ Type, exemplar Config) {
 	}
 }
 
-var registeredConfigs = map[Type]func() Config{}
+// SourceSettable configurations can have their authSource set on them
+type SourceSettable interface {
+	SetAuthSource(*Source)
+}
 
 // Source represents an external way for authorizing users.
 type Source struct {
@@ -129,30 +128,17 @@ func init() {
 	db.RegisterModel(new(Source))
 }
 
-// Cell2Int64 converts a xorm.Cell type to int64,
-// and handles possible irregular cases.
-func Cell2Int64(val xorm.Cell) int64 {
-	switch (*val).(type) {
-	case []uint8:
-		log.Trace("Cell2Int64 ([]uint8): %v", *val)
-
-		v, _ := strconv.ParseInt(string((*val).([]uint8)), 10, 64)
-		return v
-	}
-	return (*val).(int64)
-}
-
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
-		typ := Type(Cell2Int64(val))
+		typ := Type(db.Cell2Int64(val))
 		constructor, ok := registeredConfigs[typ]
 		if !ok {
 			return
 		}
 		source.Cfg = constructor()
 		if settable, ok := source.Cfg.(SourceSettable); ok {
-			settable.SetLoginSource(source)
+			settable.SetAuthSource(source)
 		}
 	}
 }
@@ -211,7 +197,7 @@ func (source *Source) SkipVerify() bool {
 	return ok && skipVerifiable.IsSkipVerify()
 }
 
-// CreateSource inserts a LoginSource in the DB if not already
+// CreateSource inserts a AuthSource in the DB if not already
 // existing with the given name.
 func CreateSource(source *Source) error {
 	has, err := db.GetEngine(db.DefaultContext).Where("name=?", source.Name).Exist(new(Source))
@@ -235,7 +221,7 @@ func CreateSource(source *Source) error {
 	}
 
 	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetLoginSource(source)
+		settable.SetAuthSource(source)
 	}
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
@@ -245,7 +231,7 @@ func CreateSource(source *Source) error {
 
 	err = registerableSource.RegisterSource()
 	if err != nil {
-		// remove the LoginSource in case of errors while registering configuration
+		// remove the AuthSource in case of errors while registering configuration
 		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
 			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
@@ -322,11 +308,11 @@ func GetSourceByID(id int64) (*Source, error) {
 
 // UpdateSource updates a Source record in DB.
 func UpdateSource(source *Source) error {
-	var originalLoginSource *Source
+	var originalSource *Source
 	if source.IsOAuth2() {
 		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
 		var err error
-		if originalLoginSource, err = GetSourceByID(source.ID); err != nil {
+		if originalSource, err = GetSourceByID(source.ID); err != nil {
 			return err
 		}
 	}
@@ -341,7 +327,7 @@ func UpdateSource(source *Source) error {
 	}
 
 	if settable, ok := source.Cfg.(SourceSettable); ok {
-		settable.SetLoginSource(source)
+		settable.SetAuthSource(source)
 	}
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
@@ -352,7 +338,7 @@ func UpdateSource(source *Source) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// restore original values since we cannot update the provider it self
-		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+		if _, err := db.GetEngine(db.DefaultContext).ID(source.ID).AllCols().Update(originalSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
