@@ -2486,7 +2486,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 			}
 			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-				continue
+				i--
 			}
 		}
 	}

@@ -248,6 +248,7 @@ func Milestones(ctx *context.Context) {
 		if milestones[i].Repo == nil {
 			log.Warn("Cannot find milestone %d 's repository %d", milestones[i].ID, milestones[i].RepoID)
 			milestones = append(milestones[:i], milestones[i+1:]...)
+			i--
 			continue
 		}
 
