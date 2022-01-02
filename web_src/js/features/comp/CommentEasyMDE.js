@@ -96,3 +96,31 @@ export function getAttachedEasyMDE(el) {
   }
   return el._data_easyMDE;
 }
+
+/**
+ * validate if the given textarea from a form, is non-empty.
+ * @param {jQuery | HTMLElement} form
+ * @param {jQuery | HTMLElement} textarea
+ * @returns {boolean} returns true if validation succeeded.
+ */
+export function validateTextareaNonEmpty(form, textarea) {
+  if (form instanceof jQuery) {
+    form = form[0];
+  }
+  if (textarea instanceof jQuery) {
+    textarea = textarea[0];
+  }
+
+  const $markdownEditorTextArea = $(getAttachedEasyMDE(textarea).codemirror.getInputField());
+  // The original edit area HTML element is hidden and replaced by the
+  // SimpleMDE/EasyMDE editor, breaking HTML5 input validation if the text area is empty.
+  // This is a workaround for this upstream bug.
+  // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
+  if (textarea.value.length) {
+    $markdownEditorTextArea.prop('required', true);
+    form.reportValidity();
+    return false;
+  }
+  $markdownEditorTextArea.prop('required', false);
+  return true;
+}
