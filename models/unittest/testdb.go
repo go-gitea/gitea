@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -108,6 +109,10 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
+	}
+
+	if err = git.Init(context.Background()); err != nil {
+		fatalTestError("git.Init: %v\n", err)
 	}
 
 	if err = util.RemoveAll(repoRootPath); err != nil {
