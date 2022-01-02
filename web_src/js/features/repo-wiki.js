@@ -1,4 +1,5 @@
 import {initMarkupContent} from '../markup/content.js';
+import {validateTextareaNonEmpty} from './comp/CommentEasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {csrfToken} = window.config;
@@ -121,19 +122,8 @@ export function initRepoWikiForm() {
     const $markdownEditorTextArea = $(easyMDE.codemirror.getInputField());
     $markdownEditorTextArea.addClass('js-quick-submit');
 
-    $form.on('submit', function (e) {
-      // The original edit area HTML element is hidden and replaced by the
-      // SimpleMDE/EasyMDE editor, breaking HTML5 input validation if the text area is empty.
-      // This is a workaround for this upstream bug.
-      // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
-      const input = $editArea.val();
-      if (!input.length) {
-        e.preventDefault();
-        $markdownEditorTextArea.prop('required', true);
-        this.reportValidity();
-      } else {
-        $markdownEditorTextArea.prop('required', false);
-      }
+    $form.on('submit', function () {
+      validateTextareaNonEmpty(this, $editArea);
     });
 
     setTimeout(() => {

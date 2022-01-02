@@ -1,6 +1,6 @@
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
+import {validateTextareaNonEmpty} from './comp/CommentEasyMDE.js';
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
@@ -27,13 +27,9 @@ export function initRepoDiffConversationForm() {
 
     const form = $(e.target);
     const $textArea = form.find('textarea');
-    const $markdownEditorTextArea = $(getAttachedEasyMDE($textArea).codemirror.getInputField());
-    if (!$textArea.val().length) {
-      $markdownEditorTextArea.prop('required', true);
-      form.get(0).reportValidity();
+    if (!validateTextareaNonEmpty(form, $textArea)) {
       return;
     }
-    $markdownEditorTextArea.prop('required', false);
 
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
     const {path, side, idx} = newConversationHolder.data();
