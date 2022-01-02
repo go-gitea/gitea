@@ -32,9 +32,8 @@ export function initRepoDiffConversationForm() {
       $markdownEditorTextArea.prop('required', true);
       form.get(0).reportValidity();
       return;
-    } else {
-      $markdownEditorTextArea.prop('required', false);
     }
+    $markdownEditorTextArea.prop('required', false);
 
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
     const {path, side, idx} = newConversationHolder.data();
