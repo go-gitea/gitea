@@ -684,7 +684,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-		if _, err = sess.Cols("org_id", "team_id", "type", "authorize").Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
 			return err
 		}
 	}
