@@ -14,7 +14,11 @@
 
 package acme
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.uber.org/zap/zapcore"
+)
 
 // Problem carries the details of an error from HTTP APIs as
 // defined in RFC 7807: https://tools.ietf.org/html/rfc7807
@@ -77,12 +81,26 @@ func (p Problem) Error() string {
 	if len(p.Subproblems) > 0 {
 		for _, v := range p.Subproblems {
 			s += fmt.Sprintf(", problem %q: %s", v.Type, v.Detail)
+			if v.Identifier.Type != "" || v.Identifier.Value != "" {
+				s += fmt.Sprintf(" (%s_identifier=%s)", v.Identifier.Type, v.Identifier.Value)
+			}
 		}
 	}
 	if p.Instance != "" {
 		s += ", url: " + p.Instance
 	}
 	return s
+}
+
+// MarshalLogObject satisfies the zapcore.ObjectMarshaler interface.
+// This allows problems to be serialized by the zap logger.
+func (p Problem) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("type", p.Type)
+	enc.AddString("title", p.Title)
+	enc.AddString("detail", p.Detail)
+	enc.AddString("instance", p.Instance)
+	enc.AddArray("subproblems", loggableSubproblems(p.Subproblems))
+	return nil
 }
 
 // Subproblem describes a more specific error in a problem according to
@@ -95,6 +113,26 @@ type Subproblem struct {
 	// "If present, the 'identifier' field MUST contain an ACME
 	// identifier (Section 9.7.7)." §6.7.1
 	Identifier Identifier `json:"identifier,omitempty"`
+}
+
+// MarshalLogObject satisfies the zapcore.ObjectMarshaler interface.
+// This allows subproblems to be serialized by the zap logger.
+func (sp Subproblem) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("identifier_type", sp.Identifier.Type)
+	enc.AddString("identifier", sp.Identifier.Value)
+	enc.AddObject("subproblem", sp.Problem)
+	return nil
+}
+
+type loggableSubproblems []Subproblem
+
+// MarshalLogArray satisfies the zapcore.ArrayMarshaler interface.
+// This allows a list of subproblems to be serialized by the zap logger.
+func (ls loggableSubproblems) MarshalLogArray(enc zapcore.ArrayEncoder) error {
+	for _, sp := range ls {
+		enc.AppendObject(sp)
+	}
+	return nil
 }
 
 // Standard token values for the "type" field of problems, as defined

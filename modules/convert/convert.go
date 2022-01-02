@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -344,8 +344,8 @@ func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
-func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
+// ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,
 		Name:         app.Name,

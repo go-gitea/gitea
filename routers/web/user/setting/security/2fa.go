@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package setting
+package security
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,9 +29,9 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := login.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
@@ -45,7 +45,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = login.UpdateTwoFactor(t); err != nil {
+	if err = auth.UpdateTwoFactor(t); err != nil {
 		ctx.ServerError("SettingsTwoFactor: Failed to UpdateTwoFactor", err)
 		return
 	}
@@ -59,9 +59,9 @@ func DisableTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := login.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
@@ -69,8 +69,8 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = login.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+	if err = auth.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -146,7 +146,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := login.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.User)
@@ -154,7 +154,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
-	if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
+	if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 		ctx.ServerError("SettingsTwoFactor: GetTwoFactorByUID", err)
 		return
 	}
@@ -172,14 +172,14 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := login.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
-	if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
+	if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
 		ctx.ServerError("SettingsTwoFactor: Failed to check if already enrolled with GetTwoFactorByUID", err)
 		return
 	}
@@ -209,7 +209,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	t = &login.TwoFactor{
+	t = &auth.TwoFactor{
 		UID: ctx.User.ID,
 	}
 	err = t.SetSecret(secret)
@@ -238,7 +238,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		log.Error("Unable to save changes to the session: %v", err)
 	}
 
-	if err = login.NewTwoFactor(t); err != nil {
+	if err = auth.NewTwoFactor(t); err != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
 		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", err)

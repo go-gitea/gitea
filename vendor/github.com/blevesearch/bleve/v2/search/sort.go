@@ -21,12 +21,13 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/blevesearch/bleve/v2/geo"
 	"github.com/blevesearch/bleve/v2/numeric"
 )
 
-var HighTerm = strings.Repeat(string([]byte{0xff}), 10)
+var HighTerm = strings.Repeat(string(utf8.MaxRune), 3)
 var LowTerm = string([]byte{0x00})
 
 type SearchSort interface {

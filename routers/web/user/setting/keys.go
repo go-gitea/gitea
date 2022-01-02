@@ -216,7 +216,6 @@ func KeysPost(ctx *context.Context) {
 
 // DeleteKey response for delete user's SSH/GPG key
 func DeleteKey(ctx *context.Context) {
-
 	switch ctx.FormString("type") {
 	case "gpg":
 		if err := asymkey_model.DeleteGPGKey(ctx.User, ctx.FormInt64("id")); err != nil {
