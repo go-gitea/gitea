@@ -609,7 +609,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !ctx.Repo.Owner.CanCreateRepo() {
-			maxCreationLimit := ctx.User.MaxCreationLimit()
+			maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
 			if maxCreationLimit == 1 {
 				ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation_1", maxCreationLimit))
 			} else {
