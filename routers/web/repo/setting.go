@@ -994,31 +994,6 @@ func DeleteTeam(ctx *context.Context) {
 	})
 }
 
-// parseOwnerAndRepo get repos by owner
-func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *repo_model.Repository) {
-	owner, err := user_model.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", err)
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return nil, nil
-	}
-
-	repo, err := repo_model.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByName", err)
-		} else {
-			ctx.ServerError("GetRepositoryByName", err)
-		}
-		return nil, nil
-	}
-
-	return owner, repo
-}
-
 // GitHooks hooks of a repository
 func GitHooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
