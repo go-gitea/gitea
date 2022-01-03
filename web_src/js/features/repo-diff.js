@@ -27,7 +27,7 @@ export function initRepoDiffConversationForm() {
 
     const form = $(e.target);
     const $textArea = form.find('textarea');
-    if (!validateTextareaNonEmpty(form, $textArea)) {
+    if (!validateTextareaNonEmpty($textArea)) {
       return;
     }
 
