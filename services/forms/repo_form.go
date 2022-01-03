@@ -82,6 +82,10 @@ type MigrateRepoForm struct {
 	PullRequests   bool   `json:"pull_requests"`
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
+
+	// This should only be enabled in special cases where Git fails to
+	// handle basic authentication correctly. See https://github.com/go-gitea/gitea/issues/18166
+	UseGitCredentials bool `json:"use_git_credentials"`
 }
 
 // Validate validates the fields

@@ -77,6 +77,14 @@
 					</div>
 
 					<div class="inline field">
+						<label>Use git credentials (WIP)</label>
+						<div class="ui checkbox">
+							<input name="use_git_credentials" type="checkbox">
+							<label>Only enable this when basic authentication of git fails.</label>
+						</div>
+					</div>
+
+					<div class="inline field">
 						<label></label>
 						<button class="ui green button">
 							{{.i18n.Tr "repo.migrate_repo"}}

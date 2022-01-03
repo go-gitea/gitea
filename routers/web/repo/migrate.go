@@ -176,7 +176,15 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	var remoteAddr string
+	var err error
+	if form.UseGitCredentials {
+		// Still perform this as it checks if it's a valid URL.
+		remoteAddr, err = forms.ParseRemoteAddr(form.CloneAddr, "", "")
+	} else {
+		remoteAddr, err = forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	}
+
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
 	}
@@ -204,25 +212,26 @@ func MigratePost(ctx *context.Context) {
 	}
 
 	var opts = migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: form.Service,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		AuthToken:      form.AuthToken,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       form.Issues || form.PullRequests,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
+		OriginalURL:       form.CloneAddr,
+		GitServiceType:    form.Service,
+		CloneAddr:         remoteAddr,
+		RepoName:          form.RepoName,
+		Description:       form.Description,
+		Private:           form.Private || setting.Repository.ForcePrivate,
+		Mirror:            form.Mirror,
+		LFS:               form.LFS,
+		LFSEndpoint:       form.LFSEndpoint,
+		AuthUsername:      form.AuthUsername,
+		AuthPassword:      form.AuthPassword,
+		AuthToken:         form.AuthToken,
+		Wiki:              form.Wiki,
+		Issues:            form.Issues,
+		Milestones:        form.Milestones,
+		Labels:            form.Labels,
+		Comments:          form.Issues || form.PullRequests,
+		PullRequests:      form.PullRequests,
+		Releases:          form.Releases,
+		UseGitCredentials: form.UseGitCredentials,
 	}
 	if opts.Mirror {
 		opts.Issues = false

@@ -39,4 +39,8 @@ type MigrateOptions struct {
 	ReleaseAssets   bool
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
+
+	// This should only be enabled in special cases where Git fails to
+	// handle basic authentication correctly. See https://github.com/go-gitea/gitea/issues/18166
+	UseGitCredentials bool `json:"use_git_credentials"`
 }
