@@ -1607,9 +1607,9 @@ func ViewIssue(ctx *context.Context) {
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		if isPullBranchDeletable && pull.HasMerged {
-			exist, err := models.CheckUnmergedPullRequestsByHeadInfo(pull.HeadRepoID, pull.HeadBranch)
+			exist, err := models.HasUnmergedPullRequestsByHeadInfo(pull.HeadRepoID, pull.HeadBranch)
 			if err != nil {
-				ctx.ServerError("CheckUnmergedPullRequestsByHeadInfo", err)
+				ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 				return
 			}
 

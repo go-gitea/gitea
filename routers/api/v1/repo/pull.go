@@ -873,10 +873,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
-		// Don't cleanup when other pr use this branch as head branch
-		exist, err := models.CheckUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		// Don't cleanup when there are other PR's that use this branch as head branch.
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
-			ctx.ServerError("CheckUnmergedPullRequestsByHeadInfo", err)
+			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
 		}
 		if exist {
