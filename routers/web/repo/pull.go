@@ -7,7 +7,6 @@
 package repo
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"html"
@@ -1206,44 +1205,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(pullIssue.Link())
-}
-
-// TriggerTask response for a trigger task request
-func TriggerTask(ctx *context.Context) {
-	pusherID := ctx.FormInt64("pusher")
-	branch := ctx.FormString("branch")
-	secret := ctx.FormString("secret")
-	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
-		ctx.Error(http.StatusNotFound)
-		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
-		return
-	}
-	owner, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
-	got := []byte(base.EncodeMD5(owner.Salt))
-	want := []byte(secret)
-	if subtle.ConstantTimeCompare(got, want) != 1 {
-		ctx.Error(http.StatusNotFound)
-		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
-		return
-	}
-
-	pusher, err := user_model.GetUserByID(pusherID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-		} else {
-			ctx.ServerError("GetUserByID", err)
-		}
-		return
-	}
-
-	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-
-	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, "", "")
-	ctx.Status(202)
 }
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
