@@ -1051,6 +1051,17 @@ func MergePullRequest(ctx *context.Context) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
+		// Don't cleanup when other pr use this branch as head branch
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		if err != nil {
+			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+			return
+		}
+		if exist {
+			ctx.Redirect(issue.Link())
+			return
+		}
+
 		var headRepo *git.Repository
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
@@ -1218,6 +1229,17 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	// Don't cleanup unmerged and unclosed PRs
 	if !pr.HasMerged && !issue.IsClosed {
+		ctx.NotFound("CleanUpPullRequest", nil)
+		return
+	}
+
+	// Don't cleanup when there are other PR's that use this branch as head branch.
+	exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+		return
+	}
+	if exist {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
