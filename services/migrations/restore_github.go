@@ -712,6 +712,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 	  },
 */
 type pullrequestReview struct {
+	URL         string
 	PullRequest string
 	User        string
 	Body        string
@@ -732,8 +733,80 @@ func (p *pullrequestReview) GetState() string {
 	return fmt.Sprintf("%d", p.State)
 }
 
+/*{
+  "type": "pull_request_review_comment",
+  "url": "https://github.com/go-gitea/test_repo/pull/4/files#r363017488",
+  "pull_request": "https://github.com/go-gitea/test_repo/pull/4",
+  "pull_request_review": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreview-338338740",
+  "pull_request_review_thread": "https://github.com/go-gitea/test_repo/pull/4/files#pullrequestreviewthread-224172719",
+  "user": "https://github.com/lunny",
+  "body": "This is a good pull request.",
+  "formatter": "markdown",
+  "diff_hunk": "@@ -1,2 +1,4 @@\n # test_repo\n Test repository for testing migration from github to gitea\n+",
+  "path": "README.md",
+  "position": 3,
+  "original_position": 3,
+  "commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
+  "original_commit_id": "2be9101c543658591222acbee3eb799edfc3853d",
+  "state": 1,
+  "in_reply_to": null,
+  "reactions": [
+
+  ],
+  "created_at": "2020-01-04T05:33:06Z"
+},*/
+type pullrequestReviewComment struct {
+	PullRequest             string
+	PullRequestReview       string
+	PullRequestReviewThread string
+	User                    string
+	Body                    string
+	DiffHunk                string
+	Path                    string
+	Position                int
+	OriginalPosition        int
+	CommitID                string
+	OriginalCommitID        string
+	State                   int
+	//InReplyTo
+	Reactions []githubReaction
+	CreatedAt time.Time
+}
+
+func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestReviewComment) []*base.ReviewComment {
+	var res []*base.ReviewComment
+	for _, c := range comments {
+		user := r.users[c.User]
+		res = append(res, &base.ReviewComment{
+			//InReplyTo: ,
+			Content:   c.Body,
+			TreePath:  c.Path,
+			DiffHunk:  c.DiffHunk,
+			Position:  c.Position,
+			CommitID:  c.CommitID,
+			PosterID:  user.ID(),
+			Reactions: r.getReactions(c.Reactions),
+			CreatedAt: c.CreatedAt,
+		})
+	}
+	return res
+}
+
 // GetReviews returns pull requests review
 func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+	var comments = make(map[string][]pullrequestReviewComment)
+	if err := r.readJSONFiles("pull_request_review_comments", func() interface{} {
+		return &[]pullrequestReviewComment{}
+	}, func(content interface{}) error {
+		cs := *content.(*[]pullrequestReviewComment)
+		for _, c := range cs {
+			comments[c.PullRequest] = append(comments[c.PullRequestReview], c)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	var reviews = make([]*base.Review, 0, 10)
 	if err := r.readJSONFiles("pull_request_reviews", func() interface{} {
 		return &[]pullrequestReview{}
@@ -749,6 +822,7 @@ func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*b
 				Content:      review.Body,
 				CreatedAt:    review.CreatedAt,
 				State:        review.GetState(),
+				Comments:     r.getReviewComments(comments[review.URL]),
 			})
 		}
 		return nil

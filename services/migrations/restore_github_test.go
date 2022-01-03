@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/migration"
 	base "code.gitea.io/gitea/modules/migration"
+
 	"github.com/stretchr/testify/assert"
 )
 
