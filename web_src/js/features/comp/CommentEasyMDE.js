@@ -75,12 +75,26 @@ export function createCommentEasyMDE(textarea) {
     }
   });
   attachTribute(inputField, {mentions: true, emoji: true});
-
-  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
-  inputField._data_easyMDE = easyMDE;
-  textarea._data_easyMDE = easyMDE;
+  attachEasyMDEToElements(easyMDE);
   return easyMDE;
 }
+
+/**
+ * attach the EasyMDE object to its input elements (InputField, TextArea)
+ * @param {EasyMDE} easyMDE
+ */
+export function attachEasyMDEToElements(easyMDE) {
+  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
+
+  // InputField is used by CodeMirror to accept user input
+  const inputField = easyMDE.codemirror.getInputField();
+  inputField._data_easyMDE = easyMDE;
+
+  // TextArea is the real textarea element in the form
+  const textArea = easyMDE.codemirror.getTextArea();
+  textArea._data_easyMDE = easyMDE;
+}
+
 
 /**
  * get the attached EasyMDE editor created by createCommentEasyMDE
@@ -98,29 +112,27 @@ export function getAttachedEasyMDE(el) {
 }
 
 /**
- * validate if the given textarea from a form, is non-empty.
- * @param {jQuery | HTMLElement} form
- * @param {jQuery | HTMLElement} textarea
+ * validate if the given EasyMDE textarea is is non-empty.
+ * @param {jQuery} $textarea
  * @returns {boolean} returns true if validation succeeded.
  */
-export function validateTextareaNonEmpty(form, textarea) {
-  if (form instanceof jQuery) {
-    form = form[0];
-  }
-  if (textarea instanceof jQuery) {
-    textarea = textarea[0];
-  }
-
-  const $markdownEditorTextArea = $(getAttachedEasyMDE(textarea).codemirror.getInputField());
+export function validateTextareaNonEmpty($textarea) {
+  const $mdeInputField = $(getAttachedEasyMDE($textarea).codemirror.getInputField());
   // The original edit area HTML element is hidden and replaced by the
   // SimpleMDE/EasyMDE editor, breaking HTML5 input validation if the text area is empty.
   // This is a workaround for this upstream bug.
   // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
-  if (textarea.value.length) {
-    $markdownEditorTextArea.prop('required', true);
-    form.reportValidity();
+  if (!$textarea.val()) {
+    $mdeInputField.prop('required', true);
+    const $form = $textarea.parents('form');
+    if (!$form.length) {
+      // this should never happen. we put a alert here in case the textarea would be forgotten to be put in a form
+      alert('Require non-empty content');
+    } else {
+      $form[0].reportValidity();
+    }
     return false;
   }
-  $markdownEditorTextArea.prop('required', false);
+  $mdeInputField.prop('required', false);
   return true;
 }
