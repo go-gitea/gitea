@@ -1,5 +1,5 @@
 import {initMarkupContent} from '../markup/content.js';
-import {validateTextareaNonEmpty} from './comp/CommentEasyMDE.js';
+import {attachEasyMDEToElements, validateTextareaNonEmpty} from './comp/CommentEasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {csrfToken} = window.config;
@@ -119,11 +119,15 @@ export function initRepoWikiForm() {
       ]
     });
 
-    const $markdownEditorTextArea = $(easyMDE.codemirror.getInputField());
-    $markdownEditorTextArea.addClass('js-quick-submit');
+    attachEasyMDEToElements(easyMDE);
 
-    $form.on('submit', function () {
-      validateTextareaNonEmpty(this, $editArea);
+    const $mdeInputField = $(easyMDE.codemirror.getInputField());
+    $mdeInputField.addClass('js-quick-submit');
+
+    $form.on('submit', () => {
+      if (!validateTextareaNonEmpty($editArea)) {
+        return false;
+      }
     });
 
     setTimeout(() => {
