@@ -1600,10 +1600,22 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["WontSignReason"] = "not_signed_in"
 		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+
+		isPullBranchDeletable := canDelete &&
 			pull.HeadRepo != nil &&
 			git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+
+		if isPullBranchDeletable && pull.HasMerged {
+			prs, err := models.GetUnmergedPullRequestsByHeadInfo(pull.HeadRepoID, pull.HeadBranch)
+			if err != nil {
+				ctx.ServerError("GetUnmergedPullRequestsByHeadInfo", err)
+				return
+			}
+
+			isPullBranchDeletable = len(prs) == 0
+		}
+		ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
 
 		stillCanManualMerge := func() bool {
 			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
