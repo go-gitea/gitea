@@ -17,26 +17,30 @@ import (
 
 // RestoreParams structure holds a data for restore repository
 type RestoreParams struct {
-	RepoDir    string
-	OwnerName  string
-	RepoName   string
-	Units      []string
-	Validation bool
+	Type         string
+	RepoFilePath string
+	RepoDir      string
+	OwnerName    string
+	RepoName     string
+	Units        []string
+	Validation   bool
 }
 
 // RestoreRepo calls the internal RestoreRepo function
-func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units []string, validation bool) (int, string) {
+func RestoreRepo(ctx context.Context, tp, repoPath, repoDir, ownerName, repoName string, units []string, validation bool) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/restore_repo"
 
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
 	req = req.Header("Content-Type", "application/json")
 	jsonBytes, _ := json.Marshal(RestoreParams{
-		RepoDir:    repoDir,
-		OwnerName:  ownerName,
-		RepoName:   repoName,
-		Units:      units,
-		Validation: validation,
+		Type:         tp,
+		RepoFilePath: repoPath,
+		RepoDir:      repoDir,
+		OwnerName:    ownerName,
+		RepoName:     repoName,
+		Units:        units,
+		Validation:   validation,
 	})
 	req.Body(jsonBytes)
 	resp, err := req.Response()

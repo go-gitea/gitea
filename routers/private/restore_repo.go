@@ -24,11 +24,13 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		return
 	}
 	params := struct {
-		RepoDir    string
-		OwnerName  string
-		RepoName   string
-		Units      []string
-		Validation bool
+		Type         string
+		RepoFilePath string
+		RepoDir      string
+		OwnerName    string
+		RepoName     string
+		Units        []string
+		Validation   bool
 	}{}
 	if err = json.Unmarshal(bs, &params); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -37,18 +39,34 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		return
 	}
 
-	if err := migrations.RestoreRepository(
-		ctx,
-		params.RepoDir,
-		params.OwnerName,
-		params.RepoName,
-		params.Units,
-		params.Validation,
-	); err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
-	} else {
-		ctx.Status(http.StatusOK)
+	if params.Type == "gitea" {
+		if err := migrations.RestoreRepository(
+			ctx,
+			params.RepoDir,
+			params.OwnerName,
+			params.RepoName,
+			params.Units,
+			params.Validation,
+		); err != nil {
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: err.Error(),
+			})
+		} else {
+			ctx.Status(http.StatusOK)
+		}
+	} else if params.Type == "github" {
+		if err := migrations.RestoreFromGithubExportedData(
+			ctx,
+			params.RepoFilePath,
+			params.OwnerName,
+			params.RepoName,
+			params.Units,
+		); err != nil {
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: err.Error(),
+			})
+		} else {
+			ctx.Status(http.StatusOK)
+		}
 	}
 }
