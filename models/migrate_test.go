@@ -75,7 +75,6 @@ func assertCreateIssues(t *testing.T, reponame string, isPull bool) {
 }
 
 func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
-	setting.Database.LogSQL = true
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
