@@ -1,6 +1,8 @@
-@import "../variables.less";
+@import "../chroma/dark.less";
+@import "../codemirror/dark.less";
 
 :root {
+  --is-dark-theme: true;
   --color-primary: #87ab63;
   --color-primary-dark-1: #93b373;
   --color-primary-dark-2: #9fbc82;
@@ -33,12 +35,12 @@
   --color-secondary-dark-5: #8c93a4;
   --color-secondary-dark-6: #9aa0af;
   --color-secondary-dark-7: #a8adba;
-  --color-secondary-dark-7: #b6bac5;
-  --color-secondary-dark-8: #c4c7d0;
-  --color-secondary-dark-8: #d2d4db;
-  --color-secondary-dark-9: #dfe1e6;
-  --color-secondary-dark-10: #edeef1;
-  --color-secondary-dark-11: #fbfbfc;
+  --color-secondary-dark-8: #b6bac5;
+  --color-secondary-dark-9: #c4c7d0;
+  --color-secondary-dark-10: #d2d4db;
+  --color-secondary-dark-11: #dfe1e6;
+  --color-secondary-dark-12: #edeef1;
+  --color-secondary-dark-13: #fbfbfc;
   --color-secondary-light-1: #373b46;
   --color-secondary-light-2: #292c34;
   --color-secondary-light-3: #1c1e23;
@@ -68,439 +70,74 @@
   --color-black: #1e222e;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-removed-word-bg: #6f3333;
+  --color-diff-added-word-bg: #3c653c;
+  --color-diff-removed-row-bg: #3c2626;
+  --color-diff-moved-row-bg: #818044;
+  --color-diff-added-row-bg: #283e2d;
+  --color-diff-removed-row-border: #634343;
+  --color-diff-moved-row-border: #bcca6f;
+  --color-diff-added-row-border: #314a37;
+  --color-diff-inactive: #353846;
+  --color-error-border: #a53a37;
+  --color-error-bg: #482c2c;
+  --color-error-text: #ff4433;
+  --color-success-border: #458a57;
+  --color-success-bg: #284034;
+  --color-success-text: #6cc664;
+  --color-warning-border: #bb9d00;
+  --color-warning-bg: #3a3a30;
+  --color-warning-text: #fbbd08;
+  --color-info-border: #306090;
+  --color-info-bg: #26354c;
+  --color-info-text: #38a8e8;
   /* target-based colors */
   --color-body: #383c4a;
-  --color-box-header: #454a57;
-  --color-box-body: #353945;
+  --color-box-header: #404652;
+  --color-box-body: #303440;
+  --color-text-dark: #dbe0ea;
   --color-text: #bbc0ca;
   --color-text-light: #a6aab5;
-  --color-text-light-2: #868a95;
+  --color-text-light-2: #8a8e99;
+  --color-text-light-3: #707687;
   --color-footer: #2e323e;
-  --color-timeline: #4a505c;
+  --color-timeline: #4c525e;
   --color-input-text: #d5dbe6;
-  --color-input-background: #2e323e;
+  --color-input-background: #292d39;
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
-  --color-label: #ffffff0d;
-  --color-label-hover: #ffffff20;
-  --color-label-basic: #00000016;
-  --color-label-border: #ffffff28;
-  --color-hover: #ffffff0d;
-  --color-active: #ffffff14;
+  --color-navbar-transparent: #2a2e3a00;
+  --color-light: #00000028;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
+  --color-light-border: #ffffff28;
+  --color-hover: #ffffff10;
+  --color-active: #ffffff16;
   --color-menu: #2e323e;
   --color-card: #2e323e;
-  --color-markdown-table-row: #ffffff06;
-  --color-markdown-code-block: #2a2e3a;
+  --color-markup-table-row: #ffffff06;
+  --color-markup-code-block: #292d39;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
+  --color-code-sidebar-bg: #2e323e;
   --color-shadow: #00000060;
   --color-secondary-bg: #2a2e3a;
-}
-
-/* LineTableTD */
-
-.chroma .lntd {
-  vertical-align: top;
-  padding: 0;
-  margin: 0;
-  border: 0;
-}
-/* LineTable */
-
-.chroma .lntable {
-  border-spacing: 0;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  width: auto;
-  overflow: auto;
-  display: block;
-}
-/* LineHighlight */
-
-.chroma .hl {
-  display: block;
-  width: 100%;
-  background-color: #3f424d;
-}
-/* LineNumbersTable */
-
-.chroma .lnt {
-  margin-right: .4em;
-  padding: 0 .4em;
-  color: #7f7f7f;
-}
-/* LineNumbers */
-
-.chroma .ln {
-  margin-right: .4em;
-  padding: 0 .4em;
-  color: #7f7f7f;
-}
-/* Keyword */
-
-.chroma .k {
-  color: #f63;
-}
-/* KeywordConstant */
-
-.chroma .kc {
-  color: #fa1;
-}
-/* KeywordDeclaration */
-
-.chroma .kd {
-  color: #9daccc;
-}
-/* KeywordNamespace */
-
-.chroma .kn {
-  color: #fa1;
-}
-/* KeywordPseudo */
-
-.chroma .kp {
-  color: #5f8700;
-}
-/* KeywordReserved */
-
-.chroma .kr {
-  color: #f63;
-}
-/* KeywordType */
-
-.chroma .kt {
-  color: #9daccc;
-}
-/* NameAttribute */
-
-.chroma .na {
-  color: #8a8a8a;
-}
-/* NameBuiltin */
-
-.chroma .nb {
-  color: #9daccc;
-}
-/* NameBuiltinPseudo */
-
-.chroma .bp {
-  color: #9daccc;
-}
-/* NameClass */
-
-.chroma .nc {
-  color: #fa1;
-}
-/* NameConstant */
-
-.chroma .no {
-  color: #fa1;
-}
-/* NameDecorator */
-
-.chroma .nd {
-  color: #9daccc;
-}
-/* NameEntity */
-
-.chroma .ni {
-  color: #fa1;
-}
-/* NameException */
-
-.chroma .ne {
-  color: #af8700;
-}
-/* NameFunction */
-
-.chroma .nf {
-  color: #9daccc;
-}
-/* NameLabel */
-
-.chroma .nl {
-  color: #fa1;
-}
-/* NameNamespace */
-
-.chroma .nn {
-  color: #fa1;
-}
-/* NameOther */
-
-.chroma .nx {
-  color: #9daccc;
-}
-/* NameTag */
-
-.chroma .nt {
-  color: #9daccc;
-}
-/* NameVariable */
-
-.chroma .nv {
-  color: #9daccc;
-}
-/* NameVariableClass */
-
-.chroma .vc {
-  color: #f81;
-}
-/* NameVariableGlobal */
-
-.chroma .vg {
-  color: #fa1;
-}
-/* NameVariableInstance */
-
-.chroma .vi {
-  color: #fa1;
-}
-/* LiteralString */
-
-.chroma .s {
-  color: #1af;
-}
-/* LiteralStringAffix */
-
-.chroma .sa {
-  color: #1af;
-}
-/* LiteralStringBacktick */
-
-.chroma .sb {
-  color: #a0cc75;
-}
-/* LiteralStringChar */
-
-.chroma .sc {
-  color: #1af;
-}
-/* LiteralStringDelimiter */
-
-.chroma .dl {
-  color: #1af;
-}
-/* LiteralStringDoc */
-
-.chroma .sd {
-  color: #6a737d;
-}
-/* LiteralStringDouble */
-
-.chroma .s2 {
-  color: #a0cc75;
-}
-/* LiteralStringEscape */
-
-.chroma .se {
-  color: #f63;
-}
-/* LiteralStringHeredoc */
-
-.chroma .sh {
-  color: #1af;
-}
-/* LiteralStringInterpol */
-
-.chroma .si {
-  color: #fa1;
-}
-/* LiteralStringOther */
-
-.chroma .sx {
-  color: #fa1;
-}
-/* LiteralStringRegex */
-
-.chroma .sr {
-  color: #97c;
-}
-/* LiteralStringSingle */
-
-.chroma .s1 {
-  color: #a0cc75;
-}
-/* LiteralStringSymbol */
-
-.chroma .ss {
-  color: #fa1;
-}
-/* LiteralNumber */
-
-.chroma .m {
-  color: #1af;
-}
-/* LiteralNumberBin */
-
-.chroma .mb {
-  color: #1af;
-}
-/* LiteralNumberFloat */
-
-.chroma .mf {
-  color: #1af;
-}
-/* LiteralNumberHex */
-
-.chroma .mh {
-  color: #1af;
-}
-/* LiteralNumberInteger */
-
-.chroma .mi {
-  color: #1af;
-}
-/* LiteralNumberIntegerLong */
-
-.chroma .il {
-  color: #1af;
-}
-/* LiteralNumberOct */
-
-.chroma .mo {
-  color: #1af;
-}
-/* Operator */
-
-.chroma .o {
-  color: #f63;
-}
-/* OperatorWord */
-
-.chroma .ow {
-  color: #5f8700;
-}
-/* Comment */
-
-.chroma .c {
-  color: #6a737d;
-}
-/* CommentHashbang */
-
-.chroma .ch {
-  color: #6a737d;
-}
-/* CommentMultiline */
-
-.chroma .cm {
-  color: #6a737d;
-}
-/* CommentSingle */
-
-.chroma .c1 {
-  color: #6a737d;
-}
-/* CommentSpecial */
-
-.chroma .cs {
-  color: #637d;
-}
-/* CommentPreproc */
-
-.chroma .cp {
-  color: #fc6;
-}
-/* CommentPreprocFile */
-
-.chroma .cpf {
-  color: #fc6;
-}
-/* GenericDeleted */
-
-.chroma .gd {
-  color: #fff;
-  background-color: #5f3737;
-}
-/* GenericEmph */
-
-.chroma .ge {
-  color: #ef5;
-}
-/* GenericError */
-
-.chroma .gr {
-  color: #f33;
-}
-/* GenericHeading */
-
-.chroma .gh {
-  color: #fa1;
-}
-/* GenericInserted */
-
-.chroma .gi {
-  color: #fff;
-  background-color: #3a523a;
-}
-/* GenericOutput */
-
-.chroma .go {
-  color: #888888;
-}
-/* GenericPrompt */
-
-.chroma .gp {
-  color: #555555;
-}
-/* GenericStrong */
-
-.chroma .gs {
-  font-weight: 600;
-}
-/* GenericSubheading */
-
-.chroma .gu {
-  color: #9daccc;
-}
-/* GenericTraceback */
-
-.chroma .gt {
-  color: #f63;
-}
-/* GenericUnderline */
-
-.chroma .gl {
-  text-decoration: underline;
-}
-/* TextWhitespace */
-
-.chroma .w {
-  color: #bbbbbb;
-}
-
-.repository.branches .commit-divergence .bar {
-  background: #6a737d;
+  --color-text-focus: #fff;
+  --color-expand-button: #3c404d;
+  --color-placeholder-text: #6a737d;
+  --color-editor-line-highlight: var(--color-primary-light-5);
+  --color-project-board-bg: var(--color-secondary-light-2);
+  --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
+  --color-reaction-bg: #ffffff12;
+  --color-reaction-active-bg: var(--color-primary-alpha-40);
+}
+
+::-webkit-calendar-picker-indicator {
+  filter: invert(.8);
 }
 
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
-}
-
-.repository .segment.reactions .ui.label.basic.blue {
-  background: var(--color-primary-alpha-20) !important;
-}
-
-body {
-  color: var(--color-secondary-dark-6);
-}
-
-::placeholder,
-.CodeMirror-placeholder {
-  color: #6a737d !important;
-}
-
-[data-tooltip]::before,
-[data-tooltip]::after {
-  background: #1b1c1d !important; /* .ui.inverted.popup */
-  border-color: #1b1c1d !important; /* .ui.inverted.popup */
-  color: #dbdbdb !important;
-}
-
-[data-tooltip]::before {
-  box-shadow: 1px 1px 0 0 #1b1c1d !important; /* .ui.inverted.popup */
 }
 
 .ui.green.progress .bar {
@@ -522,12 +159,6 @@ body {
 
 .feeds .list ul li.private {
   background: #353945;
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: #dbdbdb;
 }
 
 .ui.red.label,
@@ -636,34 +267,6 @@ a.ui.basic.green.label:hover {
   background-color: #a0cc75;
 }
 
-.ui.basic.button,
-.ui.basic.buttons .button {
-  color: var(--color-secondary-dark-6);
-  background: rgba(0, 0, 0, .1);
-  box-shadow: none;
-}
-
-.ui.basic.button:focus,
-.ui.basic.button:hover,
-.ui.basic.buttons .button:focus,
-.ui.basic.buttons .button:hover {
-  color: #dbdbdb;
-  background: rgba(255, 255, 255, .08);
-  box-shadow: none;
-}
-
-.ui.labeled.button:not([class*="left labeled"]) > .label,
-.ui[class*="left labeled"].button > .button {
-  background: var(--color-secondary);
-  border: 1px solid var(--color-secondary);
-  color: #87ab63;
-}
-
-.ui.button:hover {
-  background-color: var(--color-secondary);
-  color: #dbdbdb;
-}
-
 .ui.search > .results {
   background: #383c4a;
   border-color: var(--color-secondary);
@@ -691,23 +294,6 @@ a.ui.basic.green.label:hover {
   background-color: #393d4a !important;
 }
 
-.ui .text.grey {
-  color: var(--color-secondary-dark-6) !important;
-}
-
-.repository.file.editor.edit,
-.repository.wiki.new .CodeMirror {
-  .editor-preview,
-  .editor-preview-side,
-  & + .editor-preview-side {
-    background: #353945;
-
-    .markdown:not(code).ui.segment {
-      border-width: 0;
-    }
-  }
-}
-
 .overflow.menu .items .item {
   color: #9d9d9d;
 }
@@ -720,82 +306,13 @@ a.ui.basic.green.label:hover {
   color: var(--color-secondary-dark-6) !important;
 }
 
-.ui.active.button:active,
-.ui.button:active,
-.ui.button:focus,
-.ui.active.button {
-  background-color: #2e3e4e;
-  color: #dbdbdb;
-}
-
-.ui.active.button:hover {
-  background-color: #475e75;
-  color: #dbdbdb;
-}
-
-.repository.view.issue .comment-list .event > .svg.issue-symbol {
-  background: #3b4954;
-}
-
-.repository.view.issue .comment-list .event > .svg:not(.issue-symbol) {
-  text-shadow: -2px 0 #383c4a, 0 2px #383c4a, 2px 0 #383c4a, 0 -2px #383c4a;
-}
-
-.repository.view.issue .comment-list .comment .content .header {
-  color: #dbdbdb;
-  background-color: var(--color-secondary);
-  border-color: var(--color-secondary);
-}
-
-.repository.view.issue .comment-list .timeline-item .badge {
-  color: #ccc;
-}
-
-.comment-header-right a {
-  color: var(--color-secondary-dark-6);
-}
-
-.comment-header-right a:hover {
-  color: #dedede;
-}
-
 .repository .navbar .active.item,
 .repository .navbar .active.item:hover {
   border-color: transparent !important;
 }
 
-.ui .info.segment.top {
-  background-color: var(--color-secondary) !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.del-code td {
-  background-color: #3c2626 !important;
-  border-color: #634343 !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.del-code td.lines-num {
-  background-color: #4e2c2c !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.add-code td {
-  background-color: #283e2d !important;
-  border-color: #314a37 !important;
-}
-
-.repository .diff-file-box .code-diff-unified tbody tr.add-code td.lines-num {
-  background-color: #2c4632 !important;
-}
-
 .repository .diff-stats li {
   border-color: var(--color-secondary);
-}
-
-.removed-code {
-  background-color: #5f3737;
-}
-
-.added-code {
-  background-color: #3a523a;
 }
 
 .tag-code,
@@ -812,73 +329,6 @@ td.blob-hunk {
   color: #dbdbdb !important;
 }
 
-.lines-type-marker {
-  background: #2a2e3a;
-}
-
-.code-diff-split .same-code .lines-type-marker {
-  background: #353945;
-}
-
-.ui .text.black {
-  color: var(--color-secondary-dark-6);
-}
-
-.ui .text.black:hover {
-  color: #dbdbdb;
-}
-
-.ui.attached.info.message,
-.ui.info.message {
-  box-shadow: 0 0 0 1px #4b5e71 inset, 0 0 0 0 transparent;
-}
-
-.ui.bottom.attached.message {
-  background-color: #2c662d;
-  color: #87ab63;
-}
-
-.ui.bottom.attached.message .pull-right {
-  color: #87ab63;
-}
-
-.ui.info.message {
-  background-color: #2c3b4a;
-  color: #9ebcc5;
-}
-
-.ui .warning.header,
-.ui.warning.message {
-  background-color: #542 !important;
-  border-color: #ec8;
-}
-
-.ui.warning.message {
-  color: #ec8;
-  box-shadow: 0 0 0 1px #ec8;
-}
-
-.ui.warning.segment {
-  border-color: #ec8;
-}
-
-.ui.red.message,
-.ui.error.message {
-  background-color: #522;
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px #a04141 inset;
-}
-
-.ui .error.header,
-.ui.error.message {
-  background-color: #522 !important;
-  border-color: #a04141;
-}
-
-.ui.error.segment {
-  border-color: #a04141;
-}
-
 .ui.red.button,
 .ui.red.buttons .button {
   background-color: #7d3434;
@@ -887,26 +337,6 @@ td.blob-hunk {
 .ui.red.button:hover,
 .ui.red.buttons .button:hover {
   background-color: #984646;
-}
-
-.ui.positive.message {
-  background-color: #0d491b;
-  color: #87ab63;
-  box-shadow: 0 0 0 1px #2d693b inset, 0 0 0 0 transparent;
-}
-
-.ui.negative.message {
-  background-color: rgba(80, 23, 17, .6);
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
-}
-
-.ui.form .dropzone .dz-button {
-  color: rgba(158, 158, 158, .8);
-}
-
-.ui.form .dropzone:hover .dz-button {
-  color: rgba(158, 158, 158, 1);
 }
 
 .ui.list .list > .item .header,
@@ -919,18 +349,8 @@ td.blob-hunk {
   color: var(--color-secondary-dark-6);
 }
 
-.repository.file.list #repo-files-table tbody .svg.octicon-file-directory,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-submodule {
-  color: #7c9b5e;
-}
-
 .repository.labels .ui.basic.black.label {
   background-color: #bbbbbb !important;
-}
-
-.lines-commit,
-.blame .lines-num {
-  background: #2e323e !important;
 }
 
 .lines-num {
@@ -940,15 +360,6 @@ td.blob-hunk {
 
 td.blob-excerpt {
   background-color: rgba(0, 0, 0, .15);
-}
-
-a.blob-excerpt {
-  color: #ccc;
-  background: #393d4a;
-}
-
-a.blob-excerpt:hover {
-  background: #87ab63;
 }
 
 .lines-code.active,
@@ -965,108 +376,6 @@ a.blob-excerpt:hover {
   background: #393d4a;
   border-color: #393d4a;
   color: #dbdbdb;
-}
-
-.sha.label,
-.repository #repo-files-table .sha.label,
-.repository #commits-table td.sha .sha.label,
-#rev-list .sha.label,
-.repository .timeline-item.commits-list .singular-commit .sha.label,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label {
-  border-color: #505667;
-}
-
-.sha.label.isSigned .detail.icon,
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon,
-#rev-list .sha.label.isSigned .detail.icon,
-.repository #repo-files-table .sha.label.isSigned .detail.icon,
-.repository .timeline-item.commits-list .singular-commit .sha.label.isSigned .detail.icon,
-.repository.view.issue .comment-list .timeline-item.commits-list .singular-commit .shabox .sha.label.isSigned .detail.icon {
-  background: none;
-  border-left-color: #888;
-}
-
-.repository .ui.attached.message.isSigned.isVerified {
-  background-color: #394829;
-  color: var(--color-secondary-dark-6);
-
-  &.message {
-    color: #87ab63;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    .pull-right {
-      color: #87ab63;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUntrusted {
-  background-color: #4a3903;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2c193;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2c193;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUnmatched {
-  background-color: #4e3321;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2a893;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2a893;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isWarning {
-  background-color: rgba(80, 23, 17, .6);
-  &.message {
-    color: #d07d7d;
-    .ui.text {
-      color: #d07d7d;
-    }
-  }
-}
-
-.repository .label.list .item {
-  border-bottom: 1px dashed var(--color-secondary);
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6) {
-  background-color: #2a2e3a;
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),
-.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6),
-.repository .diff-file-box .code-diff-split tbody tr td.add-code,
-.repository .diff-file-box .code-diff-split tbody tr td.lines-num-new.add-code {
-  background-color: #283e2d !important;
-  border-color: #314a37 !important;
-}
-
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),
-.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3),
-.repository .diff-file-box .code-diff-split tbody tr td.del-code {
-  background-color: #3c2626 !important;
-  border-color: #634343 !important;
 }
 
 .ui.header .sub.header {
@@ -1117,7 +426,7 @@ a.blob-excerpt:hover {
 .emoji[aria-label="paw prints"],
 .emoji[aria-label="musical note"],
 .emoji[aria-label="musical notes"] {
-  filter: invert(100%);
+  filter: invert(100%) hue-rotate(180deg);
 }
 
 .edit-diff > div > .ui.table {
@@ -1125,166 +434,13 @@ a.blob-excerpt:hover {
   border-right-color: var(--color-secondary) !important;
 }
 
-.repository .diff-detail-box {
-  background-color: #383c4a;
-
-  .detail-files {
-    background-color: inherit;
-  }
-
-  &.sticky {
-    border-bottom-color: var(--color-secondary);
-  }
-}
-
-.comment-code-cloud {
-  border-color: transparent;
-
-  .ui.attached.top.header {
-    background: none transparent;
-    border: 0;
-  }
-
-  .footer .markdown-info {
-    color: inherit;
-  }
-}
-
-.file-comment {
-  color: var(--color-secondary-dark-6);
-}
-
-.ui.comments .comment {
-  .author {
-    color: #dbdbdb;
-  }
-
-  .metadata {
-    color: #808084;
-  }
-
-  .text {
-    color: var(--color-secondary-dark-6);
-  }
-}
-
-.comment-header a {
-  color: var(--color-secondary-dark-6) !important;
-}
-
-.comment-header .actions a:hover,
-.comment-header .actions a.active {
-  color: #dedede !important;
-}
-
-/* code mirror dark theme */
-
-.CodeMirror {
-  &.cm-s-default,
-  &.cm-s-paper {
-    .cm-property {
-      color: #a0cc75;
-    }
-
-    .cm-header {
-      color: #9daccc;
-    }
-
-    .cm-quote {
-      color: #009900;
-    }
-
-    .cm-keyword {
-      color: #cc8a61;
-    }
-
-    .cm-atom {
-      color: #ef5e77;
-    }
-
-    .cm-number {
-      color: #ff5656;
-    }
-
-    .cm-def {
-      color: #e4e4e4;
-    }
-
-    .cm-variable-2 {
-      color: #00bdbf;
-    }
-
-    .cm-variable-3 {
-      color: #008855;
-    }
-
-    .cm-comment {
-      color: #8e9ab3;
-    }
-
-    .cm-string {
-      color: #a77272;
-    }
-
-    .cm-string-2 {
-      color: #ff5500;
-    }
-
-    .cm-meta,
-    .cm-qualifier {
-      color: #ffb176;
-    }
-
-    .cm-builtin {
-      color: #b7c951;
-    }
-
-    .cm-bracket {
-      color: #999977;
-    }
-
-    .cm-tag {
-      color: #f1d273;
-    }
-
-    .cm-attribute {
-      color: #bfcc70;
-    }
-
-    .cm-hr {
-      color: #999999;
-    }
-
-    .cm-url {
-      color: #c5cfd0;
-    }
-
-    .cm-link {
-      color: #d8c792;
-    }
-
-    .cm-error {
-      /* color: #ff6e00; */
-      color: #dbdbeb;
-    }
-  }
-}
-
 footer .container .links > * {
   border-left-color: #888;
-}
-
-.repository.file.list #repo-files-table tbody .svg {
-  color: var(--color-secondary-dark-6);
 }
 
 .repository.release #release-list > li .detail .dot {
   background-color: #505667;
   border-color: #383c4a;
-}
-
-.board-column {
-  background-color: rgba(0, 0, 0, .2) !important;
 }
 
 .tribute-container {
@@ -1299,44 +455,6 @@ img[src$="/img/matrix.svg"] {
   filter: invert(80%);
 }
 
-#git-graph-container li .time {
-  color: #6a737d;
-}
-
-#git-graph-container.monochrome #rel-container .flow-group {
-  stroke: dimgrey;
-  fill: dimgrey;
-}
-
-#git-graph-container.monochrome #rel-container .flow-group.highlight {
-  stroke: darkgrey;
-  fill: darkgrey;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group {
-  &.flow-color-16-5 {
-    stroke: #5543b1;
-    fill: #5543b1;
-  }
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
-  &.flow-color-16-5 {
-    stroke: #7058e6;
-    fill: #7058e6;
-  }
-}
-
-#git-graph-container #rev-list li.highlight.hover {
-  background-color: rgba(255, 255, 255, .1);
-}
-
-#git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {
-  border-left-color: rgb(76, 80, 92);
-  border-left-style: solid;
-  border-left-width: 1px;
-}
-
 .mermaid-chart {
   filter: invert(84%) hue-rotate(180deg);
 }
@@ -1345,7 +463,7 @@ img[src$="/img/matrix.svg"] {
   border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
 }
 
-.markdown-block-error {
+.markup-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
 }

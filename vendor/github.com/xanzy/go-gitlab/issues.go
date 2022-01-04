@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -83,48 +85,49 @@ type IssueLinks struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html
 type Issue struct {
-	ID                   int              `json:"id"`
-	IID                  int              `json:"iid"`
-	State                string           `json:"state"`
-	Description          string           `json:"description"`
-	Author               *IssueAuthor     `json:"author"`
-	Milestone            *Milestone       `json:"milestone"`
-	ProjectID            int              `json:"project_id"`
-	Assignees            []*IssueAssignee `json:"assignees"`
-	Assignee             *IssueAssignee   `json:"assignee"`
-	UpdatedAt            *time.Time       `json:"updated_at"`
-	ClosedAt             *time.Time       `json:"closed_at"`
-	ClosedBy             *IssueCloser     `json:"closed_by"`
-	Title                string           `json:"title"`
-	CreatedAt            *time.Time       `json:"created_at"`
-	Labels               Labels           `json:"labels"`
-	LabelDetails         []*LabelDetails  `json:"label_details"`
-	Upvotes              int              `json:"upvotes"`
-	Downvotes            int              `json:"downvotes"`
-	DueDate              *ISOTime         `json:"due_date"`
-	WebURL               string           `json:"web_url"`
-	References           *IssueReferences `json:"references"`
-	TimeStats            *TimeStats       `json:"time_stats"`
-	Confidential         bool             `json:"confidential"`
-	Weight               int              `json:"weight"`
-	DiscussionLocked     bool             `json:"discussion_locked"`
-	Subscribed           bool             `json:"subscribed"`
-	UserNotesCount       int              `json:"user_notes_count"`
-	Links                *IssueLinks      `json:"_links"`
-	IssueLinkID          int              `json:"issue_link_id"`
-	MergeRequestCount    int              `json:"merge_requests_count"`
-	EpicIssueID          int              `json:"epic_issue_id"`
-	Epic                 *Epic            `json:"epic"`
-	TaskCompletionStatus struct {
-		Count          int `json:"count"`
-		CompletedCount int `json:"completed_count"`
-	} `json:"task_completion_status"`
+	ID                   int                    `json:"id"`
+	IID                  int                    `json:"iid"`
+	ExternalID           string                 `json:"external_id"`
+	State                string                 `json:"state"`
+	Description          string                 `json:"description"`
+	Author               *IssueAuthor           `json:"author"`
+	Milestone            *Milestone             `json:"milestone"`
+	ProjectID            int                    `json:"project_id"`
+	Assignees            []*IssueAssignee       `json:"assignees"`
+	Assignee             *IssueAssignee         `json:"assignee"`
+	UpdatedAt            *time.Time             `json:"updated_at"`
+	ClosedAt             *time.Time             `json:"closed_at"`
+	ClosedBy             *IssueCloser           `json:"closed_by"`
+	Title                string                 `json:"title"`
+	CreatedAt            *time.Time             `json:"created_at"`
+	MovedToID            int                    `json:"moved_to_id"`
+	Labels               Labels                 `json:"labels"`
+	LabelDetails         []*LabelDetails        `json:"label_details"`
+	Upvotes              int                    `json:"upvotes"`
+	Downvotes            int                    `json:"downvotes"`
+	DueDate              *ISOTime               `json:"due_date"`
+	WebURL               string                 `json:"web_url"`
+	References           *IssueReferences       `json:"references"`
+	TimeStats            *TimeStats             `json:"time_stats"`
+	Confidential         bool                   `json:"confidential"`
+	Weight               int                    `json:"weight"`
+	DiscussionLocked     bool                   `json:"discussion_locked"`
+	IssueType            *string                `json:"issue_type,omitempty"`
+	Subscribed           bool                   `json:"subscribed"`
+	UserNotesCount       int                    `json:"user_notes_count"`
+	Links                *IssueLinks            `json:"_links"`
+	IssueLinkID          int                    `json:"issue_link_id"`
+	MergeRequestCount    int                    `json:"merge_requests_count"`
+	EpicIssueID          int                    `json:"epic_issue_id"`
+	Epic                 *Epic                  `json:"epic"`
+	TaskCompletionStatus *TasksCompletionStatus `json:"task_completion_status"`
 }
 
 func (i Issue) String() string {
 	return Stringify(i)
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (i *Issue) UnmarshalJSON(data []byte) error {
 	type alias Issue
 
@@ -134,26 +137,29 @@ func (i *Issue) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if reflect.TypeOf(raw["id"]).Kind() == reflect.String {
+		raw["external_id"] = raw["id"]
+		delete(raw, "id")
+	}
+
 	labelDetails, ok := raw["labels"].([]interface{})
 	if ok && len(labelDetails) > 0 {
 		// We only want to change anything if we got label details.
-		if _, ok := labelDetails[0].(map[string]interface{}); !ok {
-			return json.Unmarshal(data, (*alias)(i))
-		}
+		if _, ok := labelDetails[0].(map[string]interface{}); ok {
+			labels := make([]interface{}, len(labelDetails))
+			for i, details := range labelDetails {
+				labels[i] = details.(map[string]interface{})["name"]
+			}
 
-		labels := make([]interface{}, len(labelDetails))
-		for i, details := range labelDetails {
-			labels[i] = details.(map[string]interface{})["name"]
+			// Set the correct values
+			raw["labels"] = labels
+			raw["label_details"] = labelDetails
 		}
+	}
 
-		// Set the correct values
-		raw["labels"] = labels
-		raw["label_details"] = labelDetails
-
-		data, err = json.Marshal(raw)
-		if err != nil {
-			return err
-		}
+	data, err = json.Marshal(raw)
+	if err != nil {
+		return err
 	}
 
 	return json.Unmarshal(data, (*alias)(i))
@@ -224,6 +230,7 @@ type ListIssuesOptions struct {
 	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
 	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 	Confidential       *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
+	IssueType          *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
 }
 
 // ListIssues gets all issues created by authenticated user. This function
@@ -231,7 +238,7 @@ type ListIssuesOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
 func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
-	req, err := s.client.NewRequest("GET", "issues", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "issues", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -274,6 +281,7 @@ type ListGroupIssuesOptions struct {
 	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
 	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
 	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
+	IssueType          *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
 }
 
 // ListGroupIssues gets a list of group issues. This function accepts
@@ -287,7 +295,7 @@ func (s *IssuesService) ListGroupIssues(pid interface{}, opt *ListGroupIssuesOpt
 	}
 	u := fmt.Sprintf("groups/%s/issues", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -327,9 +335,11 @@ type ListProjectIssuesOptions struct {
 	In                 *string    `url:"in,omitempty" json:"in,omitempty"`
 	CreatedAfter       *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
 	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	DueDate            *string    `url:"due_date,omitempty" json:"due_date,omitempty"`
 	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
 	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 	Confidential       *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
+	IssueType          *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
 }
 
 // ListProjectIssues gets a list of project issues. This function accepts
@@ -343,7 +353,7 @@ func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssue
 	}
 	u := fmt.Sprintf("projects/%s/issues", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -367,7 +377,7 @@ func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...RequestO
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -397,6 +407,7 @@ type CreateIssueOptions struct {
 	MergeRequestToResolveDiscussionsOf *int       `url:"merge_request_to_resolve_discussions_of,omitempty" json:"merge_request_to_resolve_discussions_of,omitempty"`
 	DiscussionToResolve                *string    `url:"discussion_to_resolve,omitempty" json:"discussion_to_resolve,omitempty"`
 	Weight                             *int       `url:"weight,omitempty" json:"weight,omitempty"`
+	IssueType                          *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
 }
 
 // CreateIssue creates a new project issue.
@@ -409,7 +420,7 @@ func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/issues", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -440,6 +451,7 @@ type UpdateIssueOptions struct {
 	DueDate          *ISOTime   `url:"due_date,omitempty" json:"due_date,omitempty"`
 	Weight           *int       `url:"weight,omitempty" json:"weight,omitempty"`
 	DiscussionLocked *bool      `url:"discussion_locked,omitempty" json:"discussion_locked,omitempty"`
+	IssueType        *string    `url:"issue_type,omitempty" json:"issue_type,omitempty"`
 }
 
 // UpdateIssue updates an existing project issue. This function is also used
@@ -453,7 +465,7 @@ func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssue
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -477,7 +489,7 @@ func (s *IssuesService) DeleteIssue(pid interface{}, issue int, options ...Reque
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -503,7 +515,7 @@ func (s *IssuesService) MoveIssue(pid interface{}, issue int, opt *MoveIssueOpti
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/move", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -530,7 +542,7 @@ func (s *IssuesService) SubscribeToIssue(pid interface{}, issue int, options ...
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/subscribe", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -557,7 +569,7 @@ func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/unsubscribe", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -569,6 +581,33 @@ func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options
 	}
 
 	return i, resp, err
+}
+
+// CreateTodo creates a todo for the current user for an issue.
+// If there already exists a todo for the user on that issue, status code
+// 304 is returned.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/issues.html#create-a-to-do-item
+func (s *IssuesService) CreateTodo(pid interface{}, issue int, options ...RequestOptionFunc) (*Todo, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/issues/%d/todo", pathEscape(project), issue)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(Todo)
+	resp, err := s.client.Do(req, t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, err
 }
 
 // ListMergeRequestsClosingIssueOptions represents the available
@@ -590,7 +629,7 @@ func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int
 	}
 	u := fmt.Sprintf("/projects/%s/issues/%d/closed_by", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -626,7 +665,7 @@ func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue i
 		issue,
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -691,7 +730,7 @@ func (s *IssuesService) GetParticipants(pid interface{}, issue int, options ...R
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/participants", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

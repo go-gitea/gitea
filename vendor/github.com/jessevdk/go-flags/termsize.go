@@ -1,28 +1,15 @@
-// +build !windows,!plan9,!solaris,!appengine
+// +build !windows,!plan9,!appengine,!wasm
 
 package flags
 
 import (
-	"syscall"
-	"unsafe"
+	"golang.org/x/sys/unix"
 )
 
-type winsize struct {
-	row, col       uint16
-	xpixel, ypixel uint16
-}
-
 func getTerminalColumns() int {
-	ws := winsize{}
-
-	if tIOCGWINSZ != 0 {
-		syscall.Syscall(syscall.SYS_IOCTL,
-			uintptr(0),
-			uintptr(tIOCGWINSZ),
-			uintptr(unsafe.Pointer(&ws)))
-
-		return int(ws.col)
+	ws, err := unix.IoctlGetWinsize(0, unix.TIOCGWINSZ)
+	if err != nil {
+		return 80
 	}
-
-	return 80
+	return int(ws.Col)
 }

@@ -14,23 +14,30 @@ Make sure you have installed Go 1.11+ and then:
 
 Create Engine
 
-Firstly, we should new an engine for a database
+Firstly, we should create an engine for a database
 
     engine, err := xorm.NewEngine(driverName, dataSourceName)
 
-Method NewEngine's parameters is the same as sql.Open. It depends
-drivers' implementation.
-Generally, one engine for an application is enough. You can set it as package variable.
+Method NewEngine's parameters are the same as sql.Open which depend drivers' implementation.
+Generally, one engine for an application is enough. You can define it as a package variable.
 
 Raw Methods
 
-XORM also support raw SQL execution:
+XORM supports raw SQL execution:
 
-1. query a SQL string, the returned results is []map[string][]byte
+1. query with a SQL string, the returned results is []map[string][]byte
 
     results, err := engine.Query("select * from user")
 
-2. execute a SQL string, the returned results
+2. query with a SQL string, the returned results is []map[string]string
+
+    results, err := engine.QueryString("select * from user")
+
+3. query with a SQL string, the returned results is []map[string]interface{}
+
+    results, err := engine.QueryInterface("select * from user")
+
+4. execute with a SQL string, the returned results
 
     affected, err := engine.Exec("update user set .... where ...")
 
@@ -77,7 +84,9 @@ There are 8 major ORM methods and many helpful methods to use to operate databas
 4. Query multiple records and record by record handle, there two methods, one is Iterate,
 another is Rows
 
-    err := engine.Iterate(...)
+    err := engine.Iterate(new(User), func(i int, bean interface{}) error {
+        // do something
+    })
     // SELECT * FROM user
 
     rows, err := engine.Rows(...)
@@ -120,7 +129,7 @@ another is Rows
 Conditions
 
 The above 8 methods could use with condition methods chainable.
-Attention: the above 8 methods should be the last chainable method.
+Notice: the above 8 methods should be the last chainable method.
 
 1. ID, In
 
@@ -178,6 +187,47 @@ Attention: the above 8 methods should be the last chainable method.
     //SELECT * FROM user GROUP BY name HAVING name='xlw'
     engine.Join("LEFT", "userdetail", "user.id=userdetail.id").Find(&users)
     //SELECT * FROM user LEFT JOIN userdetail ON user.id=userdetail.id
+
+Builder
+
+xorm could work with xorm.io/builder directly.
+
+1. With Where
+
+    var cond = builder.Eq{"a":1, "b":2}
+    engine.Where(cond).Find(&users)
+
+2. With In
+
+    var subQuery = builder.Select("name").From("group")
+    engine.In("group_name", subQuery).Find(&users)
+
+3. With Join
+
+    var subQuery = builder.Select("name").From("group")
+    engine.Join("INNER", subQuery, "group.id = user.group_id").Find(&users)
+
+4. With SetExprs
+
+    var subQuery = builder.Select("name").From("group")
+    engine.ID(1).SetExprs("name", subQuery).Update(new(User))
+
+5. With SQL
+
+    var query = builder.Select("name").From("group")
+    results, err := engine.SQL(query).Find(&groups)
+
+6. With Query
+
+    var query = builder.Select("name").From("group")
+    results, err := engine.Query(query)
+    results, err := engine.QueryString(query)
+    results, err := engine.QueryInterface(query)
+
+7. With Exec
+
+    var query = builder.Insert("a, b").Into("table1").Select("b, c").From("table2")
+    results, err := engine.Exec(query)
 
 More usage, please visit http://xorm.io/docs
 */

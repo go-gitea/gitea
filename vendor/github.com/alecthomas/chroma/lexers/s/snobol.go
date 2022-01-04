@@ -6,14 +6,18 @@ import (
 )
 
 // Snobol lexer.
-var Snobol = internal.Register(MustNewLexer(
+var Snobol = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Snobol",
 		Aliases:   []string{"snobol"},
 		Filenames: []string{"*.snobol"},
 		MimeTypes: []string{"text/x-snobol"},
 	},
-	Rules{
+	snobolRules,
+))
+
+func snobolRules() Rules {
+	return Rules{
 		"root": {
 			{`\*.*\n`, Comment, nil},
 			{`[+.] `, Punctuation, Push("statement")},
@@ -44,5 +48,5 @@ var Snobol = internal.Register(MustNewLexer(
 		"heredoc": {
 			{`.*\n`, LiteralStringHeredoc, nil},
 		},
-	},
-))
+	}
+}

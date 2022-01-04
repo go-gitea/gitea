@@ -6,7 +6,7 @@ import (
 )
 
 // ABAP lexer.
-var Abap = internal.Register(MustNewLexer(
+var Abap = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "ABAP",
 		Aliases:         []string{"abap"},
@@ -14,7 +14,11 @@ var Abap = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-abap"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	abapRules,
+))
+
+func abapRules() Rules {
+	return Rules{
 		"common": {
 			{`\s+`, Text, nil},
 			{`^\*.*$`, CommentSingle, nil},
@@ -52,5 +56,5 @@ var Abap = internal.Register(MustNewLexer(
 			{`[/;:()\[\],.]`, Punctuation, nil},
 			{`(!)(\w+)`, ByGroups(Operator, Name), nil},
 		},
-	},
-))
+	}
+}

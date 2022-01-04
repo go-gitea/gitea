@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package gitlab
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // SidekiqService handles communication with the sidekiq service
 //
@@ -42,7 +45,7 @@ type QueueMetrics struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/sidekiq_metrics.html#get-the-current-queue-metrics
 func (s *SidekiqService) GetQueueMetrics(options ...RequestOptionFunc) (*QueueMetrics, *Response, error) {
-	req, err := s.client.NewRequest("GET", "/sidekiq/queue_metrics", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "/sidekiq/queue_metrics", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,7 +82,7 @@ type ProcessMetrics struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/sidekiq_metrics.html#get-the-current-process-metrics
 func (s *SidekiqService) GetProcessMetrics(options ...RequestOptionFunc) (*ProcessMetrics, *Response, error) {
-	req, err := s.client.NewRequest("GET", "/sidekiq/process_metrics", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "/sidekiq/process_metrics", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,7 +113,7 @@ type JobStats struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/sidekiq_metrics.html#get-the-current-job-statistics
 func (s *SidekiqService) GetJobStats(options ...RequestOptionFunc) (*JobStats, *Response, error) {
-	req, err := s.client.NewRequest("GET", "/sidekiq/job_stats", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "/sidekiq/job_stats", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,7 +142,7 @@ type CompoundMetrics struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/sidekiq_metrics.html#get-the-current-job-statistics
 func (s *SidekiqService) GetCompoundMetrics(options ...RequestOptionFunc) (*CompoundMetrics, *Response, error) {
-	req, err := s.client.NewRequest("GET", "/sidekiq/compound_metrics", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "/sidekiq/compound_metrics", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

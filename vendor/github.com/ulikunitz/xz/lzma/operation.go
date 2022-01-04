@@ -1,11 +1,10 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package lzma
 
 import (
-	"errors"
 	"fmt"
 	"unicode"
 )
@@ -22,30 +21,6 @@ type match struct {
 	distance int64
 	// length
 	n int
-}
-
-// verify checks whether the match is valid. If that is not the case an
-// error is returned.
-func (m match) verify() error {
-	if !(minDistance <= m.distance && m.distance <= maxDistance) {
-		return errors.New("distance out of range")
-	}
-	if !(1 <= m.n && m.n <= maxMatchLen) {
-		return errors.New("length out of range")
-	}
-	return nil
-}
-
-// l return the l-value for the match, which is the difference of length
-// n and 2.
-func (m match) l() uint32 {
-	return uint32(m.n - minMatchLen)
-}
-
-// dist returns the dist value for the match, which is one less of the
-// distance stored in the match.
-func (m match) dist() uint32 {
-	return uint32(m.distance - minDistance)
 }
 
 // Len returns the number of bytes matched.

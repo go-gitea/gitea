@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -55,6 +56,10 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+func init() {
+	db.RegisterModel(new(Project))
+}
+
 // GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
 	return []ProjectsConfig{
@@ -85,11 +90,10 @@ type ProjectSearchOptions struct {
 
 // GetProjects returns a list of all projects that have been created in the repository
 func GetProjects(opts ProjectSearchOptions) ([]*Project, int64, error) {
-	return getProjects(x, opts)
+	return getProjects(db.GetEngine(db.DefaultContext), opts)
 }
 
-func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
-
+func getProjects(e db.Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
@@ -139,34 +143,33 @@ func NewProject(p *Project) error {
 		return errors.New("project type is not valid")
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
-	if err := sess.Begin(); err != nil {
+	if err := db.Insert(ctx, p); err != nil {
 		return err
 	}
 
-	if _, err := sess.Insert(p); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
 		return err
 	}
 
-	if _, err := sess.Exec("UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+	if err := createBoardsForProjectsType(db.GetEngine(ctx), p); err != nil {
 		return err
 	}
 
-	if err := createBoardsForProjectsType(sess, p); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetProjectByID returns the projects in a repository
 func GetProjectByID(id int64) (*Project, error) {
-	return getProjectByID(x, id)
+	return getProjectByID(db.GetEngine(db.DefaultContext), id)
 }
 
-func getProjectByID(e Engine, id int64) (*Project, error) {
+func getProjectByID(e db.Engine, id int64) (*Project, error) {
 	p := new(Project)
 
 	has, err := e.ID(id).Get(p)
@@ -181,10 +184,10 @@ func getProjectByID(e Engine, id int64) (*Project, error) {
 
 // UpdateProject updates project properties
 func UpdateProject(p *Project) error {
-	return updateProject(x, p)
+	return updateProject(db.GetEngine(db.DefaultContext), p)
 }
 
-func updateProject(e Engine, p *Project) error {
+func updateProject(e db.Engine, p *Project) error {
 	_, err := e.ID(p.ID).Cols(
 		"title",
 		"description",
@@ -192,7 +195,7 @@ func updateProject(e Engine, p *Project) error {
 	return err
 }
 
-func updateRepositoryProjectCount(e Engine, repoID int64) error {
+func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 	if _, err := e.Exec(builder.Update(
 		builder.Eq{
 			"`num_projects`": builder.Select("count(*)").From("`project`").
@@ -216,11 +219,12 @@ func updateRepositoryProjectCount(e Engine, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	p := new(Project)
 
@@ -235,25 +239,25 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := changeProjectStatus(db.GetEngine(ctx), p, isClosed); err != nil {
 		return err
 	}
 
-	if err := changeProjectStatus(sess, p, isClosed); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func changeProjectStatus(e Engine, p *Project, isClosed bool) error {
+func changeProjectStatus(e db.Engine, p *Project, isClosed bool) error {
 	p.IsClosed = isClosed
 	p.ClosedDateUnix = timeutil.TimeStampNow()
 	count, err := e.ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
@@ -269,20 +273,20 @@ func changeProjectStatus(e Engine, p *Project, isClosed bool) error {
 
 // DeleteProjectByID deletes a project from a repository.
 func DeleteProjectByID(id int64) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteProjectByID(db.GetEngine(ctx), id); err != nil {
 		return err
 	}
 
-	if err := deleteProjectByID(sess, id); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func deleteProjectByID(e Engine, id int64) error {
+func deleteProjectByID(e db.Engine, id int64) error {
 	p, err := getProjectByID(e, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {

@@ -267,7 +267,7 @@ func NewLoggerAsWriter(level string, ourLoggers ...*MultiChannelledLogger) *Logg
 	return l
 }
 
-// Write implements the io.Writer interface to allow spoofing of macaron
+// Write implements the io.Writer interface to allow spoofing of chi
 func (l *LoggerAsWriter) Write(p []byte) (int, error) {
 	for _, logger := range l.ourLoggers {
 		// Skip = 3 because this presumes that we have been called by log.Println()

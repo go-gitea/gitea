@@ -6,7 +6,7 @@ import (
 )
 
 // TypeScript lexer.
-var TypeScript = internal.Register(MustNewLexer(
+var TypeScript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TypeScript",
 		Aliases:   []string{"ts", "tsx", "typescript"},
@@ -15,7 +15,11 @@ var TypeScript = internal.Register(MustNewLexer(
 		DotAll:    true,
 		EnsureNL:  true,
 	},
-	Rules{
+	typeScriptRules,
+))
+
+func typeScriptRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`<!--`, Comment, nil},
@@ -93,5 +97,5 @@ var TypeScript = internal.Register(MustNewLexer(
 			{`}`, Punctuation, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

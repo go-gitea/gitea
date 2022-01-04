@@ -1,4 +1,4 @@
-// Minio Cloud Storage, (C) 2016 Minio, Inc.
+// Minio Cloud Storage, (C) 2021 Minio, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,22 +13,34 @@
 // limitations under the License.
 //
 
-// +build !386,!amd64,!arm,!arm64 arm64,!linux
-
 package sha256
 
-func cpuid(op uint32) (eax, ebx, ecx, edx uint32) {
-	return 0, 0, 0, 0
-}
+import (
+	"bytes"
+	"io/ioutil"
+	"runtime"
 
-func cpuidex(op, op2 uint32) (eax, ebx, ecx, edx uint32) {
-	return 0, 0, 0, 0
-}
+	"github.com/klauspost/cpuid/v2"
+)
 
-func xgetbv(index uint32) (eax, edx uint32) {
-	return 0, 0
-}
+func hasArmSha2() bool {
+	if cpuid.CPU.Has(cpuid.SHA2) {
+		return true
+	}
+	if runtime.GOARCH != "arm64" || runtime.GOOS != "linux" {
+		return false
+	}
 
-func haveArmSha() bool {
-	return false
+	// Fall back to hacky cpuinfo parsing...
+	const procCPUInfo = "/proc/cpuinfo"
+
+	// Feature to check for.
+	const sha256Feature = "sha2"
+
+	cpuInfo, err := ioutil.ReadFile(procCPUInfo)
+	if err != nil {
+		return false
+	}
+	return bytes.Contains(cpuInfo, []byte(sha256Feature))
+
 }

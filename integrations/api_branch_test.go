@@ -151,20 +151,26 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	for _, test := range tests {
 		defer resetFixtures(t)
 		session := ctx.Session
-		token := getTokenForLoggedInUser(t, session)
-		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/my-noo-repo/branches?token="+token, &api.CreateBranchRepoOption{
-			BranchName:    test.NewBranch,
-			OldBranchName: test.OldBranch,
-		})
-		resp := session.MakeRequest(t, req, test.ExpectedHTTPStatus)
-
-		var branch api.Branch
-		DecodeJSON(t, resp, &branch)
-
-		if test.ExpectedHTTPStatus == http.StatusCreated {
-			assert.EqualValues(t, test.NewBranch, branch.Name)
-		}
+		testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 	}
+}
+
+func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBranch, newBranch string, status int) bool {
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+user+"/"+repo+"/branches?token="+token, &api.CreateBranchRepoOption{
+		BranchName:    newBranch,
+		OldBranchName: oldBranch,
+	})
+	resp := session.MakeRequest(t, req, status)
+
+	var branch api.Branch
+	DecodeJSON(t, resp, &branch)
+
+	if status == http.StatusCreated {
+		assert.EqualValues(t, newBranch, branch.Name)
+	}
+
+	return resp.Result().StatusCode == status
 }
 
 func TestAPIBranchProtection(t *testing.T) {

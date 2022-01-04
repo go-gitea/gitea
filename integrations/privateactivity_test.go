@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +27,8 @@ const privateActivityTestOtherUser = "user4"
 // activity helpers
 
 func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
-	repoBefore := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repoBefore.OwnerID}).(*models.User)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, privateActivityTestUser)
 	token := getTokenForLoggedInUser(t, session)
@@ -268,9 +271,6 @@ func TestPrivateActivityNoHeatmapVisibleForAdmin(t *testing.T) {
 }
 
 // check heatmap visibility if the visibility is disabled
-// this behavior, in special the one for the admin, is
-// due to the fact that the heatmap is the same for all viewers;
-// otherwise, there is no reason for it
 
 func TestPrivateActivityYesHeatmapInvisibleForPublic(t *testing.T) {
 	defer prepareTestEnv(t)()
@@ -282,7 +282,7 @@ func TestPrivateActivityYesHeatmapInvisibleForPublic(t *testing.T) {
 	assert.False(t, visible, "user should have no visible heatmap")
 }
 
-func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtProfile(t *testing.T) {
+func TestPrivateActivityYesHeatmapVisibleForUserItselfAtProfile(t *testing.T) {
 	defer prepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
@@ -290,10 +290,10 @@ func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtProfile(t *testing.T) 
 	session := loginUser(t, privateActivityTestUser)
 	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
 
-	assert.False(t, visible, "user should have no visible heatmap")
+	assert.True(t, visible, "user should have visible heatmap")
 }
 
-func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtDashboard(t *testing.T) {
+func TestPrivateActivityYesHeatmapVisibleForUserItselfAtDashboard(t *testing.T) {
 	defer prepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
@@ -301,7 +301,7 @@ func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtDashboard(t *testing.T
 	session := loginUser(t, privateActivityTestUser)
 	visible := testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, session)
 
-	assert.False(t, visible, "user should have no visible heatmap")
+	assert.True(t, visible, "user should have visible heatmap")
 }
 
 func TestPrivateActivityYesHeatmapInvisibleForOtherUser(t *testing.T) {
@@ -315,7 +315,7 @@ func TestPrivateActivityYesHeatmapInvisibleForOtherUser(t *testing.T) {
 	assert.False(t, visible, "user should have no visible heatmap")
 }
 
-func TestPrivateActivityYesHeatmapInvsisibleForAdmin(t *testing.T) {
+func TestPrivateActivityYesHeatmapVisibleForAdmin(t *testing.T) {
 	defer prepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
@@ -323,7 +323,7 @@ func TestPrivateActivityYesHeatmapInvsisibleForAdmin(t *testing.T) {
 	session := loginUser(t, privateActivityTestAdmin)
 	visible := testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t, session)
 
-	assert.False(t, visible, "user should have no visible heatmap")
+	assert.True(t, visible, "user should have visible heatmap")
 }
 
 // check heatmap api provides content if the visibility is enabled
@@ -388,7 +388,7 @@ func TestPrivateActivityYesHeatmapHasNoContentForUserItself(t *testing.T) {
 	session := loginUser(t, privateActivityTestUser)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.True(t, hasContent, "user should see their own heatmap content")
 }
 
 func TestPrivateActivityYesHeatmapHasNoContentForOtherUser(t *testing.T) {
@@ -399,7 +399,7 @@ func TestPrivateActivityYesHeatmapHasNoContentForOtherUser(t *testing.T) {
 	session := loginUser(t, privateActivityTestOtherUser)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.False(t, hasContent, "other user should not see heatmap content")
 }
 
 func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
@@ -410,5 +410,5 @@ func TestPrivateActivityYesHeatmapHasNoContentForAdmin(t *testing.T) {
 	session := loginUser(t, privateActivityTestAdmin)
 	hasContent := testPrivateActivityHelperHasHeatmapContentFromSession(t, session)
 
-	assert.False(t, hasContent, "user should have no heatmap content")
+	assert.True(t, hasContent, "heatmap should show content for admin")
 }

@@ -6,14 +6,18 @@ import (
 )
 
 // MorrowindScript lexer.
-var MorrowindScript = internal.Register(MustNewLexer(
+var MorrowindScript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "MorrowindScript",
 		Aliases:   []string{"morrowind", "mwscript"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	morrowindScriptRules,
+))
+
+func morrowindScriptRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`;.*$`, Comment, nil},
@@ -49,5 +53,5 @@ var MorrowindScript = internal.Register(MustNewLexer(
 			{`[#=,./%+\-?]`, Operator, nil},
 			{`(==|<=|<|>=|>|!=)`, Operator, nil},
 		},
-	},
-))
+	}
+}

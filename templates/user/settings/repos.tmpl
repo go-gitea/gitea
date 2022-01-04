@@ -26,16 +26,16 @@
 										{{else}}
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
-										<a class="name" href="{{AppSubUrl}}/{{$repo.OwnerName}}/{{$repo.Name}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span>{{SizeFmt $repo.Size}}</span>
+										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
+										<span>{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{$.i18n.Tr "repo.forked_from"}}
-											<span><a href="{{AppSubUrl}}/{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
+											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
 										<span class="icon">{{svg "octicon-file-directory"}}</span>
 										<span class="name">{{$.Owner.Name}}/{{$dir}}</span>
-        		                        <div class="right floated content">
+										<div class="right floated content">
 											{{if $.allowAdopt}}
 												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.i18n.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
@@ -119,11 +119,11 @@
 									{{else}}
 										<span class="iconFloat">{{svg "octicon-repo"}}</span>
 									{{end}}
-									<a class="name" href="{{AppSubUrl}}/{{.OwnerName}}/{{.Name}}">{{.OwnerName}}/{{.Name}}</a>
-									<span>{{SizeFmt .Size}}</span>
+									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
+									<span>{{FileSize .Size}}</span>
 									{{if .IsFork}}
 										{{$.i18n.Tr "repo.forked_from"}}
-										<span><a href="{{AppSubUrl}}/{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
+										<span><a href="{{.BaseRepo.Link}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
 									{{end}}
 								</div>
 							</div>
@@ -142,7 +142,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">

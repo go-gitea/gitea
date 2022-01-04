@@ -22,12 +22,6 @@ type param struct {
 	buffer []byte
 }
 
-const (
-	fWithRecomp    = 1
-	fNoMetaData    = 2
-	fReuseMetaData = 4
-)
-
 var (
 	sp_Cursor          = procId{1, ""}
 	sp_CursorOpen      = procId{2, ""}

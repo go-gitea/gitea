@@ -7,9 +7,11 @@ package integrations
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,8 +20,8 @@ import (
 func TestAPIListStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -27,28 +29,25 @@ func TestAPIListStopWatches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	stopwatch := models.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
-		apiWatches[0].Created = time.Time{}
-		assert.EqualValues(t, api.StopWatch{
-			Created:       time.Time{},
-			IssueIndex:    issue.Index,
-			IssueTitle:    issue.Title,
-			RepoName:      repo.Name,
-			RepoOwnerName: repo.OwnerName,
-		}, *apiWatches[0])
+		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
+		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
 	}
 }
 
 func TestAPIStopStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -61,10 +60,10 @@ func TestAPIStopStopWatches(t *testing.T) {
 func TestAPICancelStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -77,10 +76,10 @@ func TestAPICancelStopWatches(t *testing.T) {
 func TestAPIStartStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	_ = issue.LoadRepo()
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: issue.Repo.OwnerID}).(*models.User)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)

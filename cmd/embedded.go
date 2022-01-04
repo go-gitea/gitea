@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build bindata
 // +build bindata
 
 package cmd
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 	"github.com/urfave/cli"
@@ -113,7 +115,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 	log.DelNamedLogger(log.DEFAULT)
 
 	// Read configuration file
-	setting.NewContext()
+	setting.LoadAllowEmpty()
 
 	pats, err := getPatterns(c.Args())
 	if err != nil {
@@ -271,7 +273,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	} else if !fi.Mode().IsRegular() {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
-		if err := os.Rename(dest, dest+".bak"); err != nil {
+		if err := util.Rename(dest, dest+".bak"); err != nil {
 			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
 		}
 		// Attempt to respect file permissions mask (even if user:group will be set anew)

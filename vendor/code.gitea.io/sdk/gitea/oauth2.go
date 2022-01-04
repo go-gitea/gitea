@@ -34,7 +34,7 @@ type CreateOauth2Option struct {
 
 // CreateOauth2 create an Oauth2 Application and returns a completed Oauth2 object.
 func (c *Client) CreateOauth2(opt CreateOauth2Option) (*Oauth2, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
@@ -48,7 +48,7 @@ func (c *Client) CreateOauth2(opt CreateOauth2Option) (*Oauth2, *Response, error
 
 // UpdateOauth2 a specific Oauth2 Application by ID and return a completed Oauth2 object.
 func (c *Client) UpdateOauth2(oauth2id int64, opt CreateOauth2Option) (*Oauth2, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
@@ -62,7 +62,7 @@ func (c *Client) UpdateOauth2(oauth2id int64, opt CreateOauth2Option) (*Oauth2, 
 
 // GetOauth2 a specific Oauth2 Application by ID.
 func (c *Client) GetOauth2(oauth2id int64) (*Oauth2, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	oauth2s := &Oauth2{}
@@ -72,7 +72,7 @@ func (c *Client) GetOauth2(oauth2id int64) (*Oauth2, *Response, error) {
 
 // ListOauth2 all of your Oauth2 Applications.
 func (c *Client) ListOauth2(opt ListOauth2Option) ([]*Oauth2, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	opt.setDefaults()
@@ -83,7 +83,7 @@ func (c *Client) ListOauth2(opt ListOauth2Option) ([]*Oauth2, *Response, error) 
 
 // DeleteOauth2 delete an Oauth2 application by ID
 func (c *Client) DeleteOauth2(oauth2id int64) (*Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, err
 	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/user/applications/oauth2/%d", oauth2id), nil, nil)

@@ -50,13 +50,6 @@ GITEA_CUSTOM=/home/gitea/custom ./gitea web
   * `HOMEDRIVE`: 用于访问 home 目录的主驱动器路径（C盘）
   * `HOMEPATH`：在指定主驱动器下的 home 目录相对路径
 
-## Macaron（Gitea 使用的 web 框架）
-
-  * `HOST`：Macaron 监听的主机地址
-  * `PORT`：Macaron 监听的端口地址
-  * `MACARON_ENV`：为开发环境和生产环境提供特殊功能性配置的全局变量，当 MACARON_ENV 设置为 "" 或 "development"
-  时，每次请求都会重编译页面模板。为了提高性能表现，可将它设置为 "production"。
-
 ## Miscellaneous
 
   * `SKIP_MINWINSVC`：如果设置为 1，在 Windows 上不会以 service 的形式运行。

@@ -6,26 +6,28 @@ package ssh
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gliderlabs/ssh"
-	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -58,15 +60,19 @@ func getExitStatusFromError(err error) int {
 }
 
 func sessionHandler(session ssh.Session) {
-	keyID := session.Context().Value(giteaKeyID).(int64)
+	keyID := fmt.Sprintf("%d", session.Context().Value(giteaKeyID).(int64))
 
 	command := session.RawCommand()
 
 	log.Trace("SSH: Payload: %v", command)
 
-	args := []string{"serv", "key-" + com.ToStr(keyID), "--config=" + setting.CustomConf}
+	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
-	cmd := exec.Command(setting.AppPath, args...)
+
+	ctx, cancel := context.WithCancel(session.Context())
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
@@ -78,16 +84,21 @@ func sessionHandler(session ssh.Session) {
 		log.Error("SSH: StdoutPipe: %v", err)
 		return
 	}
+	defer stdout.Close()
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Error("SSH: StderrPipe: %v", err)
 		return
 	}
+	defer stderr.Close()
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Error("SSH: StdinPipe: %v", err)
 		return
 	}
+	defer stdin.Close()
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -106,6 +117,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stdout.Close()
 		if _, err := io.Copy(session, stdout); err != nil {
 			log.Error("Failed to write stdout to session. %s", err)
 		}
@@ -113,6 +125,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stderr.Close()
 		if _, err := io.Copy(session.Stderr(), stderr); err != nil {
 			log.Error("Failed to write stderr to session. %s", err)
 		}
@@ -134,26 +147,39 @@ func sessionHandler(session ssh.Session) {
 }
 
 func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Handle Public Key: Fingerprint: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+	}
+
 	if ctx.User() != setting.SSH.BuiltinServerUser {
+		log.Warn("Invalid SSH username %s - must use %s for all git operations via ssh", ctx.User(), setting.SSH.BuiltinServerUser)
+		log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 		return false
 	}
 
 	// check if we have a certificate
 	if cert, ok := key.(*gossh.Certificate); ok {
+		if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+			log.Debug("Handle Certificate: %s Fingerprint: %s is a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+		}
+
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
+			log.Warn("Certificate Rejected: No trusted certificate authorities for this server")
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
 			return false
 		}
 
 		// look for the exact principal
+	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := models.SearchPublicKeyByContentExact(principal)
+			pkey, err := asymkey_model.SearchPublicKeyByContentExact(principal)
 			if err != nil {
+				if asymkey_model.IsErrKeyNotExist(err) {
+					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
+					continue principalLoop
+				}
 				log.Error("SearchPublicKeyByContentExact: %v", err)
 				return false
-			}
-
-			if models.IsErrKeyNotExist(err) {
-				continue
 			}
 
 			c := &gossh.CertChecker{
@@ -170,40 +196,86 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			// check the CA of the cert
 			if !c.IsUserAuthority(cert.SignatureKey) {
-				return false
+				if log.IsDebug() {
+					log.Debug("Principal Rejected: %s Untrusted Authority Signature Fingerprint %s for Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(cert.SignatureKey), principal)
+				}
+				continue principalLoop
 			}
 
 			// validate the cert for this principal
 			if err := c.CheckCert(principal, cert); err != nil {
+				// User is presenting an invalid certificate - STOP any further processing
+				if log.IsError() {
+					log.Error("Invalid Certificate KeyID %s with Signature Fingerprint %s presented for Principal: %s from %s", cert.KeyId, gossh.FingerprintSHA256(cert.SignatureKey), principal, ctx.RemoteAddr())
+				}
+				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+
 				return false
 			}
 
+			if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+				log.Debug("Successfully authenticated: %s Certificate Fingerprint: %s Principal: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key), principal)
+			}
 			ctx.SetValue(giteaKeyID, pkey.ID)
 
 			return true
 		}
-	}
 
-	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
-	if err != nil {
-		log.Error("SearchPublicKeyByContent: %v Failed authentication attempt from %s", err, ctx.RemoteAddr())
+		if log.IsWarn() {
+			log.Warn("From %s Fingerprint: %s is a certificate, but no valid principals found", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+			log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+		}
 		return false
 	}
 
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+	}
+
+	pkey, err := asymkey_model.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	if err != nil {
+		if asymkey_model.IsErrKeyNotExist(err) {
+			if log.IsWarn() {
+				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
+			}
+			return false
+		}
+		log.Error("SearchPublicKeyByContent: %v", err)
+		return false
+	}
+
+	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
+		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
+	}
 	ctx.SetValue(giteaKeyID, pkey.ID)
 
 	return true
 }
 
-// Listen starts a SSH server listens on given port.
-func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
-	// TODO: Handle ciphers, keyExchanges, and macs
+// sshConnectionFailed logs a failed connection
+// -  this mainly exists to give a nice function name in logging
+func sshConnectionFailed(conn net.Conn, err error) {
+	// Log the underlying error with a specific message
+	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
+	// Log with the standard failed authentication from message for simpler fail2ban configuration
+	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
+}
 
+// Listen starts a SSH server listens on given port.
+func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
-		Addr:             fmt.Sprintf("%s:%d", host, port),
+		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
-
+		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
+			config := &gossh.ServerConfig{}
+			config.KeyExchanges = keyExchanges
+			config.MACs = macs
+			config.Ciphers = ciphers
+			return config
+		},
+		ConnectionFailedCallback: sshConnectionFailed,
 		// We need to explicitly disable the PtyCallback so text displays
 		// properly.
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
@@ -211,39 +283,105 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		},
 	}
 
-	keyPath := filepath.Join(setting.AppDataPath, "ssh/gogs.rsa")
-	isExist, err := util.IsExist(keyPath)
-	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+	keys := make([]string, 0, len(setting.SSH.ServerHostKeys))
+	for _, key := range setting.SSH.ServerHostKeys {
+		isExist, err := util.IsExist(key)
+		if err != nil {
+			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+		}
+		if isExist {
+			keys = append(keys, key)
+		}
 	}
-	if !isExist {
-		filePath := filepath.Dir(keyPath)
+
+	if len(keys) == 0 {
+		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
 			log.Error("Failed to create dir %s: %v", filePath, err)
 		}
 
-		err := GenKeyPair(keyPath)
+		err := GenKeyPair(setting.SSH.ServerHostKeys[0])
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
-		log.Trace("New private key is generated: %s", keyPath)
+		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKeys[0])
+		keys = append(keys, setting.SSH.ServerHostKeys[0])
 	}
 
-	err = srv.SetOption(ssh.HostKeyFile(keyPath))
-	if err != nil {
-		log.Error("Failed to set Host Key. %s", err)
+	for _, key := range keys {
+		log.Info("Adding SSH host key: %s", key)
+		err := srv.SetOption(ssh.HostKeyFile(key))
+		if err != nil {
+			log.Error("Failed to set Host Key. %s", err)
+		}
 	}
+
+	// Workaround slightly broken behaviour in x/crypto/ssh/handshake.go:458-463
+	//
+	// Fundamentally the issue here is that HostKeyAlgos make the incorrect assumption
+	// that the PublicKey().Type() matches the signature algorithm.
+	//
+	// Therefore we need to add duplicates for the RSA with different signing algorithms.
+	signers := make([]ssh.Signer, 0, len(srv.HostSigners))
+	for _, signer := range srv.HostSigners {
+		if signer.PublicKey().Type() == "ssh-rsa" {
+			signers = append(signers,
+				&wrapSigner{
+					Signer:    signer,
+					algorithm: gossh.SigAlgoRSASHA2512,
+				},
+				&wrapSigner{
+					Signer:    signer,
+					algorithm: gossh.SigAlgoRSASHA2256,
+				},
+			)
+		}
+		signers = append(signers, signer)
+	}
+	srv.HostSigners = signers
 
 	go listen(&srv)
 
+}
+
+// wrapSigner wraps a signer and overrides its public key type with the provided algorithm
+type wrapSigner struct {
+	ssh.Signer
+	algorithm string
+}
+
+// PublicKey returns an associated PublicKey instance.
+func (s *wrapSigner) PublicKey() gossh.PublicKey {
+	return &wrapPublicKey{
+		PublicKey: s.Signer.PublicKey(),
+		algorithm: s.algorithm,
+	}
+}
+
+// Sign returns raw signature for the given data. This method
+// will apply the hash specified for the keytype to the data using
+// the algorithm assigned for this key
+func (s *wrapSigner) Sign(rand io.Reader, data []byte) (*gossh.Signature, error) {
+	return s.Signer.(gossh.AlgorithmSigner).SignWithAlgorithm(rand, data, s.algorithm)
+}
+
+// wrapPublicKey wraps a PublicKey and overrides its type
+type wrapPublicKey struct {
+	gossh.PublicKey
+	algorithm string
+}
+
+// Type returns the algorithm
+func (k *wrapPublicKey) Type() string {
+	return k.algorithm
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return err
 	}

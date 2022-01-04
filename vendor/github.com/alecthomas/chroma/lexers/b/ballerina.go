@@ -6,7 +6,7 @@ import (
 )
 
 // Ballerina lexer.
-var Ballerina = internal.Register(MustNewLexer(
+var Ballerina = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Ballerina",
 		Aliases:   []string{"ballerina"},
@@ -14,7 +14,11 @@ var Ballerina = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-ballerina"},
 		DotAll:    true,
 	},
-	Rules{
+	ballerinaRules,
+))
+
+func ballerinaRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 			{`//.*?\n`, CommentSingle, nil},
@@ -42,5 +46,5 @@ var Ballerina = internal.Register(MustNewLexer(
 		"import": {
 			{`[\w.]+`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

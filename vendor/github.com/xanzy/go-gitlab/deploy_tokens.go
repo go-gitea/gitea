@@ -1,7 +1,24 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -32,7 +49,7 @@ func (k DeployToken) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/deploy_tokens.html#list-all-deploy-tokens
 func (s *DeployTokensService) ListAllDeployTokens(options ...RequestOptionFunc) ([]*DeployToken, *Response, error) {
-	req, err := s.client.NewRequest("GET", "deploy_tokens", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "deploy_tokens", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -64,7 +81,7 @@ func (s *DeployTokensService) ListProjectDeployTokens(pid interface{}, opt *List
 	}
 	u := fmt.Sprintf("projects/%s/deploy_tokens", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,7 +117,7 @@ func (s *DeployTokensService) CreateProjectDeployToken(pid interface{}, opt *Cre
 	}
 	u := fmt.Sprintf("projects/%s/deploy_tokens", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -125,7 +142,7 @@ func (s *DeployTokensService) DeleteProjectDeployToken(pid interface{}, deployTo
 	}
 	u := fmt.Sprintf("projects/%s/deploy_tokens/%d", pathEscape(project), deployToken)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +168,7 @@ func (s *DeployTokensService) ListGroupDeployTokens(gid interface{}, opt *ListGr
 	}
 	u := fmt.Sprintf("groups/%s/deploy_tokens", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -187,7 +204,7 @@ func (s *DeployTokensService) CreateGroupDeployToken(gid interface{}, opt *Creat
 	}
 	u := fmt.Sprintf("groups/%s/deploy_tokens", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -212,7 +229,7 @@ func (s *DeployTokensService) DeleteGroupDeployToken(gid interface{}, deployToke
 	}
 	u := fmt.Sprintf("groups/%s/deploy_tokens/%d", pathEscape(group), deployToken)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

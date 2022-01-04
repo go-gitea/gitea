@@ -138,6 +138,9 @@ type Context interface {
 	// Get returns a value associated with the given key.
 	Get(ContextKey) interface{}
 
+	// ComputeIfAbsent computes a value if a value associated with the given key is absent and returns the value.
+	ComputeIfAbsent(ContextKey, func() interface{}) interface{}
+
 	// Set sets the given value to the context.
 	Set(ContextKey, interface{})
 
@@ -250,6 +253,15 @@ func NewContext(options ...ContextOption) Context {
 
 func (p *parseContext) Get(key ContextKey) interface{} {
 	return p.store[key]
+}
+
+func (p *parseContext) ComputeIfAbsent(key ContextKey, f func() interface{}) interface{} {
+	v := p.store[key]
+	if v == nil {
+		v = f()
+		p.store[key] = v
+	}
+	return v
 }
 
 func (p *parseContext) Set(key ContextKey, value interface{}) {
@@ -1117,21 +1129,27 @@ func (p *parser) parseBlock(block text.BlockReader, parent ast.Node, pc Context)
 			break
 		}
 		lineLength := len(line)
+		softLinebreak := false
 		hardlineBreak := false
-		softLinebreak := line[lineLength-1] == '\n'
-		if lineLength >= 2 && line[lineLength-2] == '\\' && softLinebreak { // ends with \\n
+		hasNewLine := line[lineLength-1] == '\n'
+		if lineLength >= 2 && line[lineLength-2] == '\\' && hasNewLine { // ends with \\n
 			lineLength -= 2
 			hardlineBreak = true
 
-		} else if lineLength >= 3 && line[lineLength-3] == '\\' && line[lineLength-2] == '\r' && softLinebreak { // ends with \\r\n
+		} else if lineLength >= 3 && line[lineLength-3] == '\\' && line[lineLength-2] == '\r' && hasNewLine { // ends with \\r\n
 			lineLength -= 3
 			hardlineBreak = true
-		} else if lineLength >= 3 && line[lineLength-3] == ' ' && line[lineLength-2] == ' ' && softLinebreak { // ends with [space][space]\n
+		} else if lineLength >= 3 && line[lineLength-3] == ' ' && line[lineLength-2] == ' ' && hasNewLine { // ends with [space][space]\n
 			lineLength -= 3
 			hardlineBreak = true
-		} else if lineLength >= 4 && line[lineLength-4] == ' ' && line[lineLength-3] == ' ' && line[lineLength-2] == '\r' && softLinebreak { // ends with [space][space]\r\n
+		} else if lineLength >= 4 && line[lineLength-4] == ' ' && line[lineLength-3] == ' ' && line[lineLength-2] == '\r' && hasNewLine { // ends with [space][space]\r\n
 			lineLength -= 4
 			hardlineBreak = true
+		} else if hasNewLine {
+			// If the line ends with a newline character, but it is not a hardlineBreak, then it is a softLinebreak
+			// If the line ends with a hardlineBreak, then it cannot end with a softLinebreak
+			// See https://spec.commonmark.org/0.30/#soft-line-breaks
+			softLinebreak = true
 		}
 
 		l, startPosition := block.Position()

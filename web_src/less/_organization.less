@@ -16,8 +16,14 @@
     }
   }
 
+  .ui.secondary.stackable.pointing.menu {
+    flex-wrap: wrap;
+    margin-top: 5px;
+    margin-bottom: 10px;
+  }
+
   &.new.org {
-    #create-page-form;
+    #create-page-form();
 
     form {
       .header {
@@ -89,6 +95,7 @@
         width: 48px;
         height: 48px;
         margin-right: 5px;
+        margin-bottom: 5px;
       }
     }
   }
@@ -121,11 +128,15 @@
 
         .ui.avatar {
           width: 48px;
-          height: 48px;
+          height: auto;
+          margin-right: 1rem;
+          align-self: flex-start;
         }
 
         .meta {
           line-height: 24px;
+          word-break: break-word;
+          min-width: 2em;
         }
       }
     }

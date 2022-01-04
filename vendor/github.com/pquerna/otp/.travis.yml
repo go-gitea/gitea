@@ -1,7 +1,10 @@
+arch:
+  - amd64
+  - ppc64le
 language: go
 
 env:
   - GO111MODULE=on
 
 go:
-  - "1.12"
+  - "1.15"

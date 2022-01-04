@@ -5,10 +5,14 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,9 +20,9 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{
+		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
 		}
 	}
@@ -27,7 +31,14 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
-	repo := &models.Repository{
+	// Check if label template exist
+	if len(opts.IssueLabels) > 0 {
+		if _, err := models.GetLabelTemplateFile(opts.IssueLabels); err != nil {
+			return nil, err
+		}
+	}
+
+	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
 		OwnerName:                       u.Name,
@@ -45,7 +56,9 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 		TrustModel:                      opts.TrustModel,
 	}
 
-	if err := models.WithTx(func(ctx models.DBContext) error {
+	var rollbackRepo *repo_model.Repository
+
+	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
@@ -55,7 +68,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			return nil
 		}
 
-		repoPath := models.RepoPath(u.Name, repo.Name)
+		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -70,13 +83,13 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			// Previously Gitea would just delete and start afresh - this was naughty.
 			// So we will now fail and delegate to other functionality to adopt or delete
 			log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
-			return models.ErrRepoFilesAlreadyExist{
+			return repo_model.ErrRepoFilesAlreadyExist{
 				Uname: u.Name,
 				Name:  repo.Name,
 			}
 		}
 
-		if err := initRepository(ctx, repoPath, doer, repo, opts); err != nil {
+		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			if err2 := util.RemoveAll(repoPath); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
@@ -87,25 +100,33 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
-				if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-					log.Error("Rollback deleteRepository: %v", errDelete)
-				}
+			if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+				rollbackRepo = repo
+				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
-			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
+			rollbackRepo = repo
+			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}
 		return nil
 	}); err != nil {
+		if rollbackRepo != nil {
+			if errDelete := models.DeleteRepository(doer, rollbackRepo.OwnerID, rollbackRepo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+			}
+		}
+
 		return nil, err
 	}
 

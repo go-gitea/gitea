@@ -6,14 +6,18 @@ import (
 )
 
 // Gas lexer.
-var Gas = internal.Register(MustNewLexer(
+var Gas = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "GAS",
 		Aliases:   []string{"gas", "asm"},
 		Filenames: []string{"*.s", "*.S"},
 		MimeTypes: []string{"text/x-gas"},
 	},
-	Rules{
+	gasRules,
+))
+
+func gasRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`(?:[a-zA-Z$_][\w$.@-]*|\.[\w$.@-]+):`, NameLabel, nil},
@@ -51,5 +55,5 @@ var Gas = internal.Register(MustNewLexer(
 		"punctuation": {
 			{`[-*,.()\[\]!:]+`, Punctuation, nil},
 		},
-	},
-))
+	}
+}

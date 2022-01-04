@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var OpenSCAD = internal.Register(MustNewLexer(
+var OpenSCAD = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "OpenSCAD",
 		Aliases:   []string{"openscad"},
 		Filenames: []string{"*.scad"},
 		MimeTypes: []string{"text/x-scad"},
 	},
-	Rules{
+	openSCADRules,
+))
+
+func openSCADRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 			{`\n`, Text, nil},
@@ -39,5 +43,5 @@ var OpenSCAD = internal.Register(MustNewLexer(
 			{"(<)([^>]*)(>)", ByGroups(Punctuation, CommentPreprocFile, Punctuation), nil},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

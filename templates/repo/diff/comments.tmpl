@@ -3,7 +3,7 @@
 {{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.Lang }}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor }}
-		<span class="avatar"><img src="/img/avatar_default.png"></span>
+		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
 		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 			{{avatar .Poster}}
@@ -14,15 +14,15 @@
 			<div class="comment-header-left df ac">
 				{{if .OriginalAuthor }}
 					<span class="text black mr-2">
-						<i class="fa {{MigrationIcon $.root.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
+						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{ .OriginalAuthor }}
 					</span>
 					<span class="text grey">
-						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{$.root.i18n.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname | Safe }})
+							({{$.root.i18n.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe }})
 						{{end}}
 					</span>
 				{{else}}
@@ -30,7 +30,7 @@
 						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 							{{.Poster.GetDisplayName}}
 						</a>
-						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
 			</div>
@@ -47,11 +47,11 @@
 					{{end}}
 				{{end}}
 				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
-				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			<div class="render-content markdown">
+			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
 				{{.RenderedContent|Str2html}}
 			{{else}}

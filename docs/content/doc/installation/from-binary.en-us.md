@@ -32,12 +32,16 @@ chmod +x gitea
 ```
 
 ## Verify GPG signature
-Gitea signs all binaries with a [GPG key](https://keys.openpgp.org/search?q=teabot%40gitea.io) to prevent against unwanted modification of binaries. To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+Gitea signs all binaries with a [GPG key](https://keys.openpgp.org/search?q=teabot%40gitea.io) to prevent against unwanted modification of binaries.
+To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the GPG command line tool.
 
 ```sh
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-amd64
 ```
+
+Look for the text `Good signature from "Teabot <teabot@gitea.io>"` to assert a good binary,
+despite warnings like `This key is not certified with a trusted signature!`.
 
 ## Recommended server configuration
 
@@ -79,7 +83,7 @@ chmod 770 /etc/gitea
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
 ```
-If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:root`, mode `0660`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
+If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the Gitea user (owner/group `root:git`, mode `0640`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
 
 ### Configure Gitea's working directory
 
@@ -119,15 +123,15 @@ It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
-### 1. Restarting gitea with systemd (recommended)
+### 1. Restarting Gitea with systemd (recommended)
 
 As explained before, we recommend to use systemd as service manager. In this case ```systemctl restart gitea``` should be enough.
 
-### 2. Restarting gitea without systemd
+### 2. Restarting Gitea without systemd
 
-To restart your gitea instance, we recommend to use SIGHUP signal. If you know your gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
+To restart your Gitea instance, we recommend to use SIGHUP signal. If you know your Gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
 
-To gracefully stop the gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
+To gracefully stop the Gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
 
 **NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you may be forcefully stopping some of Gitea internal tasks and it will not gracefully stop (tasks in queues, indexers processes, etc.)
 
@@ -142,7 +146,7 @@ Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to loa
 Gitea binary, usually producing an error such as ```./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version `GLIBC\_2.14' not found (required by ./gitea)```. This is due to the integrated
 SQLite support in the binaries provided by dl.gitea.io. In this situation, it is usually
-possible to [install from source]({{< relref "from-source.en-us.md" >}}) without sqlite
+possible to [install from source]({{< relref "from-source.en-us.md" >}}) without SQLite
 support.
 
 ### Running Gitea on another port
@@ -164,7 +168,7 @@ please remove after fixing the arm7 bug
 ### Git error after updating to a new version of Gitea
 
 If the binary file name has been changed during the update to a new version of Gitea,
-git hooks in existing repositories will not work any more. In that case, a git
+Git Hooks in existing repositories will not work any more. In that case, a Git
 error will be displayed when pushing to the repository.
 
 ```
@@ -176,7 +180,7 @@ binary.
 
 To solve this, go to the admin options and run the task `Resynchronize pre-receive,
 update and post-receive hooks of all repositories` to update all hooks to contain
-the new binary path. Please note that this overwrite all git hooks including ones
+the new binary path. Please note that this overwrite all Git Hooks including ones
 with customizations made.
 
 If you aren't using the built-in to Gitea SSH server you will also need to re-write

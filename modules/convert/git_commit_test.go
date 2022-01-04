@@ -8,20 +8,20 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestToCommitMeta(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
-	headRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	sha1, _ := git.NewIDFromString("0000000000000000000000000000000000000000")
-	signature := &object.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
+	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{
 		Name:    "Test Tag",
 		ID:      sha1,

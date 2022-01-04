@@ -6,36 +6,31 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
 const BranchPrefix = "refs/heads/"
 
+// AGit Flow
+
+// PullRequestPrefix sepcial ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
+// or refs/for/<targe-branch> -o topic='<topic-branch>'
+const PullRequestPrefix = "refs/for/"
+
+// TODO: /refs/for-review for suggest change interface
+
 // IsReferenceExist returns true if given reference exists in the repository.
-func IsReferenceExist(repoPath, name string) bool {
-	_, err := NewCommand("show-ref", "--verify", "--", name).RunInDir(repoPath)
+func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
+	_, err := NewCommandContext(ctx, "show-ref", "--verify", "--", name).RunInDir(repoPath)
 	return err == nil
 }
 
 // IsBranchExist returns true if given branch exists in the repository.
-func IsBranchExist(repoPath, name string) bool {
-	return IsReferenceExist(repoPath, BranchPrefix+name)
-}
-
-// IsBranchExist returns true if given branch exists in current repository.
-func (repo *Repository) IsBranchExist(name string) bool {
-	if name == "" {
-		return false
-	}
-	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
-	if err != nil {
-		return false
-	}
-	return reference.Type() != plumbing.InvalidReference
+func IsBranchExist(ctx context.Context, repoPath, name string) bool {
+	return IsReferenceExist(ctx, repoPath, BranchPrefix+name)
 }
 
 // Branch represents a Git branch.
@@ -51,7 +46,7 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout, err := NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout, err := NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -70,32 +65,13 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	_, err := NewCommand("symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
+	_, err := NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
 	return err
 }
 
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
-	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
-}
-
-// GetBranches returns all branches of the repository.
-func (repo *Repository) GetBranches() ([]string, error) {
-	var branchNames []string
-
-	branches, err := repo.gogitRepo.Branches()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = branches.ForEach(func(branch *plumbing.Reference) error {
-		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
-		return nil
-	})
-
-	// TODO: Sort?
-
-	return branchNames, nil
+	return NewCommandContext(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
 }
 
 // GetBranch returns a branch by it's name
@@ -111,28 +87,34 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 }
 
 // GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
+// if limit = 0 it will not limit
+func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
 	gitRepo, err := OpenRepository(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer gitRepo.Close()
 
-	brs, err := gitRepo.GetBranches()
+	return gitRepo.GetBranches(skip, limit)
+}
+
+// GetBranches returns a slice of *git.Branch
+func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
+	brs, countAll, err := repo.GetBranchNames(skip, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	branches := make([]*Branch, len(brs))
 	for i := range brs {
 		branches[i] = &Branch{
-			Path:    path,
+			Path:    repo.Path,
 			Name:    brs[i],
-			gitRepo: gitRepo,
+			gitRepo: repo,
 		}
 	}
 
-	return branches, nil
+	return branches, countAll, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch
@@ -142,7 +124,7 @@ type DeleteBranchOptions struct {
 
 // DeleteBranch delete a branch by name on repository.
 func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) error {
-	cmd := NewCommand("branch")
+	cmd := NewCommandContext(repo.Ctx, "branch")
 
 	if opts.Force {
 		cmd.AddArguments("-D")
@@ -158,7 +140,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 
 // CreateBranch create a new branch
 func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
-	cmd := NewCommand("branch")
+	cmd := NewCommandContext(repo.Ctx, "branch")
 	cmd.AddArguments("--", branch, oldbranchOrCommit)
 
 	_, err := cmd.RunInDir(repo.Path)
@@ -168,7 +150,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	cmd := NewCommand("remote", "add")
+	cmd := NewCommandContext(repo.Ctx, "remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
 	}
@@ -180,11 +162,17 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path)
+	_, err := NewCommandContext(repo.Ctx, "remote", "rm", name).RunInDir(repo.Path)
 	return err
 }
 
 // GetCommit returns the head commit of a branch
 func (branch *Branch) GetCommit() (*Commit, error) {
 	return branch.gitRepo.GetBranchCommit(branch.Name)
+}
+
+// RenameBranch rename a branch
+func (repo *Repository) RenameBranch(from, to string) error {
+	_, err := NewCommandContext(repo.Ctx, "branch", "-m", from, to).RunInDir(repo.Path)
+	return err
 }

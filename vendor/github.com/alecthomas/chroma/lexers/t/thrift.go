@@ -6,14 +6,18 @@ import (
 )
 
 // Thrift lexer.
-var Thrift = internal.Register(MustNewLexer(
+var Thrift = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Thrift",
 		Aliases:   []string{"thrift"},
 		Filenames: []string{"*.thrift"},
 		MimeTypes: []string{"application/x-thrift"},
 	},
-	Rules{
+	thriftRules,
+))
+
+func thriftRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			Include("comments"),
@@ -69,5 +73,5 @@ var Thrift = internal.Register(MustNewLexer(
 			{`[+-]?0x[0-9A-Fa-f]+`, LiteralNumberHex, nil},
 			{`[+-]?[0-9]+`, LiteralNumberInteger, nil},
 		},
-	},
-))
+	}
+}

@@ -2,8 +2,11 @@
 .di { display: inline !important; }
 .dif { display: inline-flex !important; }
 .dib { display: inline-block !important; }
+.pr { position: relative !important; }
 .ac { align-items: center !important; }
 .tc { text-align: center !important; }
+.tl { text-align: left !important; }
+.tdn { text-decoration: none !important; }
 .jc { justify-content: center !important; }
 .js { justify-content: flex-start !important; }
 .je { justify-content: flex-end !important; }
@@ -12,15 +15,24 @@
 .f1 { flex: 1 !important; }
 .fw { flex-wrap: wrap !important; }
 .vm { vertical-align: middle !important; }
+.w-100 { width: 100% !important; }
+.h-100 { height: 100% !important; }
 
 .mono {
   font-family: var(--fonts-monospace) !important;
-  font-size: .9em !important; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em !important; /* compensate for monospace fonts being usually slightly larger */
 }
+
+.bold { font-weight: 600 !important; }
 
 .word-break {
   word-wrap: break-word !important;
-  word-break: break-all !important;
+}
+
+.ellipsis {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
 }
 
 .full-screen-width { width: 100vw !important; }
@@ -31,6 +43,12 @@
 .rounded-bottom { border-radius: 0 0 var(--border-radius) var(--border-radius) !important; }
 .rounded-left { border-radius: var(--border-radius) 0 0 var(--border-radius) !important; }
 .rounded-right { border-radius: 0 var(--border-radius) var(--border-radius) 0 !important; }
+
+.border-secondary { border: 1px solid var(--color-secondary) !important; }
+.border-secondary-top { border-top: 1px solid var(--color-secondary) !important; }
+.border-secondary-bottom { border-bottom: 1px solid var(--color-secondary) !important; }
+.border-secondary-left { border-left: 1px solid var(--color-secondary) !important; }
+.border-secondary-right { border-right: 1px solid var(--color-secondary) !important; }
 
 .no-transition { transition: none !important; }
 

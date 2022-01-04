@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"sync"
+
+	"github.com/RoaringBitmap/roaring/internal"
 )
 
 // Bitmap represents a compressed bitmap where you can add integers.
@@ -52,27 +53,19 @@ func (rb *Bitmap) ToBytes() ([]byte, error) {
 	return rb.highlowcontainer.toBytes()
 }
 
-// Deprecated: WriteToMsgpack writes a msgpack2/snappy-streaming compressed serialized
-// version of this bitmap to stream. The format is not
-// compatible with the WriteTo() format, and is
-// experimental: it may produce smaller on disk
-// footprint and/or be faster to read, depending
-// on your content. Currently only the Go roaring
-// implementation supports this format.
-func (rb *Bitmap) WriteToMsgpack(stream io.Writer) (int64, error) {
-	return 0, rb.highlowcontainer.writeToMsgpack(stream)
-}
-
 // ReadFrom reads a serialized version of this bitmap from stream.
 // The format is compatible with other RoaringBitmap
 // implementations (Java, C) and is documented here:
 // https://github.com/RoaringBitmap/RoaringFormatSpec
-func (rb *Bitmap) ReadFrom(reader io.Reader) (p int64, err error) {
-	stream := byteInputAdapterPool.Get().(*byteInputAdapter)
-	stream.reset(reader)
+// Since io.Reader is regarded as a stream and cannot be read twice.
+// So add cookieHeader to accept the 4-byte data that has been read in roaring64.ReadFrom.
+// It is not necessary to pass cookieHeader when call roaring.ReadFrom to read the roaring32 data directly.
+func (rb *Bitmap) ReadFrom(reader io.Reader, cookieHeader ...byte) (p int64, err error) {
+	stream := internal.ByteInputAdapterPool.Get().(*internal.ByteInputAdapter)
+	stream.Reset(reader)
 
-	p, err = rb.highlowcontainer.readFrom(stream)
-	byteInputAdapterPool.Put(stream)
+	p, err = rb.highlowcontainer.readFrom(stream, cookieHeader...)
+	internal.ByteInputAdapterPool.Put(stream)
 
 	return
 }
@@ -100,28 +93,14 @@ func (rb *Bitmap) ReadFrom(reader io.Reader) (p int64, err error) {
 // call CloneCopyOnWriteContainers on all such bitmaps.
 //
 func (rb *Bitmap) FromBuffer(buf []byte) (p int64, err error) {
-	stream := byteBufferPool.Get().(*byteBuffer)
-	stream.reset(buf)
+	stream := internal.ByteBufferPool.Get().(*internal.ByteBuffer)
+	stream.Reset(buf)
 
 	p, err = rb.highlowcontainer.readFrom(stream)
-	byteBufferPool.Put(stream)
+	internal.ByteBufferPool.Put(stream)
 
 	return
 }
-
-var (
-	byteBufferPool = sync.Pool{
-		New: func() interface{} {
-			return &byteBuffer{}
-		},
-	}
-
-	byteInputAdapterPool = sync.Pool{
-		New: func() interface{} {
-			return &byteInputAdapter{}
-		},
-	}
-)
 
 // RunOptimize attempts to further compress the runs of consecutive values found in the bitmap
 func (rb *Bitmap) RunOptimize() {
@@ -131,14 +110,6 @@ func (rb *Bitmap) RunOptimize() {
 // HasRunCompression returns true if the bitmap benefits from run compression
 func (rb *Bitmap) HasRunCompression() bool {
 	return rb.highlowcontainer.hasRunCompression()
-}
-
-// Deprecated: ReadFromMsgpack reads a msgpack2/snappy-streaming serialized
-// version of this bitmap from stream. The format is
-// expected is that written by the WriteToMsgpack()
-// call; see additional notes there.
-func (rb *Bitmap) ReadFromMsgpack(stream io.Reader) (int64, error) {
-	return 0, rb.highlowcontainer.readFromMsgpack(stream)
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface for the bitmap
@@ -180,8 +151,7 @@ func (rb *Bitmap) ToArray() []uint32 {
 		hs := uint32(rb.highlowcontainer.getKeyAtIndex(pos)) << 16
 		c := rb.highlowcontainer.getContainerAtIndex(pos)
 		pos++
-		c.fillLeastSignificant16bits(array, pos2, hs)
-		pos2 += c.getCardinality()
+		pos2 = c.fillLeastSignificant16bits(array, pos2, hs)
 	}
 	return array
 }
@@ -571,7 +541,7 @@ func AddOffset64(x *Bitmap, offset int64) (answer *Bitmap) {
 			c := x.highlowcontainer.getContainerAtIndex(pos)
 			offsetted := c.addOffset(inOffset)
 
-			if offsetted[0].getCardinality() > 0 && (key >= 0 && key <= MaxUint16) {
+			if !offsetted[0].isEmpty() && (key >= 0 && key <= MaxUint16) {
 				curSize := answer.highlowcontainer.size()
 				lastkey := int32(0)
 
@@ -588,7 +558,7 @@ func AddOffset64(x *Bitmap, offset int64) (answer *Bitmap) {
 				}
 			}
 
-			if offsetted[1].getCardinality() > 0 && ((key+1) >= 0 && (key+1) <= MaxUint16) {
+			if !offsetted[1].isEmpty() && ((key+1) >= 0 && (key+1) <= MaxUint16) {
 				answer.highlowcontainer.appendContainer(uint16(key+1), offsetted[1], false)
 			}
 		}
@@ -659,13 +629,13 @@ func (rb *Bitmap) Remove(x uint32) {
 	if i >= 0 {
 		c := rb.highlowcontainer.getWritableContainerAtIndex(i).iremoveReturnMinimized(lowbits(x))
 		rb.highlowcontainer.setContainerAtIndex(i, c)
-		if rb.highlowcontainer.getContainerAtIndex(i).getCardinality() == 0 {
+		if rb.highlowcontainer.getContainerAtIndex(i).isEmpty() {
 			rb.highlowcontainer.removeAtIndex(i)
 		}
 	}
 }
 
-// CheckedRemove removes the integer x from the bitmap and return true if the integer was effectively remove (and false if the integer was not present)
+// CheckedRemove removes the integer x from the bitmap and return true if the integer was effectively removed (and false if the integer was not present)
 func (rb *Bitmap) CheckedRemove(x uint32) bool {
 	// TODO: add unit tests for this method
 	hb := highbits(x)
@@ -675,7 +645,7 @@ func (rb *Bitmap) CheckedRemove(x uint32) bool {
 		oldcard := C.getCardinality()
 		C = C.iremoveReturnMinimized(lowbits(x))
 		rb.highlowcontainer.setContainerAtIndex(i, C)
-		if rb.highlowcontainer.getContainerAtIndex(i).getCardinality() == 0 {
+		if rb.highlowcontainer.getContainerAtIndex(i).isEmpty() {
 			rb.highlowcontainer.removeAtIndex(i)
 			return true
 		}
@@ -730,8 +700,9 @@ func (rb *Bitmap) Select(x uint32) (uint32, error) {
 	remaining := x
 	for i := 0; i < rb.highlowcontainer.size(); i++ {
 		c := rb.highlowcontainer.getContainerAtIndex(i)
-		if remaining >= uint32(c.getCardinality()) {
-			remaining -= uint32(c.getCardinality())
+		card := uint32(c.getCardinality())
+		if remaining >= card {
+			remaining -= card
 		} else {
 			key := rb.highlowcontainer.getKeyAtIndex(i)
 			return uint32(key)<<16 + uint32(c.selectInt(uint16(remaining))), nil
@@ -758,7 +729,7 @@ main:
 					c1 := rb.highlowcontainer.getWritableContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.iand(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						rb.highlowcontainer.replaceKeyAndContainerAtIndex(intersectionsize, s1, diff, false)
 						intersectionsize++
 					}
@@ -960,7 +931,7 @@ func (rb *Bitmap) Xor(x2 *Bitmap) {
 			} else {
 				// TODO: couple be computed in-place for reduced memory usage
 				c := rb.highlowcontainer.getContainerAtIndex(pos1).xor(x2.highlowcontainer.getContainerAtIndex(pos2))
-				if c.getCardinality() > 0 {
+				if !c.isEmpty() {
 					rb.highlowcontainer.setContainerAtIndex(pos1, c)
 					pos1++
 				} else {
@@ -1040,7 +1011,7 @@ main:
 					c1 := rb.highlowcontainer.getWritableContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.iandNot(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						rb.highlowcontainer.replaceKeyAndContainerAtIndex(intersectionsize, s1, diff, false)
 						intersectionsize++
 					}
@@ -1149,7 +1120,7 @@ main:
 				C := x1.highlowcontainer.getContainerAtIndex(pos1)
 				C = C.and(x2.highlowcontainer.getContainerAtIndex(pos2))
 
-				if C.getCardinality() > 0 {
+				if !C.isEmpty() {
 					answer.highlowcontainer.appendContainer(s1, C, false)
 				}
 				pos1++
@@ -1196,7 +1167,7 @@ func Xor(x1, x2 *Bitmap) *Bitmap {
 				pos2++
 			} else {
 				c := x1.highlowcontainer.getContainerAtIndex(pos1).xor(x2.highlowcontainer.getContainerAtIndex(pos2))
-				if c.getCardinality() > 0 {
+				if !c.isEmpty() {
 					answer.highlowcontainer.appendContainer(s1, c, false)
 				}
 				pos1++
@@ -1239,7 +1210,7 @@ main:
 					c1 := x1.highlowcontainer.getContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.andNot(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						answer.highlowcontainer.appendContainer(s1, diff, false)
 					}
 					pos1++
@@ -1329,7 +1300,7 @@ func (rb *Bitmap) Flip(rangeStart, rangeEnd uint64) {
 
 		if i >= 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(i).inot(int(containerStart), int(containerLast)+1)
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(i, c)
 			} else {
 				rb.highlowcontainer.removeAtIndex(i)
@@ -1410,7 +1381,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 			return
 		}
 		c := rb.highlowcontainer.getWritableContainerAtIndex(i).iremoveRange(int(lbStart), int(lbLast+1))
-		if c.getCardinality() > 0 {
+		if !c.isEmpty() {
 			rb.highlowcontainer.setContainerAtIndex(i, c)
 		} else {
 			rb.highlowcontainer.removeAtIndex(i)
@@ -1423,7 +1394,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 	if ifirst >= 0 {
 		if lbStart != 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(ifirst).iremoveRange(int(lbStart), int(max+1))
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(ifirst, c)
 				ifirst++
 			}
@@ -1434,7 +1405,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 	if ilast >= 0 {
 		if lbLast != max {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(ilast).iremoveRange(int(0), int(lbLast+1))
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(ilast, c)
 			} else {
 				ilast++
@@ -1490,7 +1461,7 @@ func Flip(bm *Bitmap, rangeStart, rangeEnd uint64) *Bitmap {
 
 		if i >= 0 {
 			c := bm.highlowcontainer.getContainerAtIndex(i).not(int(containerStart), int(containerLast)+1)
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				answer.highlowcontainer.insertNewKeyValueAt(-j-1, uint16(hb), c)
 			}
 
@@ -1580,4 +1551,28 @@ func (rb *Bitmap) Stats() Statistics {
 		}
 	}
 	return stats
+}
+
+func (rb *Bitmap) checkValidity() bool {
+	for _, c := range rb.highlowcontainer.containers {
+
+		switch c.(type) {
+		case *arrayContainer:
+			if c.getCardinality() > arrayDefaultMaxSize {
+				fmt.Println("Array containers are limited to size ", arrayDefaultMaxSize)
+				return false
+			}
+		case *bitmapContainer:
+			if c.getCardinality() <= arrayDefaultMaxSize {
+				fmt.Println("Bitmaps would be more concise as an array!")
+				return false
+			}
+		case *runContainer16:
+			if c.getSizeInBytes() > minOfInt(bitmapContainerSizeInBytes(), arrayContainerSizeInBytes(c.getCardinality())) {
+				fmt.Println("Inefficient run container!")
+				return false
+			}
+		}
+	}
+	return true
 }

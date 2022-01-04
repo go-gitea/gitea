@@ -69,13 +69,13 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - Logging
 - Configuration
     - Databases
-        - MySQL
-        - PostgreSQL
+        - MySQL (>=5.7)
+        - PostgreSQL (>=10)
         - SQLite3
-        - MSSQL
-        - TiDB (experimental, not recommended)
+        - MSSQL (>=2008R2 SP3)
+        - TiDB (MySQL protocol)
     - Configuration file
-        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
     - Admin panel
         - Statistics
         - Actions
@@ -99,7 +99,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Maximum repositories
             - Disable account
             - Admin permissions
-            - Permission to create git hooks
+            - Permission to create Git Hooks
             - Permission to create organizations
             - Permission to import repositories
         - Organization management
@@ -117,7 +117,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - Configuration viewer
             - Everything in config file
         - System notices
-            - When somthing unexpected happens
+            - When something unexpected happens
         - Monitoring
             - Current processes
             - Cron jobs
@@ -127,7 +127,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
                 - Clean up old archives
     - Environment variables
     - Command line options
-- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/master/options/locale))
+- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
 - [Mermaid](https://mermaidjs.github.io/) Diagram support
 - Mail service
     - Notifications
@@ -155,7 +155,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Libravatar
             - Custom
         - Password
-        - Mutiple email addresses
+        - Multiple email addresses
         - SSH Keys
         - Connected applications
         - Two factor authentication
@@ -247,7 +247,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Default branch
             - Branch protection
         - Webhooks
-        - Git hooks
+        - Git Hooks
         - Deploy keys
 
 ## System Requirements
@@ -257,18 +257,18 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 - [Git](https://git-scm.com/) version 1.7.2 or later is required. Version 1.9.0 or later is recommended. Also please note:
-   - Git [large file storage](https://git-lfs.github.com/) will be available if enabled when git >= 2.1.2.
-   - Git commit-graph rendering will be enabled automatically when git >= 2.18.
+   - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled when Git >= 2.1.2.
+   - Git commit-graph rendering will be enabled automatically when Git >= 2.18.
 
 ## Browser Support
 
-- Last 2 versions of Chrome, Firefox, Safari, Edge (EdgeHTML) and Edge (Chromium)
+- Last 2 versions of Chrome, Firefox, Safari and Edge
 - Firefox ESR
 
 ## Components
 
-* Web framework: [Macaron](http://go-macaron.com/)
-* ORM: [XORM](https://github.com/go-xorm/xorm)
+* Web framework: [Chi](http://github.com/go-chi/chi)
+* ORM: [XORM](https://xorm.io)
 * UI components:
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)

@@ -6,7 +6,7 @@ package log
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -20,7 +20,7 @@ func listenReadAndClose(t *testing.T, l net.Listener, expected string) {
 	conn, err := l.Accept()
 	assert.NoError(t, err)
 	defer conn.Close()
-	written, err := ioutil.ReadAll(conn)
+	written, err := io.ReadAll(conn)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(written))
@@ -98,7 +98,8 @@ func TestConnLoggerBadConfig(t *testing.T) {
 	logger := NewConn()
 
 	err := logger.Init("{")
-	assert.Equal(t, "unexpected end of JSON input", err.Error())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Unable to parse JSON")
 	logger.Close()
 }
 

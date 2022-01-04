@@ -7,7 +7,6 @@ package log
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -102,7 +102,7 @@ func NewFileLogger() LoggerProvider {
 //	}
 func (log *FileLogger) Init(config string) error {
 	if err := json.Unmarshal([]byte(config), log); err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	if len(log.Filename) == 0 {
 		return errors.New("config must have filename")
@@ -176,7 +176,7 @@ func (log *FileLogger) DoRotate() error {
 
 		// close fd before rename
 		// Rename the file to its newfound home
-		if err = os.Rename(log.Filename, fname); err != nil {
+		if err = util.Rename(log.Filename, fname); err != nil {
 			return fmt.Errorf("Rotate: %v", err)
 		}
 

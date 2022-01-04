@@ -3,12 +3,17 @@
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{if .NeedUpdate}}
+			<div class="ui negative message flash-error">
+				<p>"Gitea {{.RemoteVersion | Str2html}} is now available, you are running {{.AppVer | Str2html}}. Check the <a href="https://blog.gitea.io">blog</a> for more details.</p>
+			</div>
+		{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.statistic"}}
 		</h4>
 		<div class="ui attached segment">
 			<p>
-				{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.LoginSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
+				{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
 			</p>
 		</div>
 		<h4 class="ui top attached header">
@@ -36,17 +41,17 @@
 							<td><button type="submit" class="ui green button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
-						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
-							{{.i18n.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
-						</tr>
+							<tr>
+								<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
+								{{.i18n.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
+								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							</tr>
+							<tr>
+								<td>{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
+								{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
+								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							</tr>
 						{{end}}
-						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
-							{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
-						</tr>
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
 							<td><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>

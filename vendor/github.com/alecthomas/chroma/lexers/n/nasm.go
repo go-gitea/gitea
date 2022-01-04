@@ -6,7 +6,7 @@ import (
 )
 
 // Nasm lexer.
-var Nasm = internal.Register(MustNewLexer(
+var Nasm = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "NASM",
 		Aliases:         []string{"nasm"},
@@ -14,7 +14,11 @@ var Nasm = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-nasm"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	nasmRules,
+))
+
+func nasmRules() Rules {
+	return Rules{
 		"root": {
 			{`^\s*%`, CommentPreproc, Push("preproc")},
 			Include("whitespace"),
@@ -55,5 +59,5 @@ var Nasm = internal.Register(MustNewLexer(
 			{`seg|wrt|strict`, OperatorWord, nil},
 			{`byte|[dq]?word`, KeywordType, nil},
 		},
-	},
-))
+	}
+}

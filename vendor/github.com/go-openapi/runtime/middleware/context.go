@@ -435,6 +435,10 @@ func (c *Context) Authorize(request *http.Request, route *MatchedRoute) (interfa
 	}
 	if route.Authorizer != nil {
 		if err := route.Authorizer.Authorize(request, usr); err != nil {
+			if _, ok := err.(errors.Error); ok {
+				return nil, nil, err
+			}
+
 			return nil, nil, errors.New(http.StatusForbidden, err.Error())
 		}
 	}

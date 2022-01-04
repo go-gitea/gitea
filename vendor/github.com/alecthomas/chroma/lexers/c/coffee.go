@@ -6,7 +6,7 @@ import (
 )
 
 // Coffeescript lexer.
-var Coffeescript = internal.Register(MustNewLexer(
+var Coffeescript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:         "CoffeeScript",
 		Aliases:      []string{"coffee-script", "coffeescript", "coffee"},
@@ -15,7 +15,11 @@ var Coffeescript = internal.Register(MustNewLexer(
 		NotMultiline: true,
 		DotAll:       true,
 	},
-	Rules{
+	coffeescriptRules,
+))
+
+func coffeescriptRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`###[^#].*?###`, CommentMultiline, nil},
@@ -87,5 +91,5 @@ var Coffeescript = internal.Register(MustNewLexer(
 			{`#|\\.|\'|"`, LiteralString, nil},
 			Include("strings"),
 		},
-	},
-))
+	}
+}

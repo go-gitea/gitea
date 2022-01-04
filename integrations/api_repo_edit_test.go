@@ -10,14 +10,17 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // getRepoEditOptionFromRepo gets the options for an existing repo exactly as is
-func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
+func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption {
 	name := repo.Name
 	description := repo.Description
 	website := repo.Website
@@ -25,7 +28,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	hasIssues := false
 	var internalTracker *api.InternalTracker
 	var externalTracker *api.ExternalTracker
-	if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -33,7 +36,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -44,9 +47,9 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -60,7 +63,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
@@ -130,17 +133,19 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 
 func TestAPIRepoEdit(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		bFalse, bTrue := false, true
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)               // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)               // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)               // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)   // public repo
+		repo15 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15}).(*repo_model.Repository) // empty repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository) // private repo
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session)
-		session = emptyTestSession(t)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session)
@@ -161,7 +166,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Website, repo.Website)
 		assert.Equal(t, *repoEditOption.Archived, repo.Archived)
 		// check repo1 from database
-		repo1edited := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 		repo1editedOption := getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repoEditOption.Name, *repo1editedOption.Name)
 		assert.Equal(t, *repoEditOption.Description, *repo1editedOption.Description)
@@ -186,7 +191,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
 		assert.Nil(t, repo1editedOption.ExternalTracker)
@@ -208,7 +213,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
@@ -218,15 +223,15 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Do some tests with invalid URL for external tracker and wiki
 		repoEditOption.ExternalTracker.ExternalTrackerURL = "htp://www.somewebsite.com"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		repoEditOption.ExternalTracker.ExternalTrackerURL = "http://www.somewebsite.com"
 		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user/{repo}?issue={index}"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user}/{repo}?issue={index}"
 		repoEditOption.ExternalWiki.ExternalWikiURL = "htp://www.somewebsite.com"
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 		//Test small repo change through API with issue and wiki option not set; They shall not be touched.
 		*repoEditOption.Description = "small change"
@@ -239,7 +244,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.Description, *repoEditOption.Description)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
@@ -284,21 +289,33 @@ func TestAPIRepoEdit(t *testing.T) {
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test making a repo public that is private
-		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+		repo16 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository)
 		assert.True(t, repo16.IsPrivate)
-		private := false
 		repoEditOption = &api.EditRepoOption{
-			Private: &private,
+			Private: &bFalse,
 		}
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
 		_ = session.MakeRequest(t, req, http.StatusOK)
-		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+		repo16 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository)
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
-		private = true
-		repoEditOption.Private = &private
+		repoEditOption.Private = &bTrue
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		_ = session.MakeRequest(t, req, http.StatusOK)
+
+		// Test to change empty repo
+		assert.False(t, repo15.IsArchived)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo15.Name, token2)
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			Archived: &bTrue,
+		})
+		_ = session.MakeRequest(t, req, http.StatusOK)
+		repo15 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 15}).(*repo_model.Repository)
+		assert.True(t, repo15.IsArchived)
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			Archived: &bFalse,
+		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator

@@ -6,14 +6,18 @@ import (
 )
 
 // Racket lexer.
-var Racket = internal.Register(MustNewLexer(
+var Racket = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Racket",
 		Aliases:   []string{"racket", "rkt"},
 		Filenames: []string{"*.rkt", "*.rktd", "*.rktl"},
 		MimeTypes: []string{"text/x-racket", "application/x-racket"},
 	},
-	Rules{
+	racketRules,
+))
+
+func racketRules() Rules {
+	return Rules{
 		"root": {
 			{`[)\]}]`, Error, nil},
 			{`(?!\Z)`, Text, Push("unquoted-datum")},
@@ -98,5 +102,5 @@ var Racket = internal.Register(MustNewLexer(
 			{`(?s)\\([0-7]{1,3}|x[\da-fA-F]{1,2}|u[\da-fA-F]{1,4}|U[\da-fA-F]{1,8}|.)`, LiteralStringEscape, nil},
 			{`[^\\"]+`, LiteralStringDouble, nil},
 		},
-	},
-))
+	}
+}

@@ -104,6 +104,7 @@ const (
 
 	DCP_SYSTEM_EVENT = CommandCode(0x5f) // A system event has occurred
 	DCP_SEQNO_ADV    = CommandCode(0x64) // Sent when the vb seqno has advanced due to an unsubscribed event
+	DCP_OSO_SNAPSHOT = CommandCode(0x65) // Marks the begin and end of out-of-sequence-number stream
 )
 
 // command codes that are counted toward DCP control buffer
@@ -117,6 +118,7 @@ var BufferedCommandCodeMap = map[CommandCode]bool{
 	UPR_EXPIRATION:   true,
 	DCP_SYSTEM_EVENT: true,
 	DCP_SEQNO_ADV:    true,
+	DCP_OSO_SNAPSHOT: true,
 }
 
 // Status field for memcached response.
@@ -156,6 +158,9 @@ const (
 	SUBDOC_PATH_NOT_FOUND             = Status(0xc0)
 	SUBDOC_BAD_MULTI                  = Status(0xcc)
 	SUBDOC_MULTI_PATH_FAILURE_DELETED = Status(0xd3)
+
+	// Not a Memcached status
+	UNKNOWN_STATUS = Status(0xffff)
 )
 
 // for log redaction
@@ -174,6 +179,10 @@ var isFatal = map[Status]bool{
 	EACCESS:       true,
 	ENOMEM:        true,
 	NOT_SUPPORTED: true,
+
+	// consider statuses coming from outside couchbase (eg OS errors) as fatal for the connection
+	// as there might be unread data left over on the wire
+	UNKNOWN_STATUS: true,
 }
 
 // the producer/consumer bit in dcp flags

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,9 +19,10 @@ func TestRepository_GetTags(t *testing.T) {
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	tags, err := bareRepo1.GetTagInfos(0, 0)
+	tags, total, err := bareRepo1.GetTagInfos(0, 0)
 	assert.NoError(t, err)
 	assert.Len(t, tags, 1)
+	assert.Equal(t, len(tags), total)
 	assert.EqualValues(t, "test", tags[0].Name)
 	assert.EqualValues(t, "3ad28a9149a2864384548f3d17ed7f38014c9e8a", tags[0].ID.String())
 	assert.EqualValues(t, "tag", tags[0].Type)
@@ -43,14 +45,17 @@ func TestRepository_GetTag(t *testing.T) {
 
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
 	aTagName := "annotatedTag"
-	aTagMessage := "my annotated message"
+	aTagMessage := "my annotated message \n - test two line"
 	bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
 	aTagID, _ := bareRepo1.GetTagID(aTagName)
 
 	lTag, err := bareRepo1.GetTag(lTagName)
-	lTag.repo = nil
 	assert.NoError(t, err)
 	assert.NotNil(t, lTag)
+	if lTag == nil {
+		assert.FailNow(t, "nil lTag: %s", lTagName)
+	}
+	lTag.repo = nil
 	assert.EqualValues(t, lTagName, lTag.Name)
 	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
 	assert.EqualValues(t, lTagCommitID, lTag.Object.String())
@@ -59,6 +64,9 @@ func TestRepository_GetTag(t *testing.T) {
 	aTag, err := bareRepo1.GetTag(aTagName)
 	assert.NoError(t, err)
 	assert.NotNil(t, aTag)
+	if aTag == nil {
+		assert.FailNow(t, "nil aTag: %s", aTagName)
+	}
 	assert.EqualValues(t, aTagName, aTag.Name)
 	assert.EqualValues(t, aTagID, aTag.ID.String())
 	assert.NotEqual(t, aTagID, aTag.Object.String())

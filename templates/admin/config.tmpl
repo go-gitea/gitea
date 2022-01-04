@@ -70,7 +70,7 @@
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
 					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
-					<dd>{{if not .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+					<dd>{{if .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
 					<dd>{{.SSH.Domain}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
@@ -119,7 +119,7 @@
 			<dl class="dl-horizontal admin-dl-horizontal">
 				<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
-				{{if not (or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb"))}}
+				{{if not (eq .DbCfg.Type "sqlite3")}}
 					<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
 					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
@@ -133,7 +133,7 @@
 					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
 					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}
-				{{if or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb")}}
+				{{if eq .DbCfg.Type "sqlite3"}}
 					<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
 					<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}}</dd>
 				{{end}}
@@ -149,6 +149,8 @@
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
 				<dd>{{if .Service.DisableRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.allow_only_internal_registration"}}</dt>
+				<dd>{{if .Service.AllowOnlyInternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.allow_only_external_registration"}}</dt>
 				<dd>{{if .Service.AllowOnlyExternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>
@@ -340,11 +342,13 @@
 					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 				{{end}}
 				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.macaron_log_mode"}}</dt>
-				{{if .RedirectMacaronLog}}
-					{{if .Loggers.macaron.SubLogDescriptions}}
+				<dt>{{$.i18n.Tr "admin.config.router_log_mode"}}</dt>
+				{{if .DisableRouterLog}}
+					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+				{{else}}
+					{{if .Loggers.router.SubLogDescriptions}}
 						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
-						{{range .Loggers.macaron.SubLogDescriptions}}
+						{{range .Loggers.router.SubLogDescriptions}}
 							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
 							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
@@ -352,29 +356,6 @@
 						{{end}}
 					{{else}}
 						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
-					{{end}}
-				{{else}}
-					<dd>{{$.i18n.Tr "admin.config.go_log"}}</dd>
-				{{end}}
-				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.router_log_mode"}}</dt>
-				{{if .DisableRouterLog}}
-					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
-				{{else}}
-					{{if .RedirectMacaronLog}}
-						{{if .Loggers.router.SubLogDescriptions}}
-							<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
-							{{range .Loggers.router.SubLogDescriptions}}
-								<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
-								<dd>{{.Name}} ({{.Provider}})</dd>
-								<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
-								<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
-							{{end}}
-						{{else}}
-							<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
-						{{end}}
-					{{else}}
-						<dd>{{$.i18n.Tr "admin.config.go_log"}}</dd>
 					{{end}}
 				{{end}}
 				<div class="ui divider"></div>

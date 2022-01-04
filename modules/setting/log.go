@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"encoding/json"
 	"fmt"
 	golog "log"
 	"os"
@@ -14,13 +13,13 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 
 	ini "gopkg.in/ini.v1"
 )
 
 var filenameSuffix = ""
-
 var descriptionLock = sync.RWMutex{}
 var logDescriptions = make(map[string]*LogDescription)
 
@@ -68,7 +67,7 @@ func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool 
 }
 
 // RemoveSubLogDescription removes a sub log description
-func RemoveSubLogDescription(key string, name string) bool {
+func RemoveSubLogDescription(key, name string) bool {
 	descriptionLock.Lock()
 	defer descriptionLock.Unlock()
 	desc, ok := logDescriptions[key]
@@ -94,7 +93,7 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel,
+		levelName:      LogLevel.String(),
 		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
@@ -115,19 +114,18 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("info")
-	return log.FromString(value).String()
+func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+	value := section.Key(key).MustString(defaultValue.String())
+	return log.FromString(value)
 }
 
-func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	levelName = getLogLevel(sec, "LEVEL", LogLevel)
-	level := log.FromString(levelName)
+	level := getLogLevel(sec, "LEVEL", LogLevel)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -204,7 +202,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	}
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
-
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
@@ -254,17 +251,6 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	return &description
 }
 
-func newMacaronLogService() {
-	options := newDefaultLogOptions()
-	options.filename = filepath.Join(LogRootPath, "macaron.log")
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-
-	Cfg.Section("log").Key("MACARON").MustString("file")
-	if RedirectMacaronLog {
-		generateNamedLogger("macaron", options)
-	}
-}
-
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
@@ -284,7 +270,7 @@ func newRouterLogService() {
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
-	if !DisableRouterLog && RedirectMacaronLog {
+	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags
@@ -298,6 +284,7 @@ func newLogService() {
 
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
 
 	description := LogDescription{
 		Name: log.DEFAULT,
@@ -360,7 +347,6 @@ func RestartLogsWithPIDSuffix() {
 // NewLogServices creates all the log services
 func NewLogServices(disableConsole bool) {
 	newLogService()
-	newMacaronLogService()
 	newRouterLogService()
 	newAccessLogService()
 	NewXORMLogService(disableConsole)

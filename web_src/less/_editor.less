@@ -1,23 +1,3 @@
-.EasyMDEContainer .CodeMirror {
-  color: var(--color-input-text);
-  background-color: var(--color-input-background);
-  border-color: var(--color-secondary);
-  font: 14px var(--fonts-monospace);
-
-  .CodeMirror-cursor {
-    border-left: 1px solid var(--color-input-text);
-  }
-
-  &.cm-s-default {
-    border-radius: 3px;
-    padding: 0 !important;
-  }
-
-  .cm-comment {
-    background: inherit !important;
-  }
-}
-
 .repository.file.editor .tab[data-tab="write"] {
   padding: 0 !important;
 }
@@ -35,6 +15,10 @@
 .editor-toolbar {
   opacity: 1 !important;
   border-color: var(--color-secondary);
+}
+
+.editor-toolbar.fullscreen {
+  background: var(--color-body);
 }
 
 .editor-toolbar button {
@@ -59,6 +43,28 @@
   background: var(--color-active);
 }
 
+/* hide preview button, we have the preview tab for this */
+.editor-toolbar:not(.fullscreen) .preview {
+  display: none;
+}
+
+/* hide revert button in fullscreen, it breaks the page */
+.editor-toolbar.fullscreen .revert-to-textarea {
+  display: none;
+}
+
+.editor-preview {
+  background-color: var(--color-body);
+}
+
+.editor-preview-side {
+  border-color: var(--color-secondary);
+}
+
+.editor-statusbar {
+  color: var(--color-text-light);
+}
+
 .editor-loading {
   padding: 1rem;
   text-align: center;
@@ -73,26 +79,4 @@
   border-bottom: none !important;
   border-left: 1px solid var(--color-secondary) !important;
   border-right: 1px solid var(--color-secondary) !important;
-}
-
-.monaco-editor-container {
-  width: 100%;
-  min-height: 200px;
-  height: 90vh;
-}
-
-/* overwrite conflicting styles from fomantic */
-.monaco-editor-container .inputarea {
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  resize: none !important;
-  border: none !important;
-  color: transparent !important;
-  background-color: transparent !important;
-}
-
-.edit.githook .monaco-editor-container {
-  border: 1px solid var(--color-secondary);
-  height: 70vh;
 }

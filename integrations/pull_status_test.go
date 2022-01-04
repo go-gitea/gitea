@@ -33,12 +33,12 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
+		NewHTMLParser(t, resp.Body)
 
 		// Request repository commits page
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1/commits")
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
+		doc := NewHTMLParser(t, resp.Body)
 
 		// Get first commit URL
 		commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Last().Attr("href")
@@ -70,7 +70,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			token := getTokenForLoggedInUser(t, session)
 			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user1/repo1/statuses/%s?token=%s", commitID, token),
 				api.CreateStatusOption{
-					State:       api.StatusState(status),
+					State:       status,
 					TargetURL:   "http://test.ci/",
 					Description: "",
 					Context:     "testci",
@@ -115,6 +115,6 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
-		assert.Contains(t, text, "This pull request can be merged automatically.")
+		assert.Contains(t, text, "This branch is equal with the target branch.")
 	})
 }

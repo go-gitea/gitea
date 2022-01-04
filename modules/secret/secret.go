@@ -13,29 +13,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
-// New creats a new secret
+// New creates a new secret
 func New() (string, error) {
-	return NewWithLength(32)
+	return NewWithLength(44)
 }
 
 // NewWithLength creates a new secret for a given length
 func NewWithLength(length int64) (string, error) {
-	return randomString(length)
-}
-
-func randomBytes(len int64) ([]byte, error) {
-	b := make([]byte, len)
-	if _, err := rand.Read(b); err != nil {
-		return nil, err
-	}
-	return b, nil
-}
-
-func randomString(len int64) (string, error) {
-	b, err := randomBytes(len)
-	return base64.URLEncoding.EncodeToString(b), err
+	return util.RandomString(length)
 }
 
 // AesEncrypt encrypts text and given key with AES.
@@ -76,7 +65,7 @@ func AesDecrypt(key, text []byte) ([]byte, error) {
 }
 
 // EncryptSecret encrypts a string with given key into a hex string
-func EncryptSecret(key string, str string) (string, error) {
+func EncryptSecret(key, str string) (string, error) {
 	keyHash := sha256.Sum256([]byte(key))
 	plaintext := []byte(str)
 	ciphertext, err := AesEncrypt(keyHash[:], plaintext)
@@ -87,7 +76,7 @@ func EncryptSecret(key string, str string) (string, error) {
 }
 
 // DecryptSecret decrypts a previously encrypted hex string
-func DecryptSecret(key string, cipherhex string) (string, error) {
+func DecryptSecret(key, cipherhex string) (string, error) {
 	keyHash := sha256.Sum256([]byte(key))
 	ciphertext, err := hex.DecodeString(cipherhex)
 	if err != nil {

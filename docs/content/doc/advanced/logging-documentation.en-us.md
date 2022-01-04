@@ -27,7 +27,6 @@ The fundamental thing to be aware of in Gitea is that there are several
 log groups:
 
 - The "Default" logger
-- The Macaron logger
 - The Router logger
 - The Access logger
 - The XORM logger
@@ -67,44 +66,14 @@ The provider type of the sublogger can be set using the `MODE` value in
 its subsection, but will default to the name. This allows you to have
 multiple subloggers that will log to files.
 
-### The "Macaron" logger
-
-By default Macaron will log to its own go `log` instance. This writes
-to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
-section which you can configure the outputs of by setting the `MACARON`
-value in the `[log]` section of the configuration. `MACARON` defaults
-to `file` if unset.
-
-Please note, the macaron logger will log at `INFO` level, setting the
-`LEVEL` of this logger to `WARN` or above will result in no macaron logs.
-
-Each output sublogger for this logger is configured in
-`[log.sublogger.macaron]` sections. There are certain default values
-which will not be inherited from the `[log]` or relevant
-`[log.sublogger]` sections:
-
-- `FLAGS` is `stdflags` (Equal to
-  `date,time,medfile,shortfuncname,levelinitial`)
-- `FILE_NAME` will default to `%(ROOT_PATH)/macaron.log`
-- `EXPRESSION` will default to `""`
-- `PREFIX` will default to `""`
-
-NB: You can redirect the macaron logger to send its events to the gitea
-log using the value: `MACARON = ,`
-
 ### The "Router" logger
 
-There are two types of Router log. By default Macaron send its own
-router log which will be directed to Macaron's go `log`, however if you
-`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
-disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
+You can disable Router log by setting `DISABLE_ROUTER_LOG`.
 
-If you enable the redirect, you can configure the outputs of this
+You can configure the outputs of this
 router log by setting the `ROUTER` value in the `[log]` section of the
 configuration. `ROUTER` will default to `console` if unset. The Gitea
-Router logs the same data as the Macaron log but has slightly different
-coloring. It logs at the `Info` level by default, but this can be
+Router logs at the `Info` level by default, but this can be
 changed if desired by setting the `ROUTER_LOG_LEVEL` value.
 
 Please note, setting the `LEVEL` of this logger to a level above
@@ -162,11 +131,11 @@ This value represent a go template. It's default value is:
 
 The template is passed following options:
 
-- `Ctx` is the `macaron.Context`
+- `Ctx` is the `context.Context`
 - `Identity` is the `SignedUserName` or `"-"` if the user is not logged
   in
 - `Start` is the start time of the request
-- `ResponseWriter` is the `macaron.ResponseWriter`
+- `ResponseWriter` is the `http.ResponseWriter`
 
 Caution must be taken when changing this template as it runs outside of
 the standard panic recovery trap. The template should also be as simple
@@ -211,7 +180,7 @@ Certain configuration is common to all modes of log output:
 - `STACKTRACE_LEVEL` is the lowest level that this output will print
   a stacktrace. This value is inherited.
 - `MODE` is the mode of the log output. It will default to the sublogger
-  name. Thus `[log.console.macaron]` will default to `MODE = console`.
+  name. Thus `[log.console.router]` will default to `MODE = console`.
 - `COLORIZE` will default to `true` for `console` as
   described, otherwise it will default to `false`.
 
@@ -309,13 +278,11 @@ LOG_SQL = false ; SQL logs are rarely helpful unless we specifically ask for the
 [log]
 MODE = console
 LEVEL = debug ; please set the level to debug when we are debugging a problem
-REDIRECT_MACARON_LOG = true
-MACARON = console
 ROUTER = console
 COLORIZE = false ; this can be true if you can strip out the ansi coloring
 ```
 
-Sometimes it will be helpful get some specific `TRACE` level logging retricted
+Sometimes it will be helpful get some specific `TRACE` level logging restricted
 to messages that match a specific `EXPRESSION`. Adjusting the `MODE` in the
 `[log]` section to `MODE = console,traceconsole` to add a new logger output
 `traceconsole` and then adding its corresponding section would be helpful:
@@ -343,7 +310,6 @@ ROOT_PATH = %(GITEA_WORK_DIR)/log
 MODE = console
 LEVEL = Info
 STACKTRACE_LEVEL = None
-REDIRECT_MACARON_LOG = false
 ENABLE_ACCESS_LOG = false
 ENABLE_XORM_LOG = true
 XORM = ,
@@ -362,19 +328,19 @@ This is equivalent to sending all logs to the console, with default go log being
 ## Releasing-and-Reopening, Pausing and Resuming logging
 
 If you are running on Unix you may wish to release-and-reopen logs in order to use `logrotate` or other tools.
-It is possible force gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
+It is possible force Gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
 running process, or running `gitea manager logging release-and-reopen`.
 
 Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the
 `gitea manager logging pause` and `gitea manager logging resume` commands. Please note that whilst logging
 is paused log events below INFO level will not be stored and only a limited number of events will be stored.
-Logging may block, albeit temporarily, slowing gitea considerably whilst paused - therefore it is
+Logging may block, albeit temporarily, slowing Gitea considerably whilst paused - therefore it is
 recommended that pausing only done for a very short period of time.
 
 ## Adding and removing logging whilst Gitea is running
 
 It is possible to add and remove logging whilst Gitea is running using the `gitea manager logging add` and `remove` subcommands.
-This functionality can only adjust running log systems and cannot be used to start the access, macaron or router loggers if they
+This functionality can only adjust running log systems and cannot be used to start the access or router loggers if they
 were not already initialised. If you wish to start these systems you are advised to adjust the app.ini and (gracefully) restart
 the Gitea service.
 
@@ -471,7 +437,8 @@ Gitea includes built-in log rotation, which should be enough for most deployment
 
 - Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
 - Install `logrotate`.
-- Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10`, or run `gitea manager logging release-and-reopen` (with the appropriate environment). Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
-- Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
+- Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10` to the `gitea` process itself, or run `gitea manager logging release-and-reopen` (with the appropriate environment). Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
+- Always do `logrotate /etc/logrotate.conf --debug` to test your configurations. 
+- If you are using docker and are running from outside of the container you can use `docker exec -u $OS_USER $CONTAINER_NAME sh -c 'gitea manager logging release-and-reopen'` or `docker exec $CONTAINER_NAME sh -c '/bin/s6-svc -1 /etc/s6/gitea/'` or send `USR1` directly to the Gitea process itself.
 
 The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.

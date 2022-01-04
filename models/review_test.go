@@ -7,11 +7,14 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetReviewByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	review, err := GetReviewByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, "Demo Review", review.Content)
@@ -23,24 +26,23 @@ func TestGetReviewByID(t *testing.T) {
 }
 
 func TestReview_LoadAttributes(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	review := AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
 	assert.NoError(t, review.LoadAttributes())
 	assert.NotNil(t, review.Issue)
 	assert.NotNil(t, review.Reviewer)
 
-	invalidReview1 := AssertExistsAndLoadBean(t, &Review{ID: 2}).(*Review)
+	invalidReview1 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 2}).(*Review)
 	assert.Error(t, invalidReview1.LoadAttributes())
 
-	invalidReview2 := AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
+	invalidReview2 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
 	assert.Error(t, invalidReview2.LoadAttributes())
-
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	review := AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
+	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
 	assert.NoError(t, review.LoadAttributes())
 	assert.NoError(t, review.LoadCodeComments())
 	assert.Len(t, review.CodeComments, 1)
@@ -57,7 +59,7 @@ func TestReviewType_Icon(t *testing.T) {
 }
 
 func TestFindReviews(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	reviews, err := FindReviews(FindReviewOptions{
 		Type:       ReviewTypeApprove,
 		IssueID:    2,
@@ -69,9 +71,9 @@ func TestFindReviews(t *testing.T) {
 }
 
 func TestGetCurrentReview(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	review, err := GetCurrentReview(user, issue)
 	assert.NoError(t, err)
@@ -79,7 +81,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.Equal(t, ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 7}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7}).(*user_model.User)
 	review2, err := GetCurrentReview(user2, issue)
 	assert.Error(t, err)
 	assert.True(t, IsErrReviewNotExist(err))
@@ -87,10 +89,10 @@ func TestGetCurrentReview(t *testing.T) {
 }
 
 func TestCreateReview(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	review, err := CreateReview(CreateReviewOptions{
 		Content:  "New Review",
@@ -100,16 +102,16 @@ func TestCreateReview(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "New Review", review.Content)
-	AssertExistsAndLoadBean(t, &Review{Content: "New Review"})
+	unittest.AssertExistsAndLoadBean(t, &Review{Content: "New Review"})
 }
 
 func TestGetReviewersByIssueID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 
 	expectedReviews := []*Review{}
 	expectedReviews = append(expectedReviews,
@@ -141,4 +143,60 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
 		}
 	}
+}
+
+func TestDismissReview(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	rejectReviewExample := unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample := unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	approveReviewExample := unittest.AssertExistsAndLoadBean(t, &Review{ID: 8}).(*Review)
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(rejectReviewExample, true))
+	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, true))
+	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, true))
+	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, false))
+	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, false))
+	rejectReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = unittest.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(rejectReviewExample, false))
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(approveReviewExample, true))
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.True(t, approveReviewExample.Dismissed)
+
 }

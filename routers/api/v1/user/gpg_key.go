@@ -5,17 +5,20 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOptions) {
-	keys, err := models.ListGPGKeys(uid, listOptions)
+func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
+	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
@@ -26,6 +29,13 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOpti
 		apiKeys[i] = convert.ToGPGKey(keys[i])
 	}
 
+	total, err := asymkey_model.CountUserGPGKeys(uid)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
@@ -104,9 +114,9 @@ func GetGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := models.GetGPGKeyByID(ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetGPGKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrGPGKeyNotExist(err) {
+		if asymkey_model.IsErrGPGKeyNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetGPGKeyByID", err)
@@ -118,12 +128,82 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
-	keys, err := models.AddGPGKey(uid, form.ArmoredKey)
+	token := asymkey_model.VerificationToken(ctx.User, 1)
+	lastToken := asymkey_model.VerificationToken(ctx.User, 0)
+
+	keys, err := asymkey_model.AddGPGKey(uid, form.ArmoredKey, token, form.Signature)
+	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
+		keys, err = asymkey_model.AddGPGKey(uid, form.ArmoredKey, lastToken, form.Signature)
+	}
 	if err != nil {
-		HandleAddGPGKeyError(ctx, err)
+		HandleAddGPGKeyError(ctx, err, token)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToGPGKey(keys[0]))
+}
+
+// GetVerificationToken returns the current token to be signed for this user
+func GetVerificationToken(ctx *context.APIContext) {
+	// swagger:operation GET /user/gpg_key_token user getVerificationToken
+	// ---
+	// summary: Get a Token to verify
+	// produces:
+	// - text/plain
+	// parameters:
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	token := asymkey_model.VerificationToken(ctx.User, 1)
+	ctx.PlainText(http.StatusOK, token)
+}
+
+// VerifyUserGPGKey creates new GPG key to given user by ID.
+func VerifyUserGPGKey(ctx *context.APIContext) {
+	// swagger:operation POST /user/gpg_key_verify user userVerifyGPGKey
+	// ---
+	// summary: Verify a GPG key
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/GPGKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
+	token := asymkey_model.VerificationToken(ctx.User, 1)
+	lastToken := asymkey_model.VerificationToken(ctx.User, 0)
+
+	_, err := asymkey_model.VerifyGPGKey(ctx.User.ID, form.KeyID, token, form.Signature)
+	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {
+		_, err = asymkey_model.VerifyGPGKey(ctx.User.ID, form.KeyID, lastToken, form.Signature)
+	}
+
+	if err != nil {
+		if asymkey_model.IsErrGPGInvalidTokenSignature(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "GPGInvalidSignature", fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "VerifyUserGPGKey", err)
+	}
+
+	key, err := asymkey_model.GetGPGKeysByKeyID(form.KeyID)
+	if err != nil {
+		if asymkey_model.IsErrGPGKeyNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetGPGKeysByKeyID", err)
+		}
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToGPGKey(key[0]))
 }
 
 // swagger:parameters userCurrentPostGPGKey
@@ -133,7 +213,7 @@ type swaggerUserCurrentPostGPGKey struct {
 }
 
 //CreateGPGKey create a GPG key belonging to the authenticated user
-func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
+func CreateGPGKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/gpg_keys user userCurrentPostGPGKey
 	// ---
 	// summary: Create a GPG key
@@ -149,7 +229,8 @@ func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	CreateUserGPGKey(ctx, form, ctx.User.ID)
+	form := web.GetForm(ctx).(*api.CreateGPGKeyOption)
+	CreateUserGPGKey(ctx, *form, ctx.User.ID)
 }
 
 //DeleteGPGKey remove a GPG key belonging to the authenticated user
@@ -174,8 +255,8 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := models.DeleteGPGKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrGPGKeyAccessDenied(err) {
+	if err := asymkey_model.DeleteGPGKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+		if asymkey_model.IsErrGPGKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteGPGKey", err)
@@ -187,16 +268,18 @@ func DeleteGPGKey(ctx *context.APIContext) {
 }
 
 // HandleAddGPGKeyError handle add GPGKey error
-func HandleAddGPGKeyError(ctx *context.APIContext, err error) {
+func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	switch {
-	case models.IsErrGPGKeyAccessDenied(err):
+	case asymkey_model.IsErrGPGKeyAccessDenied(err):
 		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyAccessDenied", "You do not have access to this GPG key")
-	case models.IsErrGPGKeyIDAlreadyUsed(err):
+	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyIDAlreadyUsed", "A key with the same id already exists")
-	case models.IsErrGPGKeyParsing(err):
+	case asymkey_model.IsErrGPGKeyParsing(err):
 		ctx.Error(http.StatusUnprocessableEntity, "GPGKeyParsing", err)
-	case models.IsErrGPGNoEmailFound(err):
-		ctx.Error(http.StatusNotFound, "GPGNoEmailFound", err)
+	case asymkey_model.IsErrGPGNoEmailFound(err):
+		ctx.Error(http.StatusNotFound, "GPGNoEmailFound", fmt.Sprintf("None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: %s", token))
+	case asymkey_model.IsErrGPGInvalidTokenSignature(err):
+		ctx.Error(http.StatusUnprocessableEntity, "GPGInvalidSignature", fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
 	default:
 		ctx.Error(http.StatusInternalServerError, "AddGPGKey", err)
 	}

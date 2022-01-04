@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -31,10 +33,18 @@ func TestRender_StandardLinks(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected, expectedWiki string) {
-		buffer := RenderString(input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		bufferWiki := RenderWiki([]byte(input), setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(bufferWiki))
+
+		buffer, err = RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+			IsWiki:    true,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
 	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
@@ -74,7 +84,10 @@ func TestRender_Images(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -82,10 +95,11 @@ func TestRender_Images(t *testing.T) {
 	title := "Train"
 	href := "https://gitea.io"
 	result := util.URLJoin(AppSubURL, url)
+	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -93,6 +107,19 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
+	url = "/../../.images/src/02/train.jpg"
+	test(
+		"!["+title+"]("+url+")",
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
+	test(
+		"[["+title+"|"+url+"]]",
+		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
+	test(
+		"[!["+title+"]("+url+")]("+href+")",
+		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
@@ -142,9 +169,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
 <ul>
-<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span></li>
-<li class="task-list-item"><span class="ui checked checkbox"><input type="checkbox" checked="" readonly="readonly"/><label>checked</label></span></li>
-<li class="task-list-item"><span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>still unchecked</label></span></li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
@@ -245,10 +272,18 @@ Here is a simple footnote,[^1] and here is a longer one.[^bignote]
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderWiki([]byte(sameCases[i]), AppSubURL, localMetas)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+			Metas:     localMetas,
+			IsWiki:    true,
+		}, sameCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
 	}
 
@@ -266,40 +301,56 @@ func TestTotal_RenderWiki(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderWiki([]byte(testCases[i]), AppSubURL, nil)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+			IsWiki:    true,
+		}, testCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), localMetas)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
+			Metas:     localMetas,
+		}, sameCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
 	}
 
 	testCases := []string{}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderString(testCases[i], AppSubURL, nil)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+		}, testCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		unix := []byte(str)
-		res := string(RenderRaw(unix, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		res, err := RenderRawString(&markup.RenderContext{}, str)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
-		mac := []byte(strings.ReplaceAll(str, "\n", "\r"))
-		res = string(RenderRaw(mac, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		mac := strings.ReplaceAll(str, "\n", "\r")
+		res, err = RenderRawString(&markup.RenderContext{}, mac)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
-		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
-		res = string(RenderRaw(dos, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		dos := strings.ReplaceAll(str, "\n", "\r\n")
+		res, err = RenderRawString(&markup.RenderContext{}, dos)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
 
 	test(t, "\nOne\nTwo\nThree", 1)
@@ -307,4 +358,46 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test(t, "\n\nOne\nTwo\nThree\n\n\n", 1)
 	test(t, "A\n\nB\nC\n", 2)
 	test(t, "A\n\n\nB\nC\n", 2)
+}
+
+func TestMarkdownRenderRaw(t *testing.T) {
+	testcases := [][]byte{
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6267570554535936
+			0x2a, 0x20, 0x2d, 0x0a, 0x09, 0x20, 0x60, 0x5b, 0x0a, 0x09, 0x20, 0x60,
+			0x5b,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6278827345051648
+			0x2d, 0x20, 0x2d, 0x0d, 0x09, 0x60, 0x0d, 0x09, 0x60,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6016973788020736[] = {
+			0x7b, 0x63, 0x6c, 0x61, 0x73, 0x73, 0x3d, 0x35, 0x7d, 0x0a, 0x3d,
+		},
+	}
+
+	for _, testcase := range testcases {
+		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
+		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
+		assert.NoError(t, err)
+	}
+}
+
+func TestRenderSiblingImages_Issue12925(t *testing.T) {
+	testcase := `![image1](/image1)
+![image2](/image2)
+`
+	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
+`
+	res, err := RenderRawString(&markup.RenderContext{}, testcase)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, res)
+}
+
+func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
+	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
+	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+`
+	res, err := RenderString(&markup.RenderContext{}, testcase)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, res)
 }

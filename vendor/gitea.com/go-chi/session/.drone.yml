@@ -1,0 +1,37 @@
+---
+kind: pipeline
+name: test
+
+platform:
+  os: linux
+  arch: amd64
+
+clone:
+  disable: true
+
+workspace:
+  base: /go
+  path: src/session113
+
+steps:
+- name: git
+  pull: default
+  image: plugins/git:next
+  settings:
+    depth: 50
+    tags: true
+
+- name: test
+  pull: default
+  image: golang:1.13
+  environment:
+    GO111MODULE: on
+    GOPROXY: https://goproxy.cn
+  commands:
+    - go build -v
+    - go vet ./...
+    - go test -v -race -coverprofile=coverage.txt -covermode=atomic
+  when:
+    event:
+    - push
+    - pull_request

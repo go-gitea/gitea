@@ -5,11 +5,12 @@
 package private
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,10 +28,10 @@ type Email struct {
 //
 // If to list == nil its supposed to send an email to every
 // user present in DB
-func SendEmail(subject, message string, to []string) (int, string) {
+func SendEmail(ctx context.Context, subject, message string, to []string) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/mail/send"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	jsonBytes, _ := json.Marshal(Email{
 		Subject: subject,
@@ -44,7 +45,7 @@ func SendEmail(subject, message string, to []string) (int, string) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 	}

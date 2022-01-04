@@ -1,8 +1,25 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // NotificationSettingsService handles communication with the notification settings
@@ -53,7 +70,7 @@ func (ns NotificationSettings) String() string {
 func (s *NotificationSettingsService) GetGlobalSettings(options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	u := "notification_settings"
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,7 +115,7 @@ func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSett
 
 	u := "notification_settings"
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -123,7 +140,7 @@ func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, optio
 	}
 	u := fmt.Sprintf("groups/%s/notification_settings", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -148,7 +165,7 @@ func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, opt
 	}
 	u := fmt.Sprintf("projects/%s/notification_settings", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,7 +190,7 @@ func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, op
 	}
 	u := fmt.Sprintf("groups/%s/notification_settings", pathEscape(group))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -198,7 +215,7 @@ func (s *NotificationSettingsService) UpdateSettingsForProject(pid interface{}, 
 	}
 	u := fmt.Sprintf("projects/%s/notification_settings", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

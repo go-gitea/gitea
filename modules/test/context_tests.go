@@ -5,48 +5,60 @@
 package test
 
 import (
+	scontext "context"
+	"html/template"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/web/middleware"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/unrolled/render"
 )
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
-	var macaronContext macaron.Context
-	macaronContext.ReplaceAllParams(macaron.Params{})
-	macaronContext.Locale = &mockLocale{}
-	requestURL, err := url.Parse(path)
-	assert.NoError(t, err)
-	macaronContext.Req = macaron.Request{Request: &http.Request{
-		URL:  requestURL,
-		Form: url.Values{},
-	}}
-	macaronContext.Resp = &mockResponseWriter{}
-	macaronContext.Render = &mockRender{ResponseWriter: macaronContext.Resp}
-	macaronContext.Data = map[string]interface{}{}
-	return &context.Context{
-		Context: &macaronContext,
-		Flash: &session.Flash{
+	var resp = &mockResponseWriter{}
+	var ctx = context.Context{
+		Render: &mockRender{},
+		Data:   make(map[string]interface{}),
+		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},
+		Resp:   context.NewResponse(resp),
+		Locale: &mockLocale{},
 	}
+
+	requestURL, err := url.Parse(path)
+	assert.NoError(t, err)
+	var req = &http.Request{
+		URL:  requestURL,
+		Form: url.Values{},
+	}
+
+	chiCtx := chi.NewRouteContext()
+	req = req.WithContext(scontext.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	ctx.Req = context.WithContext(req, &ctx)
+	return &ctx
 }
 
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 	var err error
-	ctx.Repo.Owner, err = models.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
@@ -69,13 +81,13 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+	ctx.User = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner())
+	assert.NoError(t, ctx.Repo.Repository.GetOwner(db.DefaultContext))
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
@@ -89,6 +101,10 @@ func (l mockLocale) Language() string {
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
+}
+
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
 }
 
 type mockResponseWriter struct {
@@ -113,77 +129,20 @@ func (rw *mockResponseWriter) Size() int {
 	return rw.size
 }
 
-func (rw *mockResponseWriter) Before(b macaron.BeforeFunc) {
-	b(rw)
-}
-
 func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
 	return nil
 }
 
 type mockRender struct {
-	http.ResponseWriter
 }
 
-func (tr *mockRender) SetResponseWriter(rw http.ResponseWriter) {
-	tr.ResponseWriter = rw
+func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
+	return nil
 }
 
-func (tr *mockRender) JSON(status int, _ interface{}) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) JSONString(interface{}) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) RawData(status int, _ []byte) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) PlainText(status int, _ []byte) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTML(status int, _ string, _ interface{}, _ ...macaron.HTMLOptions) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTMLSet(status int, _ string, _ string, _ interface{}, _ ...macaron.HTMLOptions) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) HTMLSetString(string, string, interface{}, ...macaron.HTMLOptions) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) HTMLString(string, interface{}, ...macaron.HTMLOptions) (string, error) {
-	return "", nil
-}
-
-func (tr *mockRender) HTMLSetBytes(string, string, interface{}, ...macaron.HTMLOptions) ([]byte, error) {
-	return nil, nil
-}
-
-func (tr *mockRender) HTMLBytes(string, interface{}, ...macaron.HTMLOptions) ([]byte, error) {
-	return nil, nil
-}
-
-func (tr *mockRender) XML(status int, _ interface{}) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) Error(status int, _ ...string) {
-	tr.Status(status)
-}
-
-func (tr *mockRender) Status(status int) {
-	tr.ResponseWriter.WriteHeader(status)
-}
-
-func (tr *mockRender) SetTemplatePath(string, string) {
-}
-
-func (tr *mockRender) HasTemplateSet(string) bool {
-	return true
+func (tr *mockRender) HTML(w io.Writer, status int, _ string, _ interface{}, _ ...render.HTMLOptions) error {
+	if resp, ok := w.(http.ResponseWriter); ok {
+		resp.WriteHeader(status)
+	}
+	return nil
 }

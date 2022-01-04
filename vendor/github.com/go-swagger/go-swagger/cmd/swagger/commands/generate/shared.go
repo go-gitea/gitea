@@ -80,10 +80,13 @@ type sharedCommand interface {
 type schemeOptions struct {
 	Principal     string `short:"P" long:"principal" description:"the model to use for the security principal"`
 	DefaultScheme string `long:"default-scheme" description:"the default scheme for this API" default:"http"`
+
+	PrincipalIface bool `long:"principal-is-interface" description:"the security principal provided is an interface, not a struct"`
 }
 
 func (so schemeOptions) apply(opts *generator.GenOpts) {
 	opts.Principal = so.Principal
+	opts.PrincipalCustomIface = so.PrincipalIface
 	opts.DefaultScheme = so.DefaultScheme
 }
 

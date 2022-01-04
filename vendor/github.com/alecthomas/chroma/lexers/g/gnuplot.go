@@ -6,14 +6,18 @@ import (
 )
 
 // Gnuplot lexer.
-var Gnuplot = internal.Register(MustNewLexer(
+var Gnuplot = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Gnuplot",
 		Aliases:   []string{"gnuplot"},
 		Filenames: []string{"*.plot", "*.plt"},
 		MimeTypes: []string{"text/x-gnuplot"},
 	},
-	Rules{
+	gnuplotRules,
+))
+
+func gnuplotRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`bind\b|bin\b|bi\b`, Keyword, Push("bind")},
@@ -113,5 +117,5 @@ var Gnuplot = internal.Register(MustNewLexer(
 			{`functions\b|function\b|functio\b|functi\b|funct\b|func\b|fun\b|fu\b|f\b|set\b|se\b|s\b|terminal\b|termina\b|termin\b|termi\b|term\b|ter\b|te\b|t\b|variables\b|variable\b|variabl\b|variab\b|varia\b|vari\b|var\b|va\b|v\b`, NameBuiltin, nil},
 			Include("genericargs"),
 		},
-	},
-))
+	}
+}

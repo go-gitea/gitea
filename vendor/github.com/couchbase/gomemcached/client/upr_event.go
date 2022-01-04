@@ -83,7 +83,8 @@ type UprEvent struct {
 	SystemEvent     SystemEventType         // Only valid if IsSystemEvent() is true
 	SysEventVersion uint8                   // Based on the version, the way Extra bytes is parsed is different
 	ValueLen        int                     // Cache it to avoid len() calls for performance
-	CollectionId    uint64                  // Valid if Collection is in use
+	CollectionId    uint32                  // Valid if Collection is in use
+	StreamId        *uint16                 // Nil if not in use
 }
 
 // FailoverLog containing vvuid and sequnce number
@@ -103,7 +104,7 @@ func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFrom
 		DataType:     rq.DataType,
 		ValueLen:     len(rq.Body),
 		SystemEvent:  InvalidSysEvent,
-		CollectionId: math.MaxUint64,
+		CollectionId: math.MaxUint32,
 	}
 
 	event.PopulateFieldsBasedOnStreamType(rq, stream.StreamType)
@@ -153,6 +154,8 @@ func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFrom
 		event.PopulateEvent(rq.Extras)
 	} else if event.IsSeqnoAdv() {
 		event.PopulateSeqnoAdv(rq.Extras)
+	} else if event.IsOsoSnapshot() {
+		event.PopulateOso(rq.Extras)
 	}
 
 	return event
@@ -160,6 +163,15 @@ func makeUprEvent(rq gomemcached.MCRequest, stream *UprStream, bytesReceivedFrom
 
 func (event *UprEvent) PopulateFieldsBasedOnStreamType(rq gomemcached.MCRequest, streamType DcpStreamType) {
 	switch streamType {
+	case CollectionsStreamId:
+		for _, extra := range rq.FramingExtras {
+			streamId, streamIdErr := extra.GetStreamId()
+			if streamIdErr == nil {
+				event.StreamId = &streamId
+			}
+		}
+		// After parsing streamID, still need to populate regular collectionID
+		fallthrough
 	case CollectionsNonStreamId:
 		switch rq.Opcode {
 		// Only these will have CID encoded within the key
@@ -167,15 +179,12 @@ func (event *UprEvent) PopulateFieldsBasedOnStreamType(rq gomemcached.MCRequest,
 			gomemcached.UPR_DELETION,
 			gomemcached.UPR_EXPIRATION:
 			uleb128 := Uleb128(rq.Key)
-			result, bytesShifted := uleb128.ToUint64(rq.Keylen)
+			result, bytesShifted := uleb128.ToUint32(rq.Keylen)
 			event.CollectionId = result
 			event.Key = rq.Key[bytesShifted:]
 		default:
 			event.Key = rq.Key
 		}
-	case CollectionsStreamId:
-		// TODO - not implemented
-		fallthrough
 	case NonCollectionStream:
 		// Let default behavior be legacy stream type
 		fallthrough
@@ -208,6 +217,10 @@ func (event *UprEvent) IsSeqnoAdv() bool {
 	return event.Opcode == gomemcached.DCP_SEQNO_ADV
 }
 
+func (event *UprEvent) IsOsoSnapshot() bool {
+	return event.Opcode == gomemcached.DCP_OSO_SNAPSHOT
+}
+
 func (event *UprEvent) PopulateEvent(extras []byte) {
 	if len(extras) < dcpSystemEventExtraLen {
 		// Wrong length, don't parse
@@ -227,6 +240,14 @@ func (event *UprEvent) PopulateSeqnoAdv(extras []byte) {
 	}
 
 	event.Seqno = binary.BigEndian.Uint64(extras[:8])
+}
+
+func (event *UprEvent) PopulateOso(extras []byte) {
+	if len(extras) < dcpOsoExtraLen {
+		// Wrong length, don't parse
+		return
+	}
+	event.Flags = binary.BigEndian.Uint32(extras[:4])
 }
 
 func (event *UprEvent) GetSystemEventName() (string, error) {
@@ -345,15 +366,32 @@ func (event *UprEvent) GetMaxTTL() (uint32, error) {
 	}
 }
 
+// Only if error is nil:
+// Returns true if event states oso begins
+// Return false if event states oso ends
+func (event *UprEvent) GetOsoBegin() (bool, error) {
+	if !event.IsOsoSnapshot() {
+		return false, ErrorInvalidOp
+	}
+
+	if event.Flags == 1 {
+		return true, nil
+	} else if event.Flags == 2 {
+		return false, nil
+	} else {
+		return false, ErrorInvalidOp
+	}
+}
+
 type Uleb128 []byte
 
-func (u Uleb128) ToUint64(cachedLen int) (result uint64, bytesShifted int) {
+func (u Uleb128) ToUint32(cachedLen int) (result uint32, bytesShifted int) {
 	var shift uint = 0
 
 	for curByte := 0; curByte < cachedLen; curByte++ {
 		oneByte := u[curByte]
 		last7Bits := 0x7f & oneByte
-		result |= uint64(last7Bits) << shift
+		result |= uint32(last7Bits) << shift
 		bytesShifted++
 		if oneByte&0x80 == 0 {
 			break

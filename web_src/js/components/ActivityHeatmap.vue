@@ -1,7 +1,7 @@
 <template>
   <div id="user-heatmap">
     <div class="total-contributions">
-      {{ values.length }} contributions in the last 12 months
+      {{ sum }} contributions in the last 12 months
     </div>
     <calendar-heatmap
       :locale="locale"
@@ -10,6 +10,7 @@
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
+      @day-click="handleDayClick($event)"
     />
   </div>
 </template>
@@ -40,6 +41,32 @@ export default {
       no_contributions: 'No contributions',
     },
   }),
+  computed: {
+    sum() {
+      let s = 0;
+      for (let i = 0; i < this.values.length; i++) {
+        s += this.values[i].count;
+      }
+      return s;
+    }
+  },
+  methods: {
+    handleDayClick(e) {
+      // Reset filter if same date is clicked
+      const params = new URLSearchParams(document.location.search);
+      const queryDate = params.get('date');
+      // Timezone has to be stripped because toISOString() converts to UTC
+      const clickedDate = new Date(e.date - (e.date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10);
+
+      if (queryDate && queryDate === clickedDate) {
+        params.delete('date');
+      } else {
+        params.set('date', clickedDate);
+      }
+
+      const newSearch = params.toString();
+      window.location.search = newSearch.length ? `?${newSearch}` : '';
+    }
+  },
 };
 </script>
-<style scoped/>

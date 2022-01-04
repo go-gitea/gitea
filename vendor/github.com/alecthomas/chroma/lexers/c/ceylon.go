@@ -6,7 +6,7 @@ import (
 )
 
 // Ceylon lexer.
-var Ceylon = internal.Register(MustNewLexer(
+var Ceylon = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Ceylon",
 		Aliases:   []string{"ceylon"},
@@ -14,7 +14,11 @@ var Ceylon = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-ceylon"},
 		DotAll:    true,
 	},
-	Rules{
+	ceylonRules,
+))
+
+func ceylonRules() Rules {
+	return Rules{
 		"root": {
 			{`^(\s*(?:[a-zA-Z_][\w.\[\]]*\s+)+?)([a-zA-Z_]\w*)(\s*)(\()`, ByGroups(UsingSelf("root"), NameFunction, Text, Operator), nil},
 			{`[^\S\n]+`, Text, nil},
@@ -59,5 +63,5 @@ var Ceylon = internal.Register(MustNewLexer(
 			{`\*/`, CommentMultiline, Pop(1)},
 			{`[*/]`, CommentMultiline, nil},
 		},
-	},
-))
+	}
+}

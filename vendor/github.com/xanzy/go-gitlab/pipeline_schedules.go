@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -70,7 +71,7 @@ func (s *PipelineSchedulesService) ListPipelineSchedules(pid interface{}, opt *L
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +96,7 @@ func (s *PipelineSchedulesService) GetPipelineSchedule(pid interface{}, schedule
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -133,7 +134,7 @@ func (s *PipelineSchedulesService) CreatePipelineSchedule(pid interface{}, opt *
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,7 +172,7 @@ func (s *PipelineSchedulesService) EditPipelineSchedule(pid interface{}, schedul
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -197,7 +198,7 @@ func (s *PipelineSchedulesService) TakeOwnershipOfPipelineSchedule(pid interface
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/take_ownership", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,7 +223,7 @@ func (s *PipelineSchedulesService) DeletePipelineSchedule(pid interface{}, sched
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +242,7 @@ func (s *PipelineSchedulesService) RunPipelineSchedule(pid interface{}, schedule
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/play", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +272,7 @@ func (s *PipelineSchedulesService) CreatePipelineScheduleVariable(pid interface{
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables", pathEscape(project), schedule)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -306,7 +307,7 @@ func (s *PipelineSchedulesService) EditPipelineScheduleVariable(pid interface{},
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", pathEscape(project), schedule, key)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -331,7 +332,7 @@ func (s *PipelineSchedulesService) DeletePipelineScheduleVariable(pid interface{
 	}
 	u := fmt.Sprintf("projects/%s/pipeline_schedules/%d/variables/%s", pathEscape(project), schedule, key)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

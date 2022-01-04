@@ -19,69 +19,15 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"net/url"
 
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 )
 
-// JSONDoc loads a json document from either a file or a remote url
-func JSONDoc(path string) (json.RawMessage, error) {
-	data, err := swag.LoadFromFileOrHTTP(path)
-	if err != nil {
-		return nil, err
-	}
-	return json.RawMessage(data), nil
-}
-
-// DocLoader represents a doc loader type
-type DocLoader func(string) (json.RawMessage, error)
-
-// DocMatcher represents a predicate to check if a loader matches
-type DocMatcher func(string) bool
-
-var (
-	loaders       *loader
-	defaultLoader *loader
-)
-
 func init() {
-	defaultLoader = &loader{Match: func(_ string) bool { return true }, Fn: JSONDoc}
-	loaders = defaultLoader
-	spec.PathLoader = loaders.Fn
-	AddLoader(swag.YAMLMatcher, swag.YAMLDoc)
-
 	gob.Register(map[string]interface{}{})
 	gob.Register([]interface{}{})
-	//gob.Register(spec.Refable{})
-}
-
-// AddLoader for a document
-func AddLoader(predicate DocMatcher, load DocLoader) {
-	prev := loaders
-	loaders = &loader{
-		Match: predicate,
-		Fn:    load,
-		Next:  prev,
-	}
-	spec.PathLoader = loaders.Fn
-}
-
-type loader struct {
-	Fn    DocLoader
-	Match DocMatcher
-	Next  *loader
-}
-
-// JSONSpec loads a spec from a json document
-func JSONSpec(path string) (*Document, error) {
-	data, err := JSONDoc(path)
-	if err != nil {
-		return nil, err
-	}
-	// convert to json
-	return Analyzed(data, "")
 }
 
 // Document represents a swagger spec document
@@ -93,10 +39,21 @@ type Document struct {
 	origSpec     *spec.Swagger
 	schema       *spec.Schema
 	raw          json.RawMessage
+	pathLoader   *loader
+}
+
+// JSONSpec loads a spec from a json document
+func JSONSpec(path string, options ...LoaderOption) (*Document, error) {
+	data, err := JSONDoc(path)
+	if err != nil {
+		return nil, err
+	}
+	// convert to json
+	return Analyzed(data, "", options...)
 }
 
 // Embedded returns a Document based on embedded specs. No analysis is required
-func Embedded(orig, flat json.RawMessage) (*Document, error) {
+func Embedded(orig, flat json.RawMessage, options ...LoaderOption) (*Document, error) {
 	var origSpec, flatSpec spec.Swagger
 	if err := json.Unmarshal(orig, &origSpec); err != nil {
 		return nil, err
@@ -105,54 +62,38 @@ func Embedded(orig, flat json.RawMessage) (*Document, error) {
 		return nil, err
 	}
 	return &Document{
-		raw:      orig,
-		origSpec: &origSpec,
-		spec:     &flatSpec,
+		raw:        orig,
+		origSpec:   &origSpec,
+		spec:       &flatSpec,
+		pathLoader: loaderFromOptions(options),
 	}, nil
 }
 
-// Spec loads a new spec document
-func Spec(path string) (*Document, error) {
-	specURL, err := url.Parse(path)
-	if err != nil {
-		return nil, err
-	}
-	var lastErr error
-	for l := loaders.Next; l != nil; l = l.Next {
-		if loaders.Match(specURL.Path) {
-			b, err2 := loaders.Fn(path)
-			if err2 != nil {
-				lastErr = err2
-				continue
-			}
-			doc, err3 := Analyzed(b, "")
-			if err3 != nil {
-				return nil, err3
-			}
-			if doc != nil {
-				doc.specFilePath = path
-			}
-			return doc, nil
-		}
-	}
-	if lastErr != nil {
-		return nil, lastErr
-	}
-	b, err := defaultLoader.Fn(path)
+// Spec loads a new spec document from a local or remote path
+func Spec(path string, options ...LoaderOption) (*Document, error) {
+
+	ldr := loaderFromOptions(options)
+
+	b, err := ldr.Load(path)
 	if err != nil {
 		return nil, err
 	}
 
-	document, err := Analyzed(b, "")
+	document, err := Analyzed(b, "", options...)
+	if err != nil {
+		return nil, err
+	}
+
 	if document != nil {
 		document.specFilePath = path
+		document.pathLoader = ldr
 	}
 
 	return document, err
 }
 
-// Analyzed creates a new analyzed spec document
-func Analyzed(data json.RawMessage, version string) (*Document, error) {
+// Analyzed creates a new analyzed spec document for a root json.RawMessage.
+func Analyzed(data json.RawMessage, version string, options ...LoaderOption) (*Document, error) {
 	if version == "" {
 		version = "2.0"
 	}
@@ -160,24 +101,13 @@ func Analyzed(data json.RawMessage, version string) (*Document, error) {
 		return nil, fmt.Errorf("spec version %q is not supported", version)
 	}
 
-	raw := data
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) > 0 {
-		if trimmed[0] != '{' && trimmed[0] != '[' {
-			yml, err := swag.BytesToYAMLDoc(trimmed)
-			if err != nil {
-				return nil, fmt.Errorf("analyzed: %v", err)
-			}
-			d, err := swag.YAMLToJSON(yml)
-			if err != nil {
-				return nil, fmt.Errorf("analyzed: %v", err)
-			}
-			raw = d
-		}
+	raw, err := trimData(data) // trim blanks, then convert yaml docs into json
+	if err != nil {
+		return nil, err
 	}
 
 	swspec := new(spec.Swagger)
-	if err := json.Unmarshal(raw, swspec); err != nil {
+	if err = json.Unmarshal(raw, swspec); err != nil {
 		return nil, err
 	}
 
@@ -187,17 +117,44 @@ func Analyzed(data json.RawMessage, version string) (*Document, error) {
 	}
 
 	d := &Document{
-		Analyzer: analysis.New(swspec),
-		schema:   spec.MustLoadSwagger20Schema(),
-		spec:     swspec,
-		raw:      raw,
-		origSpec: origsqspec,
+		Analyzer:   analysis.New(swspec),
+		schema:     spec.MustLoadSwagger20Schema(),
+		spec:       swspec,
+		raw:        raw,
+		origSpec:   origsqspec,
+		pathLoader: loaderFromOptions(options),
 	}
+
+	return d, nil
+}
+
+func trimData(in json.RawMessage) (json.RawMessage, error) {
+	trimmed := bytes.TrimSpace(in)
+	if len(trimmed) == 0 {
+		return in, nil
+	}
+
+	if trimmed[0] == '{' || trimmed[0] == '[' {
+		return trimmed, nil
+	}
+
+	// assume yaml doc: convert it to json
+	yml, err := swag.BytesToYAMLDoc(trimmed)
+	if err != nil {
+		return nil, fmt.Errorf("analyzed: %v", err)
+	}
+
+	d, err := swag.YAMLToJSON(yml)
+	if err != nil {
+		return nil, fmt.Errorf("analyzed: %v", err)
+	}
+
 	return d, nil
 }
 
 // Expanded expands the ref fields in the spec document and returns a new spec document
 func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
+
 	swspec := new(spec.Swagger)
 	if err := json.Unmarshal(d.raw, swspec); err != nil {
 		return nil, err
@@ -209,6 +166,16 @@ func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
 	} else {
 		expandOptions = &spec.ExpandOptions{
 			RelativeBase: d.specFilePath,
+		}
+	}
+
+	if expandOptions.PathLoader == nil {
+		if d.pathLoader != nil {
+			// use loader from Document options
+			expandOptions.PathLoader = d.pathLoader.Load
+		} else {
+			// use package level loader
+			expandOptions.PathLoader = loaders.Load
 		}
 	}
 
@@ -262,7 +229,7 @@ func (d *Document) OrigSpec() *spec.Swagger {
 	return d.origSpec
 }
 
-// ResetDefinitions gives a shallow copy with the models reset
+// ResetDefinitions gives a shallow copy with the models reset to the original spec
 func (d *Document) ResetDefinitions() *Document {
 	defs := make(map[string]spec.Schema, len(d.origSpec.Definitions))
 	for k, v := range d.origSpec.Definitions {
@@ -276,6 +243,7 @@ func (d *Document) ResetDefinitions() *Document {
 // Pristine creates a new pristine document instance based on the input data
 func (d *Document) Pristine() *Document {
 	dd, _ := Analyzed(d.Raw(), d.Version())
+	dd.pathLoader = d.pathLoader
 	return dd
 }
 

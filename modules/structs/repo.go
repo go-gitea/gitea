@@ -89,8 +89,11 @@ type Repository struct {
 	AllowRebase               bool             `json:"allow_rebase"`
 	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
 	AllowSquash               bool             `json:"allow_squash_merge"`
+	DefaultMergeStyle         string           `json:"default_merge_style"`
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
+	MirrorInterval            string           `json:"mirror_interval"`
+	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -105,7 +108,7 @@ type CreateRepoOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
-	// Issue Label set to use
+	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
@@ -166,8 +169,48 @@ type EditRepoOption struct {
 	AllowRebaseMerge *bool `json:"allow_rebase_explicit,omitempty"`
 	// either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
+	// either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.
+	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
+	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
+	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// set to `true` to delete pr branch after merge by default
+	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
+	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash". `has_pull_requests` must be `true`.
+	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
+	// set to a string like `8h30m0s` to set the mirror interval time
+	MirrorInterval *string `json:"mirror_interval,omitempty"`
+}
+
+// GenerateRepoOption options when creating repository using a template
+// swagger:model
+type GenerateRepoOption struct {
+	// The organization or person who will own the new repository
+	//
+	// required: true
+	Owner string `json:"owner"`
+	// Name of the repository to create
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Description of the repository to create
+	Description string `json:"description" binding:"MaxSize(255)"`
+	// Whether the repository is private
+	Private bool `json:"private"`
+	// include git content of default branch in template repo
+	GitContent bool `json:"git_content"`
+	// include topics in template repo
+	Topics bool `json:"topics"`
+	// include git hooks in template repo
+	GitHooks bool `json:"git_hooks"`
+	// include webhooks in template repo
+	Webhooks bool `json:"webhooks"`
+	// include avatar of the template repo
+	Avatar bool `json:"avatar"`
+	// include labels in template repo
+	Labels bool `json:"labels"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
@@ -200,12 +243,15 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
+	CodebaseService                        // 8 codebase service
 )
 
 // Name represents the service type's name
@@ -225,6 +271,12 @@ func (gt GitServiceType) Title() string {
 		return "GitLab"
 	case GogsService:
 		return "Gogs"
+	case OneDevService:
+		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
+	case CodebaseService:
+		return "Codebase"
 	case PlainGitService:
 		return "Git"
 	}
@@ -249,15 +301,18 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
-	Wiki         bool   `json:"wiki"`
-	Milestones   bool   `json:"milestones"`
-	Labels       bool   `json:"labels"`
-	Issues       bool   `json:"issues"`
-	PullRequests bool   `json:"pull_requests"`
-	Releases     bool   `json:"releases"`
+	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
+	Private        bool   `json:"private"`
+	Description    string `json:"description" binding:"MaxSize(255)"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	MirrorInterval string `json:"mirror_interval"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth
@@ -276,5 +331,16 @@ var (
 		GithubService,
 		GitlabService,
 		GiteaService,
+		GogsService,
+		OneDevService,
+		GitBucketService,
+		CodebaseService,
 	}
 )
+
+// RepoTransfer represents a pending repo transfer
+type RepoTransfer struct {
+	Doer      *User   `json:"doer"`
+	Recipient *User   `json:"recipient"`
+	Teams     []*Team `json:"teams"`
+}

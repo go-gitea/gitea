@@ -12,7 +12,7 @@ import (
 
 func addKeepActivityPrivateUserColumn(x *xorm.Engine) error {
 	type User struct {
-		KeepActivityPrivate bool
+		KeepActivityPrivate bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	if err := x.Sync2(new(User)); err != nil {

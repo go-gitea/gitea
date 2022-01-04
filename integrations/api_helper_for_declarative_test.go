@@ -6,17 +6,19 @@ package integrations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,13 +73,30 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 	}
 }
 
-func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
+func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessMode) func(*testing.T) {
 	return func(t *testing.T) {
 		permission := "read"
 
-		if mode == models.AccessModeAdmin {
+		if mode == perm.AccessModeAdmin {
 			permission = "admin"
-		} else if mode > models.AccessModeRead {
+		} else if mode > perm.AccessModeRead {
 			permission = "write"
 		}
 		addCollaboratorOption := &api.AddCollaboratorOption{
@@ -145,7 +164,7 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/user/keys?token=%s", ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateKeyOption{
 			Title: keyname,
@@ -181,7 +200,7 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, api.CreateKeyOption{
 			Title:    keyname,
@@ -212,6 +231,26 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 			expected = ctx.ExpectedCode
 		}
 		resp := ctx.Session.MakeRequest(t, req, expected)
+
+		decoder := json.NewDecoder(resp.Body)
+		pr := api.PullRequest{}
+		err := decoder.Decode(&pr)
+		return pr, err
+	}
+}
+
+func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
+	return func(t *testing.T) (api.PullRequest, error) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequest(t, http.MethodGet, urlStr)
+
+		expected := 200
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.Session.MakeRequest(t, req, expected)
+
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -223,9 +262,9 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doAPIMergePullRequest Merge",
-			Do:                string(models.MergeStyleMerge),
+			Do:                string(repo_model.MergeStyleMerge),
 		})
 
 		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
@@ -235,9 +274,9 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
-			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
-				Do:                string(models.MergeStyleMerge),
+				Do:                string(repo_model.MergeStyleMerge),
 			})
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}
@@ -251,6 +290,23 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, resp)
 		}
+	}
+}
+
+func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+			Do:            string(repo_model.MergeStyleManuallyMerged),
+			MergeCommitID: commitID,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
 	}
 }
 

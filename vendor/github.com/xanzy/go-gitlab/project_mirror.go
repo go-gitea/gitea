@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -45,18 +46,21 @@ type ProjectMirror struct {
 	URL                    string     `json:"url"`
 }
 
+// ListProjectMirrorOptions represents the available ListProjectMirror() options.
+type ListProjectMirrorOptions ListOptions
+
 // ListProjectMirror gets a list of mirrors configured on the project.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/remote_mirrors.html#list-a-projects-remote-mirrors
-func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, options ...RequestOptionFunc) ([]*ProjectMirror, *Response, error) {
+func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, opt *ListProjectMirrorOptions, options ...RequestOptionFunc) ([]*ProjectMirror, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/remote_mirrors", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +72,6 @@ func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, options ...Req
 	}
 
 	return pm, resp, err
-
 }
 
 // AddProjectMirrorOptions contains the properties requires to create
@@ -94,7 +97,7 @@ func (s *ProjectMirrorService) AddProjectMirror(pid interface{}, opt *AddProject
 	}
 	u := fmt.Sprintf("projects/%s/remote_mirrors", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,7 +133,7 @@ func (s *ProjectMirrorService) EditProjectMirror(pid interface{}, mirror int, op
 	}
 	u := fmt.Sprintf("projects/%s/remote_mirrors/%d", pathEscape(project), mirror)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

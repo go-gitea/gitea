@@ -5,12 +5,14 @@
 package git
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,17 +60,27 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 	for _, testCase := range testCases {
 		commit, err := repo1.GetCommit(testCase.CommitID)
 		assert.NoError(t, err)
+		assert.NotNil(t, commit)
+		assert.NotNil(t, commit.Tree)
+		assert.NotNil(t, commit.Tree.repo)
+
 		tree, err := commit.Tree.SubTree(testCase.Path)
+		assert.NotNil(t, tree, "tree is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
+		assert.NotNil(t, tree.repo, "repo is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
+
 		assert.NoError(t, err)
 		entries, err := tree.ListEntries()
 		assert.NoError(t, err)
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(commit, testCase.Path, nil)
-		assert.Equal(t, testCase.ExpectedTreeCommit, treeCommit.ID.String())
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(context.Background(), commit, testCase.Path, nil)
 		assert.NoError(t, err)
+		if err != nil {
+			t.FailNow()
+		}
+		assert.Equal(t, testCase.ExpectedTreeCommit, treeCommit.ID.String())
 		assert.Len(t, commitsInfo, len(testCase.ExpectedIDs))
 		for _, commitInfo := range commitsInfo {
-			entry := commitInfo[0].(*TreeEntry)
-			commit := commitInfo[1].(*Commit)
+			entry := commitInfo.Entry
+			commit := commitInfo.Commit
 			expectedID, ok := testCase.ExpectedIDs[entry.Name()]
 			if !assert.True(t, ok) {
 				continue
@@ -126,7 +138,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, _, err := entries.GetCommitsInfo(commit, "", nil)
+				_, _, err := entries.GetCommitsInfo(context.Background(), commit, "", nil)
 				if err != nil {
 					b.Fatal(err)
 				}

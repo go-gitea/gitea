@@ -238,7 +238,7 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 	case *types.Array:
 		return s.buildFromType(titpe.Elem(), tgt.Items())
 	case *types.Map:
-		//debugLog("map: %v -> [%v]%v", fld.Name(), ftpe.Key().String(), ftpe.Elem().String())
+		// debugLog("map: %v -> [%v]%v", fld.Name(), ftpe.Key().String(), ftpe.Elem().String())
 		// check if key is a string type, if not print a message
 		// and skip the map property. Only maps with string keys can go into additional properties
 		sch := tgt.Schema()
@@ -387,7 +387,6 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 			return nil
 		}
 	default:
-		//log.Printf("WARNING: can't determine refined type %s (%T)", titpe.String(), titpe)
 		panic(fmt.Sprintf("WARNING: can't determine refined type %s (%T)", titpe.String(), titpe))
 	}
 
@@ -429,7 +428,7 @@ func (s *schemaBuilder) buildFromInterface(decl *entityDecl, it *types.Interface
 					continue
 				}
 
-				//decl.
+				// decl.
 				debugLog("maybe interface field %s: %s(%T)", o.Name(), o.Type().String(), o.Type())
 				afld = an
 				break
@@ -514,7 +513,7 @@ func (s *schemaBuilder) buildFromInterface(decl *entityDecl, it *types.Interface
 
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {
@@ -600,7 +599,7 @@ func (s *schemaBuilder) buildFromStruct(decl *entityDecl, st *types.Struct, sche
 		debugLog("maybe allof field(%t) %s: %s (%T) [%q](anon: %t, embedded: %t)", fld.IsField(), fld.Name(), fld.Type().String(), fld.Type(), tg, fld.Anonymous(), fld.Embedded())
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {
@@ -696,7 +695,7 @@ func (s *schemaBuilder) buildFromStruct(decl *entityDecl, st *types.Struct, sche
 
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {

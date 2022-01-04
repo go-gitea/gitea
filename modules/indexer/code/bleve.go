@@ -5,31 +5,34 @@
 package code
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/blevesearch/bleve"
-	analyzer_custom "github.com/blevesearch/bleve/analysis/analyzer/custom"
-	analyzer_keyword "github.com/blevesearch/bleve/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search/query"
+	"github.com/blevesearch/bleve/v2"
+	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
+	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
+	"github.com/blevesearch/bleve/v2/index/upsidedown"
+	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/ethantkoenig/rupture"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -170,35 +173,57 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 		indexDir: indexDir,
 	}
 	created, err := indexer.init()
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	}
+
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	if err != nil {
+		return err
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
@@ -209,7 +234,7 @@ func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *mode
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -246,12 +271,25 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
-	for _, update := range changes.Updates {
-		if err := b.addUpdate(sha, update, repo, batch); err != nil {
+func (b *BleveIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	if len(changes.Updates) > 0 {
+
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
 			return err
 		}
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			if err := b.addUpdate(batchWriter, batchReader, sha, update, repo, batch); err != nil {
+				return err
+			}
+		}
+		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {
@@ -269,7 +307,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 	if err != nil {
 		return err
 	}
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err
@@ -280,12 +318,23 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	phraseQuery := bleve.NewMatchPhraseQuery(keyword)
-	phraseQuery.FieldVal = "Content"
-	phraseQuery.Analyzer = repoIndexerAnalyzer
+func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	var (
+		indexerQuery query.Query
+		keywordQuery query.Query
+	)
 
-	var indexerQuery query.Query
+	if isMatch {
+		prefixQuery := bleve.NewPrefixQuery(keyword)
+		prefixQuery.FieldVal = "Content"
+		keywordQuery = prefixQuery
+	} else {
+		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
+		phraseQuery.FieldVal = "Content"
+		phraseQuery.Analyzer = repoIndexerAnalyzer
+		keywordQuery = phraseQuery
+	}
+
 	if len(repoIDs) > 0 {
 		var repoQueries = make([]query.Query, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
@@ -294,10 +343,10 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 		indexerQuery = bleve.NewConjunctionQuery(
 			bleve.NewDisjunctionQuery(repoQueries...),
-			phraseQuery,
+			keywordQuery,
 		)
 	} else {
-		indexerQuery = phraseQuery
+		indexerQuery = keywordQuery
 	}
 
 	// Save for reuse without language filter
@@ -375,7 +424,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 	}
 	languagesFacet := result.Facets["languages"]
-	for _, term := range languagesFacet.Terms {
+	for _, term := range languagesFacet.Terms.Terms() {
 		if len(term.Term) == 0 {
 			continue
 		}

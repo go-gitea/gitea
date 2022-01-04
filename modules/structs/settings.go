@@ -6,14 +6,19 @@ package structs
 
 // GeneralRepoSettings contains global repository settings exposed by API
 type GeneralRepoSettings struct {
-	MirrorsDisabled bool `json:"mirrors_disabled"`
-	HTTPGitDisabled bool `json:"http_git_disabled"`
+	MirrorsDisabled      bool `json:"mirrors_disabled"`
+	HTTPGitDisabled      bool `json:"http_git_disabled"`
+	MigrationsDisabled   bool `json:"migrations_disabled"`
+	StarsDisabled        bool `json:"stars_disabled"`
+	TimeTrackingDisabled bool `json:"time_tracking_disabled"`
+	LFSDisabled          bool `json:"lfs_disabled"`
 }
 
 // GeneralUISettings contains global ui settings exposed by API
 type GeneralUISettings struct {
 	DefaultTheme     string   `json:"default_theme"`
 	AllowedReactions []string `json:"allowed_reactions"`
+	CustomEmojis     []string `json:"custom_emojis"`
 }
 
 // GeneralAPISettings contains global api settings exposed by it

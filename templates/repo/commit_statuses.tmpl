@@ -1,0 +1,14 @@
+<a class="ui link commit-statuses-trigger">{{template "repo/commit_status" .Status}}</a>
+<div class="ui popup very wide fixed basic commit-statuses">
+	<div class="ui relaxed list divided">
+		{{range .Statuses}}
+			<div class="ui item singular-status">
+				<span>{{template "repo/commit_status" .}}</span>
+				<span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+				{{if .TargetURL}}
+					<div class="ui right"><a href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.i18n.Tr "repo.pulls.status_checks_details"}}</a></div>
+				{{end}}
+			</div>
+		{{end}}
+	</div>
+</div>

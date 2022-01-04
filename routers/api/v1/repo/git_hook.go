@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // ListGitHooks list all Git hooks of a repository
@@ -91,7 +92,7 @@ func GetGitHook(ctx *context.APIContext) {
 }
 
 // EditGitHook modify a Git hook of a repository
-func EditGitHook(ctx *context.APIContext, form api.EditGitHookOption) {
+func EditGitHook(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/hooks/git/{id} repository repoEditGitHook
 	// ---
 	// summary: Edit a Git hook in a repository
@@ -123,6 +124,7 @@ func EditGitHook(ctx *context.APIContext, form api.EditGitHookOption) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	form := web.GetForm(ctx).(*api.EditGitHookOption)
 	hookID := ctx.Params(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {

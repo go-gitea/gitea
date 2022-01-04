@@ -5,14 +5,12 @@
 package context
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
-
-	"gitea.com/macaron/macaron"
 )
 
-// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
-func RequireRepoAdmin() macaron.Handler {
+// RequireRepoAdmin returns a middleware for requiring repository admin permission
+func RequireRepoAdmin() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
@@ -21,8 +19,8 @@ func RequireRepoAdmin() macaron.Handler {
 	}
 }
 
-// RequireRepoWriter returns a macaron middleware for requiring repository write to the specify unitType
-func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
+// RequireRepoWriter returns a middleware for requiring repository write to the specify unitType
+func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWrite(unitType) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
@@ -31,8 +29,8 @@ func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
 	}
 }
 
-// RequireRepoWriterOr returns a macaron middleware for requiring repository write to one of the unit permission
-func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
+// RequireRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
+func RequireRepoWriterOr(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
 			if ctx.Repo.CanWrite(unitType) {
@@ -43,8 +41,8 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 	}
 }
 
-// RequireRepoReader returns a macaron middleware for requiring repository read to the specify unitType
-func RequireRepoReader(unitType models.UnitType) macaron.Handler {
+// RequireRepoReader returns a middleware for requiring repository read to the specify unitType
+func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
 			if log.IsTrace() {
@@ -69,8 +67,8 @@ func RequireRepoReader(unitType models.UnitType) macaron.Handler {
 	}
 }
 
-// RequireRepoReaderOr returns a macaron middleware for requiring repository write to one of the unit permission
-func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
+// RequireRepoReaderOr returns a middleware for requiring repository write to one of the unit permission
+func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
 			if ctx.Repo.CanRead(unitType) {

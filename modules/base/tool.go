@@ -10,8 +10,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,13 +19,13 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dustin/go-humanize"
-	"github.com/unknwon/com"
 )
 
 // EncodeMD5 encodes string to md5 hex value.
@@ -63,6 +63,11 @@ func BasicAuthDecode(encoded string) (string, string, error) {
 	}
 
 	auth := strings.SplitN(string(s), ":", 2)
+
+	if len(auth) != 2 {
+		return "", "", errors.New("invalid basic authentication")
+	}
+
 	return auth[0], auth[1], nil
 }
 
@@ -80,8 +85,8 @@ func VerifyTimeLimitCode(data string, minutes int, code string) bool {
 	// split code
 	start := code[:12]
 	lives := code[12:18]
-	if d, err := com.StrTo(lives).Int(); err == nil {
-		minutes = d
+	if d, err := strconv.ParseInt(lives, 10, 0); err == nil {
+		minutes = int(d)
 	}
 
 	// right active code
@@ -125,7 +130,7 @@ func CreateTimeLimitCode(data string, minutes int, startInf interface{}) string 
 
 	// create sha1 encode string
 	sh := sha1.New()
-	_, _ = sh.Write([]byte(data + setting.SecretKey + startStr + endStr + com.ToStr(minutes)))
+	_, _ = sh.Write([]byte(fmt.Sprintf("%s%s%s%s%d", data, setting.SecretKey, startStr, endStr, minutes)))
 	encoded := hex.EncodeToString(sh.Sum(nil))
 
 	code := fmt.Sprintf("%s%06d%s", startStr, minutes, encoded)
@@ -144,7 +149,7 @@ func PrettyNumber(v int64) string {
 }
 
 // Subtract deals with subtraction of all types of number.
-func Subtract(left interface{}, right interface{}) interface{} {
+func Subtract(left, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
 	var isInt = true
@@ -198,26 +203,26 @@ func EllipsisString(str string, length int) string {
 	if length <= 3 {
 		return "..."
 	}
-	if len(str) <= length {
+	if utf8.RuneCountInString(str) <= length {
 		return str
 	}
-	return str[:length-3] + "..."
+	return string([]rune(str)[:length-3]) + "..."
 }
 
 // TruncateString returns a truncated string with given limit,
 // it returns input string if length is not reached limit.
 func TruncateString(str string, limit int) string {
-	if len(str) < limit {
+	if utf8.RuneCountInString(str) < limit {
 		return str
 	}
-	return str[:limit]
+	return string([]rune(str)[:limit])
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
 	ints := make([]int64, len(strs))
 	for i := range strs {
-		n, err := com.StrTo(strs[i]).Int64()
+		n, err := strconv.ParseInt(strs[i], 10, 64)
 		if err != nil {
 			return ints, err
 		}
@@ -255,37 +260,9 @@ func Int64sContains(intsSlice []int64, a int64) bool {
 }
 
 // IsLetter reports whether the rune is a letter (category L).
-// https://github.com/golang/go/blob/master/src/go/scanner/scanner.go#L257
+// https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
-}
-
-// IsTextFile returns true if file content format is plain text or empty.
-func IsTextFile(data []byte) bool {
-	if len(data) == 0 {
-		return true
-	}
-	return strings.Contains(http.DetectContentType(data), "text/")
-}
-
-// IsImageFile detects if data is an image format
-func IsImageFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "image/")
-}
-
-// IsPDFFile detects if data is a pdf format
-func IsPDFFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "application/pdf")
-}
-
-// IsVideoFile detects if data is an video format
-func IsVideoFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "video/")
-}
-
-// IsAudioFile detects if data is an video format
-func IsAudioFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories

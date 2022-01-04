@@ -30,33 +30,14 @@
 			</div>
 			<div class="right fitted item">
 				<div class="ui action small input" id="clone-panel">
-					{{if not $.DisableHTTP}}
-						<button class="ui basic clone button" id="repo-clone-https" data-link="{{.WikiCloneLink.HTTPS}}">
-							{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
-						</button>
-					{{end}}
-					{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-						<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.WikiCloneLink.SSH}}">
-							SSH
-						</button>
-					{{end}}
-					{{if not $.DisableHTTP}}
-						<input id="repo-clone-url" value="{{$.WikiCloneLink.HTTPS}}" readonly>
-					{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
-						<input id="repo-clone-url" value="{{$.WikiCloneLink.SSH}}" readonly>
-					{{end}}
-					{{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
-						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-							{{svg "octicon-clippy"}}
-						</button>
-					{{end}}
+					{{template "repo/clone_buttons" .}}
 				</div>
 			</div>
 		</div>
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}
@@ -66,9 +47,9 @@
 				<div class="eight wide right aligned column">
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
-							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}/_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
-							<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
-							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}/delete" data-id="{{.PageURL}}">{{.i18n.Tr "repo.wiki.delete_page_button"}}</a>
+							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
+							<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{.i18n.Tr "repo.wiki.delete_page_button"}}</a>
 						</div>
 					{{end}}
 				</div>
@@ -80,12 +61,15 @@
 			</div>
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown">
+			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markup">
 				{{.content | Str2html}}
 			</div>
 			{{if .sidebarPresent}}
 			<div class="column" style="padding-top: 0;">
 				<div class="ui segment">
+					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					{{end}}
 					{{.sidebarContent | Str2html}}
 				</div>
 			</div>
@@ -93,6 +77,9 @@
 		</div>
 		{{if .footerPresent}}
 		<div class="ui segment">
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+				{{end}}
 			{{.footerContent | Str2html}}
 		</div>
 		{{end}}
@@ -101,7 +88,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "repo.wiki.delete_page_button"}}
 	</div>
 	<div class="content">

@@ -1,6 +1,6 @@
 ---
 date: "2019-11-12T16:00:00+02:00"
-title: "搜索"
+title: "搜尋"
 slug: "search"
 weight: 4
 toc: false
@@ -8,7 +8,7 @@ draft: false
 menu:
   sidebar:
     parent: "help"
-    name: "搜索"
+    name: "搜尋"
     weight: 4
     identifier: "search"
 sitemap:

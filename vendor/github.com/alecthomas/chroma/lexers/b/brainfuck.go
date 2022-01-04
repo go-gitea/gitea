@@ -6,14 +6,18 @@ import (
 )
 
 // Brainfuck lexer.
-var Brainfuck = internal.Register(MustNewLexer(
+var Brainfuck = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Brainfuck",
 		Aliases:   []string{"brainfuck", "bf"},
 		Filenames: []string{"*.bf", "*.b"},
 		MimeTypes: []string{"application/x-brainfuck"},
 	},
-	Rules{
+	brainfuckRules,
+))
+
+func brainfuckRules() Rules {
+	return Rules{
 		"common": {
 			{`[.,]+`, NameTag, nil},
 			{`[+-]+`, NameBuiltin, nil},
@@ -30,5 +34,5 @@ var Brainfuck = internal.Register(MustNewLexer(
 			{`\]`, Keyword, Pop(1)},
 			Include("common"),
 		},
-	},
-))
+	}
+}

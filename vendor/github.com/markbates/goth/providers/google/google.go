@@ -184,3 +184,13 @@ func (p *Provider) SetHostedDomain(hd string) {
 	}
 	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("hd", hd))
 }
+
+// SetLoginHint sets the login_hint parameter for the google OAuth call.
+// Use this to prompt the user to login with a specific account.
+// See https://developers.google.com/identity/protocols/oauth2/openid-connect#login-hint
+func (p *Provider) SetLoginHint(loginHint string) {
+	if loginHint == "" {
+		return
+	}
+	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("login_hint", loginHint))
+}

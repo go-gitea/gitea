@@ -53,15 +53,6 @@ type NoncurrentVersionExpiration struct {
 	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty"`
 }
 
-// NoncurrentVersionTransition structure, set this action to request server to
-// transition noncurrent object versions to different set storage classes
-// at a specific period in the object's lifetime.
-type NoncurrentVersionTransition struct {
-	XMLName        xml.Name       `xml:"NoncurrentVersionTransition,omitempty"  json:"-"`
-	StorageClass   string         `xml:"StorageClass,omitempty" json:"StorageClass,omitempty"`
-	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty" json:"NoncurrentDays,omitempty"`
-}
-
 // MarshalXML if non-current days not set to non zero value
 func (n NoncurrentVersionExpiration) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if n.IsDaysNull() {
@@ -76,13 +67,33 @@ func (n NoncurrentVersionExpiration) IsDaysNull() bool {
 	return n.NoncurrentDays == ExpirationDays(0)
 }
 
+// NoncurrentVersionTransition structure, set this action to request server to
+// transition noncurrent object versions to different set storage classes
+// at a specific period in the object's lifetime.
+type NoncurrentVersionTransition struct {
+	XMLName        xml.Name       `xml:"NoncurrentVersionTransition,omitempty"  json:"-"`
+	StorageClass   string         `xml:"StorageClass,omitempty" json:"StorageClass,omitempty"`
+	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty" json:"NoncurrentDays,omitempty"`
+}
+
+// IsDaysNull returns true if days field is null
+func (n NoncurrentVersionTransition) IsDaysNull() bool {
+	return n.NoncurrentDays == ExpirationDays(0)
+}
+
+// IsStorageClassEmpty returns true if storage class field is empty
+func (n NoncurrentVersionTransition) IsStorageClassEmpty() bool {
+	return n.StorageClass == ""
+}
+
 // MarshalXML is extended to leave out
 // <NoncurrentVersionTransition></NoncurrentVersionTransition> tags
 func (n NoncurrentVersionTransition) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if n.NoncurrentDays == ExpirationDays(0) {
+	if n.IsDaysNull() || n.IsStorageClassEmpty() {
 		return nil
 	}
-	return e.EncodeElement(&n, start)
+	type noncurrentVersionTransitionWrapper NoncurrentVersionTransition
+	return e.EncodeElement(noncurrentVersionTransitionWrapper(n), start)
 }
 
 // Tag structure key/value pair representing an object tag to apply lifecycle configuration
@@ -131,9 +142,9 @@ func (t Transition) MarshalXML(en *xml.Encoder, startElement xml.StartElement) e
 
 // And And Rule for LifecycleTag, to be used in LifecycleRuleFilter
 type And struct {
-	XMLName xml.Name `xml:"And,omitempty" json:"-"`
-	Prefix  string   `xml:"Prefix,omitempty" json:"Prefix,omitempty"`
-	Tags    []Tag    `xml:"Tag,omitempty" json:"Tags,omitempty"`
+	XMLName xml.Name `xml:"And" json:"-"`
+	Prefix  string   `xml:"Prefix" json:"Prefix,omitempty"`
+	Tags    []Tag    `xml:"Tag" json:"Tags,omitempty"`
 }
 
 // IsEmpty returns true if Tags field is null
@@ -214,6 +225,11 @@ func (b ExpireDeleteMarker) MarshalXML(e *xml.Encoder, startElement xml.StartEle
 	return e.EncodeElement(expireDeleteMarkerWrapper(b), startElement)
 }
 
+// IsEnabled returns true if the auto delete-marker expiration is enabled
+func (b ExpireDeleteMarker) IsEnabled() bool {
+	return bool(b)
+}
+
 // Expiration structure - expiration details of lifecycle configuration
 type Expiration struct {
 	XMLName      xml.Name           `xml:"Expiration,omitempty" json:"-"`
@@ -232,9 +248,14 @@ func (e Expiration) IsDateNull() bool {
 	return e.Date.Time.IsZero()
 }
 
+// IsDeleteMarkerExpirationEnabled returns true if the auto-expiration of delete marker is enabled
+func (e Expiration) IsDeleteMarkerExpirationEnabled() bool {
+	return e.DeleteMarker.IsEnabled()
+}
+
 // IsNull returns true if both date and days fields are null
 func (e Expiration) IsNull() bool {
-	return e.IsDaysNull() && e.IsDateNull()
+	return e.IsDaysNull() && e.IsDateNull() && !e.IsDeleteMarkerExpirationEnabled()
 }
 
 // MarshalXML is expiration is non null

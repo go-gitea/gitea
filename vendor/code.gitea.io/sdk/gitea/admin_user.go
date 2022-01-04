@@ -63,25 +63,28 @@ func (c *Client) AdminCreateUser(opt CreateUserOption) (*User, *Response, error)
 
 // EditUserOption edit user options
 type EditUserOption struct {
-	SourceID                int64  `json:"source_id"`
-	LoginName               string `json:"login_name"`
-	FullName                string `json:"full_name"`
-	Email                   string `json:"email"`
-	Password                string `json:"password"`
-	MustChangePassword      *bool  `json:"must_change_password"`
-	Website                 string `json:"website"`
-	Location                string `json:"location"`
-	Active                  *bool  `json:"active"`
-	Admin                   *bool  `json:"admin"`
-	AllowGitHook            *bool  `json:"allow_git_hook"`
-	AllowImportLocal        *bool  `json:"allow_import_local"`
-	MaxRepoCreation         *int   `json:"max_repo_creation"`
-	ProhibitLogin           *bool  `json:"prohibit_login"`
-	AllowCreateOrganization *bool  `json:"allow_create_organization"`
+	SourceID                int64   `json:"source_id"`
+	LoginName               string  `json:"login_name"`
+	Email                   *string `json:"email"`
+	FullName                *string `json:"full_name"`
+	Password                string  `json:"password"`
+	MustChangePassword      *bool   `json:"must_change_password"`
+	Website                 *string `json:"website"`
+	Location                *string `json:"location"`
+	Active                  *bool   `json:"active"`
+	Admin                   *bool   `json:"admin"`
+	AllowGitHook            *bool   `json:"allow_git_hook"`
+	AllowImportLocal        *bool   `json:"allow_import_local"`
+	MaxRepoCreation         *int    `json:"max_repo_creation"`
+	ProhibitLogin           *bool   `json:"prohibit_login"`
+	AllowCreateOrganization *bool   `json:"allow_create_organization"`
 }
 
 // AdminEditUser modify user informations
 func (c *Client) AdminEditUser(user string, opt EditUserOption) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -92,12 +95,18 @@ func (c *Client) AdminEditUser(user string, opt EditUserOption) (*Response, erro
 
 // AdminDeleteUser delete one user according name
 func (c *Client) AdminDeleteUser(user string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/admin/users/%s", user), nil, nil)
 	return resp, err
 }
 
 // AdminCreateUserPublicKey adds a public key for the user
 func (c *Client) AdminCreateUserPublicKey(user string, opt CreateKeyOption) (*PublicKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err
@@ -109,6 +118,9 @@ func (c *Client) AdminCreateUserPublicKey(user string, opt CreateKeyOption) (*Pu
 
 // AdminDeleteUserPublicKey deletes a user's public key
 func (c *Client) AdminDeleteUserPublicKey(user string, keyID int) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/admin/users/%s/keys/%d", user, keyID), nil, nil)
 	return resp, err
 }

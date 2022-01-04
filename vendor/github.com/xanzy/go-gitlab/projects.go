@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
+	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -38,80 +39,180 @@ type ProjectsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html
 type Project struct {
-	ID                                        int                `json:"id"`
-	Description                               string             `json:"description"`
-	DefaultBranch                             string             `json:"default_branch"`
-	Public                                    bool               `json:"public"`
-	Visibility                                VisibilityValue    `json:"visibility"`
-	SSHURLToRepo                              string             `json:"ssh_url_to_repo"`
-	HTTPURLToRepo                             string             `json:"http_url_to_repo"`
-	WebURL                                    string             `json:"web_url"`
-	ReadmeURL                                 string             `json:"readme_url"`
-	TagList                                   []string           `json:"tag_list"`
-	Owner                                     *User              `json:"owner"`
-	Name                                      string             `json:"name"`
-	NameWithNamespace                         string             `json:"name_with_namespace"`
-	Path                                      string             `json:"path"`
-	PathWithNamespace                         string             `json:"path_with_namespace"`
-	IssuesEnabled                             bool               `json:"issues_enabled"`
-	OpenIssuesCount                           int                `json:"open_issues_count"`
-	MergeRequestsEnabled                      bool               `json:"merge_requests_enabled"`
-	ApprovalsBeforeMerge                      int                `json:"approvals_before_merge"`
-	JobsEnabled                               bool               `json:"jobs_enabled"`
-	WikiEnabled                               bool               `json:"wiki_enabled"`
-	SnippetsEnabled                           bool               `json:"snippets_enabled"`
-	ResolveOutdatedDiffDiscussions            bool               `json:"resolve_outdated_diff_discussions"`
-	ContainerRegistryEnabled                  bool               `json:"container_registry_enabled"`
-	CreatedAt                                 *time.Time         `json:"created_at,omitempty"`
-	LastActivityAt                            *time.Time         `json:"last_activity_at,omitempty"`
-	CreatorID                                 int                `json:"creator_id"`
-	Namespace                                 *ProjectNamespace  `json:"namespace"`
-	ImportStatus                              string             `json:"import_status"`
-	ImportError                               string             `json:"import_error"`
-	Permissions                               *Permissions       `json:"permissions"`
-	MarkedForDeletionAt                       *ISOTime           `json:"marked_for_deletion_at"`
-	Archived                                  bool               `json:"archived"`
-	AvatarURL                                 string             `json:"avatar_url"`
-	SharedRunnersEnabled                      bool               `json:"shared_runners_enabled"`
-	ForksCount                                int                `json:"forks_count"`
-	StarCount                                 int                `json:"star_count"`
-	RunnersToken                              string             `json:"runners_token"`
-	PublicBuilds                              bool               `json:"public_builds"`
-	OnlyAllowMergeIfPipelineSucceeds          bool               `json:"only_allow_merge_if_pipeline_succeeds"`
-	OnlyAllowMergeIfAllDiscussionsAreResolved bool               `json:"only_allow_merge_if_all_discussions_are_resolved"`
-	RemoveSourceBranchAfterMerge              bool               `json:"remove_source_branch_after_merge"`
-	LFSEnabled                                bool               `json:"lfs_enabled"`
-	RequestAccessEnabled                      bool               `json:"request_access_enabled"`
-	MergeMethod                               MergeMethodValue   `json:"merge_method"`
-	ForkedFromProject                         *ForkParent        `json:"forked_from_project"`
-	Mirror                                    bool               `json:"mirror"`
-	MirrorUserID                              int                `json:"mirror_user_id"`
-	MirrorTriggerBuilds                       bool               `json:"mirror_trigger_builds"`
-	OnlyMirrorProtectedBranches               bool               `json:"only_mirror_protected_branches"`
-	MirrorOverwritesDivergedBranches          bool               `json:"mirror_overwrites_diverged_branches"`
-	PackagesEnabled                           bool               `json:"packages_enabled"`
-	ServiceDeskEnabled                        bool               `json:"service_desk_enabled"`
-	ServiceDeskAddress                        string             `json:"service_desk_address"`
-	IssuesAccessLevel                         AccessControlValue `json:"issues_access_level"`
-	RepositoryAccessLevel                     AccessControlValue `json:"repository_access_level"`
-	MergeRequestsAccessLevel                  AccessControlValue `json:"merge_requests_access_level"`
-	ForkingAccessLevel                        AccessControlValue `json:"forking_access_level"`
-	WikiAccessLevel                           AccessControlValue `json:"wiki_access_level"`
-	BuildsAccessLevel                         AccessControlValue `json:"builds_access_level"`
-	SnippetsAccessLevel                       AccessControlValue `json:"snippets_access_level"`
-	PagesAccessLevel                          AccessControlValue `json:"pages_access_level"`
-	AutocloseReferencedIssues                 bool               `json:"autoclose_referenced_issues"`
+	ID                                        int                        `json:"id"`
+	Description                               string                     `json:"description"`
+	DefaultBranch                             string                     `json:"default_branch"`
+	Public                                    bool                       `json:"public"`
+	Visibility                                VisibilityValue            `json:"visibility"`
+	SSHURLToRepo                              string                     `json:"ssh_url_to_repo"`
+	HTTPURLToRepo                             string                     `json:"http_url_to_repo"`
+	WebURL                                    string                     `json:"web_url"`
+	ReadmeURL                                 string                     `json:"readme_url"`
+	TagList                                   []string                   `json:"tag_list"`
+	Owner                                     *User                      `json:"owner"`
+	Name                                      string                     `json:"name"`
+	NameWithNamespace                         string                     `json:"name_with_namespace"`
+	Path                                      string                     `json:"path"`
+	PathWithNamespace                         string                     `json:"path_with_namespace"`
+	IssuesEnabled                             bool                       `json:"issues_enabled"`
+	OpenIssuesCount                           int                        `json:"open_issues_count"`
+	MergeRequestsEnabled                      bool                       `json:"merge_requests_enabled"`
+	ApprovalsBeforeMerge                      int                        `json:"approvals_before_merge"`
+	JobsEnabled                               bool                       `json:"jobs_enabled"`
+	WikiEnabled                               bool                       `json:"wiki_enabled"`
+	SnippetsEnabled                           bool                       `json:"snippets_enabled"`
+	ResolveOutdatedDiffDiscussions            bool                       `json:"resolve_outdated_diff_discussions"`
+	ContainerExpirationPolicy                 *ContainerExpirationPolicy `json:"container_expiration_policy,omitempty"`
+	ContainerRegistryEnabled                  bool                       `json:"container_registry_enabled"`
+	CreatedAt                                 *time.Time                 `json:"created_at,omitempty"`
+	LastActivityAt                            *time.Time                 `json:"last_activity_at,omitempty"`
+	CreatorID                                 int                        `json:"creator_id"`
+	Namespace                                 *ProjectNamespace          `json:"namespace"`
+	ImportStatus                              string                     `json:"import_status"`
+	ImportError                               string                     `json:"import_error"`
+	Permissions                               *Permissions               `json:"permissions"`
+	MarkedForDeletionAt                       *ISOTime                   `json:"marked_for_deletion_at"`
+	EmptyRepo                                 bool                       `json:"empty_repo"`
+	Archived                                  bool                       `json:"archived"`
+	AvatarURL                                 string                     `json:"avatar_url"`
+	LicenseURL                                string                     `json:"license_url"`
+	License                                   *ProjectLicense            `json:"license"`
+	SharedRunnersEnabled                      bool                       `json:"shared_runners_enabled"`
+	ForksCount                                int                        `json:"forks_count"`
+	StarCount                                 int                        `json:"star_count"`
+	RunnersToken                              string                     `json:"runners_token"`
+	PublicBuilds                              bool                       `json:"public_builds"`
+	AllowMergeOnSkippedPipeline               bool                       `json:"allow_merge_on_skipped_pipeline"`
+	OnlyAllowMergeIfPipelineSucceeds          bool                       `json:"only_allow_merge_if_pipeline_succeeds"`
+	OnlyAllowMergeIfAllDiscussionsAreResolved bool                       `json:"only_allow_merge_if_all_discussions_are_resolved"`
+	RemoveSourceBranchAfterMerge              bool                       `json:"remove_source_branch_after_merge"`
+	LFSEnabled                                bool                       `json:"lfs_enabled"`
+	RequestAccessEnabled                      bool                       `json:"request_access_enabled"`
+	MergeMethod                               MergeMethodValue           `json:"merge_method"`
+	ForkedFromProject                         *ForkParent                `json:"forked_from_project"`
+	Mirror                                    bool                       `json:"mirror"`
+	MirrorUserID                              int                        `json:"mirror_user_id"`
+	MirrorTriggerBuilds                       bool                       `json:"mirror_trigger_builds"`
+	OnlyMirrorProtectedBranches               bool                       `json:"only_mirror_protected_branches"`
+	MirrorOverwritesDivergedBranches          bool                       `json:"mirror_overwrites_diverged_branches"`
+	PackagesEnabled                           bool                       `json:"packages_enabled"`
+	ServiceDeskEnabled                        bool                       `json:"service_desk_enabled"`
+	ServiceDeskAddress                        string                     `json:"service_desk_address"`
+	IssuesAccessLevel                         AccessControlValue         `json:"issues_access_level"`
+	RepositoryAccessLevel                     AccessControlValue         `json:"repository_access_level"`
+	MergeRequestsAccessLevel                  AccessControlValue         `json:"merge_requests_access_level"`
+	ForkingAccessLevel                        AccessControlValue         `json:"forking_access_level"`
+	WikiAccessLevel                           AccessControlValue         `json:"wiki_access_level"`
+	BuildsAccessLevel                         AccessControlValue         `json:"builds_access_level"`
+	SnippetsAccessLevel                       AccessControlValue         `json:"snippets_access_level"`
+	PagesAccessLevel                          AccessControlValue         `json:"pages_access_level"`
+	OperationsAccessLevel                     AccessControlValue         `json:"operations_access_level"`
+	AutocloseReferencedIssues                 bool                       `json:"autoclose_referenced_issues"`
+	SuggestionCommitMessage                   string                     `json:"suggestion_commit_message"`
+	CIForwardDeploymentEnabled                bool                       `json:"ci_forward_deployment_enabled"`
 	SharedWithGroups                          []struct {
 		GroupID          int    `json:"group_id"`
 		GroupName        string `json:"group_name"`
 		GroupAccessLevel int    `json:"group_access_level"`
 	} `json:"shared_with_groups"`
-	Statistics           *ProjectStatistics `json:"statistics"`
-	Links                *Links             `json:"_links,omitempty"`
-	CIConfigPath         string             `json:"ci_config_path"`
-	CIDefaultGitDepth    int                `json:"ci_default_git_depth"`
-	CustomAttributes     []*CustomAttribute `json:"custom_attributes"`
-	ComplianceFrameworks []string           `json:"compliance_frameworks"`
+	Statistics            *ProjectStatistics `json:"statistics"`
+	Links                 *Links             `json:"_links,omitempty"`
+	CIConfigPath          string             `json:"ci_config_path"`
+	CIDefaultGitDepth     int                `json:"ci_default_git_depth"`
+	CustomAttributes      []*CustomAttribute `json:"custom_attributes"`
+	ComplianceFrameworks  []string           `json:"compliance_frameworks"`
+	BuildCoverageRegex    string             `json:"build_coverage_regex"`
+	IssuesTemplate        string             `json:"issues_template"`
+	MergeRequestsTemplate string             `json:"merge_requests_template"`
+}
+
+// BasicProject included in other service responses (such as todos).
+type BasicProject struct {
+	ID                int        `json:"id"`
+	Description       string     `json:"description"`
+	Name              string     `json:"name"`
+	NameWithNamespace string     `json:"name_with_namespace"`
+	Path              string     `json:"path"`
+	PathWithNamespace string     `json:"path_with_namespace"`
+	CreatedAt         *time.Time `json:"created_at"`
+}
+
+// ContainerExpirationPolicy represents the container expiration policy.
+type ContainerExpirationPolicy struct {
+	Cadence         string     `json:"cadence"`
+	KeepN           int        `json:"keep_n"`
+	OlderThan       string     `json:"older_than"`
+	NameRegexDelete string     `json:"name_regex_delete"`
+	NameRegexKeep   string     `json:"name_regex_keep"`
+	Enabled         bool       `json:"enabled"`
+	NextRunAt       *time.Time `json:"next_run_at"`
+}
+
+// ForkParent represents the parent project when this is a fork.
+type ForkParent struct {
+	HTTPURLToRepo     string `json:"http_url_to_repo"`
+	ID                int    `json:"id"`
+	Name              string `json:"name"`
+	NameWithNamespace string `json:"name_with_namespace"`
+	Path              string `json:"path"`
+	PathWithNamespace string `json:"path_with_namespace"`
+	WebURL            string `json:"web_url"`
+}
+
+// GroupAccess represents group access.
+type GroupAccess struct {
+	AccessLevel       AccessLevelValue       `json:"access_level"`
+	NotificationLevel NotificationLevelValue `json:"notification_level"`
+}
+
+// Links represents a project web links for self, issues, merge_requests,
+// repo_branches, labels, events, members.
+type Links struct {
+	Self          string `json:"self"`
+	Issues        string `json:"issues"`
+	MergeRequests string `json:"merge_requests"`
+	RepoBranches  string `json:"repo_branches"`
+	Labels        string `json:"labels"`
+	Events        string `json:"events"`
+	Members       string `json:"members"`
+}
+
+// Permissions represents permissions.
+type Permissions struct {
+	ProjectAccess *ProjectAccess `json:"project_access"`
+	GroupAccess   *GroupAccess   `json:"group_access"`
+}
+
+// ProjectAccess represents project access.
+type ProjectAccess struct {
+	AccessLevel       AccessLevelValue       `json:"access_level"`
+	NotificationLevel NotificationLevelValue `json:"notification_level"`
+}
+
+// ProjectLicense represent the license for a project.
+type ProjectLicense struct {
+	Key       string `json:"key"`
+	Name      string `json:"name"`
+	Nickname  string `json:"nickname"`
+	HTMLURL   string `json:"html_url"`
+	SourceURL string `json:"source_url"`
+}
+
+// ProjectNamespace represents a project namespace.
+type ProjectNamespace struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Kind      string `json:"kind"`
+	FullPath  string `json:"full_path"`
+	AvatarURL string `json:"avatar_url"`
+	WebURL    string `json:"web_url"`
+}
+
+// ProjectStatistics represents a statistics record for a project.
+type ProjectStatistics struct {
+	StorageStatistics
+	CommitCount int `json:"commit_count"`
 }
 
 // Repository represents a repository.
@@ -132,70 +233,12 @@ type Repository struct {
 	HTTPURL           string          `json:"http_url"`
 }
 
-// ProjectNamespace represents a project namespace.
-type ProjectNamespace struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Path      string `json:"path"`
-	Kind      string `json:"kind"`
-	FullPath  string `json:"full_path"`
-	AvatarURL string `json:"avatar_url"`
-	WebURL    string `json:"web_url"`
-}
-
 // StorageStatistics represents a statistics record for a group or project.
 type StorageStatistics struct {
 	StorageSize      int64 `json:"storage_size"`
 	RepositorySize   int64 `json:"repository_size"`
 	LfsObjectsSize   int64 `json:"lfs_objects_size"`
 	JobArtifactsSize int64 `json:"job_artifacts_size"`
-}
-
-// ProjectStatistics represents a statistics record for a project.
-type ProjectStatistics struct {
-	StorageStatistics
-	CommitCount int `json:"commit_count"`
-}
-
-// Permissions represents permissions.
-type Permissions struct {
-	ProjectAccess *ProjectAccess `json:"project_access"`
-	GroupAccess   *GroupAccess   `json:"group_access"`
-}
-
-// ProjectAccess represents project access.
-type ProjectAccess struct {
-	AccessLevel       AccessLevelValue       `json:"access_level"`
-	NotificationLevel NotificationLevelValue `json:"notification_level"`
-}
-
-// GroupAccess represents group access.
-type GroupAccess struct {
-	AccessLevel       AccessLevelValue       `json:"access_level"`
-	NotificationLevel NotificationLevelValue `json:"notification_level"`
-}
-
-// ForkParent represents the parent project when this is a fork.
-type ForkParent struct {
-	HTTPURLToRepo     string `json:"http_url_to_repo"`
-	ID                int    `json:"id"`
-	Name              string `json:"name"`
-	NameWithNamespace string `json:"name_with_namespace"`
-	Path              string `json:"path"`
-	PathWithNamespace string `json:"path_with_namespace"`
-	WebURL            string `json:"web_url"`
-}
-
-// Links represents a project web links for self, issues, merge_requests,
-// repo_branches, labels, events, members.
-type Links struct {
-	Self          string `json:"self"`
-	Issues        string `json:"issues"`
-	MergeRequests string `json:"merge_requests"`
-	RepoBranches  string `json:"repo_branches"`
-	Labels        string `json:"labels"`
-	Events        string `json:"events"`
-	Members       string `json:"members"`
 }
 
 func (s Project) String() string {
@@ -238,6 +281,7 @@ type ListProjectsOptions struct {
 	Membership               *bool             `url:"membership,omitempty" json:"membership,omitempty"`
 	Starred                  *bool             `url:"starred,omitempty" json:"starred,omitempty"`
 	Statistics               *bool             `url:"statistics,omitempty" json:"statistics,omitempty"`
+	Topic                    *string           `url:"topic,omitempty" json:"topic,omitempty"`
 	WithCustomAttributes     *bool             `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 	WithIssuesEnabled        *bool             `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
 	WithMergeRequestsEnabled *bool             `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
@@ -255,7 +299,7 @@ type ListProjectsOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#list-projects
 func (s *ProjectsService) ListProjects(opt *ListProjectsOptions, options ...RequestOptionFunc) ([]*Project, *Response, error) {
-	req, err := s.client.NewRequest("GET", "projects", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "projects", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -280,7 +324,7 @@ func (s *ProjectsService) ListUserProjects(uid interface{}, opt *ListProjectsOpt
 	}
 	u := fmt.Sprintf("users/%s/projects", user)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -323,12 +367,59 @@ func (s *ProjectsService) ListProjectsUsers(pid interface{}, opt *ListProjectUse
 	}
 	u := fmt.Sprintf("projects/%s/users", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var p []*ProjectUser
+	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
+// ProjectGroup represents a GitLab project group.
+type ProjectGroup struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+	WebURL    string `json:"web_url"`
+	FullName  string `json:"full_name"`
+	FullPath  string `json:"full_path"`
+}
+
+// ListProjectGroupOptions represents the available ListProjectsGroups() options.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#list-a-projects-groups
+type ListProjectGroupOptions struct {
+	ListOptions
+	Search               *string           `url:"search,omitempty" json:"search,omitempty"`
+	SkipGroups           []int             `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
+	WithShared           *bool             `url:"with_shared,omitempty" json:"with_shared,omitempty"`
+	SharedMinAccessLevel *AccessLevelValue `url:"shared_min_access_level,omitempty" json:"shared_min_access_level,omitempty"`
+	SharedVisiableOnly   *bool             `url:"shared_visible_only,omitempty" json:"shared_visible_only,omitempty"`
+}
+
+// ListProjectsGroups gets a list of groups for the given project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/projects.html#list-a-projects-groups
+func (s *ProjectsService) ListProjectsGroups(pid interface{}, opt *ListProjectGroupOptions, options ...RequestOptionFunc) ([]*ProjectGroup, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/groups", pathEscape(project))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var p []*ProjectGroup
 	resp, err := s.client.Do(req, &p)
 	if err != nil {
 		return nil, resp, err
@@ -352,7 +443,7 @@ func (s *ProjectsService) GetProjectLanguages(pid interface{}, options ...Reques
 	}
 	u := fmt.Sprintf("projects/%s/languages", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -387,7 +478,7 @@ func (s *ProjectsService) GetProject(pid interface{}, opt *GetProjectOptions, op
 	}
 	u := fmt.Sprintf("projects/%s", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -448,7 +539,7 @@ func (s *ProjectsService) GetProjectEvents(pid interface{}, opt *GetProjectEvent
 	}
 	u := fmt.Sprintf("projects/%s/events", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -466,53 +557,60 @@ func (s *ProjectsService) GetProjectEvents(pid interface{}, opt *GetProjectEvent
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#create-project
 type CreateProjectOptions struct {
-	Name                                      *string             `url:"name,omitempty" json:"name,omitempty"`
-	Path                                      *string             `url:"path,omitempty" json:"path,omitempty"`
-	NamespaceID                               *int                `url:"namespace_id,omitempty" json:"namespace_id,omitempty"`
-	DefaultBranch                             *string             `url:"default_branch,omitempty" json:"default_branch,omitempty"`
-	Description                               *string             `url:"description,omitempty" json:"description,omitempty"`
-	IssuesAccessLevel                         *AccessControlValue `url:"issues_access_level,omitempty" json:"issues_access_level,omitempty"`
-	RepositoryAccessLevel                     *AccessControlValue `url:"repository_access_level,omitempty" json:"repository_access_level,omitempty"`
-	MergeRequestsAccessLevel                  *AccessControlValue `url:"merge_requests_access_level,omitempty" json:"merge_requests_access_level,omitempty"`
-	ForkingAccessLevel                        *AccessControlValue `url:"forking_access_level,omitempty" json:"forking_access_level,omitempty"`
-	BuildsAccessLevel                         *AccessControlValue `url:"builds_access_level,omitempty" json:"builds_access_level,omitempty"`
-	WikiAccessLevel                           *AccessControlValue `url:"wiki_access_level,omitempty" json:"wiki_access_level,omitempty"`
-	SnippetsAccessLevel                       *AccessControlValue `url:"snippets_access_level,omitempty" json:"snippets_access_level,omitempty"`
-	PagesAccessLevel                          *AccessControlValue `url:"pages_access_level,omitempty" json:"pages_access_level,omitempty"`
-	EmailsDisabled                            *bool               `url:"emails_disabled,omitempty" json:"emails_disabled,omitempty"`
-	ResolveOutdatedDiffDiscussions            *bool               `url:"resolve_outdated_diff_discussions,omitempty" json:"resolve_outdated_diff_discussions,omitempty"`
-	ContainerRegistryEnabled                  *bool               `url:"container_registry_enabled,omitempty" json:"container_registry_enabled,omitempty"`
-	SharedRunnersEnabled                      *bool               `url:"shared_runners_enabled,omitempty" json:"shared_runners_enabled,omitempty"`
-	Visibility                                *VisibilityValue    `url:"visibility,omitempty" json:"visibility,omitempty"`
-	ImportURL                                 *string             `url:"import_url,omitempty" json:"import_url,omitempty"`
-	PublicBuilds                              *bool               `url:"public_builds,omitempty" json:"public_builds,omitempty"`
-	OnlyAllowMergeIfPipelineSucceeds          *bool               `url:"only_allow_merge_if_pipeline_succeeds,omitempty" json:"only_allow_merge_if_pipeline_succeeds,omitempty"`
-	OnlyAllowMergeIfAllDiscussionsAreResolved *bool               `url:"only_allow_merge_if_all_discussions_are_resolved,omitempty" json:"only_allow_merge_if_all_discussions_are_resolved,omitempty"`
-	MergeMethod                               *MergeMethodValue   `url:"merge_method,omitempty" json:"merge_method,omitempty"`
-	RemoveSourceBranchAfterMerge              *bool               `url:"remove_source_branch_after_merge,omitempty" json:"remove_source_branch_after_merge,omitempty"`
-	LFSEnabled                                *bool               `url:"lfs_enabled,omitempty" json:"lfs_enabled,omitempty"`
-	RequestAccessEnabled                      *bool               `url:"request_access_enabled,omitempty" json:"request_access_enabled,omitempty"`
-	TagList                                   *[]string           `url:"tag_list,omitempty" json:"tag_list,omitempty"`
-	PrintingMergeRequestLinkEnabled           *bool               `url:"printing_merge_request_link_enabled,omitempty" json:"printing_merge_request_link_enabled,omitempty"`
-	BuildGitStrategy                          *string             `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
-	BuildTimeout                              *int                `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
-	AutoCancelPendingPipelines                *string             `url:"auto_cancel_pending_pipelines,omitempty" json:"auto_cancel_pending_pipelines,omitempty"`
-	BuildCoverageRegex                        *string             `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
-	CIConfigPath                              *string             `url:"ci_config_path,omitempty" json:"ci_config_path,omitempty"`
-	AutoDevopsEnabled                         *bool               `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
-	AutoDevopsDeployStrategy                  *string             `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
-	ApprovalsBeforeMerge                      *int                `url:"approvals_before_merge,omitempty" json:"approvals_before_merge,omitempty"`
-	ExternalAuthorizationClassificationLabel  *string             `url:"external_authorization_classification_label,omitempty" json:"external_authorization_classification_label,omitempty"`
-	Mirror                                    *bool               `url:"mirror,omitempty" json:"mirror,omitempty"`
-	MirrorTriggerBuilds                       *bool               `url:"mirror_trigger_builds,omitempty" json:"mirror_trigger_builds,omitempty"`
-	InitializeWithReadme                      *bool               `url:"initialize_with_readme,omitempty" json:"initialize_with_readme,omitempty"`
-	TemplateName                              *string             `url:"template_name,omitempty" json:"template_name,omitempty"`
-	TemplateProjectID                         *int                `url:"template_project_id,omitempty" json:"template_project_id,omitempty"`
-	UseCustomTemplate                         *bool               `url:"use_custom_template,omitempty" json:"use_custom_template,omitempty"`
-	GroupWithProjectTemplatesID               *int                `url:"group_with_project_templates_id,omitempty" json:"group_with_project_templates_id,omitempty"`
-	PackagesEnabled                           *bool               `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
-	ServiceDeskEnabled                        *bool               `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
-	AutocloseReferencedIssues                 *bool               `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	Name                                      *string                              `url:"name,omitempty" json:"name,omitempty"`
+	Path                                      *string                              `url:"path,omitempty" json:"path,omitempty"`
+	NamespaceID                               *int                                 `url:"namespace_id,omitempty" json:"namespace_id,omitempty"`
+	DefaultBranch                             *string                              `url:"default_branch,omitempty" json:"default_branch,omitempty"`
+	Description                               *string                              `url:"description,omitempty" json:"description,omitempty"`
+	IssuesAccessLevel                         *AccessControlValue                  `url:"issues_access_level,omitempty" json:"issues_access_level,omitempty"`
+	RepositoryAccessLevel                     *AccessControlValue                  `url:"repository_access_level,omitempty" json:"repository_access_level,omitempty"`
+	MergeRequestsAccessLevel                  *AccessControlValue                  `url:"merge_requests_access_level,omitempty" json:"merge_requests_access_level,omitempty"`
+	ForkingAccessLevel                        *AccessControlValue                  `url:"forking_access_level,omitempty" json:"forking_access_level,omitempty"`
+	BuildsAccessLevel                         *AccessControlValue                  `url:"builds_access_level,omitempty" json:"builds_access_level,omitempty"`
+	WikiAccessLevel                           *AccessControlValue                  `url:"wiki_access_level,omitempty" json:"wiki_access_level,omitempty"`
+	SnippetsAccessLevel                       *AccessControlValue                  `url:"snippets_access_level,omitempty" json:"snippets_access_level,omitempty"`
+	PagesAccessLevel                          *AccessControlValue                  `url:"pages_access_level,omitempty" json:"pages_access_level,omitempty"`
+	OperationsAccessLevel                     *AccessControlValue                  `url:"operations_access_level,omitempty" json:"operations_access_level,omitempty"`
+	EmailsDisabled                            *bool                                `url:"emails_disabled,omitempty" json:"emails_disabled,omitempty"`
+	ResolveOutdatedDiffDiscussions            *bool                                `url:"resolve_outdated_diff_discussions,omitempty" json:"resolve_outdated_diff_discussions,omitempty"`
+	ContainerExpirationPolicyAttributes       *ContainerExpirationPolicyAttributes `url:"container_expiration_policy_attributes,omitempty" json:"container_expiration_policy_attributes,omitempty"`
+	ContainerRegistryEnabled                  *bool                                `url:"container_registry_enabled,omitempty" json:"container_registry_enabled,omitempty"`
+	SharedRunnersEnabled                      *bool                                `url:"shared_runners_enabled,omitempty" json:"shared_runners_enabled,omitempty"`
+	Visibility                                *VisibilityValue                     `url:"visibility,omitempty" json:"visibility,omitempty"`
+	ImportURL                                 *string                              `url:"import_url,omitempty" json:"import_url,omitempty"`
+	PublicBuilds                              *bool                                `url:"public_builds,omitempty" json:"public_builds,omitempty"`
+	AllowMergeOnSkippedPipeline               *bool                                `url:"allow_merge_on_skipped_pipeline,omitempty" json:"allow_merge_on_skipped_pipeline,omitempty"`
+	OnlyAllowMergeIfPipelineSucceeds          *bool                                `url:"only_allow_merge_if_pipeline_succeeds,omitempty" json:"only_allow_merge_if_pipeline_succeeds,omitempty"`
+	OnlyAllowMergeIfAllDiscussionsAreResolved *bool                                `url:"only_allow_merge_if_all_discussions_are_resolved,omitempty" json:"only_allow_merge_if_all_discussions_are_resolved,omitempty"`
+	MergeMethod                               *MergeMethodValue                    `url:"merge_method,omitempty" json:"merge_method,omitempty"`
+	RemoveSourceBranchAfterMerge              *bool                                `url:"remove_source_branch_after_merge,omitempty" json:"remove_source_branch_after_merge,omitempty"`
+	LFSEnabled                                *bool                                `url:"lfs_enabled,omitempty" json:"lfs_enabled,omitempty"`
+	RequestAccessEnabled                      *bool                                `url:"request_access_enabled,omitempty" json:"request_access_enabled,omitempty"`
+	TagList                                   *[]string                            `url:"tag_list,omitempty" json:"tag_list,omitempty"`
+	PrintingMergeRequestLinkEnabled           *bool                                `url:"printing_merge_request_link_enabled,omitempty" json:"printing_merge_request_link_enabled,omitempty"`
+	BuildGitStrategy                          *string                              `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
+	BuildTimeout                              *int                                 `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
+	AutoCancelPendingPipelines                *string                              `url:"auto_cancel_pending_pipelines,omitempty" json:"auto_cancel_pending_pipelines,omitempty"`
+	BuildCoverageRegex                        *string                              `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
+	CIConfigPath                              *string                              `url:"ci_config_path,omitempty" json:"ci_config_path,omitempty"`
+	CIForwardDeploymentEnabled                *bool                                `url:"ci_forward_deployment_enabled,omitempty" json:"ci_forward_deployment_enabled,omitempty"`
+	AutoDevopsEnabled                         *bool                                `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
+	AutoDevopsDeployStrategy                  *string                              `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
+	ApprovalsBeforeMerge                      *int                                 `url:"approvals_before_merge,omitempty" json:"approvals_before_merge,omitempty"`
+	ExternalAuthorizationClassificationLabel  *string                              `url:"external_authorization_classification_label,omitempty" json:"external_authorization_classification_label,omitempty"`
+	Mirror                                    *bool                                `url:"mirror,omitempty" json:"mirror,omitempty"`
+	MirrorTriggerBuilds                       *bool                                `url:"mirror_trigger_builds,omitempty" json:"mirror_trigger_builds,omitempty"`
+	InitializeWithReadme                      *bool                                `url:"initialize_with_readme,omitempty" json:"initialize_with_readme,omitempty"`
+	TemplateName                              *string                              `url:"template_name,omitempty" json:"template_name,omitempty"`
+	TemplateProjectID                         *int                                 `url:"template_project_id,omitempty" json:"template_project_id,omitempty"`
+	UseCustomTemplate                         *bool                                `url:"use_custom_template,omitempty" json:"use_custom_template,omitempty"`
+	GroupWithProjectTemplatesID               *int                                 `url:"group_with_project_templates_id,omitempty" json:"group_with_project_templates_id,omitempty"`
+	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
+	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
+	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
+	IssuesTemplate                            *string                              `url:"issues_template,omitempty" json:"issues_template,omitempty"`
+	MergeRequestsTemplate                     *string                              `url:"merge_requests_template,omitempty" json:"merge_requests_template,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -522,11 +620,34 @@ type CreateProjectOptions struct {
 	SnippetsEnabled      *bool `url:"snippets_enabled,omitempty" json:"snippets_enabled,omitempty"`
 }
 
+// ContainerExpirationPolicyAttributes represents the available container
+// expiration policy attributes.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#create-project
+type ContainerExpirationPolicyAttributes struct {
+	Cadence         *string `url:"cadence,omitempty" json:"cadence,omitempty"`
+	KeepN           *int    `url:"keep_n,omitempty" json:"keep_n,omitempty"`
+	OlderThan       *string `url:"older_than,omitempty" json:"older_than,omitempty"`
+	NameRegexDelete *string `url:"name_regex_delete,omitempty" json:"name_regex_delete,omitempty"`
+	NameRegexKeep   *string `url:"name_regex_keep,omitempty" json:"name_regex_keep,omitempty"`
+	Enabled         *bool   `url:"enabled,omitempty" json:"enabled,omitempty"`
+
+	// Deprecated members
+	NameRegex *string `url:"name_regex,omitempty" json:"name_regex,omitempty"`
+}
+
 // CreateProject creates a new project owned by the authenticated user.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#create-project
 func (s *ProjectsService) CreateProject(opt *CreateProjectOptions, options ...RequestOptionFunc) (*Project, *Response, error) {
-	req, err := s.client.NewRequest("POST", "projects", opt, options)
+	if opt.ContainerExpirationPolicyAttributes != nil {
+		// This is needed to satisfy the API. Should be deleted
+		// when NameRegex is removed (it's now deprecated).
+		opt.ContainerExpirationPolicyAttributes.NameRegex =
+			opt.ContainerExpirationPolicyAttributes.NameRegexDelete
+	}
+
+	req, err := s.client.NewRequest(http.MethodPost, "projects", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -553,9 +674,15 @@ type CreateProjectForUserOptions CreateProjectOptions
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/projects.html#create-project-for-user
 func (s *ProjectsService) CreateProjectForUser(user int, opt *CreateProjectForUserOptions, options ...RequestOptionFunc) (*Project, *Response, error) {
-	u := fmt.Sprintf("projects/user/%d", user)
+	if opt.ContainerExpirationPolicyAttributes != nil {
+		// This is needed to satisfy the API. Should be deleted
+		// when NameRegex is removed (it's now deprecated).
+		opt.ContainerExpirationPolicyAttributes.NameRegex =
+			opt.ContainerExpirationPolicyAttributes.NameRegexDelete
+	}
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	u := fmt.Sprintf("projects/user/%d", user)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -573,50 +700,57 @@ func (s *ProjectsService) CreateProjectForUser(user int, opt *CreateProjectForUs
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#edit-project
 type EditProjectOptions struct {
-	Name                                      *string             `url:"name,omitempty" json:"name,omitempty"`
-	Path                                      *string             `url:"path,omitempty" json:"path,omitempty"`
-	DefaultBranch                             *string             `url:"default_branch,omitempty" json:"default_branch,omitempty"`
-	Description                               *string             `url:"description,omitempty" json:"description,omitempty"`
-	IssuesAccessLevel                         *AccessControlValue `url:"issues_access_level,omitempty" json:"issues_access_level,omitempty"`
-	RepositoryAccessLevel                     *AccessControlValue `url:"repository_access_level,omitempty" json:"repository_access_level,omitempty"`
-	MergeRequestsAccessLevel                  *AccessControlValue `url:"merge_requests_access_level,omitempty" json:"merge_requests_access_level,omitempty"`
-	ForkingAccessLevel                        *AccessControlValue `url:"forking_access_level,omitempty" json:"forking_access_level,omitempty"`
-	BuildsAccessLevel                         *AccessControlValue `url:"builds_access_level,omitempty" json:"builds_access_level,omitempty"`
-	WikiAccessLevel                           *AccessControlValue `url:"wiki_access_level,omitempty" json:"wiki_access_level,omitempty"`
-	SnippetsAccessLevel                       *AccessControlValue `url:"snippets_access_level,omitempty" json:"snippets_access_level,omitempty"`
-	PagesAccessLevel                          *AccessControlValue `url:"pages_access_level,omitempty" json:"pages_access_level,omitempty"`
-	EmailsDisabled                            *bool               `url:"emails_disabled,omitempty" json:"emails_disabled,omitempty"`
-	ResolveOutdatedDiffDiscussions            *bool               `url:"resolve_outdated_diff_discussions,omitempty" json:"resolve_outdated_diff_discussions,omitempty"`
-	ContainerRegistryEnabled                  *bool               `url:"container_registry_enabled,omitempty" json:"container_registry_enabled,omitempty"`
-	SharedRunnersEnabled                      *bool               `url:"shared_runners_enabled,omitempty" json:"shared_runners_enabled,omitempty"`
-	Visibility                                *VisibilityValue    `url:"visibility,omitempty" json:"visibility,omitempty"`
-	ImportURL                                 *string             `url:"import_url,omitempty" json:"import_url,omitempty"`
-	PublicBuilds                              *bool               `url:"public_builds,omitempty" json:"public_builds,omitempty"`
-	OnlyAllowMergeIfPipelineSucceeds          *bool               `url:"only_allow_merge_if_pipeline_succeeds,omitempty" json:"only_allow_merge_if_pipeline_succeeds,omitempty"`
-	OnlyAllowMergeIfAllDiscussionsAreResolved *bool               `url:"only_allow_merge_if_all_discussions_are_resolved,omitempty" json:"only_allow_merge_if_all_discussions_are_resolved,omitempty"`
-	MergeMethod                               *MergeMethodValue   `url:"merge_method,omitempty" json:"merge_method,omitempty"`
-	RemoveSourceBranchAfterMerge              *bool               `url:"remove_source_branch_after_merge,omitempty" json:"remove_source_branch_after_merge,omitempty"`
-	LFSEnabled                                *bool               `url:"lfs_enabled,omitempty" json:"lfs_enabled,omitempty"`
-	RequestAccessEnabled                      *bool               `url:"request_access_enabled,omitempty" json:"request_access_enabled,omitempty"`
-	TagList                                   *[]string           `url:"tag_list,omitempty" json:"tag_list,omitempty"`
-	BuildGitStrategy                          *string             `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
-	BuildTimeout                              *int                `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
-	AutoCancelPendingPipelines                *string             `url:"auto_cancel_pending_pipelines,omitempty" json:"auto_cancel_pending_pipelines,omitempty"`
-	BuildCoverageRegex                        *string             `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
-	CIConfigPath                              *string             `url:"ci_config_path,omitempty" json:"ci_config_path,omitempty"`
-	CIDefaultGitDepth                         *int                `url:"ci_default_git_depth,omitempty" json:"ci_default_git_depth,omitempty"`
-	AutoDevopsEnabled                         *bool               `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
-	AutoDevopsDeployStrategy                  *string             `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
-	ApprovalsBeforeMerge                      *int                `url:"approvals_before_merge,omitempty" json:"approvals_before_merge,omitempty"`
-	ExternalAuthorizationClassificationLabel  *string             `url:"external_authorization_classification_label,omitempty" json:"external_authorization_classification_label,omitempty"`
-	Mirror                                    *bool               `url:"mirror,omitempty" json:"mirror,omitempty"`
-	MirrorUserID                              *int                `url:"mirror_user_id,omitempty" json:"mirror_user_id,omitempty"`
-	MirrorTriggerBuilds                       *bool               `url:"mirror_trigger_builds,omitempty" json:"mirror_trigger_builds,omitempty"`
-	OnlyMirrorProtectedBranches               *bool               `url:"only_mirror_protected_branches,omitempty" json:"only_mirror_protected_branches,omitempty"`
-	MirrorOverwritesDivergedBranches          *bool               `url:"mirror_overwrites_diverged_branches,omitempty" json:"mirror_overwrites_diverged_branches,omitempty"`
-	PackagesEnabled                           *bool               `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
-	ServiceDeskEnabled                        *bool               `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
-	AutocloseReferencedIssues                 *bool               `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	Name                                      *string                              `url:"name,omitempty" json:"name,omitempty"`
+	Path                                      *string                              `url:"path,omitempty" json:"path,omitempty"`
+	DefaultBranch                             *string                              `url:"default_branch,omitempty" json:"default_branch,omitempty"`
+	Description                               *string                              `url:"description,omitempty" json:"description,omitempty"`
+	IssuesAccessLevel                         *AccessControlValue                  `url:"issues_access_level,omitempty" json:"issues_access_level,omitempty"`
+	RepositoryAccessLevel                     *AccessControlValue                  `url:"repository_access_level,omitempty" json:"repository_access_level,omitempty"`
+	MergeRequestsAccessLevel                  *AccessControlValue                  `url:"merge_requests_access_level,omitempty" json:"merge_requests_access_level,omitempty"`
+	ForkingAccessLevel                        *AccessControlValue                  `url:"forking_access_level,omitempty" json:"forking_access_level,omitempty"`
+	BuildsAccessLevel                         *AccessControlValue                  `url:"builds_access_level,omitempty" json:"builds_access_level,omitempty"`
+	WikiAccessLevel                           *AccessControlValue                  `url:"wiki_access_level,omitempty" json:"wiki_access_level,omitempty"`
+	SnippetsAccessLevel                       *AccessControlValue                  `url:"snippets_access_level,omitempty" json:"snippets_access_level,omitempty"`
+	PagesAccessLevel                          *AccessControlValue                  `url:"pages_access_level,omitempty" json:"pages_access_level,omitempty"`
+	OperationsAccessLevel                     *AccessControlValue                  `url:"operations_access_level,omitempty" json:"operations_access_level,omitempty"`
+	EmailsDisabled                            *bool                                `url:"emails_disabled,omitempty" json:"emails_disabled,omitempty"`
+	ResolveOutdatedDiffDiscussions            *bool                                `url:"resolve_outdated_diff_discussions,omitempty" json:"resolve_outdated_diff_discussions,omitempty"`
+	ContainerExpirationPolicyAttributes       *ContainerExpirationPolicyAttributes `url:"container_expiration_policy_attributes,omitempty" json:"container_expiration_policy_attributes,omitempty"`
+	ContainerRegistryEnabled                  *bool                                `url:"container_registry_enabled,omitempty" json:"container_registry_enabled,omitempty"`
+	SharedRunnersEnabled                      *bool                                `url:"shared_runners_enabled,omitempty" json:"shared_runners_enabled,omitempty"`
+	Visibility                                *VisibilityValue                     `url:"visibility,omitempty" json:"visibility,omitempty"`
+	ImportURL                                 *string                              `url:"import_url,omitempty" json:"import_url,omitempty"`
+	PublicBuilds                              *bool                                `url:"public_builds,omitempty" json:"public_builds,omitempty"`
+	AllowMergeOnSkippedPipeline               *bool                                `url:"allow_merge_on_skipped_pipeline,omitempty" json:"allow_merge_on_skipped_pipeline,omitempty"`
+	OnlyAllowMergeIfPipelineSucceeds          *bool                                `url:"only_allow_merge_if_pipeline_succeeds,omitempty" json:"only_allow_merge_if_pipeline_succeeds,omitempty"`
+	OnlyAllowMergeIfAllDiscussionsAreResolved *bool                                `url:"only_allow_merge_if_all_discussions_are_resolved,omitempty" json:"only_allow_merge_if_all_discussions_are_resolved,omitempty"`
+	MergeMethod                               *MergeMethodValue                    `url:"merge_method,omitempty" json:"merge_method,omitempty"`
+	RemoveSourceBranchAfterMerge              *bool                                `url:"remove_source_branch_after_merge,omitempty" json:"remove_source_branch_after_merge,omitempty"`
+	LFSEnabled                                *bool                                `url:"lfs_enabled,omitempty" json:"lfs_enabled,omitempty"`
+	RequestAccessEnabled                      *bool                                `url:"request_access_enabled,omitempty" json:"request_access_enabled,omitempty"`
+	TagList                                   *[]string                            `url:"tag_list,omitempty" json:"tag_list,omitempty"`
+	BuildGitStrategy                          *string                              `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
+	BuildTimeout                              *int                                 `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
+	AutoCancelPendingPipelines                *string                              `url:"auto_cancel_pending_pipelines,omitempty" json:"auto_cancel_pending_pipelines,omitempty"`
+	BuildCoverageRegex                        *string                              `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
+	CIConfigPath                              *string                              `url:"ci_config_path,omitempty" json:"ci_config_path,omitempty"`
+	CIForwardDeploymentEnabled                *bool                                `url:"ci_forward_deployment_enabled,omitempty" json:"ci_forward_deployment_enabled,omitempty"`
+	CIDefaultGitDepth                         *int                                 `url:"ci_default_git_depth,omitempty" json:"ci_default_git_depth,omitempty"`
+	AutoDevopsEnabled                         *bool                                `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
+	AutoDevopsDeployStrategy                  *string                              `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
+	ApprovalsBeforeMerge                      *int                                 `url:"approvals_before_merge,omitempty" json:"approvals_before_merge,omitempty"`
+	ExternalAuthorizationClassificationLabel  *string                              `url:"external_authorization_classification_label,omitempty" json:"external_authorization_classification_label,omitempty"`
+	Mirror                                    *bool                                `url:"mirror,omitempty" json:"mirror,omitempty"`
+	MirrorUserID                              *int                                 `url:"mirror_user_id,omitempty" json:"mirror_user_id,omitempty"`
+	MirrorTriggerBuilds                       *bool                                `url:"mirror_trigger_builds,omitempty" json:"mirror_trigger_builds,omitempty"`
+	OnlyMirrorProtectedBranches               *bool                                `url:"only_mirror_protected_branches,omitempty" json:"only_mirror_protected_branches,omitempty"`
+	MirrorOverwritesDivergedBranches          *bool                                `url:"mirror_overwrites_diverged_branches,omitempty" json:"mirror_overwrites_diverged_branches,omitempty"`
+	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
+	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
+	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
+	IssuesTemplate                            *string                              `url:"issues_template,omitempty" json:"issues_template,omitempty"`
+	MergeRequestsTemplate                     *string                              `url:"merge_requests_template,omitempty" json:"merge_requests_template,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -630,13 +764,20 @@ type EditProjectOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#edit-project
 func (s *ProjectsService) EditProject(pid interface{}, opt *EditProjectOptions, options ...RequestOptionFunc) (*Project, *Response, error) {
+	if opt.ContainerExpirationPolicyAttributes != nil {
+		// This is needed to satisfy the API. Should be deleted
+		// when NameRegex is removed (it's now deprecated).
+		opt.ContainerExpirationPolicyAttributes.NameRegex =
+			opt.ContainerExpirationPolicyAttributes.NameRegexDelete
+	}
+
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -670,7 +811,7 @@ func (s *ProjectsService) ForkProject(pid interface{}, opt *ForkProjectOptions, 
 	}
 	u := fmt.Sprintf("projects/%s/fork", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -695,7 +836,7 @@ func (s *ProjectsService) StarProject(pid interface{}, options ...RequestOptionF
 	}
 	u := fmt.Sprintf("projects/%s/star", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -720,7 +861,7 @@ func (s *ProjectsService) UnstarProject(pid interface{}, options ...RequestOptio
 	}
 	u := fmt.Sprintf("projects/%s/unstar", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -746,7 +887,7 @@ func (s *ProjectsService) ArchiveProject(pid interface{}, options ...RequestOpti
 	}
 	u := fmt.Sprintf("projects/%s/archive", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -772,7 +913,7 @@ func (s *ProjectsService) UnarchiveProject(pid interface{}, options ...RequestOp
 	}
 	u := fmt.Sprintf("projects/%s/unarchive", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -797,7 +938,7 @@ func (s *ProjectsService) DeleteProject(pid interface{}, options ...RequestOptio
 	}
 	u := fmt.Sprintf("projects/%s", pathEscape(project))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -824,7 +965,7 @@ func (s *ProjectsService) ShareProjectWithGroup(pid interface{}, opt *ShareWithG
 	}
 	u := fmt.Sprintf("projects/%s/share", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -842,7 +983,7 @@ func (s *ProjectsService) DeleteSharedProjectFromGroup(pid interface{}, groupID 
 	}
 	u := fmt.Sprintf("projects/%s/share/%d", pathEscape(project), groupID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -886,6 +1027,8 @@ type ProjectHook struct {
 	JobEvents                bool       `json:"job_events"`
 	PipelineEvents           bool       `json:"pipeline_events"`
 	WikiPageEvents           bool       `json:"wiki_page_events"`
+	DeploymentEvents         bool       `json:"deployment_events"`
+	ReleasesEvents           bool       `json:"releases_events"`
 	EnableSSLVerification    bool       `json:"enable_ssl_verification"`
 	CreatedAt                *time.Time `json:"created_at"`
 }
@@ -906,7 +1049,7 @@ func (s *ProjectsService) ListProjectHooks(pid interface{}, opt *ListProjectHook
 	}
 	u := fmt.Sprintf("projects/%s/hooks", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -931,7 +1074,7 @@ func (s *ProjectsService) GetProjectHook(pid interface{}, hook int, options ...R
 	}
 	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -962,6 +1105,8 @@ type AddProjectHookOptions struct {
 	JobEvents                *bool   `url:"job_events,omitempty" json:"job_events,omitempty"`
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
+	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -977,7 +1122,7 @@ func (s *ProjectsService) AddProjectHook(pid interface{}, opt *AddProjectHookOpt
 	}
 	u := fmt.Sprintf("projects/%s/hooks", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1008,6 +1153,8 @@ type EditProjectHookOptions struct {
 	JobEvents                *bool   `url:"job_events,omitempty" json:"job_events,omitempty"`
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
+	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -1023,7 +1170,7 @@ func (s *ProjectsService) EditProjectHook(pid interface{}, hook int, opt *EditPr
 	}
 	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1049,7 +1196,7 @@ func (s *ProjectsService) DeleteProjectHook(pid interface{}, hook int, options .
 	}
 	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1077,7 +1224,7 @@ type ProjectForkRelation struct {
 func (s *ProjectsService) CreateProjectForkRelation(pid int, fork int, options ...RequestOptionFunc) (*ProjectForkRelation, *Response, error) {
 	u := fmt.Sprintf("projects/%d/fork/%d", pid, fork)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1098,7 +1245,7 @@ func (s *ProjectsService) CreateProjectForkRelation(pid int, fork int, options .
 func (s *ProjectsService) DeleteProjectForkRelation(pid int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("projects/%d/fork", pid)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1134,7 +1281,8 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 
-	fw, err := w.CreateFormFile("file", file)
+	_, filename := filepath.Split(file)
+	fw, err := w.CreateFormFile("file", filename)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1145,15 +1293,18 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	}
 	w.Close()
 
-	req, err := s.client.NewRequest("", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	req.Body = ioutil.NopCloser(b)
-	req.ContentLength = int64(b.Len())
+	// Set the buffer as the request body.
+	if err = req.SetBody(b); err != nil {
+		return nil, nil, err
+	}
+
+	// Overwrite the default content type.
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Method = "POST"
 
 	uf := &ProjectFile{}
 	resp, err := s.client.Do(req, uf)
@@ -1175,7 +1326,7 @@ func (s *ProjectsService) ListProjectForks(pid interface{}, opt *ListProjectsOpt
 	}
 	u := fmt.Sprintf("projects/%s/forks", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1221,7 +1372,7 @@ func (s *ProjectsService) GetProjectPushRules(pid interface{}, options ...Reques
 	}
 	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1265,7 +1416,7 @@ func (s *ProjectsService) AddProjectPushRule(pid interface{}, opt *AddProjectPus
 	}
 	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1309,7 +1460,7 @@ func (s *ProjectsService) EditProjectPushRule(pid interface{}, opt *EditProjectP
 	}
 	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1336,7 +1487,7 @@ func (s *ProjectsService) DeleteProjectPushRule(pid interface{}, options ...Requ
 	}
 	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1356,6 +1507,7 @@ type ProjectApprovals struct {
 	DisableOverridingApproversPerMergeRequest bool                         `json:"disable_overriding_approvers_per_merge_request"`
 	MergeRequestsAuthorApproval               bool                         `json:"merge_requests_author_approval"`
 	MergeRequestsDisableCommittersApproval    bool                         `json:"merge_requests_disable_committers_approval"`
+	RequirePasswordToApprove                  bool                         `json:"require_password_to_approve"`
 }
 
 // GetApprovalConfiguration get the approval configuration for a project.
@@ -1369,7 +1521,7 @@ func (s *ProjectsService) GetApprovalConfiguration(pid interface{}, options ...R
 	}
 	u := fmt.Sprintf("projects/%s/approvals", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1394,6 +1546,7 @@ type ChangeApprovalConfigurationOptions struct {
 	DisableOverridingApproversPerMergeRequest *bool `url:"disable_overriding_approvers_per_merge_request,omitempty" json:"disable_overriding_approvers_per_merge_request,omitempty"`
 	MergeRequestsAuthorApproval               *bool `url:"merge_requests_author_approval,omitempty" json:"merge_requests_author_approval,omitempty"`
 	MergeRequestsDisableCommittersApproval    *bool `url:"merge_requests_disable_committers_approval,omitempty" json:"merge_requests_disable_committers_approval,omitempty"`
+	RequirePasswordToApprove                  *bool `url:"require_password_to_approve,omitempty" json:"require_password_to_approve,omitempty"`
 }
 
 // ChangeApprovalConfiguration updates the approval configuration for a project.
@@ -1407,7 +1560,7 @@ func (s *ProjectsService) ChangeApprovalConfiguration(pid interface{}, opt *Chan
 	}
 	u := fmt.Sprintf("projects/%s/approvals", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1432,7 +1585,7 @@ func (s *ProjectsService) GetProjectApprovalRules(pid interface{}, options ...Re
 	}
 	u := fmt.Sprintf("projects/%s/approval_rules", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1470,7 +1623,7 @@ func (s *ProjectsService) CreateProjectApprovalRule(pid interface{}, opt *Create
 	}
 	u := fmt.Sprintf("projects/%s/approval_rules", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1508,7 +1661,7 @@ func (s *ProjectsService) UpdateProjectApprovalRule(pid interface{}, approvalRul
 	}
 	u := fmt.Sprintf("projects/%s/approval_rules/%d", pathEscape(project), approvalRule)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1533,7 +1686,7 @@ func (s *ProjectsService) DeleteProjectApprovalRule(pid interface{}, approvalRul
 	}
 	u := fmt.Sprintf("projects/%s/approval_rules/%d", pathEscape(project), approvalRule)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1562,7 +1715,7 @@ func (s *ProjectsService) ChangeAllowedApprovers(pid interface{}, opt *ChangeAll
 	}
 	u := fmt.Sprintf("projects/%s/approvers", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1587,7 +1740,7 @@ func (s *ProjectsService) StartMirroringProject(pid interface{}, options ...Requ
 	}
 	u := fmt.Sprintf("projects/%s/mirror/pull", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1617,7 +1770,7 @@ func (s *ProjectsService) TransferProject(pid interface{}, opt *TransferProjectO
 	}
 	u := fmt.Sprintf("projects/%s/transfer", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -35,11 +35,9 @@ TEXT ·emitLiteral(SB), NOSPLIT, $32-56
 	MOVW R3, R4
 	SUBW $1, R4, R4
 
-	MOVW $60, R2
-	CMPW R2, R4
+	CMPW $60, R4
 	BLT  oneByte
-	MOVW $256, R2
-	CMPW R2, R4
+	CMPW $256, R4
 	BLT  twoBytes
 
 threeBytes:
@@ -98,8 +96,7 @@ TEXT ·emitCopy(SB), NOSPLIT, $0-48
 
 loop0:
 	// for length >= 68 { etc }
-	MOVW $68, R2
-	CMPW R2, R3
+	CMPW $68, R3
 	BLT  step1
 
 	// Emit a length 64 copy, encoded as 3 bytes.
@@ -112,9 +109,8 @@ loop0:
 
 step1:
 	// if length > 64 { etc }
-	MOVD $64, R2
-	CMP  R2, R3
-	BLE  step2
+	CMP $64, R3
+	BLE step2
 
 	// Emit a length 60 copy, encoded as 3 bytes.
 	MOVD $0xee, R2
@@ -125,11 +121,9 @@ step1:
 
 step2:
 	// if length >= 12 || offset >= 2048 { goto step3 }
-	MOVD $12, R2
-	CMP  R2, R3
+	CMP  $12, R3
 	BGE  step3
-	MOVW $2048, R2
-	CMPW R2, R11
+	CMPW $2048, R11
 	BGE  step3
 
 	// Emit the remaining copy, encoded as 2 bytes.
@@ -295,27 +289,24 @@ varTable:
 	// var table [maxTableSize]uint16
 	//
 	// In the asm code, unlike the Go code, we can zero-initialize only the
-	// first tableSize elements. Each uint16 element is 2 bytes and each VST1
-	// writes 64 bytes, so we can do only tableSize/32 writes instead of the
-	// 2048 writes that would zero-initialize all of table's 32768 bytes.
-	// This clear could overrun the first tableSize elements, but it won't
-	// overrun the allocated stack size.
+	// first tableSize elements. Each uint16 element is 2 bytes and each
+	// iterations writes 64 bytes, so we can do only tableSize/32 writes
+	// instead of the 2048 writes that would zero-initialize all of table's
+	// 32768 bytes. This clear could overrun the first tableSize elements, but
+	// it won't overrun the allocated stack size.
 	ADD  $128, RSP, R17
 	MOVD R17, R4
 
 	// !!! R6 = &src[tableSize]
 	ADD R6<<1, R17, R6
 
-	// zero the SIMD registers
-	VEOR V0.B16, V0.B16, V0.B16
-	VEOR V1.B16, V1.B16, V1.B16
-	VEOR V2.B16, V2.B16, V2.B16
-	VEOR V3.B16, V3.B16, V3.B16
-
 memclr:
-	VST1.P [V0.B16, V1.B16, V2.B16, V3.B16], 64(R4)
-	CMP    R4, R6
-	BHI    memclr
+	STP.P (ZR, ZR), 64(R4)
+	STP   (ZR, ZR), -48(R4)
+	STP   (ZR, ZR), -32(R4)
+	STP   (ZR, ZR), -16(R4)
+	CMP   R4, R6
+	BHI   memclr
 
 	// !!! R6 = &src[0]
 	MOVD R7, R6
@@ -391,7 +382,7 @@ inner0:
 
 	// if load32(src, s) != load32(src, candidate) { continue } break
 	MOVW 0(R7), R3
-	MOVW (R6)(R15*1), R4
+	MOVW (R6)(R15), R4
 	CMPW R4, R3
 	BNE  inner0
 
@@ -404,8 +395,7 @@ fourByteMatch:
 	// on inputMargin in encode.go.
 	MOVD R7, R3
 	SUB  R10, R3, R3
-	MOVD $16, R2
-	CMP  R2, R3
+	CMP  $16, R3
 	BLE  emitLiteralFastPath
 
 	// ----------------------------------------
@@ -454,18 +444,21 @@ inlineEmitLiteralMemmove:
 	MOVD R3, 24(RSP)
 
 	// Finish the "d +=" part of "d += emitLiteral(etc)".
-	ADD  R3, R8, R8
-	MOVD R7, 80(RSP)
-	MOVD R8, 88(RSP)
-	MOVD R15, 120(RSP)
-	CALL runtime·memmove(SB)
-	MOVD 64(RSP), R5
-	MOVD 72(RSP), R6
-	MOVD 80(RSP), R7
-	MOVD 88(RSP), R8
-	MOVD 96(RSP), R9
-	MOVD 120(RSP), R15
-	B    inner1
+	ADD   R3, R8, R8
+	MOVD  R7, 80(RSP)
+	MOVD  R8, 88(RSP)
+	MOVD  R15, 120(RSP)
+	CALL  runtime·memmove(SB)
+	MOVD  64(RSP), R5
+	MOVD  72(RSP), R6
+	MOVD  80(RSP), R7
+	MOVD  88(RSP), R8
+	MOVD  96(RSP), R9
+	MOVD  120(RSP), R15
+	ADD   $128, RSP, R17
+	MOVW  $0xa7bd, R16
+	MOVKW $(0x1e35<<16), R16
+	B     inner1
 
 inlineEmitLiteralEnd:
 	// End inline of the emitLiteral call.
@@ -489,9 +482,9 @@ emitLiteralFastPath:
 	// Note that on arm64, it is legal and cheap to issue unaligned 8-byte or
 	// 16-byte loads and stores. This technique probably wouldn't be as
 	// effective on architectures that are fussier about alignment.
-	VLD1 0(R10), [V0.B16]
-	VST1 [V0.B16], 0(R8)
-	ADD  R3, R8, R8
+	LDP 0(R10), (R0, R1)
+	STP (R0, R1), 0(R8)
+	ADD R3, R8, R8
 
 inner1:
 	// for { etc }
@@ -679,7 +672,7 @@ inlineEmitCopyEnd:
 	MOVHU R3, 0(R17)(R11<<1)
 
 	// if uint32(x>>8) == load32(src, candidate) { continue }
-	MOVW (R6)(R15*1), R4
+	MOVW (R6)(R15), R4
 	CMPW R4, R14
 	BEQ  inner1
 

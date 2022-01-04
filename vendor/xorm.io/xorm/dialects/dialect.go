@@ -42,8 +42,11 @@ func (uri *URI) SetSchema(schema string) {
 type Dialect interface {
 	Init(*URI) error
 	URI() *URI
+	Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error)
+
 	SQLType(*schemas.Column) string
-	FormatBytes(b []byte) string
+	Alias(string) string       // return what a sql type's alias of
+	ColumnTypeKind(string) int // database column type kind
 
 	IsReserved(string) bool
 	Quoter() schemas.Quoter
@@ -79,32 +82,67 @@ type Base struct {
 	quoter  schemas.Quoter
 }
 
-func (b *Base) Quoter() schemas.Quoter {
-	return b.quoter
+// Alias returned col itself
+func (db *Base) Alias(col string) string {
+	return col
 }
 
-func (b *Base) Init(dialect Dialect, uri *URI) error {
-	b.dialect, b.uri = dialect, uri
+// Quoter returns the current database Quoter
+func (db *Base) Quoter() schemas.Quoter {
+	return db.quoter
+}
+
+// Init initialize the dialect
+func (db *Base) Init(dialect Dialect, uri *URI) error {
+	db.dialect, db.uri = dialect, uri
 	return nil
 }
 
-func (b *Base) URI() *URI {
-	return b.uri
+// URI returns the uri of database
+func (db *Base) URI() *URI {
+	return db.uri
 }
 
-func (b *Base) DBType() schemas.DBType {
-	return b.uri.DBType
+// CreateTableSQL implements Dialect
+func (db *Base) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("CREATE TABLE IF NOT EXISTS ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
+
+	for i, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
+
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
+	}
+
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
+	}
+
+	b.WriteString(")")
+
+	return []string{b.String()}, false
 }
 
-func (b *Base) FormatBytes(bs []byte) string {
-	return fmt.Sprintf("0x%x", bs)
-}
-
+// DropTableSQL returns drop table SQL
 func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	quote := db.dialect.Quoter().Quote
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName)), true
 }
 
+// HasRecords returns true if the SQL has records returned
 func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query string, args ...interface{}) (bool, error) {
 	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -115,9 +153,10 @@ func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query stri
 	if rows.Next() {
 		return true, nil
 	}
-	return false, nil
+	return false, rows.Err()
 }
 
+// IsColumnExist returns true if the column of the table exist
 func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	quote := db.dialect.Quoter().Quote
 	query := fmt.Sprintf(
@@ -132,11 +171,13 @@ func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableNa
 	return db.HasRecords(queryer, ctx, query, db.uri.DBName, tableName, colName)
 }
 
+// AddColumnSQL returns a SQL to add a column
 func (db *Base) AddColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, true)
 	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName), s)
 }
 
+// CreateIndexSQL returns a SQL to create index
 func (db *Base) CreateIndexSQL(tableName string, index *schemas.Index) string {
 	quoter := db.dialect.Quoter()
 	var unique string
@@ -150,6 +191,7 @@ func (db *Base) CreateIndexSQL(tableName string, index *schemas.Index) string {
 		quoter.Join(index.Cols, ","))
 }
 
+// DropIndexSQL returns a SQL to drop index
 func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 	quote := db.dialect.Quoter().Quote
 	var name string
@@ -161,16 +203,19 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 	return fmt.Sprintf("DROP INDEX %v ON %s", quote(name), quote(tableName))
 }
 
+// ModifyColumnSQL returns a SQL to modify SQL
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, false)
-	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, s)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", db.quoter.Quote(tableName), s)
 }
 
-func (b *Base) ForUpdateSQL(query string) string {
+// ForUpdateSQL returns for updateSQL
+func (db *Base) ForUpdateSQL(query string) string {
 	return query + " FOR UPDATE"
 }
 
-func (b *Base) SetParams(params map[string]string) {
+// SetParams set params
+func (db *Base) SetParams(params map[string]string) {
 }
 
 var (
@@ -206,8 +251,9 @@ func regDrvsNDialects() bool {
 		"postgres": {"postgres", func() Driver { return &pqDriver{} }, func() Dialect { return &postgres{} }},
 		"pgx":      {"postgres", func() Driver { return &pqDriverPgx{} }, func() Dialect { return &postgres{} }},
 		"sqlite3":  {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
+		"sqlite":   {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"oci8":     {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
-		"goracle":  {"oracle", func() Driver { return &goracleDriver{} }, func() Dialect { return &oracle{} }},
+		"godror":   {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
 	}
 
 	for driverName, v := range providedDrvsNDialects {

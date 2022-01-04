@@ -6,7 +6,7 @@ import (
 )
 
 // JSON lexer.
-var JSON = internal.Register(MustNewLexer(
+var JSON = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:         "JSON",
 		Aliases:      []string{"json"},
@@ -15,9 +15,16 @@ var JSON = internal.Register(MustNewLexer(
 		NotMultiline: true,
 		DotAll:       true,
 	},
-	Rules{
+	jsonRules,
+))
+
+func jsonRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\s+`, Text, nil},
+		},
+		"comment": {
+			{`//.*?\n`, CommentSingle, nil},
 		},
 		"simplevalue": {
 			{`(true|false|null)\b`, KeywordConstant, nil},
@@ -33,23 +40,26 @@ var JSON = internal.Register(MustNewLexer(
 		},
 		"objectvalue": {
 			Include("whitespace"),
+			Include("comment"),
 			{`"(\\\\|\\"|[^"])*"`, NameTag, Push("objectattribute")},
 			{`\}`, Punctuation, Pop(1)},
 		},
 		"arrayvalue": {
 			Include("whitespace"),
 			Include("value"),
+			Include("comment"),
 			{`,`, Punctuation, nil},
 			{`\]`, Punctuation, Pop(1)},
 		},
 		"value": {
 			Include("whitespace"),
 			Include("simplevalue"),
+			Include("comment"),
 			{`\{`, Punctuation, Push("objectvalue")},
 			{`\[`, Punctuation, Push("arrayvalue")},
 		},
 		"root": {
 			Include("value"),
 		},
-	},
-))
+	}
+}

@@ -1,21 +1,21 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -38,7 +38,7 @@ func Dir(name string) ([]string, error) {
 		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir, true)
+		files, err := util.StatDir(customDir, true)
 
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
@@ -110,7 +110,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	f, err := Assets.Open(name)
@@ -119,7 +119,7 @@ func fileFromDir(name string) ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func Asset(name string) ([]byte, error) {
@@ -128,7 +128,7 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {

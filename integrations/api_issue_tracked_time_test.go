@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -19,8 +21,8 @@ import (
 func TestAPIGetTrackedTimes(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
 
 	session := loginUser(t, user2.Name)
@@ -30,7 +32,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiTimes api.TrackedTimeList
 	DecodeJSON(t, resp, &apiTimes)
-	expect, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue2.ID})
+	expect, err := models.GetTrackedTimes(&models.FindTrackedTimesOptions{IssueID: issue2.ID})
 	assert.NoError(t, err)
 	assert.Len(t, apiTimes, 3)
 
@@ -40,7 +42,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 		assert.EqualValues(t, issue2.ID, apiTimes[i].IssueID)
 		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
 		assert.Equal(t, time.Time, apiTimes[i].Time)
-		user, err := models.GetUserByID(time.UserID)
+		user, err := user_model.GetUserByID(time.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, user.Name, apiTimes[i].UserName)
 	}
@@ -61,10 +63,10 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 func TestAPIDeleteTrackedTime(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	time6 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 6}).(*models.TrackedTime)
-	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	time6 := unittest.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 6}).(*models.TrackedTime)
+	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -73,7 +75,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 
-	time3 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 3}).(*models.TrackedTime)
+	time3 := unittest.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 3}).(*models.TrackedTime)
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 	//Delete non existing time
@@ -96,10 +98,10 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 func TestAPIAddTrackedTimes(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	admin := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	session := loginUser(t, admin.Name)
 	token := getTokenForLoggedInUser(t, session)

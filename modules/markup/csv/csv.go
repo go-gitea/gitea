@@ -5,44 +5,112 @@
 package markup
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/csv"
 	"html"
 	"io"
 	"regexp"
-	"strings"
+	"strconv"
 
+	"code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
 )
 
-var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
-
 func init() {
-	markup.RegisterParser(Parser{})
-
+	markup.RegisterRenderer(Renderer{})
 }
 
-// Parser implements markup.Parser for orgmode
-type Parser struct {
+// Renderer implements markup.Renderer for csv files
+type Renderer struct {
 }
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return "csv"
 }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return false }
+
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return []string{".csv", ".tsv"}
 }
 
-// Render implements markup.Parser
-func (p Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	rd := csv.NewReader(bytes.NewReader(rawBytes))
-	rd.Comma = p.bestDelimiter(rawBytes)
-	var tmpBlock bytes.Buffer
-	tmpBlock.WriteString(`<table class="table">`)
+// SanitizerRules implements markup.Renderer
+func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return []setting.MarkupSanitizerRule{
+		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
+		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+	}
+}
+
+func writeField(w io.Writer, element, class, field string) error {
+	if _, err := io.WriteString(w, "<"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	if len(class) > 0 {
+		if _, err := io.WriteString(w, " class=\""); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, class); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, "\""); err != nil {
+			return err
+		}
+	}
+	if _, err := io.WriteString(w, ">"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, html.EscapeString(field)); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "</"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, ">")
+	return err
+}
+
+// Render implements markup.Renderer
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	var tmpBlock = bufio.NewWriter(output)
+
+	// FIXME: don't read all to memory
+	rawBytes, err := io.ReadAll(input)
+	if err != nil {
+		return err
+	}
+
+	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
+		if _, err := tmpBlock.WriteString("<pre>"); err != nil {
+			return err
+		}
+		if _, err := tmpBlock.WriteString(html.EscapeString(string(rawBytes))); err != nil {
+			return err
+		}
+		_, err = tmpBlock.WriteString("</pre>")
+		return err
+	}
+
+	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
+	if err != nil {
+		return err
+	}
+
+	if _, err := tmpBlock.WriteString(`<table class="data-table">`); err != nil {
+		return err
+	}
+	row := 1
 	for {
 		fields, err := rd.Read()
 		if err == io.EOF {
@@ -51,63 +119,29 @@ func (p Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]strin
 		if err != nil {
 			continue
 		}
-		tmpBlock.WriteString("<tr>")
+		if _, err := tmpBlock.WriteString("<tr>"); err != nil {
+			return err
+		}
+		element := "td"
+		if row == 1 {
+			element = "th"
+		}
+		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
+			return err
+		}
 		for _, field := range fields {
-			tmpBlock.WriteString("<td>")
-			tmpBlock.WriteString(html.EscapeString(field))
-			tmpBlock.WriteString("</td>")
-		}
-		tmpBlock.WriteString("</tr>")
-	}
-	tmpBlock.WriteString("</table>")
-
-	return tmpBlock.Bytes()
-}
-
-// bestDelimiter scores the input CSV data against delimiters, and returns the best match.
-// Reads at most 10k bytes & 10 lines.
-func (p Parser) bestDelimiter(data []byte) rune {
-	maxLines := 10
-	maxBytes := util.Min(len(data), 1e4)
-	text := string(data[:maxBytes])
-	text = quoteRegexp.ReplaceAllLiteralString(text, "")
-	lines := strings.SplitN(text, "\n", maxLines+1)
-	lines = lines[:util.Min(maxLines, len(lines))]
-
-	delimiters := []rune{',', ';', '\t', '|'}
-	bestDelim := delimiters[0]
-	bestScore := 0.0
-	for _, delim := range delimiters {
-		score := p.scoreDelimiter(lines, delim)
-		if score > bestScore {
-			bestScore = score
-			bestDelim = delim
-		}
-	}
-
-	return bestDelim
-}
-
-// scoreDelimiter uses a count & regularity metric to evaluate a delimiter against lines of CSV
-func (Parser) scoreDelimiter(lines []string, delim rune) (score float64) {
-	countTotal := 0
-	countLineMax := 0
-	linesNotEqual := 0
-
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		countLine := strings.Count(line, string(delim))
-		countTotal += countLine
-		if countLine != countLineMax {
-			if countLineMax != 0 {
-				linesNotEqual++
+			if err := writeField(tmpBlock, element, "", field); err != nil {
+				return err
 			}
-			countLineMax = util.Max(countLine, countLineMax)
 		}
-	}
+		if _, err := tmpBlock.WriteString("</tr>"); err != nil {
+			return err
+		}
 
-	return float64(countTotal) * (1 - float64(linesNotEqual)/float64(len(lines)))
+		row++
+	}
+	if _, err = tmpBlock.WriteString("</table>"); err != nil {
+		return err
+	}
+	return tmpBlock.Flush()
 }

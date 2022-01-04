@@ -16,7 +16,8 @@ import (
 
 const (
 	// Output messages
-	nothingToDo = "nothing to do. Need some swagger files to merge.\nUSAGE: swagger mixin [-c <expected#Collisions>] <primary-swagger-file> <mixin-swagger-file...>"
+	nothingToDo                           = "nothing to do. Need some swagger files to merge.\nUSAGE: swagger mixin [-c <expected#Collisions>] <primary-swagger-file> <mixin-swagger-file...>"
+	ignoreConflictsAndCollisionsSpecified = "both the flags ignore conflicts and collisions were specified. These have conflicting meaning so please only specify one"
 )
 
 // MixinSpec holds command line flag definitions specific to the mixin
@@ -28,6 +29,7 @@ type MixinSpec struct {
 	Output                 flags.Filename `long:"output" short:"o" description:"the file to write to"`
 	KeepSpecOrder          bool           `long:"keep-spec-order" description:"Keep schema properties order identical to spec file"`
 	Format                 string         `long:"format" description:"the format for the spec document" default:"json" choice:"yaml" choice:"json"`
+	IgnoreConflicts        bool           `long:"ignore-conflicts" description:"Ignore conflict"`
 }
 
 // Execute runs the mixin command which merges Swagger 2.0 specs into
@@ -52,6 +54,9 @@ func (c *MixinSpec) Execute(args []string) error {
 	if len(args) < 2 {
 		return errors.New(nothingToDo)
 	}
+	if c.IgnoreConflicts && c.ExpectedCollisionCount != 0 {
+		return errors.New(ignoreConflictsAndCollisionsSpecified)
+	}
 
 	log.Printf("args[0] = %v\n", args[0])
 	log.Printf("args[1:] = %v\n", args[1:])
@@ -65,6 +70,9 @@ func (c *MixinSpec) Execute(args []string) error {
 		return err
 	}
 
+	if c.IgnoreConflicts {
+		return nil
+	}
 	if len(collisions) != int(c.ExpectedCollisionCount) {
 		if len(collisions) != 0 {
 			// use bash $? to get actual # collisions

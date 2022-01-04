@@ -13,7 +13,10 @@
 					<form class="ui form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="required field {{if .Err_Name}}error{{end}}">
-							<label for="org_name">{{.i18n.Tr "org.org_name_holder"}}<span class="text red hide" id="org-name-change-prompt"> {{.i18n.Tr "org.settings.change_orgname_prompt"}}</span></label>
+							<label for="org_name">{{.i18n.Tr "org.org_name_holder"}}
+								<span class="text red hide" id="org-name-change-prompt"> {{.i18n.Tr "org.settings.change_orgname_prompt"}}</span>
+								<span class="text red hide" id="org-name-change-redirect-prompt"> {{.i18n.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
+							</label>
 							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required>
 						</div>
 						<div class="field {{if .Err_FullName}}error{{end}}">

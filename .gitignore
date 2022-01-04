@@ -9,6 +9,8 @@ _test
 
 # IntelliJ
 .idea
+# Goland's output filename can not be set manually
+/go_build_*
 
 # MS VSCode
 .vscode
@@ -32,6 +34,7 @@ _testmain.go
 
 *coverage.out
 coverage.all
+cpu.out
 
 /modules/options/bindata.go
 /modules/options/bindata.go.hash
@@ -75,11 +78,14 @@ coverage.all
 /integrations/mssql.ini
 /node_modules
 /yarn.lock
+/yarn-error.log
+/npm-debug.log*
 /public/js
 /public/serviceworker.js
 /public/css
 /public/fonts
 /public/img/webpack
+/web_src/fomantic/node_modules
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js
 !/web_src/fomantic/build/semantic.css
@@ -106,3 +112,6 @@ prime/
 
 # Make evidence files
 /.make_evidence
+
+# Manpage
+/man

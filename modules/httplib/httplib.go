@@ -7,11 +7,10 @@ package httplib
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
-	"encoding/json"
 	"encoding/xml"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net"
@@ -23,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 var defaultSetting = Settings{false, "GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil, nil, false}
@@ -118,6 +119,12 @@ type Request struct {
 // Setting changes request settings
 func (r *Request) Setting(setting Settings) *Request {
 	r.setting = setting
+	return r
+}
+
+// SetContext sets the request's Context
+func (r *Request) SetContext(ctx context.Context) *Request {
+	r.req = r.req.WithContext(ctx)
 	return r
 }
 
@@ -235,11 +242,11 @@ func (r *Request) Body(data interface{}) *Request {
 	switch t := data.(type) {
 	case string:
 		bf := bytes.NewBufferString(t)
-		r.req.Body = ioutil.NopCloser(bf)
+		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
 	case []byte:
 		bf := bytes.NewBuffer(t)
-		r.req.Body = ioutil.NopCloser(bf)
+		r.req.Body = io.NopCloser(bf)
 		r.req.ContentLength = int64(len(t))
 	}
 	return r
@@ -299,7 +306,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 				_ = pw.Close()
 			}()
 			r.Header("Content-Type", bodyWriter.FormDataContentType())
-			r.req.Body = ioutil.NopCloser(pr)
+			r.req.Body = io.NopCloser(pr)
 		} else if len(paramBody) > 0 {
 			r.Header("Content-Type", "application/x-www-form-urlencoded")
 			r.Body(paramBody)
@@ -324,7 +331,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 		trans = &http.Transport{
 			TLSClientConfig: r.setting.TLSClientConfig,
 			Proxy:           proxy,
-			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
+			DialContext:     TimeoutDialer(r.setting.ConnectTimeout),
 		}
 	} else if t, ok := trans.(*http.Transport); ok {
 		if t.TLSClientConfig == nil {
@@ -333,8 +340,8 @@ func (r *Request) getResponse() (*http.Response, error) {
 		if t.Proxy == nil {
 			t.Proxy = r.setting.Proxy
 		}
-		if t.Dial == nil {
-			t.Dial = TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout)
+		if t.DialContext == nil {
+			t.DialContext = TimeoutDialer(r.setting.ConnectTimeout)
 		}
 	}
 
@@ -351,6 +358,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 	client := &http.Client{
 		Transport: trans,
 		Jar:       jar,
+		Timeout:   r.setting.ReadWriteTimeout,
 	}
 
 	if len(r.setting.UserAgent) > 0 && len(r.req.Header.Get("User-Agent")) == 0 {
@@ -398,7 +406,7 @@ func (r *Request) Bytes() ([]byte, error) {
 		return nil, nil
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -455,12 +463,13 @@ func (r *Request) Response() (*http.Response, error) {
 }
 
 // TimeoutDialer returns functions of connection dialer with timeout settings for http.Transport Dial field.
-func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(net, addr string) (c net.Conn, err error) {
-	return func(netw, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(netw, addr, cTimeout)
+func TimeoutDialer(cTimeout time.Duration) func(ctx context.Context, net, addr string) (c net.Conn, err error) {
+	return func(ctx context.Context, netw, addr string) (net.Conn, error) {
+		d := net.Dialer{Timeout: cTimeout}
+		conn, err := d.DialContext(ctx, netw, addr)
 		if err != nil {
 			return nil, err
 		}
-		return conn, conn.SetDeadline(time.Now().Add(rwTimeout))
+		return conn, nil
 	}
 }

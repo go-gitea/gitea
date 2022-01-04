@@ -1,9 +1,9 @@
 <div id="rev-container">
 	<ul id="rev-list">
 		{{ range $commitI, $commit := .Graph.Commits }}
-			<li id="commit-{{$commit.Rev}}" data-flow="{{$commit.Flow}}">
+			<li {{if $commit.Rev}}id="commit-{{$commit.Rev}}"{{end}} data-flow="{{$commit.Flow}}">
 				{{ if $commit.OnlyRelation }}
-					<span />
+					<span></span>
 				{{ else }}
 					<span class="sha" id="{{$commit.ShortRev}}">
 						{{$class := "ui sha label"}}
@@ -21,39 +21,36 @@
 								{{$class = (printf "%s%s" $class " isWarning")}}
 							{{end}}
 						{{end}}
-						<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}" rel="nofollow" class="{{$class}}">
+						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
 							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
 							{{- if $commit.Commit.Signature -}}
 								<span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
 							{{- end -}}
 						</a>
 					</span>
-					<span class="message df ac mr-2">{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+					<span class="message dib ellipsis mr-2">
+						<span>{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+					</span>
 					<span class="tags df ac">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
-								{{if $.HidePRRefs}}
-									{{if (containGeneric $.SelectedBranches .Name) }}
-										<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
-											{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
-										</a>
-									{{end}}
-								{{else}}
-									<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
+								{{if or (not $.HidePRRefs) (containGeneric $.SelectedBranches .Name)}}
+									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
+									<a class="ui labelled icon button basic tiny mr-2" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
 									</a>
 								{{end}}
 							{{else if eq $refGroup "tags"}}
-								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
+								<a class="ui labelled icon button basic tiny mr-2" href="{{$.RepoLink}}/src/tag/{{.ShortName|PathEscape}}">
 									{{svg "octicon-tag" 16 "mr-2"}}{{.ShortName}}
 								</a>
 							{{else if eq $refGroup "remotes"}}
-								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev}}">
+								<a class="ui labelled icon button basic tiny mr-2" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
 									{{svg "octicon-cross-reference" 16 "mr-2"}}{{.ShortName}}
 								</a>
 							{{else if eq $refGroup "heads"}}
-								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
+								<a class="ui labelled icon button basic tiny mr-2" href="{{$.RepoLink}}/src/branch/{{.ShortName|PathEscape}}">
 									{{svg "octicon-git-branch" 16 "mr-2"}}{{.ShortName}}
 								</a>
 							{{else}}
@@ -68,7 +65,7 @@
 								{{$userName = $commit.User.FullName}}
 							{{end}}
 							{{avatar $commit.User}}
-							<a href="{{AppSubUrl}}/{{$commit.User}}">{{$userName}}</a>
+							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
 							{{avatarByEmail $commit.Commit.Author.Email $userName}}
 							{{$userName}}

@@ -10,33 +10,21 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
-	models.AssertNotExistsBean(t, &models.User{ID: userID})
-	models.AssertNotExistsBean(t, &models.Follow{UserID: userID})
-	models.AssertNotExistsBean(t, &models.Follow{FollowID: userID})
-	models.AssertNotExistsBean(t, &models.Repository{OwnerID: userID})
-	models.AssertNotExistsBean(t, &models.Access{UserID: userID})
-	models.AssertNotExistsBean(t, &models.OrgUser{UID: userID})
-	models.AssertNotExistsBean(t, &models.IssueUser{UID: userID})
-	models.AssertNotExistsBean(t, &models.TeamUser{UID: userID})
-	models.AssertNotExistsBean(t, &models.Star{UID: userID})
-}
-
-func TestAdminDeleteUser(t *testing.T) {
-	defer prepareTestEnv(t)()
-
-	session := loginUser(t, "user1")
-
-	csrf := GetCSRF(t, session, "/admin/users/8")
-	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
-		"_csrf": csrf,
-	})
-	session.MakeRequest(t, req, http.StatusOK)
-
-	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.Follow{FollowID: userID})
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: userID})
+	unittest.AssertNotExistsBean(t, &models.Access{UserID: userID})
+	unittest.AssertNotExistsBean(t, &models.OrgUser{UID: userID})
+	unittest.AssertNotExistsBean(t, &models.IssueUser{UID: userID})
+	unittest.AssertNotExistsBean(t, &models.TeamUser{UID: userID})
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID})
 }
 
 func TestUserDeleteAccount(t *testing.T) {
@@ -51,7 +39,7 @@ func TestUserDeleteAccount(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &user_model.User{})
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
@@ -66,5 +54,5 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	// user should not have been deleted, because the user still owns repos
-	models.AssertExistsAndLoadBean(t, &models.User{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 }

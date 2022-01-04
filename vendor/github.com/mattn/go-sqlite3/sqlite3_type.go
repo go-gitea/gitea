@@ -31,12 +31,12 @@ func (rc *SQLiteRows) ColumnTypeLength(index int) (length int64, ok bool) {
 func (rc *SQLiteRows) ColumnTypePrecisionScale(index int) (precision, scale int64, ok bool) {
 	return 0, 0, false
 }
-*/
 
 // ColumnTypeNullable implement RowsColumnTypeNullable.
 func (rc *SQLiteRows) ColumnTypeNullable(i int) (nullable, ok bool) {
-	return true, true
+	return false, false
 }
+*/
 
 // ColumnTypeScanType implement RowsColumnTypeScanType.
 func (rc *SQLiteRows) ColumnTypeScanType(i int) reflect.Type {

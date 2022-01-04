@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -56,11 +57,11 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, total, err := models.GetMilestones(models.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		State:       api.StateType(ctx.Query("state")),
-		Name:        ctx.Query("name"),
+		State:       api.StateType(ctx.FormString("state")),
+		Name:        ctx.FormString("name"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)
@@ -71,6 +72,8 @@ func ListMilestones(ctx *context.APIContext) {
 	for i := range milestones {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 
@@ -110,7 +113,7 @@ func GetMilestone(ctx *context.APIContext) {
 }
 
 // CreateMilestone create a milestone for a repository
-func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
+func CreateMilestone(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/milestones issue issueCreateMilestone
 	// ---
 	// summary: Create a milestone
@@ -136,6 +139,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Milestone"
+	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
 
 	if form.Deadline == nil {
 		defaultDeadline, _ := time.ParseInLocation("2006-01-02", "9999-12-31", time.Local)
@@ -162,7 +166,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 }
 
 // EditMilestone modify a milestone for a repository by ID and if not available by name
-func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
+func EditMilestone(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/milestones/{id} issue issueEditMilestone
 	// ---
 	// summary: Update a milestone
@@ -193,7 +197,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
-
+	form := web.GetForm(ctx).(*api.EditMilestoneOption)
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return

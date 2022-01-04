@@ -1,0 +1,17 @@
+# type Repository struct {
+#   ID        int64  `xorm:"pk autoincr"`
+#   OwnerID   int64  `xorm:"UNIQUE(s) index"`
+#   LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+# }
+-
+  id: 1
+  owner_id: 2
+  lower_name: "repo1"
+-
+  id: 2
+  owner_id: 1
+  lower_name: "repo2"
+-
+  id: 3
+  owner_id: 2
+  lower_name: "repo3"

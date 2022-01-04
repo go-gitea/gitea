@@ -403,7 +403,7 @@ func (s *Scratch) buildCTable() error {
 	var startNode = int16(s.symbolLen)
 	nonNullRank := s.symbolLen - 1
 
-	nodeNb := int16(startNode)
+	nodeNb := startNode
 	huffNode := s.nodes[1 : huffNodesLen+1]
 
 	// This overlays the slice above, but allows "-1" index lookups.
@@ -536,7 +536,6 @@ func (s *Scratch) huffSort() {
 		}
 		nodes[pos&huffNodesMask] = nodeElt{count: c, symbol: byte(n)}
 	}
-	return
 }
 
 func (s *Scratch) setMaxHeight(lastNonNull int) uint8 {
@@ -580,7 +579,7 @@ func (s *Scratch) setMaxHeight(lastNonNull int) uint8 {
 
 		// Get pos of last (smallest) symbol per rank
 		{
-			currentNbBits := uint8(maxNbBits)
+			currentNbBits := maxNbBits
 			for pos := int(n); pos >= 0; pos-- {
 				if huffNode[pos].nbBits >= currentNbBits {
 					continue

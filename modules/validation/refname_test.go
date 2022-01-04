@@ -7,12 +7,12 @@ package validation
 import (
 	"testing"
 
-	"gitea.com/macaron/binding"
+	"gitea.com/go-chi/binding"
 )
 
 var gitRefNameValidationTestCases = []validationTestCase{
 	{
-		description: "Referece contains only characters",
+		description: "Reference name contains only characters",
 		data: TestForm{
 			BranchName: "test",
 		},

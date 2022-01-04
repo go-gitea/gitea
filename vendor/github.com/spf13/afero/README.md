@@ -33,7 +33,7 @@ filesystem for full interoperability.
 * Support for compositional (union) file systems by combining multiple file systems acting as one
 * Specialized backends which modify existing filesystems (Read Only, Regexp filtered)
 * A set of utility functions ported from io, ioutil & hugo to be afero aware
-
+* Wrapper for go 1.16 filesystem abstraction `io/fs.FS`
 
 # Using Afero
 
@@ -94,6 +94,7 @@ AppFs.Open('/tmp/foo')
 File System Methods Available:
 ```go
 Chmod(name string, mode os.FileMode) : error
+Chown(name string, uid, gid int) : error
 Chtimes(name string, atime time.Time, mtime time.Time) : error
 Create(name string) : File, error
 Mkdir(name string, perm os.FileMode) : error
@@ -227,7 +228,7 @@ operation and a mock filesystem during testing or as needed.
 
 ```go
 appfs := afero.NewOsFs()
-appfs.MkdirAll("src/a", 0755))
+appfs.MkdirAll("src/a", 0755)
 ```
 
 ## Memory Backed Storage
@@ -241,7 +242,7 @@ safely.
 
 ```go
 mm := afero.NewMemMapFs()
-mm.MkdirAll("src/a", 0755))
+mm.MkdirAll("src/a", 0755)
 ```
 
 #### InMemoryFile
@@ -306,7 +307,7 @@ Any Afero FileSystem can be used as an httpFs.
 
 ```go
 httpFs := afero.NewHttpFs(<ExistingFS>)
-fileserver := http.FileServer(httpFs.Dir(<PATH>)))
+fileserver := http.FileServer(httpFs.Dir(<PATH>))
 http.Handle("/", fileserver)
 ```
 
@@ -380,7 +381,6 @@ The following is a short list of possible backends we hope someone will
 implement:
 
 * SSH
-* TAR
 * S3
 
 # About the project

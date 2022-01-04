@@ -1,59 +1,109 @@
 ---
 kind: pipeline
-name: testing
+name: test-mysql
+environment:
+  GO111MODULE: "on"
+  GOPROXY: "https://goproxy.io"
+  CGO_ENABLED: 1
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
 steps:
 - name: test-vet
-  image: golang:1.11 # The lowest golang requirement
-  environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+  image: golang:1.15
+  pull: always
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
   commands:
     - make vet
-    - make test
-    - make fmt-check
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-sqlite
-  image: golang:1.12
-  environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+- name: test-sqlite3
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-vet
   commands:
-  - make test-sqlite
-  - TEST_CACHE_ENABLE=true make test-sqlite
-  - TEST_QUOTE_POLICY=reserved make test-sqlite
-  when:
-    event:
-    - push
-    - pull_request
-
+    - make fmt-check
+    - make test
+    - make test-sqlite3
+    - TEST_CACHE_ENABLE=true make test-sqlite3
+- name: test-sqlite
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-vet
+  commands:
+    - make test-sqlite
+    - TEST_QUOTE_POLICY=reserved make test-sqlite
 - name: test-mysql
-  image: golang:1.12
+  image: golang:1.15
+  pull: never
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-vet
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
     TEST_MYSQL_HOST: mysql
     TEST_MYSQL_CHARSET: utf8
     TEST_MYSQL_DBNAME: xorm_test
     TEST_MYSQL_USERNAME: root
     TEST_MYSQL_PASSWORD:
   commands:
-  - make test-mysql
   - TEST_CACHE_ENABLE=true make test-mysql
-  - TEST_QUOTE_POLICY=reserved make test-mysql
-  when:
-    event:
-    - push
-    - pull_request
-
-- name: test-mysql8
-  image: golang:1.12
+  
+- name: test-mysql-utf8mb4
+  image: golang:1.15
+  pull: never
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-mysql
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+    TEST_MYSQL_HOST: mysql
+    TEST_MYSQL_CHARSET: utf8mb4
+    TEST_MYSQL_DBNAME: xorm_test
+    TEST_MYSQL_USERNAME: root
+    TEST_MYSQL_PASSWORD:
+  commands:
+  - make test-mysql
+  - TEST_QUOTE_POLICY=reserved make test-mysql
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: mysql
+  image: mysql:5.7
+  environment:
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+
+---
+kind: pipeline
+name: test-mysql8
+depends_on:
+  - test-mysql
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-mysql8
+  image: golang:1.15
+  pull: never
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
     TEST_MYSQL_HOST: mysql8
     TEST_MYSQL_CHARSET: utf8mb4
     TEST_MYSQL_DBNAME: xorm_test
@@ -62,59 +112,36 @@ steps:
   commands:
   - make test-mysql
   - TEST_CACHE_ENABLE=true make test-mysql
-  - TEST_QUOTE_POLICY=reserved make test-mysql
-  when:
-    event:
-    - push
-    - pull_request
 
-- name: test-mysql-utf8mb4
-  image: golang:1.12
-  depends_on:
-  - test-mysql
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: mysql8
+  image: mysql:8.0
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
-    TEST_MYSQL_HOST: mysql
-    TEST_MYSQL_CHARSET: utf8mb4
-    TEST_MYSQL_DBNAME: xorm_test
-    TEST_MYSQL_USERNAME: root
-    TEST_MYSQL_PASSWORD:
-  commands:
-  - make test-mysql
-  - TEST_CACHE_ENABLE=true make test-mysql
-  - TEST_QUOTE_POLICY=reserved make test-mysql
-  when:
-    event:
-    - push
-    - pull_request
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
 
-- name: test-mymysql
-  pull: default
-  image: golang:1.12
-  depends_on:
-    - test-mysql-utf8mb4
-  environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
-    TEST_MYSQL_HOST: mysql:3306
-    TEST_MYSQL_DBNAME: xorm_test
-    TEST_MYSQL_USERNAME: root
-    TEST_MYSQL_PASSWORD:
-  commands:
-  - make test-mymysql
-  - TEST_CACHE_ENABLE=true make test-mymysql
-  - TEST_QUOTE_POLICY=reserved make test-mymysql
-  when:
-    event:
-    - push
-    - pull_request
-
+---
+kind: pipeline
+name: test-mariadb
+depends_on:
+  - test-mysql8
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
 - name: test-mariadb
-  image: golang:1.12
+  image: golang:1.15
+  pull: never
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
     TEST_MYSQL_HOST: mariadb
     TEST_MYSQL_CHARSET: utf8mb4
     TEST_MYSQL_DBNAME: xorm_test
@@ -122,19 +149,37 @@ steps:
     TEST_MYSQL_PASSWORD:
   commands:
   - make test-mysql
-  - TEST_CACHE_ENABLE=true make test-mysql
   - TEST_QUOTE_POLICY=reserved make test-mysql
-  when:
-    event:
-    - push
-    - pull_request
 
-- name: test-postgres
-  pull: default
-  image: golang:1.12
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: mariadb
+  image: mariadb:10.4
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+    MYSQL_ALLOW_EMPTY_PASSWORD: yes
+    MYSQL_DATABASE: xorm_test
+
+---
+kind: pipeline
+name: test-postgres
+depends_on:
+  - test-mariadb
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-postgres
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
     TEST_PGSQL_HOST: pgsql
     TEST_PGSQL_DBNAME: xorm_test
     TEST_PGSQL_USERNAME: postgres
@@ -142,79 +187,163 @@ steps:
   commands:
   - make test-postgres
   - TEST_CACHE_ENABLE=true make test-postgres
-  - TEST_QUOTE_POLICY=reserved make test-postgres
-  when:
-    event:
-    - push
-    - pull_request
 
 - name: test-postgres-schema
-  pull: default
-  image: golang:1.12
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
   depends_on:
   - test-postgres
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
     TEST_PGSQL_HOST: pgsql
     TEST_PGSQL_SCHEMA: xorm
     TEST_PGSQL_DBNAME: xorm_test
     TEST_PGSQL_USERNAME: postgres
     TEST_PGSQL_PASSWORD: postgres
   commands:
-  - make test-postgres
-  - TEST_CACHE_ENABLE=true make test-postgres
   - TEST_QUOTE_POLICY=reserved make test-postgres
-  when:
-    event:
-    - push
-    - pull_request
 
-- name: test-mssql
-  pull: default
-  image: golang:1.12
+- name: test-pgx
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-postgres-schema
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+    TEST_PGSQL_HOST: pgsql
+    TEST_PGSQL_DBNAME: xorm_test
+    TEST_PGSQL_USERNAME: postgres
+    TEST_PGSQL_PASSWORD: postgres
+  commands:
+  - make test-pgx
+  - TEST_CACHE_ENABLE=true make test-pgx
+  - TEST_QUOTE_POLICY=reserved make test-pgx
+
+- name: test-pgx-schema
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  depends_on:
+  - test-pgx
+  environment:
+    TEST_PGSQL_HOST: pgsql
+    TEST_PGSQL_SCHEMA: xorm
+    TEST_PGSQL_DBNAME: xorm_test
+    TEST_PGSQL_USERNAME: postgres
+    TEST_PGSQL_PASSWORD: postgres
+  commands:
+  - make test-pgx
+  - TEST_CACHE_ENABLE=true make test-pgx
+  - TEST_QUOTE_POLICY=reserved make test-pgx
+
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: pgsql
+  image: postgres:9.5
+  environment:
+    POSTGRES_DB: xorm_test
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+
+---
+kind: pipeline
+name: test-mssql
+depends_on:
+  - test-postgres
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-mssql
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
     TEST_MSSQL_HOST: mssql
     TEST_MSSQL_DBNAME: xorm_test
     TEST_MSSQL_USERNAME: sa
     TEST_MSSQL_PASSWORD: "yourStrong(!)Password"
   commands:
   - make test-mssql
-  - TEST_CACHE_ENABLE=true make test-mssql
-  - TEST_QUOTE_POLICY=reserved make test-mssql
   - TEST_MSSQL_DEFAULT_VARCHAR=NVARCHAR TEST_MSSQL_DEFAULT_CHAR=NCHAR make test-mssql
-  when:
-    event:
-    - push
-    - pull_request
 
-- name: test-tidb
-  pull: default
-  image: golang:1.12
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: mssql
+  pull: always
+  image: mcr.microsoft.com/mssql/server:latest
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
+    ACCEPT_EULA: Y
+    SA_PASSWORD: yourStrong(!)Password
+    MSSQL_PID: Standard
+
+---
+kind: pipeline
+name: test-tidb
+depends_on:
+  - test-mssql
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: test-tidb
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
+  environment:
     TEST_TIDB_HOST: "tidb:4000"
     TEST_TIDB_DBNAME: xorm_test
     TEST_TIDB_USERNAME: root
     TEST_TIDB_PASSWORD:
   commands:
   - make test-tidb
-  - TEST_CACHE_ENABLE=true make test-tidb
-  - TEST_QUOTE_POLICY=reserved make test-tidb
-  when:
-    event:
-    - push
-    - pull_request
 
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
+
+services:
+- name: tidb
+  image: pingcap/tidb:v3.0.3
+
+---
+kind: pipeline
+name: test-cockroach
+depends_on:
+  - test-tidb
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
 - name: test-cockroach
-  pull: default
-  image: golang:1.13
+  pull: never
+  image: golang:1.15
+  volumes:
+  - name: cache
+    path: /go/pkg/mod
   environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
     TEST_COCKROACH_HOST: "cockroach:26257"
     TEST_COCKROACH_DBNAME: xorm_test
     TEST_COCKROACH_USERNAME: root
@@ -222,116 +351,51 @@ steps:
   commands:
   - sleep 10
   - make test-cockroach
-  - TEST_CACHE_ENABLE=true make test-cockroach
-  when:
-    event:
-    - push
-    - pull_request
 
-- name: merge_coverage
-  pull: default
-  image: golang:1.12
-  environment:
-    GO111MODULE: "on"
-    GOPROXY: "https://goproxy.cn"
-  depends_on:
-  - test-vet
-  - test-sqlite
-  - test-mysql
-  - test-mysql8
-  - test-mymysql
-  - test-postgres
-  - test-postgres-schema
-  - test-mssql
-  - test-tidb
-  - test-cockroach
-  commands:
-  - make coverage
-  when:
-    event:
-    - push
-    - pull_request
+volumes:
+- name: cache
+  host:
+    path: /tmp/cache
 
 services:
-
-- name: mysql
-  pull: default
-  image: mysql:5.7
-  environment:
-    MYSQL_ALLOW_EMPTY_PASSWORD: yes
-    MYSQL_DATABASE: xorm_test
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: mysql8
-  pull: default
-  image: mysql:8.0
-  environment:
-    MYSQL_ALLOW_EMPTY_PASSWORD: yes
-    MYSQL_DATABASE: xorm_test
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: mariadb
-  pull: default
-  image: mariadb:10.4
-  environment:
-    MYSQL_ALLOW_EMPTY_PASSWORD: yes
-    MYSQL_DATABASE: xorm_test
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: pgsql
-  pull: default
-  image: postgres:9.5
-  environment:
-    POSTGRES_DB: xorm_test
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: postgres
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: mssql
-  pull: default
-  image: microsoft/mssql-server-linux:latest
-  environment:
-    ACCEPT_EULA: Y
-    SA_PASSWORD: yourStrong(!)Password
-    MSSQL_PID: Developer
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
-- name: tidb
-  pull: default
-  image: pingcap/tidb:v3.0.3
-  when:
-    event:
-    - push
-    - tag
-    - pull_request
-
 - name: cockroach
-  pull: default
   image: cockroachdb/cockroach:v19.2.4
   commands:
   - /cockroach/cockroach start --insecure
-  when:
-    event:
-    - push
+
+---
+kind: pipeline
+name: merge_coverage
+depends_on:
+  - test-mysql
+  - test-mysql8
+  - test-mariadb
+  - test-postgres
+  - test-mssql
+  - test-tidb
+  - test-cockroach
+trigger:
+  ref:
+  - refs/heads/master
+  - refs/pull/*/head
+steps:
+- name: merge_coverage
+  image: golang:1.15
+  commands:
+  - make coverage
+
+---
+kind: pipeline
+name: release-tag
+trigger:
+  event:
     - tag
-    - pull_request
+steps:
+- name: release-tag-gitea
+  pull: always
+  image: plugins/gitea-release:latest
+  settings:
+    base_url: https://gitea.com
+    title: '${DRONE_TAG} is released'
+    api_key:
+      from_secret: gitea_token

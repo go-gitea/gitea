@@ -595,7 +595,7 @@ func (a *typeIndex) detectNodes(file *ast.File) (node, error) {
 				if seenStruct == "" || seenStruct == matches[1] {
 					seenStruct = matches[1]
 				} else {
-					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q", seenStruct, matches[1])
+					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q - %s", seenStruct, matches[1], cline.Text)
 				}
 			case "meta":
 				n |= metaNode
@@ -604,14 +604,14 @@ func (a *typeIndex) detectNodes(file *ast.File) (node, error) {
 				if seenStruct == "" || seenStruct == matches[1] {
 					seenStruct = matches[1]
 				} else {
-					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q", seenStruct, matches[1])
+					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q - %s", seenStruct, matches[1], cline.Text)
 				}
 			case "response":
 				n |= responseNode
 				if seenStruct == "" || seenStruct == matches[1] {
 					seenStruct = matches[1]
 				} else {
-					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q", seenStruct, matches[1])
+					return 0, fmt.Errorf("classifier: already annotated as %s, can't also be %q - %s", seenStruct, matches[1], cline.Text)
 				}
 			case "strfmt", "name", "discriminated", "file", "enum", "default", "alias", "type":
 				// TODO: perhaps collect these and pass along to avoid lookups later on

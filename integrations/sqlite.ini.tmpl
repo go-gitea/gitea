@@ -6,9 +6,13 @@ DB_TYPE = sqlite3
 PATH    = integrations/gitea-integration-sqlite/gitea.db
 
 [indexer]
-ISSUE_INDEXER_PATH   = integrations/indexers-sqlite/issues.bleve
+ISSUE_INDEXER_PATH   = integrations/gitea-integration-sqlite/indexers/issues.bleve
+ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-sqlite/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH    = integrations/indexers-sqlite/repos.bleve
+REPO_INDEXER_PATH    = integrations/gitea-integration-sqlite/indexers/repos.bleve
+
+[queue]
+TYPE = immediate
 
 [queue.code_indexer]
 TYPE = immediate
@@ -20,8 +24,10 @@ TYPE = immediate
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-sqlite/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-sqlite
-LOCAL_WIKI_PATH = tmp/local-wiki-sqlite
+LOCAL_COPY_PATH = integrations/gitea-integration-sqlite/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = integrations/gitea-integration-sqlite/tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none
@@ -35,7 +41,7 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2203
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-sqlite/data
+LFS_CONTENT_PATH = integrations/gitea-integration-sqlite/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-sqlite/data
@@ -43,7 +49,7 @@ ENABLE_GZIP      = true
 BUILTIN_SSH_SERVER_USER = git
 
 [attachment]
-PATH = integrations/gitea-integration-sqlite/data
+PATH = integrations/gitea-integration-sqlite/data/attachments
 
 [mailer]
 ENABLED     = true
@@ -52,6 +58,7 @@ FROM        = sqlite-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = true
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -66,7 +73,6 @@ ENABLE_FEDERATED_AVATAR       = false
 AVATAR_UPLOAD_PATH            = integrations/gitea-integration-sqlite/data/avatars
 REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-sqlite/data/repo-avatars
 
-
 [session]
 PROVIDER = file
 PROVIDER_CONFIG = integrations/gitea-integration-sqlite/data/sessions
@@ -74,10 +80,9 @@ PROVIDER_CONFIG = integrations/gitea-integration-sqlite/data/sessions
 [log]
 MODE                 = test,file
 ROOT_PATH            = sqlite-log
-REDIRECT_MACARON_LOG = true
 ROUTER               = ,
-MACARON              = ,
 XORM                 = file
+ENABLE_SSH_LOG       = true
 
 [log.test]
 LEVEL                = Info

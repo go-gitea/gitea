@@ -1,19 +1,24 @@
-const {AppSubUrl, csrf, NotificationSettings} = window.config;
+const {appSubUrl, csrfToken, notificationSettings} = window.config;
+
+let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
-  $('#notification_table .button').on('click', async function () {
-    const data = await updateNotification(
-      $(this).data('url'),
-      $(this).data('status'),
-      $(this).data('page'),
-      $(this).data('q'),
-      $(this).data('notification-id'),
-    );
+  $('#notification_table .button').on('click', function () {
+    (async () => {
+      const data = await updateNotification(
+        $(this).data('url'),
+        $(this).data('status'),
+        $(this).data('page'),
+        $(this).data('q'),
+        $(this).data('notification-id'),
+      );
 
-    $('#notification_div').replaceWith(data);
-    initNotificationsTable();
-    await updateNotificationCount();
-
+      if ($(data).data('sequence-number') === notificationSequenceNumber) {
+        $('#notification_div').replaceWith(data);
+        initNotificationsTable();
+      }
+      await updateNotificationCount();
+    })();
     return false;
   });
 }
@@ -36,79 +41,82 @@ async function receiveUpdateCount(event) {
   }
 }
 
-export async function initNotificationCount() {
+export function initNotificationCount() {
   const notificationCount = $('.notification_count');
 
   if (!notificationCount.length) {
     return;
   }
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
+  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    if (window.SharedWorker) {
-      const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-      worker.addEventListener('error', (event) => {
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    worker.addEventListener('error', (event) => {
+      console.error(event);
+    });
+    worker.port.addEventListener('messageerror', () => {
+      console.error('Unable to deserialize message');
+    });
+    worker.port.postMessage({
+      type: 'start',
+      url: `${window.location.origin}${appSubUrl}/user/events`,
+    });
+    worker.port.addEventListener('message', (event) => {
+      if (!event.data || !event.data.type) {
         console.error(event);
-      });
-      worker.port.onmessageerror = () => {
-        console.error('Unable to deserialize message');
-      };
-      worker.port.postMessage({
-        type: 'start',
-        url: `${window.location.origin}${AppSubUrl}/user/events`,
-      });
-      worker.port.addEventListener('message', (event) => {
-        if (!event.data || !event.data.type) {
-          console.error(event);
+        return;
+      }
+      if (event.data.type === 'notification-count') {
+        const _promise = receiveUpdateCount(event.data);
+      } else if (event.data.type === 'error') {
+        console.error(event.data);
+      } else if (event.data.type === 'logout') {
+        if (event.data.data !== 'here') {
           return;
         }
-        if (event.data.type === 'notification-count') {
-          receiveUpdateCount(event.data);
-        } else if (event.data.type === 'error') {
-          console.error(event.data);
-        } else if (event.data.type === 'logout') {
-          if (event.data !== 'here') {
-            return;
-          }
-          worker.port.postMessage({
-            type: 'close',
-          });
-          worker.port.close();
-          window.location.href = AppSubUrl;
-        }
-      });
-      worker.port.addEventListener('error', (e) => {
-        console.error(e);
-      });
-      worker.port.start();
-      window.addEventListener('beforeunload', () => {
         worker.port.postMessage({
           type: 'close',
         });
         worker.port.close();
+        window.location.href = appSubUrl;
+      } else if (event.data.type === 'close') {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
+      }
+    });
+    worker.port.addEventListener('error', (e) => {
+      console.error(e);
+    });
+    worker.port.start();
+    window.addEventListener('beforeunload', () => {
+      worker.port.postMessage({
+        type: 'close',
       });
+      worker.port.close();
+    });
 
-      return;
-    }
+    return;
   }
 
-  if (NotificationSettings.MinTimeout <= 0) {
+  if (notificationSettings.MinTimeout <= 0) {
     return;
   }
 
   const fn = (timeout, lastCount) => {
-    setTimeout(async () => {
-      await updateNotificationCountWithCallback(fn, timeout, lastCount);
+    setTimeout(() => {
+      const _promise = updateNotificationCountWithCallback(fn, timeout, lastCount);
     }, timeout);
   };
 
-  fn(NotificationSettings.MinTimeout, notificationCount.text());
+  fn(notificationSettings.MinTimeout, notificationCount.text());
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
   const currentCount = $('.notification_count').text();
   if (lastCount !== currentCount) {
-    callback(NotificationSettings.MinTimeout, currentCount);
+    callback(notificationSettings.MinTimeout, currentCount);
     return;
   }
 
@@ -117,9 +125,9 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 
   if (lastCount !== newCount) {
     needsUpdate = true;
-    timeout = NotificationSettings.MinTimeout;
-  } else if (timeout < NotificationSettings.MaxTimeout) {
-    timeout += NotificationSettings.TimeoutStep;
+    timeout = notificationSettings.MinTimeout;
+  } else if (timeout < notificationSettings.MaxTimeout) {
+    timeout += notificationSettings.TimeoutStep;
   }
 
   callback(timeout, newCount);
@@ -133,22 +141,25 @@ async function updateNotificationTable() {
   if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
+      url: `${appSubUrl}/notifications?${notificationDiv.data('params')}`,
       data: {
         'div-only': true,
+        'sequence-number': ++notificationSequenceNumber,
       }
     });
-    notificationDiv.replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      notificationDiv.replaceWith(data);
+      initNotificationsTable();
+    }
   }
 }
 
 async function updateNotificationCount() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${AppSubUrl}/api/v1/notifications/new`,
+    url: `${appSubUrl}/api/v1/notifications/new`,
     headers: {
-      'X-Csrf-Token': csrf,
+      'X-Csrf-Token': csrfToken,
     },
   });
 
@@ -173,12 +184,13 @@ async function updateNotification(url, status, page, q, notificationID) {
     type: 'POST',
     url,
     data: {
-      _csrf: csrf,
+      _csrf: csrfToken,
       notification_id: notificationID,
       status,
       page,
       q,
       noredirect: true,
+      'sequence-number': ++notificationSequenceNumber,
     },
   });
 }

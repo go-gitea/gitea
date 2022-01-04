@@ -6,7 +6,7 @@ import (
 )
 
 // Postgresql Sql Dialect lexer.
-var PostgreSQL = internal.Register(MustNewLexer(
+var PostgreSQL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "PostgreSQL SQL dialect",
 		Aliases:         []string{"postgresql", "postgres"},
@@ -15,13 +15,18 @@ var PostgreSQL = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	postgreSQLRules,
+))
+
+func postgreSQLRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`--.*\n?`, CommentSingle, nil},
 			{`/\*`, CommentMultiline, Push("multiline-comments")},
 			{`(bigint|bigserial|bit|bit\s+varying|bool|boolean|box|bytea|char|character|character\s+varying|cidr|circle|date|decimal|double\s+precision|float4|float8|inet|int|int2|int4|int8|integer|interval|json|jsonb|line|lseg|macaddr|money|numeric|path|pg_lsn|point|polygon|real|serial|serial2|serial4|serial8|smallint|smallserial|text|time|timestamp|timestamptz|timetz|tsquery|tsvector|txid_snapshot|uuid|varbit|varchar|with\s+time\s+zone|without\s+time\s+zone|xml|anyarray|anyelement|anyenum|anynonarray|anyrange|cstring|fdw_handler|internal|language_handler|opaque|record|void)\b`, NameBuiltin, nil},
-			{`(?s)(DO)(\s+)(?:(LANGUAGE)?(\s+)('?)(\w+)?('?)(\s+))?(\$)([^$]*)(\$)(.*?)(\$)(\10)(\$)`,
+			{
+				`(?s)(DO)(\s+)(?:(LANGUAGE)?(\s+)('?)(\w+)?('?)(\s+))?(\$)([^$]*)(\$)(.*?)(\$)(\10)(\$)`,
 				UsingByGroup(
 					internal.Get,
 					6, 12,
@@ -41,7 +46,8 @@ var PostgreSQL = internal.Register(MustNewLexer(
 			{`[0-9]+`, LiteralNumberInteger, nil},
 			{`((?:E|U&)?)(')`, ByGroups(LiteralStringAffix, LiteralStringSingle), Push("string")},
 			{`((?:U&)?)(")`, ByGroups(LiteralStringAffix, LiteralStringName), Push("quoted-ident")},
-			{`(?s)(\$)([^$]*)(\$)(.*?)(\$)(\2)(\$)(\s+)(LANGUAGE)?(\s+)('?)(\w+)?('?)`,
+			{
+				`(?s)(\$)([^$]*)(\$)(.*?)(\$)(\2)(\$)(\s+)(LANGUAGE)?(\s+)('?)(\w+)?('?)`,
 				UsingByGroup(internal.Get,
 					12, 4,
 					StringHeredoc, StringHeredoc, StringHeredoc, // $tag$
@@ -73,5 +79,5 @@ var PostgreSQL = internal.Register(MustNewLexer(
 			{`""`, LiteralStringName, nil},
 			{`"`, LiteralStringName, Pop(1)},
 		},
-	},
-))
+	}
+}

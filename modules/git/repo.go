@@ -7,10 +7,10 @@ package git
 
 import (
 	"bytes"
-	"container/list"
 	"context"
-	"errors"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,24 +18,8 @@ import (
 	"strings"
 	"time"
 
-	gitealog "code.gitea.io/gitea/modules/log"
-	"github.com/go-git/go-billy/v5/osfs"
-	gogit "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/storage/filesystem"
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/proxy"
 )
-
-// Repository represents a Git repository.
-type Repository struct {
-	Path string
-
-	tagCache *ObjectCache
-
-	gogitRepo    *gogit.Repository
-	gogitStorage *filesystem.Storage
-	gpgSettings  *GPGSettings
-}
 
 // GPGSettings represents the default GPG settings for this repository
 type GPGSettings struct {
@@ -53,10 +37,10 @@ func (repo *Repository) GetAllCommitsCount() (int64, error) {
 	return AllCommitsCount(repo.Path, false)
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
-	l := list.New()
+func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+	var commits []*Commit
 	if len(logs) == 0 {
-		return l, nil
+		return commits, nil
 	}
 
 	parts := bytes.Split(logs, []byte{'\n'})
@@ -66,10 +50,10 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 		if err != nil {
 			return nil, err
 		}
-		l.PushBack(commit)
+		commits = append(commits, commit)
 	}
 
-	return l, nil
+	return commits, nil
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
@@ -91,52 +75,6 @@ func InitRepository(repoPath string, bare bool) error {
 	}
 	_, err = cmd.RunInDir(repoPath)
 	return err
-}
-
-// OpenRepository opens the repository at the given path.
-func OpenRepository(repoPath string) (*Repository, error) {
-	repoPath, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, err
-	} else if !isDir(repoPath) {
-		return nil, errors.New("no such file or directory")
-	}
-
-	fs := osfs.New(repoPath)
-	_, err = fs.Stat(".git")
-	if err == nil {
-		fs, err = fs.Chroot(".git")
-		if err != nil {
-			return nil, err
-		}
-	}
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{KeepDescriptors: true})
-	gogitRepo, err := gogit.Open(storage, fs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Repository{
-		Path:         repoPath,
-		gogitRepo:    gogitRepo,
-		gogitStorage: storage,
-		tagCache:     newObjectCache(),
-	}, nil
-}
-
-// Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
-	if repo == nil || repo.gogitStorage == nil {
-		return
-	}
-	if err := repo.gogitStorage.Close(); err != nil {
-		gitealog.Error("Error closing storage: %v", err)
-	}
-}
-
-// GoGitRepo gets the go-git repo representation
-func (repo *Repository) GoGitRepo() *gogit.Repository {
-	return repo.gogitRepo
 }
 
 // IsEmpty Check if repository is empty.
@@ -166,12 +104,12 @@ type CloneRepoOptions struct {
 }
 
 // Clone clones original repository to target path.
-func Clone(from, to string, opts CloneRepoOptions) (err error) {
+func Clone(from, to string, opts CloneRepoOptions) error {
 	return CloneWithContext(DefaultContext, from, to, opts)
 }
 
 // CloneWithContext clones original repository to target path.
-func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)
@@ -213,8 +151,24 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	_, err = cmd.RunTimeout(opts.Timeout)
-	return err
+	var envs = os.Environ()
+	u, err := url.Parse(from)
+	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
+		if proxy.Match(u.Host) {
+			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
+		}
+	}
+
+	var stderr = new(bytes.Buffer)
+	if err = cmd.RunWithContext(&RunContext{
+		Timeout: opts.Timeout,
+		Env:     envs,
+		Stdout:  io.Discard,
+		Stderr:  stderr,
+	}); err != nil {
+		return ConcatenateError(err, stderr.String())
+	}
+	return nil
 }
 
 // PullRemoteOptions options when pull from remote
@@ -248,22 +202,34 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote string
-	Branch string
-	Force  bool
-	Env    []string
+	Remote  string
+	Branch  string
+	Force   bool
+	Mirror  bool
+	Env     []string
+	Timeout time.Duration
 }
 
 // Push pushs local commits to given remote branch.
-func Push(repoPath string, opts PushOptions) error {
-	cmd := NewCommand("push")
+func Push(ctx context.Context, repoPath string, opts PushOptions) error {
+	cmd := NewCommandContext(ctx, "push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments("--", opts.Remote, opts.Branch)
+	if opts.Mirror {
+		cmd.AddArguments("--mirror")
+	}
+	cmd.AddArguments("--", opts.Remote)
+	if len(opts.Branch) > 0 {
+		cmd.AddArguments(opts.Branch)
+	}
 	var outbuf, errbuf strings.Builder
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, -1, repoPath, &outbuf, &errbuf)
+	if opts.Timeout == 0 {
+		opts.Timeout = -1
+	}
+
+	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, opts.Timeout, repoPath, &outbuf, &errbuf)
 	if err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return &ErrPushOutOfDate{
@@ -278,6 +244,13 @@ func Push(repoPath string, opts PushOptions) error {
 				Err:    err,
 			}
 			err.GenerateMessage()
+			return err
+		} else if strings.Contains(errbuf.String(), "matches more than one") {
+			err := &ErrMoreThanOne{
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
 			return err
 		}
 	}
@@ -373,21 +346,24 @@ func parseSize(objects string) *CountObject {
 	for _, line := range strings.Split(objects, "\n") {
 		switch {
 		case strings.HasPrefix(line, statCount):
-			repoSize.Count = com.StrTo(line[7:]).MustInt64()
+			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSize):
-			repoSize.Size = com.StrTo(line[6:]).MustInt64() * 1024
+			repoSize.Size, _ = strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size *= 1024
 		case strings.HasPrefix(line, statInpack):
-			repoSize.InPack = com.StrTo(line[9:]).MustInt64()
+			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statPacks):
-			repoSize.Packs = com.StrTo(line[7:]).MustInt64()
+			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSizePack):
-			repoSize.SizePack = com.StrTo(line[11:]).MustInt64() * 1024
+			repoSize.Count, _ = strconv.ParseInt(line[11:], 10, 64)
+			repoSize.Count *= 1024
 		case strings.HasPrefix(line, statPrunePackage):
-			repoSize.PrunePack = com.StrTo(line[16:]).MustInt64()
+			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
 		case strings.HasPrefix(line, statGarbage):
-			repoSize.Garbage = com.StrTo(line[9:]).MustInt64()
+			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statSizeGarbage):
-			repoSize.SizeGarbage = com.StrTo(line[14:]).MustInt64() * 1024
+			repoSize.SizeGarbage, _ = strconv.ParseInt(line[14:], 10, 64)
+			repoSize.SizeGarbage *= 1024
 		}
 	}
 	return repoSize
@@ -395,7 +371,7 @@ func parseSize(objects string) *CountObject {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(repoPath string) (time.Time, error) {
-	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return time.Time{}, err
@@ -410,7 +386,7 @@ type DivergeObject struct {
 	Behind int
 }
 
-func checkDivergence(repoPath string, baseBranch string, targetBranch string) (int, error) {
+func checkDivergence(repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
 	cmd := NewCommand("rev-list", "--count", branches)
 	stdout, err := cmd.RunInDir(repoPath)
@@ -425,7 +401,7 @@ func checkDivergence(repoPath string, baseBranch string, targetBranch string) (i
 }
 
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string) (DivergeObject, error) {
+func GetDivergingCommits(repoPath, baseBranch, targetBranch string) (DivergeObject, error) {
 	// $(git rev-list --count master..feature) commits ahead of master
 	ahead, errorAhead := checkDivergence(repoPath, baseBranch, targetBranch)
 	if errorAhead != nil {
@@ -439,4 +415,44 @@ func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string
 	}
 
 	return DivergeObject{ahead, behind}, nil
+}
+
+// CreateBundle create bundle content to the target path
+func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
+	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
+	_, err = NewCommandContext(ctx, "init", "--bare").RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
+	_, err = NewCommandContext(ctx, "reset", "--soft", commit).RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
+	_, err = NewCommandContext(ctx, "branch", "-m", "bundle").RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
+	tmpFile := filepath.Join(tmp, "bundle")
+	_, err = NewCommandContext(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
+	fi, err := os.Open(tmpFile)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+
+	_, err = io.Copy(out, fi)
+	return err
 }

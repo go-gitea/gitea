@@ -112,6 +112,9 @@ type Config struct {
 	// Supported styles are defined under https://github.com/alecthomas/chroma/tree/master/formatters.
 	Style string
 
+	// Pass in a custom Chroma style. If this is not nil, the Style string will be ignored
+	CustomStyle *chroma.Style
+
 	// If set, will try to guess language if none provided.
 	// If the guessing fails, we will fall back to a text lexer.
 	// Note that while Chroma's API supports language guessing, the implementation
@@ -150,6 +153,8 @@ func (c *Config) SetOption(name renderer.OptionName, value interface{}) {
 	switch name {
 	case optStyle:
 		c.Style = value.(string)
+	case optCustomStyle:
+		c.CustomStyle = value.(*chroma.Style)
 	case optFormatOptions:
 		if value != nil {
 			c.FormatOptions = value.([]chromahtml.Option)
@@ -200,6 +205,7 @@ func WithHTMLOptions(opts ...html.Option) Option {
 }
 
 const optStyle renderer.OptionName = "HighlightingStyle"
+const optCustomStyle renderer.OptionName = "HighlightingCustomStyle"
 
 var highlightLinesAttrName = []byte("hl_lines")
 
@@ -225,6 +231,23 @@ func (o *withStyle) SetHighlightingOption(c *Config) {
 // WithStyle is a functional option that changes highlighting style.
 func WithStyle(style string) Option {
 	return &withStyle{style}
+}
+
+type withCustomStyle struct {
+	value *chroma.Style
+}
+
+func (o *withCustomStyle) SetConfig(c *renderer.Config) {
+	c.Options[optCustomStyle] = o.value
+}
+
+func (o *withCustomStyle) SetHighlightingOption(c *Config) {
+	c.CustomStyle = o.value
+}
+
+// WithStyle is a functional option that changes highlighting style.
+func WithCustomStyle(style *chroma.Style) Option {
+	return &withCustomStyle{style}
 }
 
 const optCSSWriter renderer.OptionName = "HighlightingCSSWriter"
@@ -316,7 +339,7 @@ func (o *withFormatOptions) SetConfig(c *renderer.Config) {
 	if _, ok := c.Options[optFormatOptions]; !ok {
 		c.Options[optFormatOptions] = []chromahtml.Option{}
 	}
-	c.Options[optStyle] = append(c.Options[optFormatOptions].([]chromahtml.Option), o.value...)
+	c.Options[optFormatOptions] = append(c.Options[optFormatOptions].([]chromahtml.Option), o.value...)
 }
 
 func (o *withFormatOptions) SetHighlightingOption(c *Config) {
@@ -385,7 +408,11 @@ func (r *HTMLRenderer) renderFencedCodeBlock(w util.BufWriter, source []byte, no
 
 	chromaFormatterOptions := make([]chromahtml.Option, len(r.FormatOptions))
 	copy(chromaFormatterOptions, r.FormatOptions)
-	style := styles.Get(r.Style)
+
+	style := r.CustomStyle
+	if style == nil {
+		style = styles.Get(r.Style)
+	}
 	nohl := false
 
 	var info []byte

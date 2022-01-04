@@ -14,8 +14,14 @@ import (
 	"github.com/olivere/elastic/v7/uritemplates"
 )
 
-// IndicesPutTemplateService creates or updates index mappings.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/7.0/indices-templates.html.
+// IndicesPutTemplateService creates or updates templates.
+//
+// Index templates have changed during in 7.8 update of Elasticsearch.
+// This service implements the legacy version (7.7 or lower). If you want
+// the new version, please use the IndicesPutIndexTemplateService.
+//
+// See https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-templates-v1.html
+// for more details.
 type IndicesPutTemplateService struct {
 	client *Client
 

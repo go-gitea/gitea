@@ -8,26 +8,54 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<div class="inline field {{if .Err_UserName}}error{{end}}">
+				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
-					<span>{{.User.Name}}</span>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
 					<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
+						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
 						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
-								<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
+								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
 						</div>
 					</div>
 				</div>
+
+				<div class="inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="inline required field"><label for="visibility">{{.i18n.Tr "settings.visibility"}}</label></span>
+					<div class="ui selection type dropdown">
+						{{if .User.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
+						{{if .User.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
+						{{if .User.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
+						<div class="text">
+							{{if .User.Visibility.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
+							{{if .User.Visibility.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
+							{{if .User.Visibility.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range $mode := .AllowedUserVisibilityModes}}
+								{{if $mode.IsPublic}}
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+								{{else if $mode.IsLimited}}
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+								{{else if $mode.IsPrivate}}
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
+				</div>
+
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
 					<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
@@ -40,7 +68,6 @@
 					<label for="email">{{.i18n.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
-				<input class="fake" type="password">
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
@@ -90,12 +117,12 @@
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
+					<div class="ui checkbox tooltip" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field" {{if or (DisableImportLocal) (.DisableMigrations)}}hidden{{end}}>
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
@@ -110,6 +137,16 @@
 				</div>
 				{{end}}
 
+				{{if .TwoFactorEnabled}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label><strong>{{.i18n.Tr "admin.users.reset_2fa"}}</strong></label>
+						<input name="reset_2fa" type="checkbox">
+					</div>
+				</div>
+				{{end}}
+
 				<div class="ui divider"></div>
 
 				<div class="field">
@@ -118,12 +155,50 @@
 				</div>
 			</form>
 		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.avatar"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				{{if not DisableGravatar}}
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="lookup" type="radio" {{if not .User.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
+					</div>
+				</div>
+				<div class="field {{if .Err_Gravatar}}error{{end}}">
+					<label for="gravatar">Avatar {{.i18n.Tr "email"}}</label>
+					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}" />
+				</div>
+				{{end}}
+
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="local" type="radio" {{if .User.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
+					</div>
+				</div>
+
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+				</div>
+			</form>
+		</div>
 	</div>
 </div>
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">

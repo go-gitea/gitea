@@ -10,7 +10,11 @@
 						{{.i18n.Tr "repo.archive.title"}}
 					</div>
 				{{end}}
-				{{if .CanWriteCode}}
+				{{if .Repository.IsBroken}}
+						<div class="ui segment center">
+							{{.i18n.Tr "repo.broken_message"}}
+						</div>
+				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
 					</h4>
@@ -18,26 +22,7 @@
 						<div class="item">
 							<h3>{{.i18n.Tr "repo.clone_this_repo"}} <small>{{.i18n.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository" | Str2html}}</small></h3>
 							<div class="ui action small input">
-								{{if not $.DisableHTTP}}
-									<button class="ui basic clone button" id="repo-clone-https" data-link="{{.CloneLink.HTTPS}}">
-										{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
-									</button>
-								{{end}}
-								{{if not $.DisableSSH}}
-									<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.CloneLink.SSH}}">
-										SSH
-									</button>
-								{{end}}
-								{{if not $.DisableHTTP}}
-									<input id="repo-clone-url" value="{{$.CloneLink.HTTPS}}" readonly>
-								{{else}}
-									<input id="repo-clone-url" value="{{$.CloneLink.SSH}}" readonly>
-								{{end}}
-								{{if not (and $.DisableHTTP $.DisableSSH)}}
-									<button class="ui basic button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
-										{{svg "octicon-clippy"}}
-									</button>
-								{{end}}
+								{{template "repo/clone_buttons" .}}
 							</div>
 						</div>
 
@@ -46,13 +31,13 @@
 
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.create_new_repo_command"}}</h3>
-								<div class="markdown">
+								<div class="markup">
 									<pre><code>touch README.md
 git init
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
@@ -60,11 +45,20 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
-								<div class="markdown">
-									<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+								<div class="markup">
+									<pre><code>git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
+							<script defer>
+								/* eslint-disable no-undef */
+								const cloneUrls = document.getElementsByClassName('clone-url');
+								if (cloneUrls) {
+									for (let i = 0; i < cloneUrls.length; i++) {
+										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
+									}
+								}
+							</script>
 						{{end}}
 					{{else}}
 						<div class="ui segment center">

@@ -2,10 +2,11 @@ package parser
 
 import (
 	"bytes"
+	"regexp"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
-	"regexp"
 )
 
 type rawHTMLParser struct {
@@ -67,8 +68,6 @@ func (s *rawHTMLParser) parseSingleLineRegexp(reg *regexp.Regexp, block text.Rea
 	return node
 }
 
-var dummyMatch = [][]byte{}
-
 func (s *rawHTMLParser) parseMultiLineRegexp(reg *regexp.Regexp, block text.Reader, pc Context) ast.Node {
 	sline, ssegment := block.Position()
 	if block.Match(reg) {
@@ -101,8 +100,4 @@ func (s *rawHTMLParser) parseMultiLineRegexp(reg *regexp.Regexp, block text.Read
 		return node
 	}
 	return nil
-}
-
-func (s *rawHTMLParser) CloseBlock(parent ast.Node, pc Context) {
-	// nothing to do
 }

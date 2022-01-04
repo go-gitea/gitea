@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -18,6 +18,7 @@ var ntz32Table = [32]int8{
 	30, 17, 8, 14, 29, 13, 28, 27,
 }
 
+/*
 // ntz32 computes the number of trailing zeros for an unsigned 32-bit integer.
 func ntz32(x uint32) int {
 	if x == 0 {
@@ -26,6 +27,7 @@ func ntz32(x uint32) int {
 	x = (x & -x) * ntz32Const
 	return int(ntz32Table[x>>27])
 }
+*/
 
 // nlz32 computes the number of leading zeros for an unsigned 32-bit integer.
 func nlz32(x uint32) int {

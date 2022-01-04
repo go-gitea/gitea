@@ -8,13 +8,15 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list all hooks of a repository
@@ -47,9 +49,20 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &webhook.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	}
+
+	count, err := webhook.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks, err := webhook.ListWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -57,6 +70,8 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 
@@ -139,16 +154,17 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
-	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
-		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before: ctx.Repo.Commit.ID.String(),
-		After:  ctx.Repo.Commit.ID.String(),
-		Commits: []*api.PayloadCommit{
-			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
-		},
-		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
-		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
-		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
+	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
+
+	if err := webhook_service.PrepareWebhook(hook, ctx.Repo.Repository, webhook.HookEventPush, &api.PushPayload{
+		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before:     ctx.Repo.Commit.ID.String(),
+		After:      ctx.Repo.Commit.ID.String(),
+		Commits:    []*api.PayloadCommit{commit},
+		HeadCommit: commit,
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:     convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
@@ -158,7 +174,7 @@ func TestHook(ctx *context.APIContext) {
 }
 
 // CreateHook create a hook for a repository
-func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
+func CreateHook(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/hooks repository repoCreateHook
 	// ---
 	// summary: Create a hook
@@ -184,14 +200,16 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	if !utils.CheckCreateHookOption(ctx, &form) {
+	form := web.GetForm(ctx).(*api.CreateHookOption)
+
+	if !utils.CheckCreateHookOption(ctx, form) {
 		return
 	}
-	utils.AddRepoHook(ctx, &form)
+	utils.AddRepoHook(ctx, form)
 }
 
 // EditHook modify a hook of a repository
-func EditHook(ctx *context.APIContext, form api.EditHookOption) {
+func EditHook(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/hooks/{id} repository repoEditHook
 	// ---
 	// summary: Edit a hook in a repository
@@ -221,8 +239,9 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	form := web.GetForm(ctx).(*api.EditHookOption)
 	hookID := ctx.ParamsInt64(":id")
-	utils.EditRepoHook(ctx, &form, hookID)
+	utils.EditRepoHook(ctx, form, hookID)
 }
 
 // DeleteHook delete a hook of a repository
@@ -254,8 +273,8 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrWebhookNotExist(err) {
+	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByRepoID", err)

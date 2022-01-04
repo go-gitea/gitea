@@ -1,5 +1,25 @@
 # Changelog
 
+## v3.6.1 - 2021-05-20
+
+- Fix possible security vulnerability by upgrading golang.org/x/crypto
+  ([#100](https://github.com/go-testfixtures/testfixtures/pull/100)).
+
+## v3.6.0 - 2021-04-17
+
+- Add support for dumping a database using the CLI (use the `--dump` flag)
+  ([#88](https://github.com/go-testfixtures/testfixtures/pull/88), [#63](https://github.com/go-testfixtures/testfixtures/issues/63)).
+- Support SkipResetSequences and ResetSequencesTo for MySQL and MariaDB
+  ([#91](https://github.com/go-testfixtures/testfixtures/pull/91)).
+
+## v3.5.0 - 2021-01-11
+
+- Fix insert of JSON values on PostgreSQL when using `binary_parameters=yes` in
+  the connection string
+  ([#83](https://github.com/go-testfixtures/testfixtures/issues/83), [#84](https://github.com/go-testfixtures/testfixtures/pull/84), [lib/pq#528](https://github.com/lib/pq/issues/528)).
+- Officially support binary columns through hexadecimal strings
+  ([#48](https://github.com/go-testfixtures/testfixtures/issues/48), [#82](https://github.com/go-testfixtures/testfixtures/pull/82)).
+
 ## v3.4.1 - 2020-10-19
 
 - Fix for Microsoft SQL Server databases with views

@@ -6,13 +6,14 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -169,10 +170,21 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			mqs := m.ManagedQueues()
+			nonEmptyQueues := []string{}
+			for _, mq := range mqs {
+				if !mq.IsEmpty() {
+					nonEmptyQueues = append(nonEmptyQueues, mq.Name)
+				}
+			}
+			if len(nonEmptyQueues) > 0 {
+				return fmt.Errorf("flush timeout with non-empty queues: %s", strings.Join(nonEmptyQueues, ", "))
+			}
+			return nil
 		default:
 		}
 		mqs := m.ManagedQueues()
+		log.Debug("Found %d Managed Queues", len(mqs))
 		wg := sync.WaitGroup{}
 		wg.Add(len(mqs))
 		allEmpty := true
@@ -183,24 +195,32 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			}
 			allEmpty = false
 			if flushable, ok := mq.Managed.(Flushable); ok {
+				log.Debug("Flushing (flushable) queue: %s", mq.Name)
 				go func(q *ManagedQueue) {
-					localCtx, localCancel := context.WithCancel(ctx)
-					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
+					localCtx, localCtxCancel := context.WithCancel(ctx)
+					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCtxCancel, true)
 					err := flushable.FlushWithContext(localCtx)
 					if err != nil && err != ctx.Err() {
 						cancel()
 					}
 					q.CancelWorkers(pid)
-					localCancel()
+					localCtxCancel()
 					wg.Done()
 				}(mq)
 			} else {
+				log.Debug("Queue: %s is non-empty but is not flushable", mq.Name)
 				wg.Done()
 			}
-
 		}
 		if allEmpty {
+			log.Debug("All queues are empty")
 			break
+		}
+		// Ensure there are always at least 100ms between loops but not more if we've actually been doing some flushign
+		// but don't delay cancellation here.
+		select {
+		case <-ctx.Done():
+		case <-time.After(100 * time.Millisecond):
 		}
 		wg.Wait()
 	}

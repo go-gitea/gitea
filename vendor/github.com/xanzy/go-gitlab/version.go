@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Andrea Funto'
+// Copyright 2021, Andrea Funto'
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 //
 
 package gitlab
+
+import "net/http"
 
 // VersionService handles communication with the GitLab server instance to
 // retrieve its version information via the GitLab API.
@@ -41,7 +43,7 @@ func (s Version) String() string {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/version.md
 func (s *VersionService) GetVersion() (*Version, *Response, error) {
-	req, err := s.client.NewRequest("GET", "version", nil, nil)
+	req, err := s.client.NewRequest(http.MethodGet, "version", nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}

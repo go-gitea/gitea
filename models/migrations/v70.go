@@ -14,7 +14,6 @@ import (
 )
 
 func addIssueDependencies(x *xorm.Engine) (err error) {
-
 	type IssueDependency struct {
 		ID           int64     `xorm:"pk autoincr"`
 		UserID       int64     `xorm:"NOT NULL"`
@@ -90,7 +89,7 @@ func addIssueDependencies(x *xorm.Engine) (err error) {
 		Created     time.Time              `xorm:"-"`
 	}
 
-	//Updating existing issue units
+	// Updating existing issue units
 	units := make([]*RepoUnit, 0, 100)
 	err = x.Where("`type` = ?", v16UnitTypeIssues).Find(&units)
 	if err != nil {

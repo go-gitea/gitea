@@ -5,8 +5,13 @@
 package stats
 
 import (
-	"code.gitea.io/gitea/models"
+	"fmt"
+
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -15,7 +20,10 @@ type DBIndexer struct {
 
 // Index repository status function
 func (db *DBIndexer) Index(id int64) error {
-	repo, err := models.GetRepositoryByID(id)
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
+	defer finished()
+
+	repo, err := repo_model.GetRepositoryByID(id)
 	if err != nil {
 		return err
 	}
@@ -23,12 +31,12 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
 	if err != nil {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -37,6 +45,11 @@ func (db *DBIndexer) Index(id int64) error {
 	// Get latest commit for default branch
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
+		if git.IsErrBranchNotExist(err) || git.IsErrNotExist(err) {
+			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
+			return nil
+		}
+		log.Error("Unable to get commit ID for default branch %s in %s. Error: %v", repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
 
@@ -48,9 +61,17 @@ func (db *DBIndexer) Index(id int64) error {
 	// Calculate and save language statistics to database
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
+		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
-	return repo.UpdateLanguageStats(commitID, stats)
+	err = repo_model.UpdateLanguageStats(repo, commitID, stats)
+	if err != nil {
+		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		return err
+	}
+
+	log.Debug("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
+	return nil
 }
 
 // Close dummy function

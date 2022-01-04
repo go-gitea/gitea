@@ -5,37 +5,38 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
-	"gitea.com/macaron/macaron"
 )
 
 // SendEmail pushes messages to mail queue
 //
 // It doesn't wait before each message will be processed
-func SendEmail(ctx *macaron.Context) {
+func SendEmail(ctx *context.PrivateContext) {
 	if setting.MailService == nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": "Mail service is not enabled.",
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: "Mail service is not enabled.",
 		})
 		return
 	}
 
 	var mail private.Email
-	rd := ctx.Req.Body().ReadCloser()
+	rd := ctx.Req.Body
 	defer rd.Close()
+
 	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
 		log.Error("%v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": err,
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 		return
 	}
@@ -43,12 +44,12 @@ func SendEmail(ctx *macaron.Context) {
 	var emails []string
 	if len(mail.To) > 0 {
 		for _, uname := range mail.To {
-			user, err := models.GetUserByName(uname)
+			user, err := user_model.GetUserByName(uname)
 			if err != nil {
 				err := fmt.Sprintf("Failed to get user information: %v", err)
 				log.Error(err)
-				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": err,
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: err,
 				})
 				return
 			}
@@ -58,7 +59,7 @@ func SendEmail(ctx *macaron.Context) {
 			}
 		}
 	} else {
-		err := models.IterateUser(func(user *models.User) error {
+		err := user_model.IterateUser(func(user *user_model.User) error {
 			if len(user.Email) > 0 {
 				emails = append(emails, user.Email)
 			}
@@ -67,8 +68,8 @@ func SendEmail(ctx *macaron.Context) {
 		if err != nil {
 			err := fmt.Sprintf("Failed to find users: %v", err)
 			log.Error(err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"err": err,
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: err,
 			})
 			return
 		}
@@ -77,7 +78,7 @@ func SendEmail(ctx *macaron.Context) {
 	sendEmail(ctx, mail.Subject, mail.Message, emails)
 }
 
-func sendEmail(ctx *macaron.Context, subject, message string, to []string) {
+func sendEmail(ctx *context.PrivateContext, subject, message string, to []string) {
 	for _, email := range to {
 		msg := mailer.NewMessage([]string{email}, subject, message)
 		mailer.SendAsync(msg)
@@ -85,5 +86,5 @@ func sendEmail(ctx *macaron.Context, subject, message string, to []string) {
 
 	wasSent := strconv.Itoa(len(to))
 
-	ctx.PlainText(http.StatusOK, []byte(wasSent))
+	ctx.PlainText(http.StatusOK, wasSent)
 }

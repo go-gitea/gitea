@@ -5,7 +5,9 @@
 package base
 
 import (
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,15 +45,58 @@ func TestBasicAuthDecode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foo", user)
 	assert.Equal(t, "bar", pass)
+
+	_, _, err = BasicAuthDecode("aW52YWxpZA==")
+	assert.Error(t, err)
+
+	_, _, err = BasicAuthDecode("invalid")
+	assert.Error(t, err)
 }
 
 func TestBasicAuthEncode(t *testing.T) {
 	assert.Equal(t, "Zm9vOmJhcg==", BasicAuthEncode("foo", "bar"))
+	assert.Equal(t, "MjM6IjotLS0t", BasicAuthEncode("23:\"", "----"))
 }
 
-// TODO: Test PBKDF2()
-// TODO: Test VerifyTimeLimitCode()
-// TODO: Test CreateTimeLimitCode()
+func TestVerifyTimeLimitCode(t *testing.T) {
+	tc := []struct {
+		data    string
+		minutes int
+		code    string
+		valid   bool
+	}{{
+		data:    "data",
+		minutes: 2,
+		code:    testCreateTimeLimitCode(t, "data", 2),
+		valid:   true,
+	}, {
+		data:    "abc123-ß",
+		minutes: 1,
+		code:    testCreateTimeLimitCode(t, "abc123-ß", 1),
+		valid:   true,
+	}, {
+		data:    "data",
+		minutes: 2,
+		code:    "2021012723240000005928251dac409d2c33a6eb82c63410aaad569bed",
+		valid:   false,
+	}}
+	for _, test := range tc {
+		actualValid := VerifyTimeLimitCode(test.data, test.minutes, test.code)
+		assert.Equal(t, test.valid, actualValid, "data: '%s' code: '%s' should be valid: %t", test.data, test.code, test.valid)
+	}
+}
+
+func testCreateTimeLimitCode(t *testing.T, data string, m int) string {
+	result0 := CreateTimeLimitCode(data, m, nil)
+	result1 := CreateTimeLimitCode(data, m, time.Now().Format("200601021504"))
+	result2 := CreateTimeLimitCode(data, m, time.Unix(time.Now().Unix()+int64(time.Minute)*int64(m), 0).Format("200601021504"))
+
+	assert.Equal(t, result0, result1)
+	assert.NotEqual(t, result0, result2)
+
+	assert.True(t, len(result0) != 0)
+	return result0
+}
 
 func TestFileSize(t *testing.T) {
 	var size int64 = 512
@@ -68,6 +113,12 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "512 PiB", FileSize(size))
 	size *= 4
 	assert.Equal(t, "2.0 EiB", FileSize(size))
+}
+
+func TestPrettyNumber(t *testing.T) {
+	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
+	assert.Equal(t, "0", PrettyNumber(0))
+	assert.Equal(t, "-100,000", PrettyNumber(-100000))
 }
 
 func TestSubtract(t *testing.T) {
@@ -118,6 +169,10 @@ func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "fo...", EllipsisString("foobar", 5))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 6))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 10))
+	assert.Equal(t, "测...", EllipsisString("测试文本一二三四", 4))
+	assert.Equal(t, "测试...", EllipsisString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文...", EllipsisString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三四", EllipsisString("测试文本一二三四", 10))
 }
 
 func TestTruncateString(t *testing.T) {
@@ -129,6 +184,10 @@ func TestTruncateString(t *testing.T) {
 	assert.Equal(t, "fooba", TruncateString("foobar", 5))
 	assert.Equal(t, "foobar", TruncateString("foobar", 6))
 	assert.Equal(t, "foobar", TruncateString("foobar", 7))
+	assert.Equal(t, "测试文本", TruncateString("测试文本一二三四", 4))
+	assert.Equal(t, "测试文本一", TruncateString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文本一二", TruncateString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三", TruncateString("测试文本一二三四", 7))
 }
 
 func TestStringsToInt64s(t *testing.T) {
@@ -162,6 +221,13 @@ func TestInt64sToMap(t *testing.T) {
 	)
 }
 
+func TestInt64sContains(t *testing.T) {
+	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
+	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
+	assert.True(t, Int64sContains([]int64{2323}, 2323))
+	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
+}
+
 func TestIsLetter(t *testing.T) {
 	assert.True(t, IsLetter('a'))
 	assert.True(t, IsLetter('e'))
@@ -175,11 +241,17 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter('-'))
 	assert.False(t, IsLetter('1'))
 	assert.False(t, IsLetter('$'))
+	assert.False(t, IsLetter(0x00))
+	assert.False(t, IsLetter(0x93))
 }
 
-func TestIsTextFile(t *testing.T) {
-	assert.True(t, IsTextFile([]byte{}))
-	assert.True(t, IsTextFile([]byte("lorem ipsum")))
+// TODO: Test EntryIcon
+
+func TestSetupGiteaRoot(t *testing.T) {
+	_ = os.Setenv("GITEA_ROOT", "test")
+	assert.Equal(t, "test", SetupGiteaRoot())
+	_ = os.Setenv("GITEA_ROOT", "")
+	assert.NotEqual(t, "test", SetupGiteaRoot())
 }
 
 func TestFormatNumberSI(t *testing.T) {
@@ -189,6 +261,3 @@ func TestFormatNumberSI(t *testing.T) {
 	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
 	assert.Equal(t, "", FormatNumberSI("test"))
 }
-
-// TODO: IsImageFile(), currently no idea how to test
-// TODO: IsPDFFile(), currently no idea how to test

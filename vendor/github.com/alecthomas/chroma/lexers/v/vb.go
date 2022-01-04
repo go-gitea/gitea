@@ -8,7 +8,7 @@ import (
 const vbName = `[_\w][\w]*`
 
 // VB.Net lexer.
-var VBNet = internal.Register(MustNewLexer(
+var VBNet = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "VB.net",
 		Aliases:         []string{"vb.net", "vbnet"},
@@ -16,7 +16,11 @@ var VBNet = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-vbnet", "text/x-vba"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	vbNetRules,
+))
+
+func vbNetRules() Rules {
+	return Rules{
 		"root": {
 			{`^\s*<.*?>`, NameAttribute, nil},
 			{`\s+`, Text, nil},
@@ -69,5 +73,5 @@ var VBNet = internal.Register(MustNewLexer(
 			{`(Function|Sub|Property|Class|Structure|Enum|Module|Namespace)\b`, Keyword, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

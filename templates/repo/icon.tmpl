@@ -4,11 +4,6 @@
 	{{else}}
 		{{if $.IsPrivate}}
 			{{svg "octicon-lock" 32}}
-		{{else if and (not $.IsMirror) (not $.IsFork) ($.Owner)}}
-			{{svg "octicon-repo" 32}}
-			{{if $.Owner.Visibility.IsPrivate}}
-				{{avatar $.Owner}}
-			{{end}}
 		{{else if $.IsMirror}}
 			{{svg "octicon-mirror" 32}}
 		{{else if $.IsFork}}

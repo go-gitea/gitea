@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-//go:generate msgp -unexported
-
 type arrayContainer struct {
 	content []uint16
 }
@@ -18,10 +16,11 @@ func (ac *arrayContainer) String() string {
 	return s + "}"
 }
 
-func (ac *arrayContainer) fillLeastSignificant16bits(x []uint32, i int, mask uint32) {
+func (ac *arrayContainer) fillLeastSignificant16bits(x []uint32, i int, mask uint32) int {
 	for k := 0; k < len(ac.content); k++ {
 		x[k+i] = uint32(ac.content[k]) | mask
 	}
+	return i + len(ac.content)
 }
 
 func (ac *arrayContainer) iterate(cb func(x uint16) bool) bool {
@@ -396,11 +395,19 @@ func (ac *arrayContainer) iorBitmap(bc2 *bitmapContainer) container {
 }
 
 func (ac *arrayContainer) iorRun16(rc *runContainer16) container {
-	bc1 := ac.toBitmapContainer()
-	bc2 := rc.toBitmapContainer()
-	bc1.iorBitmap(bc2)
-	*ac = *newArrayContainerFromBitmap(bc1)
-	return ac
+	runCardinality := rc.getCardinality()
+	// heuristic for if the container should maybe be an
+	// array container.
+	if runCardinality < ac.getCardinality() &&
+		runCardinality+ac.getCardinality() < arrayDefaultMaxSize {
+		var result container
+		result = ac
+		for _, run := range rc.iv {
+			result = result.iaddRange(int(run.start), int(run.start)+int(run.length)+1)
+		}
+		return result
+	}
+	return rc.orArray(ac)
 }
 
 func (ac *arrayContainer) lazyIOR(a container) container {
@@ -485,7 +492,7 @@ func (ac *arrayContainer) orArrayCardinality(value2 *arrayContainer) int {
 func (ac *arrayContainer) lazyorArray(value2 *arrayContainer) container {
 	value1 := ac
 	maxPossibleCardinality := value1.getCardinality() + value2.getCardinality()
-	if maxPossibleCardinality > arrayLazyLowerBound { // it could be a bitmap!^M
+	if maxPossibleCardinality > arrayLazyLowerBound { // it could be a bitmap!
 		bc := newBitmapContainer()
 		for k := 0; k < len(value2.content); k++ {
 			v := value2.content[k]
@@ -845,6 +852,10 @@ func (ac *arrayContainer) getCardinality() int {
 	return len(ac.content)
 }
 
+func (ac *arrayContainer) isEmpty() bool {
+	return len(ac.content) == 0
+}
+
 func (ac *arrayContainer) rank(x uint16) int {
 	answer := binarySearch(ac.content, x)
 	if answer >= 0 {
@@ -884,7 +895,7 @@ func (ac *arrayContainer) resetTo(a container) {
 		x.fillArray(ac.content)
 
 	case *runContainer16:
-		card := int(x.cardinality())
+		card := int(x.getCardinality())
 		ac.realloc(card)
 		cur := 0
 		for _, r := range x.iv {
@@ -958,10 +969,10 @@ func (ac *arrayContainer) numberOfRuns() (nr int) {
 				runlen++
 			} else {
 				if cur < prev {
-					panic("then fundamental arrayContainer assumption of sorted ac.content was broken")
+					panic("the fundamental arrayContainer assumption of sorted ac.content was broken")
 				}
 				if cur == prev {
-					panic("then fundamental arrayContainer assumption of deduplicated content was broken")
+					panic("the fundamental arrayContainer assumption of deduplicated content was broken")
 				} else {
 					nr++
 					runlen = 0

@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -21,7 +20,7 @@ func TestChannelQueue(t *testing.T) {
 		}
 	}
 
-	nilFn := func(_ context.Context, _ func()) {}
+	nilFn := func(_ func()) {}
 
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{
@@ -37,7 +36,7 @@ func TestChannelQueue(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, queue.(*ChannelQueue).WorkerPool.boostWorkers, 5)
+	assert.Equal(t, 5, queue.(*ChannelQueue).WorkerPool.boostWorkers)
 
 	go queue.Run(nilFn, nilFn)
 
@@ -61,16 +60,16 @@ func TestChannelQueue_Batch(t *testing.T) {
 		}
 	}
 
-	nilFn := func(_ context.Context, _ func()) {}
+	nilFn := func(_ func()) {}
 
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
 				QueueLength:  20,
 				BatchLength:  2,
-				BlockTimeout: 1 * time.Second,
-				BoostTimeout: 5 * time.Minute,
-				BoostWorkers: 5,
+				BlockTimeout: 0,
+				BoostTimeout: 0,
+				BoostWorkers: 0,
 				MaxWorkers:   10,
 			},
 			Workers: 1,

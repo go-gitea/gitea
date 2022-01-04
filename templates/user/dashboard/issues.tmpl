@@ -9,18 +9,22 @@
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					{{if not .ContextUser.IsOrganization}}
-						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
-						</a>
-						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
-						</a>
-						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
-							<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
+					<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
+					</a>
+					<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
+					</a>
+					<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
+						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
+					</a>
+					{{if .PageIsPulls}}
+						<a class="{{if eq .ViewType "review_requested"}}ui basic blue button{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+							{{.i18n.Tr "repo.issues.filter_type.review_requested"}}
+							<strong class="ui right">{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
@@ -31,18 +35,18 @@
 					{{range .Repos}}
 						{{with $Repo := .}}
 							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
-									{{with $include := true}}
-										{{range $.RepoIDs}}
-											{{if eq . $Repo.ID}}
+									{{- with $include := true -}}
+										{{- range $.RepoIDs -}}
+											{{- if eq . $Repo.ID -}}
 												{{$include = false}}
-											{{else}}
+											{{- else -}}
 												{{.}}%2C
-											{{end}}
-										{{end}}
-										{{if eq $include true}}
+											{{- end -}}
+										{{- end -}}
+										{{- if eq $include true -}}
 											{{$Repo.ID}}%2C
-										{{end}}
-									{{end}}
+										{{- end -}}
+									{{- end -}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt (index $.Counts $Repo.ID)}}</div>
@@ -57,11 +61,11 @@
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								{{svg "octicon-issue-opened" 16 "mr-3"}}
-								{{.i18n.Tr "repo.issues.open_tab" .ShownIssueStats.OpenCount}}
+								{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								{{svg "octicon-issue-closed" 16 "mr-3"}}
-								{{.i18n.Tr "repo.issues.close_tab" .ShownIssueStats.ClosedCount}}
+								{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 							</a>
 						</div>
 					</div>

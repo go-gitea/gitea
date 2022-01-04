@@ -4,3 +4,4 @@
 *.swp
 /gocache/gocache
 c.out
+.idea

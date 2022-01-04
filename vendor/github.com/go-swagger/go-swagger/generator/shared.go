@@ -40,13 +40,14 @@ import (
 
 const (
 	// default generation targets structure
-	defaultModelsTarget     = "models"
-	defaultServerTarget     = "restapi"
-	defaultClientTarget     = "client"
-	defaultOperationsTarget = "operations"
-	defaultClientName       = "rest"
-	defaultServerName       = "swagger"
-	defaultScheme           = "http"
+	defaultModelsTarget         = "models"
+	defaultServerTarget         = "restapi"
+	defaultClientTarget         = "client"
+	defaultOperationsTarget     = "operations"
+	defaultClientName           = "rest"
+	defaultServerName           = "swagger"
+	defaultScheme               = "http"
+	defaultImplementationTarget = "implementation"
 )
 
 func init() {
@@ -62,7 +63,7 @@ func init() {
 func DefaultSectionOpts(gen *GenOpts) {
 	sec := gen.Sections
 	if len(sec.Models) == 0 {
-		sec.Models = []TemplateOpts{
+		opts := []TemplateOpts{
 			{
 				Name:     "definition",
 				Source:   "asset:model",
@@ -70,11 +71,20 @@ func DefaultSectionOpts(gen *GenOpts) {
 				FileName: "{{ (snakize (pascalize .Name)) }}.go",
 			},
 		}
+		if gen.IncludeCLi {
+			opts = append(opts, TemplateOpts{
+				Name:     "clidefinitionhook",
+				Source:   "asset:cliModelcli",
+				Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+				FileName: "{{ (snakize (pascalize .Name)) }}_model.go",
+			})
+		}
+		sec.Models = opts
 	}
 
 	if len(sec.Operations) == 0 {
 		if gen.IsClient {
-			sec.Operations = []TemplateOpts{
+			opts := []TemplateOpts{
 				{
 					Name:     "parameters",
 					Source:   "asset:clientParameter",
@@ -88,6 +98,15 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "{{ (snakize (pascalize .Name)) }}_responses.go",
 				},
 			}
+			if gen.IncludeCLi {
+				opts = append(opts, TemplateOpts{
+					Name:     "clioperation",
+					Source:   "asset:cliOperation",
+					Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+					FileName: "{{ (snakize (pascalize .Name)) }}_operation.go",
+				})
+			}
+			sec.Operations = opts
 		} else {
 			ops := []TemplateOpts{}
 			if gen.IncludeParameters {
@@ -143,7 +162,7 @@ func DefaultSectionOpts(gen *GenOpts) {
 
 	if len(sec.Application) == 0 {
 		if gen.IsClient {
-			sec.Application = []TemplateOpts{
+			opts := []TemplateOpts{
 				{
 					Name:     "facade",
 					Source:   "asset:clientFacade",
@@ -151,15 +170,23 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "{{ snakize .Name }}Client.go",
 				},
 			}
+			if gen.IncludeCLi {
+				// include a commandline tool app
+				opts = append(opts, []TemplateOpts{{
+					Name:     "commandline",
+					Source:   "asset:cliCli",
+					Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+					FileName: "cli.go",
+				}, {
+					Name:     "climain",
+					Source:   "asset:cliMain",
+					Target:   "{{ joinFilePath .Target \"cmd\" (toPackagePath .CliPackage) }}",
+					FileName: "main.go",
+				}}...)
+			}
+			sec.Application = opts
 		} else {
-			sec.Application = []TemplateOpts{
-				{
-					Name:       "configure",
-					Source:     "asset:serverConfigureapi",
-					Target:     "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
-					FileName:   "configure_{{ (snakize (pascalize .Name)) }}.go",
-					SkipExists: !gen.RegenerateConfigureAPI,
-				},
+			opts := []TemplateOpts{
 				{
 					Name:     "main",
 					Source:   "asset:serverMain",
@@ -191,10 +218,52 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "doc.go",
 				},
 			}
+			if gen.ImplementationPackage != "" {
+				// Use auto configure template
+				opts = append(opts, TemplateOpts{
+					Name:     "autoconfigure",
+					Source:   "asset:serverAutoconfigureapi",
+					Target:   "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
+					FileName: "auto_configure_{{ (snakize (pascalize .Name)) }}.go",
+				})
+
+			} else {
+				opts = append(opts, TemplateOpts{
+					Name:       "configure",
+					Source:     "asset:serverConfigureapi",
+					Target:     "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
+					FileName:   "configure_{{ (snakize (pascalize .Name)) }}.go",
+					SkipExists: !gen.RegenerateConfigureAPI,
+				})
+			}
+			sec.Application = opts
 		}
 	}
 	gen.Sections = sec
 
+}
+
+// MarkdownOpts for rendering a spec as markdown
+func MarkdownOpts() *LanguageOpts {
+	opts := &LanguageOpts{}
+	opts.Init()
+	return opts
+}
+
+// MarkdownSectionOpts for a given opts and output file.
+func MarkdownSectionOpts(gen *GenOpts, output string) {
+	gen.Sections.Models = nil
+	gen.Sections.OperationGroups = nil
+	gen.Sections.Operations = nil
+	gen.LanguageOpts = MarkdownOpts()
+	gen.Sections.Application = []TemplateOpts{
+		{
+			Name:     "markdowndocs",
+			Source:   "asset:markdownDocs",
+			Target:   filepath.Dir(output),
+			FileName: filepath.Base(output),
+		},
+	}
 }
 
 // TemplateOpts allows for codegen customization
@@ -225,6 +294,7 @@ type GenOpts struct {
 	IncludeURLBuilder          bool
 	IncludeMain                bool
 	IncludeSupport             bool
+	IncludeCLi                 bool
 	ExcludeSpec                bool
 	DumpData                   bool
 	ValidateSpec               bool
@@ -240,8 +310,11 @@ type GenOpts struct {
 	ModelPackage           string
 	ServerPackage          string
 	ClientPackage          string
+	CliPackage             string
+	ImplementationPackage  string
 	Principal              string
-	Target                 string
+	PrincipalCustomIface   bool   // user-provided interface for Principal (non-nullable)
+	Target                 string // dir location where generated code is written to
 	Sections               SectionOpts
 	LanguageOpts           *LanguageOpts
 	TypeMapping            map[string]string
@@ -268,6 +341,8 @@ type GenOpts struct {
 	AllowEnumCI            bool
 	StrictResponders       bool
 	AcceptDefinitionsOnly  bool
+
+	templates *Repository // a shallow clone of the global template repository
 }
 
 // CheckOpts carries out some global consistency checks on options.
@@ -362,11 +437,22 @@ func (g *GenOpts) SpecPath() string {
 	return specRel
 }
 
+// PrincipalIsNullable indicates whether the principal type used for authentication
+// may be used as a pointer
+func (g *GenOpts) PrincipalIsNullable() bool {
+	debugLog("Principal: %s, %t, isnullable: %t", g.Principal, g.PrincipalCustomIface, g.Principal != iface && !g.PrincipalCustomIface)
+	return g.Principal != iface && !g.PrincipalCustomIface
+}
+
 // EnsureDefaults for these gen opts
 func (g *GenOpts) EnsureDefaults() error {
 	if g.defaultsEnsured {
 		return nil
 	}
+
+	g.templates = templates.ShallowClone()
+
+	g.templates.LoadDefaults()
 
 	if g.LanguageOpts == nil {
 		g.LanguageOpts = DefaultLanguageFunc()
@@ -401,6 +487,7 @@ func (g *GenOpts) EnsureDefaults() error {
 
 	if g.Principal == "" {
 		g.Principal = iface
+		g.PrincipalCustomIface = false
 	}
 
 	g.defaultsEnsured = true
@@ -426,7 +513,9 @@ func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, e
 	var tags []string
 	tagsF := v.FieldByName("Tags")
 	if tagsF.IsValid() {
-		tags = tagsF.Interface().([]string)
+		if tt, ok := tagsF.Interface().([]string); ok {
+			tags = tt
+		}
 	}
 
 	var useTags bool
@@ -448,16 +537,17 @@ func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, e
 	}
 
 	d := struct {
-		Name, Package, APIPackage, ServerPackage, ClientPackage, ModelPackage, MainPackage, Target string
-		Tags                                                                                       []string
-		UseTags                                                                                    bool
-		Context                                                                                    interface{}
+		Name, Package, APIPackage, ServerPackage, ClientPackage, CliPackage, ModelPackage, MainPackage, Target string
+		Tags                                                                                                   []string
+		UseTags                                                                                                bool
+		Context                                                                                                interface{}
 	}{
 		Name:          name,
 		Package:       pkg,
 		APIPackage:    g.APIPackage,
 		ServerPackage: g.ServerPackage,
 		ClientPackage: g.ClientPackage,
+		CliPackage:    g.CliPackage,
 		ModelPackage:  g.ModelPackage,
 		MainPackage:   g.MainPackage,
 		Target:        g.Target,
@@ -482,7 +572,7 @@ func (g *GenOpts) render(t *TemplateOpts, data interface{}) ([]byte, error) {
 	var templ *template.Template
 
 	if strings.HasPrefix(strings.ToLower(t.Source), "asset:") {
-		tt, err := templates.Get(strings.TrimPrefix(t.Source, "asset:"))
+		tt, err := g.templates.Get(strings.TrimPrefix(t.Source, "asset:"))
 		if err != nil {
 			return nil, err
 		}
@@ -492,7 +582,7 @@ func (g *GenOpts) render(t *TemplateOpts, data interface{}) ([]byte, error) {
 	if templ == nil {
 		// try to load from repository (and enable dependencies)
 		name := swag.ToJSONName(strings.TrimSuffix(t.Source, ".gotmpl"))
-		tt, err := templates.Get(name)
+		tt, err := g.templates.Get(name)
 		if err == nil {
 			templ = tt
 		}
@@ -611,7 +701,8 @@ func (g *GenOpts) shouldRenderOperations() bool {
 
 func (g *GenOpts) renderApplication(app *GenApp) error {
 	log.Printf("rendering %d templates for application %s", len(g.Sections.Application), app.Name)
-	for _, templ := range g.Sections.Application {
+	for _, tp := range g.Sections.Application {
+		templ := tp
 		if !g.shouldRenderApp(&templ, app) {
 			continue
 		}
@@ -624,7 +715,8 @@ func (g *GenOpts) renderApplication(app *GenApp) error {
 
 func (g *GenOpts) renderOperationGroup(gg *GenOperationGroup) error {
 	log.Printf("rendering %d templates for operation group %s", len(g.Sections.OperationGroups), g.Name)
-	for _, templ := range g.Sections.OperationGroups {
+	for _, tp := range g.Sections.OperationGroups {
+		templ := tp
 		if !g.shouldRenderOperations() {
 			continue
 		}
@@ -638,7 +730,8 @@ func (g *GenOpts) renderOperationGroup(gg *GenOperationGroup) error {
 
 func (g *GenOpts) renderOperation(gg *GenOperation) error {
 	log.Printf("rendering %d templates for operation %s", len(g.Sections.Operations), g.Name)
-	for _, templ := range g.Sections.Operations {
+	for _, tp := range g.Sections.Operations {
+		templ := tp
 		if !g.shouldRenderOperations() {
 			continue
 		}
@@ -652,7 +745,8 @@ func (g *GenOpts) renderOperation(gg *GenOperation) error {
 
 func (g *GenOpts) renderDefinition(gg *GenDefinition) error {
 	log.Printf("rendering %d templates for model %s", len(g.Sections.Models), gg.Name)
-	for _, templ := range g.Sections.Models {
+	for _, tp := range g.Sections.Models {
+		templ := tp
 		if !g.IncludeModel {
 			continue
 		}
@@ -665,20 +759,18 @@ func (g *GenOpts) renderDefinition(gg *GenDefinition) error {
 }
 
 func (g *GenOpts) setTemplates() error {
-	templates.LoadDefaults()
-
 	if g.Template != "" {
 		// set contrib templates
-		if err := templates.LoadContrib(g.Template); err != nil {
+		if err := g.templates.LoadContrib(g.Template); err != nil {
 			return err
 		}
 	}
 
-	templates.SetAllowOverride(g.AllowTemplateOverride)
+	g.templates.SetAllowOverride(g.AllowTemplateOverride)
 
 	if g.TemplateDir != "" {
 		// set custom templates
-		if err := templates.LoadDir(g.TemplateDir); err != nil {
+		if err := g.templates.LoadDir(g.TemplateDir); err != nil {
 			return err
 		}
 	}
@@ -690,27 +782,33 @@ func (g *GenOpts) defaultImports() map[string]string {
 	baseImport := g.LanguageOpts.baseImport(g.Target)
 	defaultImports := make(map[string]string, 50)
 
+	var modelsAlias, importPath string
 	if g.ExistingModels == "" {
 		// generated models
-		importPath := path.Join(
+		importPath = path.Join(
 			baseImport,
 			g.LanguageOpts.ManglePackagePath(g.ModelPackage, defaultModelsTarget))
-		defaultImports[g.LanguageOpts.ManglePackageName(g.ModelPackage, defaultModelsTarget)] = importPath
+		modelsAlias = g.LanguageOpts.ManglePackageName(g.ModelPackage, defaultModelsTarget)
 	} else {
 		// external models
-		importPath := g.LanguageOpts.ManglePackagePath(g.ExistingModels, "")
-		defaultImports["models"] = importPath
+		importPath = g.LanguageOpts.ManglePackagePath(g.ExistingModels, "")
+		modelsAlias = path.Base(defaultModelsTarget)
+	}
+	defaultImports[modelsAlias] = importPath
+
+	// resolve model representing an authenticated principal
+	alias, _, target := g.resolvePrincipal()
+	if alias == "" || target == g.ModelPackage || path.Base(target) == modelsAlias {
+		// if principal is specified with the models generation package, do not import any extra package
+		return defaultImports
 	}
 
-	alias, _, target := g.resolvePrincipal()
-	if alias != "" {
-		if pth, _ := path.Split(target); pth != "" {
-			// if principal is specified with an path, generate this import
-			defaultImports[alias] = target
-		} else {
-			// if principal is specified with a relative path, assume it is located in generated target
-			defaultImports[alias] = path.Join(baseImport, target)
-		}
+	if pth, _ := path.Split(target); pth != "" {
+		// if principal is specified with a path, assume this is a fully qualified package and generate this import
+		defaultImports[alias] = target
+	} else {
+		// if principal is specified with a relative path (no "/", e.g. internal.Principal), assume it is located in generated target
+		defaultImports[alias] = path.Join(baseImport, target)
 	}
 	return defaultImports
 }
@@ -873,16 +971,18 @@ func trimBOM(in string) string {
 }
 
 // gatherSecuritySchemes produces a sorted representation from a map of spec security schemes
-func gatherSecuritySchemes(securitySchemes map[string]spec.SecurityScheme, appName, principal, receiver string) (security GenSecuritySchemes) {
+func gatherSecuritySchemes(securitySchemes map[string]spec.SecurityScheme, appName, principal, receiver string, nullable bool) (security GenSecuritySchemes) {
 	for scheme, req := range securitySchemes {
 		isOAuth2 := strings.ToLower(req.Type) == "oauth2"
-		var scopes []string
+		scopes := make([]string, 0, len(req.Scopes))
+		genScopes := make([]GenSecurityScope, 0, len(req.Scopes))
 		if isOAuth2 {
-			for k := range req.Scopes {
+			for k, v := range req.Scopes {
 				scopes = append(scopes, k)
+				genScopes = append(genScopes, GenSecurityScope{Name: k, Description: v})
 			}
+			sort.Strings(scopes)
 		}
-		sort.Strings(scopes)
 
 		security = append(security, GenSecurityScheme{
 			AppName:      appName,
@@ -893,6 +993,7 @@ func gatherSecuritySchemes(securitySchemes map[string]spec.SecurityScheme, appNa
 			IsAPIKeyAuth: strings.ToLower(req.Type) == "apikey",
 			IsOAuth2:     isOAuth2,
 			Scopes:       scopes,
+			ScopesDesc:   genScopes,
 			Principal:    principal,
 			Source:       req.In,
 			// from original spec
@@ -903,9 +1004,23 @@ func gatherSecuritySchemes(securitySchemes map[string]spec.SecurityScheme, appNa
 			AuthorizationURL: req.AuthorizationURL,
 			TokenURL:         req.TokenURL,
 			Extensions:       req.Extensions,
+
+			PrincipalIsNullable: nullable,
 		})
 	}
 	sort.Sort(security)
+	return
+}
+
+// securityRequirements just clones the original SecurityRequirements from either the spec
+// or an operation, without any modification. This is used to generate documentation.
+func securityRequirements(orig []map[string][]string) (result []analysis.SecurityRequirement) {
+	for _, r := range orig {
+		for k, v := range r {
+			result = append(result, analysis.SecurityRequirement{Name: k, Scopes: v})
+		}
+	}
+	// TODO(fred): sort this for stable generation
 	return
 }
 
@@ -927,42 +1042,23 @@ func gatherExtraSchemas(extraMap map[string]GenSchema) (extras GenSchemaList) {
 	return
 }
 
-func sharedValidationsFromSimple(v spec.CommonValidations, isRequired bool) (sh sharedValidations) {
-	sh = sharedValidations{
-		Required:         isRequired,
-		Maximum:          v.Maximum,
-		ExclusiveMaximum: v.ExclusiveMaximum,
-		Minimum:          v.Minimum,
-		ExclusiveMinimum: v.ExclusiveMinimum,
-		MaxLength:        v.MaxLength,
-		MinLength:        v.MinLength,
-		Pattern:          v.Pattern,
-		MaxItems:         v.MaxItems,
-		MinItems:         v.MinItems,
-		UniqueItems:      v.UniqueItems,
-		MultipleOf:       v.MultipleOf,
-		Enum:             v.Enum,
+func getExtraSchemes(ext spec.Extensions) []string {
+	if ess, ok := ext.GetStringSlice(xSchemes); ok {
+		return ess
 	}
-	return
+	return nil
 }
 
-func sharedValidationsFromSchema(v spec.Schema, isRequired bool) (sh sharedValidations) {
-	sh = sharedValidations{
-		Required:         isRequired,
-		Maximum:          v.Maximum,
-		ExclusiveMaximum: v.ExclusiveMaximum,
-		Minimum:          v.Minimum,
-		ExclusiveMinimum: v.ExclusiveMinimum,
-		MaxLength:        v.MaxLength,
-		MinLength:        v.MinLength,
-		Pattern:          v.Pattern,
-		MaxItems:         v.MaxItems,
-		MinItems:         v.MinItems,
-		UniqueItems:      v.UniqueItems,
-		MultipleOf:       v.MultipleOf,
-		Enum:             v.Enum,
-	}
-	return
+func gatherURISchemes(swsp *spec.Swagger, operation spec.Operation) ([]string, []string) {
+	var extraSchemes []string
+	extraSchemes = append(extraSchemes, getExtraSchemes(operation.Extensions)...)
+	extraSchemes = concatUnique(getExtraSchemes(swsp.Extensions), extraSchemes)
+	sort.Strings(extraSchemes)
+
+	schemes := concatUnique(swsp.Schemes, operation.Schemes)
+	sort.Strings(schemes)
+
+	return schemes, extraSchemes
 }
 
 func dumpData(data interface{}) error {
@@ -977,4 +1073,21 @@ func dumpData(data interface{}) error {
 func importAlias(pkg string) string {
 	_, k := path.Split(pkg)
 	return k
+}
+
+// concatUnique concatenate collections of strings with deduplication
+func concatUnique(collections ...[]string) []string {
+	resultSet := make(map[string]struct{})
+	for _, c := range collections {
+		for _, i := range c {
+			if _, ok := resultSet[i]; !ok {
+				resultSet[i] = struct{}{}
+			}
+		}
+	}
+	result := make([]string, 0, len(resultSet))
+	for k := range resultSet {
+		result = append(result, k)
+	}
+	return result
 }

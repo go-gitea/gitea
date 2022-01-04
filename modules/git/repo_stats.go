@@ -33,13 +33,13 @@ type CodeActivityAuthor struct {
 	Commits int64
 }
 
-// GetCodeActivityStats returns code statistics for acitivity page
+// GetCodeActivityStats returns code statistics for activity page
 func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, err := NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
+	stdout, err := NewCommandContext(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%an%n%ae%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
+	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
 	if len(branch) == 0 {
 		args = append(args, "--branches=*")
 	} else {
@@ -67,7 +67,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
+	err = NewCommandContext(repo.Ctx, args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
 		stdoutWriter, stderr, nil,
 		func(ctx context.Context, cancel context.CancelFunc) error {

@@ -16,6 +16,9 @@
 
       .item {
         text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
 
         .text {
           height: 16px;
@@ -75,6 +78,10 @@
     .org-visibility .label {
       margin-left: 5px;
     }
+
+    .ui.dropdown {
+      max-width: 100%;
+    }
   }
 }
 
@@ -94,8 +101,6 @@
       margin-left: .35rem;
     }
 
-    line-height: 1.2;
-
     > .ui.grid {
       margin-left: auto;
       margin-right: auto;
@@ -111,6 +116,7 @@
 
     .issue.title {
       width: 80%;
+      margin: 0 0 1em;
     }
 
     .push.news .content ul {
@@ -156,16 +162,12 @@
           background-color: #fcf8e9;
         }
 
-        a {
-          padding: 6px 1.2em;
+        .repo-list-link {
+          padding: 6px 1em;
           display: block;
 
           .svg {
-            color: var(--color-secondary-dark-6);
-
-            &.rear {
-              font-size: 15px;
-            }
+            color: var(--color-text-light-2);
           }
 
           .star-num {
@@ -180,23 +182,8 @@
       margin-right: .25rem;
     }
 
-    .repo-owner-name-list {
-      .item-name {
-        max-width: 70%;
-        margin-bottom: -4px;
-      }
-    }
-
-    #collaborative-repo-list {
-      .owner-and-repo {
-        max-width: 80%;
-        margin-bottom: -5px;
-      }
-
-      .owner-name {
-        max-width: 120px;
-        margin-bottom: -5px;
-      }
+    .repo-owner-name-list .item-name {
+      max-width: 70%;
     }
   }
 }

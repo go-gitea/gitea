@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 )
 
 // SpecDifference encapsulates the details of an individual diff in part of a spec
@@ -89,37 +90,37 @@ func (sd SpecDifference) String() string {
 	prefix := ""
 	direction := ""
 
-	if isResponse {
-		direction = " Response"
+	if hasMethod {
 		if hasURL {
-			if hasMethod {
-				prefix = fmt.Sprintf("%s:%s -> %d", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method, sd.DifferenceLocation.Response)
-			} else {
-				prefix = fmt.Sprintf("%s ", sd.DifferenceLocation.URL)
-			}
+			prefix = fmt.Sprintf("%s:%s", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method)
+		}
+		if isResponse {
+			prefix += fmt.Sprintf(" -> %d", sd.DifferenceLocation.Response)
+			direction = "Response"
+		} else {
+			direction = "Request"
 		}
 	} else {
-		if hasURL {
-			if hasMethod {
-				direction = " Request"
-				prefix = fmt.Sprintf("%s:%s", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method)
-			} else {
-				prefix = fmt.Sprintf("%s ", sd.DifferenceLocation.URL)
-			}
-		} else {
-			prefix = " Metadata"
-		}
+		prefix = sd.DifferenceLocation.URL
 	}
 
 	paramOrPropertyLocation := ""
 	if sd.DifferenceLocation.Node != nil {
-		paramOrPropertyLocation = " - " + sd.DifferenceLocation.Node.String() + " "
+		paramOrPropertyLocation = sd.DifferenceLocation.Node.String()
 	}
 	optionalInfo := ""
 	if sd.DiffInfo != "" {
-		optionalInfo = fmt.Sprintf(" <%s>", sd.DiffInfo)
+		optionalInfo = sd.DiffInfo
 	}
-	return fmt.Sprintf("%s%s%s- %s%s", prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo)
+
+	items := []string{}
+	for _, item := range []string{prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo} {
+		if item != "" {
+			items = append(items, item)
+		}
+	}
+	return strings.Join(items, " - ")
+	// return fmt.Sprintf("%s%s%s - %s%s", prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo)
 }
 
 func (sd SpecDifferences) addDiff(diff SpecDifference) SpecDifferences {

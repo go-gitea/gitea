@@ -19,8 +19,6 @@ import (
 var (
 	// ErrURLNotSupported represents url is not supported
 	ErrURLNotSupported = errors.New("url method not supported")
-	// ErrIterateObjectsNotSupported represents IterateObjects not supported
-	ErrIterateObjectsNotSupported = errors.New("iterateObjects method not supported")
 )
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
@@ -65,14 +63,15 @@ type Object interface {
 // ObjectStorage represents an object storage to handle a bucket and files
 type ObjectStorage interface {
 	Open(path string) (Object, error)
-	Save(path string, r io.Reader) (int64, error)
+	// Save store a object, if size is unknown set -1
+	Save(path string, r io.Reader, size int64) (int64, error)
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
 	IterateObjects(func(path string, obj Object) error) error
 }
 
-// Copy copys a file from source ObjectStorage to dest ObjectStorage
+// Copy copies a file from source ObjectStorage to dest ObjectStorage
 func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, srcPath string) (int64, error) {
 	f, err := srcStorage.Open(srcPath)
 	if err != nil {
@@ -80,7 +79,21 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 	}
 	defer f.Close()
 
-	return dstStorage.Save(dstPath, f)
+	size := int64(-1)
+	fsinfo, err := f.Stat()
+	if err == nil {
+		size = fsinfo.Size()
+	}
+
+	return dstStorage.Save(dstPath, f, size)
+}
+
+// Clean delete all the objects in this storage
+func Clean(storage ObjectStorage) error {
+	return storage.IterateObjects(func(path string, obj Object) error {
+		_ = obj.Close()
+		return storage.Delete(path)
+	})
 }
 
 // SaveFrom saves data to the ObjectStorage with path p from the callback
@@ -94,7 +107,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 		}
 	}()
 
-	_, err := objStorage.Save(p, pr)
+	_, err := objStorage.Save(p, pr, -1)
 	return err
 }
 
@@ -109,6 +122,9 @@ var (
 	Avatars ObjectStorage
 	// RepoAvatars represents repository avatars storage
 	RepoAvatars ObjectStorage
+
+	// RepoArchives represents repository archives storage
+	RepoArchives ObjectStorage
 )
 
 // Init init the stoarge
@@ -125,7 +141,11 @@ func Init() error {
 		return err
 	}
 
-	return initLFS()
+	if err := initLFS(); err != nil {
+		return err
+	}
+
+	return initRepoArchives()
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -162,5 +182,11 @@ func initLFS() (err error) {
 func initRepoAvatars() (err error) {
 	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
 	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, &setting.RepoAvatar.Storage)
+	return
+}
+
+func initRepoArchives() (err error) {
+	log.Info("Initialising Repository Archive storage with type: %s", setting.RepoArchive.Storage.Type)
+	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, &setting.RepoArchive.Storage)
 	return
 }

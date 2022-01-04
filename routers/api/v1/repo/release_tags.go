@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -14,9 +13,9 @@ import (
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
-// GetReleaseTag get a single release of a repository by its tagname
-func GetReleaseTag(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseTag
+// GetReleaseByTag get a single release of a repository by tag name
+func GetReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/releases/tags/{tag} repository repoGetReleaseByTag
 	// ---
 	// summary: Get a release by tag name
 	// produces:
@@ -34,7 +33,7 @@ func GetReleaseTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: tag
 	//   in: path
-	//   description: tagname of the release to get
+	//   description: tag name of the release to get
 	//   type: string
 	//   required: true
 	// responses:
@@ -48,25 +47,30 @@ func GetReleaseTag(ctx *context.APIContext) {
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Error(http.StatusNotFound, "GetRelease", err)
+			ctx.NotFound()
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 		return
 	}
 
-	if err := release.LoadAttributes(); err != nil {
+	if release.IsTag {
+		ctx.NotFound()
+		return
+	}
+
+	if err = release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }
 
-// DeleteReleaseTag delete a tag from a repository
-func DeleteReleaseTag(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/releases/tags/{tag} repository repoDeleteReleaseTag
+// DeleteReleaseByTag delete a release from a repository by tag name
+func DeleteReleaseByTag(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/releases/tags/{tag} repository repoDeleteReleaseByTag
 	// ---
-	// summary: Delete a release tag
+	// summary: Delete a release by tag name
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -80,7 +84,7 @@ func DeleteReleaseTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: tag
 	//   in: path
-	//   description: name of the tag to delete
+	//   description: tag name of the release to delete
 	//   type: string
 	//   required: true
 	// responses:
@@ -88,27 +92,25 @@ func DeleteReleaseTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
 
 	tag := ctx.Params(":tag")
 
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
-			ctx.Error(http.StatusNotFound, "GetRelease", err)
+			ctx.NotFound()
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 		return
 	}
 
-	if !release.IsTag {
-		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
+	if release.IsTag {
+		ctx.NotFound()
 		return
 	}
 
-	if err := releaseservice.DeleteReleaseByID(release.ID, ctx.User, true); err != nil {
+	if err = releaseservice.DeleteReleaseByID(release.ID, ctx.User, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 	}
 

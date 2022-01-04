@@ -1,3 +1,7 @@
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 /*
 
 Package analysis defines the interface between a modular static
@@ -121,13 +125,14 @@ package being analyzed, and provides operations to the Run function for
 reporting diagnostics and other information back to the driver.
 
 	type Pass struct {
-		Fset       *token.FileSet
-		Files      []*ast.File
-		OtherFiles []string
-		Pkg        *types.Package
-		TypesInfo  *types.Info
-		ResultOf   map[*Analyzer]interface{}
-		Report     func(Diagnostic)
+		Fset         *token.FileSet
+		Files        []*ast.File
+		OtherFiles   []string
+		IgnoredFiles []string
+		Pkg          *types.Package
+		TypesInfo    *types.Info
+		ResultOf     map[*Analyzer]interface{}
+		Report       func(Diagnostic)
 		...
 	}
 
@@ -138,6 +143,12 @@ The OtherFiles field provides the names, but not the contents, of non-Go
 files such as assembly that are part of this package. See the "asmdecl"
 or "buildtags" analyzers for examples of loading non-Go files and reporting
 diagnostics against them.
+
+The IgnoredFiles field provides the names, but not the contents,
+of ignored Go and non-Go source files that are not part of this package
+with the current build configuration but may be part of other build
+configurations. See the "buildtags" analyzer for an example of loading
+and checking IgnoredFiles.
 
 The ResultOf field provides the results computed by the analyzers
 required by this one, as expressed in its Analyzer.Requires field. The

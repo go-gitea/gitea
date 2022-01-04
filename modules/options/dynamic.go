@@ -1,21 +1,20 @@
-// +build !bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build !bindata
+// +build !bindata
 
 package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -39,7 +38,7 @@ func Dir(name string) ([]string, error) {
 		return []string{}, fmt.Errorf("Unabe to check if custom directory %s is a directory. %v", customDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir, true)
+		files, err := util.StatDir(customDir, true)
 
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
@@ -55,7 +54,7 @@ func Dir(name string) ([]string, error) {
 		return []string{}, fmt.Errorf("Unabe to check if static directory %s is a directory. %v", staticDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(staticDir, true)
+		files, err := util.StatDir(staticDir, true)
 
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read static directory. %v", err)
@@ -101,7 +100,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	staticPath := path.Join(setting.StaticRootPath, "options", name)
@@ -111,7 +110,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(staticPath)
+		return os.ReadFile(staticPath)
 	}
 
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)

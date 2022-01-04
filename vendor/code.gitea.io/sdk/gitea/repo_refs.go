@@ -27,7 +27,11 @@ type GitObject struct {
 
 // GetRepoRef get one ref's information of one repository
 func (c *Client) GetRepoRef(user, repo, ref string) (*Reference, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	ref = strings.TrimPrefix(ref, "refs/")
+	ref = pathEscapeSegments(ref)
 	r := new(Reference)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/refs/%s", user, repo, ref), nil, nil, &r)
 	if _, ok := err.(*json.UnmarshalTypeError); ok {
@@ -42,7 +46,12 @@ func (c *Client) GetRepoRef(user, repo, ref string) (*Reference, *Response, erro
 
 // GetRepoRefs get list of ref's information of one repository
 func (c *Client) GetRepoRefs(user, repo, ref string) ([]*Reference, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	ref = strings.TrimPrefix(ref, "refs/")
+	ref = pathEscapeSegments(ref)
+
 	data, resp, err := c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/git/refs/%s", user, repo, ref), nil, nil)
 	if err != nil {
 		return nil, resp, err
