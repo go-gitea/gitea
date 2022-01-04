@@ -12,11 +12,14 @@ function loadScript(url) {
     script.addEventListener('error', (e) => {
       reject(e.error);
     });
-    document.body.appendChild(script);
     script.src = url;
+    document.body.appendChild(script);
   });
 }
 
+/**
+ * @returns {EasyMDE}
+ */
 export async function importEasyMDE() {
   // for CodeMirror: the plugins should be loaded dynamically
   // https://github.com/codemirror/CodeMirror/issues/5484
@@ -109,7 +112,7 @@ export async function createCommentEasyMDE(textarea) {
     Enter: () => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
-        return CodeMirror.Pass;
+        return window.CodeMirror.Pass;
       }
     },
     Backspace: (cm) => {
@@ -154,17 +157,6 @@ export function getAttachedEasyMDE(el) {
     return null;
   }
   return el._data_easyMDE;
-}
-
-function setAttachedEasyMDE(el, easyMDE) {
-  if (el instanceof jQuery) {
-    el = el[0];
-  }
-  if (!el) {
-    return;
-  }
-  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
-  el._data_easyMDE = easyMDE;
 }
 
 /**
