@@ -75,6 +75,16 @@ type Scorch struct {
 	segPlugin SegmentPlugin
 }
 
+// AsyncPanicError is passed to scorch asyncErrorHandler when panic occurs in scorch background process
+type AsyncPanicError struct {
+	Source string
+	Path   string
+}
+
+func (e *AsyncPanicError) Error() string {
+	return fmt.Sprintf("%s panic when processing %s", e.Source, e.Path)
+}
+
 type internalStats struct {
 	persistEpoch          uint64
 	persistSnapshotSize   uint64
@@ -202,6 +212,15 @@ func (s *Scorch) openBolt() error {
 	var rootBoltOpt = *bolt.DefaultOptions
 	if s.readOnly {
 		rootBoltOpt.ReadOnly = true
+		rootBoltOpt.OpenFile = func(path string, flag int, mode os.FileMode) (*os.File, error) {
+			// Bolt appends an O_CREATE flag regardless.
+			// See - https://github.com/etcd-io/bbolt/blob/v1.3.5/db.go#L210
+			// Use os.O_RDONLY only if path exists (#1623)
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				return os.OpenFile(path, flag, mode)
+			}
+			return os.OpenFile(path, os.O_RDONLY, mode)
+		}
 	} else {
 		if s.path != "" {
 			err := os.MkdirAll(s.path, 0700)

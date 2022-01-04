@@ -49,6 +49,13 @@ var (
 	giteaHostInit         sync.Once
 	giteaHost             string
 	giteaIssuePullPattern *regexp.Regexp
+
+	actionStrings = []string{
+		"none",
+		"closes",
+		"reopens",
+		"neutered",
+	}
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -64,6 +71,10 @@ const (
 	// XRefActionNeutered means the cross-reference will no longer affect the source
 	XRefActionNeutered // 3
 )
+
+func (a XRefAction) String() string {
+	return actionStrings[a]
+}
 
 // IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
@@ -151,7 +162,7 @@ func newKeywords() {
 	})
 }
 
-func doNewKeywords(close []string, reopen []string) {
+func doNewKeywords(close, reopen []string) {
 	issueCloseKeywordsPat = makeKeywordsPat(close)
 	issueReopenKeywordsPat = makeKeywordsPat(reopen)
 }
@@ -467,7 +478,7 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 	return ret
 }
 
-func getCrossReference(content []byte, start, end int, fromLink bool, prOnly bool) *rawReference {
+func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *rawReference {
 	sep := bytes.IndexAny(content[start:end], "#!")
 	if sep < 0 {
 		return nil
@@ -537,7 +548,7 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 }
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
-func IsXrefActionable(ref *RenderizableReference, extTracker bool, alphaNum bool) bool {
+func IsXrefActionable(ref *RenderizableReference, extTracker, alphaNum bool) bool {
 	if extTracker {
 		// External issues cannot be automatically closed
 		return false

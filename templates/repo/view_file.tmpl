@@ -13,7 +13,7 @@
 					{{end}}
 					{{if .NumLinesSet}}
 						<div class="file-info-entry">
-							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
+							{{.NumLines}} {{.i18n.TrN .NumLines "repo.line" "repo.lines"}}
 						</div>
 					{{end}}
 					{{if .FileSize}}

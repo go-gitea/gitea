@@ -73,7 +73,7 @@ func (logger *WriterLogger) GetStacktraceLevel() Level {
 }
 
 // Copy of cheap integer to fixed-width decimal to ascii from logger.
-func itoa(buf *[]byte, i int, wid int) {
+func itoa(buf *[]byte, i, wid int) {
 	var logger [20]byte
 	bp := len(logger) - 1
 	for i >= 10 || wid > 1 {

@@ -16,10 +16,10 @@ var (
 	blocks = []blockFunc{b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20, b21, b22, b23, b24, b25, b26, b27}
 )
 
-type blockFunc func(img *image.Paletted, x, y, size int, angle int)
+type blockFunc func(img *image.Paletted, x, y, size, angle int)
 
 // draw a polygon by points, and the polygon is rotated by angle.
-func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
+func drawBlock(img *image.Paletted, x, y, size, angle int, points []int) {
 	if angle != 0 {
 		m := size / 2
 		rotate(points, m, m, angle)
@@ -41,7 +41,7 @@ func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
 //  |      |
 //  |      |
 //  --------
-func b0(img *image.Paletted, x, y, size int, angle int) {}
+func b0(img *image.Paletted, x, y, size, angle int) {}
 
 // full-filled
 //
@@ -50,7 +50,7 @@ func b0(img *image.Paletted, x, y, size int, angle int) {}
 //  |######|
 //  |######|
 //  --------
-func b1(img *image.Paletted, x, y, size int, angle int) {
+func b1(img *image.Paletted, x, y, size, angle int) {
 	for i := x; i < x+size; i++ {
 		for j := y; j < y+size; j++ {
 			img.SetColorIndex(i, j, 1)
@@ -65,7 +65,7 @@ func b1(img *image.Paletted, x, y, size int, angle int) {
 //  |  ####  |
 //  |        |
 //  ----------
-func b2(img *image.Paletted, x, y, size int, angle int) {
+func b2(img *image.Paletted, x, y, size, angle int) {
 	l := size / 4
 	x += l
 	y += l
@@ -88,7 +88,7 @@ func b2(img *image.Paletted, x, y, size int, angle int) {
 //  |  ###  |
 //  |   #   |
 //  ---------
-func b3(img *image.Paletted, x, y, size int, angle int) {
+func b3(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, 0, []int{
 		m, 0,
@@ -108,7 +108,7 @@ func b3(img *image.Paletted, x, y, size int, angle int) {
 //  |##   |
 //  |#    |
 //  |------
-func b4(img *image.Paletted, x, y, size int, angle int) {
+func b4(img *image.Paletted, x, y, size, angle int) {
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
 		size, 0,
@@ -124,7 +124,7 @@ func b4(img *image.Paletted, x, y, size int, angle int) {
 //  |  ###  |
 //  | ##### |
 //  |#######|
-func b5(img *image.Paletted, x, y, size int, angle int) {
+func b5(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		m, 0,
@@ -141,7 +141,7 @@ func b5(img *image.Paletted, x, y, size int, angle int) {
 //  |###   |
 //  |###   |
 //  --------
-func b6(img *image.Paletted, x, y, size int, angle int) {
+func b6(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -160,7 +160,7 @@ func b6(img *image.Paletted, x, y, size int, angle int) {
 //  |  #####|
 //  |   ####|
 //  |--------
-func b7(img *image.Paletted, x, y, size int, angle int) {
+func b7(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -181,7 +181,7 @@ func b7(img *image.Paletted, x, y, size int, angle int) {
 //  | ### ### |
 //  |#########|
 //  -----------
-func b8(img *image.Paletted, x, y, size int, angle int) {
+func b8(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	mm := m / 2
 
@@ -219,7 +219,7 @@ func b8(img *image.Paletted, x, y, size int, angle int) {
 //  |  #### |
 //  |   #   |
 //  ---------
-func b9(img *image.Paletted, x, y, size int, angle int) {
+func b9(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -241,7 +241,7 @@ func b9(img *image.Paletted, x, y, size int, angle int) {
 //  |##      |
 //  |#       |
 //  ----------
-func b10(img *image.Paletted, x, y, size int, angle int) {
+func b10(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		m, 0,
@@ -267,7 +267,7 @@ func b10(img *image.Paletted, x, y, size int, angle int) {
 //  |        |
 //  |        |
 //  ----------
-func b11(img *image.Paletted, x, y, size int, angle int) {
+func b11(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -287,7 +287,7 @@ func b11(img *image.Paletted, x, y, size int, angle int) {
 //  |  #####  |
 //  |    #    |
 //  -----------
-func b12(img *image.Paletted, x, y, size int, angle int) {
+func b12(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, m,
@@ -306,7 +306,7 @@ func b12(img *image.Paletted, x, y, size int, angle int) {
 //  |  #####  |
 //  |#########|
 //  -----------
-func b13(img *image.Paletted, x, y, size int, angle int) {
+func b13(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		m, m,
@@ -325,7 +325,7 @@ func b13(img *image.Paletted, x, y, size int, angle int) {
 //  |       |
 //  |       |
 //  ---------
-func b14(img *image.Paletted, x, y, size int, angle int) {
+func b14(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		m, 0,
@@ -344,7 +344,7 @@ func b14(img *image.Paletted, x, y, size int, angle int) {
 //  |        |
 //  |        |
 //  ----------
-func b15(img *image.Paletted, x, y, size int, angle int) {
+func b15(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		0, 0,
@@ -364,7 +364,7 @@ func b15(img *image.Paletted, x, y, size int, angle int) {
 //  | ##### |
 //  |#######|
 //  ---------
-func b16(img *image.Paletted, x, y, size int, angle int) {
+func b16(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	drawBlock(img, x, y, size, angle, []int{
 		m, 0,
@@ -390,7 +390,7 @@ func b16(img *image.Paletted, x, y, size int, angle int) {
 //  |      ##|
 //  |      ##|
 //  ----------
-func b17(img *image.Paletted, x, y, size int, angle int) {
+func b17(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
 	drawBlock(img, x, y, size, angle, []int{
@@ -419,7 +419,7 @@ func b17(img *image.Paletted, x, y, size int, angle int) {
 //  |##      |
 //  |#       |
 //  ----------
-func b18(img *image.Paletted, x, y, size int, angle int) {
+func b18(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
 	drawBlock(img, x, y, size, angle, []int{
@@ -439,7 +439,7 @@ func b18(img *image.Paletted, x, y, size int, angle int) {
 //  |###  ###|
 //  |########|
 //  ----------
-func b19(img *image.Paletted, x, y, size int, angle int) {
+func b19(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 
 	drawBlock(img, x, y, size, angle, []int{
@@ -480,7 +480,7 @@ func b19(img *image.Paletted, x, y, size int, angle int) {
 //  |##       |
 //  |#        |
 //  ----------
-func b20(img *image.Paletted, x, y, size int, angle int) {
+func b20(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -501,7 +501,7 @@ func b20(img *image.Paletted, x, y, size int, angle int) {
 //  |##      |
 //  |#       |
 //  ----------
-func b21(img *image.Paletted, x, y, size int, angle int) {
+func b21(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -529,7 +529,7 @@ func b21(img *image.Paletted, x, y, size int, angle int) {
 //  |##    ##|
 //  |#      #|
 //  ----------
-func b22(img *image.Paletted, x, y, size int, angle int) {
+func b22(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -557,7 +557,7 @@ func b22(img *image.Paletted, x, y, size int, angle int) {
 //  |##      |
 //  |#       |
 //  ----------
-func b23(img *image.Paletted, x, y, size int, angle int) {
+func b23(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -585,7 +585,7 @@ func b23(img *image.Paletted, x, y, size int, angle int) {
 //  |##  ##  |
 //  |#   #   |
 //  ----------
-func b24(img *image.Paletted, x, y, size int, angle int) {
+func b24(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -613,7 +613,7 @@ func b24(img *image.Paletted, x, y, size int, angle int) {
 //  |######  |
 //  |####    |
 //  ----------
-func b25(img *image.Paletted, x, y, size int, angle int) {
+func b25(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -641,7 +641,7 @@ func b25(img *image.Paletted, x, y, size int, angle int) {
 //  |###  ###|
 //  |#      #|
 //  ----------
-func b26(img *image.Paletted, x, y, size int, angle int) {
+func b26(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 
@@ -683,7 +683,7 @@ func b26(img *image.Paletted, x, y, size int, angle int) {
 //  |###   ##|
 //  |########|
 //  ----------
-func b27(img *image.Paletted, x, y, size int, angle int) {
+func b27(img *image.Paletted, x, y, size, angle int) {
 	m := size / 2
 	q := size / 4
 

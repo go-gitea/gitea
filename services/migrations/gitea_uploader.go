@@ -43,7 +43,7 @@ type GiteaLocalUploader struct {
 	doer           *user_model.User
 	repoOwner      string
 	repoName       string
-	repo           *models.Repository
+	repo           *repo_model.Repository
 	labels         sync.Map
 	milestones     sync.Map
 	issues         sync.Map
@@ -93,7 +93,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	var r *models.Repository
+	var r *repo_model.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
 			Name:           g.repoName,
@@ -102,10 +102,10 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private,
 			IsMirror:       opts.Mirror,
-			Status:         models.RepositoryBeingMigrated,
+			Status:         repo_model.RepositoryBeingMigrated,
 		})
 	} else {
-		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
 	}
 	if err != nil {
 		return err
@@ -154,7 +154,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		}
 	}
 	topics = topics[:c]
-	return models.SaveTopics(g.repo.ID, topics...)
+	return repo_model.SaveTopics(g.repo.ID, topics...)
 }
 
 // CreateMilestones creates milestones
@@ -698,8 +698,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
 				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
-				relPath := pr.GetGitRefName()
-				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+				err = g.gitRepo.RemoveReference(pr.GetGitRefName())
 			} else {
 				// The SHA is empty, remove the head file
 				log.Warn("Empty reference, removing : %v", pullHead)
@@ -979,6 +978,6 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
-	g.repo.Status = models.RepositoryReady
-	return models.UpdateRepositoryCols(g.repo, "status")
+	g.repo.Status = repo_model.RepositoryReady
+	return repo_model.UpdateRepositoryCols(g.repo, "status")
 }

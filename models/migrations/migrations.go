@@ -361,6 +361,10 @@ var migrations = []Migration{
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 	// v203 -> v204
 	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
+	// v204 -> v205
+	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
+	// v205 -> v206
+	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
 }
 
 // GetCurrentDBVersion returns the current db version

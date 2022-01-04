@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -41,16 +42,17 @@ func (t *TrackedTime) AfterLoad() {
 
 // LoadAttributes load Issue, User
 func (t *TrackedTime) LoadAttributes() (err error) {
-	return t.loadAttributes(db.GetEngine(db.DefaultContext))
+	return t.loadAttributes(db.DefaultContext)
 }
 
-func (t *TrackedTime) loadAttributes(e db.Engine) (err error) {
+func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if t.Issue == nil {
 		t.Issue, err = getIssueByID(e, t.IssueID)
 		if err != nil {
 			return
 		}
-		err = t.Issue.loadRepo(e)
+		err = t.Issue.loadRepo(ctx)
 		if err != nil {
 			return
 		}
@@ -167,7 +169,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if err := issue.loadRepo(sess); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -251,7 +253,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return ErrNotExist{}
 	}
 
-	if err := issue.loadRepo(sess); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 	if _, err := createComment(ctx, &CreateCommentOptions{
@@ -274,13 +276,12 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	if err := t.loadAttributes(sess); err != nil {
+	if err := t.loadAttributes(ctx); err != nil {
 		return err
 	}
 
-	if err := deleteTime(sess, t); err != nil {
+	if err := deleteTime(db.GetEngine(ctx), t); err != nil {
 		return err
 	}
 

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -129,9 +130,9 @@ func runServ(c *cli.Context) error {
 			return fail("Internal error", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
-		case models.KeyTypeDeploy:
+		case asymkey_model.KeyTypeDeploy:
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
-		case models.KeyTypePrincipal:
+		case asymkey_model.KeyTypePrincipal:
 			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
 		default:
 			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
@@ -190,7 +191,7 @@ func runServ(c *cli.Context) error {
 		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
-	if setting.EnablePprof || c.Bool("enable-pprof") {
+	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
 			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}

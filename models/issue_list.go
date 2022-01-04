@@ -25,6 +25,9 @@ const (
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
+		if issue.Repo != nil {
+			continue
+		}
 		if _, ok := repoIDs[issue.RepoID]; !ok {
 			repoIDs[issue.RepoID] = struct{}{}
 		}
@@ -32,13 +35,13 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
+func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
 
 	repoIDs := issues.getRepoIDs()
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	left := len(repoIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -56,8 +59,12 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 	}
 
 	for _, issue := range issues {
-		issue.Repo = repoMaps[issue.RepoID]
-		if issue.PullRequest != nil {
+		if issue.Repo == nil {
+			issue.Repo = repoMaps[issue.RepoID]
+		} else {
+			repoMaps[issue.RepoID] = issue.Repo
+		}
+		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
 			issue.PullRequest.BaseRepo = issue.Repo
 		}
 	}
@@ -65,7 +72,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 }
 
 // LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*Repository, error) {
+func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
 	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 

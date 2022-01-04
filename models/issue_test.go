@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -23,7 +24,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 
 	testSuccess := func(issueID int64, labelIDs []int64) {
 		issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 		labels := make([]*Label, len(labelIDs))
@@ -205,11 +206,26 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeAll,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             0,
-				ClosedCount:           0,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
+				ClosedCount:           1, // 1
+			},
+		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				RepoIDs:    []int64{1},
+				FilterMode: FilterModeAll,
+				IsClosed:   true,
+			},
+			IssueStats{
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           0,
+				CreateCount:           0,
+				OpenCount:             1, // 6
+				ClosedCount:           1, // 1
 			},
 		},
 		{
@@ -218,10 +234,10 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeAssign,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
 		},
@@ -231,26 +247,11 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeCreate,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
-			},
-		},
-		{
-			UserIssueStatsOptions{
-				UserID:      2,
-				UserRepoIDs: []int64{1, 2},
-				FilterMode:  FilterModeAll,
-				IsClosed:    true,
-			},
-			IssueStats{
-				YourRepositoriesCount: 2,
-				AssignCount:           0,
-				CreateCount:           2,
-				OpenCount:             2,
-				ClosedCount:           2,
 			},
 		},
 		{
@@ -259,9 +260,10 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeMention,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				MentionCount:          0,
 				OpenCount:             0,
 				ClosedCount:           0,
 			},
@@ -273,19 +275,21 @@ func TestGetUserIssueStats(t *testing.T) {
 				IssueIDs:   []int64{1},
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             1,
+				YourRepositoriesCount: 1, // 1
+				AssignCount:           1, // 1
+				CreateCount:           1, // 1
+				OpenCount:             1, // 1
 				ClosedCount:           0,
 			},
 		},
 	} {
-		stats, err := GetUserIssueStats(test.Opts)
-		if !assert.NoError(t, err) {
-			continue
-		}
-		assert.Equal(t, test.ExpectedIssueStats, *stats)
+		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
+			stats, err := GetUserIssueStats(test.Opts)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, test.ExpectedIssueStats, *stats)
+		})
 	}
 }
 
@@ -354,7 +358,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Issue {
 	var newIssue Issue
 	t.Run(title, func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 		issue := Issue{
@@ -398,7 +402,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 
 	testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
 		o := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: owner}).(*user_model.User)
-		r := unittest.AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
+		r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: o.ID, LowerName: repo}).(*repo_model.Repository)
 		issue := &Issue{RepoID: r.ID}
 		d := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: doer}).(*user_model.User)
 		resolved, err := issue.ResolveMentionsByVisibility(db.DefaultContext, d, mentions)

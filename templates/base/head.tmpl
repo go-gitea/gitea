@@ -46,17 +46,20 @@
 			]).values()),
 			{{end}}
 			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
+			{{/* this global i18n object should only contain gereral texts. for specalized texts, it should be provied inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 			i18n: {
 				copy_success: '{{.i18n.Tr "copy_success"}}',
 				copy_error: '{{.i18n.Tr "copy_error"}}',
-			}
+				error_occurred: '{{.i18n.Tr "error.occurred"}}',
+				network_error: '{{.i18n.Tr "error.network_error"}}',
+			},
 		};
 		{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}
 		window.config.pageData = window.config.pageData || {};
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireSimpleMDE}}
+{{if .RequireEasyMDE}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
 {{end}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">

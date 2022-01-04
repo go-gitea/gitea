@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -57,6 +58,14 @@ func TestMain(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
+	tmpDataPath, err := ioutil.TempDir("", "data")
+	if err != nil {
+		fmt.Printf("Unable to create temporary data path %v\n", err)
+		os.Exit(1)
+	}
+
+	setting.AppDataPath = tmpDataPath
+
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
 	git.CheckLFSVersion()
@@ -68,7 +77,7 @@ func TestMain(m *testing.M) {
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
-	if err := removeAllWithRetry(setting.AppDataPath); err != nil {
+	if err := removeAllWithRetry(tmpDataPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
@@ -198,6 +207,25 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+		}
+	}
 
 	if err := deleteDB(); err != nil {
 		t.Errorf("unable to reset database: %v", err)

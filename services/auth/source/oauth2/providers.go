@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"sort"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -55,7 +55,7 @@ func NewImagedProvider(image string, provider GothProvider) *ImagedProvider {
 }
 
 // Providers contains the map of registered OAuth2 providers in Gitea (based on goth)
-// key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
+// key is used to map the OAuth2Provider with the goth provider type (also in AuthSource.OAuth2Config.Provider)
 // value is used to store display data
 var gothProviders = map[string]GothProvider{}
 
@@ -88,14 +88,14 @@ func GetOAuth2Providers() []Provider {
 func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	loginSources, err := login.GetActiveOAuth2ProviderLoginSources()
+	authSources, err := auth.GetActiveOAuth2ProviderSources()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var orderedKeys []string
 	providers := make(map[string]Provider)
-	for _, source := range loginSources {
+	for _, source := range authSources {
 		prov := gothProviders[source.Cfg.(*Source).Provider]
 		if source.Cfg.(*Source).IconURL != "" {
 			prov = &ImagedProvider{prov, source.Cfg.(*Source).IconURL}
@@ -140,8 +140,8 @@ func ClearProviders() {
 }
 
 var (
-	// ErrLoginSourceNotActived login source is not actived error
-	ErrLoginSourceNotActived = errors.New("Login source is not actived")
+	// ErrAuthSourceNotActived login source is not actived error
+	ErrAuthSourceNotActived = errors.New("auth source is not actived")
 )
 
 // used to create different types of goth providers
@@ -153,7 +153,7 @@ func createProvider(providerName string, source *Source) (goth.Provider, error) 
 
 	p, ok := gothProviders[source.Provider]
 	if !ok {
-		return nil, ErrLoginSourceNotActived
+		return nil, ErrAuthSourceNotActived
 	}
 
 	provider, err = p.CreateGothProvider(providerName, callbackURL, source)

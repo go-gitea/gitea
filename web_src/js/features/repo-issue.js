@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
@@ -213,8 +213,8 @@ export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
-    const $simplemde = $(this).data('simplemde');
-    const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+    const easyMDE = getAttachedEasyMDE(this);
+    const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', () => {
@@ -445,22 +445,19 @@ export function initRepoPullRequestReview() {
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
-    } else {
+    let easyMDE = getAttachedEasyMDE($textarea);
+    if (!easyMDE) {
       attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = createCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+      easyMDE = createCommentEasyMDE($textarea);
     }
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
     assignMenuAttributes(form.find('.menu'));
   });
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentSimpleMDE($reviewBox.find('textarea'));
+    createCommentEasyMDE($reviewBox.find('textarea'));
     initCompImagePaste($reviewBox);
   }
 
@@ -519,9 +516,9 @@ export function initRepoPullRequestReview() {
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
       attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const $simplemde = createCommentSimpleMDE($textarea);
+      const easyMDE = createCommentEasyMDE($textarea);
       $textarea.focus();
-      $simplemde.codemirror.focus();
+      easyMDE.codemirror.focus();
     }
   });
 }
