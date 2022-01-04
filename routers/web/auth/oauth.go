@@ -1086,7 +1086,7 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 			errorDescription := request.FormValue("error_description")
 			if errorCode != "" || errorDescription != "" {
 				return nil, goth.User{}, errCallback{
-					Code: errorCode,
+					Code:        errorCode,
 					Description: errorDescription,
 				}
 			}
