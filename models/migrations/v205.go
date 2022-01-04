@@ -12,11 +12,11 @@ import (
 
 func addAuthorizeColForTeamUnit(x *xorm.Engine) error {
 	type TeamUnit struct {
-		ID        int64 `xorm:"pk autoincr"`
-		OrgID     int64 `xorm:"INDEX"`
-		TeamID    int64 `xorm:"UNIQUE(s)"`
-		Type      int   `xorm:"UNIQUE(s)"`
-		Authorize int
+		ID         int64 `xorm:"pk autoincr"`
+		OrgID      int64 `xorm:"INDEX"`
+		TeamID     int64 `xorm:"UNIQUE(s)"`
+		Type       int   `xorm:"UNIQUE(s)"`
+		AccessMode int
 	}
 
 	if err := x.Sync2(new(TeamUnit)); err != nil {
@@ -24,7 +24,7 @@ func addAuthorizeColForTeamUnit(x *xorm.Engine) error {
 	}
 
 	// migrate old permission
-	_, err := x.Exec("UPDATE team_unit SET authorize = (SELECT authorize FROM team WHERE team.id = team_unit.team_id)")
+	_, err := x.Exec("UPDATE team_unit SET access_mode = (SELECT authorize FROM team WHERE team.id = team_unit.team_id)")
 	return err
 
 }
