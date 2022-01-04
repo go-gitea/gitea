@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -95,10 +94,10 @@ func TestDumpRestore(t *testing.T) {
 		// Verify the dump of restoredrepo is the same as the dump of repo1
 		//
 		newd := filepath.Join(basePath, newrepo.OwnerName, newrepo.Name)
-		beforeBytes, err := ioutil.ReadFile(filepath.Join(d, "repo.yml"))
+		beforeBytes, err := os.ReadFile(filepath.Join(d, "repo.yml"))
 		assert.NoError(t, err)
 		before := strings.ReplaceAll(string(beforeBytes), reponame, newreponame)
-		after, err := ioutil.ReadFile(filepath.Join(newd, "repo.yml"))
+		after, err := os.ReadFile(filepath.Join(newd, "repo.yml"))
 		assert.NoError(t, err)
 		assert.EqualValues(t, before, string(after))
 	})
