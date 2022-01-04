@@ -362,10 +362,11 @@ func hashPassword(passwd, salt, algo string) (string, error) {
 	var tempPasswd []byte
 	var saltBytes []byte
 
-	// Salt is encoded as hex, because certain bytes won't translates well into
-	// it's string correlation. But only decode it when salt has a length of 32.
-	// Because we should tolerate hashing a password when a user has the old format
-	// of salt.
+	// There are two formats for the Salt value:
+	// * The new format is a 32-byte hex-encoded string
+	// * The old format was a 10-byte binary format
+	// We have to tolerate both here but, Authenticate should
+	// regenerate the Salt following a successful validation.
 	if len(salt) == 32 {
 		var err error
 		saltBytes, err = hex.DecodeString(salt)
