@@ -95,8 +95,8 @@ type User struct {
 	Type        UserType
 	Location    string
 	Website     string
-	Rands       string `xorm:"VARCHAR(10)"`
-	Salt        string `xorm:"VARCHAR(10)"`
+	Rands       string `xorm:"VARCHAR(32)"`
+	Salt        string `xorm:"VARCHAR(32)"`
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
@@ -358,24 +358,29 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt, algo string) string {
+func hashPassword(passwd, salt, algo string) (string, error) {
 	var tempPasswd []byte
-
+	// Salt is encoded as hex, because certain bytes won't translates well into
+	// it's string correlation.
+	saltBytes, err := hex.DecodeString(salt)
+	if err != nil {
+		return "", err
+	}
 	switch algo {
 	case algoBcrypt:
 		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
-		return string(tempPasswd)
+		return string(tempPasswd), nil
 	case algoScrypt:
-		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
+		tempPasswd, _ = scrypt.Key([]byte(passwd), saltBytes, 65536, 16, 2, 50)
 	case algoArgon2:
-		tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), 2, 65536, 8, 50)
+		tempPasswd = argon2.IDKey([]byte(passwd), saltBytes, 2, 65536, 8, 50)
 	case algoPbkdf2:
 		fallthrough
 	default:
-		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd)
+	return fmt.Sprintf("%x", tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
@@ -391,15 +396,20 @@ func (u *User) SetPassword(passwd string) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
+	if u.Passwd, err = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo); err != nil {
+		return err
+	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
-	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 
 	return nil
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+	tempHash, err := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+	if err != nil {
+		return false
+	}
 
 	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
 		return true
@@ -506,8 +516,18 @@ func IsUserExist(uid int64, name string) (bool, error) {
 }
 
 // GetUserSalt returns a random user salt token.
+//
+// Note on the used size here. As of begin of 2022, it's recommended to use
+// 64 bits of salt, certain recommended like NIST are already recommending to use
+// 128 bits of salt. Given it's more leaning to 128 bits of salt, we're using this
+// and taking a security margin. Again, why 16? 16 bytes = 16 * 8 = 128 bits.
 func GetUserSalt() (string, error) {
-	return util.RandomString(10)
+	rBytes, err := util.RandomBytes(16)
+	if err != nil {
+		return "", err
+	}
+	// Returns a 32 bytes long string.
+	return hex.EncodeToString(rBytes), nil
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
