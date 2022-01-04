@@ -294,13 +294,27 @@ func CanUserForkRepo(user *user_model.User, repo *repo_model.Repository) (bool, 
 	return false, nil
 }
 
+// FindUserOrgForks returns the forked repositories for one user from a repository
+func FindUserOrgForks(repoID, userID int64) ([]*repo_model.Repository, error) {
+	var cond builder.Cond = builder.And(
+		builder.Eq{"fork_id": repoID},
+		builder.In("owner_id",
+			builder.Select("org_id").
+				From("org_user").
+				Where(builder.Eq{"uid": userID}),
+		),
+	)
+
+	var repos []*repo_model.Repository
+	return repos, db.GetEngine(db.DefaultContext).Table("repository").Where(cond).Find(&repos)
+}
+
 // GetForksByUserAndOrgs return forked repos of the user and owned orgs
 func GetForksByUserAndOrgs(user *user_model.User, repo *repo_model.Repository) ([]*repo_model.Repository, error) {
 	var repoList []*repo_model.Repository
 	if user == nil {
 		return repoList, nil
 	}
-	var forkedRepo *repo_model.Repository
 	forkedRepo, err := repo_model.GetUserFork(repo.ID, user.ID)
 	if err != nil {
 		return repoList, err
@@ -308,19 +322,11 @@ func GetForksByUserAndOrgs(user *user_model.User, repo *repo_model.Repository) (
 	if forkedRepo != nil {
 		repoList = append(repoList, forkedRepo)
 	}
-	canCreateRepos, err := GetOrgsCanCreateRepoByUserID(user.ID)
+	orgForks, err := FindUserOrgForks(repo.ID, user.ID)
 	if err != nil {
-		return repoList, err
+		return nil, err
 	}
-	for _, org := range canCreateRepos {
-		forkedRepo, err := repo_model.GetUserFork(repo.ID, org.ID)
-		if err != nil {
-			return repoList, err
-		}
-		if forkedRepo != nil {
-			repoList = append(repoList, forkedRepo)
-		}
-	}
+	repoList = append(repoList, orgForks...)
 	return repoList, nil
 }
 

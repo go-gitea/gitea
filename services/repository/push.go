@@ -121,13 +121,22 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				delTags = append(delTags, tagName)
 				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
+				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				if err != nil {
+					return fmt.Errorf("gitRepo.GetCommit: %v", err)
+				}
+
+				commits := repo_module.NewPushCommits()
+				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
+
 				notification.NotifyPushCommits(
 					pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: git.EmptySHA,
 						NewCommitID: opts.NewCommitID,
-					}, repo_module.NewPushCommits())
+					}, commits)
 
 				addTags = append(addTags, tagName)
 				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)

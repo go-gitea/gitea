@@ -424,7 +424,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 	}
 	languagesFacet := result.Facets["languages"]
-	for _, term := range languagesFacet.Terms {
+	for _, term := range languagesFacet.Terms.Terms() {
 		if len(term.Term) == 0 {
 			continue
 		}

@@ -110,6 +110,7 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
+  --color-navbar-transparent: #f8f8f800;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
@@ -1355,7 +1356,7 @@ footer {
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
+  background: linear-gradient(to right, var(--color-navbar-transparent), var(--color-navbar) 100%);
   content: '';
   right: 0;
   height: 39px;
