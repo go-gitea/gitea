@@ -172,10 +172,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
 func ToRepoTransfer(t *models.RepoTransfer) *api.RepoTransfer {
-	var teams []*api.Team
-	for _, v := range t.Teams {
-		teams = append(teams, ToTeam(v))
-	}
+	teams, _ := ToTeams(t.Teams)
 
 	return &api.RepoTransfer{
 		Doer:      ToUser(t.Doer, nil),
