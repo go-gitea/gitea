@@ -32,7 +32,6 @@
 			</div>
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
-
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
 						<span class="text">
@@ -88,7 +87,7 @@
 								<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_author_no_select"}}</a>
 								{{range .Authors}}
 									<a class="{{if eq $.AuthorID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&author={{.ID}}">
-										{{avatar .}}
+										{{avatar .}} {{.GetDisplayName}}
 									</a>
 								{{end}}
 							</div>
