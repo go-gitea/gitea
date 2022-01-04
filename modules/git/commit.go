@@ -306,6 +306,24 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 	return true, nil
 }
 
+// GetFileContent reads a file content as a string
+func (c *Commit) GetFileContent(filename string) (string, bool) {
+	entry, err := c.GetTreeEntryByPath(filename)
+	if err != nil {
+		return "", false
+	}
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return "", false
+	}
+	defer r.Close()
+	bytes, err := io.ReadAll(r)
+	if err != nil {
+		return "", false
+	}
+	return string(bytes), true
+}
+
 // GetSubModules get all the sub modules of current revision git tree
 func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {

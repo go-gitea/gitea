@@ -25,13 +25,67 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
+
+// GetDefaultMergeMessage returns default message used when merging pull request
+func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest, mergeStyle repo_model.MergeStyle) string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo[%d]: %v", pr.HeadRepoID, err)
+		return ""
+	}
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
+		return ""
+	}
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+
+	issueReference := "#"
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
+		issueReference = "!"
+	}
+
+	if mergeStyle != "" {
+		templateFilepath := fmt.Sprintf(".gitea/MERGE_MESSAGE_%s_TEMPLATE.md", mergeStyle)
+		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+		if err != nil {
+			log.Error("GetBranchCommit: %v", err)
+			return ""
+		}
+		templateContent, ok := commit.GetFileContent(templateFilepath)
+		if ok {
+			var meta api.IssueTemplate
+			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
+			if err == nil {
+				return templateBody
+			}
+			log.Error("could not extract metadata from %s [%s]: %v", templateFilepath, pr.BaseRepo.FullName(), err)
+		}
+	}
+
+	if mergeStyle == repo_model.MergeStyleSquash {
+		if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
+			return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
+		}
+		return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
+	}
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	}
+
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
+}
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
