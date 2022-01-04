@@ -19,8 +19,8 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -89,7 +89,7 @@ type User struct {
 	// is to change his/her password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
-	LoginType   login.Type
+	LoginType   auth.Type
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
@@ -232,12 +232,12 @@ func GetAllUsers() ([]*User, error) {
 
 // IsLocal returns true if user login type is LoginPlain.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= login.Plain
+	return u.LoginType <= auth.Plain
 }
 
 // IsOAuth2 returns true if user login type is LoginOAuth2.
 func (u *User) IsOAuth2() bool {
-	return u.LoginType == login.OAuth2
+	return u.LoginType == auth.OAuth2
 }
 
 // MaxCreationLimit returns the number of repositories a user is allowed to create
@@ -1012,7 +1012,7 @@ func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) 
 }
 
 // GetUsersBySource returns a list of Users for a login source
-func GetUsersBySource(s *login.Source) ([]*User, error) {
+func GetUsersBySource(s *auth.Source) ([]*User, error) {
 	var users []*User
 	err := db.GetEngine(db.DefaultContext).Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
 	return users, err

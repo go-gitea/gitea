@@ -17,6 +17,7 @@ import (
 type Locale interface {
 	Language() string
 	Tr(string, ...interface{}) string
+	TrN(cnt interface{}, key1, keyN string, args ...interface{}) string
 }
 
 // LangType represents a lang type
@@ -98,4 +99,68 @@ func (l *locale) Language() string {
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
 	return i18n.Tr(l.Lang, format, args...)
+}
+
+// Language specific rules for translating plural texts
+var trNLangRules = map[string]func(int64) int{
+	// the default rule is "en-US" if a language isn't listed here
+	"en-US": func(cnt int64) int {
+		if cnt == 1 {
+			return 0
+		}
+		return 1
+	},
+	"lv-LV": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"ru-RU": func(cnt int64) int {
+		if cnt%10 == 1 && cnt%100 != 11 {
+			return 0
+		}
+		return 1
+	},
+	"zh-CN": func(cnt int64) int {
+		return 0
+	},
+	"zh-HK": func(cnt int64) int {
+		return 0
+	},
+	"zh-TW": func(cnt int64) int {
+		return 0
+	},
+	"fr-FR": func(cnt int64) int {
+		if cnt > -2 && cnt < 2 {
+			return 0
+		}
+		return 1
+	},
+}
+
+// TrN returns translated message for plural text translation
+func (l *locale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string {
+	var c int64
+	if t, ok := cnt.(int); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int16); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int32); ok {
+		c = int64(t)
+	} else if t, ok := cnt.(int64); ok {
+		c = t
+	} else {
+		return l.Tr(keyN, args...)
+	}
+
+	ruleFunc, ok := trNLangRules[l.Lang]
+	if !ok {
+		ruleFunc = trNLangRules["en-US"]
+	}
+
+	if ruleFunc(c) == 0 {
+		return l.Tr(key1, args...)
+	}
+	return l.Tr(keyN, args...)
 }

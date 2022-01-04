@@ -120,11 +120,26 @@ export async function createCommentEasyMDE(textarea) {
     },
   });
   attachTribute(inputField, {mentions: true, emoji: true});
-
-  setAttachedEasyMDE(inputField, easyMDE);
-  setAttachedEasyMDE(textarea, easyMDE);
+  attachEasyMDEToElements(easyMDE);
   return easyMDE;
 }
+
+/**
+ * attach the EasyMDE object to its input elements (InputField, TextArea)
+ * @param {EasyMDE} easyMDE
+ */
+export function attachEasyMDEToElements(easyMDE) {
+  // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
+
+  // InputField is used by CodeMirror to accept user input
+  const inputField = easyMDE.codemirror.getInputField();
+  inputField._data_easyMDE = easyMDE;
+
+  // TextArea is the real textarea element in the form
+  const textArea = easyMDE.codemirror.getTextArea();
+  textArea._data_easyMDE = easyMDE;
+}
+
 
 /**
  * get the attached EasyMDE editor created by createCommentEasyMDE
@@ -150,4 +165,30 @@ function setAttachedEasyMDE(el, easyMDE) {
   }
   // TODO: that's the only way we can do now to attach the EasyMDE object to a HTMLElement
   el._data_easyMDE = easyMDE;
+}
+
+/**
+ * validate if the given EasyMDE textarea is is non-empty.
+ * @param {jQuery} $textarea
+ * @returns {boolean} returns true if validation succeeded.
+ */
+export function validateTextareaNonEmpty($textarea) {
+  const $mdeInputField = $(getAttachedEasyMDE($textarea).codemirror.getInputField());
+  // The original edit area HTML element is hidden and replaced by the
+  // SimpleMDE/EasyMDE editor, breaking HTML5 input validation if the text area is empty.
+  // This is a workaround for this upstream bug.
+  // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
+  if (!$textarea.val()) {
+    $mdeInputField.prop('required', true);
+    const $form = $textarea.parents('form');
+    if (!$form.length) {
+      // this should never happen. we put a alert here in case the textarea would be forgotten to be put in a form
+      alert('Require non-empty content');
+    } else {
+      $form[0].reportValidity();
+    }
+    return false;
+  }
+  $mdeInputField.prop('required', false);
+  return true;
 }

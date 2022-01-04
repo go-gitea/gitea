@@ -609,12 +609,9 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !ctx.Repo.Owner.CanCreateRepo() {
-			maxCreationLimit := ctx.User.MaxCreationLimit()
-			if maxCreationLimit == 1 {
-				ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation_1", maxCreationLimit))
-			} else {
-				ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation_n", maxCreationLimit))
-			}
+			maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
+			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			ctx.Flash.Error(msg)
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
@@ -995,31 +992,6 @@ func DeleteTeam(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
-}
-
-// parseOwnerAndRepo get repos by owner
-func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *repo_model.Repository) {
-	owner, err := user_model.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", err)
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return nil, nil
-	}
-
-	repo, err := repo_model.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByName", err)
-		} else {
-			ctx.ServerError("GetRepositoryByName", err)
-		}
-		return nil, nil
-	}
-
-	return owner, repo
 }
 
 // GitHooks hooks of a repository

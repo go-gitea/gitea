@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -37,8 +37,8 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
-	var grant *login.OAuth2Grant
-	if grant, err = login.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+	var grant *auth.OAuth2Grant
+	if grant, err = auth.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
