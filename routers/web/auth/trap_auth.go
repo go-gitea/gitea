@@ -22,7 +22,7 @@ func TrapSignIn(ctx *context.Context) {
 	if user := getUserFromTrapToken(token); user != nil {
 		handleSignIn(ctx, user, false)
 	} else {
-		ctx.Redirect("https://portal.trap.jp/pipeline?redirect=" + url.QueryEscape(setting.AppURL+"login"))
+		ctx.Redirect("https://portal.trap.jp/pipeline?redirect=" + url.QueryEscape(setting.AppURL+"user/login"))
 	}
 }
 
