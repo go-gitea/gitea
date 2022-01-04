@@ -167,13 +167,6 @@ func RandomString(length int64) (string, error) {
 // a maximum value of 63 instead of 255(max byte size)
 func RandomBytes(length int64) ([]byte, error) {
 	bytes := make([]byte, length)
-	limit := int64(^uint8(0))
-	for i := range bytes {
-		num, err := RandomInt(limit)
-		if err != nil {
-			return []byte{}, err
-		}
-		bytes[i] = uint8(num)
-	}
-	return bytes, nil
+	_, err := rand.Read(bytes)
+	return bytes, err
 }
