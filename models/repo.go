@@ -179,7 +179,7 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 
 func getRepoIssueAuthors(ctx context.Context, repoID int64, lim int, keyword string) (authors []*user_model.User, err error) {
 	var authorIDs []int64
-	if err = db.GetEngine(ctx).SQL("SELECT user.id FROM issue,user WHERE user.id = issue.poster_id AND issue.repo_id = ? AND user.name LIKE '%"+keyword+"%' GROUP BY user.id ORDER BY user.id", repoID).
+	if err = db.GetEngine(ctx).SQL("SELECT user.id FROM issue,user WHERE user.id = issue.poster_id AND issue.repo_id = ? AND user.name LIKE '%?%' GROUP BY user.id ORDER BY user.id", repoID, keyword).
 		Limit(lim, 0).Find(&authorIDs); err != nil {
 		return nil, err
 	}
