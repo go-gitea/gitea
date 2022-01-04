@@ -21,7 +21,9 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 	}
 
 	// Update password hash if server password hash algorithm have changed
-	if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+	// Or update the password when the salt has a length of 10, this in order
+	// to migrate user's salts to a more secure salt.
+	if user.PasswdHashAlgo != setting.PasswordHashAlgo || len(user.Salt) == 10 {
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}

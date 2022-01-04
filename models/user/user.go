@@ -360,12 +360,22 @@ func (u *User) NewGitSig() *git.Signature {
 
 func hashPassword(passwd, salt, algo string) (string, error) {
 	var tempPasswd []byte
+	var saltBytes []byte
+
 	// Salt is encoded as hex, because certain bytes won't translates well into
-	// it's string correlation.
-	saltBytes, err := hex.DecodeString(salt)
-	if err != nil {
-		return "", err
+	// it's string correlation. But only decode it when salt has a length of 32.
+	// Because we should tolerate hashing a password when a user has the old format
+	// of salt.
+	if len(salt) == 32 {
+		var err error
+		saltBytes, err = hex.DecodeString(salt)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		saltBytes = []byte(salt)
 	}
+
 	switch algo {
 	case algoBcrypt:
 		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
