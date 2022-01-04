@@ -363,18 +363,18 @@ func hashPassword(passwd, salt, algo string) (string, error) {
 	var saltBytes []byte
 
 	// There are two formats for the Salt value:
-	// * The new format is a 32-byte hex-encoded string
+	// * The new format is a (32+)-byte hex-encoded string
 	// * The old format was a 10-byte binary format
 	// We have to tolerate both here but Authenticate should
 	// regenerate the Salt following a successful validation.
-	if len(salt) == 32 {
+	if len(salt) == 10 {
+		saltBytes = []byte(salt)
+	} else {
 		var err error
 		saltBytes, err = hex.DecodeString(salt)
 		if err != nil {
 			return "", err
 		}
-	} else {
-		saltBytes = []byte(salt)
 	}
 
 	switch algo {
@@ -526,13 +526,14 @@ func IsUserExist(uid int64, name string) (bool, error) {
 	return isUserExist(db.GetEngine(db.DefaultContext), uid, name)
 }
 
-// GetUserSalt returns a random user salt token.
-//
 // Note: As of the beginning of 2022, it is recommended to use at least
 // 64 bits of salt, but NIST is already recommending to use to 128 bits.
 // (16 bytes = 16 * 8 = 128 bits)
+const SaltByteLength = 16
+
+// GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.RandomBytes(16)
+	rBytes, err := util.RandomBytes(SaltByteLength)
 	if err != nil {
 		return "", err
 	}
