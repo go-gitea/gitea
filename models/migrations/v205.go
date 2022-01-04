@@ -22,6 +22,8 @@ func migrateUserPasswordSalt(x *xorm.Engine) error {
 			Name: "VARCHAR",
 		},
 		Length: 32,
+		// MySQL will like us again.
+		Nullable: true,
 	}); err != nil {
 		return err
 	}
@@ -31,6 +33,7 @@ func migrateUserPasswordSalt(x *xorm.Engine) error {
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
 		},
-		Length: 32,
+		Length:   32,
+		Nullable: true,
 	})
 }
