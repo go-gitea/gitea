@@ -3,13 +3,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package setting
+package security
 
 import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	tplSettingsSecurity    base.TplName = "user/settings/security"
-	tplSettingsTwofaEnroll base.TplName = "user/settings/twofa_enroll"
+	tplSettingsSecurity    base.TplName = "user/settings/security/security"
+	tplSettingsTwofaEnroll base.TplName = "user/settings/security/twofa_enroll"
 )
 
 // Security render change user's password page and 2FA
@@ -56,14 +56,14 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled, err := login.HasTwoFactorByUID(ctx.User.ID)
+	enrolled, err := auth.HasTwoFactorByUID(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	ctx.Data["U2FRegistrations"], err = login.GetU2FRegistrationsByUID(ctx.User.ID)
+	ctx.Data["U2FRegistrations"], err = auth.GetU2FRegistrationsByUID(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetU2FRegistrationsByUID", err)
 		return
@@ -82,10 +82,10 @@ func loadSecurityData(ctx *context.Context) {
 		return
 	}
 
-	// map the provider display name with the LoginSource
-	sources := make(map[*login.Source]string)
+	// map the provider display name with the AuthSource
+	sources := make(map[*auth.Source]string)
 	for _, externalAccount := range accountLinks {
-		if loginSource, err := login.GetSourceByID(externalAccount.LoginSourceID); err == nil {
+		if authSource, err := auth.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {
@@ -96,14 +96,14 @@ func loadSecurityData(ctx *context.Context) {
 				Name() string
 			}
 
-			if displayNamed, ok := loginSource.Cfg.(DisplayNamed); ok {
+			if displayNamed, ok := authSource.Cfg.(DisplayNamed); ok {
 				providerDisplayName = displayNamed.DisplayName()
-			} else if named, ok := loginSource.Cfg.(Named); ok {
+			} else if named, ok := authSource.Cfg.(Named); ok {
 				providerDisplayName = named.Name()
 			} else {
-				providerDisplayName = loginSource.Name
+				providerDisplayName = authSource.Name
 			}
-			sources[loginSource] = providerDisplayName
+			sources[authSource] = providerDisplayName
 		}
 	}
 	ctx.Data["AccountLinks"] = sources

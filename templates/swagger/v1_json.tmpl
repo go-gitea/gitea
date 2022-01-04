@@ -6057,6 +6057,73 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/timeline": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List all comments and events on an issue",
+        "operationId": "issueGetCommentsAndTimeline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated since the specified time are returned.",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated before the provided time are returned.",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TimelineList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/times": {
       "get": {
         "produces": [
@@ -17396,6 +17463,126 @@
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
+    "TimelineComment": {
+      "description": "TimelineComment represents a timeline comment (comment of any type) on a commit or issue",
+      "type": "object",
+      "properties": {
+        "assignee": {
+          "$ref": "#/definitions/User"
+        },
+        "assignee_team": {
+          "$ref": "#/definitions/Team"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "dependent_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "issue_url": {
+          "type": "string",
+          "x-go-name": "IssueURL"
+        },
+        "label": {
+          "$ref": "#/definitions/Label"
+        },
+        "milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "new_ref": {
+          "type": "string",
+          "x-go-name": "NewRef"
+        },
+        "new_title": {
+          "type": "string",
+          "x-go-name": "NewTitle"
+        },
+        "old_milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "old_project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OldProjectID"
+        },
+        "old_ref": {
+          "type": "string",
+          "x-go-name": "OldRef"
+        },
+        "old_title": {
+          "type": "string",
+          "x-go-name": "OldTitle"
+        },
+        "project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ProjectID"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "PRURL"
+        },
+        "ref_action": {
+          "type": "string",
+          "x-go-name": "RefAction"
+        },
+        "ref_comment": {
+          "$ref": "#/definitions/Comment"
+        },
+        "ref_commit_sha": {
+          "description": "commit SHA where issue/PR was referenced",
+          "type": "string",
+          "x-go-name": "RefCommitSHA"
+        },
+        "ref_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "removed_assignee": {
+          "description": "whether the assignees were removed or added",
+          "type": "boolean",
+          "x-go-name": "RemovedAssignee"
+        },
+        "resolve_doer": {
+          "$ref": "#/definitions/User"
+        },
+        "review_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ReviewID"
+        },
+        "tracked_time": {
+          "$ref": "#/definitions/TrackedTime"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
       "type": "object",
@@ -18522,6 +18709,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Team"
+        }
+      }
+    },
+    "TimelineList": {
+      "description": "TimelineList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TimelineComment"
         }
       }
     },

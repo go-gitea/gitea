@@ -13,13 +13,13 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth"
+	auth_service "code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -225,9 +225,9 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := login.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
 		ctx.Context.Error(http.StatusInternalServerError)
@@ -244,8 +244,8 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts auth.Auth as a middleware
-func APIAuth(authMethod auth.Method) func(*APIContext) {
+// APIAuth converts auth_service.Auth as a middleware
+func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
@@ -253,7 +253,7 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 			if ctx.Locale.Language() != ctx.User.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
