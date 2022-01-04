@@ -36,7 +36,7 @@ var (
 		Description: "This should only be called by Git",
 		Subcommands: []*cli.Command{
 			&subcmdHookPreReceive,
-			&ubcmdHookUpdate,
+			&subcmdHookUpdate,
 			&subcmdHookPostReceive,
 			&subcmdHookProcReceive,
 		},
@@ -82,7 +82,7 @@ var (
 		Description: "This command should only be called by Git",
 		Action:      runHookProcReceive,
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name: "debug",
 			},
 		},

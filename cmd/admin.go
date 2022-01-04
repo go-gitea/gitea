@@ -299,36 +299,36 @@ var (
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
-		cli.StringSliceFlag{
+		&cli.StringSliceFlag{
 			Name:  "scopes",
 			Value: nil,
 			Usage: "Scopes to request when to authenticate against this OAuth2 source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "required-claim-name",
 			Value: "",
 			Usage: "Claim name that has to be set to allow users to login with this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "required-claim-value",
 			Value: "",
 			Usage: "Claim value that has to be set to allow users to login with this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "group-claim-name",
 			Value: "",
 			Usage: "Claim name providing group names for this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "admin-group",
 			Value: "",
 			Usage: "Group Claim value for administrator users",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "restricted-group",
 			Value: "",
 			Usage: "Group Claim value for restricted users",

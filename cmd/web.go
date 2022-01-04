@@ -49,11 +49,11 @@ and it takes care of all the other things for you`,
 			Value:   setting.PIDFile,
 			Usage:   "Custom pid file path",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "quiet, q",
 			Usage: "Only display Fatal logging errors until logging is set-up",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "Set initial logging to TRACE level until logging is properly set-up",
 		},

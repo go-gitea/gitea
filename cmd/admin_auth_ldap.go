@@ -90,11 +90,11 @@ var (
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "avatar-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
