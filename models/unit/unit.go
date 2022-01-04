@@ -321,7 +321,7 @@ func AllUnitKeyNames() []string {
 func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
 	var res = perm.AccessModeNone
 	for _, mode := range unitsMap {
-		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
+		if mode > perm.AccessModeNone && mode < res {
 			res = mode
 		}
 	}
