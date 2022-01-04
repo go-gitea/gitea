@@ -60,7 +60,6 @@ type Version struct {
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
 var migrations = []Migration{
-
 	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71

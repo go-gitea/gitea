@@ -26,5 +26,4 @@ func addAuthorizeColForTeamUnit(x *xorm.Engine) error {
 	// migrate old permission
 	_, err := x.Exec("UPDATE team_unit SET access_mode = (SELECT authorize FROM team WHERE team.id = team_unit.team_id)")
 	return err
-
 }

@@ -1350,8 +1350,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
 func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
-	var cond = builder.NewCond()
-	var unitType = unit.TypeIssues
+	cond := builder.NewCond()
+	unitType := unit.TypeIssues
 	if isPull {
 		unitType = unit.TypePullRequests
 	}
