@@ -67,7 +67,7 @@ func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool 
 }
 
 // RemoveSubLogDescription removes a sub log description
-func RemoveSubLogDescription(key string, name string) bool {
+func RemoveSubLogDescription(key, name string) bool {
 	descriptionLock.Lock()
 	defer descriptionLock.Unlock()
 	desc, ok := logDescriptions[key]
@@ -119,8 +119,8 @@ func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.L
 	return log.FromString(value)
 }
 
-func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 

@@ -5,7 +5,10 @@
 package convert
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -21,7 +24,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 	//since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(n.Repository, models.AccessModeRead)
+		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
 	}
 
 	//handle Subject
@@ -58,7 +61,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 		}
 	case models.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + n.CommitID
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
 			Title:   n.CommitID,

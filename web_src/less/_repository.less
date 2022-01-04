@@ -1,6 +1,19 @@
 .repository {
-  .commit-statuses .list > .item {
-    line-height: 2;
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
   }
 
   .repo-header {
@@ -291,7 +304,6 @@
         .svg {
           margin-left: 3px;
           margin-right: 5px;
-          color: #777777;
 
           &.octicon-reply {
             margin-right: 10px;
@@ -300,6 +312,11 @@
           &.octicon-file-directory,
           &.octicon-file-submodule {
             color: var(--color-primary);
+          }
+
+          &.octicon-file,
+          &.octicon-file-symlink-file {
+            color: var(--color-secondary-dark-7);
           }
         }
       }
@@ -824,6 +841,7 @@
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
+          vertical-align: middle;
         }
 
         &:first-child:not(.commit) {
@@ -1004,7 +1022,7 @@
           }
         }
 
-        > .merge-section {
+        .merge-section {
           background-color: var(--color-box-body);
 
           .item {
@@ -1020,6 +1038,13 @@
             margin-bottom: -.25rem;
           }
 
+          @media @mediaSm {
+            .item-section {
+              align-items: flex-start;
+              flex-direction: column;
+            }
+          }
+
           .divider {
             margin-left: -1rem;
             margin-right: -1rem;
@@ -1032,15 +1057,15 @@
               border-right-color: var(--color-box-body);
             }
           }
+        }
 
-          .markup {
-            font-size: 14px;
-          }
+        .markup {
+          font-size: 14px;
+        }
 
-          .no-content {
-            color: var(--color-text-light-2);
-            font-style: italic;
-          }
+        .no-content {
+          color: var(--color-text-light-2);
+          font-style: italic;
         }
 
         .ui.form {
@@ -1273,6 +1298,15 @@
     .markup {
       font-size: 14px;
     }
+
+    .title {
+      .issue-title {
+        margin-bottom: .5rem;
+        .index {
+          color: var(--color-text-light-2);
+        }
+      }
+    }
   }
 
   .filter.dropdown .menu {
@@ -1343,7 +1377,7 @@
           text-align: center;
         }
 
-        width: 175px;
+        width: 200px;
       }
     }
 
@@ -2015,26 +2049,8 @@
     }
 
     &.new {
-      .CodeMirror {
-        .CodeMirror-code {
-          font-family: var(--fonts-monospace);
-
-          .cm-comment {
-            background: inherit;
-          }
-        }
-      }
-
-      .editor-preview {
-        background-color: white;
-      }
-
       .ui.attached.tabular.menu.previewtabs {
         margin-bottom: 15px;
-
-        & + .field .editor-toolbar:not(.fullscreen) a.fa-eye {
-          display: none;
-        }
       }
     }
 
@@ -2162,110 +2178,82 @@
   }
 
   .ui.attached.isSigned.isWarning {
-    border-left: 1px solid #c29393;
-    border-right: 1px solid #c29393;
+    border-left: 1px solid var(--color-error-border);
+    border-right: 1px solid var(--color-error-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c29393;
+      border-top: 1px solid var(--color-error-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fff5f5;
-      color: #d95c5c;
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
 
       .ui.text {
-        color: #d64444;
+        color: var(--color-error-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c29393;
+      border-bottom: 1px solid var(--color-error-border);
     }
   }
 
-  .ui.attached.isSigned:not(.isWarning) .pull-right {
-    padding-top: 5px;
-  }
-
   .ui.attached.isSigned.isVerified {
-    border-left: 1px solid #a3c293;
-    border-right: 1px solid #a3c293;
+    border-left: 1px solid var(--color-success-border);
+    border-right: 1px solid var(--color-success-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #a3c293;
+      border-top: 1px solid var(--color-success-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fcfff5;
-      color: #6cc644;
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
 
       .pull-right {
         color: var(--color-text);
       }
 
       .ui.text {
-        color: #21ba45;
+        color: var(--color-success-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #a3c293;
+      border-bottom: 1px solid var(--color-success-border);
     }
   }
 
-  .ui.attached.isSigned.isVerifiedUntrusted {
-    border-left: 1px solid #c2c193;
-    border-right: 1px solid #c2c193;
-
-    &.top,
-    &.message {
-      border-top: 1px solid #c2c193;
-    }
-
-    &.message {
-      box-shadow: none;
-      background-color: #fffff5;
-      color: #fbbd08;
-
-      .ui.text {
-        color: #d2ab00;
-      }
-    }
-
-    &:last-child,
-    &.bottom {
-      border-bottom: 1px solid #c2c193;
-    }
-  }
-
+  .ui.attached.isSigned.isVerifiedUntrusted,
   .ui.attached.isSigned.isVerifiedUnmatched {
-    border-left: 1px solid #c2a893;
-    border-right: 1px solid #c2a893;
+    border-left: 1px solid var(--color-warning-border);
+    border-right: 1px solid var(--color-warning-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c2a893;
+      border-top: 1px solid var(--color-warning-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fffaf5;
-      color: #f2711c;
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
 
       .ui.text {
-        color: #ee5f00;
+        color: var(--color-warning-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c2a893;
+      border-bottom: 1px solid var(--color-warning-border);
     }
   }
 
@@ -2448,24 +2436,6 @@
     padding-top: 9px !important;
     padding-bottom: 9px !important;
   }
-
-  &.diff .committed-by {
-    padding-top: .5rem;
-
-    .ui.avatar {
-      width: 20px;
-      height: 20px;
-    }
-
-    span {
-      margin-right: .25rem;
-
-      svg {
-        vertical-align: text-bottom;
-        margin-right: 2px;
-      }
-    }
-  }
 }
 
 // End of .repository
@@ -2552,10 +2522,20 @@
   padding-top: 15px;
 }
 
+.browse-button {
+  position: absolute;
+  right: 1rem;
+  top: .75rem;
+}
+
+.commit-header-row {
+  min-height: 50px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .settings {
   .content {
-    margin-top: 2px;
-
     > .header,
     .segment {
       box-shadow: 0 1px 2px 0 var(--color-box-header);
@@ -2757,7 +2737,8 @@
 #delete-repo-modal,
 #delete-wiki-modal,
 #convert-fork-repo-modal,
-#convert-mirror-repo-modal {
+#convert-mirror-repo-modal,
+#fork-repo-modal {
   .ui.message {
     width: 100% !important;
   }
@@ -2791,6 +2772,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-block !important;
+  line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
 tbody.commit-list {
@@ -2843,20 +2825,6 @@ tbody.commit-list {
 
   th .message-wrapper {
     max-width: 680px;
-  }
-}
-
-.commit-summary a {
-  &:hover {
-    text-decoration: underline solid;
-  }
-
-  &.default-link {
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline solid;
-    }
   }
 }
 
@@ -3021,13 +2989,12 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword,
-.commit-body .issue-keyword:hover {
-  border-bottom: 1px dotted var(--color-text-light-2);
+.issue-keyword {
+  border-bottom: 1px dotted var(--color-text-light-3) !important;
 }
 
 .issue-keyword:hover {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .file-header {

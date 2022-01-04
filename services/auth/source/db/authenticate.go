@@ -5,18 +5,19 @@
 package db
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // Authenticate authenticates the provided user against the DB
-func Authenticate(user *models.User, login, password string) (*models.User, error) {
+func Authenticate(user *user_model.User, login, password string) (*user_model.User, error) {
 	if user == nil {
-		return nil, models.ErrUserNotExist{Name: login}
+		return nil, user_model.ErrUserNotExist{Name: login}
 	}
 
 	if !user.IsPasswordSet() || !user.ValidatePassword(password) {
-		return nil, models.ErrUserNotExist{UID: user.ID, Name: user.Name}
+		return nil, user_model.ErrUserNotExist{UID: user.ID, Name: user.Name}
 	}
 
 	// Update password hash if server password hash algorithm have changed
@@ -24,7 +25,7 @@ func Authenticate(user *models.User, login, password string) (*models.User, erro
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}
-		if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 			return nil, err
 		}
 	}
@@ -32,7 +33,7 @@ func Authenticate(user *models.User, login, password string) (*models.User, erro
 	// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 	// user could be hint to resend confirm email.
 	if user.ProhibitLogin {
-		return nil, models.ErrUserProhibitLogin{
+		return nil, user_model.ErrUserProhibitLogin{
 			UID:  user.ID,
 			Name: user.Name,
 		}

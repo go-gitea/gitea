@@ -10,10 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -23,12 +25,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64       `xorm:"pk autoincr"`
-	RepoID           int64       `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository `xorm:"-"`
-	PublisherID      int64       `xorm:"INDEX"`
-	Publisher        *User       `xorm:"-"`
-	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	ID               int64                  `xorm:"pk autoincr"`
+	RepoID           int64                  `xorm:"INDEX UNIQUE(n)"`
+	Repo             *repo_model.Repository `xorm:"-"`
+	PublisherID      int64                  `xorm:"INDEX"`
+	Publisher        *user_model.User       `xorm:"-"`
+	TagName          string                 `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -36,14 +38,14 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64              `xorm:"-"`
-	Note             string             `xorm:"TEXT"`
-	RenderedNote     string             `xorm:"-"`
-	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment      `xorm:"-"`
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64                    `xorm:"-"`
+	Note             string                   `xorm:"TEXT"`
+	RenderedNote     string                   `xorm:"-"`
+	IsDraft          bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool                     `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp       `xorm:"INDEX"`
 }
 
 func init() {
@@ -53,16 +55,16 @@ func init() {
 func (r *Release) loadAttributes(e db.Engine) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
+		r.Repo, err = repo_model.GetRepositoryByID(r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = getUserByID(e, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByIDEngine(e, r.PublisherID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
-				r.Publisher = NewGhostUser()
+			if user_model.IsErrUserNotExist(err) {
+				r.Publisher = user_model.NewGhostUser()
 			} else {
 				return err
 			}
@@ -78,23 +80,22 @@ func (r *Release) LoadAttributes() error {
 
 // APIURL the api url for a release. release must have attributes loaded
 func (r *Release) APIURL() string {
-	return fmt.Sprintf("%sapi/v1/repos/%s/releases/%d",
-		setting.AppURL, r.Repo.FullName(), r.ID)
+	return r.Repo.APIURL() + "/releases/" + strconv.FormatInt(r.ID, 10)
 }
 
 // ZipURL the zip url for a release. release must have attributes loaded
 func (r *Release) ZipURL() string {
-	return fmt.Sprintf("%s/archive/%s.zip", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".zip"
 }
 
 // TarURL the tar.gz url for a release. release must have attributes loaded
 func (r *Release) TarURL() string {
-	return fmt.Sprintf("%s/archive/%s.tar.gz", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".tar.gz"
 }
 
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
-	return fmt.Sprintf("%s/releases/tag/%s", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
@@ -127,7 +128,7 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := getAttachmentsByUUIDs(db.GetEngine(ctx), attachmentUUIDs)
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
@@ -296,9 +297,9 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 
 	// Sort
 	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
-	var attachments []*Attachment
+	var attachments []*repo_model.Attachment
 	for index, element := range rels {
-		element.Attachments = []*Attachment{}
+		element.Attachments = []*repo_model.Attachment{}
 		sortedRels.ID[index] = element.ID
 		sortedRels.Rel[index] = element
 	}
@@ -308,7 +309,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	err = e.
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments, repo_model.Attachment{})
 	if err != nil {
 		return err
 	}
@@ -368,4 +369,90 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 			"original_author_id": 0,
 		})
 	return err
+}
+
+// PushUpdateDeleteTagsContext updates a number of delete tags with context
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
+	return pushUpdateDeleteTags(db.GetEngine(ctx), repo, tags)
+}
+
+func pushUpdateDeleteTags(e db.Engine, repo *repo_model.Repository, tags []string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	if _, err := e.
+		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
+		In("lower_tag_name", lowerTags).
+		Delete(new(Release)); err != nil {
+		return fmt.Errorf("Delete: %v", err)
+	}
+
+	if _, err := e.
+		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
+		In("lower_tag_name", lowerTags).
+		Cols("is_draft", "num_commits", "sha1").
+		Update(&Release{
+			IsDraft: true,
+		}); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+
+	return nil
+}
+
+// PushUpdateDeleteTag must be called for any push actions to delete tag
+func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
+	rel, err := GetRelease(repo.ID, tagName)
+	if err != nil {
+		if IsErrReleaseNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+	if rel.IsTag {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
+			return fmt.Errorf("Delete: %v", err)
+		}
+	} else {
+		rel.IsDraft = true
+		rel.NumCommits = 0
+		rel.Sha1 = ""
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// SaveOrUpdateTag must be called for any push actions to add tag
+func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
+	rel, err := GetRelease(repo.ID, newRel.TagName)
+	if err != nil && !IsErrReleaseNotExist(err) {
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+
+	if rel == nil {
+		rel = newRel
+		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
+			return fmt.Errorf("InsertOne: %v", err)
+		}
+	} else {
+		rel.Sha1 = newRel.Sha1
+		rel.CreatedUnix = newRel.CreatedUnix
+		rel.NumCommits = newRel.NumCommits
+		rel.IsDraft = false
+		if rel.IsTag && newRel.PublisherID > 0 {
+			rel.PublisherID = newRel.PublisherID
+		}
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+	return nil
 }

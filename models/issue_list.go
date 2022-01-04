@@ -8,6 +8,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"xorm.io/builder"
 )
 
@@ -22,6 +25,9 @@ const (
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
+		if issue.Repo != nil {
+			continue
+		}
 		if _, ok := repoIDs[issue.RepoID]; !ok {
 			repoIDs[issue.RepoID] = struct{}{}
 		}
@@ -29,13 +35,13 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
+func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
 
 	repoIDs := issues.getRepoIDs()
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	left := len(repoIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -53,8 +59,12 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 	}
 
 	for _, issue := range issues {
-		issue.Repo = repoMaps[issue.RepoID]
-		if issue.PullRequest != nil {
+		if issue.Repo == nil {
+			issue.Repo = repoMaps[issue.RepoID]
+		} else {
+			repoMaps[issue.RepoID] = issue.Repo
+		}
+		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
 			issue.PullRequest.BaseRepo = issue.Repo
 		}
 	}
@@ -62,7 +72,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 }
 
 // LoadRepositories loads issues' all repositories
-func (issues IssueList) LoadRepositories() ([]*Repository, error) {
+func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
 	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 
@@ -82,7 +92,7 @@ func (issues IssueList) loadPosters(e db.Engine) error {
 	}
 
 	posterIDs := issues.getPosterIDs()
-	posterMaps := make(map[int64]*User, len(posterIDs))
+	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -105,7 +115,7 @@ func (issues IssueList) loadPosters(e db.Engine) error {
 		}
 		var ok bool
 		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = NewGhostUser()
+			issue.Poster = user_model.NewGhostUser()
 		}
 	}
 	return nil
@@ -217,11 +227,11 @@ func (issues IssueList) loadAssignees(e db.Engine) error {
 	}
 
 	type AssigneeIssue struct {
-		IssueAssignee *IssueAssignees `xorm:"extends"`
-		Assignee      *User           `xorm:"extends"`
+		IssueAssignee *IssueAssignees  `xorm:"extends"`
+		Assignee      *user_model.User `xorm:"extends"`
 	}
 
-	assignees := make(map[int64][]*User, len(issues))
+	assignees := make(map[int64][]*user_model.User, len(issues))
 	issueIDs := issues.getIssueIDs()
 	left := len(issueIDs)
 	for left > 0 {
@@ -321,7 +331,7 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 		return nil
 	}
 
-	attachments := make(map[int64][]*Attachment, len(issues))
+	attachments := make(map[int64][]*repo_model.Attachment, len(issues))
 	issuesIDs := issues.getIssueIDs()
 	left := len(issuesIDs)
 	for left > 0 {
@@ -332,13 +342,13 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 		rows, err := e.Table("attachment").
 			Join("INNER", "issue", "issue.id = attachment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
-			Rows(new(Attachment))
+			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
-			var attachment Attachment
+			var attachment repo_model.Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {

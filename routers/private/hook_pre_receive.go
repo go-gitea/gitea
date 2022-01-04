@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -22,7 +24,7 @@ import (
 
 type preReceiveContext struct {
 	*gitea_context.PrivateContext
-	user *models.User
+	user *user_model.User
 	perm models.Permission
 
 	canCreatePullRequest        bool
@@ -40,7 +42,7 @@ type preReceiveContext struct {
 }
 
 // User gets or loads User
-func (ctx *preReceiveContext) User() *models.User {
+func (ctx *preReceiveContext) User() *user_model.User {
 	if ctx.user == nil {
 		ctx.user, ctx.perm = loadUserAndPermission(ctx.PrivateContext, ctx.opts.UserID)
 	}
@@ -58,7 +60,7 @@ func (ctx *preReceiveContext) Perm() *models.Permission {
 // CanWriteCode returns true if can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
 	if !ctx.checkedCanWriteCode {
-		ctx.canWriteCode = ctx.Perm().CanWrite(models.UnitTypeCode)
+		ctx.canWriteCode = ctx.Perm().CanWrite(unit.TypeCode)
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -81,7 +83,7 @@ func (ctx *preReceiveContext) AssertCanWriteCode() bool {
 // CanCreatePullRequest returns true if can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
 	if !ctx.checkedCanCreatePullRequest {
-		ctx.canCreatePullRequest = ctx.Perm().CanRead(models.UnitTypePullRequests)
+		ctx.canCreatePullRequest = ctx.Perm().CanRead(unit.TypePullRequests)
 		ctx.checkedCanCreatePullRequest = true
 	}
 	return ctx.canCreatePullRequest
@@ -132,7 +134,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("ok"))
+	ctx.PlainText(http.StatusOK, "ok")
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
@@ -361,7 +363,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = ctx.Repo.Repository.GetProtectedTags()
+		ctx.protectedTags, err = models.GetProtectedTags(ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -448,8 +450,8 @@ func generateGitEnv(opts *private.HookOptions) (env []string) {
 	return env
 }
 
-func loadUserAndPermission(ctx *gitea_context.PrivateContext, id int64) (user *models.User, perm models.Permission) {
-	user, err := models.GetUserByID(id)
+func loadUserAndPermission(ctx *gitea_context.PrivateContext, id int64) (user *user_model.User, perm models.Permission) {
+	user, err := user_model.GetUserByID(id)
 	if err != nil {
 		log.Error("Unable to get User id %d Error: %v", id, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

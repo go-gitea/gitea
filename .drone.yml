@@ -1,5 +1,6 @@
 ---
 kind: pipeline
+type: docker
 name: compliance
 
 platform:
@@ -130,6 +131,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: testing-amd64
 
 platform:
@@ -191,26 +193,30 @@ steps:
         exclude:
           - pull_request
 
-  - name: build
-    pull: always
-    image: golang:1.17
-    commands:
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-
   - name: tag-pre-condition
     pull: always
     image: drone/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
-  - name: fix-permissions
+  - name: prepare-test-env
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - chown -R gitea:gitea .
+      - ./build/test-env-prepare.sh
+
+  - name: build
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
+    commands:
+      - ./build/test-env-check.sh
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
 
   - name: unit-test
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -353,21 +359,24 @@ steps:
         exclude:
           - pull_request
 
-  - name: fix-permissions
+  - name: prepare-test-env
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - chown -R gitea:gitea .
+      - ./build/test-env-prepare.sh
 
   - name: build
     pull: always
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
@@ -461,6 +470,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: update_gitignore_and_licenses
 
 platform:
@@ -497,6 +507,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: release-latest
 
 platform:
@@ -526,7 +537,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -622,7 +633,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -675,6 +686,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docs
 
 platform:
@@ -716,6 +728,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release-version
 
 platform:
@@ -770,9 +783,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -780,6 +790,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release
 
 platform:
@@ -834,9 +845,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -844,6 +852,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-dry-run
 
 platform:
@@ -876,6 +885,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release-version
 
 platform:
@@ -912,9 +922,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -933,9 +940,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -943,6 +947,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release
 
 platform:
@@ -979,9 +984,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -1000,15 +1002,13 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
         - pull_request
 ---
 kind: pipeline
+type: docker
 name: docker-manifest-version
 
 platform:
@@ -1052,6 +1052,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: docker-manifest
 
 platform:
@@ -1095,6 +1096,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: notifications
 
 platform:

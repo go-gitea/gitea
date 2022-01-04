@@ -67,6 +67,11 @@ type InstallForm struct {
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
 	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
+
+	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
+	ReinstallConfirmFirst  bool
+	ReinstallConfirmSecond bool
+	ReinstallConfirmThird  bool
 }
 
 // Validate validates the fields
@@ -240,7 +245,6 @@ type UpdateProfileForm struct {
 	KeepEmailPrivate    bool
 	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`
-	Language            string
 	Description         string `binding:"MaxSize(255)"`
 	Visibility          structs.VisibleType
 	KeepActivityPrivate bool
@@ -248,6 +252,17 @@ type UpdateProfileForm struct {
 
 // Validate validates the fields
 func (f *UpdateProfileForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// UpdateLanguageForm form for updating profile
+type UpdateLanguageForm struct {
+	Language string
+}
+
+// Validate validates the fields
+func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
@@ -334,12 +349,13 @@ func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding
 
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
-	Type       string `binding:"OmitEmpty"`
-	Title      string `binding:"Required;MaxSize(50)"`
-	Content    string `binding:"Required"`
-	Signature  string `binding:"OmitEmpty"`
-	KeyID      string `binding:"OmitEmpty"`
-	IsWritable bool
+	Type        string `binding:"OmitEmpty"`
+	Title       string `binding:"Required;MaxSize(50)"`
+	Content     string `binding:"Required"`
+	Signature   string `binding:"OmitEmpty"`
+	KeyID       string `binding:"OmitEmpty"`
+	Fingerprint string `binding:"OmitEmpty"`
+	IsWritable  bool
 }
 
 // Validate validates the fields

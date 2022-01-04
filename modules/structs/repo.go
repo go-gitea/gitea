@@ -93,6 +93,7 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
+	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -242,13 +243,15 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
-	OneDevService                         // 6 onedev service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
+	CodebaseService                        // 8 codebase service
 )
 
 // Name represents the service type's name
@@ -270,6 +273,10 @@ func (gt GitServiceType) Title() string {
 		return "Gogs"
 	case OneDevService:
 		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
+	case CodebaseService:
+		return "Codebase"
 	case PlainGitService:
 		return "Git"
 	}
@@ -326,5 +333,14 @@ var (
 		GiteaService,
 		GogsService,
 		OneDevService,
+		GitBucketService,
+		CodebaseService,
 	}
 )
+
+// RepoTransfer represents a pending repo transfer
+type RepoTransfer struct {
+	Doer      *User   `json:"doer"`
+	Recipient *User   `json:"recipient"`
+	Teams     []*Team `json:"teams"`
+}

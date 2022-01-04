@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -19,9 +21,9 @@ import (
 func TestAPIIssuesMilestone(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	milestone := db.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: milestone.RepoID}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	milestone := unittest.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: milestone.RepoID}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	assert.Equal(t, int64(1), int64(milestone.NumIssues))
 	assert.Equal(t, structs.StateOpen, milestone.State())
 
@@ -74,5 +76,5 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	assert.Equal(t, int64(2), apiMilestones[0].ID)
 
 	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d?token=%s", owner.Name, repo.Name, apiMilestone.ID, token))
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 }

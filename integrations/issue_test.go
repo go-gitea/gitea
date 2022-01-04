@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
@@ -36,7 +38,7 @@ func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *mo
 	indexStr := href[strings.LastIndexByte(href, '/')+1:]
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", href)
-	return db.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repoID, Index: int64(index)}).(*models.Issue)
+	return unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repoID, Index: int64(index)}).(*models.Issue)
 }
 
 func assertMatch(t testing.TB, issue *models.Issue, keyword string) {
@@ -61,19 +63,19 @@ func TestNoLoginViewIssues(t *testing.T) {
 func TestViewIssuesSortByType(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	session := loginUser(t, user.Name)
-	req := NewRequest(t, "GET", repo.RelLink()+"/issues?type=created_by")
+	req := NewRequest(t, "GET", repo.Link()+"/issues?type=created_by")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
-	expectedNumIssues := db.GetCount(t,
+	expectedNumIssues := unittest.GetCount(t,
 		&models.Issue{RepoID: repo.ID, PosterID: user.ID},
-		db.Cond("is_closed=?", false),
-		db.Cond("is_pull=?", false),
+		unittest.Cond("is_closed=?", false),
+		unittest.Cond("is_pull=?", false),
 	)
 	if expectedNumIssues > setting.UI.IssuePagingNum {
 		expectedNumIssues = setting.UI.IssuePagingNum
@@ -89,15 +91,15 @@ func TestViewIssuesSortByType(t *testing.T) {
 func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	issue := db.AssertExistsAndLoadBean(t, &models.Issue{
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{
 		RepoID: repo.ID,
 		Index:  1,
 	}).(*models.Issue)
 	issues.UpdateIssueIndexer(issue)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
-	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.RelLink(), keyword)
+	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -236,7 +238,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Ref from issue title
 	issueRefURL, issueRef := testIssueWithBean(t, "user2", 1, fmt.Sprintf("Title ref #%d", issueBase.Index), "Description")
-	db.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -246,7 +248,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Edit title, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "title", "Title no ref")
-	db.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -256,7 +258,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Ref from issue content
 	issueRefURL, issueRef = testIssueWithBean(t, "user2", 1, "TitleXRef", fmt.Sprintf("Description ref #%d", issueBase.Index))
-	db.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -266,7 +268,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Edit content, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "content", "Description no ref")
-	db.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -284,11 +286,11 @@ func TestIssueCrossReference(t *testing.T) {
 		RefCommentID: commentID,
 		RefIsPull:    false,
 		RefAction:    references.XRefActionNone}
-	db.AssertExistsAndLoadBean(t, comment)
+	unittest.AssertExistsAndLoadBean(t, comment)
 
 	// Ref from a different repository
-	issueRefURL, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
-	db.AssertExistsAndLoadBean(t, &models.Comment{
+	_, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
+	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    10,
 		RefIssueID:   issueRef.ID,
@@ -304,11 +306,11 @@ func testIssueWithBean(t *testing.T, user string, repoID int64, title, content s
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", issueURL)
 	issue := &models.Issue{RepoID: repoID, Index: int64(index)}
-	db.AssertExistsAndLoadBean(t, issue)
+	unittest.AssertExistsAndLoadBean(t, issue)
 	return issueURL, issue
 }
 
-func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string) {
+func testIssueChangeInfo(t *testing.T, user, issueURL, info, value string) {
 	session := loginUser(t, user)
 
 	req := NewRequest(t, "GET", issueURL)

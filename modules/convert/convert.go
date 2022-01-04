@@ -12,17 +12,22 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/login"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
-func ToEmail(email *models.EmailAddress) *api.Email {
+func ToEmail(email *user_model.EmailAddress) *api.Email {
 	return &api.Email{
 		Email:    email.Email,
 		Verified: email.IsActivated,
@@ -31,12 +36,12 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var err error
 		if user != nil {
-			hasPerm, err = models.HasAccessUnit(user, repo, models.UnitTypeCode, models.AccessModeWrite)
+			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
@@ -73,7 +78,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			return nil, err
 		}
 		branch.UserCanPush = bp.CanUserPush(user.ID)
-		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID, permission)
+		branch.UserCanMerge = models.IsUserMergeWhitelisted(bp, user.ID, permission)
 	}
 
 	return branch, nil
@@ -81,15 +86,15 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
+	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
@@ -135,7 +140,7 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 }
 
 // ToTag convert a git.Tag to an api.Tag
-func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
 		Name:       t.Name,
 		Message:    strings.TrimSpace(t.Message),
@@ -148,7 +153,7 @@ func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
-	verif := models.ParseCommitWithSignature(c)
+	verif := asymkey_model.ParseCommitWithSignature(c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
@@ -158,7 +163,7 @@ func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 		commitVerification.Payload = c.Signature.Payload
 	}
 	if verif.SigningUser != nil {
-		commitVerification.Signer = &structs.PayloadUser{
+		commitVerification.Signer = &api.PayloadUser{
 			Name:  verif.SigningUser.Name,
 			Email: verif.SigningUser.Email,
 		}
@@ -166,8 +171,8 @@ func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	return commitVerification
 }
 
-// ToPublicKey convert models.PublicKey to api.PublicKey
-func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
+// ToPublicKey convert asymkey_model.PublicKey to api.PublicKey
+func ToPublicKey(apiLink string, key *asymkey_model.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:          key.ID,
 		Key:         key.Content,
@@ -179,7 +184,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 }
 
 // ToGPGKey converts models.GPGKey to api.GPGKey
-func ToGPGKey(key *models.GPGKey) *api.GPGKey {
+func ToGPGKey(key *asymkey_model.GPGKey) *api.GPGKey {
 	subkeys := make([]*api.GPGKey, len(key.SubsKey))
 	for id, k := range key.SubsKey {
 		subkeys[id] = &api.GPGKey{
@@ -218,7 +223,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 }
 
 // ToGPGKeyEmail convert models.EmailAddress to api.GPGKeyEmail
-func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
+func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 	return &api.GPGKeyEmail{
 		Email:    email.Email,
 		Verified: email.IsActivated,
@@ -226,13 +231,13 @@ func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
 }
 
 // ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *models.Webhook) *api.Hook {
+func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
 	config := map[string]string{
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.Type == models.SLACK {
-		s := webhook.GetSlackHook(w)
+	if w.Type == webhook.SLACK {
+		s := webhook_service.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
 		config["icon_url"] = s.IconURL
@@ -260,8 +265,8 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 	}
 }
 
-// ToDeployKey convert models.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
+// ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
+func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
 		ID:          key.ID,
 		KeyID:       key.KeyID,
@@ -270,15 +275,15 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
+		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
 	}
 }
 
-// ToOrganization convert models.User to api.Organization
-func ToOrganization(org *models.User) *api.Organization {
+// ToOrganization convert user_model.User to api.Organization
+func ToOrganization(org *models.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
-		AvatarURL:                 org.AvatarLink(),
+		AvatarURL:                 org.AsUser().AvatarLink(),
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
 		Description:               org.Description,
@@ -300,7 +305,7 @@ func ToTeam(team *models.Team) (*api.Team, error) {
 
 // ToTeams convert models.Team list to api.Team list
 func ToTeams(teams []*models.Team) ([]*api.Team, error) {
-	if len(teams) == 0 {
+	if len(teams) == 0 || teams[0] == nil {
 		return nil, nil
 	}
 
@@ -309,11 +314,11 @@ func ToTeams(teams []*models.Team) ([]*api.Team, error) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := user_model.GetUserByID(teams[i].OrgID)
 			if err != nil {
 				return nil, err
 			}
-			apiOrg = ToOrganization(org)
+			apiOrg = ToOrganization(models.OrgFromUser(org))
 			cache[teams[i].OrgID] = apiOrg
 		}
 		if err := teams[i].GetUnits(); err != nil {
@@ -334,7 +339,7 @@ func ToTeams(teams []*models.Team) ([]*api.Team, error) {
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+func ToAnnotatedTag(repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
 	return &api.AnnotatedTag{
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
@@ -347,7 +352,7 @@ func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.Ann
 }
 
 // ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
-func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.AnnotatedTagObject {
 	return &api.AnnotatedTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),
@@ -356,7 +361,7 @@ func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.Anno
 }
 
 // ToTopicResponse convert from models.Topic to api.TopicResponse
-func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
+func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
 		ID:        topic.ID,
 		Name:      topic.Name,
@@ -366,8 +371,8 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
-func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
+// ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,
 		Name:         app.Name,
@@ -380,12 +385,16 @@ func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	u, err := user_model.GetUserByID(l.OwnerID)
+	if err != nil {
+		return nil
+	}
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
 		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
-			Name: l.Owner.DisplayName(),
+			Name: u.DisplayName(),
 		},
 	}
 }

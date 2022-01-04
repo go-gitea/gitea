@@ -8,13 +8,12 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/gobwas/glob"
 )
@@ -68,58 +67,15 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 	return gt.globs
 }
 
-// GenerateTopics generates topics from a template repository
-func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	for _, topic := range templateRepo.Topics {
-		if _, err := addTopicByNameToRepo(db.GetEngine(ctx), generateRepo.ID, topic); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// GenerateGitHooks generates git hooks from a template repository
-func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer generateGitRepo.Close()
-
-	templateGitRepo, err := git.OpenRepository(templateRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer templateGitRepo.Close()
-
-	templateHooks, err := templateGitRepo.Hooks()
-	if err != nil {
-		return err
-	}
-
-	for _, templateHook := range templateHooks {
-		generateHook, err := generateGitRepo.GetHook(templateHook.Name())
-		if err != nil {
-			return err
-		}
-
-		generateHook.Content = templateHook.Content
-		if err := generateHook.Update(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // GenerateWebhooks generates webhooks from a template repository
-func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	templateWebhooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: templateRepo.ID})
+func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}
 
 	for _, templateWebhook := range templateWebhooks {
-		generateWebhook := &Webhook{
+		generateWebhook := &webhook.Webhook{
 			RepoID:      generateRepo.ID,
 			URL:         templateWebhook.URL,
 			HTTPMethod:  templateWebhook.HTTPMethod,
@@ -132,25 +88,15 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *Repositor
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
 		}
-		if err := createWebhook(db.GetEngine(ctx), generateWebhook); err != nil {
+		if err := webhook.CreateWebhook(ctx, generateWebhook); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// GenerateAvatar generates the avatar from a template repository
-func GenerateAvatar(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
-	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
-		return err
-	}
-
-	return updateRepositoryCols(db.GetEngine(ctx), generateRepo, "avatar")
-}
-
 // GenerateIssueLabels generates issue labels from a template repository
-func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *Repository) error {
+func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
 	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err

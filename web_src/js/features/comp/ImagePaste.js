@@ -1,4 +1,4 @@
-const {appSubUrl, csrfToken} = window.config;
+const {csrfToken} = window.config;
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -59,7 +59,7 @@ export function initCompImagePaste($target) {
     if (!dropzone) {
       return;
     }
-    const uploadUrl = dropzone.dataset.uploadUrl;
+    const uploadUrl = dropzone.getAttribute('data-upload-url');
     const dropzoneFiles = dropzone.querySelector('.files');
     for (const textarea of this.querySelectorAll('textarea')) {
       textarea.addEventListener('paste', async (e) => {
@@ -67,7 +67,7 @@ export function initCompImagePaste($target) {
           const name = img.name.substr(0, img.name.lastIndexOf('.'));
           insertAtCursor(textarea, `![${name}]()`);
           const data = await uploadFile(img, uploadUrl);
-          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${appSubUrl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           dropzoneFiles.appendChild(input[0]);
         }
@@ -76,14 +76,14 @@ export function initCompImagePaste($target) {
   });
 }
 
-export function initSimpleMDEImagePaste(simplemde, dropzone, files) {
-  const uploadUrl = dropzone.dataset.uploadUrl;
-  simplemde.codemirror.on('paste', async (_, e) => {
+export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
+  const uploadUrl = dropzone.getAttribute('data-upload-url');
+  easyMDE.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
       const data = await uploadFile(img, uploadUrl);
-      const pos = simplemde.codemirror.getCursor();
-      simplemde.codemirror.replaceRange(`![${name}](${appSubUrl}/attachments/${data.uuid})`, pos);
+      const pos = easyMDE.codemirror.getCursor();
+      easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
     }

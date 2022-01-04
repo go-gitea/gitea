@@ -6,7 +6,6 @@
 package markup
 
 import (
-	"bytes"
 	"io"
 	"regexp"
 	"sync"
@@ -52,8 +51,11 @@ func InitializeSanitizer() {
 
 func createDefaultPolicy() *bluemonday.Policy {
 	policy := bluemonday.UGCPolicy()
+
+	// For JS code copy and Mermaid loading state
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
+
 	// For Chroma markdown plugin
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^is-loading$`)).OnElements("pre")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes
@@ -146,11 +148,11 @@ func Sanitize(s string) string {
 }
 
 // SanitizeReader sanitizes a Reader
-func SanitizeReader(r io.Reader, renderer string) *bytes.Buffer {
+func SanitizeReader(r io.Reader, renderer string, w io.Writer) error {
 	NewSanitizer()
 	policy, exist := sanitizer.rendererPolicies[renderer]
 	if !exist {
 		policy = sanitizer.defaultPolicy
 	}
-	return policy.SanitizeReader(r)
+	return policy.SanitizeReaderToWriter(r, w)
 }

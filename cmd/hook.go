@@ -293,7 +293,6 @@ Gitea or set your environment appropriately.`, "")
 		}
 	} else if lastline > 0 {
 		fmt.Fprintf(out, "\n")
-		lastline = 0
 	}
 
 	fmt.Fprintf(out, "Checked %d references in total\n", total)
@@ -310,7 +309,7 @@ func runHookPostReceive(c *cli.Context) error {
 	defer cancel()
 
 	// First of all run update-server-info no matter what
-	if _, err := git.NewCommand("update-server-info").SetParentContext(ctx).Run(); err != nil {
+	if _, err := git.NewCommandContext(ctx, "update-server-info").Run(); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
 	}
 
