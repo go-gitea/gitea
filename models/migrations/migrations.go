@@ -364,7 +364,11 @@ var migrations = []Migration{
 	// v204 -> v205
 	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
 	// v205 -> v206
+<<<<<<< HEAD
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
+=======
+	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
+>>>>>>> master
 }
 
 // GetCurrentDBVersion returns the current db version
