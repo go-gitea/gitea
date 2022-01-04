@@ -16,11 +16,6 @@ func migrateUserPasswordSalt(x *xorm.Engine) error {
 		return nil
 	}
 
-	// type User struct {
-	// 	Rands string `xorm:"VARCHAR(32)"`
-	// 	Salt  string `xorm:"VARCHAR(32)"`
-	// }
-
 	if err := modifyColumn(x, "user", &schemas.Column{
 		Name: "rands",
 		SQLType: schemas.SQLType{

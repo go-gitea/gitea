@@ -162,10 +162,9 @@ func RandomString(length int64) (string, error) {
 	return string(bytes), nil
 }
 
-// RandomBytes generates `len` bytes
-// This differ from RandomString, as RandomString is limited to each byte only
-// having a maximum value of 63 instead of 255(max byte size) and thus decrease the
-// security implications of it.
+// RandomBytes generates `length` bytes
+// This differs from RandomString, as RandomString is limits each byte to have
+// a maximum value of 63 instead of 255(max byte size)
 func RandomBytes(length int64) ([]byte, error) {
 	bytes := make([]byte, length)
 	limit := int64(^uint8(0))
