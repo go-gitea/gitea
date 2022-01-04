@@ -19,23 +19,25 @@ import (
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
 	base.NullDownloader
-	ctx       context.Context
-	baseDir   string
-	repoOwner string
-	repoName  string
+	ctx        context.Context
+	baseDir    string
+	repoOwner  string
+	repoName   string
+	validation bool
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
-func NewRepositoryRestorer(ctx context.Context, baseDir, owner, repoName string) (*RepositoryRestorer, error) {
+func NewRepositoryRestorer(ctx context.Context, baseDir, owner, repoName string, validation bool) (*RepositoryRestorer, error) {
 	baseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return nil, err
 	}
 	return &RepositoryRestorer{
-		ctx:       ctx,
-		baseDir:   baseDir,
-		repoOwner: owner,
-		repoName:  repoName,
+		ctx:        ctx,
+		baseDir:    baseDir,
+		repoOwner:  owner,
+		repoName:   repoName,
+		validation: validation,
 	}, nil
 }
 
@@ -190,7 +192,7 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	issues := make([]*base.Issue, 0, 10)
 	p := filepath.Join(r.baseDir, "issue.yml")
-	_, err := os.Stat(p)
+	err := base.Load(p, &issues, r.validation)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, true, nil
@@ -198,15 +200,6 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 
-	bs, err := os.ReadFile(p)
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = yaml.Unmarshal(bs, &issues)
-	if err != nil {
-		return nil, false, err
-	}
 	for _, issue := range issues {
 		issue.Context = base.BasicIssueContext(issue.Number)
 	}
