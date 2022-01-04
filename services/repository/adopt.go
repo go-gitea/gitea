@@ -217,6 +217,57 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	return util.RemoveAll(repoPath)
 }
 
+type unadoptedRrepositories struct {
+	repositories []string
+	index        int
+	start        int
+	end          int
+}
+
+func (unadopted *unadoptedRrepositories) add(repository string) {
+	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
+		unadopted.repositories = append(unadopted.repositories, repository)
+	}
+	unadopted.index++
+}
+
+func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRrepositories) error {
+	if len(repoNamesToCheck) == 0 {
+		return nil
+	}
+	ctxUser, err := user_model.GetUserByName(userName)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			log.Debug("Missing user: %s", userName)
+			return nil
+		}
+		return err
+	}
+	repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:   ctxUser,
+		Private: true,
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: len(repoNamesToCheck),
+		}, LowerNames: repoNamesToCheck})
+	if err != nil {
+		return err
+	}
+	if len(repos) == len(repoNamesToCheck) {
+		return nil
+	}
+	repoNames := make(map[string]bool, len(repos))
+	for _, repo := range repos {
+		repoNames[repo.LowerName] = true
+	}
+	for _, repoName := range repoNamesToCheck {
+		if _, ok := repoNames[repoName]; !ok {
+			unadopted.add(filepath.Join(userName, repoName))
+		}
+	}
+	return nil
+}
+
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
 func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, int, error) {
 	globUser, _ := glob.Compile("*")
@@ -236,15 +287,17 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 			}
 		}
 	}
+	var repoNamesToCheck []string
+
 	start := (opts.Page - 1) * opts.PageSize
-	end := start + opts.PageSize
+	unadopted := &unadoptedRrepositories{
+		repositories: make([]string, 0, opts.PageSize),
+		start:        start,
+		end:          start + opts.PageSize,
+		index:        0,
+	}
 
-	repoNamesToCheck := make([]string, 0, opts.PageSize)
-
-	repoNames := make([]string, 0, opts.PageSize)
-	var ctxUser *user_model.User
-
-	count := 0
+	var userName string
 
 	// We're going to iterate by pagesize.
 	root := filepath.Clean(setting.RepoRootPath)
@@ -258,51 +311,16 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
-
-			// Clean up old repoNamesToCheck
-			if len(repoNamesToCheck) > 0 {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-					Actor:   ctxUser,
-					Private: true,
-					ListOptions: db.ListOptions{
-						Page:     1,
-						PageSize: opts.PageSize,
-					}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoopCatchup:
-					for i, repo := range repos {
-						if repo.LowerName == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoopCatchup
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
+			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+				return err
 			}
+			repoNamesToCheck = repoNamesToCheck[:0]
 
 			if !globUser.Match(info.Name()) {
 				return filepath.SkipDir
 			}
 
-			ctxUser, err = user_model.GetUserByName(info.Name())
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					log.Debug("Missing user: %s", info.Name())
-					return filepath.SkipDir
-				}
-				return err
-			}
+			userName = info.Name()
 			return nil
 		}
 
@@ -315,74 +333,16 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		if repo_model.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
 			return filepath.SkipDir
 		}
-		if count < end {
-			repoNamesToCheck = append(repoNamesToCheck, name)
-			if len(repoNamesToCheck) >= opts.PageSize {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-					Actor:   ctxUser,
-					Private: true,
-					ListOptions: db.ListOptions{
-						Page:     1,
-						PageSize: opts.PageSize,
-					}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoop:
-					for i, repo := range repos {
-						if repo.LowerName == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoop
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
-			}
-			return filepath.SkipDir
-		}
-		count++
+
+		repoNamesToCheck = append(repoNamesToCheck, name)
 		return filepath.SkipDir
 	}); err != nil {
 		return nil, 0, err
 	}
 
-	if len(repoNamesToCheck) > 0 {
-		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-			Actor:   ctxUser,
-			Private: true,
-			ListOptions: db.ListOptions{
-				Page:     1,
-				PageSize: opts.PageSize,
-			}, LowerNames: repoNamesToCheck})
-		if err != nil {
-			return nil, 0, err
-		}
-		for _, name := range repoNamesToCheck {
-			found := false
-		repoLoop:
-			for i, repo := range repos {
-				if repo.LowerName == name {
-					found = true
-					repos = append(repos[:i], repos[i+1:]...)
-					break repoLoop
-				}
-			}
-			if !found {
-				if count >= start && count < end {
-					repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-				}
-				count++
-			}
-		}
+	if err := checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+		return nil, 0, err
 	}
-	return repoNames, count, nil
+
+	return unadopted.repositories, unadopted.index, nil
 }

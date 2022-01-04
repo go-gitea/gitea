@@ -7,8 +7,8 @@ package auth
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -16,7 +16,7 @@ import (
 func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers")
 
-	ls, err := login.Sources()
+	ls, err := auth.Sources()
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err

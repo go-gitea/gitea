@@ -1552,3 +1552,27 @@ func (rb *Bitmap) Stats() Statistics {
 	}
 	return stats
 }
+
+func (rb *Bitmap) checkValidity() bool {
+	for _, c := range rb.highlowcontainer.containers {
+
+		switch c.(type) {
+		case *arrayContainer:
+			if c.getCardinality() > arrayDefaultMaxSize {
+				fmt.Println("Array containers are limited to size ", arrayDefaultMaxSize)
+				return false
+			}
+		case *bitmapContainer:
+			if c.getCardinality() <= arrayDefaultMaxSize {
+				fmt.Println("Bitmaps would be more concise as an array!")
+				return false
+			}
+		case *runContainer16:
+			if c.getSizeInBytes() > minOfInt(bitmapContainerSizeInBytes(), arrayContainerSizeInBytes(c.getCardinality())) {
+				fmt.Println("Inefficient run container!")
+				return false
+			}
+		}
+	}
+	return true
+}

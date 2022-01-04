@@ -87,23 +87,21 @@ func (fb *DateTimeFacetBuilder) Field() string {
 	return fb.field
 }
 
-func (fb *DateTimeFacetBuilder) UpdateVisitor(field string, term []byte) {
-	if field == fb.field {
-		fb.sawValue = true
-		// only consider the values which are shifted 0
-		prefixCoded := numeric.PrefixCoded(term)
-		shift, err := prefixCoded.Shift()
-		if err == nil && shift == 0 {
-			i64, err := prefixCoded.Int64()
-			if err == nil {
-				t := time.Unix(0, i64)
+func (fb *DateTimeFacetBuilder) UpdateVisitor(term []byte) {
+	fb.sawValue = true
+	// only consider the values which are shifted 0
+	prefixCoded := numeric.PrefixCoded(term)
+	shift, err := prefixCoded.Shift()
+	if err == nil && shift == 0 {
+		i64, err := prefixCoded.Int64()
+		if err == nil {
+			t := time.Unix(0, i64)
 
-				// look at each of the ranges for a match
-				for rangeName, r := range fb.ranges {
-					if (r.start.IsZero() || t.After(r.start) || t.Equal(r.start)) && (r.end.IsZero() || t.Before(r.end)) {
-						fb.termsCount[rangeName] = fb.termsCount[rangeName] + 1
-						fb.total++
-					}
+			// look at each of the ranges for a match
+			for rangeName, r := range fb.ranges {
+				if (r.start.IsZero() || t.After(r.start) || t.Equal(r.start)) && (r.end.IsZero() || t.Before(r.end)) {
+					fb.termsCount[rangeName] = fb.termsCount[rangeName] + 1
+					fb.total++
 				}
 			}
 		}

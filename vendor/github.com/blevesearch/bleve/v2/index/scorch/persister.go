@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -82,7 +83,16 @@ type persisterOptions struct {
 type notificationChan chan struct{}
 
 func (s *Scorch) persisterLoop() {
-	defer s.asyncTasks.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			s.fireAsyncError(&AsyncPanicError{
+				Source: "persister",
+				Path:   s.path,
+			})
+		}
+
+		s.asyncTasks.Done()
+	}()
 
 	var persistWatchers []*epochWatcher
 	var lastPersistedEpoch, lastMergedEpoch uint64
@@ -427,8 +437,59 @@ func (s *Scorch) persistSnapshotMaybeMerge(snapshot *IndexSnapshot) (
 	return true, nil
 }
 
+func copyToDirectory(srcPath string, d index.Directory) (int64, error) {
+	if d == nil {
+		return 0, nil
+	}
+
+	dest, err := d.GetWriter(filepath.Join("store", filepath.Base(srcPath)))
+	if err != nil {
+		return 0, fmt.Errorf("GetWriter err: %v", err)
+	}
+
+	sourceFileStat, err := os.Stat(srcPath)
+	if err != nil {
+		return 0, err
+	}
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return 0, fmt.Errorf("%s is not a regular file", srcPath)
+	}
+
+	source, err := os.Open(srcPath)
+	if err != nil {
+		return 0, err
+	}
+	defer source.Close()
+	defer dest.Close()
+	return io.Copy(dest, source)
+}
+
+func persistToDirectory(seg segment.UnpersistedSegment, d index.Directory,
+	path string) error {
+	if d == nil {
+		return seg.Persist(path)
+	}
+
+	sg, ok := seg.(io.WriterTo)
+	if !ok {
+		return fmt.Errorf("no io.WriterTo segment implementation found")
+	}
+
+	w, err := d.GetWriter(filepath.Join("store", filepath.Base(path)))
+	if err != nil {
+		return err
+	}
+
+	_, err = sg.WriteTo(w)
+	w.Close()
+
+	return err
+}
+
 func prepareBoltSnapshot(snapshot *IndexSnapshot, tx *bolt.Tx, path string,
-	segPlugin SegmentPlugin) ([]string, map[uint64]string, error) {
+	segPlugin SegmentPlugin, d index.Directory) (
+	[]string, map[uint64]string, error) {
 	snapshotsBucket, err := tx.CreateBucketIfNotExists(boltSnapshotsBucket)
 	if err != nil {
 		return nil, nil, err
@@ -481,7 +542,11 @@ func prepareBoltSnapshot(snapshot *IndexSnapshot, tx *bolt.Tx, path string,
 		switch seg := segmentSnapshot.segment.(type) {
 		case segment.PersistedSegment:
 			segPath := seg.Path()
-			filename := strings.TrimPrefix(segPath, path+string(os.PathSeparator))
+			_, err = copyToDirectory(segPath, d)
+			if err != nil {
+				return nil, nil, fmt.Errorf("segment: %s copy err: %v", segPath, err)
+			}
+			filename := filepath.Base(segPath)
 			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
 			if err != nil {
 				return nil, nil, err
@@ -490,10 +555,10 @@ func prepareBoltSnapshot(snapshot *IndexSnapshot, tx *bolt.Tx, path string,
 		case segment.UnpersistedSegment:
 			// need to persist this to disk
 			filename := zapFileName(segmentSnapshot.id)
-			path := path + string(os.PathSeparator) + filename
-			err = seg.Persist(path)
+			path := filepath.Join(path, filename)
+			err := persistToDirectory(seg, d, path)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error persisting segment: %v", err)
+				return nil, nil, fmt.Errorf("segment: %s persist err: %v", path, err)
 			}
 			newSegmentPaths[segmentSnapshot.id] = path
 			err = snapshotSegmentBucket.Put(boltPathKey, []byte(filename))
@@ -534,7 +599,7 @@ func (s *Scorch) persistSnapshotDirect(snapshot *IndexSnapshot) (err error) {
 		}
 	}()
 
-	filenames, newSegmentPaths, err := prepareBoltSnapshot(snapshot, tx, s.path, s.segPlugin)
+	filenames, newSegmentPaths, err := prepareBoltSnapshot(snapshot, tx, s.path, s.segPlugin, nil)
 	if err != nil {
 		return err
 	}
