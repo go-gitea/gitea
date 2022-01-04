@@ -29,8 +29,7 @@ func TestDumpRestore(t *testing.T) {
 		AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
 		setting.Migrations.AllowLocalNetworks = true
 		AppVer := setting.AppVer
-		// TODO: Gitea SDK need to parse the AppVer from server response, so we must set it to a valid version string now.
-		// See also https://github.com/go-gitea/gitea/pull/18146
+		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
 		setting.AppVer = "1.16.0"
 		defer func() {
 			setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
