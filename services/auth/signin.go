@@ -7,8 +7,8 @@ package auth
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -21,7 +21,7 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*user_model.User, *login.Source, error) {
+func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
 	if strings.Contains(username, "@") {
 		user = &user_model.User{Email: strings.ToLower(strings.TrimSpace(username))}
@@ -50,13 +50,13 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 	}
 
 	if hasUser {
-		source, err := login.GetSourceByID(user.LoginSource)
+		source, err := auth.GetSourceByID(user.LoginSource)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if !source.IsActive {
-			return nil, nil, oauth2.ErrLoginSourceNotActived
+			return nil, nil, oauth2.ErrAuthSourceNotActived
 		}
 
 		authenticator, ok := source.Cfg.(PasswordAuthenticator)
@@ -78,7 +78,7 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 		return user, source, nil
 	}
 
-	sources, err := login.AllActiveSources()
+	sources, err := auth.AllActiveSources()
 	if err != nil {
 		return nil, nil, err
 	}

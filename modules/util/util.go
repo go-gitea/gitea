@@ -139,11 +139,11 @@ func MergeInto(dict map[string]interface{}, values ...interface{}) (map[string]i
 
 // RandomInt returns a random integer between 0 and limit, inclusive
 func RandomInt(limit int64) (int64, error) {
-	int, err := rand.Int(rand.Reader, big.NewInt(limit))
+	rInt, err := rand.Int(rand.Reader, big.NewInt(limit))
 	if err != nil {
 		return 0, err
 	}
-	return int.Int64(), nil
+	return rInt.Int64(), nil
 }
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -160,4 +160,13 @@ func RandomString(length int64) (string, error) {
 		bytes[i] = letters[num]
 	}
 	return string(bytes), nil
+}
+
+// RandomBytes generates `length` bytes
+// This differs from RandomString, as RandomString is limits each byte to have
+// a maximum value of 63 instead of 255(max byte size)
+func RandomBytes(length int64) ([]byte, error) {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	return bytes, err
 }

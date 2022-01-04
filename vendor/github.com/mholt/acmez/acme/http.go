@@ -117,8 +117,7 @@ func (c *Client) httpPostJWS(ctx context.Context, privateKey crypto.Signer,
 		break
 	}
 
-	return resp, fmt.Errorf("request to %s failed after %d attempts: %w",
-		endpoint, attempts, err)
+	return resp, fmt.Errorf("attempt %d: %s: %w", attempts, endpoint, err)
 }
 
 // httpReq robustly performs an HTTP request using the given method to the given endpoint, honoring
@@ -272,8 +271,8 @@ func (c *Client) doHTTPRequest(req *http.Request, buf *bytes.Buffer) (resp *http
 			zap.String("method", req.Method),
 			zap.String("url", req.URL.String()),
 			zap.Reflect("headers", req.Header),
-			zap.Int("status_code", resp.StatusCode),
-			zap.Reflect("response_headers", resp.Header))
+			zap.Reflect("response_headers", resp.Header),
+			zap.Int("status_code", resp.StatusCode))
 	}
 
 	// "The server MUST include a Replay-Nonce header field

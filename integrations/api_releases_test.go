@@ -207,7 +207,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
-	assert.EqualValues(t, "Not Found", err.Message)
+	assert.NotEmpty(t, err.Message)
 }
 
 func TestAPIDeleteReleaseByTagName(t *testing.T) {

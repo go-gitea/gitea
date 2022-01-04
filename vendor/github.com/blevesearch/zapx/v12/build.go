@@ -16,6 +16,8 @@ package zap
 
 import (
 	"bufio"
+	"fmt"
+	"io"
 	"math"
 	"os"
 
@@ -32,6 +34,16 @@ func (sb *SegmentBase) Persist(path string) error {
 	return PersistSegmentBase(sb, path)
 }
 
+// WriteTo is an implementation of io.WriterTo interface.
+func (sb *SegmentBase) WriteTo(w io.Writer) (int64, error) {
+	if w == nil {
+		return 0, fmt.Errorf("invalid writer found")
+	}
+
+	n, err := persistSegmentBaseToWriter(sb, w)
+	return int64(n), err
+}
+
 // PersistSegmentBase persists SegmentBase in the zap file format.
 func PersistSegmentBase(sb *SegmentBase, path string) error {
 	flag := os.O_RDWR | os.O_CREATE
@@ -46,22 +58,7 @@ func PersistSegmentBase(sb *SegmentBase, path string) error {
 		_ = os.Remove(path)
 	}
 
-	br := bufio.NewWriter(f)
-
-	_, err = br.Write(sb.mem)
-	if err != nil {
-		cleanup()
-		return err
-	}
-
-	err = persistFooter(sb.numDocs, sb.storedIndexOffset, sb.fieldsIndexOffset, sb.docValueOffset,
-		sb.chunkMode, sb.memCRC, br)
-	if err != nil {
-		cleanup()
-		return err
-	}
-
-	err = br.Flush()
+	_, err = persistSegmentBaseToWriter(sb, f)
 	if err != nil {
 		cleanup()
 		return err
@@ -79,7 +76,40 @@ func PersistSegmentBase(sb *SegmentBase, path string) error {
 		return err
 	}
 
-	return nil
+	return err
+}
+
+type bufWriter struct {
+	w *bufio.Writer
+	n int
+}
+
+func (br *bufWriter) Write(in []byte) (int, error) {
+	n, err := br.w.Write(in)
+	br.n += n
+	return n, err
+}
+
+func persistSegmentBaseToWriter(sb *SegmentBase, w io.Writer) (int, error) {
+	br := &bufWriter{w: bufio.NewWriter(w)}
+
+	_, err := br.Write(sb.mem)
+	if err != nil {
+		return 0, err
+	}
+
+	err = persistFooter(sb.numDocs, sb.storedIndexOffset, sb.fieldsIndexOffset,
+		sb.docValueOffset, sb.chunkMode, sb.memCRC, br)
+	if err != nil {
+		return 0, err
+	}
+
+	err = br.w.Flush()
+	if err != nil {
+		return 0, err
+	}
+
+	return br.n, nil
 }
 
 func persistStoredFieldValues(fieldID int,

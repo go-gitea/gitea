@@ -13,13 +13,13 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth"
+	auth_service "code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -29,6 +29,11 @@ type APIContext struct {
 	*Context
 	Org *APIOrganization
 }
+
+// Currently, we have the following common fields in error response:
+// * message: the message for end users (it shouldn't be used for error type detection)
+//            if we need to indicate some errors, we should introduce some new fields like ErrorCode or ErrorType
+// * url:     the swagger document URL
 
 // APIError is error format response
 // swagger:response error
@@ -47,8 +52,8 @@ type APIValidationError struct {
 // APIInvalidTopicsError is error format response to invalid topics
 // swagger:response invalidTopicsError
 type APIInvalidTopicsError struct {
-	Topics  []string `json:"invalidTopics"`
-	Message string   `json:"message"`
+	Message       string   `json:"message"`
+	InvalidTopics []string `json:"invalidTopics"`
 }
 
 //APIEmpty is an empty response
@@ -122,9 +127,9 @@ func (ctx *APIContext) InternalServerError(err error) {
 	})
 }
 
-var (
-	apiContextKey interface{} = "default_api_context"
-)
+type apiContextKeyType struct{}
+
+var apiContextKey = apiContextKeyType{}
 
 // WithAPIContext set up api context in request
 func WithAPIContext(req *http.Request, ctx *APIContext) *http.Request {
@@ -220,9 +225,9 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := login.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
 		ctx.Context.Error(http.StatusInternalServerError)
@@ -239,8 +244,8 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts auth.Auth as a middleware
-func APIAuth(authMethod auth.Method) func(*APIContext) {
+// APIAuth converts auth_service.Auth as a middleware
+func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
@@ -248,7 +253,7 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 			if ctx.Locale.Language() != ctx.User.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
@@ -351,7 +356,7 @@ func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
-	var message = "Not Found"
+	var message = ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -367,9 +372,9 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	}
 
 	ctx.JSON(http.StatusNotFound, map[string]interface{}{
-		"message":           message,
-		"documentation_url": setting.API.SwaggerURL,
-		"errors":            errors,
+		"message": message,
+		"url":     setting.API.SwaggerURL,
+		"errors":  errors,
 	})
 }
 

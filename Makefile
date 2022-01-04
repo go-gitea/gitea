@@ -186,8 +186,6 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
-	@echo " - revive                           run revive linter"
-	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -280,29 +278,6 @@ errcheck:
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
 
-.PHONY: revive
-revive:
-	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/mgechev/revive@v1.1.2; \
-	fi
-	@revive -config .revive.toml -exclude=./vendor/... ./...
-
-.PHONY: misspell-check
-misspell-check:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
-	fi
-	@echo "Running misspell-check..."
-	@$(GO) run build/code-batch-process.go misspell -error -i unknwon '{file-list}'
-
-.PHONY: misspell
-misspell:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
-	fi
-	@echo "Running go misspell..."
-	@$(GO) run build/code-batch-process.go misspell -w -i unknwon '{file-list}'
-
 .PHONY: fmt-check
 fmt-check:
 	# get all go files and run go fmt on them
@@ -320,7 +295,7 @@ checks: checks-frontend checks-backend
 checks-frontend: svg-check
 
 .PHONY: checks-backend
-checks-backend: misspell-check test-vendor swagger-check swagger-validate
+checks-backend: test-vendor swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -332,7 +307,7 @@ lint-frontend: node_modules
 	npx editorconfig-checker templates
 
 .PHONY: lint-backend
-lint-backend: golangci-lint revive vet
+lint-backend: golangci-lint vet
 
 .PHONY: watch
 watch:

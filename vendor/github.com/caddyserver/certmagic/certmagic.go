@@ -73,7 +73,7 @@ func HTTPS(domainNames []string, mux http.Handler) error {
 	DefaultACME.Agreed = true
 	cfg := NewDefault()
 
-	err := cfg.ManageSync(domainNames)
+	err := cfg.ManageSync(context.Background(), domainNames)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func TLS(domainNames []string) (*tls.Config, error) {
 	DefaultACME.Agreed = true
 	DefaultACME.DisableHTTPChallenge = true
 	cfg := NewDefault()
-	return cfg.TLSConfig(), cfg.ManageSync(domainNames)
+	return cfg.TLSConfig(), cfg.ManageSync(context.Background(), domainNames)
 }
 
 // Listen manages certificates for domainName and returns a
@@ -195,7 +195,7 @@ func Listen(domainNames []string) (net.Listener, error) {
 	DefaultACME.Agreed = true
 	DefaultACME.DisableHTTPChallenge = true
 	cfg := NewDefault()
-	err := cfg.ManageSync(domainNames)
+	err := cfg.ManageSync(context.Background(), domainNames)
 	if err != nil {
 		return nil, err
 	}
@@ -223,9 +223,9 @@ func Listen(domainNames []string) (net.Listener, error) {
 //
 // Calling this function signifies your acceptance to
 // the CA's Subscriber Agreement and/or Terms of Service.
-func ManageSync(domainNames []string) error {
+func ManageSync(ctx context.Context, domainNames []string) error {
 	DefaultACME.Agreed = true
-	return NewDefault().ManageSync(domainNames)
+	return NewDefault().ManageSync(ctx, domainNames)
 }
 
 // ManageAsync is the same as ManageSync, except that

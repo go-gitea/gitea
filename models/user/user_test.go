@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -21,7 +21,7 @@ import (
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: 1}).(*login.OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1}).(*auth.OAuth2Application)
 	user, err := GetUserByID(app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
