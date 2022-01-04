@@ -6,14 +6,13 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -42,16 +41,21 @@ var (
 	// While fast, this is also incorrect and lead to false positives.
 	// TODO: fix invalid linking issue
 
+	// valid chars in encoded path and parameter: [-+~_%.a-zA-Z0-9/]
+
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
-	// so that abbreviated hash links can be used as well. This matches git and github useability.
+	// so that abbreviated hash links can be used as well. This matches git and GitHub usability.
 	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
-	// anySHA1Pattern allows to split url containing SHA into parts
-	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4}([0-9a-f]{40})(/[^#\s]+)?(#\S+)?`)
+	// anySHA1Pattern splits url containing SHA into parts
+	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
+
+	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(\.\.\.?)([0-9a-f]{40})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -66,14 +70,11 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
@@ -89,12 +90,17 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
-// FIXME: This function is not concurrent safe
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var issueFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
+	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	})
 	return issueFullPattern
 }
 
@@ -151,6 +157,7 @@ type processor func(ctx *RenderContext, node *html.Node)
 
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	shortLinkProcessor,
 	linkProcessor,
@@ -177,6 +184,7 @@ func PostProcess(
 
 var commitMessageProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	linkProcessor,
 	mentionProcessor,
@@ -207,6 +215,7 @@ func RenderCommitMessage(
 
 var commitMessageSubjectProcessors = []processor{
 	fullIssuePatternProcessor,
+	comparePatternProcessor,
 	fullSha1PatternProcessor,
 	linkProcessor,
 	mentionProcessor,
@@ -275,7 +284,7 @@ func RenderDescriptionHTML(
 }
 
 // RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown procesor
+// in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
 	content string,
 ) (string, error) {
@@ -286,8 +295,9 @@ var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM
 var nulCleaner = strings.NewReplacer("\000", "")
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
+	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
-	rawHTML, err := ioutil.ReadAll(input)
+	rawHTML, err := io.ReadAll(input)
 	if err != nil {
 		return err
 	}
@@ -303,27 +313,26 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(res, nil)
+	node, err := html.Parse(res)
 	if err != nil {
 		return &postProcessError{"invalid HTML", err}
 	}
 
-	for _, node := range nodes {
-		visitNode(ctx, procs, node, true)
+	if node.Type == html.DocumentNode {
+		node = node.FirstChild
 	}
 
-	newNodes := make([]*html.Node, 0, len(nodes))
+	visitNode(ctx, procs, procs, node)
 
-	for _, node := range nodes {
-		if node.Data == "html" {
-			node = node.FirstChild
-			for node != nil && node.Data != "body" {
-				node = node.NextSibling
-			}
+	newNodes := make([]*html.Node, 0, 5)
+
+	if node.Data == "html" {
+		node = node.FirstChild
+		for node != nil && node.Data != "body" {
+			node = node.NextSibling
 		}
-		if node == nil {
-			continue
-		}
+	}
+	if node != nil {
 		if node.Data == "body" {
 			child := node.FirstChild
 			for child != nil {
@@ -345,7 +354,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText bool) {
+func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node) {
 	// Add user-content- to IDs if they don't already have them
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
@@ -353,19 +362,17 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 
 		if attr.Key == "class" && attr.Val == "emoji" {
-			visitText = false
+			textProcs = nil
 		}
 	}
 
-	// We ignore code, pre and already generated links.
+	// We ignore code and pre.
 	switch node.Type {
 	case html.TextNode:
-		if visitText {
-			textNode(ctx, procs, node)
-		}
+		textNode(ctx, textProcs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
-			for _, attr := range node.Attr {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
@@ -378,9 +385,11 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
-			visitText = false
+			// Restrict text in links to emojis
+			textProcs = emojiProcessors
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
 		} else if node.Data == "i" {
@@ -406,7 +415,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			visitNode(ctx, procs, n, visitText)
+			visitNode(ctx, procs, textProcs, n)
 		}
 	}
 	// ignore everything else
@@ -460,17 +469,14 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias, class string) *html.Node {
-
+func createCustomEmoji(alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,
@@ -478,10 +484,8 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Data:     "img",
 		Attr:     []html.Attribute{},
 	}
-	if class != "" {
-		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/assets/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
-	}
+	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: ":" + alias + ":"})
+	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: setting.StaticURLPrefix + "/assets/img/emoji/" + alias + ".png"})
 
 	span.AppendChild(img)
 	return span
@@ -783,7 +787,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// extract repo and org name from matched link like
 		// http://localhost:3000/gituser/myrepo/issues/1
-		linkParts := strings.Split(path.Clean(link), "/")
+		linkParts := strings.Split(link, "/")
 		matchOrg := linkParts[len(linkParts)-4]
 		matchRepo := linkParts[len(linkParts)-3]
 
@@ -832,7 +836,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if exttrack && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
-			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue")
+			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -923,8 +927,53 @@ func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
 		if hash != "" {
 			text += " (" + hash + ")"
 		}
-
 		replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		node = node.NextSibling.NextSibling
+	}
+}
+
+func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
+		return
+	}
+
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		urlFull := node.Data[m[0]:m[1]]
+		text1 := base.ShortSha(node.Data[m[2]:m[3]])
+		textDots := base.ShortSha(node.Data[m[4]:m[5]])
+		text2 := base.ShortSha(node.Data[m[6]:m[7]])
+
+		hash := ""
+		if m[9] > 0 {
+			hash = node.Data[m[8]:m[9]][1:]
+		}
+
+		start := m[0]
+		end := m[1]
+
+		// If url ends in '.', it's very likely that it is not part of the
+		// actual url but used to finish a sentence.
+		if strings.HasSuffix(urlFull, ".") {
+			end--
+			urlFull = urlFull[:len(urlFull)-1]
+			if hash != "" {
+				hash = hash[:len(hash)-1]
+			} else if text2 != "" {
+				text2 = text2[:len(text2)-1]
+			}
+		}
+
+		text := text1 + textDots + text2
+		if hash != "" {
+			text += " (" + hash + ")"
+		}
+		replaceContent(node, start, end, createCodeLink(urlFull, text, "compare"))
 		node = node.NextSibling.NextSibling
 	}
 }
@@ -948,9 +997,8 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted == nil {
 			// check if this is a custom reaction
-			s := strings.Join(setting.UI.Reactions, " ") + "gitea"
-			if strings.Contains(s, alias) {
-				replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
+				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue
@@ -996,6 +1044,9 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	start := 0
 	next := node.NextSibling
+	if ctx.ShaExistCache == nil {
+		ctx.ShaExistCache = make(map[string]bool)
+	}
 	for node != nil && node != next && start < len(node.Data) {
 		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
@@ -1013,16 +1064,34 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// as used by git and github for linking and thus we have to do similar.
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
-		if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.Metas["repoPath"]); err != nil {
-			if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
-				log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
+
+		// check cache first
+		exist, inCache := ctx.ShaExistCache[hash]
+		if !inCache {
+			if ctx.GitRepo == nil {
+				var err error
+				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				if err != nil {
+					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					return
+				}
+				ctx.AddCancel(func() {
+					ctx.GitRepo.Close()
+					ctx.GitRepo = nil
+				})
 			}
+
+			exist = ctx.GitRepo.IsObjectExist(hash)
+			ctx.ShaExistCache[hash] = exist
+		}
+
+		if !exist {
 			start = m[3]
 			continue
 		}
 
-		replaceContent(node, m[2], m[3],
-			createCodeLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash), base.ShortSha(hash), "commit"))
+		link := util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
 		node = node.NextSibling.NextSibling
 	}

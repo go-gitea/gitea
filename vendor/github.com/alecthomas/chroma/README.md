@@ -1,4 +1,5 @@
-# Chroma — A general purpose syntax highlighter in pure Go [![Golang Documentation](https://godoc.org/github.com/alecthomas/chroma?status.svg)](https://godoc.org/github.com/alecthomas/chroma) [![CircleCI](https://img.shields.io/circleci/project/github/alecthomas/chroma.svg)](https://circleci.com/gh/alecthomas/chroma) [![Go Report Card](https://goreportcard.com/badge/github.com/alecthomas/chroma)](https://goreportcard.com/report/github.com/alecthomas/chroma) [![Slack chat](https://img.shields.io/static/v1?logo=slack&style=flat&label=slack&color=green&message=gophers)](https://invite.slack.golangbridge.org/)
+# Chroma — A general purpose syntax highlighter in pure Go
+[![Golang Documentation](https://godoc.org/github.com/alecthomas/chroma?status.svg)](https://godoc.org/github.com/alecthomas/chroma) [![CI](https://github.com/alecthomas/chroma/actions/workflows/ci.yml/badge.svg)](https://github.com/alecthomas/chroma/actions/workflows/ci.yml) [![Slack chat](https://img.shields.io/static/v1?logo=slack&style=flat&label=slack&color=green&message=gophers)](https://invite.slack.golangbridge.org/)
 
 > **NOTE:** As Chroma has just been released, its API is still in flux. That said, the high-level interface should not change significantly.
 
@@ -41,7 +42,7 @@ C | C, C#, C++, Caddyfile, Caddyfile Directives, Cap'n Proto, Cassandra CQL, Cey
 D | D, Dart, Diff, Django/Jinja, Docker, DTD, Dylan
 E | EBNF, Elixir, Elm, EmacsLisp, Erlang
 F | Factor, Fish, Forth, Fortran, FSharp
-G | GAS, GDScript, Genshi, Genshi HTML, Genshi Text, Gherkin, GLSL, Gnuplot, Go, Go HTML Template, Go Text Template, GraphQL, Groovy
+G | GAS, GDScript, Genshi, Genshi HTML, Genshi Text, Gherkin, GLSL, Gnuplot, Go, Go HTML Template, Go Text Template, GraphQL, Groff, Groovy
 H | Handlebars, Haskell, Haxe, HCL, Hexdump, HLB, HTML, HTTP, Hy
 I | Idris, Igor, INI, Io
 J | J, Java, JavaScript, JSON, Julia, Jungle
@@ -49,11 +50,11 @@ K | Kotlin
 L | Lighttpd configuration file, LLVM, Lua
 M | Mako, markdown, Mason, Mathematica, Matlab, MiniZinc, MLIR, Modula-2, MonkeyC, MorrowindScript, Myghty, MySQL
 N | NASM, Newspeak, Nginx configuration file, Nim, Nix
-O | Objective-C, OCaml, Octave, OpenSCAD, Org Mode
-P | PacmanConf, Perl, PHP, PHTML, Pig, PkgConfig, PL/pgSQL, plaintext, Pony, PostgreSQL SQL dialect, PostScript, POVRay, PowerShell, Prolog, PromQL, Protocol Buffer, Puppet, Python, Python 3
+O | Objective-C, OCaml, Octave, OnesEnterprise, OpenSCAD, Org Mode
+P | PacmanConf, Perl, PHP, PHTML, Pig, PkgConfig, PL/pgSQL, plaintext, Pony, PostgreSQL SQL dialect, PostScript, POVRay, PowerShell, Prolog, PromQL, Protocol Buffer, Puppet, Python 2, Python
 Q | QBasic
-R | R, Racket, Ragel, react, ReasonML, reg, reStructuredText, Rexx, Ruby, Rust
-S | SAS, Sass, Scala, Scheme, Scilab, SCSS, Smalltalk, Smarty, Snobol, Solidity, SPARQL, SQL, SquidConf, Standard ML, Stylus, Swift, SYSTEMD, systemverilog
+R | R, Racket, Ragel, Raku, react, ReasonML, reg, reStructuredText, Rexx, Ruby, Rust
+S | SAS, Sass, Scala, Scheme, Scilab, SCSS, Smalltalk, Smarty, Snobol, Solidity, SPARQL, SQL, SquidConf, Standard ML, Stylus, Svelte, Swift, SYSTEMD, systemverilog
 T | TableGen, TASM, Tcl, Tcsh, Termcap, Terminfo, Terraform, TeX, Thrift, TOML, TradingView, Transact-SQL, Turing, Turtle, Twig, TypeScript, TypoScript, TypoScriptCssData, TypoScriptHtmlData
 V | VB.net, verilog, VHDL, VimL, vue
 W | WDTE
@@ -210,10 +211,10 @@ using the included Python 3 script `pygments2chroma.py`. I use something like
 the following:
 
 ```sh
-python3 ~/Projects/chroma/_tools/pygments2chroma.py \
+python3 _tools/pygments2chroma.py \
   pygments.lexers.jvm.KotlinLexer \
-  > ~/Projects/chroma/lexers/kotlin.go \
-  && gofmt -s -w ~/Projects/chroma/lexers/*.go
+  > lexers/k/kotlin.go \
+  && gofmt -s -w lexers/k/kotlin.go
 ```
 
 See notes in [pygments-lexers.txt](https://github.com/alecthomas/chroma/blob/master/pygments-lexers.txt)
@@ -249,18 +250,34 @@ For a quick overview of the available styles and how they look, check out the [C
 <a id="markdown-command-line-interface" name="command-line-interface"></a>
 ## Command-line interface
 
-A command-line interface to Chroma is included. It can be installed with:
+A command-line interface to Chroma is included.
 
-```sh
-go get -u github.com/alecthomas/chroma/cmd/chroma
+Binaries are available to install from [the releases page](https://github.com/alecthomas/chroma/releases).
+
+The CLI can be used as a preprocessor to colorise output of `less(1)`,
+see documentation for the `LESSOPEN` environment variable.
+
+The `--fail` flag can be used to suppress output and return with exit status
+1 to facilitate falling back to some other preprocessor in case chroma
+does not resolve a specific lexer to use for the given file. For example:
+
+```shell
+export LESSOPEN='| p() { chroma --fail "$1" || cat "$1"; }; p "%s"'
 ```
+
+Replace `cat` with your favourite fallback preprocessor.
+
+When invoked as `.lessfilter`, the `--fail` flag is automatically turned
+on under the hood for easy integration with [lesspipe shipping with
+Debian and derivatives](https://manpages.debian.org/lesspipe#USER_DEFINED_FILTERS);
+for that setup the `chroma` executable can be just symlinked to `~/.lessfilter`.
 
 <a id="markdown-whats-missing-compared-to-pygments" name="whats-missing-compared-to-pygments"></a>
 ## What's missing compared to Pygments?
 
 - Quite a few lexers, for various reasons (pull-requests welcome):
     - Pygments lexers for complex languages often include custom code to
-      handle certain aspects, such as Perl6's ability to nest code inside
+      handle certain aspects, such as Raku's ability to nest code inside
       regular expressions. These require time and effort to convert.
     - I mostly only converted languages I had heard of, to reduce the porting cost.
 - Some more esoteric features of Pygments are omitted for simplicity.

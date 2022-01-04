@@ -298,14 +298,22 @@ func (c *acmeClient) throttle(ctx context.Context, names []string) error {
 	}
 	rateLimitersMu.Unlock()
 	if c.mgr.Logger != nil {
-		c.mgr.Logger.Info("waiting on internal rate limiter", zap.Strings("identifiers", names))
+		c.mgr.Logger.Info("waiting on internal rate limiter",
+			zap.Strings("identifiers", names),
+			zap.String("ca", c.acmeClient.Directory),
+			zap.String("account", c.mgr.Email),
+		)
 	}
 	err := rl.Wait(ctx)
 	if err != nil {
 		return err
 	}
 	if c.mgr.Logger != nil {
-		c.mgr.Logger.Info("done waiting on internal rate limiter", zap.Strings("identifiers", names))
+		c.mgr.Logger.Info("done waiting on internal rate limiter",
+			zap.Strings("identifiers", names),
+			zap.String("ca", c.acmeClient.Directory),
+			zap.String("account", c.mgr.Email),
+		)
 	}
 	return nil
 }
@@ -362,11 +370,11 @@ var (
 
 	// RateLimitEvents is how many new events can be allowed
 	// in RateLimitEventsWindow.
-	RateLimitEvents = 20
+	RateLimitEvents = 10
 
 	// RateLimitEventsWindow is the size of the sliding
 	// window that throttles events.
-	RateLimitEventsWindow = 1 * time.Minute
+	RateLimitEventsWindow = 10 * time.Second
 )
 
 // Some default values passed down to the underlying ACME client.

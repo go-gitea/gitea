@@ -5,8 +5,8 @@
 package repository
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -44,7 +46,7 @@ var defaultTransformers = []transformer{
 	{Name: "TITLE", Transform: strings.Title},
 }
 
-func generateExpansion(src string, templateRepo, generateRepo *models.Repository) string {
+func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository) string {
 	expansions := []expansion{
 		{Name: "REPO_NAME", Value: generateRepo.Name, Transformers: defaultTransformers},
 		{Name: "TEMPLATE_NAME", Value: templateRepo.Name, Transformers: defaultTransformers},
@@ -84,7 +86,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 		return nil, err
 	}
 
-	content, err := ioutil.ReadFile(gtPath)
+	content, err := os.ReadFile(gtPath)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 	return gt, nil
 }
 
-func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmpDir string) error {
+func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -150,12 +152,12 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
 				for _, g := range gt.Globs() {
 					if g.Match(base) {
-						content, err := ioutil.ReadFile(path)
+						content, err := os.ReadFile(path)
 						if err != nil {
 							return err
 						}
 
-						if err := ioutil.WriteFile(path,
+						if err := os.WriteFile(path,
 							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
 							0644); err != nil {
 							return err
@@ -185,8 +187,8 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
 }
 
-func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *models.Repository) (err error) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
 		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 	}
@@ -202,7 +204,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 	}
 
 	// re-fetch repo
-	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
@@ -223,12 +225,12 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 }
 
 // GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx models.DBContext, templateRepo, generateRepo *models.Repository) error {
+func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
 	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
 		return err
 	}
 
-	if err := generateRepo.UpdateSize(ctx); err != nil {
+	if err := models.UpdateRepoSize(ctx, generateRepo); err != nil {
 		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
@@ -239,8 +241,8 @@ func GenerateGitContent(ctx models.DBContext, templateRepo, generateRepo *models
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx models.DBContext, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
-	generateRepo := &models.Repository{
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts models.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+	generateRepo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
 		OwnerName:     owner.Name,
@@ -265,7 +267,7 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 		return nil, err
 	}
 	if isExist {
-		return nil, models.ErrRepoFilesAlreadyExist{
+		return nil, repo_model.ErrRepoFilesAlreadyExist{
 			Uname: generateRepo.OwnerName,
 			Name:  generateRepo.Name,
 		}
@@ -273,6 +275,17 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 
 	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
+	}
+
+	if err = models.CheckDaemonExportOK(ctx, generateRepo); err != nil {
+		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
+		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %v", err)
 	}
 
 	return generateRepo, nil

@@ -10,7 +10,11 @@
 						{{.i18n.Tr "repo.archive.title"}}
 					</div>
 				{{end}}
-				{{if .CanWriteCode}}
+				{{if .Repository.IsBroken}}
+						<div class="ui segment center">
+							{{.i18n.Tr "repo.broken_message"}}
+						</div>
+				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
 					</h4>
@@ -33,7 +37,7 @@ git init
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
@@ -42,10 +46,19 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
-									<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
+									<pre><code>git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
+							<script defer>
+								/* eslint-disable no-undef */
+								const cloneUrls = document.getElementsByClassName('clone-url');
+								if (cloneUrls) {
+									for (let i = 0; i < cloneUrls.length; i++) {
+										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
+									}
+								}
+							</script>
 						{{end}}
 					{{else}}
 						<div class="ui segment center">

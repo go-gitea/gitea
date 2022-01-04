@@ -7,18 +7,19 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIssueList_LoadRepositories(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issueList := IssueList{
-		AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue),
-		AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
+		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
+		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue),
+		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
 	}
 
 	repos, err := issueList.LoadRepositories()
@@ -30,11 +31,11 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 }
 
 func TestIssueList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Service.EnableTimetracking = true
 	issueList := IssueList{
-		AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
+		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
+		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
 	}
 
 	assert.NoError(t, issueList.LoadAttributes())
@@ -42,7 +43,7 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 		assert.EqualValues(t, issue.RepoID, issue.Repo.ID)
 		for _, label := range issue.Labels {
 			assert.EqualValues(t, issue.RepoID, label.RepoID)
-			AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issue.ID, LabelID: label.ID})
+			unittest.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 		}
 		if issue.PosterID > 0 {
 			assert.EqualValues(t, issue.PosterID, issue.Poster.ID)

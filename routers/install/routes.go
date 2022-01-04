@@ -40,7 +40,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 					if err := recover(); err != nil {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 						log.Error(combinedErr)
-						if setting.IsProd() {
+						if setting.IsProd {
 							http.Error(w, http.StatusText(500), 500)
 						} else {
 							http.Error(w, combinedErr, 500)
@@ -61,9 +61,9 @@ func installRecovery() func(next http.Handler) http.Handler {
 						"SignedUserName": "",
 					}
 
-					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-					if !setting.IsProd() {
+					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
 					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))

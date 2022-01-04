@@ -9,8 +9,8 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -42,11 +43,11 @@ func LFSFiles(ctx *context.Context) {
 		ctx.NotFound("LFSFiles", nil)
 		return
 	}
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
-	total, err := ctx.Repo.Repository.CountLFSMetaObjects()
+	total, err := models.CountLFSMetaObjects(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
 		return
@@ -56,7 +57,7 @@ func LFSFiles(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
 	ctx.Data["PageIsSettingsLFS"] = true
-	lfsMetaObjects, err := ctx.Repo.Repository.GetLFSMetaObjects(pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	lfsMetaObjects, err := models.GetLFSMetaObjects(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
 		return
@@ -74,7 +75,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -195,7 +196,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.NotFound("LFSLocks", nil)
 		return
 	}
-	originalPath := ctx.Query("path")
+	originalPath := ctx.FormString("path")
 	lockPath := originalPath
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
@@ -214,10 +215,9 @@ func LFSLockFile(ctx *context.Context) {
 		return
 	}
 
-	_, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:  ctx.Repo.Repository,
-		Path:  lockPath,
-		Owner: ctx.User,
+	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
+		Path:    lockPath,
+		OwnerID: ctx.User.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -237,7 +237,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, true)
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.User, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -255,7 +255,7 @@ func LFSFileGet(ctx *context.Context) {
 	oid := ctx.Params("oid")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(oid)
+	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		if err == models.ErrLFSObjectNotExist {
 			ctx.NotFound("LFSFileGet", nil)
@@ -272,7 +272,7 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, err := dataRc.Read(buf)
+	n, err := util.ReadAtMost(dataRc, buf)
 	if err != nil {
 		ctx.ServerError("Data", err)
 		return
@@ -285,7 +285,7 @@ func LFSFileGet(ctx *context.Context) {
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
-	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
+	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
 	case isRepresentableAsText:
 		if st.IsSvgImage() {
@@ -297,10 +297,10 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := ioutil.ReadAll(buf)
+		fileContent, _ := io.ReadAll(rd)
 
 		var output bytes.Buffer
 		lines := strings.Split(string(fileContent), "\n")
@@ -342,7 +342,7 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	oid := ctx.Params("oid")
-	count, err := ctx.Repo.Repository.RemoveLFSMetaObjectByOid(oid)
+	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
 		return
@@ -366,13 +366,13 @@ func LFSFileFind(ctx *context.Context) {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	oid := ctx.Query("oid")
-	size := ctx.QueryInt64("size")
+	oid := ctx.FormString("oid")
+	size := ctx.FormInt64("size")
 	if len(oid) == 0 || size == 0 {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	sha := ctx.Query("sha")
+	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	var hash git.SHA1
@@ -421,12 +421,13 @@ func LFSPointerFiles(ctx *context.Context) {
 		var numAssociated, numNoExist, numAssociatable int
 
 		type pointerResult struct {
-			SHA        string
-			Oid        string
-			Size       int64
-			InRepo     bool
-			Exists     bool
-			Accessible bool
+			SHA          string
+			Oid          string
+			Size         int64
+			InRepo       bool
+			Exists       bool
+			Accessible   bool
+			Associatable bool
 		}
 
 		results := []pointerResult{}
@@ -443,7 +444,7 @@ func LFSPointerFiles(ctx *context.Context) {
 				Size: pointerBlob.Size,
 			}
 
-			if _, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid); err != nil {
+			if _, err := models.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid); err != nil {
 				if err != models.ErrLFSObjectNotExist {
 					return err
 				}
@@ -461,14 +462,21 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
-				} else {
-					result.Accessible = true
+					if !result.Associatable {
+						associated, err := models.LFSObjectIsAssociated(pointerBlob.Oid)
+						if err != nil {
+							return err
+						}
+						result.Associatable = !associated
+					}
 				}
 			}
+
+			result.Accessible = result.InRepo || result.Associatable
 
 			if result.InRepo {
 				numAssociated++
@@ -476,7 +484,7 @@ func LFSPointerFiles(ctx *context.Context) {
 			if !result.Exists {
 				numNoExist++
 			}
-			if !result.InRepo && result.Accessible {
+			if result.Associatable {
 				numAssociatable++
 			}
 
@@ -511,7 +519,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		ctx.NotFound("LFSAutoAssociate", nil)
 		return
 	}
-	oids := ctx.QueryStrings("oid")
+	oids := ctx.FormStrings("oid")
 	metas := make([]*models.LFSMetaObject, len(oids))
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')

@@ -8,16 +8,16 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -173,10 +173,15 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 		indexDir: indexDir,
 	}
 	created, err := indexer.init()
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -208,7 +213,7 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 		return err
 	}
 
-	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -216,6 +221,9 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 		return nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
@@ -226,7 +234,7 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -263,11 +271,17 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+func (b *BleveIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
@@ -293,7 +307,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 	if err != nil {
 		return err
 	}
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err
@@ -410,7 +424,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 	}
 	languagesFacet := result.Facets["languages"]
-	for _, term := range languagesFacet.Terms {
+	for _, term := range languagesFacet.Terms.Terms() {
 		if len(term.Term) == 0 {
 			continue
 		}

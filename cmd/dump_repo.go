@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/urfave/cli/v2"
 )
@@ -77,15 +77,18 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 }
 
 func runDumpRepository(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
-	setting.InitDBConfig()
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 
 	var (
 		serviceType structs.GitServiceType

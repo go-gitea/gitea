@@ -5,20 +5,21 @@
 package private
 
 import (
-	"io/ioutil"
+	"io"
+	"net/http"
 
 	myCtx "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/migrations"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/services/migrations"
 )
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	bs, err := ioutil.ReadAll(ctx.Req.Body)
+	bs, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
-		ctx.JSON(500, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 		return
 	}
@@ -29,8 +30,8 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units     []string
 	}{}
 	if err = json.Unmarshal(bs, &params); err != nil {
-		ctx.JSON(500, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 		return
 	}
@@ -42,10 +43,10 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		params.RepoName,
 		params.Units,
 	); err != nil {
-		ctx.JSON(500, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 	} else {
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }

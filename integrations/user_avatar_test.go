@@ -11,17 +11,18 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserAvatar(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of the repo3, is an org
 
 		seed := user2.Email
 		if len(seed) == 0 {
@@ -71,17 +72,11 @@ func TestUserAvatar(t *testing.T) {
 
 		session.MakeRequest(t, req, http.StatusFound)
 
-		user2 = models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
+		user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of the repo3, is an org
 
-		req = NewRequest(t, "GET", user2.AvatarLink())
-		resp := session.MakeRequest(t, req, http.StatusFound)
-		location := resp.Header().Get("Location")
-		if !strings.HasPrefix(location, "/avatars") {
-			assert.Fail(t, "Avatar location is not local: %s", location)
-		}
-		req = NewRequest(t, "GET", location)
-		session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(0))
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		// Can't test if the response matches because the image is regened on upload but checking that this at least doesn't give a 404 should be enough.
+		// Can't test if the response matches because the image is re-generated on upload but checking that this at least doesn't give a 404 should be enough.
 	})
 }

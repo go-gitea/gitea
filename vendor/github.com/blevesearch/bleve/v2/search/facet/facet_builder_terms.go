@@ -62,12 +62,10 @@ func (fb *TermsFacetBuilder) Field() string {
 	return fb.field
 }
 
-func (fb *TermsFacetBuilder) UpdateVisitor(field string, term []byte) {
-	if field == fb.field {
-		fb.sawValue = true
-		fb.termsCount[string(term)] = fb.termsCount[string(term)] + 1
-		fb.total++
-	}
+func (fb *TermsFacetBuilder) UpdateVisitor(term []byte) {
+	fb.sawValue = true
+	fb.termsCount[string(term)] = fb.termsCount[string(term)] + 1
+	fb.total++
 }
 
 func (fb *TermsFacetBuilder) StartDoc() {
@@ -87,7 +85,7 @@ func (fb *TermsFacetBuilder) Result() *search.FacetResult {
 		Missing: fb.missing,
 	}
 
-	rv.Terms = make([]*search.TermFacet, 0, len(fb.termsCount))
+	rv.Terms = &search.TermFacets{}
 
 	for term, count := range fb.termsCount {
 		tf := &search.TermFacet{
@@ -95,20 +93,20 @@ func (fb *TermsFacetBuilder) Result() *search.FacetResult {
 			Count: count,
 		}
 
-		rv.Terms = append(rv.Terms, tf)
+		rv.Terms.Add(tf)
 	}
 
 	sort.Sort(rv.Terms)
 
 	// we now have the list of the top N facets
 	trimTopN := fb.size
-	if trimTopN > len(rv.Terms) {
-		trimTopN = len(rv.Terms)
+	if trimTopN > rv.Terms.Len() {
+		trimTopN = rv.Terms.Len()
 	}
-	rv.Terms = rv.Terms[:trimTopN]
+	rv.Terms.TrimToTopN(trimTopN)
 
 	notOther := 0
-	for _, tf := range rv.Terms {
+	for _, tf := range rv.Terms.Terms() {
 		notOther += tf.Count
 	}
 	rv.Other = fb.total - notOther

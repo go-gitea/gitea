@@ -7,18 +7,19 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,13 +90,13 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 	}
 }
 
-func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessMode) func(*testing.T) {
 	return func(t *testing.T) {
 		permission := "read"
 
-		if mode == models.AccessModeAdmin {
+		if mode == perm.AccessModeAdmin {
 			permission = "admin"
-		} else if mode > models.AccessModeRead {
+		} else if mode > perm.AccessModeRead {
 			permission = "write"
 		}
 		addCollaboratorOption := &api.AddCollaboratorOption{
@@ -163,7 +164,7 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/user/keys?token=%s", ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateKeyOption{
 			Title: keyname,
@@ -199,7 +200,7 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, api.CreateKeyOption{
 			Title:    keyname,
@@ -231,7 +232,6 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 		}
 		resp := ctx.Session.MakeRequest(t, req, expected)
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -251,7 +251,6 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 		}
 		resp := ctx.Session.MakeRequest(t, req, expected)
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -265,7 +264,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			owner, repo, index, ctx.Token)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doAPIMergePullRequest Merge",
-			Do:                string(models.MergeStyleMerge),
+			Do:                string(repo_model.MergeStyleMerge),
 		})
 
 		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
@@ -277,7 +276,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
 			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
-				Do:                string(models.MergeStyleMerge),
+				Do:                string(repo_model.MergeStyleMerge),
 			})
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
 		}
@@ -299,7 +298,7 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-			Do:            string(models.MergeStyleManuallyMerged),
+			Do:            string(repo_model.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
 		})
 

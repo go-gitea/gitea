@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -30,17 +30,13 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 		Content: struct {
 			Text string `json:"text"`
 		}{
-			Text: text,
+			Text: strings.TrimSpace(text),
 		},
 	}
 }
 
-// SetSecret sets the Feishu secret
-func (f *FeishuPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the FeishuPayload to json
 func (f *FeishuPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -84,7 +80,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		commitDesc string
 	)
 
-	var text = fmt.Sprintf("[%s:%s] %s\n", p.Repo.FullName, branchName, commitDesc)
+	var text = fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
@@ -95,7 +91,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			text += "\r\n"
 		}
 	}
 
@@ -124,19 +120,14 @@ func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 }
 
 // Review implements PayloadConvertor Review method
-func (f *FeishuPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueSynchronized:
-		action, err := parseHookPullRequestEventType(event)
-		if err != nil {
-			return nil, err
-		}
-
-		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
-		text = p.Review.Content
-
+func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+	action, err := parseHookPullRequestEventType(event)
+	if err != nil {
+		return nil, err
 	}
+
+	title := fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+	text := p.Review.Content
 
 	return newFeishuTextPayload(title + "\r\n\r\n" + text), nil
 }
@@ -164,6 +155,6 @@ func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetFeishuPayload converts a ding talk webhook into a FeishuPayload
-func GetFeishuPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(FeishuPayload), p, event)
 }

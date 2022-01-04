@@ -33,6 +33,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/forgot_password",
 		"/api/swagger",
 		"/user2/repo1",
+		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/assets/img/404.png",
@@ -156,7 +157,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases",
 		"/releases/new",
 		//"/wiki/_pages",
-		"/wiki/_new",
+		"/wiki/?action=_new",
 	}
 
 	for _, repo := range apiRepos {

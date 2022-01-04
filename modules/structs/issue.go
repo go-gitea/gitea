@@ -127,6 +127,7 @@ type IssueTemplate struct {
 	Title    string   `json:"title" yaml:"title"`
 	About    string   `json:"about" yaml:"about"`
 	Labels   []string `json:"labels" yaml:"labels"`
+	Ref      string   `json:"ref" yaml:"ref"`
 	Content  string   `json:"content" yaml:"-"`
 	FileName string   `json:"file_name" yaml:"-"`
 }

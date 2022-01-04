@@ -6,11 +6,14 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers/common"
 )
 
@@ -36,7 +39,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 
 	pointer, _ := lfs.ReadPointer(dataRc)
 	if pointer.IsValid() {
-		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
 			if err = dataRc.Close(); err != nil {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
@@ -47,6 +50,16 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return nil
 		}
+
+		if setting.LFS.ServeDirect {
+			//If we have a signed url (S3, object storage), redirect to this directly.
+			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+			if u != nil && err == nil {
+				ctx.Redirect(u.String())
+				return nil
+			}
+		}
+
 		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
 		if err != nil {
 			return err

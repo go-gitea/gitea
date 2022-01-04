@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -72,7 +73,7 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := models.DeleteAccessTokenByID(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+	if err := models.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
@@ -92,12 +93,12 @@ func loadApplicationsData(ctx *context.Context) {
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 	if setting.OAuth2.Enable {
-		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
+		ctx.Data["Applications"], err = auth.GetOAuth2ApplicationsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
 		}
-		ctx.Data["Grants"], err = models.GetOAuth2GrantsByUserID(ctx.User.ID)
+		ctx.Data["Grants"], err = auth.GetOAuth2GrantsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return

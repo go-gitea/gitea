@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -24,7 +26,7 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 		return "", fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
 		log.Error("Pr %d HeadRepo %d does not exist", pr.ID, pr.HeadRepoID)
-		return "", &models.ErrRepoNotExist{
+		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.HeadRepoID,
 		}
 	} else if err := pr.LoadBaseRepo(); err != nil {
@@ -32,13 +34,13 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	} else if pr.BaseRepo == nil {
 		log.Error("Pr %d BaseRepo %d does not exist", pr.ID, pr.BaseRepoID)
-		return "", &models.ErrRepoNotExist{
+		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.BaseRepoID,
 		}
-	} else if err := pr.HeadRepo.GetOwner(); err != nil {
+	} else if err := pr.HeadRepo.GetOwner(db.DefaultContext); err != nil {
 		log.Error("HeadRepo.GetOwner: %v", err)
 		return "", fmt.Errorf("HeadRepo.GetOwner: %v", err)
-	} else if err := pr.BaseRepo.GetOwner(); err != nil {
+	} else if err := pr.BaseRepo.GetOwner(db.DefaultContext); err != nil {
 		log.Error("BaseRepo.GetOwner: %v", err)
 		return "", fmt.Errorf("BaseRepo.GetOwner: %v", err)
 	}
@@ -140,12 +142,25 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 
 	trackingBranch := "tracking"
 	// Fetch head branch
-	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, git.BranchPrefix+pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
+	var headBranch string
+	if pr.Flow == models.PullRequestFlowGithub {
+		headBranch = git.BranchPrefix + pr.HeadBranch
+	} else if len(pr.HeadCommitID) == 40 { // for not created pull request
+		headBranch = pr.HeadCommitID
+	} else {
+		headBranch = pr.GetGitRefName()
+	}
+	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, headBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}
-		return "", fmt.Errorf("Unable to fetch head_repo head branch [%s:%s -> tracking in tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, err, outbuf.String(), errbuf.String())
+		if !git.IsBranchExist(git.DefaultContext, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+			return "", models.ErrBranchDoesNotExist{
+				BranchName: pr.HeadBranch,
+			}
+		}
+		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("Unable to fetch head_repo head branch [%s:%s -> tracking in tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), headBranch, err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()

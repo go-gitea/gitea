@@ -259,7 +259,7 @@ normalLoop:
 		}
 
 		// Process naughty character
-		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+		if _, err := fmt.Fprintf(c.w, `\%#03o`, bytes[i]); err != nil {
 			return totalWritten, err
 		}
 		i++

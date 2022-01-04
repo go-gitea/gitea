@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -27,10 +28,10 @@ func Emails(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminEmails"] = true
 
-	opts := &models.SearchEmailOptions{
-		ListOptions: models.ListOptions{
+	opts := &user_model.SearchEmailOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
-			Page:     ctx.QueryInt("page"),
+			Page:     ctx.FormInt("page"),
 		},
 	}
 
@@ -39,44 +40,44 @@ func Emails(ctx *context.Context) {
 	}
 
 	type ActiveEmail struct {
-		models.SearchEmailResult
+		user_model.SearchEmailResult
 		CanChange bool
 	}
 
 	var (
-		baseEmails []*models.SearchEmailResult
+		baseEmails []*user_model.SearchEmailResult
 		emails     []ActiveEmail
 		count      int64
 		err        error
-		orderBy    models.SearchEmailOrderBy
+		orderBy    user_model.SearchEmailOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "email":
-		orderBy = models.SearchEmailOrderByEmail
+		orderBy = user_model.SearchEmailOrderByEmail
 	case "reverseemail":
-		orderBy = models.SearchEmailOrderByEmailReverse
+		orderBy = user_model.SearchEmailOrderByEmailReverse
 	case "username":
-		orderBy = models.SearchEmailOrderByName
+		orderBy = user_model.SearchEmailOrderByName
 	case "reverseusername":
-		orderBy = models.SearchEmailOrderByNameReverse
+		orderBy = user_model.SearchEmailOrderByNameReverse
 	default:
 		ctx.Data["SortType"] = "email"
-		orderBy = models.SearchEmailOrderByEmail
+		orderBy = user_model.SearchEmailOrderByEmail
 	}
 
-	opts.Keyword = ctx.QueryTrim("q")
+	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
-	if len(ctx.Query("is_activated")) != 0 {
-		opts.IsActivated = util.OptionalBoolOf(ctx.QueryBool("activated"))
+	if len(ctx.FormString("is_activated")) != 0 {
+		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
 	}
-	if len(ctx.Query("is_primary")) != 0 {
-		opts.IsPrimary = util.OptionalBoolOf(ctx.QueryBool("primary"))
+	if len(ctx.FormString("is_primary")) != 0 {
+		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		baseEmails, count, err = models.SearchEmails(opts)
+		baseEmails, count, err = user_model.SearchEmails(opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
@@ -113,10 +114,10 @@ func ActivateEmail(ctx *context.Context) {
 
 	truefalse := map[string]bool{"1": true, "0": false}
 
-	uid := ctx.QueryInt64("uid")
-	email := ctx.Query("email")
-	primary, okp := truefalse[ctx.Query("primary")]
-	activate, oka := truefalse[ctx.Query("activate")]
+	uid := ctx.FormInt64("uid")
+	email := ctx.FormString("email")
+	primary, okp := truefalse[ctx.FormString("primary")]
+	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
 		ctx.Error(http.StatusBadRequest)
@@ -125,9 +126,9 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := models.ActivateUserEmail(uid, email, primary, activate); err != nil {
-		log.Error("ActivateUserEmail(%v,%v,%v,%v): %v", uid, email, primary, activate, err)
-		if models.IsErrEmailAlreadyUsed(err) {
+	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
+		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
@@ -139,16 +140,16 @@ func ActivateEmail(ctx *context.Context) {
 
 	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")
 	q := url.Values{}
-	if val := ctx.QueryTrim("q"); len(val) > 0 {
+	if val := ctx.FormTrim("q"); len(val) > 0 {
 		q.Set("q", val)
 	}
-	if val := ctx.QueryTrim("sort"); len(val) > 0 {
+	if val := ctx.FormTrim("sort"); len(val) > 0 {
 		q.Set("sort", val)
 	}
-	if val := ctx.QueryTrim("is_primary"); len(val) > 0 {
+	if val := ctx.FormTrim("is_primary"); len(val) > 0 {
 		q.Set("is_primary", val)
 	}
-	if val := ctx.QueryTrim("is_activated"); len(val) > 0 {
+	if val := ctx.FormTrim("is_activated"); len(val) > 0 {
 		q.Set("is_activated", val)
 	}
 	redirect.RawQuery = q.Encode()

@@ -24,9 +24,10 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.16.x
-MIN_GO_VERSION := 001014000
+XGO_VERSION := go-1.17.x
+MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
+MIN_GOLANGCI_LINT_VERSION := 001043000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -56,8 +57,6 @@ ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
 else
 	SED_INPLACE := sed -i ''
 endif
-
-GOFMT ?= gofmt -s
 
 EXTRA_GOFLAGS ?=
 
@@ -126,8 +125,6 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
 
-GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
-
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
@@ -189,8 +186,6 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
-	@echo " - revive                           run revive linter"
-	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -200,7 +195,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.14 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.16 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -237,12 +232,11 @@ clean:
 .PHONY: fmt
 fmt:
 	@echo "Running go fmt..."
-	@$(GOFMT) -w $(GO_SOURCES_OWN)
+	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
 
 .PHONY: vet
 vet:
 	@echo "Running go vet..."
-	@$(GO) vet $(GO_PACKAGES)
 	@GOOS= GOARCH= $(GO) build -mod=vendor code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
@@ -279,38 +273,15 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
+		$(GO) install github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344; \
 	fi
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
 
-.PHONY: revive
-revive:
-	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/mgechev/revive; \
-	fi
-	@revive -config .revive.toml -exclude=./vendor/... ./...
-
-.PHONY: misspell-check
-misspell-check:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
-	@echo "Running misspell-check..."
-	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
-
-.PHONY: misspell
-misspell:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
-	@echo "Running go misspell..."
-	@misspell -w -i unknwon $(GO_SOURCES_OWN)
-
 .PHONY: fmt-check
 fmt-check:
 	# get all go files and run go fmt on them
-	@diff=$$($(GOFMT) -d $(GO_SOURCES_OWN)); \
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
@@ -324,19 +295,19 @@ checks: checks-frontend checks-backend
 checks-frontend: svg-check
 
 .PHONY: checks-backend
-checks-backend: misspell-check test-vendor swagger-check swagger-validate
+checks-backend: test-vendor swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js
+	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
 	npx editorconfig-checker templates
 
 .PHONY: lint-backend
-lint-backend: golangci-lint revive vet
+lint-backend: golangci-lint vet
 
 .PHONY: watch
 watch:
@@ -350,16 +321,16 @@ watch-frontend: node-check node_modules
 .PHONY: watch-backend
 watch-backend: go-check
 	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+		$(GO) install github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4; \
 	fi
-	air -c .air.conf
+	air -c .air.toml
 
 .PHONY: test
 test: test-frontend test-backend
 
 .PHONY: test-backend
 test-backend:
-	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
@@ -385,12 +356,14 @@ test\#%:
 
 .PHONY: coverage
 coverage:
-	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all
+	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
+	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
+	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	@echo "Running unit-test-coverage -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
+	@$(GO) test $(GOTESTFLAGS) -mod=vendor -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
@@ -659,7 +632,7 @@ release-check: | $(DIST_DIRS)
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
+		$(GO) install github.com/ulikunitz/xz/cmd/gxz@v0.5.10; \
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
@@ -699,7 +672,9 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
+	cp -f web_src/js/vendor/dropdown.js $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/definitions/modules
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)
@@ -761,12 +736,22 @@ pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
-golangci-lint:
-	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.37.0; \
-	fi
+golangci-lint: golangci-lint-check
 	golangci-lint run --timeout 10m
+
+.PHONY: golangci-lint-check
+golangci-lint-check:
+	$(eval GOLANGCI_LINT_VERSION := $(shell printf "%03d%03d%03d" $(shell golangci-lint --version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval MIN_GOLANGCI_LINT_VER_FMT := $(shell printf "%g.%g.%g" $(shell echo $(MIN_GOLANGCI_LINT_VERSION) | grep -o ...)))
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Downloading golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	elif [ "$(GOLANGCI_LINT_VERSION)" -lt "$(MIN_GOLANGCI_LINT_VERSION)" ]; then \
+		echo "Downloading newer version of golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	fi
 
 .PHONY: docker
 docker:

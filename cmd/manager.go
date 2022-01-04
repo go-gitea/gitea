@@ -283,10 +283,13 @@ func runRemoveLogger(c *cli.Context) error {
 		group = log.DEFAULT
 	}
 	name := c.Args().First()
-	statusCode, msg := private.RemoveLogger(group, name)
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	statusCode, msg := private.RemoveLogger(ctx, group, name)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -418,10 +421,13 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 	if c.IsSet("name") {
 		name = c.String("name")
 	}
-	statusCode, msg := private.AddLogger(group, name, mode, vals)
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	statusCode, msg := private.AddLogger(ctx, group, name, mode, vals)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -429,11 +435,14 @@ func commonAddLogger(c *cli.Context, mode string, vals map[string]interface{}) e
 }
 
 func runShutdown(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Shutdown()
+	statusCode, msg := private.Shutdown(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -441,11 +450,14 @@ func runShutdown(c *cli.Context) error {
 }
 
 func runRestart(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Restart()
+	statusCode, msg := private.Restart(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -453,11 +465,14 @@ func runRestart(c *cli.Context) error {
 }
 
 func runFlushQueues(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.FlushQueues(c.Duration("timeout"), c.Bool("non-blocking"))
+	statusCode, msg := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -465,11 +480,14 @@ func runFlushQueues(c *cli.Context) error {
 }
 
 func runPauseLogging(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.PauseLogging()
+	statusCode, msg := private.PauseLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -477,11 +495,14 @@ func runPauseLogging(c *cli.Context) error {
 }
 
 func runResumeLogging(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.ResumeLogging()
+	statusCode, msg := private.ResumeLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)
@@ -489,11 +510,14 @@ func runResumeLogging(c *cli.Context) error {
 }
 
 func runReleaseReopenLogging(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.ReleaseReopenLogging()
+	statusCode, msg := private.ReleaseReopenLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
-		fail("InternalServerError", msg)
+		return fail("InternalServerError", msg)
 	}
 
 	fmt.Fprintln(os.Stdout, msg)

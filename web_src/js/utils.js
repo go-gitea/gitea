@@ -26,7 +26,8 @@ export function isObject(obj) {
 
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
-  return document.documentElement.classList.contains('theme-arc-green');
+  const style = window.getComputedStyle(document.documentElement);
+  return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
 // removes duplicate elements in an array
@@ -50,4 +51,10 @@ export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
     return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
   }
   return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
+}
+
+export function parseIssueHref(href) {
+  const path = (href || '').replace(/[#?].*$/, '');
+  const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  return {owner, repo, type, index};
 }

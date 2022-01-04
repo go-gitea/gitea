@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 )
 
 // Wrap converts all kinds of routes to standard library one
@@ -31,6 +31,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			func(ctx *context.Context) goctx.CancelFunc,
 			func(*context.APIContext),
 			func(*context.PrivateContext),
+			func(*context.PrivateContext) goctx.CancelFunc,
 			func(http.Handler) http.Handler:
 		default:
 			panic(fmt.Sprintf("Unsupported handler type: %#v", t))
@@ -52,6 +53,15 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(ctx *context.Context) goctx.CancelFunc:
 				ctx := context.GetContext(req)
+				cancel := t(ctx)
+				if cancel != nil {
+					defer cancel()
+				}
+				if ctx.Written() {
+					return
+				}
+			case func(*context.PrivateContext) goctx.CancelFunc:
+				ctx := context.GetPrivateContext(req)
 				cancel := t(ctx)
 				if cancel != nil {
 					defer cancel()
@@ -241,7 +251,7 @@ func (r *Route) Any(pattern string, h ...interface{}) {
 }
 
 // Route delegate special methods
-func (r *Route) Route(pattern string, methods string, h ...interface{}) {
+func (r *Route) Route(pattern, methods string, h ...interface{}) {
 	p := r.getPattern(pattern)
 	ms := strings.Split(methods, ",")
 	var middlewares = r.getMiddlewares(h)
@@ -267,6 +277,26 @@ func (r *Route) getMiddlewares(h []interface{}) []interface{} {
 func (r *Route) Get(pattern string, h ...interface{}) {
 	var middlewares = r.getMiddlewares(h)
 	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// Options delegate options method
+func (r *Route) Options(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// GetOptions delegate get and options method
+func (r *Route) GetOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// PostOptions delegate post and options method
+func (r *Route) PostOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Post(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Head delegate head method

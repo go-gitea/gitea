@@ -9,7 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -18,7 +19,7 @@ import (
 
 func TestAPIRepoTags(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -39,7 +40,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
-	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "awesome-tag", "", "nice!\nand some text")
+	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &tags)
 	assert.Len(t, tags, 2)
@@ -51,9 +52,23 @@ func TestAPIRepoTags(t *testing.T) {
 			assert.EqualValues(t, newTag.Commit.SHA, tag.Commit.SHA)
 		}
 	}
+
+	// get created tag
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var tag *api.Tag
+	DecodeJSON(t, resp, &tag)
+	assert.EqualValues(t, newTag, tag)
+
+	// delete tag
+	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	session.MakeRequest(t, delReq, http.StatusNoContent)
+
+	// check if it's gone
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func createNewTagUsingAPI(t *testing.T, session *TestSession, token string, ownerName, repoName, name, target, msg string) *api.Tag {
+func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, repoName, name, target, msg string) *api.Tag {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags?token=%s", ownerName, repoName, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateTagOption{
 		TagName: name,

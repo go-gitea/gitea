@@ -9,22 +9,21 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -83,7 +82,10 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 		indexerAliasName: indexerName,
 	}
 	exists, err := indexer.init()
-
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, !exists, err
 }
 
@@ -175,7 +177,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -207,7 +209,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 		return nil, err
 	}
 
-	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -215,6 +217,9 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 		return nil, nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return nil, err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 
 	return []elastic.BulkableRequest{
@@ -231,7 +236,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) elastic.BulkableRequest {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.indexerAliasName).
@@ -239,11 +244,16 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
@@ -281,7 +291,7 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 }
 
 // indexPos find words positions for start and the following end on content. It will
-// return the beginning position of the frist start and the ending position of the
+// return the beginning position of the first start and the ending position of the
 // first end following the start string.
 // If not found any of the positions, it will return -1, -1.
 func indexPos(content, start, end string) (int, int) {
@@ -305,8 +315,8 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		var startIndex, endIndex int = -1, -1
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
-			// FIXME: Since the high lighting content will include <em> and </em> for the keywords,
-			// now we should find the poisitions. But how to avoid html content which contains the
+			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
+			// now we should find the positions. But how to avoid html content which contains the
 			// <em> and </em> tags? If elastic search has handled that?
 			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
 			if startIndex == -1 {
@@ -318,7 +328,6 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		repoID, fileName := parseIndexerID(hit.Id)
 		var res = make(map[string]interface{})
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}

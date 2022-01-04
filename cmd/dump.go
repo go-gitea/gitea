@@ -7,26 +7,25 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	jsoniter "github.com/json-iterator/go"
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli/v2"
 )
 
-func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) error {
+func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
 	if verbose {
 		log.Info("Adding file %s\n", filePath)
 	}
@@ -49,7 +48,7 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 	})
 }
 
-func isSubdir(upper string, lower string) (bool, error) {
+func isSubdir(upper, lower string) (bool, error) {
 	if relPath, err := filepath.Rel(upper, lower); err != nil {
 		return false, err
 	} else if relPath == "." || !strings.HasPrefix(relPath, ".") {
@@ -87,7 +86,7 @@ func (o outputType) String() string {
 }
 
 var outputTypeEnum = &outputType{
-	Enum:    []string{"zip", "tar", "tar.gz", "tar.xz", "tar.bz2"},
+	Enum:    []string{"zip", "rar", "tar", "sz", "tar.gz", "tar.xz", "tar.bz2", "tar.br", "tar.lz4"},
 	Default: "zip",
 }
 
@@ -159,14 +158,19 @@ func fatal(format string, args ...interface{}) {
 func runDump(ctx *cli.Context) error {
 	var file *os.File
 	fileName := ctx.String("file")
+	outType := ctx.String("type")
 	if fileName == "-" {
 		file = os.Stdout
 		err := log.DelLogger("console")
 		if err != nil {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
+	} else {
+		fileName = strings.TrimSuffix(fileName, path.Ext(fileName))
+		fileName += "." + outType
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
+
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
@@ -180,7 +184,10 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := models.SetEngine()
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	err := db.InitEngine(stdCtx)
 	if err != nil {
 		return err
 	}
@@ -203,7 +210,6 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	verbose := ctx.Bool("verbose")
-	outType := ctx.String("type")
 	var iface interface{}
 	if fileName == "-" {
 		iface, err = archiver.ByExtension(fmt.Sprintf(".%s", outType))
@@ -253,7 +259,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Path does not exist: %s", tmpDir)
 	}
 
-	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
@@ -270,7 +276,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
+	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
 		fatal("Failed to dump database: %v", err)
 	}
 
@@ -286,7 +292,7 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
-		log.Info("Skiping custom directory")
+		log.Info("Skipping custom directory")
 	} else {
 		customDir, err := os.Stat(setting.CustomPath)
 		if err == nil && customDir.IsDir() {
@@ -312,7 +318,6 @@ func runDump(ctx *cli.Context) error {
 		var excludes []string
 		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
 			var opts session.Options
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
 			}

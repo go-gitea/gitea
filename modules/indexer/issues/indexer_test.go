@@ -5,30 +5,31 @@
 package issues
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1"
+	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func TestBleveSearchIssues(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
-	tmpIndexerDir, err := ioutil.TempDir("", "issues-indexer")
+	tmpIndexerDir, err := os.MkdirTemp("", "issues-indexer")
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return
@@ -74,7 +75,7 @@ func TestBleveSearchIssues(t *testing.T) {
 }
 
 func TestDBSearchIssues(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)

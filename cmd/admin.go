@@ -14,7 +14,10 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +25,10 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
+	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli/v2"
 )
@@ -292,6 +299,40 @@ var (
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
+		cli.StringSliceFlag{
+			Name:  "scopes",
+			Value: nil,
+			Usage: "Scopes to request when to authenticate against this OAuth2 source",
+		},
+		cli.StringFlag{
+			Name:  "required-claim-name",
+			Value: "",
+			Usage: "Claim name that has to be set to allow users to login with this source",
+		},
+		cli.StringFlag{
+			Name:  "required-claim-value",
+			Value: "",
+			Usage: "Claim value that has to be set to allow users to login with this source",
+		},
+		cli.StringFlag{
+			Name:  "group-claim-name",
+			Value: "",
+			Usage: "Claim name providing group names for this source",
+		},
+		cli.StringFlag{
+			Name:  "admin-group",
+			Value: "",
+			Usage: "Group Claim value for administrator users",
+		},
+		cli.StringFlag{
+			Name:  "restricted-group",
+			Value: "",
+			Usage: "Group Claim value for restricted users",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -337,9 +378,16 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
+	if len(c.String("password")) < setting.MinPasswordLength {
+		return fmt.Errorf("Password is not long enough. Needs to be at least %d", setting.MinPasswordLength)
+	}
+
 	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
@@ -351,7 +399,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := models.GetUserByName(uname)
+	user, err := user_model.GetUserByName(uname)
 	if err != nil {
 		return err
 	}
@@ -359,7 +407,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -391,7 +439,10 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -414,7 +465,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := models.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(); n == 0 {
 		changePassword = false
 	}
 
@@ -422,7 +473,7 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
@@ -432,7 +483,7 @@ func runCreateUser(c *cli.Context) error {
 		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := models.CreateUser(u); err != nil {
+	if err := user_model.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -454,11 +505,14 @@ func runCreateUser(c *cli.Context) error {
 }
 
 func runListUsers(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	users, err := models.GetAllUsers()
+	users, err := user_model.GetAllUsers()
 
 	if err != nil {
 		return err
@@ -491,7 +545,10 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -500,13 +557,13 @@ func runDeleteUser(c *cli.Context) error {
 	}
 
 	var err error
-	var user *models.User
+	var user *user_model.User
 	if c.IsSet("email") {
-		user, err = models.GetUserByEmail(c.String("email"))
+		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = models.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(c.String("username"))
 	} else {
-		user, err = models.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -519,18 +576,21 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return models.DeleteUser(user)
+	return user_service.DeleteUser(user)
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: models.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
@@ -589,20 +649,26 @@ func getReleaseCount(id int64) (int64, error) {
 }
 
 func runRegenerateHooks(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
+	return repo_service.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return models.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys()
 }
 
-func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -614,26 +680,36 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 	} else {
 		customURLMapping = nil
 	}
-	return &models.OAuth2Config{
+	return &oauth2.Source{
 		Provider:                      c.String("provider"),
 		ClientID:                      c.String("key"),
 		ClientSecret:                  c.String("secret"),
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
+		Scopes:                        c.StringSlice("scopes"),
+		RequiredClaimName:             c.String("required-claim-name"),
+		RequiredClaimValue:            c.String("required-claim-value"),
+		GroupClaimName:                c.String("group-claim-name"),
+		AdminGroup:                    c.String("admin-group"),
+		RestrictedGroup:               c.String("restricted-group"),
 	}
 }
 
 func runAddOauth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	return models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
+	return auth.CreateSource(&auth.Source{
+		Type:     auth.OAuth2,
+		Name:     c.String("name"),
+		IsActive: true,
+		Cfg:      parseOAuth2Config(c),
 	})
 }
 
@@ -642,16 +718,19 @@ func runUpdateOauth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := auth.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	oAuth2Config := source.OAuth2()
+	oAuth2Config := source.Cfg.(*oauth2.Source)
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")
@@ -675,6 +754,28 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("icon-url") {
 		oAuth2Config.IconURL = c.String("icon-url")
+	}
+
+	if c.IsSet("scopes") {
+		oAuth2Config.Scopes = c.StringSlice("scopes")
+	}
+
+	if c.IsSet("required-claim-name") {
+		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
+
+	}
+	if c.IsSet("required-claim-value") {
+		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
+	}
+
+	if c.IsSet("group-claim-name") {
+		oAuth2Config.GroupClaimName = c.String("group-claim-name")
+	}
+	if c.IsSet("admin-group") {
+		oAuth2Config.AdminGroup = c.String("admin-group")
+	}
+	if c.IsSet("restricted-group") {
+		oAuth2Config.RestrictedGroup = c.String("restricted-group")
 	}
 
 	// update custom URL mapping
@@ -705,15 +806,18 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return models.UpdateSource(source)
+	return auth.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	loginSources, err := models.LoginSources()
+	authSources, err := auth.Sources()
 
 	if err != nil {
 		return err
@@ -732,8 +836,8 @@ func runListAuth(c *cli.Context) error {
 	// loop through each source and print
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
-	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+	for _, source := range authSources {
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, source.Type.String(), source.IsActive)
 	}
 	w.Flush()
 
@@ -745,14 +849,17 @@ func runDeleteAuth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := auth.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return models.DeleteSource(source)
+	return auth_service.DeleteSource(source)
 }

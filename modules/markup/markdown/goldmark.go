@@ -114,6 +114,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+				wrap.SetAttributeString("target", []byte("_blank"))
 
 				// Duplicate the current image node
 				image := ast.NewImage(ast.NewLink())
@@ -228,7 +229,7 @@ func (p *prefixedIDs) Generate(value []byte, kind ast.NodeKind) []byte {
 }
 
 // Generate generates a new element id.
-func (p *prefixedIDs) GenerateWithDefault(value []byte, dft []byte) []byte {
+func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	result := common.CleanValue(value)
 	if len(result) == 0 {
 		result = dft

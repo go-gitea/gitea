@@ -1,4 +1,4 @@
-const MAX_SOURCE_CHARACTERS = 5000;
+const {mermaidMaxSourceCharacters} = window.config;
 
 function displayError(el, err) {
   el.closest('pre').classList.remove('is-loading');
@@ -8,10 +8,11 @@ function displayError(el, err) {
   el.closest('pre').before(errorNode);
 }
 
-export async function renderMermaid(els) {
-  if (!els || !els.length) return;
+export async function renderMermaid() {
+  const els = document.querySelectorAll('.markup code.language-mermaid');
+  if (!els.length) return;
 
-  const mermaid = await import(/* webpackChunkName: "mermaid" */'mermaid');
+  const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
   mermaid.initialize({
     mermaid: {
@@ -26,8 +27,8 @@ export async function renderMermaid(els) {
   });
 
   for (const el of els) {
-    if (el.textContent.length > MAX_SOURCE_CHARACTERS) {
-      displayError(el, new Error(`Mermaid source of ${el.textContent.length} characters exceeds the maximum allowed length of ${MAX_SOURCE_CHARACTERS}.`));
+    if (mermaidMaxSourceCharacters >= 0 && el.textContent.length > mermaidMaxSourceCharacters) {
+      displayError(el, new Error(`Mermaid source of ${el.textContent.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       continue;
     }
 

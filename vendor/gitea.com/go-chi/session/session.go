@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"time"
 )
 
@@ -259,7 +260,7 @@ func Sessioner(options ...Options) func(next http.Handler) http.Handler {
 				return
 			}
 
-			if err = sess.Release(); err != nil {
+			if err = s.RawStore.Release(); err != nil {
 				panic("session(release): " + err.Error())
 			}
 		})
@@ -271,6 +272,26 @@ func GetSession(req *http.Request) Store {
 	sessCtx := req.Context().Value("Session")
 	sess, _ := sessCtx.(*store)
 	return sess
+}
+
+// RegenerateSession
+func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, error) {
+	sess, ok := GetSession(req).(*store)
+	if !ok {
+		return nil, fmt.Errorf("no session in request context")
+	}
+
+	oldRawStore := sess.RawStore
+	if err := oldRawStore.Release(); err != nil {
+		return nil, err
+	}
+
+	store, err := sess.RegenerateID(resp, req)
+	if err != nil {
+		return nil, err
+	}
+	sess.RawStore = store
+	return sess, nil
 }
 
 // Provider is the interface that provides session manipulations.
@@ -291,17 +312,34 @@ type Provider interface {
 	GC()
 }
 
-var providers = make(map[string]Provider)
+var providers = make(map[string]func() Provider)
 
 // Register registers a provider.
 func Register(name string, provider Provider) {
-	if provider == nil {
+	if reflect.TypeOf(provider).Kind() == reflect.Ptr {
+		// Pointer:
+		RegisterFn(name, func() Provider {
+			return reflect.New(reflect.ValueOf(provider).Elem().Type()).Interface().(Provider)
+		})
+		return
+	}
+
+	// Not a Pointer
+	RegisterFn(name, func() Provider {
+		return reflect.New(reflect.TypeOf(provider)).Elem().Interface().(Provider)
+	})
+}
+
+// RegisterFn registers a provider function.
+func RegisterFn(name string, providerfn func() Provider) {
+	if providerfn == nil {
 		panic("session: cannot register provider with nil value")
 	}
 	if _, dup := providers[name]; dup {
 		panic(fmt.Errorf("session: cannot register provider '%s' twice", name))
 	}
-	providers[name] = provider
+
+	providers[name] = providerfn
 }
 
 //    _____
@@ -318,12 +356,15 @@ type Manager struct {
 }
 
 // NewManager creates and returns a new session manager by given provider name and configuration.
-// It panics when given provider isn't registered.
+// It returns an error when requested provider name isn't registered.
 func NewManager(name string, opt Options) (*Manager, error) {
-	p, ok := providers[name]
+	fn, ok := providers[name]
 	if !ok {
 		return nil, fmt.Errorf("session: unknown provider '%s'(forgotten import?)", name)
 	}
+
+	p := fn()
+
 	return &Manager{p, opt}, p.Init(opt.Maxlifetime, opt.ProviderConfig)
 }
 

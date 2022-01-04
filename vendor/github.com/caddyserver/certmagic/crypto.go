@@ -72,6 +72,10 @@ func encodePrivateKey(key crypto.PrivateKey) ([]byte, error) {
 func decodePrivateKey(keyPEMBytes []byte) (crypto.Signer, error) {
 	keyBlockDER, _ := pem.Decode(keyPEMBytes)
 
+	if keyBlockDER == nil {
+		return nil, fmt.Errorf("failed to decode PEM block containing private key")
+	}
+
 	if keyBlockDER.Type != "PRIVATE KEY" && !strings.HasSuffix(keyBlockDER.Type, " PRIVATE KEY") {
 		return nil, fmt.Errorf("unknown PEM header %q", keyBlockDER.Type)
 	}
@@ -143,12 +147,12 @@ func (cfg *Config) saveCertResource(issuer Issuer, cert CertificateResource) err
 
 	all := []keyValue{
 		{
-			key:   StorageKeys.SiteCert(issuerKey, certKey),
-			value: cert.CertificatePEM,
-		},
-		{
 			key:   StorageKeys.SitePrivateKey(issuerKey, certKey),
 			value: cert.PrivateKeyPEM,
+		},
+		{
+			key:   StorageKeys.SiteCert(issuerKey, certKey),
+			value: cert.CertificatePEM,
 		},
 		{
 			key:   StorageKeys.SiteMeta(issuerKey, certKey),
@@ -229,25 +233,24 @@ func (cfg *Config) loadCertResourceAnyIssuer(certNamesKey string) (CertificateRe
 
 // loadCertResource loads a certificate resource from the given issuer's storage location.
 func (cfg *Config) loadCertResource(issuer Issuer, certNamesKey string) (CertificateResource, error) {
-	var certRes CertificateResource
-	issuerKey := issuer.IssuerKey()
+	certRes := CertificateResource{issuerKey: issuer.IssuerKey()}
 
 	normalizedName, err := idna.ToASCII(certNamesKey)
 	if err != nil {
-		return certRes, fmt.Errorf("converting '%s' to ASCII: %v", certNamesKey, err)
+		return CertificateResource{}, fmt.Errorf("converting '%s' to ASCII: %v", certNamesKey, err)
 	}
 
-	certBytes, err := cfg.Storage.Load(StorageKeys.SiteCert(issuerKey, normalizedName))
+	certBytes, err := cfg.Storage.Load(StorageKeys.SiteCert(certRes.issuerKey, normalizedName))
 	if err != nil {
 		return CertificateResource{}, err
 	}
 	certRes.CertificatePEM = certBytes
-	keyBytes, err := cfg.Storage.Load(StorageKeys.SitePrivateKey(issuerKey, normalizedName))
+	keyBytes, err := cfg.Storage.Load(StorageKeys.SitePrivateKey(certRes.issuerKey, normalizedName))
 	if err != nil {
 		return CertificateResource{}, err
 	}
 	certRes.PrivateKeyPEM = keyBytes
-	metaBytes, err := cfg.Storage.Load(StorageKeys.SiteMeta(issuerKey, normalizedName))
+	metaBytes, err := cfg.Storage.Load(StorageKeys.SiteMeta(certRes.issuerKey, normalizedName))
 	if err != nil {
 		return CertificateResource{}, err
 	}

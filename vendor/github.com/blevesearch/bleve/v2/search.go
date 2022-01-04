@@ -543,7 +543,7 @@ func (sr *SearchResult) String() string {
 		rv += fmt.Sprintf("Facets:\n")
 		for fn, f := range sr.Facets {
 			rv += fmt.Sprintf("%s(%d)\n", fn, f.Total)
-			for _, t := range f.Terms {
+			for _, t := range f.Terms.Terms() {
 				rv += fmt.Sprintf("\t%s(%d)\n", t.Term, t.Count)
 			}
 			if f.Other != 0 {

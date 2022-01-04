@@ -2,8 +2,11 @@
 .di { display: inline !important; }
 .dif { display: inline-flex !important; }
 .dib { display: inline-block !important; }
+.pr { position: relative !important; }
 .ac { align-items: center !important; }
 .tc { text-align: center !important; }
+.tl { text-align: left !important; }
+.tdn { text-decoration: none !important; }
 .jc { justify-content: center !important; }
 .js { justify-content: flex-start !important; }
 .je { justify-content: flex-end !important; }
@@ -17,13 +20,19 @@
 
 .mono {
   font-family: var(--fonts-monospace) !important;
-  font-size: .9em !important; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em !important; /* compensate for monospace fonts being usually slightly larger */
 }
 
 .bold { font-weight: 600 !important; }
 
 .word-break {
   word-wrap: break-word !important;
+}
+
+.ellipsis {
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
 }
 
 .full-screen-width { width: 100vw !important; }

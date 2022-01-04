@@ -7,17 +7,19 @@ package integrations
 import (
 	"archive/zip"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web"
 
-	jsoniter "github.com/json-iterator/go"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,10 +41,10 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer repo.RemoveLFSMetaObjectByOid(oid)
+	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -73,7 +75,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 		assert.Contains(t, contentEncoding, "gzip")
 		gzippReader, err := gzipp.NewReader(resp.Body)
 		assert.NoError(t, err)
-		result, err := ioutil.ReadAll(gzippReader)
+		result, err := io.ReadAll(gzippReader)
 		assert.NoError(t, err)
 		assert.Equal(t, *content, result)
 	}
@@ -81,7 +83,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 
 func TestGetLFSSmall(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -94,7 +96,7 @@ func TestGetLFSSmall(t *testing.T) {
 
 func TestGetLFSLarge(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -110,7 +112,7 @@ func TestGetLFSLarge(t *testing.T) {
 
 func TestGetLFSGzip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -131,7 +133,7 @@ func TestGetLFSGzip(t *testing.T) {
 
 func TestGetLFSZip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -154,7 +156,7 @@ func TestGetLFSZip(t *testing.T) {
 
 func TestGetLFSRangeNo(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -167,7 +169,7 @@ func TestGetLFSRangeNo(t *testing.T) {
 
 func TestGetLFSRange(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -205,7 +207,7 @@ func TestGetLFSRange(t *testing.T) {
 				assert.Equal(t, tt.out, resp.Body.String())
 			} else {
 				var er lfs.ErrorResponse
-				err := jsoniter.Unmarshal(resp.Body.Bytes(), &er)
+				err := json.Unmarshal(resp.Body.Bytes(), &er)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.out, er.Message)
 			}
