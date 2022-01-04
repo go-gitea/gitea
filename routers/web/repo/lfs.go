@@ -421,12 +421,13 @@ func LFSPointerFiles(ctx *context.Context) {
 		var numAssociated, numNoExist, numAssociatable int
 
 		type pointerResult struct {
-			SHA        string
-			Oid        string
-			Size       int64
-			InRepo     bool
-			Exists     bool
-			Accessible bool
+			SHA          string
+			Oid          string
+			Size         int64
+			InRepo       bool
+			Exists       bool
+			Accessible   bool
+			Associatable bool
 		}
 
 		results := []pointerResult{}
@@ -461,14 +462,21 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
-				} else {
-					result.Accessible = true
+					if !result.Associatable {
+						associated, err := models.LFSObjectIsAssociated(pointerBlob.Oid)
+						if err != nil {
+							return err
+						}
+						result.Associatable = !associated
+					}
 				}
 			}
+
+			result.Accessible = result.InRepo || result.Associatable
 
 			if result.InRepo {
 				numAssociated++
@@ -476,7 +484,7 @@ func LFSPointerFiles(ctx *context.Context) {
 			if !result.Exists {
 				numNoExist++
 			}
-			if !result.InRepo && result.Accessible {
+			if result.Associatable {
 				numAssociatable++
 			}
 

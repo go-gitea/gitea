@@ -2,12 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package user
+package auth
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createAndParseToken(t *testing.T, grant *login.OAuth2Grant) *oauth2.OIDCToken {
+func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToken {
 	signingKey, err := oauth2.CreateJWTSigningKey("HS256", make([]byte, 32))
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
@@ -43,7 +43,7 @@ func createAndParseToken(t *testing.T, grant *login.OAuth2Grant) *oauth2.OIDCTok
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	grants, err := login.GetOAuth2GrantsByUserID(3)
+	grants, err := auth.GetOAuth2GrantsByUserID(3)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 
@@ -59,7 +59,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.False(t, oidcToken.EmailVerified)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	grants, err = login.GetOAuth2GrantsByUserID(user.ID)
+	grants, err = auth.GetOAuth2GrantsByUserID(user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 

@@ -187,9 +187,9 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{if and .AddedLabels (not .RemovedLabels)}}
-						{{$.i18n.Tr (TrN $.i18n.Lang (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels") (RenderLabels .AddedLabels) $createdStr | Safe}}
+						{{$.i18n.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
 					{{else if and (not .AddedLabels) .RemovedLabels}}
-						{{$.i18n.Tr (TrN $.i18n.Lang (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels") (RenderLabels .RemovedLabels) $createdStr | Safe}}
+						{{$.i18n.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
 					{{else}}
 						{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
 					{{end}}
@@ -716,7 +716,7 @@
 				{{ if .IsForcePush }}
 					{{$.i18n.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 				{{else}}
-					{{$.i18n.Tr (TrN $.i18n.Lang (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n") (len .Commits) $createdStr | Safe}}
+					{{$.i18n.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
 				{{end}}
 			</span>
 		</div>

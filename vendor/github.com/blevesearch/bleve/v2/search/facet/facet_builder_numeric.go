@@ -86,23 +86,21 @@ func (fb *NumericFacetBuilder) Field() string {
 	return fb.field
 }
 
-func (fb *NumericFacetBuilder) UpdateVisitor(field string, term []byte) {
-	if field == fb.field {
-		fb.sawValue = true
-		// only consider the values which are shifted 0
-		prefixCoded := numeric.PrefixCoded(term)
-		shift, err := prefixCoded.Shift()
-		if err == nil && shift == 0 {
-			i64, err := prefixCoded.Int64()
-			if err == nil {
-				f64 := numeric.Int64ToFloat64(i64)
+func (fb *NumericFacetBuilder) UpdateVisitor(term []byte) {
+	fb.sawValue = true
+	// only consider the values which are shifted 0
+	prefixCoded := numeric.PrefixCoded(term)
+	shift, err := prefixCoded.Shift()
+	if err == nil && shift == 0 {
+		i64, err := prefixCoded.Int64()
+		if err == nil {
+			f64 := numeric.Int64ToFloat64(i64)
 
-				// look at each of the ranges for a match
-				for rangeName, r := range fb.ranges {
-					if (r.min == nil || f64 >= *r.min) && (r.max == nil || f64 < *r.max) {
-						fb.termsCount[rangeName] = fb.termsCount[rangeName] + 1
-						fb.total++
-					}
+			// look at each of the ranges for a match
+			for rangeName, r := range fb.ranges {
+				if (r.min == nil || f64 >= *r.min) && (r.max == nil || f64 < *r.max) {
+					fb.termsCount[rangeName] = fb.termsCount[rangeName] + 1
+					fb.total++
 				}
 			}
 		}

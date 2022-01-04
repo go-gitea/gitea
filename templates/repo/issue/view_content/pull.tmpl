@@ -224,7 +224,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
+						{{$.i18n.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe }}
 						<div class="ui ordered list">
 							{{range .ChangedProtectedFiles}}
 								<div data-value="-" class="item">{{.}}</div>
@@ -555,7 +555,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-						{{$.i18n.Tr (TrN $.i18n.Lang $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n") | Safe }}
+						{{$.i18n.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe }}
 						<div class="ui ordered list">
 							{{range .ChangedProtectedFiles}}
 								<div data-value="-" class="item">{{.}}</div>

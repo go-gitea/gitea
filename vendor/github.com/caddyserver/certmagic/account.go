@@ -405,10 +405,6 @@ var (
 	discoveredEmailMu sync.Mutex
 )
 
-// agreementTestURL is set during tests to skip requiring
-// setting up an entire ACME CA endpoint.
-var agreementTestURL string
-
 // stdin is used to read the user's input if prompted;
 // this is changed by tests during tests.
 var stdin = io.ReadWriter(os.Stdin)
