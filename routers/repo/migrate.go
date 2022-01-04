@@ -196,7 +196,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 // CancelMigration cancels a running migration
 func CancelMigration(ctx *context.Context) {
-	if !ctx.Repo.IsOwner() {
+	if !ctx.Repo.IsAdmin() {
 		ctx.Error(http.StatusNotFound)
 		return
 	}
