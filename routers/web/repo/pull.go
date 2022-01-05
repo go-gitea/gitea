@@ -738,7 +738,6 @@ func ViewPullFiles(ctx *context.Context) {
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
@@ -1098,7 +1097,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
