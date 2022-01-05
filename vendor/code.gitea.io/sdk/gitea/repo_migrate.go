@@ -47,6 +47,8 @@ type MigrateRepoOption struct {
 	PullRequests   bool           `json:"pull_requests"`
 	Releases       bool           `json:"releases"`
 	MirrorInterval string         `json:"mirror_interval"`
+	LFS            bool           `json:"lfs"`
+	LFSEndpoint    string         `json:"lfs_endpoint"`
 }
 
 // Validate the MigrateRepoOption struct
