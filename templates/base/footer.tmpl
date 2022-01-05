@@ -12,14 +12,6 @@
 	{{template "custom/body_outer_post" .}}
 
 	{{template "base/footer_content" .}}
-{{if .RequireEasyMDE}}
-	<script src="{{AssetUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
-	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
-	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
-	<script>
-		CodeMirror.modeURL = '{{AssetUrlPrefix}}/vendor/plugins/codemirror/mode/%N/%N.js';
-	</script>
-{{end}}
 
 <!-- Third-party libraries -->
 {{if .RequireU2F}}
