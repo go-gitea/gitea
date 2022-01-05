@@ -157,7 +157,7 @@ func (t *Team) GetUnitNames() (res []string) {
 
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
-	var m = make(map[string]string)
+	m := make(map[string]string)
 	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
 			m[u.NameKey] = t.AccessMode.String()

@@ -523,7 +523,7 @@ type FindOrgOptions struct {
 }
 
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
-	var cond = builder.Eq{"uid": userID}
+	cond := builder.Eq{"uid": userID}
 	if !includePrivate {
 		cond["is_public"] = true
 	}
@@ -531,7 +531,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}

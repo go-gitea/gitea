@@ -241,5 +241,4 @@ func TestAPITeamSearch(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "team")
 	req.Header.Add("X-Csrf-Token", csrf)
 	session.MakeRequest(t, req, http.StatusForbidden)
-
 }

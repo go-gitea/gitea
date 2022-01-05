@@ -5,8 +5,9 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
 func addAuthorizeColForTeamUnit(x *xorm.Engine) error {
@@ -18,20 +19,11 @@ func addAuthorizeColForTeamUnit(x *xorm.Engine) error {
 		AccessMode int
 	}
 
-	if err := modifyColumn(x, "user", &schemas.Column{
-		Name: "rands",
-		SQLType: schemas.SQLType{
-			Name: "VARCHAR",
-		},
-		Length: 32,
-		// MySQL will like us again.
-		Nullable: true,
-	}); err != nil {
-		return err
+	if err := x.Sync2(new(TeamUnit)); err != nil {
+		return fmt.Errorf("sync2: %v", err)
 	}
 
 	// migrate old permission
 	_, err := x.Exec("UPDATE team_unit SET access_mode = (SELECT authorize FROM team WHERE team.id = team_unit.team_id)")
 	return err
-
 }

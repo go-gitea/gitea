@@ -159,7 +159,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 		teamToCreate.Permission, teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		teamToCreate.Permission, teamToCreate.Units, nil)
-	//teamID := apiTeam.ID
+	// teamID := apiTeam.ID
 
 	// Now we need to add the restricted user to the team
 	req = NewRequest(t, "PUT",
@@ -172,5 +172,4 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
-
 }

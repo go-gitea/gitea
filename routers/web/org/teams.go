@@ -226,7 +226,7 @@ func NewTeam(ctx *context.Context) {
 }
 
 func getUnitPerms(forms url.Values) map[unit_model.Type]perm.AccessMode {
-	var unitPerms = make(map[unit_model.Type]perm.AccessMode)
+	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for k, v := range forms {
 		if strings.HasPrefix(k, "unit_") {
 			t, _ := strconv.Atoi(k[5:])
@@ -242,13 +242,9 @@ func getUnitPerms(forms url.Values) map[unit_model.Type]perm.AccessMode {
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Units"] = unit_model.Units
-	var includesAllRepositories = form.RepoAccess == "all"
-	var unitPerms = getUnitPerms(ctx.Req.Form)
-	var p = perm.ParseAccessMode(form.Permission)
+	includesAllRepositories := form.RepoAccess == "all"
+	unitPerms := getUnitPerms(ctx.Req.Form)
+	p := perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin {
 		// if p is less than admin accessmode, then it should be general accessmode,
 		// so we should calculate the minial accessmode from units accessmodes.
@@ -265,7 +261,7 @@ func NewTeamPost(ctx *context.Context) {
 	}
 
 	if t.AccessMode < perm.AccessModeAdmin {
-		var units = make([]*models.TeamUnit, 0, len(unitPerms))
+		units := make([]*models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, &models.TeamUnit{
 				OrgID:      ctx.Org.Organization.ID,
@@ -276,6 +272,10 @@ func NewTeamPost(ctx *context.Context) {
 		t.Units = units
 	}
 
+	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamsNew"] = true
+	ctx.Data["Units"] = unit_model.Units
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
@@ -340,16 +340,16 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
+	unitPerms := getUnitPerms(ctx.Req.Form)
+	isAuthChanged := false
+	isIncludeAllChanged := false
+	includesAllRepositories := form.RepoAccess == "all"
+
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	var unitPerms = getUnitPerms(ctx.Req.Form)
-
-	isAuthChanged := false
-	isIncludeAllChanged := false
-	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		newAccessMode := perm.ParseAccessMode(form.Permission)
@@ -372,7 +372,7 @@ func EditTeamPost(ctx *context.Context) {
 	}
 	t.Description = form.Description
 	if t.AccessMode < perm.AccessModeAdmin {
-		var units = make([]models.TeamUnit, 0, len(unitPerms))
+		units := make([]models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, models.TeamUnit{
 				OrgID:      t.OrgID,
@@ -381,8 +381,7 @@ func EditTeamPost(ctx *context.Context) {
 				AccessMode: perm,
 			})
 		}
-		err := models.UpdateTeamUnits(t, units)
-		if err != nil {
+		if err := models.UpdateTeamUnits(t, units); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadIssue", err.Error())
 			return
 		}

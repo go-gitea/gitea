@@ -51,7 +51,6 @@ func ListTeams(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadTeams", err)
 		return
@@ -164,7 +163,7 @@ func attachTeamUnits(team *models.Team, units []string) {
 }
 
 func convertUnitsMap(unitsMap map[string]string) map[unit_model.Type]perm.AccessMode {
-	var res = make(map[unit_model.Type]perm.AccessMode, len(unitsMap))
+	res := make(map[unit_model.Type]perm.AccessMode, len(unitsMap))
 	for unitKey, p := range unitsMap {
 		res[unit_model.TypeFromKey(unitKey)] = perm.ParseAccessMode(p)
 	}
@@ -207,12 +206,10 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
-
-	var p = perm.ParseAccessMode(form.Permission)
+	p := perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
 		p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
 	}
-
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -269,7 +266,6 @@ func EditTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Team"
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
-
 	team := ctx.Org.Team
 	if err := team.GetUnits(); err != nil {
 		ctx.InternalServerError(err)
@@ -292,7 +288,7 @@ func EditTeam(ctx *context.APIContext) {
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
-		var p = perm.ParseAccessMode(form.Permission)
+		p := perm.ParseAccessMode(form.Permission)
 		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
 			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
 		}
@@ -748,5 +744,4 @@ func SearchTeam(ctx *context.APIContext) {
 		"ok":   true,
 		"data": apiTeams,
 	})
-
 }
