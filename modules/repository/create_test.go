@@ -70,25 +70,25 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		{
 			OrgID:                   org.ID,
 			Name:                    "team one",
-			Authorize:               perm.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 2",
-			Authorize:               perm.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: false,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team three",
-			Authorize:               perm.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 4",
-			Authorize:               perm.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: false,
 		},
 	}
