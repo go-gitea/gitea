@@ -31,14 +31,12 @@
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="issue-item-top-row">
-					<a class="title" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-						{{RenderEmoji .Title}}
-						{{if .IsPull }}
-							{{if (index $.CommitStatus .PullRequest.ID)}}
-								{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
-							{{end}}
+					<a class="title tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
+					{{if .IsPull}}
+						{{if (index $.CommitStatus .PullRequest.ID)}}
+							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
-					</a>
+					{{end}}
 					<span class="labels-list ml-2">
 						{{range .Labels}}
 							<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
@@ -93,25 +91,25 @@
 						{{if gt $approveOfficial 0}}
 							<span class="approvals df ac">
 								{{svg "octicon-check" 14 "mr-1"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+								{{$.i18n.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
 							<span class="rejects df ac">
 								{{svg "octicon-diff" 14 "mr-2"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+								{{$.i18n.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting df ac">
 								{{svg "octicon-eye" 14 "mr-2"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
+								{{$.i18n.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 							<span class="conflicting df ac">
 								{{svg "octicon-x" 14}}
-								{{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}
+								{{$.i18n.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
 						{{end}}
 					{{end}}
@@ -126,14 +124,14 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
-						<a class="ui assignee tooltip" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
+						<a class="ui assignee tooltip tdn" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
 							{{avatar .}}
 						</a>
 					{{end}}
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{if .NumComments}}
-						<a href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						<a class="tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
 						</a>
 					{{end}}

@@ -41,6 +41,22 @@ func (err ErrWebhookNotExist) Error() string {
 	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
 }
 
+// ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
+type ErrHookTaskNotExist struct {
+	HookID int64
+	UUID   string
+}
+
+// IsErrWebhookNotExist checks if an error is a ErrWebhookNotExist.
+func IsErrHookTaskNotExist(err error) bool {
+	_, ok := err.(ErrHookTaskNotExist)
+	return ok
+}
+
+func (err ErrHookTaskNotExist) Error() string {
+	return fmt.Sprintf("hook task does not exist [hook: %d, uuid: %s]", err.HookID, err.UUID)
+}
+
 // HookContentType is the content type of a web hook
 type HookContentType int
 

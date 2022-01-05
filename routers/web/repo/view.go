@@ -141,6 +141,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
+	if ctx.Repo.TreePath != "" {
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
+	}
+
 	// 3 for the extensions in exts[] in order
 	// the last one is for a readme that doesn't
 	// strictly match an extension
@@ -374,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -790,7 +794,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -822,7 +826,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, _, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := repo_model.FindTopics(&repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -836,8 +840,30 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.HTML(http.StatusOK, tplRepoEMPTY)
-		return
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
+		if err != nil {
+			ctx.ServerError("GitRepo.IsEmpty", err)
+			return
+		}
+		if reallyEmpty {
+			ctx.HTML(http.StatusOK, tplRepoEMPTY)
+			return
+		}
+		// the repo is not really empty, so we should update the modal in database
+		// such problem may be caused by:
+		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
+		// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
+		// it's possible for a repository to be non-empty by that flag but still 500
+		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
+		ctx.Repo.Repository.IsEmpty = false
+		if err = repo_model.UpdateRepositoryCols(ctx.Repo.Repository, "is_empty"); err != nil {
+			ctx.ServerError("UpdateRepositoryCols", err)
+			return
+		}
+		if err = models.UpdateRepoSize(db.DefaultContext, ctx.Repo.Repository); err != nil {
+			ctx.ServerError("UpdateRepoSize", err)
+			return
+		}
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -931,7 +957,7 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["PageIsWatchers"] = true
 
 	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return models.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
 	}, tplWatchers)
 }
 
@@ -941,7 +967,7 @@ func Stars(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
 	ctx.Data["PageIsStargazers"] = true
 	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
-		return models.GetStargazers(ctx.Repo.Repository, opts)
+		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
 	}, tplWatchers)
 }
 
@@ -957,7 +983,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := models.GetForks(ctx.Repo.Repository, db.ListOptions{
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})

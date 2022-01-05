@@ -17,8 +17,10 @@ package mapping
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 
+	"github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	index "github.com/blevesearch/bleve_index_api"
 
 	"github.com/blevesearch/bleve/v2/analysis"
@@ -89,6 +91,19 @@ func newTextFieldMappingDynamic(im *IndexMappingImpl) *FieldMapping {
 	return rv
 }
 
+// NewKeyworFieldMapping returns a default field mapping for text with analyzer "keyword".
+func NewKeywordFieldMapping() *FieldMapping {
+	return &FieldMapping{
+		Type:               "text",
+		Analyzer:           keyword.Name,
+		Store:              true,
+		Index:              true,
+		IncludeTermVectors: true,
+		IncludeInAll:       true,
+		DocValues:          true,
+	}
+}
+
 // NewNumericFieldMapping returns a default field mapping for numbers
 func NewNumericFieldMapping() *FieldMapping {
 	return &FieldMapping{
@@ -157,6 +172,16 @@ func NewGeoPointFieldMapping() *FieldMapping {
 	}
 }
 
+// NewIPFieldMapping returns a default field mapping for IP points
+func NewIPFieldMapping() *FieldMapping {
+	return &FieldMapping{
+		Type:         "IP",
+		Store:        true,
+		Index:        true,
+		IncludeInAll: true,
+	}
+}
+
 // Options returns the indexing options for this field.
 func (fm *FieldMapping) Options() index.FieldIndexingOptions {
 	var rv index.FieldIndexingOptions
@@ -200,6 +225,11 @@ func (fm *FieldMapping) processString(propertyValueString string, pathString str
 			if err == nil {
 				fm.processTime(parsedDateTime, pathString, path, indexes, context)
 			}
+		}
+	} else if fm.Type == "IP" {
+		ip := net.ParseIP(propertyValueString)
+		if ip != nil {
+			fm.processIP(ip, pathString, path, indexes, context)
 		}
 	}
 }
@@ -258,6 +288,17 @@ func (fm *FieldMapping) processGeoPoint(propertyMightBeGeoPoint interface{}, pat
 		if !fm.IncludeInAll {
 			context.excludedFromAll = append(context.excludedFromAll, fieldName)
 		}
+	}
+}
+
+func (fm *FieldMapping) processIP(ip net.IP, pathString string, path []string, indexes []uint64, context *walkContext) {
+	fieldName := getFieldName(pathString, path, fm)
+	options := fm.Options()
+	field := document.NewIPFieldWithIndexingOptions(fieldName, indexes, ip, options)
+	context.doc.AddField(field)
+
+	if !fm.IncludeInAll {
+		context.excludedFromAll = append(context.excludedFromAll, fieldName)
 	}
 }
 

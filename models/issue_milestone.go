@@ -448,7 +448,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 }
 
 // SearchMilestones search milestones
-func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType string, keyword string) (MilestoneList, error) {
+func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {

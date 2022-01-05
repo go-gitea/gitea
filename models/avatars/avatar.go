@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
@@ -21,9 +22,6 @@ import (
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 const DefaultAvatarPixelSize = 28
 
-// AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
-const AvatarRenderedSizeFactor = 4
-
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
 	Hash  string `xorm:"pk varchar(32)"`
@@ -34,16 +32,24 @@ func init() {
 	db.RegisterModel(new(EmailHash))
 }
 
+var (
+	defaultAvatarLink string
+	once              sync.Once
+)
+
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
-	u, err := url.Parse(setting.AppSubURL)
-	if err != nil {
-		log.Error("GetUserByEmail: %v", err)
-		return ""
-	}
+	once.Do(func() {
+		u, err := url.Parse(setting.AppSubURL)
+		if err != nil {
+			log.Error("Can not parse AppSubURL: %v", err)
+			return
+		}
 
-	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
-	return u.String()
+		u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
+		defaultAvatarLink = u.String()
+	})
+	return defaultAvatarLink
 }
 
 // HashEmail hashes email address to MD5 string. https://en.gravatar.com/site/implement/hash/

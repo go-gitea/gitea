@@ -24,8 +24,8 @@ Start tests
 make test-sqlite
 ```
 
-## Run mysql integrations tests
-Setup a mysql database inside docker
+## Run MySQL integrations tests
+Setup a MySQL database inside docker
 ```
 docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" -p 3306:3306 --rm --name mysql mysql:latest #(just ctrl-c to stop db and clean the container)
 docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" --rm --name elasticsearch elasticsearch:7.6.0 #(in a second terminal, just ctrl-c to stop db and clean the container)
@@ -59,13 +59,13 @@ TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=
 
 Example command to run GPG test:
 
-For sqlite:
+For SQLite:
 
 ```
 make test-sqlite#GPG
 ```
 
-For other databases(replace MSSQL to MYSQL, MYSQL8, PGSQL):
+For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
 
 ```
 TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG

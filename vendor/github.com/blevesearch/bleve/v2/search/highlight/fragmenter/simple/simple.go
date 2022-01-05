@@ -123,9 +123,15 @@ OUTER:
 		// if there were no terms to highlight
 		// produce a single fragment from the beginning
 		start := 0
-		end := start + s.fragmentSize
-		if end > len(orig) {
-			end = len(orig)
+		end := start
+		used := 0
+		for end < len(orig) && used < s.fragmentSize {
+			r, size := utf8.DecodeRune(orig[end:])
+			if r == utf8.RuneError {
+				break
+			}
+			end += size
+			used++
 		}
 		rv = append(rv, &highlight.Fragment{Orig: orig, Start: start, End: end})
 	}

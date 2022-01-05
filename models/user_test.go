@@ -98,25 +98,3 @@ func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
-
-func TestGetOrgRepositoryIDs(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-
-	accessibleRepos, err := GetOrgRepositoryIDs(user2)
-	assert.NoError(t, err)
-	// User 2's team has access to private repos 3, 5, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 5, 23, 24, 32}, accessibleRepos)
-
-	accessibleRepos, err = GetOrgRepositoryIDs(user4)
-	assert.NoError(t, err)
-	// User 4's team has access to private repo 3, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 32}, accessibleRepos)
-
-	accessibleRepos, err = GetOrgRepositoryIDs(user5)
-	assert.NoError(t, err)
-	// User 5's team has no access to any repo
-	assert.Len(t, accessibleRepos, 0)
-}

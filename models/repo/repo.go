@@ -25,6 +25,20 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+var (
+	reservedRepoNames    = []string{".", ".."}
+	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
+)
+
+// IsUsableRepoName returns true when repository is usable
+func IsUsableRepoName(name string) error {
+	if db.AlphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return db.ErrNameCharsNotAllowed{Name: name}
+	}
+	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
+}
+
 // TrustModelType defines the types of trust model for this repository
 type TrustModelType int
 
@@ -159,6 +173,13 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
+	if repo == nil {
+		log.ColorFprintf(s, "%d:%s/%s",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			"<nil>")
+		return
+	}
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
 		repo.OwnerName,
@@ -298,10 +319,11 @@ func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 
 // GetUnit returns a RepoUnit object
 func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
-	return repo.getUnit(db.DefaultContext, tp)
+	return repo.GetUnitCtx(db.DefaultContext, tp)
 }
 
-func (repo *Repository) getUnit(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
+// GetUnitCtx returns a RepoUnit object
+func (repo *Repository) GetUnitCtx(ctx context.Context, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.LoadUnits(ctx); err != nil {
 		return nil, err
 	}
@@ -668,6 +690,16 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	return getRepositoryByID(e, repo.TemplateID)
 }
 
+// TemplateRepo returns the repository, which is template of this repository
+func (repo *Repository) TemplateRepo() *Repository {
+	repo, err := GetTemplateRepo(repo)
+	if err != nil {
+		log.Error("TemplateRepo: %v", err)
+		return nil
+	}
+	return repo
+}
+
 func countRepositories(userID int64, private bool) int64 {
 	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
 
@@ -697,15 +729,6 @@ func CountRepositories(private bool) int64 {
 // set it true to count all repositories.
 func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
-}
-
-// GetUserMirrorRepositories returns a list of mirror repositories of given user.
-func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ?", userID).
-		And("is_mirror = ?", true).
-		Find(&repos)
 }
 
 func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {

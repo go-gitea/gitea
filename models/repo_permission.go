@@ -239,7 +239,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// if user in an owner team
 	for _, team := range teams {
-		if team.Authorize >= perm_model.AccessModeOwner {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.UnitsMode = nil
 			return
@@ -249,10 +249,11 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			if team.unitEnabled(e, u.Type) {
+			teamMode := team.unitAccessMode(e, u.Type)
+			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
-				if m < team.Authorize {
-					perm.UnitsMode[u.Type] = team.Authorize
+				if m < teamMode {
+					perm.UnitsMode[u.Type] = teamMode
 				}
 				found = true
 			}
@@ -324,7 +325,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 	}
 
 	for _, team := range teams {
-		if team.Authorize >= perm_model.AccessModeAdmin {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
 			return true, nil
 		}
 	}
@@ -400,22 +401,20 @@ func HasAccess(userID int64, repo *repo_model.Repository) (bool, error) {
 	return hasAccess(db.DefaultContext, userID, repo)
 }
 
-// FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
-func FilterOutRepoIdsWithoutUnitAccess(u *user_model.User, repoIDs []int64, units ...unit.Type) ([]int64, error) {
-	i := 0
-	for _, rID := range repoIDs {
-		repo, err := repo_model.GetRepositoryByID(rID)
-		if err != nil {
-			return nil, err
-		}
-		perm, err := GetUserRepoPermission(repo, u)
-		if err != nil {
-			return nil, err
-		}
-		if perm.CanReadAny(units...) {
-			repoIDs[i] = rID
-			i++
-		}
+// GetRepoReaders returns all users that have explicit read access or higher to the repository.
+func GetRepoReaders(repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeRead)
+}
+
+// GetRepoWriters returns all users that have write access to the repository.
+func GetRepoWriters(repo *repo_model.Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.DefaultContext, repo, perm_model.AccessModeWrite)
+}
+
+// IsRepoReader returns true if user has explicit read access or higher to the repository.
+func IsRepoReader(repo *repo_model.Repository, userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
 	}
-	return repoIDs[:i], nil
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
 }

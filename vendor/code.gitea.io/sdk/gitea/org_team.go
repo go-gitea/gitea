@@ -12,16 +12,37 @@ import (
 
 // Team represents a team in an organization
 type Team struct {
-	ID                      int64         `json:"id"`
-	Name                    string        `json:"name"`
-	Description             string        `json:"description"`
-	Organization            *Organization `json:"organization"`
-	Permission              AccessMode    `json:"permission"`
-	CanCreateOrgRepo        bool          `json:"can_create_org_repo"`
-	IncludesAllRepositories bool          `json:"includes_all_repositories"`
-	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	ID                      int64          `json:"id"`
+	Name                    string         `json:"name"`
+	Description             string         `json:"description"`
+	Organization            *Organization  `json:"organization"`
+	Permission              AccessMode     `json:"permission"`
+	CanCreateOrgRepo        bool           `json:"can_create_org_repo"`
+	IncludesAllRepositories bool           `json:"includes_all_repositories"`
+	Units                   []RepoUnitType `json:"units"`
 }
+
+// RepoUnitType represent all unit types of a repo gitea currently offer
+type RepoUnitType string
+
+const (
+	// RepoUnitCode represent file view of a repository
+	RepoUnitCode RepoUnitType = "repo.code"
+	// RepoUnitIssues represent issues of a repository
+	RepoUnitIssues RepoUnitType = "repo.issues"
+	// RepoUnitPulls represent pulls of a repository
+	RepoUnitPulls RepoUnitType = "repo.pulls"
+	// RepoUnitExtIssues represent external issues of a repository
+	RepoUnitExtIssues RepoUnitType = "repo.ext_issues"
+	// RepoUnitWiki represent wiki of a repository
+	RepoUnitWiki RepoUnitType = "repo.wiki"
+	// RepoUnitExtWiki represent external wiki of a repository
+	RepoUnitExtWiki RepoUnitType = "repo.ext_wiki"
+	// RepoUnitReleases represent releases of a repository
+	RepoUnitReleases RepoUnitType = "repo.releases"
+	// RepoUnitProjects represent projects of a repository
+	RepoUnitProjects RepoUnitType = "repo.projects"
+)
 
 // ListTeamsOptions options for listing teams
 type ListTeamsOptions struct {
@@ -56,13 +77,12 @@ func (c *Client) GetTeam(id int64) (*Team, *Response, error) {
 
 // CreateTeamOption options for creating a team
 type CreateTeamOption struct {
-	Name                    string     `json:"name"`
-	Description             string     `json:"description"`
-	Permission              AccessMode `json:"permission"`
-	CanCreateOrgRepo        bool       `json:"can_create_org_repo"`
-	IncludesAllRepositories bool       `json:"includes_all_repositories"`
-	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Name                    string         `json:"name"`
+	Description             string         `json:"description"`
+	Permission              AccessMode     `json:"permission"`
+	CanCreateOrgRepo        bool           `json:"can_create_org_repo"`
+	IncludesAllRepositories bool           `json:"includes_all_repositories"`
+	Units                   []RepoUnitType `json:"units"`
 }
 
 // Validate the CreateTeamOption struct
@@ -103,13 +123,12 @@ func (c *Client) CreateTeam(org string, opt CreateTeamOption) (*Team, *Response,
 
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
-	Name                    string     `json:"name"`
-	Description             *string    `json:"description"`
-	Permission              AccessMode `json:"permission"`
-	CanCreateOrgRepo        *bool      `json:"can_create_org_repo"`
-	IncludesAllRepositories *bool      `json:"includes_all_repositories"`
-	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Name                    string         `json:"name"`
+	Description             *string        `json:"description"`
+	Permission              AccessMode     `json:"permission"`
+	CanCreateOrgRepo        *bool          `json:"can_create_org_repo"`
+	IncludesAllRepositories *bool          `json:"includes_all_repositories"`
+	Units                   []RepoUnitType `json:"units"`
 }
 
 // Validate the EditTeamOption struct

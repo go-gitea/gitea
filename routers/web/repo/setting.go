@@ -24,6 +24,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -67,6 +69,23 @@ func Settings(ctx *context.Context) {
 	signing, _ := asymkey_service.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
+	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	if ctx.User.IsAdmin {
+		if setting.Indexer.RepoIndexerEnabled {
+			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
+			if err != nil {
+				ctx.ServerError("repo.indexer_status", err)
+				return
+			}
+			ctx.Data["CodeIndexerStatus"] = status
+		}
+		status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
+		if err != nil {
+			ctx.ServerError("repo.indexer_status", err)
+			return
+		}
+		ctx.Data["StatsIndexerStatus"] = status
+	}
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
@@ -103,11 +122,11 @@ func SettingsPost(ctx *context.Context) {
 			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
-				case models.IsErrRepoAlreadyExist(err):
+				case repo_model.IsErrRepoAlreadyExist(err):
 					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 				case db.IsErrNameReserved(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
-				case models.IsErrRepoFilesAlreadyExist(err):
+				case repo_model.IsErrRepoFilesAlreadyExist(err):
 					ctx.Data["Err_RepoName"] = true
 					switch {
 					case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
@@ -144,7 +163,7 @@ func SettingsPost(ctx *context.Context) {
 		visibilityChanged := repo.IsPrivate != form.Private
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
-			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
+			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
 			return
 		}
 
@@ -461,7 +480,7 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 
-		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+		if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
@@ -515,6 +534,34 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
+	case "admin_index":
+		if !ctx.User.IsAdmin {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+
+		switch form.RequestReindexType {
+		case "stats":
+			if err := stats.UpdateRepoIndexer(ctx.Repo.Repository); err != nil {
+				ctx.ServerError("UpdateStatsRepondexer", err)
+				return
+			}
+		case "code":
+			if !setting.Indexer.RepoIndexerEnabled {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+			code.UpdateRepoIndexer(ctx.Repo.Repository)
+		default:
+			ctx.NotFound("", nil)
+			return
+		}
+
+		log.Trace("Repository reindex for %s requested: %s/%s", form.RequestReindexType, ctx.Repo.Owner.Name, repo.Name)
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.reindex_requested"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	case "convert":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusNotFound)
@@ -562,7 +609,9 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !ctx.Repo.Owner.CanCreateRepo() {
-			ctx.Flash.Error(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()))
+			maxCreationLimit := ctx.Repo.Owner.MaxCreationLimit()
+			msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+			ctx.Flash.Error(msg)
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
@@ -612,7 +661,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
-			if models.IsErrRepoAlreadyExist(err) {
+			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
@@ -714,7 +763,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.SetArchiveRepoState(repo, true); err != nil {
+		if err := repo_model.SetArchiveRepoState(repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -732,7 +781,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := models.SetArchiveRepoState(repo, false); err != nil {
+		if err := repo_model.SetArchiveRepoState(repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -945,31 +994,6 @@ func DeleteTeam(ctx *context.Context) {
 	})
 }
 
-// parseOwnerAndRepo get repos by owner
-func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *repo_model.Repository) {
-	owner, err := user_model.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", err)
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return nil, nil
-	}
-
-	repo, err := repo_model.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByName", err)
-		} else {
-			ctx.ServerError("GetRepositoryByName", err)
-		}
-		return nil, nil
-	}
-
-	return owner, repo
-}
-
 // GitHooks hooks of a repository
 func GitHooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
@@ -1145,7 +1169,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = models.UploadRepoAvatar(ctxRepo, data); err != nil {
+	if err = repo_service.UploadAvatar(ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %v", err)
 	}
 	return nil
@@ -1165,7 +1189,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := models.DeleteRepoAvatar(ctx.Repo.Repository); err != nil {
+	if err := repo_service.DeleteAvatar(ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
