@@ -205,6 +205,13 @@ github.com/cespare/xxhash/v2
 # github.com/chi-middleware/proxy v1.1.1
 ## explicit
 github.com/chi-middleware/proxy
+# github.com/cloudflare/cfssl v0.0.0-20190726000631-633726f6bcb7
+github.com/cloudflare/cfssl/crypto/pkcs7
+github.com/cloudflare/cfssl/errors
+github.com/cloudflare/cfssl/helpers
+github.com/cloudflare/cfssl/helpers/derhelpers
+github.com/cloudflare/cfssl/log
+github.com/cloudflare/cfssl/revoke
 # github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448
 ## explicit
 github.com/couchbase/go-couchbase
@@ -246,6 +253,13 @@ github.com/dsnet/compress/bzip2/internal/sais
 github.com/dsnet/compress/internal
 github.com/dsnet/compress/internal/errors
 github.com/dsnet/compress/internal/prefix
+# github.com/duo-labs/webauthn v0.0.0-20211221191814-a22482edaa3b
+## explicit
+github.com/duo-labs/webauthn/metadata
+github.com/duo-labs/webauthn/protocol
+github.com/duo-labs/webauthn/protocol/googletpm
+github.com/duo-labs/webauthn/protocol/webauthncose
+github.com/duo-labs/webauthn/webauthn
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
@@ -267,6 +281,8 @@ github.com/ethantkoenig/rupture
 github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
+# github.com/fxamacker/cbor/v2 v2.2.0
+github.com/fxamacker/cbor/v2
 # github.com/gliderlabs/ssh v0.3.3
 ## explicit
 github.com/gliderlabs/ssh
@@ -442,6 +458,8 @@ github.com/gogs/go-gogs-client
 # github.com/golang-jwt/jwt v3.2.2+incompatible
 ## explicit
 github.com/golang-jwt/jwt
+# github.com/golang-jwt/jwt/v4 v4.1.0
+github.com/golang-jwt/jwt/v4
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
 # github.com/golang/protobuf v1.5.2
@@ -453,6 +471,12 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
+# github.com/google/certificate-transparency-go v1.0.21
+github.com/google/certificate-transparency-go
+github.com/google/certificate-transparency-go/asn1
+github.com/google/certificate-transparency-go/tls
+github.com/google/certificate-transparency-go/x509
+github.com/google/certificate-transparency-go/x509/pkix
 # github.com/google/go-github/v39 v39.2.0
 ## explicit
 github.com/google/go-github/v39/github
@@ -721,6 +745,8 @@ github.com/rs/xid
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
+# github.com/satori/go.uuid v1.2.0
+github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.2.0
 ## explicit
 github.com/sergi/go-diff/diffmatchpatch
@@ -794,6 +820,8 @@ github.com/unrolled/render
 # github.com/urfave/cli v1.22.5
 ## explicit
 github.com/urfave/cli
+# github.com/x448/float16 v0.8.4
+github.com/x448/float16
 # github.com/xanzy/go-gitlab v0.50.1
 ## explicit
 github.com/xanzy/go-gitlab
@@ -860,6 +888,8 @@ golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
@@ -875,6 +905,8 @@ golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/pkcs12
+golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent

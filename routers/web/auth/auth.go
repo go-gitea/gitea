@@ -236,14 +236,14 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// Check if the user has u2f registration
-	hasU2Ftwofa, err := auth.HasU2FRegistrationsByUID(u.ID)
+	// Check if the user has webauthn registration
+	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if !hasTOTPtwofa && !hasU2Ftwofa {
+	if !hasTOTPtwofa && !hasWebAuthnTwofa {
 		// No two factor auth configured we can sign in the user
 		handleSignIn(ctx, u, form.Remember)
 		return
@@ -254,7 +254,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// User will need to use 2FA TOTP or U2F, save data
+	// User will need to use 2FA TOTP or WebAuthn, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
@@ -268,7 +268,7 @@ func SignInPost(ctx *context.Context) {
 	if hasTOTPtwofa {
 		// User will need to use U2F, save data
 		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
-			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
+			ctx.ServerError("UserSignIn: Unable to set WebAuthn Enrolled in session", err)
 			return
 		}
 	}
@@ -279,8 +279,8 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	// If we have U2F redirect there first
-	if hasU2Ftwofa {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+	if hasWebAuthnTwofa {
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 

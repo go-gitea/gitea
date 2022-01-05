@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
@@ -386,11 +385,6 @@ var (
 		JWTSigningPrivateKeyFile:   "jwt/private.pem",
 		MaxTokenLength:             math.MaxInt16,
 	}
-
-	U2F = struct {
-		AppID         string
-		TrustedFacets []string
-	}{}
 
 	// Metrics settings
 	Metrics = struct {
@@ -1014,10 +1008,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	newMarkup()
-
-	sec = Cfg.Section("U2F")
-	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimSuffix(AppURL, AppSubURL+"/")))
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {

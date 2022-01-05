@@ -366,6 +366,8 @@ var migrations = []Migration{
 	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
 	// v206 -> v207
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
+	// v207 -> v208
+	NewMigration("Add webauthn table and migrate u2f data to webauthn", addWebAuthnCred),
 }
 
 // GetCurrentDBVersion returns the current db version

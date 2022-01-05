@@ -1044,10 +1044,10 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		log.Error("Error storing session: %v", err)
 	}
 
-	// If U2F is enrolled -> Redirect to U2F instead
-	regs, err := auth.GetU2FRegistrationsByUID(u.ID)
+	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
+	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 
