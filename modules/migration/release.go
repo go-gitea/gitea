@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// ReleaseAsset represents a release asset
-type ReleaseAsset struct {
+// Asset represents an asset for issue, comment, release
+type Asset struct {
 	ID            int64
 	Name          string
 	ContentType   *string `yaml:"content_type"`
@@ -34,7 +34,7 @@ type Release struct {
 	PublisherID     int64  `yaml:"publisher_id"`
 	PublisherName   string `yaml:"publisher_name"`
 	PublisherEmail  string `yaml:"publisher_email"`
-	Assets          []*ReleaseAsset
+	Assets          []*Asset
 	Created         time.Time
 	Published       time.Time
 }

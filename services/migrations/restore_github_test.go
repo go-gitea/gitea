@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/migration"
-	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,6 +29,7 @@ func TestParseGithubExportedData(t *testing.T) {
 	releases, err := restorer.GetReleases()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(releases))
+	assert.EqualValues(t, 1, len(releases[0].Assets))
 
 	labels, err := restorer.GetLabels()
 	assert.NoError(t, err)
@@ -39,6 +39,8 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 2, len(issues))
+	assert.EqualValues(t, 2, issues[0].Assets)
+	assert.EqualValues(t, 1, issues[1].Assets)
 
 	comments, isEnd, err := restorer.GetComments(migration.GetCommentOptions{})
 	assert.NoError(t, err)
@@ -50,7 +52,7 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 2, len(prs))
 
-	reviewers, err := restorer.GetReviews(base.BasicIssueContext(0))
+	reviewers, err := restorer.GetReviews(migration.BasicIssueContext(0))
 	assert.NoError(t, err)
 	assert.EqualValues(t, 6, len(reviewers))
 }

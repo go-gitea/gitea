@@ -312,7 +312,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 
 	for _, asset := range rel.Assets {
 		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
-		r.Assets = append(r.Assets, &base.ReleaseAsset{
+		r.Assets = append(r.Assets, &base.Asset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
 			ContentType:   asset.ContentType,

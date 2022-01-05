@@ -45,7 +45,7 @@ import (
     "created_at": "2011-06-19T11:25:35Z"
   },
 */
-type GithubUser struct {
+type githubUser struct {
 	URL       string
 	AvatarURL string
 	Login     string
@@ -62,14 +62,18 @@ type GithubUser struct {
 	CreatedAt time.Time
 }
 
-func (g *GithubUser) ID() int64 {
-	u, _ := url.Parse(g.AvatarURL)
+func getID(s string) int64 {
+	u, _ := url.Parse(s)
 	fields := strings.Split(u.Path, "/")
 	i, _ := strconv.ParseInt(fields[len(fields)-1], 10, 64)
 	return i
 }
 
-func (g *GithubUser) Email() string {
+func (g *githubUser) ID() int64 {
+	return getID(g.AvatarURL)
+}
+
+func (g *githubUser) Email() string {
 	if len(g.Emails) < 1 {
 		return ""
 	}
@@ -85,6 +89,7 @@ func (g *GithubUser) Email() string {
 /*{
     "type": "attachment",
     "url": "https://user-images.githubusercontent.com/1595118/2923824-63a167ce-d721-11e3-91b6-74b83dc345bb.png",
+		"issue": "https://github.com/go-xorm/xorm/issues/205",
     "issue_comment": "https://github.com/go-xorm/xorm/issues/115#issuecomment-42628488",
     "user": "https://github.com/mintzhao",
     "asset_name": "QQ20140509-1.2x.png",
@@ -94,12 +99,45 @@ func (g *GithubUser) Email() string {
   },
 */
 type githubAttachment struct {
+	Issue            string
 	IssueComment     string
 	User             string
 	AssetName        string
 	AssetContentType string
 	AssetURL         string
 	CreatedAt        time.Time
+}
+
+func (g *githubAttachment) GetUser() int64 {
+	return getID(g.User)
+}
+
+func (g *githubAttachment) IsIssue() bool {
+	return len(g.Issue) > 0
+}
+
+func (g *githubAttachment) IssueID() int64 {
+	if g.IsIssue() {
+		return getID(g.Issue)
+	}
+	return getID(g.IssueComment)
+}
+
+func (r *GithubExportedDataRestorer) convertAttachments(ls []*githubAttachment) []*base.Asset {
+	var res = make([]*base.Asset, 0, len(ls))
+	for _, l := range ls {
+		var assetURL = "file://" + strings.TrimPrefix(l.AssetURL, "tarball://root")
+		res = append(res, &base.Asset{
+			Name:        l.AssetName,
+			ContentType: &l.AssetContentType,
+			//Size          : l.Size,
+			//DownloadCount *int `yaml:"download_count"`
+			Created: l.CreatedAt,
+			//Updated       time.Time
+			DownloadURL: &assetURL,
+		})
+	}
+	return res
 }
 
 /*
@@ -132,7 +170,10 @@ type GithubExportedDataRestorer struct {
 	repoOwner          string
 	repoName           string
 	labels             []*base.Label
-	users              map[string]*GithubUser
+	users              map[string]*githubUser
+	issueAttachments   map[string][]*githubAttachment
+	commentAttachments map[string][]*githubAttachment
+	attachmentLoaded   bool
 }
 
 func decompressFile(targzFile, targetDir string) error {
@@ -196,7 +237,7 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 		tmpDir:             tmpDir,
 		repoOwner:          owner,
 		repoName:           repoName,
-		users:              make(map[string]*GithubUser),
+		users:              make(map[string]*githubUser),
 	}
 	if err := restorer.getUsers(); err != nil {
 		return nil, err
@@ -240,7 +281,7 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 	if err := json.Unmarshal(bs, &githubRepositories); err != nil {
 		return nil, err
 	}
-	if len(githubRepositories) <= 0 {
+	if len(githubRepositories) == 0 {
 		return nil, errors.New("no repository found in the json file: repositories_000001.json")
 	} else if len(githubRepositories) > 1 {
 		return nil, errors.New("only one repository is supported")
@@ -308,11 +349,32 @@ func (r *GithubExportedDataRestorer) readJSONFiles(filePrefix string, makeF func
 
 func (r *GithubExportedDataRestorer) getUsers() error {
 	return r.readJSONFiles("users", func() interface{} {
-		return &[]GithubUser{}
+		return &[]githubUser{}
 	}, func(content interface{}) error {
-		mss := content.(*[]GithubUser)
+		mss := content.(*[]githubUser)
 		for _, ms := range *mss {
 			r.users[ms.URL] = &ms
+		}
+		return nil
+	})
+}
+
+func (r *GithubExportedDataRestorer) getAttachments() error {
+	if r.attachmentLoaded {
+		return nil
+	}
+
+	return r.readJSONFiles("attachments", func() interface{} {
+		r.attachmentLoaded = true
+		return &[]githubAttachment{}
+	}, func(content interface{}) error {
+		mss := content.(*[]githubAttachment)
+		for _, ms := range *mss {
+			if ms.IsIssue() {
+				r.issueAttachments[ms.Issue] = append(r.issueAttachments[ms.Issue], &ms)
+			} else {
+				r.commentAttachments[ms.IssueComment] = append(r.commentAttachments[ms.IssueComment], &ms)
+			}
 		}
 		return nil
 	})
@@ -354,34 +416,48 @@ func (r *GithubExportedDataRestorer) GetMilestones() ([]*base.Milestone, error) 
 	return milestones, nil
 }
 
+/*
+{
+    "type": "release",
+    "url": "https://github.com/go-xorm/xorm/releases/tag/v0.3.1",
+    "repository": "https://github.com/go-xorm/xorm",
+    "user": "https://github.com/lunny",
+    "name": "",
+    "tag_name": "v0.3.1",
+    "body": "- Features:\n  - Support MSSQL DB via ODBC driver ([github.com/lunny/godbc](https://github.com/lunny/godbc));\n  - Composite Key, using multiple pk xorm tag \n  - Added Row() API as alternative to Iterate() API for traversing result set, provide similar usages to sql.Rows type\n  - ORM struct allowed declaration of pointer builtin type as members to allow null DB fields \n  - Before and After Event processors\n- Improvements:\n  - Allowed int/int32/int64/uint/uint32/uint64/string as Primary Key type\n  - Performance improvement for Get()/Find()/Iterate()\n",
+    "state": "published",
+    "pending_tag": "v0.3.1",
+    "prerelease": false,
+    "target_commitish": "master",
+    "release_assets": [
+
+    ],
+    "published_at": "2014-01-02T09:51:34Z",
+    "created_at": "2014-01-02T09:48:57Z"
+  },
+*/
+type githubRelease struct {
+	User            string
+	Name            string
+	TagName         string
+	Body            string
+	State           string
+	Prerelease      bool
+	ReleaseAssets   []*githubAttachment
+	TargetCommitish string
+	CreatedAt       time.Time
+	PublishedAt     time.Time
+}
+
 // GetReleases returns releases
 func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
-	type release struct {
-		Name          string
-		TagName       string
-		Body          string
-		State         string
-		Prerelease    bool
-		ReleaseAssets []struct {
-		}
-		TargetCommitish string
-		CreatedAt       time.Time
-		PublishedAt     time.Time
-	}
-
 	var releases = make([]*base.Release, 0, 30)
 	if err := r.readJSONFiles("releases", func() interface{} {
-		return &[]release{}
+		return &[]githubRelease{}
 	}, func(content interface{}) error {
-		rss := content.(*[]release)
+		rss := content.(*[]githubRelease)
 		for _, rel := range *rss {
-			// TODO
-			/*for _, asset := range rel.ReleaseAssets {
-				if asset.DownloadURL != nil {
-					*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
-				}
-			}*/
-
+			user := r.users[rel.User]
 			releases = append(releases, &base.Release{
 				TagName:         rel.TagName,
 				TargetCommitish: rel.TargetCommitish,
@@ -389,12 +465,12 @@ func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
 				Body:            rel.Body,
 				Draft:           rel.State == "draft",
 				Prerelease:      rel.Prerelease,
-				//PublisherID     : rel.
-				//PublisherName   string `yaml:"publisher_name"`
-				//PublisherEmail  string `yaml:"publisher_email"`
-				Assets:    []*base.ReleaseAsset{},
-				Created:   rel.CreatedAt,
-				Published: rel.PublishedAt,
+				PublisherID:     user.ID(),
+				PublisherName:   user.Login,
+				PublisherEmail:  user.Email(),
+				Assets:          r.convertAttachments(rel.ReleaseAssets),
+				Created:         rel.CreatedAt,
+				Published:       rel.PublishedAt,
 			})
 		}
 		return nil
@@ -481,6 +557,10 @@ func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.R
 
 // GetIssues returns issues according start and limit
 func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+	if err := r.getAttachments(); err != nil {
+		return nil, false, err
+	}
+
 	var issues = make([]*base.Issue, 0, 50)
 	if err := r.readJSONFiles("issues", func() interface{} {
 		return &[]githubIssue{}
@@ -503,6 +583,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				PosterEmail: user.Email(),
 				Labels:      r.getLabels(issue.Lables),
 				Reactions:   r.getReactions(issue.Reactions),
+				Assets:      r.convertAttachments(r.issueAttachments[issue.URL]),
 				Milestone:   issue.Milestone,
 				Assignees:   issue.Assignees,
 				//Ref: issue.
@@ -800,7 +881,7 @@ func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*b
 	}, func(content interface{}) error {
 		cs := *content.(*[]pullrequestReviewComment)
 		for _, c := range cs {
-			comments[c.PullRequest] = append(comments[c.PullRequestReview], c)
+			comments[c.PullRequestReview] = append(comments[c.PullRequestReview], c)
 		}
 		return nil
 	}); err != nil {

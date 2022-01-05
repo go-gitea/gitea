@@ -171,7 +171,7 @@ func assertReactionsEqual(t *testing.T, expected, actual []*base.Reaction) {
 	}
 }
 
-func assertReleaseAssetEqual(t *testing.T, expected, actual *base.ReleaseAsset) {
+func assertReleaseAssetEqual(t *testing.T, expected, actual *base.Asset) {
 	assert.Equal(t, expected.ID, actual.ID)
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.ContentType, actual.ContentType)
@@ -182,7 +182,7 @@ func assertReleaseAssetEqual(t *testing.T, expected, actual *base.ReleaseAsset) 
 	assert.Equal(t, expected.DownloadURL, actual.DownloadURL)
 }
 
-func assertReleaseAssetsEqual(t *testing.T, expected, actual []*base.ReleaseAsset) {
+func assertReleaseAssetsEqual(t *testing.T, expected, actual []*base.Asset) {
 	if assert.Len(t, actual, len(expected)) {
 		for i := range expected {
 			assertReleaseAssetEqual(t, expected[i], actual[i])
