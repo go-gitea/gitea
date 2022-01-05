@@ -435,7 +435,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
-			m.Get("/{id}", repo.WebHooksEdit)
+			m.Group("/{id}", func() {
+				m.Get("", repo.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+			})
 			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
 			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
@@ -559,7 +562,10 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-					m.Get("/{id}", repo.WebHooksEdit)
+					m.Group("/{id}", func() {
+						m.Get("", repo.WebHooksEdit)
+						m.Post("/replay/{uuid}", repo.ReplayWebhook)
+					})
 					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
@@ -653,8 +659,11 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-				m.Get("/{id}", repo.WebHooksEdit)
-				m.Post("/{id}/test", repo.TestWebhook)
+				m.Group("/{id}", func() {
+					m.Get("", repo.WebHooksEdit)
+					m.Post("/test", repo.TestWebhook)
+					m.Post("/replay/{uuid}", repo.ReplayWebhook)
+				})
 				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
 				m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 				m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
