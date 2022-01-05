@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-version"
 )
 
 // PRBranchInfo information about a branch
@@ -214,10 +216,12 @@ type MergePullRequestOption struct {
 	Message string     `json:"MergeMessageField"`
 }
 
+var version1_11_5, _ = version.NewVersion("1.11.5")
+
 // Validate the MergePullRequestOption struct
 func (opt MergePullRequestOption) Validate(c *Client) error {
 	if opt.Style == MergeStyleSquash {
-		if err := c.CheckServerVersionConstraint(">=1.11.5"); err != nil {
+		if err := c.checkServerVersionGreaterThanOrEqual(version1_11_5); err != nil {
 			return err
 		}
 	}
@@ -283,6 +287,24 @@ func (c *Client) GetPullRequestPatch(owner, repo string, index int64) ([]byte, *
 // GetPullRequestDiff gets the .diff file as bytes for a PR
 func (c *Client) GetPullRequestDiff(owner, repo string, index int64) ([]byte, *Response, error) {
 	return c.getPullRequestDiffOrPatch(owner, repo, "diff", index)
+}
+
+// ListPullRequestCommitsOptions options for listing pull requests
+type ListPullRequestCommitsOptions struct {
+	ListOptions
+}
+
+// ListPullRequestCommits list commits for a pull request
+func (c *Client) ListPullRequestCommits(owner, repo string, index int64, opt ListPullRequestCommitsOptions) ([]*Commit, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/pulls/%d/commits", owner, repo, index))
+	opt.setDefaults()
+	commits := make([]*Commit, 0, opt.PageSize)
+	link.RawQuery = opt.getURLQuery().Encode()
+	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &commits)
+	return commits, resp, err
 }
 
 // fixPullHeadSha is a workaround for https://github.com/go-gitea/gitea/issues/12675

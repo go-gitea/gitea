@@ -73,12 +73,13 @@ func (c *Client) GetOrg(orgname string) (*Organization, *Response, error) {
 
 // CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
-	Name        string      `json:"username"`
-	FullName    string      `json:"full_name"`
-	Description string      `json:"description"`
-	Website     string      `json:"website"`
-	Location    string      `json:"location"`
-	Visibility  VisibleType `json:"visibility"`
+	Name                      string      `json:"username"`
+	FullName                  string      `json:"full_name"`
+	Description               string      `json:"description"`
+	Website                   string      `json:"website"`
+	Location                  string      `json:"location"`
+	Visibility                VisibleType `json:"visibility"`
+	RepoAdminChangeTeamAccess bool        `json:"repo_admin_change_team_access"`
 }
 
 // checkVisibilityOpt check if mode exist
