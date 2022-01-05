@@ -189,7 +189,6 @@ func RegisterRoutes(m *web.Route) {
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
-	//bindIgnErr := binding.BindIgnErr
 	bindIgnErr := web.Bind
 	validation.AddBindingRules()
 

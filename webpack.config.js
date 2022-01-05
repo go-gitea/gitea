@@ -60,10 +60,6 @@ export default {
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
     ],
-    'easymde': [
-      resolve(__dirname, 'web_src/js/easymde.js'),
-      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
-    ],
     ...themes,
   },
   devtool: false,
