@@ -42,7 +42,7 @@ func DefaultAvatarLink() string {
 	once.Do(func() {
 		u, err := url.Parse(setting.AppSubURL)
 		if err != nil {
-			log.Error("GetUserByEmail: %v", err)
+			log.Error("Can not parse AppSubURL: %v", err)
 			return
 		}
 
