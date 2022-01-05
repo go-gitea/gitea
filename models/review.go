@@ -280,7 +280,7 @@ func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *Team) (bool
 	}
 
 	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.Authorize >= perm.AccessModeWrite, nil
+		return team.UnitAccessMode(unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
 	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
