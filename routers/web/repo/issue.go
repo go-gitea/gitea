@@ -1677,8 +1677,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
+	if (issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests)) ||
+		(!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues)) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
