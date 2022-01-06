@@ -171,11 +171,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 // escape a line's content or return <br> needed for copy/paste purposes
 func getLineContent(content string) DiffInline {
 	if len(content) > 0 {
-		status, content := charset.EscapeControlString(content)
-		return DiffInline{
-			EscapeStatus: status,
-			Content:      template.HTML(html.EscapeString(content)),
-		}
+		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)))
 	}
 	return DiffInline{Content: "<br>"}
 }
@@ -487,8 +483,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			buf.Write(codeTagSuffix)
 		}
 	}
-	status, content := charset.EscapeControlString(buf.String())
-	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+	return DiffInlineWithUnicodeEscape(template.HTML(buf.String()))
 }
 
 // GetLine gets a specific line by type (add or del) and file line number
@@ -546,6 +541,16 @@ type DiffInline struct {
 	Content      template.HTML
 }
 
+func DiffInlineWithUnicodeEscape(s template.HTML) DiffInline {
+	status, content := charset.EscapeControlString(string(s))
+	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+}
+
+func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
+	status, content := charset.EscapeControlString(highlight.Code(fileName, language, code))
+	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+}
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) DiffInline {
 	if setting.Git.DisableDiffHighlight {
@@ -570,26 +575,22 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
-		status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content))
-		return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
+		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content)
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
