@@ -290,13 +290,20 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 		return err
 	}
 
-	_, err = msg.WriteTo(pipe)
+	if setting.MailService.SendmailConvertCRLF {
+		buf := &strings.Builder{}
+		_, err = msg.WriteTo(buf)
+		if err == nil {
+			_, err = strings.NewReplacer("\r\n", "\n").WriteString(pipe, buf.String())
+		}
+	} else {
+		_, err = msg.WriteTo(pipe)
+	}
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
-
 	if err != nil {
 		return err
 	} else if closeError != nil {

@@ -156,7 +156,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					UserID:   1241334,
 					UserName: "lafriks",
 					Content:  "open_mouth",
-				}},
+				},
+			},
 			Closed: timePtr(time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC)),
 		},
 		{
@@ -204,7 +205,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					UserID:   1241334,
 					UserName: "lafriks",
 					Content:  "hearts",
-				}},
+				},
+			},
 			Closed: timePtr(time.Date(2019, 11, 28, 8, 45, 44, 959000000, time.UTC)),
 		},
 	}, issues)
@@ -310,13 +312,13 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		{
 			ReviewerID:   4102996,
 			ReviewerName: "zeripath",
-			CreatedAt:    time.Date(2019, 11, 28, 16, 02, 8, 377000000, time.UTC),
+			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
 			State:        "APPROVED",
 		},
 		{
 			ReviewerID:   527793,
 			ReviewerName: "axifive",
-			CreatedAt:    time.Date(2019, 11, 28, 16, 02, 8, 377000000, time.UTC),
+			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
 			State:        "APPROVED",
 		},
 	}, rvs)
@@ -327,7 +329,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		{
 			ReviewerID:   4575606,
 			ReviewerName: "real6543",
-			CreatedAt:    time.Date(2020, 04, 19, 19, 24, 21, 108000000, time.UTC),
+			CreatedAt:    time.Date(2020, 4, 19, 19, 24, 21, 108000000, time.UTC),
 			State:        "APPROVED",
 		},
 	}, rvs)
