@@ -18,17 +18,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // GlobalModTime provide a gloabl mod time for embedded asset files
 func GlobalModTime(filename string) time.Time {
-	t, err := util.GetExecutableModTime()
-	if err != nil {
-		log.Error("GetExecutableModTime failed:", err)
-		return time.Now()
-	}
-	return t
+	return timeutil.GetExecutableModTime()
 }
 
 func fileSystem(dir string) http.FileSystem {
