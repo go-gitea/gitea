@@ -144,3 +144,7 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
+    # does not work with bool
+    - path: modules/charset/escape.go
+      linters:
+        - revive
