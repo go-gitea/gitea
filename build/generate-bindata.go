@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/lunny/vfsgen"
+	"github.com/shurcooL/vfsgen"
 )
 
 func needsUpdate(dir string, filename string) (bool, []byte) {

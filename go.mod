@@ -72,7 +72,6 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lib/pq v1.10.2
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 	github.com/markbates/goth v1.68.0
 	github.com/mattn/go-isatty v0.0.13
 	github.com/mattn/go-runewidth v0.0.13 // indirect
@@ -99,7 +98,7 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
-	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 // indirect
+	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
@@ -142,3 +141,5 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/golang-jwt/jwt v3.2.1+incompatible => github.com/golang-jwt/jwt v3.2.2+incompatible
+
+replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
