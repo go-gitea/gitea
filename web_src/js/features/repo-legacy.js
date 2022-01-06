@@ -10,7 +10,7 @@ import {
   initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
-import {initEscapeButton} from './repo-unicode-escape.js';
+import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
@@ -535,7 +535,7 @@ export function initRepository() {
     });
   }
 
-  initEscapeButton();
+  initUnicodeEscapeButton();
 }
 
 function initRepoIssueCommentEdit() {

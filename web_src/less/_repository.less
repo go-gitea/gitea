@@ -3038,18 +3038,17 @@ td.blob-excerpt {
   padding-left: 8px;
 }
 
-.file-message {
-  margin-bottom: 0 !important;
-}
-
-.file-message,
-.wiki-message {
-  border-radius: 0 !important;
+.ui.message.unicode-escape-prompt {
+  margin-bottom: 0;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
+}
+
+.wiki-content-sidebar .ui.message.unicode-escape-prompt,
+.wiki-content-footer .ui.message.unicode-escape-prompt {
   p {
-    text-align: left;
-    align-self: center;
+    display: none;
   }
 }
 

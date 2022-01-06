@@ -72,23 +72,7 @@
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
-		{{if .EscapeStatus.BadBIDI}}
-			<div class="ui error message file-message">
-				<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
-				<div class="header">
-					{{.i18n.Tr "repo.bidi_bad_header"}}
-				</div>
-				<p>{{.i18n.Tr "repo.bidi_bad_description" | Str2html}}</p>
-			</div>
-		{{else if .EscapeStatus.Escaped}}
-			<div class="ui warning message file-message">
-				<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
-				<div class="header">
-					{{.i18n.Tr "repo.unicode_header"}}
-				</div>
-				<p>{{.i18n.Tr "repo.unicode_description" | Str2html}}</p>
-			</div>
-		{{end}}
+		{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}

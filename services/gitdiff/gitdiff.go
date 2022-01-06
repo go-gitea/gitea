@@ -541,11 +541,13 @@ type DiffInline struct {
 	Content      template.HTML
 }
 
+// DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
 func DiffInlineWithUnicodeEscape(s template.HTML) DiffInline {
 	status, content := charset.EscapeControlString(string(s))
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
+// DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
 func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 	status, content := charset.EscapeControlString(highlight.Code(fileName, language, code))
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
