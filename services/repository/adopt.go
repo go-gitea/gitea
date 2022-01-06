@@ -301,11 +301,11 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 	// We're going to iterate by pagesize.
 	root := filepath.Clean(setting.RepoRootPath)
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.WalkDir(root, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() || path == root {
+		if path == root {
 			return nil
 		}
 
