@@ -31,17 +31,18 @@ type EscapeStatus struct {
 
 // Or combines two EscapeStatus structs into one representing the conjunction of the two
 func (status EscapeStatus) Or(other EscapeStatus) EscapeStatus {
-	status.Escaped = status.Escaped || other.Escaped
-	status.HasError = status.HasError || other.HasError
-	status.HasBadRunes = status.HasBadRunes || other.HasBadRunes
-	status.HasControls = status.HasControls || other.HasControls
-	status.HasSpaces = status.HasSpaces || other.HasSpaces
-	status.HasMarks = status.HasMarks || other.HasMarks
-	status.HasBIDI = status.HasBIDI || other.HasBIDI
-	status.BadBIDI = status.BadBIDI || other.BadBIDI
-	status.HasRTLScript = status.HasRTLScript || other.HasRTLScript
-	status.HasLTRScript = status.HasLTRScript || other.HasLTRScript
-	return status
+	st := status
+	st.Escaped = st.Escaped || other.Escaped
+	st.HasError = st.HasError || other.HasError
+	st.HasBadRunes = st.HasBadRunes || other.HasBadRunes
+	st.HasControls = st.HasControls || other.HasControls
+	st.HasSpaces = st.HasSpaces || other.HasSpaces
+	st.HasMarks = st.HasMarks || other.HasMarks
+	st.HasBIDI = st.HasBIDI || other.HasBIDI
+	st.BadBIDI = st.BadBIDI || other.BadBIDI
+	st.HasRTLScript = st.HasRTLScript || other.HasRTLScript
+	st.HasLTRScript = st.HasLTRScript || other.HasLTRScript
+	return st
 }
 
 // EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
