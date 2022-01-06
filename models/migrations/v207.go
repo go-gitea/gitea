@@ -84,7 +84,7 @@ func migrateU2FToWebAuthn(x *xorm.Engine) error {
 				SignCount:    reg.Counter,
 			}
 
-			_, err := x.InsertOne(c)
+			_, err := x.Insert(c)
 			if err != nil {
 				return err
 			}

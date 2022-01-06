@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -60,7 +61,9 @@ func TestCreateCredential(t *testing.T) {
 	res, err := CreateCredential(1, "WebAuthn Created Credential", &webauthn.Credential{ID: []byte("Test")})
 	assert.NoError(t, err)
 	assert.Equal(t, "WebAuthn Created Credential", res.Name)
-	assert.Equal(t, []byte("Test"), res.CredentialID)
+	bs, err := base64.RawStdEncoding.DecodeString(res.CredentialID)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("Test"), bs)
 
 	unittest.AssertExistsIf(t, true, &WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }
