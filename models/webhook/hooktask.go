@@ -191,10 +191,8 @@ func UpdateHookTask(t *HookTask) error {
 }
 
 // ReplayHookTask copies a hook task to get re-delivered
-func ReplayHookTask(hookID int64, uuid string) (*HookTask, error) {
-	var newTask *HookTask
-
-	err := db.WithTx(func(ctx context.Context) error {
+func ReplayHookTask(hookID int64, uuid string) error {
+	return db.WithTx(func(ctx context.Context) error {
 		task := &HookTask{
 			HookID: hookID,
 			UUID:   uuid,
@@ -209,17 +207,14 @@ func ReplayHookTask(hookID int64, uuid string) (*HookTask, error) {
 			}
 		}
 
-		newTask = &HookTask{
+		newTask := &HookTask{
 			UUID:           gouuid.New().String(),
-			RepoID:         task.RepoID,
 			HookID:         task.HookID,
 			PayloadContent: task.PayloadContent,
 			EventType:      task.EventType,
 		}
 		return db.Insert(ctx, newTask)
 	})
-
-	return newTask, err
 }
 
 // FindUndeliveredHookTasks represents find the undelivered hook tasks
