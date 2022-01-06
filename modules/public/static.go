@@ -20,6 +20,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+func GlobalModTime(filename string) time.Time {
+	t, err := util.GetExecutableModTime()
+	if err != nil {
+		log.Error("GetExecutableModTime failed:", err)
+		return time.Now()
+	}
+	return t
+}
+
 func fileSystem(dir string) http.FileSystem {
 	return Assets
 }

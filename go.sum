@@ -802,6 +802,8 @@ github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96 h1:uNwtsDp7
 github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96/go.mod h1:mmIfjCSQlGYXmJ95jFN84AkQFnVABtKuJL8IrzwvUKQ=
 github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de/go.mod h1:3q8WtuPQsoRbatJuy3nvq/hRSvuBJrHHr+ybPPiNvHQ=
 github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af/go.mod h1:Cqz6pqow14VObJ7peltM+2n3PWOz7yTrfUuGbVFkzN0=
+github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0 h1:F/3FfGmKdiKFa8kL3YrpZ7pe9H4l4AzA1pbaOUnRvPI=
+github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0/go.mod h1:JEfTc3+2DF9Z4PXhLLvXL42zexJyh8rIq3OzUj/0rAk=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=

@@ -12,7 +12,7 @@ package main
 
 import (
 	// for embed
-	_ "github.com/shurcooL/vfsgen"
+	_ "github.com/lunny/vfsgen"
 
 	// for cover merge
 	_ "golang.org/x/tools/cover"

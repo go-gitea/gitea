@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	texttmpl "text/template"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,6 +26,15 @@ var (
 	subjectTemplates = texttmpl.New("")
 	bodyTemplates    = template.New("")
 )
+
+func GlobalModTime(filename string) time.Time {
+	t, err := util.GetExecutableModTime()
+	if err != nil {
+		log.Error("GetExecutableModTime failed:", err)
+		return time.Now()
+	}
+	return t
+}
 
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
