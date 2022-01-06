@@ -1,6 +1,6 @@
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
-import {validateTextareaNonEmpty} from './comp/CommentEasyMDE.js';
+import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {

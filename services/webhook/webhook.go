@@ -229,3 +229,15 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	}
 	return nil
 }
+
+// ReplayHookTask replays a webhook task
+func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
+	t, err := webhook_model.ReplayHookTask(w.ID, uuid)
+	if err != nil {
+		return err
+	}
+
+	go hookQueue.Add(t.RepoID)
+
+	return nil
+}
