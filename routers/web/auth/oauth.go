@@ -829,7 +829,15 @@ func SignInOAuthCallback(ctx *context.Context) {
 			return
 		}
 		if callbackErr, ok := err.(errCallback); ok {
-			ctx.Flash.Error(ctx.Tr("auth.oauth_signin_error", callbackErr.Description, callbackErr.Code))
+			log.Info("Failed OAuth callback: (%v) %v", callbackErr.Code, callbackErr.Description)
+			switch callbackErr.Code {
+			case "access_denied":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.access_denied"))
+			case "temporarily_unavailable":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
+			default:
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
