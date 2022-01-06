@@ -1,4 +1,4 @@
-export function initEscapeButton() {
+export function initUnicodeEscapeButton() {
   $(document).on('click', 'a.escape-button', (e) => {
     e.preventDefault();
     $(e.target).parents('.file-content, .non-diff-file-content').find('.file-code, .file-view').addClass('unicode-escaped');
