@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.14.0
+# code.gitea.io/sdk/gitea v0.15.1
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
@@ -727,7 +727,7 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 ## explicit
 github.com/shurcooL/httpfs/vfsutil
-# github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
+# github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546 => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 ## explicit
 github.com/shurcooL/vfsgen
 # github.com/sirupsen/logrus v1.8.1
@@ -1061,3 +1061,4 @@ xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 # github.com/golang-jwt/jwt v3.2.1+incompatible => github.com/golang-jwt/jwt v3.2.2+incompatible
+# github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0

@@ -30,7 +30,9 @@ func Generate(input http.FileSystem, opt Options) error {
 		return err
 	}
 
-	var toc toc
+	var toc = toc{
+		UseGlobalModTime: opt.UseGlobalModTime,
+	}
 	err = findAndWriteFiles(buf, input, &toc)
 	if err != nil {
 		return err
@@ -56,6 +58,8 @@ type toc struct {
 
 	HasCompressedFile bool // There's at least one compressedFile.
 	HasFile           bool // There's at least one uncompressed file.
+	UseGlobalModTime  bool // copy from opt
+
 }
 
 // fileInfo is a definition of a file.
@@ -64,14 +68,16 @@ type fileInfo struct {
 	Name             string
 	ModTime          time.Time
 	UncompressedSize int64
+	UseGlobalModTime bool
 }
 
 // dirInfo is a definition of a directory.
 type dirInfo struct {
-	Path    string
-	Name    string
-	ModTime time.Time
-	Entries []string
+	Path             string
+	Name             string
+	ModTime          time.Time
+	Entries          []string
+	UseGlobalModTime bool
 }
 
 // findAndWriteFiles recursively finds all the file paths in the given directory tree.
@@ -91,6 +97,7 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 				Name:             pathpkg.Base(path),
 				ModTime:          fi.ModTime().UTC(),
 				UncompressedSize: fi.Size(),
+				UseGlobalModTime: toc.UseGlobalModTime,
 			}
 
 			marker := buf.Len()
@@ -125,10 +132,11 @@ func findAndWriteFiles(buf *bytes.Buffer, fs http.FileSystem, toc *toc) error {
 			}
 
 			dir := &dirInfo{
-				Path:    path,
-				Name:    pathpkg.Base(path),
-				ModTime: fi.ModTime().UTC(),
-				Entries: entries,
+				Path:             path,
+				Name:             pathpkg.Base(path),
+				ModTime:          fi.ModTime().UTC(),
+				Entries:          entries,
+				UseGlobalModTime: toc.UseGlobalModTime,
 			}
 
 			toc.dirs = append(toc.dirs, dir)
@@ -242,7 +250,9 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "CompressedFileInfo-Before"}}		{{quote .Path}}: &vfsgen۰CompressedFileInfo{
 			name:             {{quote .Name}},
+			{{if not .UseGlobalModTime}}
 			modTime:          {{template "Time" .ModTime}},
+			{{end}}
 			uncompressedSize: {{.UncompressedSize}},
 {{/* This blank line separating compressedContent is neccessary to prevent potential gofmt issues. See issue #19. */}}
 			compressedContent: []byte("{{end}}{{define "CompressedFileInfo-After"}}"),
@@ -253,7 +263,9 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "FileInfo-Before"}}		{{quote .Path}}: &vfsgen۰FileInfo{
 			name:    {{quote .Name}},
+			{{if not .UseGlobalModTime}}
 			modTime: {{template "Time" .ModTime}},
+			{{end}}
 			content: []byte("{{end}}{{define "FileInfo-After"}}"),
 		},
 {{end}}
@@ -262,7 +274,9 @@ var {{.VariableName}} = func() http.FileSystem {
 
 {{define "DirInfo"}}		{{quote .Path}}: &vfsgen۰DirInfo{
 			name:    {{quote .Name}},
+			{{if not .UseGlobalModTime}}
 			modTime: {{template "Time" .ModTime}},
+			{{end}}
 		},
 {{end}}
 
@@ -335,7 +349,7 @@ func (f *vfsgen۰CompressedFileInfo) GzipBytes() []byte {
 func (f *vfsgen۰CompressedFileInfo) Name() string       { return f.name }
 func (f *vfsgen۰CompressedFileInfo) Size() int64        { return f.uncompressedSize }
 func (f *vfsgen۰CompressedFileInfo) Mode() os.FileMode  { return 0444 }
-func (f *vfsgen۰CompressedFileInfo) ModTime() time.Time { return f.modTime }
+func (f *vfsgen۰CompressedFileInfo) ModTime() time.Time { return {{if .UseGlobalModTime}}GlobalModTime(f.name){{else}}f.modTime{{end}} }
 func (f *vfsgen۰CompressedFileInfo) IsDir() bool        { return false }
 func (f *vfsgen۰CompressedFileInfo) Sys() interface{}   { return nil }
 
@@ -407,7 +421,7 @@ func (f *vfsgen۰FileInfo) NotWorthGzipCompressing() {}
 func (f *vfsgen۰FileInfo) Name() string       { return f.name }
 func (f *vfsgen۰FileInfo) Size() int64        { return int64(len(f.content)) }
 func (f *vfsgen۰FileInfo) Mode() os.FileMode  { return 0444 }
-func (f *vfsgen۰FileInfo) ModTime() time.Time { return f.modTime }
+func (f *vfsgen۰FileInfo) ModTime() time.Time { return {{if .UseGlobalModTime}}GlobalModTime(f.name){{else}}f.modTime{{end}} }
 func (f *vfsgen۰FileInfo) IsDir() bool        { return false }
 func (f *vfsgen۰FileInfo) Sys() interface{}   { return nil }
 
@@ -440,7 +454,7 @@ func (d *vfsgen۰DirInfo) Stat() (os.FileInfo, error) { return d, nil }
 func (d *vfsgen۰DirInfo) Name() string       { return d.name }
 func (d *vfsgen۰DirInfo) Size() int64        { return 0 }
 func (d *vfsgen۰DirInfo) Mode() os.FileMode  { return 0755 | os.ModeDir }
-func (d *vfsgen۰DirInfo) ModTime() time.Time { return d.modTime }
+func (d *vfsgen۰DirInfo) ModTime() time.Time { return {{if .UseGlobalModTime}}GlobalModTime(d.name){{else}}d.modTime{{end}} }
 func (d *vfsgen۰DirInfo) IsDir() bool        { return true }
 func (d *vfsgen۰DirInfo) Sys() interface{}   { return nil }
 

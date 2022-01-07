@@ -29,11 +29,11 @@ type NotificationThread struct {
 
 // NotificationSubject contains the notification subject (Issue/Pull/Commit)
 type NotificationSubject struct {
-	Title            string    `json:"title"`
-	URL              string    `json:"url"`
-	LatestCommentURL string    `json:"latest_comment_url"`
-	Type             string    `json:"type"`
-	State            StateType `json:"state"`
+	Title            string             `json:"title"`
+	URL              string             `json:"url"`
+	LatestCommentURL string             `json:"latest_comment_url"`
+	Type             NotifySubjectType  `json:"type"`
+	State            NotifySubjectState `json:"state"`
 }
 
 // NotifyStatus notification status type
@@ -48,12 +48,39 @@ const (
 	NotifyStatusPinned NotifyStatus = "pinned"
 )
 
+// NotifySubjectType represent type of notification subject
+type NotifySubjectType string
+
+const (
+	// NotifySubjectIssue an issue is subject of an notification
+	NotifySubjectIssue NotifySubjectType = "Issue"
+	// NotifySubjectPull an pull is subject of an notification
+	NotifySubjectPull NotifySubjectType = "Pull"
+	// NotifySubjectCommit an commit is subject of an notification
+	NotifySubjectCommit NotifySubjectType = "Commit"
+	// NotifySubjectRepository an repository is subject of an notification
+	NotifySubjectRepository NotifySubjectType = "Repository"
+)
+
+// NotifySubjectState reflect state of notification subject
+type NotifySubjectState string
+
+const (
+	// NotifySubjectOpen if subject is a pull/issue and is open at the moment
+	NotifySubjectOpen NotifySubjectState = "open"
+	// NotifySubjectClosed if subject is a pull/issue and is closed at the moment
+	NotifySubjectClosed NotifySubjectState = "closed"
+	// NotifySubjectMerged if subject is a pull and got merged
+	NotifySubjectMerged NotifySubjectState = "merged"
+)
+
 // ListNotificationOptions represents the filter options
 type ListNotificationOptions struct {
 	ListOptions
-	Since  time.Time
-	Before time.Time
-	Status []NotifyStatus
+	Since        time.Time
+	Before       time.Time
+	Status       []NotifyStatus
+	SubjectTypes []NotifySubjectType
 }
 
 // MarkNotificationOptions represents the filter & modify options
@@ -74,6 +101,9 @@ func (opt *ListNotificationOptions) QueryEncode() string {
 	}
 	for _, s := range opt.Status {
 		query.Add("status-types", string(s))
+	}
+	for _, s := range opt.SubjectTypes {
+		query.Add("subject-type", string(s))
 	}
 	return query.Encode()
 }
