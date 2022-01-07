@@ -25,7 +25,7 @@ var CmdRestoreRepository = cli.Command{
 		cli.StringFlag{
 			Name:  "data_type, d",
 			Value: "gitea",
-			Usage: "The data type will be imported, default is gitea, options are gitea, github",
+			Usage: "The data type that will be imported, default is gitea, options are gitea, github",
 		},
 		cli.StringFlag{
 			Name:  "repo_filepath, f",

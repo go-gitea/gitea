@@ -8,7 +8,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -20,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
 )
 
@@ -108,7 +108,7 @@ type githubAttachment struct {
 	CreatedAt        time.Time
 }
 
-func (g *githubAttachment) GetUser() int64 {
+func (g *githubAttachment) GetUserID() int64 {
 	return getID(g.User)
 }
 
@@ -516,7 +516,7 @@ type githubIssue struct {
 	Assignee  string
 	Assignees []string
 	Milestone string
-	Lables    []githubLabel
+	Labels    []githubLabel
 	Reactions []githubReaction
 	ClosedAt  *time.Time
 	CreatedAt time.Time
@@ -581,7 +581,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				PosterID:    user.ID(),
 				PosterName:  user.Login,
 				PosterEmail: user.Email(),
-				Labels:      r.getLabels(issue.Lables),
+				Labels:      r.getLabels(issue.Labels),
 				Reactions:   r.getReactions(issue.Reactions),
 				Assets:      r.convertAttachments(r.issueAttachments[issue.URL]),
 				Milestone:   issue.Milestone,
