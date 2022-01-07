@@ -512,7 +512,7 @@
 									{{$file := (index $diff.Files 0)}}
 									<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $resolved}} hide{{end}}">
 										<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}">
-											<div class="file-body file-code code-view code-diff code-diff-unified">
+											<div class="file-body file-code code-view code-diff code-diff-unified unicode-escaped">
 												<table>
 													<tbody>
 														{{template "repo/diff/section_unified" dict "file" $file "root" $}}
