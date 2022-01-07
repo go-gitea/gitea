@@ -25,10 +25,10 @@ export async function importEasyMDE() {
   // https://github.com/codemirror/CodeMirror/issues/5484
   // https://github.com/codemirror/CodeMirror/issues/4838
 
+  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
   const [{default: EasyMDE}, {default: CodeMirror}] = await Promise.all([
     import(/* webpackChunkName: "easymde" */'easymde'),
     import(/* webpackChunkName: "codemirror" */'codemirror'),
-    import(/* webpackChunkName: "easymde" */'easymde/dist/easymde.min.css'),
   ]);
 
   // CodeMirror plugins must be loaded by a "Plain browser env"
