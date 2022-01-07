@@ -33,7 +33,7 @@ func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 func CanEnableEditor() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.Permission.CanWriteToBranch(ctx.Repo.BranchName) {
-			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			ctx.NotFound("CanWriteToBranch denies permission", nil)
 			return
 		}
 	}
