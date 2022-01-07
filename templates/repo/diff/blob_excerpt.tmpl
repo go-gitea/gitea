@@ -19,14 +19,26 @@
 					</a>
 				{{end}}
 			</td>
-			<td colspan="5" class="lines-code lines-code-old "><code class="code-inner">{{$.section.GetComputedInlineDiffFor $line}}</code></td>
+			<td colspan="5" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}{{$inlineDiff}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
 		{{else}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
-			<td class="blob-excerpt lines-code lines-code-old halfwidth"><code class="code-inner">{{if $line.LeftIdx}}{{$.section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+			<td class="blob-excerpt lines-code lines-code-old halfwidth">{{/*
+				*/}}{{if $line.LeftIdx}}{{/*
+						*/}}{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+					*/}}{{else}}{{/*
+						*/}}<code class="code-inner"></code>{{/*
+					*/}}{{end}}{{/*
+				*/}}</td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
-			<td class="blob-excerpt lines-code lines-code-new halfwidth"><code class="code-inner">{{if $line.RightIdx}}{{$.section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+			<td class="blob-excerpt lines-code lines-code-new halfwidth">{{/*
+				*/}}{{if $line.RightIdx}}{{/*
+					*/}}{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+				*/}}{{else}}{{/*
+					*/}}<code class="code-inner"></code>{{/*
+				*/}}{{end}}{{/*
+			*/}}</td>
 		{{end}}
 	</tr>
 	{{end}}

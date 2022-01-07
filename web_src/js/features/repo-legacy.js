@@ -10,6 +10,7 @@ import {
   initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
+import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
@@ -533,6 +534,8 @@ export function initRepository() {
       easyMDE.codemirror.refresh();
     });
   }
+
+  initUnicodeEscapeButton();
 }
 
 function initRepoIssueCommentEdit() {

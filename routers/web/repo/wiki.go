@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -232,7 +233,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("Render", err)
 		return nil, nil
 	}
-	ctx.Data["content"] = buf.String()
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
@@ -243,7 +245,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = buf.String()
+	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
@@ -254,7 +256,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = buf.String()
+	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
