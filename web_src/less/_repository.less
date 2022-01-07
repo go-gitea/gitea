@@ -76,6 +76,24 @@
     }
   }
 
+  .unicode-escaped .escaped-code-point {
+    &[data-escaped]::before {
+      visibility: visible;
+      content: attr(data-escaped);
+      font-family: var(--fonts-monospace);
+      color: var(--color-red);
+    }
+
+    .char {
+      display: none;
+    }
+  }
+
+  .broken-code-point {
+    font-family: var(--fonts-monospace);
+    color: blue;
+  }
+
   .metas {
     .menu {
       overflow-x: auto;
@@ -3020,6 +3038,26 @@ td.blob-excerpt {
   padding-left: 8px;
 }
 
+.ui.message.unicode-escape-prompt {
+  margin-bottom: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wiki-content-sidebar .ui.message.unicode-escape-prompt,
+.wiki-content-footer .ui.message.unicode-escape-prompt {
+  p {
+    display: none;
+  }
+}
+
+/* fomantic's last-child selector does not work with hidden last child */
+.ui.buttons .unescape-button {
+  border-top-right-radius: .28571429rem;
+  border-bottom-right-radius: .28571429rem;
+}
+
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
@@ -3110,6 +3148,7 @@ td.blob-excerpt {
 .code-diff-unified .del-code,
 .code-diff-unified .del-code td,
 .code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-escape-old,
 .code-diff-split .del-code .lines-type-marker-old,
 .code-diff-split .del-code .lines-code-old {
   background: var(--color-diff-removed-row-bg);
@@ -3120,9 +3159,11 @@ td.blob-excerpt {
 .code-diff-unified .add-code td,
 .code-diff-split .add-code .lines-num-new,
 .code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-escape-new,
 .code-diff-split .add-code .lines-code-new,
 .code-diff-split .del-code .add-code.lines-num-new,
 .code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-escape-new,
 .code-diff-split .del-code .add-code.lines-code-new {
   background: var(--color-diff-added-row-bg);
   border-color: var(--color-diff-added-row-border);
@@ -3131,7 +3172,9 @@ td.blob-excerpt {
 .code-diff-split .del-code .lines-num-new,
 .code-diff-split .del-code .lines-type-marker-new,
 .code-diff-split .del-code .lines-code-new,
+.code-diff-split .del-code .lines-escape-new,
 .code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-escape-old,
 .code-diff-split .add-code .lines-type-marker-old,
 .code-diff-split .add-code .lines-code-old {
   background: var(--color-diff-inactive);

@@ -339,21 +339,24 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
-						bs, _ := io.ReadAll(rd)
+						buf := &bytes.Buffer{}
+						ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
-							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
+							gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 						)
 					} else {
-						ctx.Data["FileContent"] = result.String()
+						ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					buf, err = io.ReadAll(rd)
+					buf := &bytes.Buffer{}
+					ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf)
 					if err != nil {
-						log.Error("ReadAll failed: %v", err)
+						log.Error("Read failed: %v", err)
 					}
+
 					ctx.Data["FileContent"] = strings.ReplaceAll(
-						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
+						gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 					)
 				}
 			}
@@ -502,12 +505,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("Render", err)
 				return
 			}
-			ctx.Data["FileContent"] = result.String()
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist {
-			buf, _ := io.ReadAll(rd)
+			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
+
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+
 			ctx.Data["FileContent"] = strings.ReplaceAll(
-				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
+				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
@@ -540,7 +546,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), language, buf)
+			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
+			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
+			ctx.Data["EscapeStatus"] = status
+			statuses := make([]charset.EscapeStatus, len(fileContent))
+			for i, line := range fileContent {
+				statuses[i], fileContent[i] = charset.EscapeControlString(line)
+			}
+			ctx.Data["FileContent"] = fileContent
+			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
@@ -588,7 +602,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("Render", err)
 				return
 			}
-			ctx.Data["FileContent"] = result.String()
+
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	}
 

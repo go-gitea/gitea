@@ -1189,9 +1189,31 @@ func TestWebhook(ctx *context.Context) {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(500)
 	} else {
-		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.test_delivery_success"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
 		ctx.Status(200)
 	}
+}
+
+// ReplayWebhook replays a webhook
+func ReplayWebhook(ctx *context.Context) {
+	hookTaskUUID := ctx.Params(":uuid")
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := webhook_service.ReplayHookTask(w, hookTaskUUID); err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.NotFound("ReplayHookTask", nil)
+		} else {
+			ctx.ServerError("ReplayHookTask", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.webhook.delivery.success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
 // DeleteWebhook delete a webhook

@@ -300,10 +300,11 @@ func LFSFileGet(ctx *context.Context) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(rd)
+		escapedContent := &bytes.Buffer{}
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent)
 
 		var output bytes.Buffer
-		lines := strings.Split(string(fileContent), "\n")
+		lines := strings.Split(escapedContent.String(), "\n")
 		//Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]
