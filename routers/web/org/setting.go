@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
