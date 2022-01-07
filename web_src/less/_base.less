@@ -668,6 +668,12 @@ a.ui.card:hover,
   color: var(--color-text-dark);
 }
 
+.ui.error.message .header,
+.ui.warning.message .header {
+  color: inherit;
+  filter: saturate(2);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1567,6 +1573,10 @@ a.ui.label:hover {
       padding-left: 1ch;
     }
   }
+}
+
+.lines-escape {
+  width: 0;
 }
 
 .lines-code {

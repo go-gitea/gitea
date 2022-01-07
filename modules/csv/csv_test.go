@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"io"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,14 +22,21 @@ func TestCreateReader(t *testing.T) {
 	assert.Equal(t, ',', rd.Comma)
 }
 
-//nolint
+func decodeSlashes(t *testing.T, s string) string {
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	decoded, err := strconv.Unquote(`"` + s + `"`)
+	assert.NoError(t, err, "unable to decode string")
+	return decoded
+}
+
 func TestCreateReaderAndDetermineDelimiter(t *testing.T) {
 	var cases = []struct {
 		csv               string
 		expectedRows      [][]string
 		expectedDelimiter rune
 	}{
-		// case 0 - semicolon delmited
+		// case 0 - semicolon delimited
 		{
 			csv: `a;b;c
 1;2;3
@@ -47,11 +55,11 @@ a,	b	c
 	e	f
 g	h	i
 j		l
-m	n,	
+m	n,\t
 p	q	r
 		u
 v	w	x
-y		
+y\t\t
 		`,
 			expectedRows: [][]string{
 				{"col1", "col2", "col3"},
@@ -74,7 +82,7 @@ y
  a, b, c
 d,e,f
  ,h, i
-j, , 
+j, ,\x20
  , , `,
 			expectedRows: [][]string{
 				{"col1", "col2", "col3"},
@@ -89,7 +97,7 @@ j, ,
 	}
 
 	for n, c := range cases {
-		rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.csv))
+		rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(decodeSlashes(t, c.csv)))
 		assert.NoError(t, err, "case %d: should not throw error: %v\n", n, err)
 		assert.EqualValues(t, c.expectedDelimiter, rd.Comma, "case %d: delimiter should be '%c', got '%c'", n, c.expectedDelimiter, rd.Comma)
 		rows, err := rd.ReadAll()
@@ -222,7 +230,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 	}
 
 	for n, c := range cases {
-		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(c.csv))
+		delimiter := determineDelimiter(&markup.RenderContext{Filename: c.filename}, []byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -287,7 +295,7 @@ abc   | |123
 	}
 
 	for n, c := range cases {
-		modifiedText := removeQuotedString(c.text)
+		modifiedText := removeQuotedString(decodeSlashes(t, c.text))
 		assert.EqualValues(t, c.expectedText, modifiedText, "case %d: modified text should be equal", n)
 	}
 }
@@ -353,7 +361,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 	quoted,
 text,"	a
 2	"some,
-quoted,	
+quoted,\t
 	text,"	b
 3	"some,
 quoted,
@@ -442,7 +450,7 @@ jkl`,
 	}
 
 	for n, c := range cases {
-		delimiter := guessDelimiter([]byte(c.csv))
+		delimiter := guessDelimiter([]byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -459,7 +467,7 @@ func TestGuessFromBeforeAfterQuotes(t *testing.T) {
 	quoted,
 text,"	a
 2	"some,
-quoted,	
+quoted,\t
 	text,"	b
 3	"some,
 quoted,
@@ -534,7 +542,7 @@ a|"he said, ""here I am"""`,
 	}
 
 	for n, c := range cases {
-		delimiter := guessFromBeforeAfterQuotes([]byte(c.csv))
+		delimiter := guessFromBeforeAfterQuotes([]byte(decodeSlashes(t, c.csv)))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
@@ -547,6 +555,10 @@ func (l mockLocale) Language() string {
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
+}
+
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
 }
 
 func TestFormatError(t *testing.T) {

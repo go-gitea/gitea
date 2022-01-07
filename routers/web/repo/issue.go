@@ -790,7 +790,6 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
@@ -963,7 +962,6 @@ func NewIssuePost(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1148,7 +1146,6 @@ func ViewIssue(ctx *context.Context) {
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1601,10 +1598,22 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["WontSignReason"] = "not_signed_in"
 		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+
+		isPullBranchDeletable := canDelete &&
 			pull.HeadRepo != nil &&
 			git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+
+		if isPullBranchDeletable && pull.HasMerged {
+			exist, err := models.HasUnmergedPullRequestsByHeadInfo(pull.HeadRepoID, pull.HeadBranch)
+			if err != nil {
+				ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+				return
+			}
+
+			isPullBranchDeletable = !exist
+		}
+		ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
 
 		stillCanManualMerge := func() bool {
 			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {

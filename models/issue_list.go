@@ -25,6 +25,9 @@ const (
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
+		if issue.Repo != nil {
+			continue
+		}
 		if _, ok := repoIDs[issue.RepoID]; !ok {
 			repoIDs[issue.RepoID] = struct{}{}
 		}
@@ -56,8 +59,12 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository,
 	}
 
 	for _, issue := range issues {
-		issue.Repo = repoMaps[issue.RepoID]
-		if issue.PullRequest != nil {
+		if issue.Repo == nil {
+			issue.Repo = repoMaps[issue.RepoID]
+		} else {
+			repoMaps[issue.RepoID] = issue.Repo
+		}
+		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
 			issue.PullRequest.BaseRepo = issue.Repo
 		}
 	}

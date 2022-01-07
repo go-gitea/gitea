@@ -1,7 +1,7 @@
 import attachTribute from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
-import {createCommentEasyMDE} from './comp/CommentEasyMDE.js';
+import {createCommentEasyMDE} from './comp/EasyMDE.js';
 
 export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
@@ -19,11 +19,13 @@ export function initRepoReleaseEditor() {
     return false;
   }
 
-  const $textarea = $editor.find('textarea');
-  attachTribute($textarea.get(), {mentions: false, emoji: true});
-  const $files = $editor.parent().find('.files');
-  const easyMDE = createCommentEasyMDE($textarea);
-  initCompMarkupContentPreviewTab($editor);
-  const dropzone = $editor.parent().find('.dropzone')[0];
-  initEasyMDEImagePaste(easyMDE, dropzone, $files);
+  (async () => {
+    const $textarea = $editor.find('textarea');
+    await attachTribute($textarea.get(), {mentions: false, emoji: true});
+    const $files = $editor.parent().find('.files');
+    const easyMDE = await createCommentEasyMDE($textarea);
+    initCompMarkupContentPreviewTab($editor);
+    const dropzone = $editor.parent().find('.dropzone')[0];
+    initEasyMDEImagePaste(easyMDE, dropzone, $files);
+  })();
 }

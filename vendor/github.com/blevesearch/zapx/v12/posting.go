@@ -536,13 +536,18 @@ func (i *PostingsIterator) nextDocNumAtOrAfter(atOrAfter uint64) (uint64, bool, 
 		return 0, false, nil
 	}
 
-	if i.postings == nil || i.postings.postings == i.ActualBM {
+	if i.postings == nil || i.postings == emptyPostingsList {
+		// couldn't find anything
+		return 0, false, nil
+	}
+
+	if i.postings.postings == i.ActualBM {
 		return i.nextDocNumAtOrAfterClean(atOrAfter)
 	}
 
 	i.Actual.AdvanceIfNeeded(uint32(atOrAfter))
 
-	if !i.Actual.HasNext() {
+	if !i.Actual.HasNext() || !i.all.HasNext() {
 		// couldn't find anything
 		return 0, false, nil
 	}
@@ -569,6 +574,10 @@ func (i *PostingsIterator) nextDocNumAtOrAfter(atOrAfter uint64) (uint64, bool, 
 			if err != nil {
 				return 0, false, err
 			}
+		}
+
+		if !i.all.HasNext() {
+			return 0, false, nil
 		}
 
 		allN = i.all.Next()

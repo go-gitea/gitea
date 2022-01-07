@@ -15,8 +15,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -700,8 +700,8 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	return login.CreateSource(&login.Source{
-		Type:     login.OAuth2,
+	return auth.CreateSource(&auth.Source{
+		Type:     auth.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
 		Cfg:      parseOAuth2Config(c),
@@ -720,7 +720,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := login.GetSourceByID(c.Int64("id"))
+	source, err := auth.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -801,7 +801,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return login.UpdateSource(source)
+	return auth.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -812,7 +812,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSources, err := login.Sources()
+	authSources, err := auth.Sources()
 
 	if err != nil {
 		return err
@@ -831,7 +831,7 @@ func runListAuth(c *cli.Context) error {
 	// loop through each source and print
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
-	for _, source := range loginSources {
+	for _, source := range authSources {
 		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, source.Type.String(), source.IsActive)
 	}
 	w.Flush()
@@ -851,10 +851,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := login.GetSourceByID(c.Int64("id"))
+	source, err := auth.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return auth_service.DeleteLoginSource(source)
+	return auth_service.DeleteSource(source)
 }

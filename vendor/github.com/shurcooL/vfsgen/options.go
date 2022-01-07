@@ -26,6 +26,10 @@ type Options struct {
 	// VariableComment is the comment of the http.FileSystem variable in the generated code.
 	// If left empty, it defaults to "{{.VariableName}} statically implements the virtual filesystem provided to vfsgen.".
 	VariableComment string
+
+	// UseGlobalModTime indicates that not retrieve files' modified time if it's true. Once this
+	// is true, you have to define a function GlobalModTime(filename string) time.Time in the same package of generated files
+	UseGlobalModTime bool
 }
 
 // fillMissing sets default values for mandatory options that are left empty.

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -224,35 +225,57 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
+func getUnitPerms(forms url.Values) map[unit_model.Type]perm.AccessMode {
+	unitPerms := make(map[unit_model.Type]perm.AccessMode)
+	for k, v := range forms {
+		if strings.HasPrefix(k, "unit_") {
+			t, _ := strconv.Atoi(k[5:])
+			if t > 0 {
+				vv, _ := strconv.Atoi(v[0])
+				unitPerms[unit_model.Type(t)] = perm.AccessMode(vv)
+			}
+		}
+	}
+	return unitPerms
+}
+
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Units"] = unit_model.Units
-	var includesAllRepositories = form.RepoAccess == "all"
+	includesAllRepositories := form.RepoAccess == "all"
+	unitPerms := getUnitPerms(ctx.Req.Form)
+	p := perm.ParseAccessMode(form.Permission)
+	if p < perm.AccessModeAdmin {
+		// if p is less than admin accessmode, then it should be general accessmode,
+		// so we should calculate the minial accessmode from units accessmodes.
+		p = unit_model.MinUnitAccessMode(unitPerms)
+	}
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		Authorize:               perm.ParseAccessMode(form.Permission),
+		AccessMode:              p,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
-	if t.Authorize < perm.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range form.Units {
+	if t.AccessMode < perm.AccessModeAdmin {
+		units := make([]*models.TeamUnit, 0, len(unitPerms))
+		for tp, perm := range unitPerms {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
-				Type:  tp,
+				OrgID:      ctx.Org.Organization.ID,
+				Type:       tp,
+				AccessMode: perm,
 			})
 		}
 		t.Units = units
 	}
 
+	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamsNew"] = true
+	ctx.Data["Units"] = unit_model.Units
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
@@ -260,7 +283,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
+	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -317,22 +340,29 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
+	unitPerms := getUnitPerms(ctx.Req.Form)
+	isAuthChanged := false
+	isIncludeAllChanged := false
+	includesAllRepositories := form.RepoAccess == "all"
+
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	isAuthChanged := false
-	isIncludeAllChanged := false
-	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
-		auth := perm.ParseAccessMode(form.Permission)
+		newAccessMode := perm.ParseAccessMode(form.Permission)
+		if newAccessMode < perm.AccessModeAdmin {
+			// if p is less than admin accessmode, then it should be general accessmode,
+			// so we should calculate the minial accessmode from units accessmodes.
+			newAccessMode = unit_model.MinUnitAccessMode(unitPerms)
+		}
 
 		t.Name = form.TeamName
-		if t.Authorize != auth {
+		if t.AccessMode != newAccessMode {
 			isAuthChanged = true
-			t.Authorize = auth
+			t.AccessMode = newAccessMode
 		}
 
 		if t.IncludesAllRepositories != includesAllRepositories {
@@ -341,17 +371,17 @@ func EditTeamPost(ctx *context.Context) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < perm.AccessModeOwner {
-		var units = make([]models.TeamUnit, 0, len(form.Units))
-		for _, tp := range form.Units {
+	if t.AccessMode < perm.AccessModeAdmin {
+		units := make([]models.TeamUnit, 0, len(unitPerms))
+		for tp, perm := range unitPerms {
 			units = append(units, models.TeamUnit{
-				OrgID:  t.OrgID,
-				TeamID: t.ID,
-				Type:   tp,
+				OrgID:      t.OrgID,
+				TeamID:     t.ID,
+				Type:       tp,
+				AccessMode: perm,
 			})
 		}
-		err := models.UpdateTeamUnits(t, units)
-		if err != nil {
+		if err := models.UpdateTeamUnits(t, units); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadIssue", err.Error())
 			return
 		}
@@ -363,7 +393,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
+	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
