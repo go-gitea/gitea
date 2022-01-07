@@ -111,7 +111,7 @@ func (c *Client) GetCertificateChain(ctx context.Context, account Account, certU
 	// heuristics to decide which is optimal." §7.4.2
 	alternates := extractLinks(resp, "alternate")
 	for _, altURL := range alternates {
-		resp, err = addChain(altURL)
+		_, err = addChain(altURL)
 		if err != nil {
 			return nil, fmt.Errorf("retrieving alternate certificate chain at %s: %w", altURL, err)
 		}

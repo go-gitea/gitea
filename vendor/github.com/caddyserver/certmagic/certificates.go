@@ -283,8 +283,6 @@ func fillCertFromLeaf(cert *Certificate, tlsCert tls.Certificate) error {
 		return fmt.Errorf("certificate has no names")
 	}
 
-	// save the hash of this certificate (chain) and
-	// expiration date, for necessity and efficiency
 	cert.hash = hashCertificateChain(cert.Certificate.Certificate)
 
 	return nil

@@ -304,7 +304,7 @@ func (o *Builder) Close() error {
 	}
 
 	// fill the root bolt with this fake index snapshot
-	_, _, err = prepareBoltSnapshot(is, tx, o.path, o.segPlugin)
+	_, _, err = prepareBoltSnapshot(is, tx, o.path, o.segPlugin, nil)
 	if err != nil {
 		_ = tx.Rollback()
 		_ = rootBolt.Close()

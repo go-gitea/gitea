@@ -75,7 +75,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - MSSQL (>=2008R2 SP3)
         - TiDB (MySQL protocol)
     - Configuration file
-        - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+        - [app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
     - Admin panel
         - Statistics
         - Actions
@@ -99,7 +99,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Maximum repositories
             - Disable account
             - Admin permissions
-            - Permission to create git hooks
+            - Permission to create Git Hooks
             - Permission to create organizations
             - Permission to import repositories
         - Organization management
@@ -127,7 +127,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
                 - Clean up old archives
     - Environment variables
     - Command line options
-- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/master/options/locale))
+- Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
 - [Mermaid](https://mermaidjs.github.io/) Diagram support
 - Mail service
     - Notifications
@@ -247,7 +247,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Default branch
             - Branch protection
         - Webhooks
-        - Git hooks
+        - Git Hooks
         - Deploy keys
 
 ## System Requirements
@@ -257,8 +257,8 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 - [Git](https://git-scm.com/) version 1.7.2 or later is required. Version 1.9.0 or later is recommended. Also please note:
-   - Git [large file storage](https://git-lfs.github.com/) will be available if enabled when git >= 2.1.2.
-   - Git commit-graph rendering will be enabled automatically when git >= 2.18.
+   - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled when Git >= 2.1.2.
+   - Git commit-graph rendering will be enabled automatically when Git >= 2.18.
 
 ## Browser Support
 
