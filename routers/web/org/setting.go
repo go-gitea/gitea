@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -243,7 +243,7 @@ func Applications(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	apps, err := login.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+	apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 		return
@@ -261,7 +261,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
-		apps, err := login.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
@@ -272,7 +272,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	app, err := login.CreateOAuth2Application(login.CreateOAuth2ApplicationOptions{
+	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.Org.Organization.ID,
@@ -293,9 +293,9 @@ func ApplicationsPost(ctx *context.Context) {
 
 // EditApplication response for editing oauth2 application
 func EditApplication(ctx *context.Context) {
-	app, err := login.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
 	if err != nil {
-		if login.IsErrOAuthApplicationNotFound(err) {
+		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
 			return
 		}
@@ -320,7 +320,7 @@ func EditApplicationPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
-		apps, err := login.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
@@ -331,7 +331,7 @@ func EditApplicationPost(ctx *context.Context) {
 		return
 	}
 	var err error
-	if ctx.Data["App"], err = login.UpdateOAuth2Application(login.UpdateOAuth2ApplicationOptions{
+	if ctx.Data["App"], err = auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
 		ID:           ctx.ParamsInt64("id"),
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
@@ -350,9 +350,9 @@ func ApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 	ctx.Data["PageIsOrgSettings"] = true
 
-	app, err := login.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
 	if err != nil {
-		if login.IsErrOAuthApplicationNotFound(err) {
+		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
 			return
 		}
@@ -375,7 +375,7 @@ func ApplicationsRegenerateSecret(ctx *context.Context) {
 
 // DeleteApplication deletes the given oauth2 application
 func DeleteApplication(ctx *context.Context) {
-	if err := login.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.Org.Organization.ID); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.Org.Organization.ID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
