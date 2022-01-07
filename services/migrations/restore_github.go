@@ -21,7 +21,17 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
+
+	"github.com/hashicorp/go-version"
 )
+
+/*
+	{"version":"1.0.1","github_sha":"8de0984858fd99a8dcd2d756cf0f128b9161e3b5"}
+*/
+type githubSchema struct {
+	Version   string
+	GithubSha string
+}
 
 /*
 {
@@ -239,6 +249,9 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 		repoName:           repoName,
 		users:              make(map[string]*githubUser),
 	}
+	if err := restorer.readSchema(); err != nil {
+		return nil, err
+	}
 	if err := restorer.getUsers(); err != nil {
 		return nil, err
 	}
@@ -249,6 +262,27 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 // SetContext set context
 func (r *GithubExportedDataRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
+}
+
+func (r *GithubExportedDataRestorer) readSchema() error {
+	bs, err := os.ReadFile(filepath.Join(r.tmpDir, "schema.json"))
+	if err != nil {
+		return err
+	}
+	var schema githubSchema
+	if err := json.Unmarshal(bs, &schema); err != nil {
+		return err
+	}
+
+	v, err := version.NewSemver(schema.Version)
+	if err != nil {
+		return fmt.Errorf("archive version %s is not semver", schema.Version)
+	}
+	s := v.Segments()
+	if s[0] != 1 {
+		return fmt.Errorf("archive version is %s, but expected 1.x.x", schema.Version)
+	}
+	return nil
 }
 
 // GetRepoInfo returns a repository information
