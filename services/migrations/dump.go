@@ -644,18 +644,13 @@ func RestoreFromGithubExportedData(ctx context.Context, baseDir, ownerName, repo
 		return err
 	}
 	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	downloader, err := NewGithubExportedDataRestorer(ctx, baseDir, ownerName, repoName)
 	if err != nil {
 		return err
 	}
-	opts, err := downloader.getRepoOptions()
-	if err != nil {
-		return err
-	}
-	tp, _ := strconv.Atoi(opts["service_type"])
 
 	var migrateOpts = base.MigrateOptions{
-		GitServiceType: structs.GitServiceType(tp),
+		GitServiceType: structs.GithubService,
 	}
 	updateOptionsUnits(&migrateOpts, units)
 
@@ -665,5 +660,5 @@ func RestoreFromGithubExportedData(ctx context.Context, baseDir, ownerName, repo
 		}
 		return err
 	}
-	return updateMigrationPosterIDByGitService(ctx, structs.GitServiceType(tp))
+	return updateMigrationPosterIDByGitService(ctx, migrateOpts.GitServiceType)
 }
