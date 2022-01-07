@@ -24,6 +24,28 @@ type Hook struct {
 	Created time.Time         `json:"created_at"`
 }
 
+// HookType represent all webhook types gitea currently offer
+type HookType string
+
+const (
+	// HookTypeDingtalk webhook that dingtalk understand
+	HookTypeDingtalk HookType = "dingtalk"
+	// HookTypeDiscord webhook that discord understand
+	HookTypeDiscord HookType = "discord"
+	// HookTypeGitea webhook that gitea understand
+	HookTypeGitea HookType = "gitea"
+	// HookTypeGogs webhook that gogs understand
+	HookTypeGogs HookType = "gogs"
+	// HookTypeMsteams webhook that msteams understand
+	HookTypeMsteams HookType = "msteams"
+	// HookTypeSlack webhook that slack understand
+	HookTypeSlack HookType = "slack"
+	// HookTypeTelegram webhook that telegram understand
+	HookTypeTelegram HookType = "telegram"
+	// HookTypeFeishu webhook that feishu understand
+	HookTypeFeishu HookType = "feishu"
+)
+
 // ListHooksOptions options for listing hooks
 type ListHooksOptions struct {
 	ListOptions
@@ -73,7 +95,7 @@ func (c *Client) GetRepoHook(user, repo string, id int64) (*Hook, *Response, err
 
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
-	Type         string            `json:"type"`
+	Type         HookType          `json:"type"`
 	Config       map[string]string `json:"config"`
 	Events       []string          `json:"events"`
 	BranchFilter string            `json:"branch_filter"`
