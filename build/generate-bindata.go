@@ -58,11 +58,15 @@ func needsUpdate(dir string, filename string) (bool, []byte) {
 }
 
 func main() {
-	if len(os.Args) != 4 {
+	if len(os.Args) < 4 {
 		log.Fatal("Insufficient number of arguments. Need: directory packageName filename")
 	}
 
 	dir, packageName, filename := os.Args[1], os.Args[2], os.Args[3]
+	var useGlobalModTime bool
+	if len(os.Args) == 5 {
+		useGlobalModTime, _ = strconv.ParseBool(os.Args[4])
+	}
 
 	update, newHash := needsUpdate(dir, filename)
 
@@ -74,10 +78,11 @@ func main() {
 	fmt.Printf("generating bindata for %s\n", packageName)
 	var fsTemplates http.FileSystem = http.Dir(dir)
 	err := vfsgen.Generate(fsTemplates, vfsgen.Options{
-		PackageName:  packageName,
-		BuildTags:    "bindata",
-		VariableName: "Assets",
-		Filename:     filename,
+		PackageName:      packageName,
+		BuildTags:        "bindata",
+		VariableName:     "Assets",
+		Filename:         filename,
+		UseGlobalModTime: useGlobalModTime,
 	})
 	if err != nil {
 		log.Fatalf("%v\n", err)
