@@ -1490,7 +1490,7 @@ func updateAllowEditsStatus(ctx *context.Context, allow bool) {
 		return
 	}
 
-	err = pr.UpdateAllowEdits(allow)
+	err = models.UpdateAllowEdits(pr, allow)
 	if err != nil {
 		ctx.ServerError("UpdateAllowEdits", err)
 		return

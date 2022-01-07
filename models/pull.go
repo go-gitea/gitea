@@ -705,11 +705,11 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 }
 
 // UpdateAllowEdits update if PR can be edited from maintainers
-func (pr *PullRequest) UpdateAllowEdits(allow bool) error {
-	return pr.updateAllowEdits(db.GetEngine(db.DefaultContext), allow)
+func UpdateAllowEdits(pr *PullRequest, allow bool) error {
+	return updateAllowEdits(db.GetEngine(db.DefaultContext), pr, allow)
 }
 
-func (pr *PullRequest) updateAllowEdits(e db.Engine, allow bool) error {
+func updateAllowEdits(e db.Engine, pr *PullRequest, allow bool) error {
 	pr.AllowEditsFromMaintainers = allow
 	if _, err := e.ID(pr.ID).Cols("allow_edits_from_maintainers").Update(pr); err != nil {
 		return err
