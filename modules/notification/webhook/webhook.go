@@ -5,6 +5,8 @@
 package webhook
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -18,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	pull_service "code.gitea.io/gitea/services/pull"
 	webhook_services "code.gitea.io/gitea/services/webhook"
 )
 
@@ -302,11 +305,17 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mention
 		return
 	}
 
+	commits, err := pull_service.CommitsBetweenLimit(context.TODO(), pull, 100, 0) //TODO: limit is hardcoded
+	if err != nil {
+
+	}
+
 	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
 	if err := webhook_services.PrepareWebhooks(pull.Issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pull, nil),
+		Commits:     nil, // TODO
 		Repository:  convert.ToRepo(pull.Issue.Repo, mode),
 		Sender:      convert.ToUser(pull.Issue.Poster, nil),
 	}); err != nil {
@@ -615,6 +624,7 @@ func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *use
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
+		Commits:     nil, // TODO
 		Repository:  convert.ToRepo(pr.Issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 		Action:      api.HookIssueClosed,
@@ -648,6 +658,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *user_model.U
 			},
 		},
 		PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
+		Commits:     nil, // TODO
 		Repository:  convert.ToRepo(issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 	})
@@ -687,6 +698,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
+		Commits:     nil, // TODO
 		Repository:  convert.ToRepo(review.Issue.Repo, mode),
 		Sender:      convert.ToUser(review.Reviewer, nil),
 		Review: &api.ReviewPayload{
@@ -742,6 +754,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *user_model.User, p
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
+		Commits:     nil, // TODO
 		Repository:  convert.ToRepo(pr.Issue.Repo, perm.AccessModeNone),
 		Sender:      convert.ToUser(doer, nil),
 	}); err != nil {

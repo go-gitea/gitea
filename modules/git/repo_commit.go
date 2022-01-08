@@ -283,7 +283,7 @@ func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) 
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
-// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
+// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last]
 func (repo *Repository) CommitsBetweenLimit(last, before *Commit, limit, skip int) ([]*Commit, error) {
 	var stdout []byte
 	var err error

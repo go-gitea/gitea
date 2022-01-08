@@ -378,13 +378,14 @@ type ChangesPayload struct {
 
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
-	Action      HookIssueAction `json:"action"`
-	Index       int64           `json:"number"`
-	Changes     *ChangesPayload `json:"changes,omitempty"`
-	PullRequest *PullRequest    `json:"pull_request"`
-	Repository  *Repository     `json:"repository"`
-	Sender      *User           `json:"sender"`
-	Review      *ReviewPayload  `json:"review"`
+	Action      HookIssueAction  `json:"action"`
+	Index       int64            `json:"number"`
+	Changes     *ChangesPayload  `json:"changes,omitempty"`
+	PullRequest *PullRequest     `json:"pull_request"`
+	Commits     []*PayloadCommit `json:"commits"`
+	Repository  *Repository      `json:"repository"`
+	Sender      *User            `json:"sender"`
+	Review      *ReviewPayload   `json:"review"`
 }
 
 // JSONPayload FIXME

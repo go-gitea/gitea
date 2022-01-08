@@ -562,6 +562,48 @@ func CloseRepoBranchesPulls(doer *user_model.User, repo *repo_model.Repository) 
 
 var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
 
+// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last]
+func CommitsBetweenLimit(ctx context.Context, pr *models.PullRequest, limit, skip int) ([]*git.Commit, error) {
+	if pr.HeadRepo == nil {
+		var err error
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			return nil, fmt.Errorf("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return nil, fmt.Errorf("Unable to open head repository: Error: %v", err)
+	}
+	defer gitRepo.Close()
+
+	var headCommit *git.Commit
+	if pr.Flow == models.PullRequestFlowGithub {
+		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
+	} else {
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			return nil, fmt.Errorf("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
+		}
+		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+	}
+
+	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
+	}
+
+	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+	}
+	return commits, nil
+}
+
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if err := pr.LoadIssue(); err != nil {
@@ -590,33 +632,11 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	}
 	defer gitRepo.Close()
 
-	var headCommit *git.Commit
-	if pr.Flow == models.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
-	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
-			return ""
-		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
-	}
-	if err != nil {
-		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
-		return ""
-	}
-
-	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
-	if err != nil {
-		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
-		return ""
-	}
-
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	commits, err := CommitsBetweenLimit(context.TODO(), pr, limit, 0)
 	if err != nil {
-		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+		log.Error("CommitsBetweenLimit: %v", err)
 		return ""
 	}
 
