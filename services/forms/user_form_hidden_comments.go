@@ -97,7 +97,9 @@ func IsUserHiddenCommentTypeGroupChecked(group string, hiddenCommentTypes *big.I
 		return false
 	}
 	for _, commentType := range commentTypes {
-		ret = ret || hiddenCommentTypes.Bit(int(commentType)) != 0
+		if hiddenCommentTypes.Bit(int(commentType)) == 1 {
+			return true
+		}
 	}
-	return ret
+	return false
 }
