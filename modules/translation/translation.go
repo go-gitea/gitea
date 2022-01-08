@@ -5,6 +5,8 @@
 package translation
 
 import (
+	"sort"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -72,6 +74,11 @@ func InitLocales() {
 	for i, v := range langs {
 		allLangs = append(allLangs, LangType{v, names[i]})
 	}
+
+	// Sort languages according to their name - needed for the user settings
+	sort.Slice(allLangs, func(i, j int) bool {
+		return allLangs[i].Name < allLangs[j].Name
+	})
 }
 
 // Match matches accept languages
