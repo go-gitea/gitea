@@ -124,8 +124,13 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case strings.HasPrefix(refFullName, git.TagPrefix):
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
-		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix):
+		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.AgitPullPrefix):
 			preReceivePullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
+		case strings.HasPrefix(refFullName, git.PullPrefix) && newCommitID == git.EmptySHA:
+			ctx.JSON(http.StatusForbidden, private.Response{
+				Err: "delete head ref of pull request is not allowed",
+			})
+			return
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -409,7 +414,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 		return
 	}
 
-	baseBranchName := refFullName[len(git.PullRequestPrefix):]
+	baseBranchName := refFullName[len(git.AgitPullPrefix):]
 
 	baseBranchExist := false
 	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {

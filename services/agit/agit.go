@@ -50,7 +50,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 			continue
 		}
 
-		if !strings.HasPrefix(opts.RefFullNames[i], git.PullRequestPrefix) {
+		if !strings.HasPrefix(opts.RefFullNames[i], git.AgitPullPrefix) {
 			results = append(results, private.HookProcReceiveRefResult{
 				IsNotMatched: true,
 				OriginalRef:  opts.RefFullNames[i],
@@ -58,7 +58,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 			continue
 		}
 
-		baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+		baseBranchName := opts.RefFullNames[i][len(git.AgitPullPrefix):]
 		curentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
