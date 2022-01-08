@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/hashicorp/go-version"
@@ -133,7 +134,7 @@ func (g *githubAttachment) IssueID() int64 {
 	return getID(g.IssueComment)
 }
 
-func (r *GithubExportedDataRestorer) convertAttachments(ls []*githubAttachment) []*base.Asset {
+func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) []*base.Asset {
 	var res = make([]*base.Asset, 0, len(ls))
 	for _, l := range ls {
 		var assetURL = "file://" + strings.TrimPrefix(l.AssetURL, "tarball://root")
@@ -168,7 +169,12 @@ type githubLabel string
 
 func (l githubLabel) GetName() string {
 	fields := strings.Split(string(l), "/labels/")
-	return fields[len(fields)-1]
+	s, err := url.PathUnescape(fields[len(fields)-1])
+	if err != nil {
+		log.Error("url.PathUnescape %s failed: %v", fields[len(fields)-1], err)
+		return fields[len(fields)-1]
+	}
+	return s
 }
 
 // GithubExportedDataRestorer implements an Downloader from the exported data of Github
@@ -180,9 +186,10 @@ type GithubExportedDataRestorer struct {
 	repoOwner          string
 	repoName           string
 	labels             []*base.Label
-	users              map[string]*githubUser
-	issueAttachments   map[string][]*githubAttachment
-	commentAttachments map[string][]*githubAttachment
+	users              map[string]githubUser
+	issueAttachments   map[string][]githubAttachment
+	commentAttachments map[string][]githubAttachment
+	milestones         map[string]githubMilestone
 	attachmentLoaded   bool
 }
 
@@ -247,7 +254,8 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 		tmpDir:             tmpDir,
 		repoOwner:          owner,
 		repoName:           repoName,
-		users:              make(map[string]*githubUser),
+		users:              make(map[string]githubUser),
+		milestones:         make(map[string]githubMilestone),
 	}
 	if err := restorer.readSchema(); err != nil {
 		return nil, err
@@ -387,7 +395,7 @@ func (r *GithubExportedDataRestorer) getUsers() error {
 	}, func(content interface{}) error {
 		mss := content.(*[]githubUser)
 		for _, ms := range *mss {
-			r.users[ms.URL] = &ms
+			r.users[ms.URL] = ms
 		}
 		return nil
 	})
@@ -405,33 +413,49 @@ func (r *GithubExportedDataRestorer) getAttachments() error {
 		mss := content.(*[]githubAttachment)
 		for _, ms := range *mss {
 			if ms.IsIssue() {
-				r.issueAttachments[ms.Issue] = append(r.issueAttachments[ms.Issue], &ms)
+				r.issueAttachments[ms.Issue] = append(r.issueAttachments[ms.Issue], ms)
 			} else {
-				r.commentAttachments[ms.IssueComment] = append(r.commentAttachments[ms.IssueComment], &ms)
+				r.commentAttachments[ms.IssueComment] = append(r.commentAttachments[ms.IssueComment], ms)
 			}
 		}
 		return nil
 	})
 }
 
+/* {
+   "type": "milestone",
+   "url": "https://github.com/go-gitea/test_repo/milestones/1",
+   "repository": "https://github.com/go-gitea/test_repo",
+   "user": "https://github.com/mrsdizzie",
+   "title": "1.0.0",
+   "description": "Milestone 1.0.0",
+   "state": "closed",
+   "due_on": "2019-11-11T00:00:00Z",
+   "created_at": "2019-11-12T19:37:08Z",
+   "updated_at": "2019-11-12T21:56:17Z",
+   "closed_at": "2019-11-12T19:45:49Z"
+ },*/
+type githubMilestone struct {
+	URL         string
+	User        string
+	Title       string
+	State       string
+	Description string
+	DueOn       time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	ClosedAt    time.Time
+}
+
 // GetMilestones returns milestones
 func (r *GithubExportedDataRestorer) GetMilestones() ([]*base.Milestone, error) {
-	type milestone struct {
-		Title       string
-		State       string
-		Description string
-		DueOn       time.Time
-		CreatedAt   time.Time
-		UpdatedAt   time.Time
-		ClosedAt    time.Time
-	}
-
 	var milestones = make([]*base.Milestone, 0, 10)
 	if err := r.readJSONFiles("milestones", func() interface{} {
-		return &[]milestone{}
+		return &[]githubMilestone{}
 	}, func(content interface{}) error {
-		mss := content.(*[]milestone)
+		mss := content.(*[]githubMilestone)
 		for _, milestone := range *mss {
+			r.milestones[milestone.URL] = milestone
 			milestones = append(milestones, &base.Milestone{
 				Title:       milestone.Title,
 				Description: milestone.Description,
@@ -477,7 +501,7 @@ type githubRelease struct {
 	Body            string
 	State           string
 	Prerelease      bool
-	ReleaseAssets   []*githubAttachment
+	ReleaseAssets   []githubAttachment
 	TargetCommitish string
 	CreatedAt       time.Time
 	PublishedAt     time.Time
@@ -533,8 +557,9 @@ func (r *GithubExportedDataRestorer) GetLabels() ([]*base.Label, error) {
 	    ],
 	    "milestone": null,
 	    "labels": [
-
-	    ],
+				"https://github.com/go-gitea/test_repo/labels/bug",
+				"https://github.com/go-gitea/test_repo/labels/good%20first%20issue"
+    	],
 	    "reactions": [
 
 	    ],
@@ -552,9 +577,9 @@ type githubIssue struct {
 	Milestone string
 	Labels    []githubLabel
 	Reactions []githubReaction
-	ClosedAt  *time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ClosedAt  *time.Time `json:"closed_at"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 func (g *githubIssue) Index() int64 {
@@ -567,7 +592,7 @@ func (r *GithubExportedDataRestorer) getLabels(ls []githubLabel) []*base.Label {
 	var res = make([]*base.Label, 0, len(ls))
 	for _, l := range ls {
 		for _, ll := range r.labels {
-			if string(l) == ll.Name {
+			if l.GetName() == ll.Name {
 				res = append(res, ll)
 				break
 			}
@@ -602,6 +627,10 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 		rss := content.(*[]githubIssue)
 		for _, issue := range *rss {
 			user := r.users[issue.User]
+			var milestone string
+			if issue.Milestone != "" {
+				milestone = r.milestones[issue.Milestone].Title
+			}
 
 			var state = "open"
 			if issue.ClosedAt != nil {
@@ -618,7 +647,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				Labels:      r.getLabels(issue.Labels),
 				Reactions:   r.getReactions(issue.Reactions),
 				Assets:      r.convertAttachments(r.issueAttachments[issue.URL]),
-				Milestone:   issue.Milestone,
+				Milestone:   milestone,
 				Assignees:   issue.Assignees,
 				//Ref: issue.
 				State:   state,
@@ -636,43 +665,165 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 	return issues, true, nil
 }
 
-// GetComments returns comments according issueNumber
-func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	type Comment struct {
-		Issue       string
-		PullRequest string
-		User        string
-		Body        string
-		Reactions   []githubReaction
-		CreatedAt   time.Time
+type githubComment struct {
+	Issue       string
+	PullRequest string `json:"pull_request"`
+	User        string
+	Body        string
+	Reactions   []githubReaction
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func getIssueIndex(issue, pullRequest string) int64 {
+	var c string
+	if issue != "" {
+		c = issue
+	} else {
+		c = pullRequest
 	}
 
+	fields := strings.Split(c, "/")
+	idx, _ := strconv.ParseInt(fields[len(fields)-1], 10, 64)
+	return idx
+}
+
+func (g *githubComment) GetIssueIndex() int64 {
+	return getIssueIndex(g.Issue, g.PullRequest)
+}
+
+/*
+{
+    "type": "issue_event",
+    "url": "https://github.com/go-xorm/xorm/issues/1#event-55275262",
+    "issue": "https://github.com/go-xorm/xorm/issues/1",
+    "actor": "https://github.com/lunny",
+    "event": "assigned",
+    "created_at": "2013-07-04T14:27:53Z"
+  },
+  {
+    "type": "issue_event",
+    "url": "https://github.com/go-xorm/xorm/pull/2#event-56230828",
+    "pull_request": "https://github.com/go-xorm/xorm/pull/2",
+    "actor": "https://github.com/lunny",
+    "event": "referenced",
+    "commit_id": "1be80583b0fa18e7b478fa12e129c95e9a06a62f",
+    "commit_repository": "https://github.com/go-xorm/xorm",
+    "created_at": "2013-07-12T02:10:52Z"
+
+    "label": "https://github.com/go-xorm/xorm/labels/wip",
+		"label_name": "New Feature",
+    "label_color": "5319e7",
+    "label_text_color": "fff",
+		"milestone_title": "v0.4",
+		"title_was": "自动读写分离",
+    "title_is": "Automatical Read/Write seperatelly.",
+  },*/
+type githubIssueEvent struct {
+	URL              string
+	Issue            string
+	PullRequest      string `json:"pull_request"`
+	Actor            string
+	Event            string
+	CommitID         string `json:"commit_id"`
+	CommitRepoistory string `json:"commit_repository"`
+
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (g *githubIssueEvent) CommentStr() string {
+	switch g.Event {
+	case "closed":
+		return "close"
+	case "referenced":
+		return "commit_ref"
+	case "merged":
+		return "merge_pull"
+	case "mentioned":
+		return "" // ignore
+	case "subscribed":
+		return "" // ignore
+	case "head_ref_deleted":
+		return "delete_branch"
+	case "milestoned":
+		return "milestone"
+	case "labeled":
+		return "label"
+	case "renamed":
+		return "change_title"
+	case "reopened":
+		return "reopen"
+	case "unlabeled":
+		return "label"
+	case "assigned":
+		return "assignees"
+	default:
+		return "comment"
+	}
+}
+
+func (g *githubIssueEvent) GetIssueIndex() int64 {
+	return getIssueIndex(g.Issue, g.PullRequest)
+}
+
+func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
+	var comments []*base.Comment
+	if err := r.readJSONFiles("issue_events", func() interface{} {
+		return &[]githubIssueEvent{}
+	}, func(content interface{}) error {
+		rss := content.(*[]githubIssueEvent)
+		for _, c := range *rss {
+			var u = r.users[c.Actor]
+			//var tp string
+
+			comments = append(comments, &base.Comment{
+				Type:        c.CommentStr(),
+				IssueIndex:  c.GetIssueIndex(),
+				PosterID:    u.ID(),
+				PosterName:  u.Login,
+				PosterEmail: u.Email(),
+				Created:     c.CreatedAt,
+				Updated:     c.CreatedAt, // FIXME:
+			})
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return comments, nil
+}
+
+// GetComments returns comments according issueNumber
+func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	var comments = make([]*base.Comment, 0, 10)
 	if err := r.readJSONFiles("issue_comments", func() interface{} {
-		return &[]Comment{}
+		return &[]githubComment{}
 	}, func(content interface{}) error {
-		rss := content.(*[]Comment)
+		rss := content.(*[]githubComment)
 		for _, c := range *rss {
-			fields := strings.Split(c.Issue, "/")
-			idx, _ := strconv.ParseInt(fields[len(fields)-1], 10, 64)
 			u := r.users[c.User]
 
 			comments = append(comments, &base.Comment{
-				IssueIndex:  idx,
+				IssueIndex:  c.GetIssueIndex(),
 				PosterID:    u.ID(),
 				PosterName:  u.Login,
-				PosterEmail: "",
+				PosterEmail: u.Email(),
 				Created:     c.CreatedAt,
-				//Updated:,
-				Content:   c.Body,
-				Reactions: r.getReactions(c.Reactions),
+				Updated:     c.CreatedAt, // FIXME:
+				Content:     c.Body,
+				Reactions:   r.getReactions(c.Reactions),
 			})
 		}
 		return nil
 	}); err != nil {
 		return nil, false, err
 	}
-	return comments, true, nil
+
+	comments2, err := r.getIssueEvents()
+	if err != nil {
+		return nil, false, err
+	}
+
+	return append(comments, comments2...), true, nil
 }
 
 /*

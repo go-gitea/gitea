@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"code.gitea.io/gitea/modules/migration"
@@ -18,23 +19,28 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 49, len(restorer.users))
 
+	// repo info
 	repo, err := restorer.GetRepoInfo()
 	assert.NoError(t, err)
 	assert.EqualValues(t, "test_repo", repo.Name)
 
+	// milestones
 	milestones, err := restorer.GetMilestones()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(milestones))
 
+	// releases
 	releases, err := restorer.GetReleases()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(releases))
 	assert.EqualValues(t, 0, len(releases[0].Assets))
 
+	// labels
 	labels, err := restorer.GetLabels()
 	assert.NoError(t, err)
 	assert.EqualValues(t, 9, len(labels))
 
+	// issues
 	issues, isEnd, err := restorer.GetIssues(1, 100)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
@@ -42,34 +48,48 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.EqualValues(t, 1, issues[0].Context.ForeignID())
 	assert.EqualValues(t, "Please add an animated gif icon to the merge button", issues[0].Title)
 	assert.EqualValues(t, "I just want the merge button to hurt my eyes a little. 😝 ", issues[0].Content)
-	assert.EqualValues(t, "justusbunsi", issues[0].PosterName)
-	assert.EqualValues(t, 1, len(issues[0].Labels))
-	assert.EqualValues(t, "1.1.0", len(issues[0].Milestone))
+	assert.EqualValues(t, "guillep2k", issues[0].PosterName)
+	assert.EqualValues(t, 2, len(issues[0].Labels), fmt.Sprintf("%#v", issues[0].Labels))
+	assert.EqualValues(t, "1.0.0", issues[0].Milestone)
 	assert.EqualValues(t, 0, len(issues[0].Assets))
 	assert.EqualValues(t, 1, len(issues[0].Reactions))
-	assert.True(t, issues[0].State == "closed")
+	assert.EqualValues(t, "closed", issues[0].State)
+	assert.NotNil(t, issues[0].Closed)
+	assert.NotZero(t, issues[0].Updated)
+	assert.NotZero(t, issues[0].Created)
 
 	assert.EqualValues(t, 2, issues[1].Context.ForeignID())
-	assert.EqualValues(t, "Please add an animated gif icon to the merge button", issues[1].Title)
-	assert.EqualValues(t, "I just want the merge button to hurt my eyes a little. 😝", issues[1].Content)
-	assert.EqualValues(t, "guillep2k", issues[1].PosterName)
-	assert.EqualValues(t, 2, len(issues[1].Labels))
-	assert.EqualValues(t, "1.0.0", len(issues[1].Milestone))
+	assert.EqualValues(t, "Test issue", issues[1].Title)
+	assert.EqualValues(t, "This is test issue 2, do not touch!", issues[1].Content)
+	assert.EqualValues(t, "mrsdizzie", issues[1].PosterName)
+	assert.EqualValues(t, 1, len(issues[1].Labels))
+	assert.EqualValues(t, "1.1.0", issues[1].Milestone)
 	assert.EqualValues(t, 0, len(issues[1].Assets))
 	assert.EqualValues(t, 6, len(issues[1].Reactions))
-	assert.True(t, issues[1].State == "closed")
+	assert.EqualValues(t, "closed", issues[1].State)
+	assert.NotNil(t, issues[1].Closed)
+	assert.NotZero(t, issues[1].Updated)
+	assert.NotZero(t, issues[1].Created)
 
+	// comments
 	comments, isEnd, err := restorer.GetComments(migration.GetCommentOptions{})
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 2, len(comments))
+	assert.EqualValues(t, 2, comments[0].IssueIndex)
+	assert.NotZero(t, comments[0].Created)
 
+	assert.EqualValues(t, 2, comments[1].IssueIndex)
+	assert.NotZero(t, comments[1].Created)
+
+	// pull requests
 	prs, isEnd, err := restorer.GetPullRequests(1, 100)
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 2, len(prs))
 
-	reviewers, err := restorer.GetReviews(migration.BasicIssueContext(0))
+	// reviews
+	reviews, err := restorer.GetReviews(migration.BasicIssueContext(0))
 	assert.NoError(t, err)
-	assert.EqualValues(t, 6, len(reviewers))
+	assert.EqualValues(t, 6, len(reviews))
 }

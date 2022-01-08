@@ -14,9 +14,47 @@ type Commentable interface {
 	GetContext() DownloaderContext
 }
 
+/*
+"comment",
+	"reopen",
+	"close",
+	"issue_ref",
+	"commit_ref",
+	"comment_ref",
+	"pull_ref",
+	"label",
+	"milestone",
+	"assignees",
+	"change_title",
+	"delete_branch",
+	"start_tracking",
+	"stop_tracking",
+	"add_time_manual",
+	"cancel_tracking",
+	"added_deadline",
+	"modified_deadline",
+	"removed_deadline",
+	"add_dependency",
+	"remove_dependency",
+	"code",
+	"review",
+	"lock",
+	"unlock",
+	"change_target_branch",
+	"delete_time_manual",
+	"review_request",
+	"merge_pull",
+	"pull_push",
+	"project",
+	"project_board",
+	"dismiss_review",
+	"change_issue_ref",
+*/
+
 // Comment is a standard comment information
 type Comment struct {
-	IssueIndex  int64 `yaml:"issue_index"`
+	Type        string // empty means comment
+	IssueIndex  int64  `yaml:"issue_index"`
 	Index       int64
 	PosterID    int64  `yaml:"poster_id"`
 	PosterName  string `yaml:"poster_name"`
