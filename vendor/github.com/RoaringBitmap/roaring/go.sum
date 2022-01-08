@@ -1,7 +1,3 @@
-github.com/RoaringBitmap/gocroaring v0.4.0 h1:5nufXUgWpBEUNEJXw7926YAA58ZAQRpWPrQV1xCoSjc=
-github.com/RoaringBitmap/gocroaring v0.4.0/go.mod h1:NieMwz7ZqwU2DD73/vvYwv7r4eWBKuPVSXZIpsaMwCI=
-github.com/RoaringBitmap/real-roaring-datasets v0.0.0-20190726190000-eb7c87156f76 h1:ZYlhPbqQFU+AHfgtCdHGDTtRW1a8geZyiE8c6Q+Sl1s=
-github.com/RoaringBitmap/real-roaring-datasets v0.0.0-20190726190000-eb7c87156f76/go.mod h1:oM0MHmQ3nDsq609SS36p+oYbRi16+oVvU2Bw4Ipv0SE=
 github.com/bits-and-blooms/bitset v1.2.0 h1:Kn4yilvwNtMACtf1eYDlG8H77R07mZSPbMjLyS07ChA=
 github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=

@@ -211,7 +211,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.LowerName = "newname"
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
-	team.Authorize = perm.AccessModeAdmin
+	team.AccessMode = perm.AccessModeAdmin
 	assert.NoError(t, UpdateTeam(team, true, false))
 
 	team = unittest.AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)

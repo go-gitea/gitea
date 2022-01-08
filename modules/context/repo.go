@@ -366,14 +366,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 
 	if repo.IsMirror {
 		var err error
-		mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = mirror.Interval
-		ctx.Data["Mirror"] = mirror
+		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+		ctx.Data["Mirror"] = ctx.Repo.Mirror
 	}
 
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)

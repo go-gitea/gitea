@@ -103,6 +103,10 @@ func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
 }
 
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
+}
+
 type mockResponseWriter struct {
 	httptest.ResponseRecorder
 	size int

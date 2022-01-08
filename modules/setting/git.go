@@ -27,6 +27,7 @@ var (
 		PullRequestPushMessage    bool
 		LargeObjectThreshold      int64
 		DisableCoreProtectNTFS    bool
+		DisablePartialClone       bool
 		Timeout                   struct {
 			Default int
 			Migrate int
@@ -48,6 +49,7 @@ var (
 		EnableAutoGitWireProtocol: true,
 		PullRequestPushMessage:    true,
 		LargeObjectThreshold:      1024 * 1024,
+		DisablePartialClone:       false,
 		Timeout: struct {
 			Default int
 			Migrate int

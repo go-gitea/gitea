@@ -77,7 +77,7 @@ func (c *Client) DeleteAccessToken(value interface{}) (*Response, error) {
 	case reflect.Int64:
 		token = fmt.Sprintf("%d", value.(int64))
 	case reflect.String:
-		if err := c.CheckServerVersionConstraint(">= 1.13.0"); err != nil {
+		if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 			return nil, err
 		}
 		token = value.(string)

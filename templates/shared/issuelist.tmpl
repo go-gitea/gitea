@@ -91,25 +91,25 @@
 						{{if gt $approveOfficial 0}}
 							<span class="approvals df ac">
 								{{svg "octicon-check" 14 "mr-1"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
+								{{$.i18n.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
 							<span class="rejects df ac">
 								{{svg "octicon-diff" 14 "mr-2"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n") $rejectOfficial}}
+								{{$.i18n.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting df ac">
 								{{svg "octicon-eye" 14 "mr-2"}}
-								{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
+								{{$.i18n.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 							<span class="conflicting df ac">
 								{{svg "octicon-x" 14}}
-								{{$.i18n.Tr (TrN $.i18n.Lang (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n") (len .PullRequest.ConflictedFiles)}}
+								{{$.i18n.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
 						{{end}}
 					{{end}}

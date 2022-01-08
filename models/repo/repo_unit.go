@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -170,7 +169,7 @@ func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch unit.Type(login.Cell2Int64(val)) {
+		switch unit.Type(db.Cell2Int64(val)) {
 		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 			r.Config = new(UnitConfig)
 		case unit.TypeExternalWiki:

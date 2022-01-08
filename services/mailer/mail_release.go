@@ -78,7 +78,6 @@ func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer
