@@ -893,7 +893,7 @@ type githubPullRequest struct {
 	Assignee             string
 	Assignees            []string
 	Milestone            string
-	Lables               []githubLabel
+	Labels               []githubLabel
 	Reactions            []githubReaction
 	ReviewRequests       []struct{} `json:"review_requests"`
 	CloseIssueReferences []struct{} `json:"close_issue_references"`
@@ -919,9 +919,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 		for _, pr := range *prs {
 			user := r.users[pr.User]
 			var state = "open"
-			if pr.MergedAt != nil {
-				state = "merged"
-			} else if pr.ClosedAt != nil {
+			if pr.MergedAt != nil || pr.ClosedAt != nil {
 				state = "closed"
 			}
 			pulls = append(pulls, &base.PullRequest{
@@ -938,7 +936,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				Created:     pr.CreatedAt,
 				//Updated:     pr.,
 				Closed: pr.ClosedAt,
-				Labels: r.getLabels(pr.Lables),
+				Labels: r.getLabels(pr.Labels),
 				//PatchURL       : pr.
 				Merged:     pr.MergedAt != nil,
 				MergedTime: pr.MergedAt,
