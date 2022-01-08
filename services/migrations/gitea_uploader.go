@@ -425,6 +425,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	cms := make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
+		if comment.Type == "" { // ignore unexpected comments
+			continue
+		}
+
 		var issue *models.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
@@ -440,7 +444,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		cm := models.Comment{
 			IssueID:     issue.ID,
-			Type:        models.CommentTypeComment,
+			Type:        models.GetCommentTypeByString(comment.Type),
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),

@@ -159,6 +159,16 @@ func (t CommentType) String() string {
 	return commentStrings[t]
 }
 
+// GetCommentTypeByString return the comment type by given comment type string
+func GetCommentTypeByString(s string) CommentType {
+	for i, cs := range commentStrings {
+		if cs == s {
+			return CommentType(i)
+		}
+	}
+	return -1
+}
+
 // RoleDescriptor defines comment tag type
 type RoleDescriptor int
 

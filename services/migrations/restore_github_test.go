@@ -75,7 +75,8 @@ func TestParseGithubExportedData(t *testing.T) {
 	comments, isEnd, err := restorer.GetComments(migration.GetCommentOptions{})
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
-	assert.EqualValues(t, 2, len(comments))
+	assert.EqualValues(t, 16, len(comments))
+	// first comments are comment type
 	assert.EqualValues(t, 2, comments[0].IssueIndex)
 	assert.NotZero(t, comments[0].Created)
 

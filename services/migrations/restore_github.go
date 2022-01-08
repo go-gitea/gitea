@@ -31,7 +31,7 @@ import (
 */
 type githubSchema struct {
 	Version   string
-	GithubSha string
+	GithubSha string `json:"github_sha"`
 }
 
 /*
@@ -58,7 +58,7 @@ type githubSchema struct {
 */
 type githubUser struct {
 	URL       string
-	AvatarURL string
+	AvatarURL string `json:"avatar_url"`
 	Login     string
 	Name      string
 	Bio       string
@@ -70,7 +70,7 @@ type githubUser struct {
 		Primary  bool
 		Verified bool
 	}
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func getID(s string) int64 {
@@ -111,12 +111,12 @@ func (g *githubUser) Email() string {
 */
 type githubAttachment struct {
 	Issue            string
-	IssueComment     string
+	IssueComment     string `json:"issue_comment"`
 	User             string
-	AssetName        string
-	AssetContentType string
-	AssetURL         string
-	CreatedAt        time.Time
+	AssetName        string    `json:"asset_name"`
+	AssetContentType string    `json:"asset_content_type"`
+	AssetURL         string    `json:"asset_url"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 func (g *githubAttachment) GetUserID() int64 {
@@ -161,8 +161,8 @@ func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) [
 type githubReaction struct {
 	User        string
 	Content     string
-	SubjectType string
-	CreatedAt   time.Time
+	SubjectType string    `json:"subject_type"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type githubLabel string
@@ -267,6 +267,11 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 	return restorer, nil
 }
 
+// SupportGetRepoComments return true if it can get all comments once
+func (r *GithubExportedDataRestorer) SupportGetRepoComments() bool {
+	return true
+}
+
 // SetContext set context
 func (r *GithubExportedDataRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
@@ -297,20 +302,20 @@ func (r *GithubExportedDataRestorer) readSchema() error {
 func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 	type Label struct {
 		URL         string
-		Name        string `json:"name"`
+		Name        string
 		Color       string
 		Description string
-		CreatedAt   time.Time
+		CreatedAt   time.Time `json:"created_at"`
 	}
 	type GithubRepo struct {
-		Name          string `json:"name"`
+		Name          string
 		URL           string
 		Owner         string
 		Description   string
 		Private       bool
-		Labels        []Label `json:"labels"`
-		CreatedAt     time.Time
-		DefaultBranch string
+		Labels        []Label
+		CreatedAt     time.Time `json:"created_at"`
+		DefaultBranch string    `json:"default_branch"`
 	}
 
 	var githubRepositories []GithubRepo
@@ -441,10 +446,10 @@ type githubMilestone struct {
 	Title       string
 	State       string
 	Description string
-	DueOn       time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	ClosedAt    time.Time
+	DueOn       time.Time `json:"due_on"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	ClosedAt    time.Time `json:"closed_at"`
 }
 
 // GetMilestones returns milestones
@@ -497,14 +502,14 @@ func (r *GithubExportedDataRestorer) GetMilestones() ([]*base.Milestone, error) 
 type githubRelease struct {
 	User            string
 	Name            string
-	TagName         string
+	TagName         string `json:"tag_name"`
 	Body            string
 	State           string
 	Prerelease      bool
-	ReleaseAssets   []githubAttachment
-	TargetCommitish string
-	CreatedAt       time.Time
-	PublishedAt     time.Time
+	ReleaseAssets   []githubAttachment `json:"release_assets"`
+	TargetCommitish string             `json:"target_commitish"`
+	CreatedAt       time.Time          `json:"created_at"`
+	PublishedAt     time.Time          `json:"published_at"`
 }
 
 // GetReleases returns releases
@@ -724,10 +729,9 @@ type githubIssueEvent struct {
 	PullRequest      string `json:"pull_request"`
 	Actor            string
 	Event            string
-	CommitID         string `json:"commit_id"`
-	CommitRepoistory string `json:"commit_repository"`
-
-	CreatedAt time.Time `json:"created_at"`
+	CommitID         string    `json:"commit_id"`
+	CommitRepoistory string    `json:"commit_repository"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 func (g *githubIssueEvent) CommentStr() string {
@@ -891,12 +895,12 @@ type githubPullRequest struct {
 	Milestone            string
 	Lables               []githubLabel
 	Reactions            []githubReaction
-	ReviewRequests       []struct{}
-	CloseIssueReferences []struct{}
-	WorkInProgress       bool
-	MergedAt             *time.Time
-	ClosedAt             *time.Time
-	CreatedAt            time.Time
+	ReviewRequests       []struct{} `json:"review_requests"`
+	CloseIssueReferences []struct{} `json:"close_issue_references"`
+	WorkInProgress       bool       `json:"work_in_progress"`
+	MergedAt             *time.Time `json:"merged_at"`
+	ClosedAt             *time.Time `json:"closed_at"`
+	CreatedAt            time.Time  `json:"created_at"`
 }
 
 func (g *githubPullRequest) Index() int64 {
@@ -979,14 +983,14 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 */
 type pullrequestReview struct {
 	URL         string
-	PullRequest string
+	PullRequest string `json:"pull_request"`
 	User        string
 	Body        string
-	HeadSha     string
+	HeadSha     string `json:"head_sha"`
 	State       int
 	Reactions   []githubReaction
-	CreatedAt   time.Time
-	SubmittedAt *time.Time
+	CreatedAt   time.Time  `json:"created_at"`
+	SubmittedAt *time.Time `json:"submitted_at"`
 }
 
 func (p *pullrequestReview) Index() int64 {
@@ -1022,21 +1026,21 @@ func (p *pullrequestReview) GetState() string {
   "created_at": "2020-01-04T05:33:06Z"
 },*/
 type pullrequestReviewComment struct {
-	PullRequest             string
-	PullRequestReview       string
-	PullRequestReviewThread string
+	PullRequest             string `json:"pull_request"`
+	PullRequestReview       string `json:"pull_request_review"`
+	PullRequestReviewThread string `json:"pull_request_review_thread"`
 	User                    string
 	Body                    string
-	DiffHunk                string
+	DiffHunk                string `json:"diff_hunk"`
 	Path                    string
 	Position                int
-	OriginalPosition        int
-	CommitID                string
-	OriginalCommitID        string
+	OriginalPosition        int    `json:"original_position"`
+	CommitID                string `json:"commit_id"`
+	OriginalCommitID        string `json:"original_commit_id"`
 	State                   int
 	//InReplyTo
 	Reactions []githubReaction
-	CreatedAt time.Time
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestReviewComment) []*base.ReviewComment {
