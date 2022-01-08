@@ -25,6 +25,12 @@ func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 		Secret:       secret,
 		CallbackURL:  callbackURL,
 		providerName: "google",
+
+		// We can get a refresh token from Google by this option.
+		// See https://developers.google.com/identity/protocols/oauth2/openid-connect#access-type-param
+		authCodeOptions: []oauth2.AuthCodeOption{
+			oauth2.AccessTypeOffline,
+		},
 	}
 	p.config = newConfig(p, scopes)
 	return p
@@ -86,6 +92,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		Provider:     p.Name(),
 		RefreshToken: sess.RefreshToken,
 		ExpiresAt:    sess.ExpiresAt,
+		IDToken:      sess.IDToken,
 	}
 
 	if user.AccessToken == "" {
@@ -139,9 +146,7 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 	}
 
 	if len(scopes) > 0 {
-		for _, scope := range scopes {
-			c.Scopes = append(c.Scopes, scope)
-		}
+		c.Scopes = append(c.Scopes, scopes...)
 	} else {
 		c.Scopes = []string{"email"}
 	}
@@ -193,4 +198,14 @@ func (p *Provider) SetLoginHint(loginHint string) {
 		return
 	}
 	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("login_hint", loginHint))
+}
+
+// SetAccessType sets the access_type parameter for the google OAuth call.
+// If an access token is being requested, the client does not receive a refresh token unless a value of offline is specified.
+// See https://developers.google.com/identity/protocols/oauth2/openid-connect#access-type-param
+func (p *Provider) SetAccessType(at string) {
+	if at == "" {
+		return
+	}
+	p.authCodeOptions = append(p.authCodeOptions, oauth2.SetAuthURLParam("access_type", at))
 }

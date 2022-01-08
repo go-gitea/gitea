@@ -53,6 +53,11 @@ func (e ValidationError) Error() string {
 	}
 }
 
+// Unwrap gives errors.Is and errors.As access to the inner error.
+func (e *ValidationError) Unwrap() error {
+	return e.Inner
+}
+
 // No errors
 func (e *ValidationError) valid() bool {
 	return e.Errors == 0
