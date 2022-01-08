@@ -335,7 +335,7 @@ func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, shaSum string) {
+func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	opType := models.ActionCommitRepo
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
@@ -394,7 +394,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *re
 	}
 }
 
-func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, shaSum string) {
+func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
