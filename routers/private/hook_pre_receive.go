@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -125,12 +126,9 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case strings.HasPrefix(refFullName, git.TagPrefix):
 			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
 		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.AgitPullPrefix):
-			preReceivePullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
+			preReceiveAgitPullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
 		case strings.HasPrefix(refFullName, git.PullPrefix) && newCommitID == git.EmptySHA:
-			ctx.JSON(http.StatusForbidden, private.Response{
-				Err: "delete head ref of pull request is not allowed",
-			})
-			return
+			preReceivePullHead(ourCtx, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -395,7 +393,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 	}
 }
 
-func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+func preReceiveAgitPullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
 	if !ctx.AssertCreatePullRequest() {
 		return
 	}
@@ -433,6 +431,50 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 	if !baseBranchExist {
 		ctx.JSON(http.StatusForbidden, private.Response{
 			Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
+		})
+		return
+	}
+}
+
+func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
+	if !ctx.opts.GitPushOptions.Bool("delete-pull-head-confirm", false) {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			Err: "Warning: you are going to delete the head ref of pull request: " + refFullName + ".\n" +
+				"only the author of this pull request and the admin of this repository can delete head ref for closed pull request." + "\n" +
+				"if you are sure what you want to do, you can push agin whith a push option `git push ... -o delete-pull-head-confirm=true` ",
+		})
+		return
+	}
+
+	pullIndexStr := strings.TrimPrefix(refFullName, git.PullPrefix)
+	pullIndexStr = strings.Split(pullIndexStr, "/")[0]
+	pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
+	if pullIndex <= 0 {
+		return
+	}
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pullIndex)
+	if err != nil {
+		log.Error("Unable to get pull request index %d Error: %v", pullIndex, err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Unable to get pull request index %d Error: %v", pullIndex, err),
+		})
+		return
+	}
+
+	if !pr.Issue.IsClosed {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			Err: "error: Unable delete head ref of opend pull request :" + refFullName,
+		})
+		return
+	}
+
+	if pr.IssueID == ctx.opts.UserID {
+		return
+	}
+	if !ctx.Perm().IsAdmin() {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			Err: "error: User permission denied.",
 		})
 		return
 	}
