@@ -44,7 +44,7 @@ To maintain understandable code and avoid circular dependencies it is important 
 - `public`: Compiled frontend files (javascript, images, css, etc.)
 - `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
   - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests. 
-  - `routers/install` Could only response when system is INSTALL mode. 
+  - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false). 
   - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
   - `routers/web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
