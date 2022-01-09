@@ -30,7 +30,7 @@ index d8e4c92..19dc8ad 100644
 @@ -1,9 +1,10 @@
  --some comment
 --- some comment 5
-+--some coment 2
++--some comment 2
 +-- some comment 3
  create or replace procedure test(p1 varchar2)
  is
