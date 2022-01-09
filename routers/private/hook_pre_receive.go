@@ -441,7 +441,7 @@ func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
 		ctx.JSON(http.StatusForbidden, private.Response{
 			Err: "Warning: you are going to delete the head ref of pull request: " + refFullName + ".\n" +
 				"only the author of this pull request and the admin of this repository can delete head ref for closed pull request." + "\n" +
-				"if you are sure what you want to do, you can push agin whith a push option `git push ... -o delete-pull-head-confirm=true` ",
+				"if you are sure what you want to do, you can push again with a push option `git push ... -o delete-pull-head-confirm=true` ",
 		})
 		return
 	}
