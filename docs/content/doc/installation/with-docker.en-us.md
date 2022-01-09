@@ -337,7 +337,7 @@ In the next step a file named `/app/gitea/gitea` (with executable permissions) n
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
 ```
 
-Here you should also make sure that you've set the permisson of `/app/gitea/gitea` correctly:
+Here you should also make sure that you've set the permission of `/app/gitea/gitea` correctly:
 
 ```bash
 sudo chmod +x /app/gitea/gitea

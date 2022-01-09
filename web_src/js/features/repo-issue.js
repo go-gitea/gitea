@@ -485,8 +485,10 @@ export function initRepoPullRequestReview() {
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentEasyMDE($reviewBox.find('textarea'));
-    initCompImagePaste($reviewBox);
+    (async () => {
+      await createCommentEasyMDE($reviewBox.find('textarea'));
+      initCompImagePaste($reviewBox);
+    })();
   }
 
   // The following part is only for diff views
