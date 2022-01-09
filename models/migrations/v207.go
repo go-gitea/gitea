@@ -7,6 +7,7 @@ package migrations
 import (
 	"crypto/elliptic"
 	"encoding/base64"
+	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -20,6 +21,7 @@ func addWebAuthnCred(x *xorm.Engine) error {
 	type webauthnCredential struct {
 		ID              int64  `xorm:"pk autoincr"`
 		Name            string `xorm:"unique(s)"`
+		LowerName       string
 		UserID          int64  `xorm:"INDEX unique(s)"`
 		CredentialID    string `xorm:"INDEX"`
 		PublicKey       []byte
@@ -63,6 +65,7 @@ func addWebAuthnCred(x *xorm.Engine) error {
 			c := &webauthnCredential{
 				ID:           reg.ID,
 				Name:         reg.Name,
+				LowerName:    strings.ToLower(reg.Name),
 				UserID:       reg.UserID,
 				CredentialID: base64.RawURLEncoding.EncodeToString(parsed.KeyHandle),
 				PublicKey:    elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),

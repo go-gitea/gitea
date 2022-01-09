@@ -27,17 +27,16 @@ func WebAuthnRegister(ctx *context.Context) {
 		ctx.Error(http.StatusConflict)
 		return
 	}
-	creds, err := auth.GetWebAuthnCredentialsByUID(ctx.User.ID)
-	if err != nil {
+	cred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, form.Name)
+	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
-	for _, reg := range creds {
-		if strings.EqualFold(reg.Name, form.Name) {
-			ctx.Error(http.StatusConflict, "Name already taken")
-			return
-		}
+	if cred != nil {
+		ctx.Error(http.StatusConflict, "Name already taken")
+		return
 	}
+
 	_ = ctx.Session.Delete("registration")
 	if err := ctx.Session.Set("WebauthnName", form.Name); err != nil {
 		ctx.ServerError("Unable to set session key for WebauthnName", err)
@@ -101,13 +100,8 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
-	// If needed, you can perform additional checks here to ensure the
-	// authenticator and generated credential conform to your requirements.
 
-	// For our use case, we're encoding the raw credential ID as URL-safe
-	// base64 since we anticipate rendering it in templates. If you choose to
-	// do this, make sure to decode the credential ID before passing it back to
-	// the webauthn library.
+	// Create the credential
 	_, err = auth.CreateCredential(ctx.User.ID, name.(string), cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)

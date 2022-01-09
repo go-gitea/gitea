@@ -8,9 +8,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/xorm"
 
 	"github.com/duo-labs/webauthn/webauthn"
 )
@@ -39,6 +41,7 @@ func IsErrWebAuthnCredentialNotExist(err error) bool {
 type WebAuthnCredential struct {
 	ID              int64  `xorm:"pk autoincr"`
 	Name            string `xorm:"unique(s)"`
+	LowerName       string
 	UserID          int64  `xorm:"INDEX unique(s)"`
 	CredentialID    string `xorm:"INDEX"`
 	PublicKey       []byte
@@ -67,6 +70,16 @@ func (cred *WebAuthnCredential) UpdateSignCount() error {
 func (cred *WebAuthnCredential) updateSignCount(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).ID(cred.ID).Cols("sign_count").Update(cred)
 	return err
+}
+
+// BeforeUpdate will be invoked by XORM before updating a record
+func (cred *WebAuthnCredential) BeforeUpdate() {
+	cred.LowerName = strings.ToLower(cred.Name)
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (cred *WebAuthnCredential) AfterLoad(session *xorm.Session) {
+	cred.LowerName = strings.ToLower(cred.Name)
 }
 
 // WebAuthnCredentialList is a list of *WebAuthnCredential
@@ -99,6 +112,30 @@ func GetWebAuthnCredentialsByUID(uid int64) (WebAuthnCredentialList, error) {
 func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCredentialList, error) {
 	creds := make(WebAuthnCredentialList, 0)
 	return creds, db.GetEngine(ctx).Where("user_id = ?", uid).Find(&creds)
+}
+
+//ExistsWebAuthnCredentialsForUID returns if the given user has credentials
+func ExistsWebAuthnCredentialsForUID(uid int64) (bool, error) {
+	return existsWebAuthnCredentialsByUID(db.DefaultContext, uid)
+}
+
+func existsWebAuthnCredentialsByUID(ctx context.Context, uid int64) (bool, error) {
+	return db.GetEngine(ctx).Where("user_id = ?", uid).Exist(&WebAuthnCredential{})
+}
+
+// GetWebAuthnCredentialByName returns WebAuthn credential by id
+func GetWebAuthnCredentialByName(uid int64, name string) (*WebAuthnCredential, error) {
+	return getWebAuthnCredentialByName(db.DefaultContext, uid, name)
+}
+
+func getWebAuthnCredentialByName(ctx context.Context, uid int64, name string) (*WebAuthnCredential, error) {
+	cred := new(WebAuthnCredential)
+	if found, err := db.GetEngine(ctx).Where("user_id = ? AND lower_name = ?", uid, strings.ToLower(name)).Get(cred); err != nil {
+		return nil, err
+	} else if !found {
+		return nil, ErrWebAuthnCredentialNotExist{}
+	}
+	return cred, nil
 }
 
 // GetWebAuthnCredentialByID returns WebAuthn credential by id
