@@ -312,7 +312,7 @@ backend gitea
     server localhost:3000 check
 ```
 
-If you redirect the http content to https, the configuration work the same way, just remember that the connexion between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
+If you redirect the http content to https, the configuration work the same way, just remember that the connection between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
 
 ## HAProxy with a sub-path
 
