@@ -110,7 +110,7 @@ type CreateRepoOption struct {
 	Private bool `json:"private"`
 	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
-	// Whether the repository should be auto-intialized?
+	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
