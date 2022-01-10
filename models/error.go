@@ -1017,6 +1017,8 @@ func (err ErrOrgLabelNotExist) Error() string {
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
 type ErrLabelNotExist struct {
 	LabelID int64
+	RepoID  int64
+	Name    string
 }
 
 // IsErrLabelNotExist checks if an error is a ErrLabelNotExist.
@@ -1026,7 +1028,10 @@ func IsErrLabelNotExist(err error) bool {
 }
 
 func (err ErrLabelNotExist) Error() string {
-	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+	if err.LabelID > 0 {
+		return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+	}
+	return fmt.Sprintf("label does not exist [repo_id: %d, name: %s]", err.RepoID, err.Name)
 }
 
 //  ____ ___        .__                    .___

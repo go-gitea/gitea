@@ -240,7 +240,7 @@ func DeleteLabel(id, labelID int64) error {
 // GetLabelByID returns a label by given ID.
 func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 	if labelID <= 0 {
-		return nil, ErrLabelNotExist{labelID}
+		return nil, ErrLabelNotExist{LabelID: labelID}
 	}
 
 	l := &Label{}
@@ -248,7 +248,7 @@ func GetLabelByID(ctx context.Context, labelID int64) (*Label, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrLabelNotExist{l.ID}
+		return nil, ErrLabelNotExist{LabelID: l.ID}
 	}
 	return l, nil
 }
@@ -372,6 +372,18 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.
 func CountLabelsByRepoID(repoID int64) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Count(&Label{})
+}
+
+// GetLabelByRepoIDAndName get label from repo
+func GetLabelByRepoIDAndName(repoID int64, name string) (*Label, error) {
+	var label Label
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND name = ?", repoID, name).Get(&label)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrLabelNotExist{}
+	}
+	return &label, nil
 }
 
 // ________

@@ -23,6 +23,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -456,6 +457,40 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		if err := g.remapUser(comment, &cm); err != nil {
 			return err
+		}
+
+		switch cmType {
+		/*{"Label":"https://github.com/go-gitea/test_repo/labels/duplicate","LabelColor":"cfd3d7","LabelName":"duplicate","LabelTextColor":"000000"}*/
+		case models.CommentTypeLabel:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+			} else {
+				lb, err := models.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
+				if err != nil {
+					return err
+				}
+				if data["type"] == "add" {
+					cm.LabelID = lb.ID
+				} else {
+					cm.LabelID = -lb.ID
+				}
+				cm.Content = "1"
+			}
+
+			/*{"MilestoneTitle":"1.1.0"}*/
+		case models.CommentTypeMilestone:
+			data := make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+			} else {
+				milestone, err := models.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
+				if err != nil {
+					log.Error("GetMilestoneByRepoIDANDName %d, %s failed: %v", issue.RepoID, data["MilestoneTitle"], err)
+				} else {
+					cm.MilestoneID = milestone.ID
+				}
+			}
 		}
 
 		// add reactions

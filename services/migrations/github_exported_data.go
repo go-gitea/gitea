@@ -775,6 +775,7 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 		}
 	case "labeled":
 		return map[string]interface{}{
+			"type":           "add",
 			"Label":          g.Label,
 			"LabelName":      g.LabelName,
 			"LabelColor":     g.LabelColor,
@@ -785,7 +786,13 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	case "reopened":
 		return map[string]interface{}{}
 	case "unlabeled":
-		return map[string]interface{}{}
+		return map[string]interface{}{
+			"type":           "remove",
+			"Label":          g.Label,
+			"LabelName":      g.LabelName,
+			"LabelColor":     g.LabelColor,
+			"LabelTextColor": g.LabelTextColor,
+		}
 	case "assigned":
 		return map[string]interface{}{}
 	default:
