@@ -614,11 +614,19 @@ func (r *GithubExportedDataRestorer) getLabels(ls []githubLabel) []*base.Label {
 func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.Reaction {
 	var res = make([]*base.Reaction, 0, len(ls))
 	for _, l := range ls {
+		var content = l.Content
+		switch content {
+		case "thinking_face":
+			content = "confused"
+		case "tada":
+			content = "hooray"
+		}
+
 		user := r.users[l.User]
 		res = append(res, &base.Reaction{
 			UserID:   user.ID(),
 			UserName: user.Login,
-			Content:  l.Content,
+			Content:  content,
 		})
 	}
 	return res
@@ -795,9 +803,9 @@ func (g *githubIssueEvent) CommentStr() string {
 	case "merged":
 		return "merge_pull"
 	case "mentioned":
-		return "" // ignore
+		return "unknown" // ignore
 	case "subscribed":
-		return "" // ignore
+		return "unknown" // ignore
 	case "head_ref_deleted":
 		return "delete_branch"
 	case "milestoned":

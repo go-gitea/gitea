@@ -111,17 +111,36 @@
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-red text-white">{{svg "octicon-circle-slash"}}</span>
-				<a href="{{.Poster.HomeLink}}">
-					{{avatar .Poster}}
-				</a>
-				<span class="text grey">
-					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Issue.IsPull }}
-						{{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
-					{{else}}
-						{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+				{{if .OriginalAuthor }}
+					<span class="text black mr-2">
+						{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{if .Issue.IsPull }}
+							{{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{end}}
+					</span>
+					{{if $.Repository.OriginalURL}}
+						<span class="text migrate">
+							({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})
+						</span>
 					{{end}}
-				</span>
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{if .Issue.IsPull }}
+							{{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -206,13 +225,28 @@
 		{{else if eq .Type 8}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-milestone"}}</span>
-				<a href="{{.Poster.HomeLink}}">
-					{{avatar .Poster}}
-				</a>
-				<span class="text grey">
-					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
-				</span>
+				{{if .OriginalAuthor }}
+					<span class="text black mr-2">
+						{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					</span>
+					{{if $.Repository.OriginalURL}}
+						<span class="text migrate">
+							({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})
+						</span>
+					{{end}}
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 9}}
 			<div class="timeline-item event" id="{{.HashTag}}">

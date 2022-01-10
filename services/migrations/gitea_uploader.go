@@ -425,7 +425,11 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	cms := make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
-		if comment.Type == "" { // ignore unexpected comments
+		if comment.Type == "" {
+			comment.Type = "comment"
+		}
+		cmType := models.GetCommentTypeByString(comment.Type)
+		if cmType == -1 { // ignore
 			continue
 		}
 
@@ -444,7 +448,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		cm := models.Comment{
 			IssueID:     issue.ID,
-			Type:        models.GetCommentTypeByString(comment.Type),
+			Type:        cmType,
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
@@ -632,8 +636,6 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	if pr.Updated.IsZero() {
 		pr.Updated = pr.Created
 	}
-
-	fmt.Printf("===== %v %#v\n", pr.Number, labels)
 
 	issue := models.Issue{
 		RepoID:      g.repo.ID,
