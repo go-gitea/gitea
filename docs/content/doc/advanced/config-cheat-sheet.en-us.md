@@ -313,7 +313,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
 - `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
-- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the prefered curves,
+- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the preferred curves,
 - `SSL_CIPHER_SUITES`: **ecdhe_ecdsa_with_aes_256_gcm_sha384,ecdhe_rsa_with_aes_256_gcm_sha384,ecdhe_ecdsa_with_aes_128_gcm_sha256,ecdhe_rsa_with_aes_128_gcm_sha256,ecdhe_ecdsa_with_chacha20_poly1305,ecdhe_rsa_with_chacha20_poly1305**: Set the preferred cipher suites.
   - If there is not hardware support for AES suites by default the cha cha suites will be preferred over the AES suites
   - supported suites as of go 1.17 are:
