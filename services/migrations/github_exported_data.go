@@ -1073,11 +1073,11 @@ func (p *pullrequestReview) Index() int64 {
 func (p *pullrequestReview) GetState() string {
 	switch p.State {
 	case 1:
-		return "COMMENT"
+		return base.ReviewStateCommented
 	case 30:
-		return "REQUEST_CHANGES"
+		return base.ReviewStateChangesRequested
 	case 40:
-		return "APPROVED"
+		return base.ReviewStateApproved
 	}
 	return fmt.Sprintf("%d", p.State)
 }
@@ -1131,7 +1131,8 @@ func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestRev
 			Content:     c.Body,
 			TreePath:    c.Path,
 			DiffHunk:    c.DiffHunk,
-			Position:    c.Position,
+			Position:    c.OriginalPosition,
+			Line:        c.Position,
 			CommitID:    c.CommitID,
 			PosterID:    user.ID(),
 			PosterName:  user.Login,
