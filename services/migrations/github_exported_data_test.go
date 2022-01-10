@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/gitea/modules/migration"
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -73,7 +72,7 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.NotZero(t, issues[1].Created)
 
 	// comments
-	comments, isEnd, err := restorer.GetComments(migration.GetCommentOptions{})
+	comments, isEnd, err := restorer.GetComments(base.GetCommentOptions{})
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 16, len(comments))

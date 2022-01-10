@@ -738,8 +738,8 @@ type githubIssueEvent struct {
 	CommitRepoistory string    `json:"commit_repository"`
 	CreatedAt        time.Time `json:"created_at"`
 	Label            string
-	LabelName        string `json:"label_name`
-	LabelColor       string `json:"label_color`
+	LabelName        string `json:"label_name"`
+	LabelColor       string `json:"label_color"`
 	LabelTextColor   string `json:"label_text_color"`
 	MilestoneTitle   string `json:"milestone_title"`
 	TitleWas         string `json:"title_was"`
