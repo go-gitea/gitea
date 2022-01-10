@@ -6,16 +6,16 @@
 			{{.i18n.Tr "webauthn_error"}}
 			</div>
 			<div class="hide" data-webauthn-error-msg="browser">{{.i18n.Tr "webauthn_unsupported_browser"}}</div>
-			<div class="hide" data-webauthn-error-msg="1">{{.i18n.Tr "webauthn_error_1"}}</div>
-			<div class="hide" data-webauthn-error-msg="2">{{.i18n.Tr "webauthn_error_2"}}</div>
-			<div class="hide" data-webauthn-error-msg="3">{{.i18n.Tr "webauthn_error_3"}}</div>
-			<div class="hide" data-webauthn-error-msg="4">{{.i18n.Tr "webauthn_error_4"}}</div>
-			<div class="hide" data-webauthn-error-msg="5">{{.i18n.Tr "webauthn_error_5"}}</div>
+			<div class="hide" data-webauthn-error-msg="unknown">{{.i18n.Tr "webauthn_error_unknown"}}</div>
+			<div class="hide" data-webauthn-error-msg="insecure">{{.i18n.Tr "webauthn_error_insecure"}}</div>
+			<div class="hide" data-webauthn-error-msg="unable-to-process">{{.i18n.Tr "webauthn_error_unable_to_process"}}</div>
+			<div class="hide" data-webauthn-error-msg="duplicated">{{.i18n.Tr "webauthn_error_duplicated"}}</div>
+			<div class="hide" data-webauthn-error-msg="timeout">{{.i18n.Tr "webauthn_error_timeout"}}</div>
 			<div class="hide" data-webauthn-error-msg="0"></div>
 		</div>
 	</div>
 	<div class="actions">
-		<button onclick="window.location.reload()" class="success ui button hide webauthn_error_5">{{.i18n.Tr "webauthn_reload"}}</button>
+		<button onclick="window.location.reload()" class="success ui button hide webauthn_error_timeout">{{.i18n.Tr "webauthn_reload"}}</button>
 		<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
 	</div>
 </div>
