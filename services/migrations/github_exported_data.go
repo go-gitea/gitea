@@ -1054,7 +1054,16 @@ func (p *pullrequestReview) Index() int64 {
 	return idx
 }
 
+// GetState return PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 func (p *pullrequestReview) GetState() string {
+	switch p.State {
+	case 1:
+		return "COMMENT"
+	case 30:
+		return "REQUEST_CHANGES"
+	case 40:
+		return "APPROVED"
+	}
 	return fmt.Sprintf("%d", p.State)
 }
 
@@ -1104,14 +1113,16 @@ func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestRev
 		user := r.users[c.User]
 		res = append(res, &base.ReviewComment{
 			//InReplyTo: ,
-			Content:   c.Body,
-			TreePath:  c.Path,
-			DiffHunk:  c.DiffHunk,
-			Position:  c.Position,
-			CommitID:  c.CommitID,
-			PosterID:  user.ID(),
-			Reactions: r.getReactions(c.Reactions),
-			CreatedAt: c.CreatedAt,
+			Content:     c.Body,
+			TreePath:    c.Path,
+			DiffHunk:    c.DiffHunk,
+			Position:    c.Position,
+			CommitID:    c.CommitID,
+			PosterID:    user.ID(),
+			PosterName:  user.Login,
+			PosterEmail: user.Email(),
+			Reactions:   r.getReactions(c.Reactions),
+			CreatedAt:   c.CreatedAt,
 		})
 	}
 	return res
@@ -1140,14 +1151,15 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 		for _, review := range *prReviews {
 			user := r.users[review.User]
 			reviews = append(reviews, &base.Review{
-				IssueIndex:   review.Index(),
-				ReviewerID:   user.ID(),
-				ReviewerName: user.Login,
-				CommitID:     review.HeadSha,
-				Content:      review.Body,
-				CreatedAt:    review.CreatedAt,
-				State:        review.GetState(),
-				Comments:     r.getReviewComments(comments[review.URL]),
+				IssueIndex:    review.Index(),
+				ReviewerID:    user.ID(),
+				ReviewerName:  user.Login,
+				ReviewerEmail: user.Email(),
+				CommitID:      review.HeadSha,
+				Content:       review.Body,
+				CreatedAt:     review.CreatedAt,
+				State:         review.GetState(),
+				Comments:      r.getReviewComments(comments[review.URL]),
 			})
 		}
 		return nil
