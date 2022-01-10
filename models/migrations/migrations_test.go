@@ -8,7 +8,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,7 +57,7 @@ func TestMain(m *testing.M) {
 		setting.CustomConf = giteaConf
 	}
 
-	tmpDataPath, err := ioutil.TempDir("", "data")
+	tmpDataPath, err := os.MkdirTemp("", "data")
 	if err != nil {
 		fmt.Printf("Unable to create temporary data path %v\n", err)
 		os.Exit(1)
