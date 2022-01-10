@@ -180,16 +180,17 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 }
 
 // GetReviews returns pull requests reviews
-func (d *RetryDownloader) GetReviews(reviewable Reviewable) ([]*Review, error) {
+func (d *RetryDownloader) GetReviews(reviewable Reviewable) ([]*Review, bool, error) {
 	var (
 		reviews []*Review
+		isEnd   bool
 		err     error
 	)
 
 	err = d.retry(func() error {
-		reviews, err = d.Downloader.GetReviews(reviewable)
+		reviews, isEnd, err = d.Downloader.GetReviews(reviewable)
 		return err
 	})
 
-	return reviews, err
+	return reviews, isEnd, err
 }

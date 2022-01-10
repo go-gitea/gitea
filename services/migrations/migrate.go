@@ -356,6 +356,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 	}
 
+	supportAllReviews := downloader.SupportGetRepoReviews()
+
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
@@ -404,30 +406,32 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					}
 				}
 
-				// migrate reviews
-				allReviews := make([]*base.Review, 0, reviewBatchSize)
-				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr)
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
+				if !supportAllComments {
+					// migrate reviews
+					allReviews := make([]*base.Review, 0, reviewBatchSize)
+					for _, pr := range prs {
+						reviews, _, err := downloader.GetReviews(pr)
+						if err != nil {
+							if !base.IsErrNotSupported(err) {
+								return err
+							}
+							log.Warn("migrating reviews is not supported, ignored")
+							break
+						}
+
+						allReviews = append(allReviews, reviews...)
+
+						if len(allReviews) >= reviewBatchSize {
+							if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+								return err
+							}
+							allReviews = allReviews[reviewBatchSize:]
+						}
+					}
+					if len(allReviews) > 0 {
+						if err = uploader.CreateReviews(allReviews...); err != nil {
 							return err
 						}
-						log.Warn("migrating reviews is not supported, ignored")
-						break
-					}
-
-					allReviews = append(allReviews, reviews...)
-
-					if len(allReviews) >= reviewBatchSize {
-						if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
-							return err
-						}
-						allReviews = allReviews[reviewBatchSize:]
-					}
-				}
-				if len(allReviews) > 0 {
-					if err = uploader.CreateReviews(allReviews...); err != nil {
-						return err
 					}
 				}
 			}
@@ -447,6 +451,32 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 
 			if err := uploader.CreateComments(comments...); err != nil {
+				return err
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if supportAllReviews {
+		log.Trace("migrating reviews")
+		for i := 1; ; i++ {
+			// migrate reviews
+			reviews, isEnd, err := downloader.GetReviews(base.GetReviewOptions{
+				Page:     i,
+				PageSize: commentBatchSize,
+			})
+			if err != nil {
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating reviews is not supported, ignored")
+				break
+			}
+
+			if err = uploader.CreateReviews(reviews...); err != nil {
 				return err
 			}
 

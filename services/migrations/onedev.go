@@ -548,7 +548,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests reviews
-func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
 		UserID int64 `json:"userId"`
@@ -565,7 +565,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		&rawReviews,
 	)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	reviews := make([]*base.Review, 0, len(rawReviews))
@@ -592,7 +592,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		})
 	}
 
-	return reviews, nil
+	return reviews, true, nil
 }
 
 // GetTopics return repository topics

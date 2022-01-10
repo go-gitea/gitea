@@ -145,7 +145,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(prs[0])
+	rvs, _, err := downloader.GetReviews(prs[0])
 	assert.NoError(t, err)
 	assert.Empty(t, rvs)
 }

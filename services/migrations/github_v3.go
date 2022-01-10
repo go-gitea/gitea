@@ -773,7 +773,7 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
@@ -782,7 +782,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.waitAndPickClient()
 		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %v", err)
+			return nil, true, fmt.Errorf("error while listing repos: %v", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, review := range reviews {
@@ -796,13 +796,13 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 				g.waitAndPickClient()
 				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), review.GetID(), opt2)
 				if err != nil {
-					return nil, fmt.Errorf("error while listing repos: %v", err)
+					return nil, true, fmt.Errorf("error while listing repos: %v", err)
 				}
 				g.setRate(&resp.Rate)
 
 				cs, err := g.convertGithubReviewComments(reviewComments)
 				if err != nil {
-					return nil, err
+					return nil, true, err
 				}
 				r.Comments = append(r.Comments, cs...)
 				if resp.NextPage == 0 {
@@ -817,5 +817,5 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		}
 		opt.Page = resp.NextPage
 	}
-	return allReviews, nil
+	return allReviews, true, nil
 }

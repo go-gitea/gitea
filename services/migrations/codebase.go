@@ -569,6 +569,16 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 	return pullRequests, true, nil
 }
 
+// GetReviews returns pull requests reviews
+func (d *CodebaseDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+	return []*base.Review{}, true, nil
+}
+
+// GetTopics return repository topics
+func (d *CodebaseDownloader) GetTopics() ([]string, error) {
+	return []string{}, nil
+}
+
 func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {
 	if len(d.userMap) == 0 {
 		var rawUsers struct {

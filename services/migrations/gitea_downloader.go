@@ -614,10 +614,10 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
-		return nil, nil
+		return nil, true, nil
 	}
 
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
@@ -626,7 +626,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 		// make sure gitea can shutdown gracefully
 		select {
 		case <-g.ctx.Done():
-			return nil, nil
+			return nil, true, nil
 		default:
 		}
 
@@ -635,14 +635,13 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 			PageSize: g.maxPerPage,
 		}})
 		if err != nil {
-			return nil, err
+			return nil, true, err
 		}
 
 		for _, pr := range prl {
-
 			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
-				return nil, err
+				return nil, true, err
 			}
 			var reviewComments []*base.ReviewComment
 			for i := range rcl {
@@ -682,5 +681,5 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 			break
 		}
 	}
-	return allReviews, nil
+	return allReviews, true, nil
 }

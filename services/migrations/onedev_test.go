@@ -137,7 +137,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
+	rvs, _, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

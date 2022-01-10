@@ -304,7 +304,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 1, ForeignIndex: 1})
+	rvs, _, err := downloader.GetReviews(&base.PullRequest{Number: 1, ForeignIndex: 1})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -323,7 +323,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 
-	rvs, err = downloader.GetReviews(&base.PullRequest{Number: 2, ForeignIndex: 2})
+	rvs, _, err = downloader.GetReviews(&base.PullRequest{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

@@ -633,6 +633,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		pr.Updated = pr.Created
 	}
 
+	fmt.Printf("===== %v %#v\n", pr.Number, labels)
+
 	issue := models.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,

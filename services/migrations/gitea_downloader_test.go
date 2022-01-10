@@ -263,7 +263,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
-	reviews, err := downloader.GetReviews(&base.Issue{Number: 7, ForeignIndex: 7})
+	reviews, _, err := downloader.GetReviews(&base.Issue{Number: 7, ForeignIndex: 7})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

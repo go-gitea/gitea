@@ -335,7 +335,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	reviews, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
+	reviews, _, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -367,7 +367,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, reviews)
 
-	reviews, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
+	reviews, _, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

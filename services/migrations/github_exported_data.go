@@ -272,6 +272,11 @@ func (r *GithubExportedDataRestorer) SupportGetRepoComments() bool {
 	return true
 }
 
+// SupportGetRepoComments return true if it can get all comments once
+func (r *GithubExportedDataRestorer) SupportGetRepoReviews() bool {
+	return true
+}
+
 // SetContext set context
 func (r *GithubExportedDataRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
@@ -732,8 +737,55 @@ type githubIssueEvent struct {
 	CommitID         string    `json:"commit_id"`
 	CommitRepoistory string    `json:"commit_repository"`
 	CreatedAt        time.Time `json:"created_at"`
+	Label            string
+	LabelName        string `json:"label_name`
+	LabelColor       string `json:"label_color`
+	LabelTextColor   string `json:"label_text_color"`
+	MilestoneTitle   string `json:"milestone_title"`
+	TitleWas         string `json:"title_was"`
+	TitleIs          string `json:"title_is"`
 }
 
+// CommentContent returns comment content
+func (g *githubIssueEvent) CommentContent() map[string]interface{} {
+	switch g.Event {
+	case "closed":
+		return map[string]interface{}{}
+	case "referenced":
+		return map[string]interface{}{}
+	case "merged":
+		return map[string]interface{}{}
+	case "mentioned":
+		return map[string]interface{}{}
+	case "subscribed":
+		return map[string]interface{}{}
+	case "head_ref_deleted":
+		return map[string]interface{}{}
+	case "milestoned":
+		return map[string]interface{}{
+			"MilestoneTitle": g.MilestoneTitle,
+		}
+	case "labeled":
+		return map[string]interface{}{
+			"Label":          g.Label,
+			"LabelName":      g.LabelName,
+			"LabelColor":     g.LabelColor,
+			"LabelTextColor": g.LabelTextColor,
+		}
+	case "renamed":
+		return map[string]interface{}{}
+	case "reopened":
+		return map[string]interface{}{}
+	case "unlabeled":
+		return map[string]interface{}{}
+	case "assigned":
+		return map[string]interface{}{}
+	default:
+		return map[string]interface{}{}
+	}
+}
+
+// CommentStr returns comment type string
 func (g *githubIssueEvent) CommentStr() string {
 	switch g.Event {
 	case "closed":
@@ -777,7 +829,11 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 		rss := content.(*[]githubIssueEvent)
 		for _, c := range *rss {
 			var u = r.users[c.Actor]
-			//var tp string
+			v := c.CommentContent()
+			bs, err := json.Marshal(v)
+			if err != nil {
+				return err
+			}
 
 			comments = append(comments, &base.Comment{
 				Type:        c.CommentStr(),
@@ -787,6 +843,7 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 				PosterEmail: u.Email(),
 				Created:     c.CreatedAt,
 				Updated:     c.CreatedAt, // FIXME:
+				Content:     string(bs),
 			})
 		}
 		return nil
@@ -1061,7 +1118,7 @@ func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestRev
 }
 
 // GetReviews returns pull requests review
-func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
 	var comments = make(map[string][]pullrequestReviewComment)
 	if err := r.readJSONFiles("pull_request_review_comments", func() interface{} {
 		return &[]pullrequestReviewComment{}
@@ -1072,7 +1129,7 @@ func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*b
 		}
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
 	var reviews = make([]*base.Review, 0, 10)
@@ -1095,8 +1152,8 @@ func (r *GithubExportedDataRestorer) GetReviews(context base.IssueContext) ([]*b
 		}
 		return nil
 	}); err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
-	return reviews, nil
+	return reviews, true, nil
 }

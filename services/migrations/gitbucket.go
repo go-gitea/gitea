@@ -64,3 +64,8 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 	return false
 }
+
+// GetReviews is not supported
+func (g *GitBucketDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+	return nil, true, &base.ErrNotSupported{Entity: "Reviews"}
+}

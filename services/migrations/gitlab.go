@@ -616,14 +616,14 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests review
-func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
+func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
-			return []*base.Review{}, nil
+			return []*base.Review{}, true, nil
 		}
-		return nil, err
+		return nil, true, err
 	}
 
 	var createdAt time.Time
@@ -647,7 +647,7 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 		})
 	}
 
-	return reviews, nil
+	return reviews, true, nil
 }
 
 func (g *GitlabDownloader) awardToReaction(award *gitlab.AwardEmoji) *base.Reaction {
