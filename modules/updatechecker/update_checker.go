@@ -5,7 +5,7 @@
 package updatechecker
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/appstate"
@@ -43,7 +43,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
