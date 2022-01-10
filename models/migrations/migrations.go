@@ -60,7 +60,6 @@ type Version struct {
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
 var migrations = []Migration{
-
 	// Gitea 1.5.0 ends at v69
 
 	// v70 -> v71
@@ -360,6 +359,14 @@ var migrations = []Migration{
 	// v202 -> v203
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 	// v203 -> v204
+	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
+	// v204 -> v205
+	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
+	// v205 -> v206
+	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
+	// v206 -> v207
+	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
+	// v207 -> v208
 	NewMigration("Add package tables", addPackageTables),
 }
 

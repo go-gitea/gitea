@@ -40,6 +40,14 @@
 									<span class="ui label">N/A</span>
 								{{end}}
 							</a>
+							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin}}
+							<div class="right menu">
+								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
+									{{$.CsrfTokenHtml}}
+									<button class="ui tiny button tooltip" data-content="{{$.i18n.Tr "repo.settings.webhook.replay.description"}}" data-variation="inverted tiny">{{svg "octicon-sync"}}</button>
+								</form>
+							</div>
+							{{end}}
 						</div>
 						<div class="ui bottom attached tab segment active" data-tab="request-{{.ID}}">
 							{{if .RequestInfo}}

@@ -37,13 +37,28 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
-	_, _ = wr.Write([]byte(name + "\n"))
+	_, err := wr.Write([]byte(name + "\n"))
+	if err != nil {
+		return "", err
+	}
 	shaBs, _, _, err := ReadBatchLine(rd)
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}
 	}
 
 	return string(shaBs), nil
+}
+
+// SetReference sets the commit ID string of given reference (e.g. branch or tag).
+func (repo *Repository) SetReference(name, commitID string) error {
+	_, err := NewCommandContext(repo.Ctx, "update-ref", name, commitID).RunInDir(repo.Path)
+	return err
+}
+
+// RemoveReference removes the given reference (e.g. branch or tag).
+func (repo *Repository) RemoveReference(name string) error {
+	_, err := NewCommandContext(repo.Ctx, "update-ref", "--no-deref", "-d", name).RunInDir(repo.Path)
+	return err
 }
 
 // IsCommitExist returns true if given commit exists in current repository.

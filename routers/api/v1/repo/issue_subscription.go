@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -128,7 +129,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	//only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", nil)
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.User.Name, user.Name))
 		return
 	}
 
@@ -279,9 +280,16 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 	apiUsers := make([]*api.User, 0, len(users))
-	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.User)
+	for _, v := range users {
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
 	}
 
+	count, err := models.CountIssueWatchers(issue.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiUsers)
 }

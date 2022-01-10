@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -25,9 +26,9 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{
+		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
 		}
 	}
@@ -36,7 +37,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
 		OwnerName:                       u.Name,
@@ -53,14 +54,14 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	}
 
 	if err := db.WithTx(func(ctx context.Context) error {
-		repoPath := models.RepoPath(u.Name, repo.Name)
+		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 			return err
 		}
 		if !isExist {
-			return models.ErrRepoNotExist{
+			return repo_model.ErrRepoNotExist{
 				OwnerName: u.Name,
 				Name:      repo.Name,
 			}
@@ -72,7 +73,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -99,7 +100,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -115,7 +116,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
@@ -142,7 +143,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
 	}
-	branches, _, _ := gitRepo.GetBranches(0, 0)
+	branches, _, _ := gitRepo.GetBranchNames(0, 0)
 	found := false
 	hasDefault := false
 	hasMaster := false
@@ -187,33 +188,84 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
 func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
-	if err := models.IsUsableRepoName(repoName); err != nil {
+	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
 
-	repoPath := models.RepoPath(u.Name, repoName)
+	repoPath := repo_model.RepoPath(u.Name, repoName)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 		return err
 	}
 	if !isExist {
-		return models.ErrRepoNotExist{
+		return repo_model.ErrRepoNotExist{
 			OwnerName: u.Name,
 			Name:      repoName,
 		}
 	}
 
-	if exist, err := models.IsRepositoryExist(u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryExist(u, repoName); err != nil {
 		return err
 	} else if exist {
-		return models.ErrRepoAlreadyExist{
+		return repo_model.ErrRepoAlreadyExist{
 			Uname: u.Name,
 			Name:  repoName,
 		}
 	}
 
 	return util.RemoveAll(repoPath)
+}
+
+type unadoptedRrepositories struct {
+	repositories []string
+	index        int
+	start        int
+	end          int
+}
+
+func (unadopted *unadoptedRrepositories) add(repository string) {
+	if unadopted.index >= unadopted.start && unadopted.index < unadopted.end {
+		unadopted.repositories = append(unadopted.repositories, repository)
+	}
+	unadopted.index++
+}
+
+func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unadopted *unadoptedRrepositories) error {
+	if len(repoNamesToCheck) == 0 {
+		return nil
+	}
+	ctxUser, err := user_model.GetUserByName(userName)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			log.Debug("Missing user: %s", userName)
+			return nil
+		}
+		return err
+	}
+	repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		Actor:   ctxUser,
+		Private: true,
+		ListOptions: db.ListOptions{
+			Page:     1,
+			PageSize: len(repoNamesToCheck),
+		}, LowerNames: repoNamesToCheck})
+	if err != nil {
+		return err
+	}
+	if len(repos) == len(repoNamesToCheck) {
+		return nil
+	}
+	repoNames := make(map[string]bool, len(repos))
+	for _, repo := range repos {
+		repoNames[repo.LowerName] = true
+	}
+	for _, repoName := range repoNamesToCheck {
+		if _, ok := repoNames[repoName]; !ok {
+			unadopted.add(filepath.Join(userName, repoName))
+		}
+	}
+	return nil
 }
 
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
@@ -235,15 +287,17 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 			}
 		}
 	}
+	var repoNamesToCheck []string
+
 	start := (opts.Page - 1) * opts.PageSize
-	end := start + opts.PageSize
+	unadopted := &unadoptedRrepositories{
+		repositories: make([]string, 0, opts.PageSize),
+		start:        start,
+		end:          start + opts.PageSize,
+		index:        0,
+	}
 
-	repoNamesToCheck := make([]string, 0, opts.PageSize)
-
-	repoNames := make([]string, 0, opts.PageSize)
-	var ctxUser *user_model.User
-
-	count := 0
+	var userName string
 
 	// We're going to iterate by pagesize.
 	root := filepath.Clean(setting.RepoRootPath)
@@ -257,51 +311,16 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 
 		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
 			// Got a new user
-
-			// Clean up old repoNamesToCheck
-			if len(repoNamesToCheck) > 0 {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-					Actor:   ctxUser,
-					Private: true,
-					ListOptions: db.ListOptions{
-						Page:     1,
-						PageSize: opts.PageSize,
-					}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoopCatchup:
-					for i, repo := range repos {
-						if repo.LowerName == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoopCatchup
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
+			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+				return err
 			}
+			repoNamesToCheck = repoNamesToCheck[:0]
 
 			if !globUser.Match(info.Name()) {
 				return filepath.SkipDir
 			}
 
-			ctxUser, err = user_model.GetUserByName(info.Name())
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					log.Debug("Missing user: %s", info.Name())
-					return filepath.SkipDir
-				}
-				return err
-			}
+			userName = info.Name()
 			return nil
 		}
 
@@ -311,77 +330,19 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 			return filepath.SkipDir
 		}
 		name = name[:len(name)-4]
-		if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
+		if repo_model.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
 			return filepath.SkipDir
 		}
-		if count < end {
-			repoNamesToCheck = append(repoNamesToCheck, name)
-			if len(repoNamesToCheck) >= opts.PageSize {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-					Actor:   ctxUser,
-					Private: true,
-					ListOptions: db.ListOptions{
-						Page:     1,
-						PageSize: opts.PageSize,
-					}, LowerNames: repoNamesToCheck})
-				if err != nil {
-					return err
-				}
-				for _, name := range repoNamesToCheck {
-					found := false
-				repoLoop:
-					for i, repo := range repos {
-						if repo.LowerName == name {
-							found = true
-							repos = append(repos[:i], repos[i+1:]...)
-							break repoLoop
-						}
-					}
-					if !found {
-						if count >= start && count < end {
-							repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-						}
-						count++
-					}
-				}
-				repoNamesToCheck = repoNamesToCheck[:0]
-			}
-			return filepath.SkipDir
-		}
-		count++
+
+		repoNamesToCheck = append(repoNamesToCheck, name)
 		return filepath.SkipDir
 	}); err != nil {
 		return nil, 0, err
 	}
 
-	if len(repoNamesToCheck) > 0 {
-		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-			Actor:   ctxUser,
-			Private: true,
-			ListOptions: db.ListOptions{
-				Page:     1,
-				PageSize: opts.PageSize,
-			}, LowerNames: repoNamesToCheck})
-		if err != nil {
-			return nil, 0, err
-		}
-		for _, name := range repoNamesToCheck {
-			found := false
-		repoLoop:
-			for i, repo := range repos {
-				if repo.LowerName == name {
-					found = true
-					repos = append(repos[:i], repos[i+1:]...)
-					break repoLoop
-				}
-			}
-			if !found {
-				if count >= start && count < end {
-					repoNames = append(repoNames, fmt.Sprintf("%s/%s", ctxUser.Name, name))
-				}
-				count++
-			}
-		}
+	if err := checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+		return nil, 0, err
 	}
-	return repoNames, count, nil
+
+	return unadopted.repositories, unadopted.index, nil
 }

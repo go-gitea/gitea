@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -24,7 +25,7 @@ func DeleteOrganization(org *models.Organization) error {
 	defer commiter.Close()
 
 	// Check ownership of repository.
-	count, err := models.GetRepositoryCount(ctx, org.ID)
+	count, err := repo_model.GetRepositoryCount(ctx, org.ID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {

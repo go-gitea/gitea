@@ -240,5 +240,5 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }

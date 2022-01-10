@@ -8,7 +8,7 @@ package context
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -154,9 +154,9 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
 					return // Skip 2FA
 				}
-				twofa, err := login.GetTwoFactorByUID(ctx.User.ID)
+				twofa, err := auth.GetTwoFactorByUID(ctx.User.ID)
 				if err != nil {
-					if login.IsErrTwoFactorNotEnrolled(err) {
+					if auth.IsErrTwoFactorNotEnrolled(err) {
 						return // No 2FA enrollment for this user
 					}
 					ctx.InternalServerError(err)

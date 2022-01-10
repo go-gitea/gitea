@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -19,7 +20,7 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
@@ -32,13 +33,15 @@ func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOption
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(doer *user_model.User, repo *models.Repository) error {
+func DeleteRepository(doer *user_model.User, repo *repo_model.Repository, notify bool) error {
 	if err := pull_service.CloseRepoBranchesPulls(doer, repo); err != nil {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 
-	// If the repo itself has webhooks, we need to trigger them before deleting it...
-	notification.NotifyDeleteRepository(doer, repo)
+	if notify {
+		// If the repo itself has webhooks, we need to trigger them before deleting it...
+		notification.NotifyDeleteRepository(doer, repo)
+	}
 
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
 		return err
@@ -48,7 +51,7 @@ func DeleteRepository(doer *user_model.User, repo *models.Repository) error {
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
-func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*models.Repository, error) {
+func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
 			if ok, err := models.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {

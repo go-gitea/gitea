@@ -11,9 +11,10 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -39,6 +40,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
+	EscapeStatus   charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -103,7 +105,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
@@ -233,6 +235,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	}
 	var lines = make([]string, 0)
 	rows := make([]*blameRow, 0)
+	escapeStatus := charset.EscapeStatus{}
 
 	var i = 0
 	var commitCnt = 0
@@ -277,11 +280,14 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, language, line)
 
+			br.EscapeStatus, line = charset.EscapeControlString(line)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
+			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}
 	}
 
+	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
 }

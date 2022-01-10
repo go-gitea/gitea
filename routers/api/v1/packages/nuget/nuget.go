@@ -217,7 +217,7 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }
 
 // UploadSymbolPackage adds a symbol package to an existing package
@@ -258,7 +258,7 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }
 
 func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.PackageType) (*nuget_module.Package, *package_module.HashedBuffer, []io.Closer) {

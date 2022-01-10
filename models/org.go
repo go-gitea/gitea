@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -264,7 +265,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		OrgID:                   org.ID,
 		LowerName:               strings.ToLower(ownerTeamName),
 		Name:                    ownerTeamName,
-		Authorize:               perm.AccessModeOwner,
+		AccessMode:              perm.AccessModeOwner,
 		NumMembers:              1,
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
@@ -522,7 +523,7 @@ type FindOrgOptions struct {
 }
 
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
-	var cond = builder.Eq{"uid": userID}
+	cond := builder.Eq{"uid": userID}
 	if !includePrivate {
 		cond["is_public"] = true
 	}
@@ -530,7 +531,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
@@ -793,7 +794,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = watchRepo(sess, userID, repoID, false); err != nil {
+		if err = repo_model.WatchRepoCtx(ctx, userID, repoID, false); err != nil {
 			return err
 		}
 	}
@@ -904,8 +905,8 @@ func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
 type AccessibleReposEnvironment interface {
 	CountRepos() (int64, error)
 	RepoIDs(page, pageSize int) ([]int64, error)
-	Repos(page, pageSize int) ([]*Repository, error)
-	MirrorRepos() ([]*Repository, error)
+	Repos(page, pageSize int) ([]*repo_model.Repository, error)
+	MirrorRepos() ([]*repo_model.Repository, error)
 	AddKeyword(keyword string)
 	SetSort(db.SearchOrderBy)
 }
@@ -987,7 +988,7 @@ func (env *accessibleReposEnv) CountRepos() (int64, error) {
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
-		Count(&Repository{})
+		Count(&repo_model.Repository{})
 	if err != nil {
 		return 0, fmt.Errorf("count user repositories in organization: %v", err)
 	}
@@ -1011,13 +1012,13 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) {
+func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Repository, error) {
 	repoIDs, err := env.RepoIDs(page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserRepositoryIDs: %v", err)
 	}
 
-	repos := make([]*Repository, 0, len(repoIDs))
+	repos := make([]*repo_model.Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}
@@ -1040,13 +1041,13 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Find(&repoIDs)
 }
 
-func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
+func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
 	repoIDs, err := env.MirrorRepoIDs()
 	if err != nil {
 		return nil, fmt.Errorf("MirrorRepoIDs: %v", err)
 	}
 
-	repos := make([]*Repository, 0, len(repoIDs))
+	repos := make([]*repo_model.Repository, 0, len(repoIDs))
 	if len(repoIDs) == 0 {
 		return repos, nil
 	}

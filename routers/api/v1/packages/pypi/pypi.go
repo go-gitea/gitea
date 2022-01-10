@@ -31,7 +31,7 @@ var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, []byte(message))
+		ctx.PlainText(status, message)
 	})
 }
 
@@ -165,5 +165,5 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }

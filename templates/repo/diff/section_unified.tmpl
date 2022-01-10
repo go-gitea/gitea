@@ -25,16 +25,29 @@
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
+				{{$inlineDiff := $section.GetComputedInlineDiffFor $line -}}
+				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
-					<td class="chroma lines-code blob-hunk"><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
+					<td class="chroma lines-code blob-hunk">{{/*
+						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+					*/}}
+				{{$line.Content}}
+					</td>
 				{{else}}
-					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
+						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
+							*/}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{/*
+								*/}}{{svg "octicon-plus"}}{{/*
+							*/}}</a>{{/*
+						*/}}{{end}}{{/*
+						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+					*/}}</td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}
 				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
-					<td colspan="2" class="lines-num"></td>
+					<td colspan="3" class="lines-num"></td>
 					<td class="add-comment-left add-comment-right" colspan="2">
 						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
 					</td>

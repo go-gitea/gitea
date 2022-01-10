@@ -45,7 +45,7 @@ var (
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, []byte(message))
+		ctx.PlainText(status, message)
 	})
 }
 
@@ -108,11 +108,11 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 			tmp := sha512.Sum512(xmlMetadataWithHeader)
 			hash = tmp[:]
 		}
-		ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", hash)))
+		ctx.PlainText(http.StatusOK, fmt.Sprintf("%x", hash))
 		return
 	}
 
-	ctx.PlainText(http.StatusOK, xmlMetadataWithHeader)
+	ctx.PlainTextBytes(http.StatusOK, xmlMetadataWithHeader)
 }
 
 func servePackageFile(ctx *context.APIContext, params parameters) {
@@ -163,7 +163,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		case extensionSHA512:
 			hash = pb.HashSHA512
 		}
-		ctx.PlainText(http.StatusOK, []byte(hash))
+		ctx.PlainText(http.StatusOK, hash)
 		return
 	}
 
@@ -194,7 +194,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// Ignore the package index /<name>/maven-metadata.xml
 	if params.IsMeta && params.Version == "" {
-		ctx.PlainText(http.StatusOK, nil)
+		ctx.Status(http.StatusOK)
 		return
 	}
 
@@ -260,7 +260,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 			return
 		}
 
-		ctx.PlainText(http.StatusOK, nil)
+		ctx.Status(http.StatusOK)
 		return
 	}
 
@@ -319,7 +319,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }
 
 func isChecksumExtension(ext string) bool {

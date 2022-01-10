@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
@@ -59,7 +59,6 @@ function updateDeadline(deadlineString) {
     }),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true,
     },
     contentType: 'application/json',
     type: 'POST',
@@ -214,8 +213,8 @@ export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
-    const $simplemde = $(this).data('simplemde');
-    const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+    const easyMDE = getAttachedEasyMDE(this);
+    const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', () => {
@@ -361,7 +360,7 @@ export function initRepoIssueComments() {
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+    ).then(() => window.location.reload());
   });
 
   $('.dismiss-review-btn').on('click', function (e) {
@@ -440,29 +439,29 @@ export function initRepoPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('hide');
   });
 
-  $(document).on('click', 'button.comment-form-reply', function (e) {
+  $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
+
     $(this).hide();
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
-    } else {
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = createCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+    let easyMDE = getAttachedEasyMDE($textarea);
+    if (!easyMDE) {
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      easyMDE = await createCommentEasyMDE($textarea);
     }
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
     assignMenuAttributes(form.find('.menu'));
   });
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentSimpleMDE($reviewBox.find('textarea'));
-    initCompImagePaste($reviewBox);
+    (async () => {
+      await createCommentEasyMDE($reviewBox.find('textarea'));
+      initCompImagePaste($reviewBox);
+    })();
   }
 
   // The following part is only for diff views
@@ -519,10 +518,10 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const $simplemde = createCommentSimpleMDE($textarea);
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const easyMDE = await createCommentEasyMDE($textarea);
       $textarea.focus();
-      $simplemde.codemirror.focus();
+      easyMDE.codemirror.focus();
     }
   });
 }

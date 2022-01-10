@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,7 +31,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 
 	var apiRepos []api.Repository
 	DecodeJSON(t, resp, &apiRepos)
-	expectedLen := unittest.GetCount(t, models.Repository{OwnerID: user.ID},
+	expectedLen := unittest.GetCount(t, repo_model.Repository{OwnerID: user.ID},
 		unittest.Cond("is_private = ?", false))
 	assert.Len(t, apiRepos, expectedLen)
 	for _, repo := range apiRepos {
@@ -206,11 +207,11 @@ func TestAPISearchRepo(t *testing.T) {
 	}
 }
 
-var repoCache = make(map[int64]*models.Repository)
+var repoCache = make(map[int64]*repo_model.Repository)
 
-func getRepo(t *testing.T, repoID int64) *models.Repository {
+func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
 	if _, ok := repoCache[repoID]; !ok {
-		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 	}
 	return repoCache[repoID]
 }
@@ -482,7 +483,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	//start testing
 	for _, testCase := range testCases {
 		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID}).(*user_model.User)
-		repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
 		session = loginUser(t, user.Name)
 		token = getTokenForLoggedInUser(t, session)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
@@ -493,8 +494,87 @@ func TestAPIRepoTransfer(t *testing.T) {
 	}
 
 	//cleanup
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+}
+
+func transfer(t *testing.T) *repo_model.Repository {
+	//create repo to move
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+	repoName := "moveME"
+	apiRepo := new(api.Repository)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
+		Name:        repoName,
+		Description: "repo move around",
+		Private:     false,
+		Readme:      "Default",
+		AutoInit:    true,
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, apiRepo)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
+		NewOwner: "user4",
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	return repo
+}
+
+func TestAPIAcceptTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to accept with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to accept repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// accept transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusAccepted)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user4", apiRepo.Owner.UserName)
+}
+
+func TestAPIRejectTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to reject with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to reject repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// reject transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user2", apiRepo.Owner.UserName)
 }
 
 func TestAPIGenerateRepo(t *testing.T) {
@@ -504,7 +584,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	templateRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 44}).(*models.Repository)
+	templateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44}).(*repo_model.Repository)
 
 	// user
 	repo := new(api.Repository)
@@ -539,7 +619,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers?token=%s", user.Name, repo.Name, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -553,7 +633,7 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees?token=%s", user.Name, repo.Name, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)

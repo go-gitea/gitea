@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -144,7 +145,7 @@ func PackageSettingsPost(ctx *context.Context) {
 	switch form.Action {
 	case "link":
 		success := func() bool {
-			repo, err := models.GetRepositoryByID(form.RepoID)
+			repo, err := repo_model.GetRepositoryByID(form.RepoID)
 			if err != nil {
 				log.Error("Error getting repository: %v", err)
 				return false

@@ -72,6 +72,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -167,13 +168,13 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.ContextUser = owner
 
 		// Get repository.
-		repo, err := models.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+			if repo_model.IsErrRepoNotExist(err) {
+				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
-				} else if models.IsErrRepoRedirectNotExist(err) {
+				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
 					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
@@ -756,6 +757,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+				m.Post("/transfer/accept", reqToken(), repo.AcceptTransfer)
+				m.Post("/transfer/reject", reqToken(), repo.RejectTransfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
@@ -860,6 +863,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 							m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 								Delete(repo.DeleteIssueCommentDeprecated)
 						})
+						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
 						m.Group("/labels", func() {
 							m.Combo("").Get(repo.ListIssueLabels).
 								Post(reqToken(), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).

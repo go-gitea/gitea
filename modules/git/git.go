@@ -146,6 +146,11 @@ func Init(ctx context.Context) error {
 		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "protocol.version=2")
 	}
 
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "uploadpack.allowfilter=true")
+	}
+
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
 	if err := LoadGitVersion(); err != nil {
 		return err

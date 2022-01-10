@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -299,7 +300,6 @@ func ViewProject(ctx *context.Context) {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
-	ctx.Data["Issues"] = issueList
 
 	linkedPrsMap := make(map[int64][]*models.Issue)
 	for _, issue := range issueList {
@@ -547,9 +547,8 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	})
 }
 
-// MoveIssueAcrossBoards move a card from one board to another in a project
-func MoveIssueAcrossBoards(ctx *context.Context) {
-
+// MoveIssues moves or keeps issues in a column and sorts them inside that column
+func MoveIssues(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -564,59 +563,80 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound("ProjectNotExist", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
 
 	var board *models.ProjectBoard
 
 	if ctx.ParamsInt64(":boardID") == 0 {
-
 		board = &models.ProjectBoard{
 			ID:        0,
-			ProjectID: 0,
+			ProjectID: project.ID,
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		}
-
 	} else {
+		// column
 		board, err = models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if models.IsErrProjectBoardNotExist(err) {
-				ctx.NotFound("", nil)
+				ctx.NotFound("ProjectBoardNotExist", nil)
 			} else {
 				ctx.ServerError("GetProjectBoard", err)
 			}
 			return
 		}
-		if board.ProjectID != p.ID {
-			ctx.NotFound("", nil)
+		if board.ProjectID != project.ID {
+			ctx.NotFound("BoardNotInProject", nil)
 			return
 		}
 	}
 
-	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
+	type movedIssuesForm struct {
+		Issues []struct {
+			IssueID int64 `json:"issueID"`
+			Sorting int64 `json:"sorting"`
+		} `json:"issues"`
+	}
+
+	form := &movedIssuesForm{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedIssuesForm", err)
+	}
+
+	issueIDs := make([]int64, 0, len(form.Issues))
+	sortedIssueIDs := make(map[int64]int64)
+	for _, issue := range form.Issues {
+		issueIDs = append(issueIDs, issue.IssueID)
+		sortedIssueIDs[issue.Sorting] = issue.IssueID
+	}
+	movedIssues, err := models.GetIssuesByIDs(issueIDs)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound("IssueNotExisting", nil)
 		} else {
 			ctx.ServerError("GetIssueByID", err)
 		}
-
 		return
 	}
 
-	if err := models.MoveIssueAcrossProjectBoards(issue, board); err != nil {
-		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
+	if len(movedIssues) != len(form.Issues) {
+		ctx.ServerError("IssuesNotFound", err)
+		return
+	}
+
+	if err = models.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 
@@ -632,40 +652,4 @@ func CreateProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-}
-
-// CreateProjectPost creates an individual and/or organization project
-func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-
-	user := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Data["ContextUser"] = user
-
-	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-		return
-	}
-
-	var projectType = models.ProjectTypeIndividual
-	if user.IsOrganization() {
-		projectType = models.ProjectTypeOrganization
-	}
-
-	if err := models.NewProject(&models.Project{
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   user.ID,
-		BoardType:   form.BoardType,
-		Type:        projectType,
-	}); err != nil {
-		ctx.ServerError("NewProject", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(setting.AppSubURL + "/")
 }

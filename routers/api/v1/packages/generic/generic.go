@@ -24,7 +24,7 @@ var filenameRegex = packageNameRegex
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, []byte(message))
+		ctx.PlainText(status, message)
 	})
 }
 
@@ -110,7 +110,7 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }
 
 // DeletePackage deletes the specific generic package.

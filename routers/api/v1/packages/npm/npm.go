@@ -166,7 +166,7 @@ func UploadPackage(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusCreated, nil)
+	ctx.Status(http.StatusCreated)
 }
 
 // ListPackageTags returns all tags for a package

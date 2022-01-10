@@ -87,8 +87,8 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs []string, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}

@@ -37,9 +37,10 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	SendmailPath    string
-	SendmailArgs    []string
-	SendmailTimeout time.Duration
+	SendmailPath        string
+	SendmailArgs        []string
+	SendmailTimeout     time.Duration
+	SendmailConvertCRLF bool
 }
 
 var (
@@ -71,8 +72,9 @@ func newMailService() {
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
-		SendmailPath:    sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")

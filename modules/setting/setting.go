@@ -39,11 +39,11 @@ type Scheme string
 
 // enumerates all the scheme types
 const (
-	HTTP       Scheme = "http"
-	HTTPS      Scheme = "https"
-	FCGI       Scheme = "fcgi"
-	FCGIUnix   Scheme = "fcgi+unix"
-	UnixSocket Scheme = "unix"
+	HTTP     Scheme = "http"
+	HTTPS    Scheme = "https"
+	FCGI     Scheme = "fcgi"
+	FCGIUnix Scheme = "fcgi+unix"
+	HTTPUnix Scheme = "http+unix"
 )
 
 // LandingPage describes the default page
@@ -550,17 +550,17 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 
 // LoadFromExisting initializes setting options from an existing config file (app.ini)
 func LoadFromExisting() {
-	loadFromConf(false)
+	loadFromConf(false, "")
 }
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	loadFromConf(true)
+	loadFromConf(true, "")
 }
 
 // LoadForTest initializes setting options for tests
-func LoadForTest() {
-	loadFromConf(true)
+func LoadForTest(extraConfigs ...string) {
+	loadFromConf(true, strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
@@ -568,7 +568,7 @@ func LoadForTest() {
 
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func loadFromConf(allowEmpty bool) {
+func loadFromConf(allowEmpty bool, extraConfig string) {
 	Cfg = ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {
@@ -586,6 +586,12 @@ func loadFromConf(allowEmpty bool) {
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
 	} // else: no config file, a config file might be created at CustomConf later (might not)
+
+	if extraConfig != "" {
+		if err = Cfg.Append([]byte(extraConfig)); err != nil {
+			log.Fatal("Unable to append more config: %v", err)
+		}
+	}
 
 	Cfg.NameMapper = ini.SnackCase
 
@@ -609,7 +615,8 @@ func loadFromConf(allowEmpty bool) {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
 	Protocol = HTTP
-	switch sec.Key("PROTOCOL").String() {
+	protocolCfg := sec.Key("PROTOCOL").String()
+	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
@@ -622,24 +629,22 @@ func loadFromConf(allowEmpty bool) {
 		}
 	case "fcgi":
 		Protocol = FCGI
-	case "fcgi+unix":
-		Protocol = FCGIUnix
+	case "fcgi+unix", "unix", "http+unix":
+		switch protocolCfg {
+		case "fcgi+unix":
+			Protocol = FCGIUnix
+		case "unix":
+			log.Warn("unix PROTOCOL value is deprecated, please use http+unix")
+			fallthrough
+		case "http+unix":
+			Protocol = HTTPUnix
+		}
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {
 			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
-		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
-		if !filepath.IsAbs(HTTPAddr) {
-			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
-		}
-	case "unix":
-		Protocol = UnixSocket
-		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
-		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
-		if err != nil || UnixSocketPermissionParsed > 0777 {
-			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
-		}
+
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 		if !filepath.IsAbs(HTTPAddr) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
@@ -694,7 +699,7 @@ func loadFromConf(allowEmpty bool) {
 
 	var defaultLocalURL string
 	switch Protocol {
-	case UnixSocket:
+	case HTTPUnix:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
 		defaultLocalURL = AppURL
@@ -1112,7 +1117,7 @@ func generateSaveInternalToken() {
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
-func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
+func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
 	if err != nil {
 		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
@@ -1131,7 +1136,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 }
 
 // MakeManifestData generates web app manifest JSON
-func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
+func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 	type manifestIcon struct {
 		Src   string `json:"src"`
 		Type  string `json:"type"`
