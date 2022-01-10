@@ -93,3 +93,8 @@ type EditPullRequestOption struct {
 	Deadline       *time.Time `json:"due_date"`
 	RemoveDeadline *bool      `json:"unset_due_date"`
 }
+
+// ChangedFile store information about files affected by the pull request
+type ChangedFile struct {
+	Filename string `json:"filename"`
+}

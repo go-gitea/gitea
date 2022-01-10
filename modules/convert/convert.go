@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -370,5 +371,12 @@ func ToLFSLock(l *models.LFSLock) *api.LFSLock {
 		Owner: &api.LFSLockOwner{
 			Name: u.DisplayName(),
 		},
+	}
+}
+
+// ToChangedFile convert a gitdiff.DiffFile to api.ChangedFile
+func ToChangedFile(f *gitdiff.DiffFile) *api.ChangedFile {
+	return &api.ChangedFile{
+		Filename: f.Name,
 	}
 }

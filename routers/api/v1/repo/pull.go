@@ -22,12 +22,14 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -1254,4 +1256,129 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
+}
+
+// GetPullRequestFiles gets all changed files associated with a given PR
+func GetPullRequestFiles(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/files repository repoGetPullRequestFiles
+	// ---
+	// summary: Get changed files for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ChangedFileList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err := pr.LoadBaseRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	var prInfo *git.CompareInfo
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer baseGitRepo.Close()
+	if pr.HasMerged {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
+	} else {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true, false)
+	}
+	if err != nil {
+		ctx.ServerError("GetCompareInfo", err)
+		return
+	}
+
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+
+	startCommitID := prInfo.MergeBase
+	endCommitID := headCommitID
+
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+
+	diff, err := gitdiff.GetDiff(baseGitRepo,
+		&gitdiff.DiffOptions{
+			BeforeCommitID:     startCommitID,
+			AfterCommitID:      endCommitID,
+			SkipTo:             ctx.FormString("skip-to"),
+			MaxLines:           maxLines,
+			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:           maxFiles,
+			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		}, ctx.FormStrings("files")...)
+	if err != nil {
+		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
+		return
+	}
+
+	listOptions := utils.GetListOptions(ctx)
+
+	totalNumberOfFiles := diff.NumFiles
+	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfFiles) / float64(listOptions.PageSize)))
+
+	start, end := listOptions.GetStartEnd()
+
+	if end > totalNumberOfFiles {
+		end = totalNumberOfFiles
+	}
+
+	apiFiles := make([]*api.ChangedFile, 0, end-start)
+	for i := start; i < end; i++ {
+		apiFile := convert.ToChangedFile(diff.Files[i])
+		apiFiles = append(apiFiles, apiFile)
+	}
+
+	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(totalNumberOfFiles))
+
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-PageCount", "X-HasMore")
+
+	ctx.JSON(http.StatusOK, &apiFiles)
 }
