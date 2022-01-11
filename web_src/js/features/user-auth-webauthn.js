@@ -149,7 +149,11 @@ function webauthnRegistered(newCredential) {
     contentType: 'application/json; charset=utf-8',
   }).then(() => {
     window.location.reload();
-  }).fail(() => {
+  }).fail((xhr) => {
+    if (xhr.status === 409) {
+      webAuthnError('duplicated');
+      return;
+    }
     webAuthnError('unknown');
   });
 }

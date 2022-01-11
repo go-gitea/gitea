@@ -110,6 +110,16 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 
+	dbCred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, name)
+	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
+		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		return
+	}
+	if dbCred != nil {
+		ctx.Error(http.StatusConflict, "Name already taken")
+		return
+	}
+
 	// Create the credential
 	_, err = auth.CreateCredential(ctx.User.ID, name, cred)
 	if err != nil {
