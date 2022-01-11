@@ -67,7 +67,7 @@ function verifyAssertion(assertedCredential) {
       }
     },
     error: (xhr) => {
-      if (xhr.statusCode === 500) {
+      if (xhr.status === 500) {
         webAuthnError('unknown');
         return;
       }
@@ -204,6 +204,10 @@ function bufferDecode(value) {
 }
 
 function webAuthnRegisterRequest() {
+  if ($('#nickname').val() === '') {
+    webAuthnError('empty');
+    return;
+  }
   $.post(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
     _csrf: csrfToken,
     name: $('#nickname').val(),
@@ -231,7 +235,7 @@ function webAuthnRegisterRequest() {
         webAuthnError(0, err);
       });
   }).fail((xhr) => {
-    if (xhr.statusCode === 409) {
+    if (xhr.status === 409) {
       webAuthnError('duplicated');
       return;
     }

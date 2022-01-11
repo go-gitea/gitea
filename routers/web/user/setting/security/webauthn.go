@@ -28,6 +28,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		ctx.Error(http.StatusConflict)
 		return
 	}
+
 	if form.UserVer == "" {
 		form.UserVer = "preferred"
 	}
