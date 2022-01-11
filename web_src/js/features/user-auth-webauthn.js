@@ -132,7 +132,7 @@ function webauthnRegistered(newCredential) {
   const clientDataJSON = new Uint8Array(newCredential.response.clientDataJSON);
   const rawId = new Uint8Array(newCredential.rawId);
 
-  $.ajax({
+  return $.ajax({
     url: `${appSubUrl}/user/settings/security/webauthn/register`,
     type: 'POST',
     headers: {'X-Csrf-Token': csrfToken},
@@ -147,18 +147,16 @@ function webauthnRegistered(newCredential) {
     }),
     dataType: 'json',
     contentType: 'application/json; charset=utf-8',
-    success() {
-      window.location.reload();
-    },
-    fail() {
-      webAuthnError('unknown');
-    }
+  }).then(() => {
+    window.location.reload();
+  }).fail(() => {
+    webAuthnError('unknown');
   });
 }
 
 function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
-  if (errorType === 0 && message.length > 1) {
+  if (errorType === 0 && message && message.length > 1) {
     $(`#webauthn-error [data-webauthn-error-msg=0]`).text(message);
     $(`#webauthn-error [data-webauthn-error-msg=0]`).show();
   } else {

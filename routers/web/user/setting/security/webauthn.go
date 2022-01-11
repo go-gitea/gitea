@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -27,6 +28,10 @@ func WebAuthnRegister(ctx *context.Context) {
 		ctx.Error(http.StatusConflict)
 		return
 	}
+	if form.UserVer == "" {
+		form.UserVer = "preferred"
+	}
+
 	cred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
@@ -78,15 +83,15 @@ func WebAuthnRegister(ctx *context.Context) {
 
 // WebauthnRegisterPost receives the response of the security key
 func WebauthnRegisterPost(ctx *context.Context) {
-	name := ctx.Session.Get("WebauthnName")
-	if name == nil {
+	name, ok := ctx.Session.Get("WebauthnName").(string)
+	if !ok || name == "" {
 		ctx.ServerError("Get WebauthnName", errors.New("no WebauthnName"))
 		return
 	}
 
 	// Load the session data
-	sessionData := ctx.Session.Get("registration")
-	if sessionData == nil {
+	sessionData, ok := ctx.Session.Get("registration").(*webauthn.SessionData)
+	if !ok || sessionData == nil {
 		ctx.ServerError("Get registration", errors.New("no registration"))
 		return
 	}
@@ -95,14 +100,17 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}()
 
 	// Verify that the challenge succeeded
-	cred, err := wa.WebAuthn.FinishRegistration((*wa.User)(ctx.User), *sessionData.(*webauthn.SessionData), ctx.Req)
+	cred, err := wa.WebAuthn.FinishRegistration((*wa.User)(ctx.User), *sessionData, ctx.Req)
 	if err != nil {
+		if pErr, ok := err.(*protocol.Error); ok {
+			log.Error("Unable to finish registration due to error: %v\nDevInfo: %s", pErr, pErr.DevInfo)
+		}
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx.User.ID, name.(string), cred)
+	_, err = auth.CreateCredential(ctx.User.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
