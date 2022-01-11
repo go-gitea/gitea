@@ -19,14 +19,14 @@ func TrapSignIn(ctx *context.Context) {
 	}
 
 	token := ctx.GetCookie("traP_token")
-	if user := getUserFromTrapToken(token); user != nil {
+	if user := getUserFromTrapToken(ctx, token); user != nil {
 		handleSignIn(ctx, user, false)
 	} else {
 		ctx.Redirect("https://portal.trap.jp/pipeline?redirect=" + url.QueryEscape(setting.AppURL+"user/login"))
 	}
 }
 
-func getUserFromTrapToken(tokenString string) *user.User {
+func getUserFromTrapToken(ctx *context.Context, tokenString string) *user.User {
 	if tokenString == "" {
 		log.Warn("No token")
 		return nil
@@ -49,7 +49,7 @@ func getUserFromTrapToken(tokenString string) *user.User {
 	data := token.Claims.(jwt.MapClaims)
 	log.Debug("traP token accepted: %s", data["id"])
 
-	u, _ := user.GetUserByName(data["id"].(string))
+	u, _ := user.GetUserByName(ctx, data["id"].(string))
 	if u == nil {
 		u = &user.User{
 			Name:     data["id"].(string),
@@ -68,7 +68,7 @@ func getUserFromTrapToken(tokenString string) *user.User {
 	u.FullName = data["firstName"].(string) + " " + data["lastName"].(string)
 	u.SetLastLogin()
 
-	if err := user.UpdateUser(u); err != nil {
+	if err := user.UpdateUser(ctx, u, true); err != nil {
 		log.ErrorWithSkip(3, "Failed to update user: %v", err)
 		return nil
 	}
@@ -76,7 +76,7 @@ func getUserFromTrapToken(tokenString string) *user.User {
 	return u
 }
 
-var pubKeyPEM []byte = []byte(`-----BEGIN PUBLIC KEY-----
+var pubKeyPEM = []byte(`-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAraewUw7V1hiuSgUvkly9
 X+tcIh0e/KKqeFnAo8WR3ez2tA0fGwM+P8sYKHIDQFX7ER0c+ecTiKpo/Zt/a6AO
 gB/zHb8L4TWMr2G4q79S1gNw465/SEaGKR8hRkdnxJ6LXdDEhgrH2ZwIPzE0EVO1
