@@ -65,7 +65,7 @@ func (n NullDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, 
 	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 
-// FormatCloneURL add authentification into remote URLs
+// FormatCloneURL add authentication into remote URLs
 func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)
