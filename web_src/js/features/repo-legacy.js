@@ -1,6 +1,6 @@
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initCompImagePaste, initSimpleMDEImagePaste} from './comp/ImagePaste.js';
+import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -10,6 +10,7 @@ import {
   initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
+import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
@@ -63,10 +64,13 @@ export function initRepoCommentForm() {
     });
   }
 
-  createCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+  (async () => {
+    await createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+    initCompImagePaste($('.comment.form'));
+  })();
+
   initBranchSelector();
   initCompMarkupContentPreviewTab($('.comment.form'));
-  initCompImagePaste($('.comment.form'));
 
   // List submits
   function initListSubmits(selector, outerSelector) {
@@ -162,7 +166,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       $(this).parent().find('.item').each(function () {
@@ -205,7 +209,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       let icon = '';
@@ -238,7 +242,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       $list.find('.selected').html('');
@@ -256,13 +260,14 @@ export function initRepoCommentForm() {
 
 async function onEditContent(event) {
   event.preventDefault();
+
   $(this).closest('.dropdown').find('.menu').toggle('visible');
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
   const $rawContent = $segment.find('.raw-content');
   let $textarea;
-  let $simplemde;
+  let easyMDE;
 
   // Setup new form
   if ($editContentZone.html().length === 0) {
@@ -341,11 +346,11 @@ async function onEditContent(event) {
     $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
     $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
     $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
-    $simplemde = createCommentSimpleMDE($textarea);
+    easyMDE = await createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
     if ($dropzone.length === 1) {
-      initSimpleMDEImagePaste($simplemde, $dropzone[0], $dropzone.find('.files'));
+      initEasyMDEImagePaste(easyMDE, $dropzone[0], $dropzone.find('.files'));
     }
 
     $editContentZone.find('.cancel.button').on('click', () => {
@@ -395,7 +400,7 @@ async function onEditContent(event) {
     });
   } else {
     $textarea = $segment.find('textarea');
-    $simplemde = $textarea.data('simplemde');
+    easyMDE = getAttachedEasyMDE($textarea);
   }
 
   // Show write/preview tab and copy raw content as needed
@@ -403,11 +408,11 @@ async function onEditContent(event) {
   $renderContent.hide();
   if ($textarea.val().length === 0) {
     $textarea.val($rawContent.text());
-    $simplemde.value($rawContent.text());
+    easyMDE.value($rawContent.text());
   }
   requestAnimationFrame(() => {
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
   });
 }
 
@@ -527,11 +532,13 @@ export function initRepository() {
       $(this).parent().hide();
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      const $simplemde = $form.find('textarea.edit_area').data('simplemde');
+      const easyMDE = getAttachedEasyMDE($form.find('textarea.edit_area'));
       $form.show();
-      $simplemde.codemirror.refresh();
+      easyMDE.codemirror.refresh();
     });
   }
+
+  initUnicodeEscapeButton();
 }
 
 function initRepoIssueCommentEdit() {
@@ -547,24 +554,24 @@ function initRepoIssueCommentEdit() {
     const target = $(this).data('target');
     const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
     const content = `> ${quote}\n\n`;
-    let $simplemde;
+    let easyMDE;
     if ($(this).hasClass('quote-reply-diff')) {
       const $parent = $(this).closest('.comment-code-cloud');
       $parent.find('button.comment-form-reply').trigger('click');
-      $simplemde = $parent.find('[name="content"]').data('simplemde');
+      easyMDE = getAttachedEasyMDE($parent.find('[name="content"]'));
     } else {
       // for normal issue/comment page
-      $simplemde = $('#comment-form .edit_area').data('simplemde');
+      easyMDE = getAttachedEasyMDE($('#comment-form .edit_area'));
     }
-    if ($simplemde) {
-      if ($simplemde.value() !== '') {
-        $simplemde.value(`${$simplemde.value()}\n\n${content}`);
+    if (easyMDE) {
+      if (easyMDE.value() !== '') {
+        easyMDE.value(`${easyMDE.value()}\n\n${content}`);
       } else {
-        $simplemde.value(`${content}`);
+        easyMDE.value(`${content}`);
       }
       requestAnimationFrame(() => {
-        $simplemde.codemirror.focus();
-        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
+        easyMDE.codemirror.focus();
+        easyMDE.codemirror.setCursor(easyMDE.codemirror.lineCount(), 0);
       });
     }
     event.preventDefault();

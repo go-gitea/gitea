@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/secret"
@@ -22,12 +24,12 @@ import (
 // Task represents a task
 type Task struct {
 	ID             int64
-	DoerID         int64       `xorm:"index"` // operator
-	Doer           *User       `xorm:"-"`
-	OwnerID        int64       `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
-	Owner          *User       `xorm:"-"`
-	RepoID         int64       `xorm:"index"`
-	Repo           *Repository `xorm:"-"`
+	DoerID         int64                  `xorm:"index"` // operator
+	Doer           *user_model.User       `xorm:"-"`
+	OwnerID        int64                  `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
+	Owner          *user_model.User       `xorm:"-"`
+	RepoID         int64                  `xorm:"index"`
+	Repo           *repo_model.Repository `xorm:"-"`
 	Type           structs.TaskType
 	Status         structs.TaskStatus `xorm:"index"`
 	StartTime      timeutil.TimeStamp
@@ -56,12 +58,12 @@ func (task *Task) loadRepo(e db.Engine) error {
 	if task.Repo != nil {
 		return nil
 	}
-	var repo Repository
+	var repo repo_model.Repository
 	has, err := e.ID(task.RepoID).Get(&repo)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrRepoNotExist{
+		return repo_model.ErrRepoNotExist{
 			ID: task.RepoID,
 		}
 	}
@@ -75,12 +77,12 @@ func (task *Task) LoadDoer() error {
 		return nil
 	}
 
-	var doer User
+	var doer user_model.User
 	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{
+		return user_model.ErrUserNotExist{
 			UID: task.DoerID,
 		}
 	}
@@ -95,12 +97,12 @@ func (task *Task) LoadOwner() error {
 		return nil
 	}
 
-	var owner User
+	var owner user_model.User
 	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{
+		return user_model.ErrUserNotExist{
 			UID: task.OwnerID,
 		}
 	}

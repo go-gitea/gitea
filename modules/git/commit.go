@@ -87,8 +87,8 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs []string, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -141,7 +141,7 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	args := []string{"--all", "--count"}
 	if hidePRRefs {
-		args = append([]string{"--exclude=refs/pull/*"}, args...)
+		args = append([]string{"--exclude=" + PullPrefix + "*"}, args...)
 	}
 	cmd := NewCommand("rev-list")
 	cmd.AddArguments(args...)

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -606,8 +606,8 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string, units []string) error {
-	doer, err := models.GetAdminUser()
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
+	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}

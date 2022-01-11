@@ -139,6 +139,9 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
 		assert.NoError(t, git.InitRepository(dstPath, false))
+		// forcibly set default branch to master
+		_, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
+		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{

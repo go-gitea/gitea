@@ -76,7 +76,7 @@ func SetSetting(setting *Setting) error {
 	return upsertSettingValue(setting.UserID, setting.SettingKey, setting.SettingValue)
 }
 
-func upsertSettingValue(userID int64, key string, value string) error {
+func upsertSettingValue(userID int64, key, value string) error {
 	return db.WithTx(func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 

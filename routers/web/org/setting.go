@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -38,6 +40,7 @@ const (
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
@@ -48,6 +51,7 @@ func Settings(ctx *context.Context) {
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
@@ -61,7 +65,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := models.IsUserExist(org.ID, form.Name)
+		isExist, err := user_model.IsUserExist(org.ID, form.Name)
 		if err != nil {
 			ctx.ServerError("IsUserExist", err)
 			return
@@ -69,8 +73,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = models.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			if err == models.ErrUserNameIllegal {
+		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
+			if db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) {
 				ctx.Data["OrgName"] = true
 				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
@@ -101,7 +105,7 @@ func SettingsPost(ctx *context.Context) {
 	visibilityChanged := form.Visibility != org.Visibility
 	org.Visibility = form.Visibility
 
-	if err := models.UpdateUser(org.AsUser()); err != nil {
+	if err := user_model.UpdateUser(org.AsUser(), false); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -122,7 +126,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 	} else if nameChanged {
-		if err := models.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
+		if err := repo_model.UpdateRepositoryOwnerNames(org.ID, org.Name); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -158,6 +162,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 // SettingsDelete response for deleting an organization
 func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsDelete"] = true
 
 	if ctx.Req.Method == "POST" {
@@ -187,6 +192,7 @@ func SettingsDelete(ctx *context.Context) {
 // Webhooks render webhook list page
 func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
@@ -218,6 +224,7 @@ func DeleteWebhook(ctx *context.Context) {
 // Labels render organization labels page
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
+	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates

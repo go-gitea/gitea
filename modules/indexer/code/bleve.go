@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -181,7 +181,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 }
 
 func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -234,7 +234,7 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -271,11 +271,17 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *BleveIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
@@ -418,7 +424,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 	}
 	languagesFacet := result.Facets["languages"]
-	for _, term := range languagesFacet.Terms {
+	for _, term := range languagesFacet.Terms.Terms() {
 		if len(term.Term) == 0 {
 			continue
 		}

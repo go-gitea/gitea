@@ -99,8 +99,8 @@ func TestGogsDownloadRepo(t *testing.T) {
 			Content:     "test",
 			Milestone:   "",
 			State:       "open",
-			Created:     time.Date(2019, 06, 11, 8, 16, 44, 0, time.UTC),
-			Updated:     time.Date(2019, 10, 26, 11, 07, 2, 0, time.UTC),
+			Created:     time.Date(2019, 6, 11, 8, 16, 44, 0, time.UTC),
+			Updated:     time.Date(2019, 10, 26, 11, 7, 2, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:  "bug",
@@ -121,8 +121,8 @@ func TestGogsDownloadRepo(t *testing.T) {
 			PosterID:    5331,
 			PosterName:  "lunny",
 			PosterEmail: "xiaolunwen@gmail.com",
-			Created:     time.Date(2019, 06, 11, 8, 19, 50, 0, time.UTC),
-			Updated:     time.Date(2019, 06, 11, 8, 19, 50, 0, time.UTC),
+			Created:     time.Date(2019, 6, 11, 8, 19, 50, 0, time.UTC),
+			Updated:     time.Date(2019, 6, 11, 8, 19, 50, 0, time.UTC),
 			Content:     "1111",
 		},
 		{

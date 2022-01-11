@@ -21,23 +21,75 @@
 								{{svg "octicon-fold"}}
 							</a>
 						{{end}}
-					</td>
-					<td colspan="5" class="lines-code lines-code-old "><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+					</td>{{$inlineDiff := $section.GetComputedInlineDiffFor $line}}
+					<td class="lines-escape lines-escape-old">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+					<td colspan="6" class="lines-code lines-code-old "><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</span></td>
 				{{else if and (eq .GetType 3) $hasmatch}}{{/* DEL */}}
 					{{$match := index $section.Lines $line.Match}}
+					{{- $leftDiff := ""}}{{if $line.LeftIdx}}{{$leftDiff = $section.GetComputedInlineDiffFor $line}}{{end}}
+					{{- $rightDiff := ""}}{{if $match.RightIdx}}{{$rightDiff = $section.GetComputedInlineDiffFor $match}}{{end}}
 					<td class="lines-num lines-num-old del-code" data-line-num="{{$line.LeftIdx}}"><span rel="diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}"></span></td>
+					<td class="lines-escape del-code lines-escape-old">{{if $line.LeftIdx}}{{if $leftDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-					<td class="lines-code lines-code-old halfwidth del-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-old halfwidth del-code">{{/*
+						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
+							*/}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
+								*/}}{{svg "octicon-plus"}}{{/*
+							*/}}</a>{{/*
+						*/}}{{end}}{{/*
+						*/}}{{if $line.LeftIdx}}{{/*
+							*/}}<code {{if $leftDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$leftDiff.Content}}</code>{{/*
+						*/}}{{else}}{{/*
+						*/}}<code class="code-inner"></code>{{/*
+						*/}}{{end}}{{/*
+					*/}}</td>
 					<td class="lines-num lines-num-new add-code" data-line-num="{{if $match.RightIdx}}{{$match.RightIdx}}{{end}}"><span rel="{{if $match.RightIdx}}diff-{{Sha1 $file.Name}}R{{$match.RightIdx}}{{end}}"></span></td>
+					<td class="lines-escape add-code lines-escape-new">{{if $match.RightIdx}}{{if $rightDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth add-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $match.RightIdx}}{{$section.GetComputedInlineDiffFor $match}}{{end}}</code></td>
+					<td class="lines-code lines-code-new halfwidth add-code">{{/*
+						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles}}{{/*
+							*/}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{/*
+								*/}}{{svg "octicon-plus"}}{{/*
+							*/}}</a>{{/*
+						*/}}{{end}}{{/*
+						*/}}{{if $match.RightIdx}}{{/*
+							*/}}<code {{if $rightDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$rightDiff.Content}}</code>{{/*
+						*/}}{{else}}{{/*
+							*/}}<code class="code-inner"></code>{{/*
+						*/}}{{end}}{{/*
+					*/}}</td>
 				{{else}}
+					{{$inlineDiff := $section.GetComputedInlineDiffFor $line}}
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
+					<td class="lines-escape lines-escape-old">{{if $line.LeftIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-old halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-old halfwidth">{{/*
+						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}{{/*
+							*/}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{/*
+								*/}}{{svg "octicon-plus"}}{{/*
+							*/}}</a>{{/*
+						*/}}{{end}}{{/*
+						*/}}{{if $line.LeftIdx}}{{/*
+							*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{else}}{{/*
+						*/}}<code class="code-inner"></code>{{/*
+						*/}}{{end}}{{/*
+					*/}}</td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
+					<td class="lines-escape lines-escape-new">{{if $line.RightIdx}}{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}{{end}}</td>
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-new halfwidth">{{/*
+						*/}}{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}{{/*
+							*/}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{/*
+								*/}}{{svg "octicon-plus"}}{{/*
+							*/}}</a>{{/*
+						*/}}{{end}}{{/*
+						*/}}{{if $line.RightIdx}}{{/*
+							*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{else}}{{/*
+						*/}}<code class="code-inner"></code>{{/*
+						*/}}{{end}}{{/*
+					*/}}</td>
 				{{end}}
 			</tr>
 			{{if and (eq .GetType 3) $hasmatch}}
@@ -45,6 +97,7 @@
 				{{if or (gt (len $line.Comments) 0) (gt (len $match.Comments) 0)}}
 					<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
 						<td class="lines-num"></td>
+						<td class="lines-escape"></td>
 						<td class="lines-type-marker"></td>
 						<td class="add-comment-left">
 							{{if gt (len $line.Comments) 0}}
@@ -59,6 +112,7 @@
 							{{end}}
 						</td>
 						<td class="lines-num"></td>
+						<td class="lines-escape"></td>
 						<td class="lines-type-marker"></td>
 						<td class="add-comment-right">
 							{{if eq $line.GetCommentSide "proposed"}}
@@ -75,6 +129,7 @@
 			{{else if gt (len $line.Comments) 0}}
 				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
 					<td class="lines-num"></td>
+					<td class="lines-escape"></td>
 					<td class="lines-type-marker"></td>
 					<td class="add-comment-left">
 						{{if gt (len $line.Comments) 0}}
@@ -84,6 +139,7 @@
 						{{end}}
 					</td>
 					<td class="lines-num"></td>
+					<td class="lines-escape"></td>
 					<td class="lines-type-marker"></td>
 					<td class="add-comment-right">
 						{{if eq $line.GetCommentSide "proposed"}}

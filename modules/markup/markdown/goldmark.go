@@ -229,7 +229,7 @@ func (p *prefixedIDs) Generate(value []byte, kind ast.NodeKind) []byte {
 }
 
 // Generate generates a new element id.
-func (p *prefixedIDs) GenerateWithDefault(value []byte, dft []byte) []byte {
+func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	result := common.CleanValue(value)
 	if len(result) == 0 {
 		result = dft

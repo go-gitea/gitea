@@ -13,8 +13,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -1149,7 +1150,7 @@ func TestWebhook(ctx *context.Context) {
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
 	if commit == nil {
-		ghost := models.NewGhostUser()
+		ghost := user_model.NewGhostUser()
 		commit = &git.Commit{
 			ID:            git.MustIDFromString(git.EmptySHA),
 			Author:        ghost.NewGitSig(),
@@ -1158,7 +1159,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -1180,7 +1181,7 @@ func TestWebhook(ctx *context.Context) {
 		After:      commit.ID.String(),
 		Commits:    []*api.PayloadCommit{apiCommit},
 		HeadCommit: apiCommit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:     apiUser,
 		Sender:     apiUser,
 	}
@@ -1188,9 +1189,31 @@ func TestWebhook(ctx *context.Context) {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(500)
 	} else {
-		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.test_delivery_success"))
+		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
 		ctx.Status(200)
 	}
+}
+
+// ReplayWebhook replays a webhook
+func ReplayWebhook(ctx *context.Context) {
+	hookTaskUUID := ctx.Params(":uuid")
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := webhook_service.ReplayHookTask(w, hookTaskUUID); err != nil {
+		if webhook.IsErrHookTaskNotExist(err) {
+			ctx.NotFound("ReplayHookTask", nil)
+		} else {
+			ctx.ServerError("ReplayHookTask", err)
+		}
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.webhook.delivery.success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
 // DeleteWebhook delete a webhook

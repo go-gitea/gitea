@@ -36,7 +36,7 @@ import {
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
-import {initRepoCommitButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
+import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -132,7 +132,7 @@ $(document).ready(() => {
   initRepoBranchButton();
   initRepoCodeView();
   initRepoCommentForm();
-  initRepoCommitButton();
+  initRepoEllipsisButton();
   initRepoCommitLastCommitLoader();
   initRepoDiffConversationForm();
   initRepoDiffFileViewToggle();

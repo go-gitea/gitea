@@ -83,7 +83,7 @@ func NewTopNCollector(size int, skip int, sort search.SortOrder) *TopNCollector 
 	return newTopNCollector(size, skip, sort)
 }
 
-// NewTopNCollector builds a collector to find the top 'size' hits
+// NewTopNCollectorAfter builds a collector to find the top 'size' hits
 // skipping over the first 'skip' hits
 // ordering hits by the provided sort order
 func NewTopNCollectorAfter(size int, sort search.SortOrder, after []string) *TopNCollector {
@@ -235,9 +235,7 @@ func (hc *TopNCollector) Collect(ctx context.Context, searcher search.Searcher, 
 
 	// compute search duration
 	hc.took = time.Since(startTime)
-	if err != nil {
-		return err
-	}
+
 	// finalize actual results
 	err = hc.finalizeResults(reader)
 	if err != nil {

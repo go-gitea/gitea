@@ -6,12 +6,16 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -65,10 +69,10 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID      int64       `xorm:"INDEX"`
-	HeadRepo        *Repository `xorm:"-"`
-	BaseRepoID      int64       `xorm:"INDEX"`
-	BaseRepo        *Repository `xorm:"-"`
+	HeadRepoID      int64                  `xorm:"INDEX"`
+	HeadRepo        *repo_model.Repository `xorm:"-"`
+	BaseRepoID      int64                  `xorm:"INDEX"`
+	BaseRepo        *repo_model.Repository `xorm:"-"`
 	HeadBranch      string
 	HeadCommitID    string `xorm:"-"`
 	BaseBranch      string
@@ -78,7 +82,7 @@ type PullRequest struct {
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
 	MergerID       int64              `xorm:"INDEX"`
-	Merger         *User              `xorm:"-"`
+	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
@@ -93,7 +97,7 @@ func init() {
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {
-		if !IsErrRepoNotExist(err) {
+		if !repo_model.IsErrRepoNotExist(err) {
 			log.Error("LoadHeadRepo: %v", err)
 		} else {
 			log.Warn("LoadHeadRepo %d but repository does not exist: %v", pr.HeadRepoID, err)
@@ -109,10 +113,10 @@ func (pr *PullRequest) MustHeadUserName() string {
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = getUserByID(e, pr.MergerID)
-		if IsErrUserNotExist(err) {
+		pr.Merger, err = user_model.GetUserByIDEngine(e, pr.MergerID)
+		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
-			pr.Merger = NewGhostUser()
+			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", pr.MergerID, err)
 		}
@@ -126,7 +130,7 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadHeadRepo(e db.Engine) (err error) {
+func (pr *PullRequest) loadHeadRepo(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
 			if pr.BaseRepo != nil {
@@ -138,8 +142,8 @@ func (pr *PullRequest) loadHeadRepo(e db.Engine) (err error) {
 			}
 		}
 
-		pr.HeadRepo, err = getRepositoryByID(e, pr.HeadRepoID)
-		if err != nil && !IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
+		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
+		if err != nil && !repo_model.IsErrRepoNotExist(err) { // Head repo maybe deleted, but it should still work
 			return fmt.Errorf("getRepositoryByID(head): %v", err)
 		}
 		pr.isHeadRepoLoaded = true
@@ -149,15 +153,15 @@ func (pr *PullRequest) loadHeadRepo(e db.Engine) (err error) {
 
 // LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
-	return pr.loadHeadRepo(db.GetEngine(db.DefaultContext))
+	return pr.loadHeadRepo(db.DefaultContext)
 }
 
 // LoadBaseRepo loads the target repository
 func (pr *PullRequest) LoadBaseRepo() error {
-	return pr.loadBaseRepo(db.GetEngine(db.DefaultContext))
+	return pr.loadBaseRepo(db.DefaultContext)
 }
 
-func (pr *PullRequest) loadBaseRepo(e db.Engine) (err error) {
+func (pr *PullRequest) loadBaseRepo(ctx context.Context) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
 	}
@@ -172,9 +176,9 @@ func (pr *PullRequest) loadBaseRepo(e db.Engine) (err error) {
 		return nil
 	}
 
-	pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
+	pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
 	if err != nil {
-		return fmt.Errorf("GetRepositoryByID(base): %v", err)
+		return fmt.Errorf("repo_model.GetRepositoryByID(base): %v", err)
 	}
 	return nil
 }
@@ -198,21 +202,21 @@ func (pr *PullRequest) loadIssue(e db.Engine) (err error) {
 
 // LoadProtectedBranch loads the protected branch of the base branch
 func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.loadProtectedBranch(db.GetEngine(db.DefaultContext))
+	return pr.loadProtectedBranch(db.DefaultContext)
 }
 
-func (pr *PullRequest) loadProtectedBranch(e db.Engine) (err error) {
+func (pr *PullRequest) loadProtectedBranch(ctx context.Context) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
 				return nil
 			}
-			pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
+			pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
 			if err != nil {
 				return
 			}
 		}
-		pr.ProtectedBranch, err = getProtectedBranchBy(e, pr.BaseRepo.ID, pr.BaseBranch)
+		pr.ProtectedBranch, err = getProtectedBranchBy(db.GetEngine(ctx), pr.BaseRepo.ID, pr.BaseBranch)
 	}
 	return
 }
@@ -221,7 +225,7 @@ func (pr *PullRequest) loadProtectedBranch(e db.Engine) (err error) {
 func (pr *PullRequest) GetDefaultMergeMessage() string {
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
 			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 			return ""
@@ -310,7 +314,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+		if err := review.loadReviewer(sess); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -348,7 +352,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 
 // GetGitRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitRefName() string {
-	return fmt.Sprintf("refs/pull/%d/head", pr.Index)
+	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
 // IsChecking returns true if this pull request is still checking conflict.
@@ -365,24 +369,6 @@ func (pr *PullRequest) CanAutoMerge() bool {
 func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
 }
-
-// MergeStyle represents the approach to merge commits into base branch.
-type MergeStyle string
-
-const (
-	// MergeStyleMerge create merge commit
-	MergeStyleMerge MergeStyle = "merge"
-	// MergeStyleRebase rebase before merging
-	MergeStyleRebase MergeStyle = "rebase"
-	// MergeStyleRebaseMerge rebase before merging with merge commit (--no-ff)
-	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
-	// MergeStyleSquash squash commits into single commit before merging
-	MergeStyleSquash MergeStyle = "squash"
-	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
-	MergeStyleManuallyMerged MergeStyle = "manually-merged"
-	// MergeStyleRebaseUpdate not a merge style, used to update pull head by rebase
-	MergeStyleRebaseUpdate MergeStyle = "rebase-update-only"
-)
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (bool, error) {
@@ -426,11 +412,11 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
-	if err := pr.Issue.loadRepo(sess); err != nil {
+	if err := pr.Issue.loadRepo(ctx); err != nil {
 		return false, err
 	}
 
-	if err := pr.Issue.Repo.getOwner(sess); err != nil {
+	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
 		return false, err
 	}
 
@@ -450,7 +436,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+func NewPullRequest(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
 	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
 	if err != nil {
 		return fmt.Errorf("generate pull request index failed: %v", err)

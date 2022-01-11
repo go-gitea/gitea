@@ -23,6 +23,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -168,11 +169,11 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
-func getLineContent(content string) string {
+func getLineContent(content string) DiffInline {
 	if len(content) > 0 {
-		return html.EscapeString(content)
+		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)))
 	}
-	return "<br>"
+	return DiffInline{Content: "<br>"}
 }
 
 // DiffSection represents a section of a DiffFile.
@@ -410,7 +411,7 @@ func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
 	return fixedup
 }
 
-func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
+func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) DiffInline {
 	buf := bytes.NewBuffer(nil)
 	match := ""
 
@@ -482,7 +483,7 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			buf.Write(codeTagSuffix)
 		}
 	}
-	return template.HTML(buf.Bytes())
+	return DiffInlineWithUnicodeEscape(template.HTML(buf.String()))
 }
 
 // GetLine gets a specific line by type (add or del) and file line number
@@ -534,10 +535,28 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
+// DiffInline is a struct that has a content and escape status
+type DiffInline struct {
+	EscapeStatus charset.EscapeStatus
+	Content      template.HTML
+}
+
+// DiffInlineWithUnicodeEscape makes a DiffInline with hidden unicode characters escaped
+func DiffInlineWithUnicodeEscape(s template.HTML) DiffInline {
+	status, content := charset.EscapeControlString(string(s))
+	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+}
+
+// DiffInlineWithHighlightCode makes a DiffInline with code highlight and hidden unicode characters escaped
+func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
+	status, content := charset.EscapeControlString(highlight.Code(fileName, language, code))
+	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
+}
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
+func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) DiffInline {
 	if setting.Git.DisableDiffHighlight {
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return getLineContent(diffLine.Content[1:])
 	}
 
 	var (
@@ -554,26 +573,26 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return getLineContent(diffLine.Content[1:])
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content[1:])
 		}
-		return template.HTML(highlight.Code(diffSection.FileName, language, diffLine.Content))
+		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content)
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
@@ -666,7 +685,7 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) error {
+func (diff *Diff) LoadComments(issue *models.Issue, currentUser *user_model.User) error {
 	allComments, err := models.FetchCodeComments(issue, currentUser)
 	if err != nil {
 		return err
@@ -861,7 +880,7 @@ parsingLoop:
 				// Handle ambiguous filenames
 				if curFile.IsAmbiguous {
 					// The shortest string that can end up here is:
-					// "--- a\t\n" without the qoutes.
+					// "--- a\t\n" without the quotes.
 					// This line has a len() of 7 but doesn't contain a oldName.
 					// So the amount that the line need is at least 8 or more.
 					// The code will otherwise panic for a out-of-bounds.
@@ -1302,8 +1321,9 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
-	defer cancel()
+	timeout := time.Duration(setting.Git.Timeout.Default) * time.Second
+	ctx, _, finished := process.GetManager().AddContextTimeout(gitRepo.Ctx, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+	defer finished()
 
 	argsLength := 6
 	if len(opts.WhitespaceBehavior) > 0 {
@@ -1367,9 +1387,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("error during Start: %w", err)
 	}
-
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
-	defer process.GetManager().Remove(pid)
 
 	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, stdout, parsePatchSkipToFile)
 	if err != nil {

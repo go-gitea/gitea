@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 var (
@@ -57,7 +57,7 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
-func (w *wrappedIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (w *wrappedIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	indexer, err := w.get()
 	if err != nil {
 		return err
