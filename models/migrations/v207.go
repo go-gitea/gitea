@@ -19,9 +19,9 @@ func addWebAuthnCred(x *xorm.Engine) error {
 
 	// Create webauthnCredential table
 	type webauthnCredential struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Name            string `xorm:"unique(s)"`
-		LowerName       string
+		ID              int64 `xorm:"pk autoincr"`
+		Name            string
+		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
 		CredentialID    string `xorm:"INDEX"`
 		PublicKey       []byte

@@ -39,9 +39,9 @@ func IsErrWebAuthnCredentialNotExist(err error) bool {
 //WebAuthnCredential represents the WebAuthn credential data for a public-key
 //credential conformant to WebAuthn Level 1
 type WebAuthnCredential struct {
-	ID              int64  `xorm:"pk autoincr"`
-	Name            string `xorm:"unique(s)"`
-	LowerName       string
+	ID              int64 `xorm:"pk autoincr"`
+	Name            string
+	LowerName       string `xorm:"unique(s)"`
 	UserID          int64  `xorm:"INDEX unique(s)"`
 	CredentialID    string `xorm:"INDEX"`
 	PublicKey       []byte
