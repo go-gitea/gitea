@@ -58,13 +58,11 @@ func insertIssue(sess db.Engine, issue *Issue) error {
 		return err
 	}
 	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
-	labelIDs := make([]int64, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
 			LabelID: label.ID,
 		})
-		labelIDs = append(labelIDs, label.ID)
 	}
 	if len(issueLabels) > 0 {
 		if _, err := sess.Insert(issueLabels); err != nil {
@@ -82,55 +80,7 @@ func insertIssue(sess db.Engine, issue *Issue) error {
 		}
 	}
 
-	cols := make([]string, 0)
-	if !issue.IsPull {
-		sess.ID(issue.RepoID).Incr("num_issues")
-		cols = append(cols, "num_issues")
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-		}
-	} else {
-		sess.ID(issue.RepoID).Incr("num_pulls")
-		cols = append(cols, "num_pulls")
-		if issue.IsClosed {
-			sess.Incr("num_closed_pulls")
-			cols = append(cols, "num_closed_pulls")
-		}
-	}
-	if _, err := sess.NoAutoTime().Cols(cols...).Update(issue.Repo); err != nil {
-		return err
-	}
-
-	cols = []string{"num_issues"}
-	sess.Incr("num_issues")
-	if issue.IsClosed {
-		sess.Incr("num_closed_issues")
-		cols = append(cols, "num_closed_issues")
-	}
-	if _, err := sess.In("id", labelIDs).NoAutoTime().Cols(cols...).Update(new(Label)); err != nil {
-		return err
-	}
-
-	if issue.MilestoneID > 0 {
-		cols = []string{"num_issues"}
-		sess.Incr("num_issues")
-		cl := "num_closed_issues"
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-			cl = "(num_closed_issues + 1)"
-		}
-
-		if _, err := sess.ID(issue.MilestoneID).
-			SetExpr("completeness", cl+" * 100 / (num_issues + 1)").
-			NoAutoTime().Cols(cols...).
-			Update(new(Milestone)); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return UpdateRepoStats(sess, issue.RepoID)
 }
 
 // InsertIssueComments inserts many comments of issues.

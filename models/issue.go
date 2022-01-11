@@ -2061,19 +2061,9 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 
 func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
 	if issue.IsPull {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			true,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(e, issue.RepoID, true, "num_closed_pulls")
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			false,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(e, issue.RepoID, false, "num_closed_issues")
 	}
 	return
 }
