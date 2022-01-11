@@ -165,9 +165,6 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		if milestone.Deadline != nil {
 			deadline = timeutil.TimeStamp(milestone.Deadline.Unix())
 		}
-		if deadline == 0 {
-			deadline = timeutil.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
-		}
 
 		if milestone.Created.IsZero() {
 			if milestone.Updated != nil {
