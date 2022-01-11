@@ -29,7 +29,7 @@ func TestGetWebAuthnCredentialByID(t *testing.T) {
 func TestGetWebAuthnCredentialsByUID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	res, err := GetWebAuthnCredentialsByUID(1)
+	res, err := GetWebAuthnCredentialsByUID(32)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
 	assert.Equal(t, "WebAuthn credential", res[0].Name)
