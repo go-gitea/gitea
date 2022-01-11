@@ -72,6 +72,11 @@ func (cred *WebAuthnCredential) updateSignCount(ctx context.Context) error {
 	return err
 }
 
+// BeforeInsert will be invoked by XORM before updating a record
+func (cred *WebAuthnCredential) BeforeInsert() {
+	cred.LowerName = strings.ToLower(cred.Name)
+}
+
 // BeforeUpdate will be invoked by XORM before updating a record
 func (cred *WebAuthnCredential) BeforeUpdate() {
 	cred.LowerName = strings.ToLower(cred.Name)
