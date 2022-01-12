@@ -85,14 +85,13 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := parseTagData(data)
+	tag, err := parseTagData(repo, data)
 	if err != nil {
 		return nil, err
 	}
 
 	tag.Name = name
 	tag.ID = tagID
-	tag.repo = repo
 	tag.Type = tp
 
 	repo.tagCache.Set(tagID.String(), tag)

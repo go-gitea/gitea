@@ -30,7 +30,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tag, err := parseTagData(data)
+		tag, err := parseTagData(repo, data)
 		if err != nil {
 			return nil, err
 		}

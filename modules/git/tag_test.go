@@ -52,7 +52,7 @@ ono`), tag: Tag{
 	}
 
 	for _, test := range testData {
-		tag, err := parseTagData(test.data)
+		tag, err := parseTagData(nil, test.data)
 		assert.NoError(t, err)
 		assert.EqualValues(t, test.tag.ID, tag.ID)
 		assert.EqualValues(t, test.tag.Object, tag.Object)

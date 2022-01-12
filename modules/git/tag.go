@@ -33,8 +33,9 @@ func (tag *Tag) Commit() (*Commit, error) {
 // Parse commit information from the (uncompressed) raw
 // data from the commit object.
 // \n\n separate headers from message
-func parseTagData(data []byte) (*Tag, error) {
+func parseTagData(repo *Repository, data []byte) (*Tag, error) {
 	tag := new(Tag)
+	tag.repo = repo
 	tag.Tagger = &Signature{}
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0
