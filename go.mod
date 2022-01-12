@@ -142,3 +142,5 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 
 replace github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.20220109111530-754359885dce
+
+replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0

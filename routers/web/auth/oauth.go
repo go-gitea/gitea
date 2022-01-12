@@ -106,6 +106,16 @@ func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+// errCallback represents a oauth2 callback error
+type errCallback struct {
+	Code        string
+	Description string
+}
+
+func (err errCallback) Error() string {
+	return err.Description
+}
+
 // TokenType specifies the kind of token
 type TokenType string
 
@@ -810,13 +820,25 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
-
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
 			uplerr := err.(*user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			return
+		}
+		if callbackErr, ok := err.(errCallback); ok {
+			log.Info("Failed OAuth callback: (%v) %v", callbackErr.Code, callbackErr.Description)
+			switch callbackErr.Code {
+			case "access_denied":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.access_denied"))
+			case "temporarily_unavailable":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
+			default:
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+			}
+			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
 		ctx.ServerError("UserSignIn", err)
@@ -1064,6 +1086,18 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+		}
+		// goth does not provide the original error message
+		// https://github.com/markbates/goth/issues/348
+		if strings.Contains(err.Error(), "server response missing access_token") || strings.Contains(err.Error(), "could not find a matching session for this request") {
+			errorCode := request.FormValue("error")
+			errorDescription := request.FormValue("error_description")
+			if errorCode != "" || errorDescription != "" {
+				return nil, goth.User{}, errCallback{
+					Code:        errorCode,
+					Description: errorDescription,
+				}
+			}
 		}
 		return nil, goth.User{}, err
 	}

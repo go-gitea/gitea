@@ -1,0 +1,19 @@
+{{if .EscapeStatus}}
+	{{if .EscapeStatus.BadBIDI}}
+		<div class="ui error message unicode-escape-prompt">
+			<span class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</span>
+			<div class="header">
+				{{$.root.i18n.Tr "repo.bidi_bad_header"}}
+			</div>
+			<p>{{$.root.i18n.Tr "repo.bidi_bad_description" | Str2html}}</p>
+		</div>
+	{{else if .EscapeStatus.Escaped}}
+		<div class="ui warning message unicode-escape-prompt">
+			<span class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</span>
+			<div class="header">
+				{{$.root.i18n.Tr "repo.unicode_header"}}
+			</div>
+			<p>{{$.root.i18n.Tr "repo.unicode_description" | Str2html}}</p>
+		</div>
+	{{end}}
+{{end}}

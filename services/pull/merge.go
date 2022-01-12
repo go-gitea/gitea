@@ -437,7 +437,7 @@ func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_mod
 
 	var pushCmd *git.Command
 	if mergeStyle == repo_model.MergeStyleRebaseUpdate {
-		// force push the rebase result to head brach
+		// force push the rebase result to head branch
 		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":"+git.BranchPrefix+pr.HeadBranch)
 	} else {
 		pushCmd = git.NewCommand("push", "origin", baseBranch+":"+git.BranchPrefix+pr.BaseBranch)

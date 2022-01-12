@@ -108,7 +108,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix unwanted team review request deletion (#17257) (#17264)
   * Fix broken Activities link in team dashboard (#17255) (#17258)
   * API pull's head/base have correct permission(#17214) (#17245)
-  * Fix stange behavior of DownloadPullDiffOrPatch in incorect index (#17223) (#17227)
+  * Fix strange behavior of DownloadPullDiffOrPatch in incorrect index (#17223) (#17227)
   * Upgrade xorm to v1.2.5 (#17177) (#17188)
   * Fix missing repo link in issue/pull assigned emails (#17183) (#17184)
   * Fix bug of get context user (#17169) (#17172)

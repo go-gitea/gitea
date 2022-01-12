@@ -46,6 +46,7 @@ export default {
       resolve(__dirname, 'web_src/js/jquery.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
       resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),

@@ -84,7 +84,7 @@ Origin: An image is splitted into 9 areas
 
 Area 1/3/9/7 use a 90-degree rotating pattern.
 Area 1/3/9/7 use another 90-degree rotating pattern.
-Area 5 uses a random patter.
+Area 5 uses a random pattern.
 
 The Patched Fix: make the image left-right mirrored to get rid of something like "swastika"
 */

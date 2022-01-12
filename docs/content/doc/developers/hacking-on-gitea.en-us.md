@@ -169,12 +169,6 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should run revive, vet and spell-check on the code with:
-
-```bash
-make revive vet misspell-check
-```
-
 ### Working on JS and CSS
 
 Frontend development should follow [Guidelines for Frontend Development](./guidelines-frontend.md)
