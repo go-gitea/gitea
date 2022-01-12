@@ -112,14 +112,16 @@ func WebauthnDelete(ctx *context.Context) {
 	reg, err := auth.GetWebAuthnCredentialByID(form.ID)
 	if err != nil {
 		if auth.IsErrWebAuthnCredentialNotExist(err) {
-			ctx.Status(200)
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": setting.AppSubURL + "/user/settings/security",
+			})
 			return
 		}
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}
 	if reg.UserID != ctx.User.ID {
-		ctx.Status(401)
+		ctx.Status(http.StatusUnauthorized)
 		return
 	}
 	if err := auth.DeleteCredential(reg); err != nil {
