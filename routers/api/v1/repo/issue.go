@@ -944,7 +944,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -1094,7 +1094,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -1231,7 +1231,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	issue, err := models.GetIssueWithAttrsByIndex(repo.ID, form.Index)
+	issue, err := models.GetIssueByIndex(repo.ID, form.Index)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -1260,7 +1260,7 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
