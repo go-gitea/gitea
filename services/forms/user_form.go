@@ -411,12 +411,7 @@ func (f *TwoFactorScratchAuthForm) Validate(req *http.Request, errs binding.Erro
 
 // WebauthnRegistrationForm for reserving an WebAuthn name
 type WebauthnRegistrationForm struct {
-	Name                  string `binding:"Required"`
-	AttType               string // attType
-	AuthType              string // authType
-	UserVer               string // userVerification
-	ResKey                string // residentKeyRequirement
-	TxAuthSimpleExtension string // txAuthSimple Extension
+	Name string `binding:"Required"`
 }
 
 // Validate validates the fields

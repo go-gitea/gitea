@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/externalaccount"
 
-	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 )
 
@@ -67,15 +66,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	userVerification := ctx.FormString("user_ver")
-	txAuthSimpleExtension := ctx.FormString("tx_auth_simple_extension")
-	testExtension := protocol.AuthenticationExtensions(map[string]interface{}{"txAuthSimple": txAuthSimpleExtension})
-
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin(
-		(*wa.User)(user),
-		webauthn.WithUserVerification(protocol.UserVerificationRequirement(userVerification)),
-		webauthn.WithAssertionExtensions(testExtension),
-	)
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return

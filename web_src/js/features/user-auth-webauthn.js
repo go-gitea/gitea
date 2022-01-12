@@ -1,12 +1,5 @@
 const {appSubUrl, csrfToken} = window.config;
 
-const default_webauthn_cfg = {
-  att_type: 'none',
-  auth_type: 'platform',
-  user_ver: 'discouraged',
-  res_key: 'true',
-  tx_auth_simple_extension: 'false',
-};
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
@@ -17,7 +10,7 @@ export function initUserAuthWebAuthn() {
     return;
   }
 
-  $.getJSON(`${appSubUrl}/user/webauthn/assertion`, default_webauthn_cfg)
+  $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
     .done((makeAssertionOptions) => {
       makeAssertionOptions.publicKey.challenge = bufferDecode(makeAssertionOptions.publicKey.challenge);
       for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
@@ -215,7 +208,6 @@ function webAuthnRegisterRequest() {
   $.post(`${appSubUrl}/user/settings/security/webauthn/request_register`, {
     _csrf: csrfToken,
     name: $('#nickname').val(),
-    default_webauthn_cfg
   }).done((makeCredentialOptions) => {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');

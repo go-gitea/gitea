@@ -7,7 +7,6 @@ package security
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
@@ -29,10 +28,6 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	if form.UserVer == "" {
-		form.UserVer = "preferred"
-	}
-
 	cred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
@@ -49,25 +44,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	var residentKeyRequirement *bool
-	if strings.EqualFold(form.ResKey, "true") {
-		residentKeyRequirement = protocol.ResidentKeyRequired()
-	} else {
-		residentKeyRequirement = protocol.ResidentKeyUnrequired()
-	}
-
-	testEx := protocol.AuthenticationExtensions(map[string]interface{}{"txAuthSimple": form.TxAuthSimpleExtension})
-
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.User),
-		webauthn.WithAuthenticatorSelection(
-			protocol.AuthenticatorSelection{
-				AuthenticatorAttachment: protocol.AuthenticatorAttachment(form.AuthType),
-				RequireResidentKey:      residentKeyRequirement,
-				UserVerification:        protocol.UserVerificationRequirement(form.UserVer),
-			}),
-		webauthn.WithConveyancePreference(protocol.ConveyancePreference(form.AttType)),
-		webauthn.WithExtensions(testEx),
-	)
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.User))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
 		return

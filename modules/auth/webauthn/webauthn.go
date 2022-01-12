@@ -31,6 +31,9 @@ func Init() {
 			RPDisplayName: setting.AppName,
 			RPID:          setting.Domain,
 			RPOrigin:      protocol.FullyQualifiedOrigin(appURL),
+			AuthenticatorSelection: protocol.AuthenticatorSelection{
+				UserVerification: "discouraged",
+			},
 		},
 	}
 }
