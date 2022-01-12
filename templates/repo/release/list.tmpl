@@ -99,7 +99,7 @@
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
 								</span>
 								{{ end }}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}...{{.Target}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}{{if .Target}}...{{.Target}}{{end}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
 							</p>
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
