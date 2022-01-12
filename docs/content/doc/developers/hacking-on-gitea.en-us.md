@@ -36,7 +36,7 @@ executable path you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required.
 Gitea uses `gofmt` to format source code. However, the results of 
-`gofmt` can differ by the version of `go`. Therefor it is
+`gofmt` can differ by the version of `go`. Therefore it is
 recommended to install the version of Go that our continuous integration is
 running. As of last update, the Go version should be {{< go-version >}}.
 
