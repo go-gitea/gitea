@@ -1292,6 +1292,10 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		}
 
 		err = models.CreateIssueDependency(ctx.User, issue, dep)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+			return
+		}
 	} else {
 		perm, err := models.GetUserRepoPermission(repo, ctx.User)
 		if err != nil {
@@ -1311,10 +1315,10 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		}
 
 		err = models.CreateIssueDependency(ctx.User, dep, issue)
-	}
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
-		return
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(dep))
