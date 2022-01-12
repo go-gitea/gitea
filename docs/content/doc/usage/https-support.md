@@ -40,6 +40,8 @@ KEY_FILE  = key.pem
 Note that if your certificate is signed by a third party certificate authority (i.e. not self-signed), then cert.pem should contain the certificate chain. The server certificate must be the first entry in cert.pem, followed by the intermediaries in order (if any). The root certificate does not have to be included because the connecting client must already have it in order to estalbish the trust relationship.
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server-server).
 
+For the `CERT_FILE` or `KEY_FILE` field, the file path is relative to the `GITEA_CUSTOM` environment variable when it is a relative path. It can be an absolute path as well.
+
 ### Setting up HTTP redirection
 
 The Gitea server is only able to listen to one port; to redirect HTTP requests to the HTTPS port, you will need to enable the HTTP redirection service:
