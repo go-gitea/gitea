@@ -149,7 +149,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	accessToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Type:    oauth2.TypeAccessToken,
-		StandardClaims: jwt.StandardClaims{
+		// FIXME: Migrate to RegisteredClaims
+		StandardClaims: jwt.StandardClaims{ //nolint
 			ExpiresAt: expirationDate.AsTime().Unix(),
 		},
 	}
@@ -167,7 +168,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		StandardClaims: jwt.StandardClaims{
+		// FIXME: Migrate to RegisteredClaims
+		StandardClaims: jwt.StandardClaims{ // nolint
 			ExpiresAt: refreshExpirationDate,
 		},
 	}
@@ -205,7 +207,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		}
 
 		idToken := &oauth2.OIDCToken{
-			StandardClaims: jwt.StandardClaims{
+			// FIXME: migrate to RegisteredClaims
+			StandardClaims: jwt.StandardClaims{ //nolint
 				ExpiresAt: expirationDate.AsTime().Unix(),
 				Issuer:    setting.AppURL,
 				Audience:  app.ClientID,
@@ -326,7 +329,8 @@ func IntrospectOAuth(ctx *context.Context) {
 	var response struct {
 		Active bool   `json:"active"`
 		Scope  string `json:"scope,omitempty"`
-		jwt.StandardClaims
+		// FIXME: Migrate to RegisteredClaims
+		jwt.StandardClaims //nolint
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)

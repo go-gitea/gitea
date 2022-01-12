@@ -37,6 +37,7 @@ type Token struct {
 	GrantID int64     `json:"gnt"`
 	Type    TokenType `json:"tt"`
 	Counter int64     `json:"cnt,omitempty"`
+	// FIXME: Migrate to registered claims
 	jwt.StandardClaims
 }
 
@@ -69,6 +70,7 @@ func (token *Token) SignToken(signingKey JWTSigningKey) (string, error) {
 
 // OIDCToken represents an OpenID Connect id_token
 type OIDCToken struct {
+	// FIXME: Migrate to RegisteredClaims
 	jwt.StandardClaims
 	Nonce string `json:"nonce,omitempty"`
 
