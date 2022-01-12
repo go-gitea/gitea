@@ -977,6 +977,22 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		if i < skip || i >= max {
 			continue
 		}
+
+		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return
+		}
+		if depMeta.Issue.IsPull {
+			if !perm.CanRead(unit.TypePullRequests) {
+				continue
+			}
+		} else {
+			if !perm.CanRead(unit.TypeIssues) {
+				continue
+			}
+		}
+
 		depMeta.Issue.Repo = &depMeta.Repository
 		issues = append(issues, &depMeta.Issue)
 	}
@@ -1127,6 +1143,22 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		if i < skip || i >= max {
 			continue
 		}
+
+		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return
+		}
+		if depMeta.Issue.IsPull {
+			if !perm.CanRead(unit.TypePullRequests) {
+				continue
+			}
+		} else {
+			if !perm.CanRead(unit.TypeIssues) {
+				continue
+			}
+		}
+
 		depMeta.Issue.Repo = &depMeta.Repository
 		issues = append(issues, &depMeta.Issue)
 	}
@@ -1210,7 +1242,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	dep, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	dep, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
@@ -1242,8 +1274,42 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	}
 
 	if t == models.DependencyTypeBlockedBy {
+		perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return
+		}
+		if issue.IsPull {
+			if !perm.CanRead(unit.TypePullRequests) {
+				ctx.NotFound()
+				return
+			}
+		} else {
+			if !perm.CanRead(unit.TypeIssues) {
+				ctx.NotFound()
+				return
+			}
+		}
+
 		err = models.CreateIssueDependency(ctx.User, issue, dep)
 	} else {
+		perm, err := models.GetUserRepoPermission(repo, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			return
+		}
+		if issue.IsPull {
+			if !perm.CanRead(unit.TypePullRequests) {
+				ctx.NotFound()
+				return
+			}
+		} else {
+			if !perm.CanRead(unit.TypeIssues) {
+				ctx.NotFound()
+				return
+			}
+		}
+
 		err = models.CreateIssueDependency(ctx.User, dep, issue)
 	}
 	if err != nil {
@@ -1289,6 +1355,23 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
+	}
+
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+	if issue.IsPull {
+		if !perm.CanRead(unit.TypePullRequests) {
+			ctx.NotFound("IsErrRepoNotExist", err)
+			return
+		}
+	} else {
+		if !perm.CanRead(unit.TypeIssues) {
+			ctx.NotFound("IsErrRepoNotExist", err)
+			return
+		}
 	}
 
 	err = models.RemoveIssueDependency(ctx.User, issue, dep, t)
