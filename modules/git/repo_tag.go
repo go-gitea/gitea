@@ -72,7 +72,6 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 			Type:    tp,
 			Tagger:  commit.Committer,
 			Message: commit.Message(),
-			repo:    repo,
 		}
 
 		repo.tagCache.Set(tagID.String(), tag)
@@ -85,7 +84,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 		return nil, err
 	}
 
-	tag, err := parseTagData(repo, data)
+	tag, err := parseTagData(data)
 	if err != nil {
 		return nil, err
 	}

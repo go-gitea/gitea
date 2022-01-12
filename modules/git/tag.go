@@ -17,7 +17,6 @@ const endpgp = "\n-----END PGP SIGNATURE-----"
 type Tag struct {
 	Name      string
 	ID        SHA1
-	repo      *Repository
 	Object    SHA1 // The id of this commit object
 	Type      string
 	Tagger    *Signature
@@ -26,16 +25,15 @@ type Tag struct {
 }
 
 // Commit return the commit of the tag reference
-func (tag *Tag) Commit() (*Commit, error) {
-	return tag.repo.getCommit(tag.Object)
+func (tag *Tag) Commit(gitRepo *Repository) (*Commit, error) {
+	return gitRepo.getCommit(tag.Object)
 }
 
 // Parse commit information from the (uncompressed) raw
 // data from the commit object.
 // \n\n separate headers from message
-func parseTagData(repo *Repository, data []byte) (*Tag, error) {
+func parseTagData(data []byte) (*Tag, error) {
 	tag := new(Tag)
-	tag.repo = repo
 	tag.Tagger = &Signature{}
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0

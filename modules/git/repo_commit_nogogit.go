@@ -99,12 +99,12 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 		if err != nil {
 			return nil, err
 		}
-		tag, err := parseTagData(repo, data)
+		tag, err := parseTagData(data)
 		if err != nil {
 			return nil, err
 		}
 
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(repo)
 		if err != nil {
 			return nil, err
 		}

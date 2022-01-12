@@ -294,7 +294,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err != nil {
 			return fmt.Errorf("GetTag: %v", err)
 		}
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(gitRepo)
 		if err != nil {
 			return fmt.Errorf("Commit: %v", err)
 		}
