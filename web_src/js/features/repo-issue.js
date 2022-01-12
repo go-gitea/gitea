@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
-import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
@@ -439,16 +439,17 @@ export function initRepoPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('hide');
   });
 
-  $(document).on('click', 'button.comment-form-reply', function (e) {
+  $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
+
     $(this).hide();
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
     let easyMDE = getAttachedEasyMDE($textarea);
     if (!easyMDE) {
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      easyMDE = createCommentEasyMDE($textarea);
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      easyMDE = await createCommentEasyMDE($textarea);
     }
     $textarea.focus();
     easyMDE.codemirror.focus();
@@ -457,8 +458,10 @@ export function initRepoPullRequestReview() {
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentEasyMDE($reviewBox.find('textarea'));
-    initCompImagePaste($reviewBox);
+    (async () => {
+      await createCommentEasyMDE($reviewBox.find('textarea'));
+      initCompImagePaste($reviewBox);
+    })();
   }
 
   // The following part is only for diff views
@@ -515,8 +518,8 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const easyMDE = createCommentEasyMDE($textarea);
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const easyMDE = await createCommentEasyMDE($textarea);
       $textarea.focus();
       easyMDE.codemirror.focus();
     }

@@ -10,9 +10,9 @@
 </p>
 
 
-Caddy's automagic TLS features&mdash;now for your own Go programs&mdash;in one powerful and easy-to-use library!
+Caddy's [automagic TLS features](https://caddyserver.com/docs/automatic-https)&mdash;now for your own Go programs&mdash;in one powerful and easy-to-use library!
 
-CertMagic is the most mature, robust, and capable ACME client integration for Go... and perhaps ever.
+CertMagic is the most mature, robust, and powerful ACME client integration for Go... and perhaps ever.
 
 With CertMagic, you can add one line to your Go application to serve securely over TLS, without ever having to touch certificates.
 
@@ -39,11 +39,6 @@ Compared to other ACME client libraries for Go, only CertMagic supports the full
 
 CertMagic - Automatic HTTPS using Let's Encrypt
 ===============================================
-
-**Sponsored by Relica - Cross-platform local and cloud file backup:**
-
-<a href="https://relicabackup.com"><img src="https://caddyserver.com/resources/images/sponsors/relica.png" width="220" alt="Relica - Cross-platform file backup to the cloud, local disks, or other computers"></a>
-
 
 ## Menu
 
@@ -116,6 +111,7 @@ CertMagic - Automatic HTTPS using Let's Encrypt
 
 ## Requirements
 
+0. ACME server (can be a publicly-trusted CA, or your own)
 1. Public DNS name(s) you control
 2. Server reachable from public Internet
 	- Or use the DNS challenge to waive this requirement
@@ -270,7 +266,7 @@ myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
 magic.Issuer = myACME
 
 // this obtains certificates or renews them if necessary
-err := magic.ManageSync([]string{"example.com", "sub.example.com"})
+err := magic.ManageSync(context.TODO(), []string{"example.com", "sub.example.com"})
 if err != nil {
 	return err
 }
@@ -278,6 +274,10 @@ if err != nil {
 // to use its certificates and solve the TLS-ALPN challenge,
 // you can get a TLS config to use in a TLS listener!
 tlsConfig := magic.TLSConfig()
+
+// be sure to customize NextProtos if serving a specific
+// application protocol after the TLS handshake, for example:
+tlsConfig.NextProtos = append([]string{"h2", "http/1.1"}, tlsConfig.NextProtos...)
 
 //// OR ////
 

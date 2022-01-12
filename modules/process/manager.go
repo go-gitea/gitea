@@ -79,7 +79,7 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 }
 
 // AddContextTimeout creates a new context and add it as a process. Once the process is finished, finished must be called
-// to remove the process from the process table. It should not be called until the process is finsihed but must always be called.
+// to remove the process from the process table. It should not be called until the process is finished but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
 // finished will cancel the returned context and remove it from the process table.

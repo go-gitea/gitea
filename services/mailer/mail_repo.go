@@ -71,7 +71,6 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {

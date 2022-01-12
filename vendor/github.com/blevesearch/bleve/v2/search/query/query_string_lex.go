@@ -248,8 +248,8 @@ func inTildeState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
 }
 
 func inNumOrStrState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
-	// only a non-escaped space ends the tilde (or eof)
-	if eof || (!l.inEscape && next == ' ') {
+	// end on non-escaped space, colon, tilde, boost (or eof)
+	if eof || (!l.inEscape && (next == ' ' || next == ':' || next == '^' || next == '~')) {
 		// end number
 		l.nextTokenType = tNUMBER
 		l.nextToken = &yySymType{
@@ -257,7 +257,13 @@ func inNumOrStrState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
 		}
 		logDebugTokens("NUMBER - '%s'", l.nextToken.s)
 		l.reset()
-		return startState, true
+
+		consumed := true
+		if !eof && (next == ':' || next == '^' || next == '~') {
+			consumed = false
+		}
+
+		return startState, consumed
 	} else if !l.inEscape && next == '\\' {
 		l.inEscape = true
 		return inNumOrStrState, true
@@ -287,7 +293,7 @@ func inNumOrStrState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
 }
 
 func inStrState(l *queryStringLex, next rune, eof bool) (lexState, bool) {
-	// end on non-escped space, colon, tilde, boost (or eof)
+	// end on non-escaped space, colon, tilde, boost (or eof)
 	if eof || (!l.inEscape && (next == ' ' || next == ':' || next == '^' || next == '~')) {
 		// end string
 		l.nextTokenType = tSTRING

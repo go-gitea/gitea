@@ -252,7 +252,7 @@ func Init() error {
 			}
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v faild: %v", datum, err)
+				log.Error("Archive %v failed: %v", datum, err)
 			}
 		}
 	}

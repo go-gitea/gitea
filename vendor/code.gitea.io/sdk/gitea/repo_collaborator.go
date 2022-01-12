@@ -1,3 +1,4 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Copyright 2016 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -106,4 +107,30 @@ func (c *Client) DeleteCollaborator(user, repo, collaborator string) (*Response,
 	_, resp, err := c.getResponse("DELETE",
 		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
 	return resp, err
+}
+
+// GetReviewers return all users that can be requested to review in this repo
+func (c *Client) GetReviewers(user, repo string) ([]*User, *Response, error) {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_15_0); err != nil {
+		return nil, nil, err
+	}
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
+	reviewers := make([]*User, 0, 5)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/reviewers", user, repo), nil, nil, &reviewers)
+	return reviewers, resp, err
+}
+
+// GetAssignees return all users that have write access and can be assigned to issues
+func (c *Client) GetAssignees(user, repo string) ([]*User, *Response, error) {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_15_0); err != nil {
+		return nil, nil, err
+	}
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
+	assignees := make([]*User, 0, 5)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/assignees", user, repo), nil, nil, &assignees)
+	return assignees, resp, err
 }

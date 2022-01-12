@@ -152,7 +152,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 	if err = db.SyncAllTables(); err != nil {
 		return err
 	}
-	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
+	switch os.Getenv("GITEA_UNIT_TESTS_LOG_SQL") {
 	case "true", "1":
 		x.ShowSQL(true)
 	}

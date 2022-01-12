@@ -32,6 +32,7 @@ import (
 	"github.com/libdns/libdns"
 	"github.com/mholt/acmez"
 	"github.com/mholt/acmez/acme"
+	"github.com/miekg/dns"
 )
 
 // httpSolver solves the HTTP challenge. It must be
@@ -131,10 +132,12 @@ func (s *tlsALPNSolver) Present(ctx context.Context, chal acme.Challenge) error 
 	if err != nil {
 		return err
 	}
+
+	key := challengeKey(chal)
 	activeChallengesMu.Lock()
-	chalData := activeChallenges[chal.Identifier.Value]
+	chalData := activeChallenges[key]
 	chalData.data = cert
-	activeChallenges[chal.Identifier.Value] = chalData
+	activeChallenges[key] = chalData
 	activeChallengesMu.Unlock()
 
 	// the rest of this function increments the
@@ -215,10 +218,6 @@ func (*tlsALPNSolver) handleConn(conn net.Conn) {
 // CleanUp removes the challenge certificate from the cache, and if
 // it is the last one to finish, stops the TLS server.
 func (s *tlsALPNSolver) CleanUp(ctx context.Context, chal acme.Challenge) error {
-	s.config.certCache.mu.Lock()
-	delete(s.config.certCache.cache, tlsALPNCertKeyName(chal.Identifier.Value))
-	s.config.certCache.mu.Unlock()
-
 	solversMu.Lock()
 	defer solversMu.Unlock()
 	si := getSolverInfo(s.address)
@@ -234,14 +233,6 @@ func (s *tlsALPNSolver) CleanUp(ctx context.Context, chal acme.Challenge) error 
 	}
 
 	return nil
-}
-
-// tlsALPNCertKeyName returns the key to use when caching a cert
-// for use with the TLS-ALPN ACME challenge. It is simply to help
-// avoid conflicts (although at time of writing, there shouldn't
-// be, since the cert cache is keyed by hash of certificate chain).
-func tlsALPNCertKeyName(sniName string) string {
-	return sniName + ":acme-tls-alpn"
 }
 
 // DNS01Solver is a type that makes libdns providers usable
@@ -478,7 +469,7 @@ func (dhs distributedSolver) Present(ctx context.Context, chal acme.Challenge) e
 		return err
 	}
 
-	err = dhs.storage.Store(dhs.challengeTokensKey(chal.Identifier.Value), infoBytes)
+	err = dhs.storage.Store(dhs.challengeTokensKey(challengeKey(chal)), infoBytes)
 	if err != nil {
 		return err
 	}
@@ -501,7 +492,7 @@ func (dhs distributedSolver) Wait(ctx context.Context, challenge acme.Challenge)
 // CleanUp invokes the underlying solver's CleanUp method
 // and also cleans up any assets saved to storage.
 func (dhs distributedSolver) CleanUp(ctx context.Context, chal acme.Challenge) error {
-	err := dhs.storage.Delete(dhs.challengeTokensKey(chal.Identifier.Value))
+	err := dhs.storage.Delete(dhs.challengeTokensKey(challengeKey(chal)))
 	if err != nil {
 		return err
 	}
@@ -648,6 +639,18 @@ type Challenge struct {
 	data interface{}
 }
 
+// challengeKey returns the map key for a given challenge; it is the identifier
+// unless it is an IP address using the TLS-ALPN challenge.
+func challengeKey(chal acme.Challenge) string {
+	if chal.Type == acme.ChallengeTypeTLSALPN01 && chal.Identifier.Type == "ip" {
+		reversed, err := dns.ReverseAddr(chal.Identifier.Value)
+		if err == nil {
+			return reversed[:len(reversed)-1] // strip off '.'
+		}
+	}
+	return chal.Identifier.Value
+}
+
 // solverWrapper should be used to wrap all challenge solvers so that
 // we can add the challenge info to memory; this makes challenges globally
 // solvable by a single HTTP or TLS server even if multiple servers with
@@ -656,7 +659,7 @@ type solverWrapper struct{ acmez.Solver }
 
 func (sw solverWrapper) Present(ctx context.Context, chal acme.Challenge) error {
 	activeChallengesMu.Lock()
-	activeChallenges[chal.Identifier.Value] = Challenge{Challenge: chal}
+	activeChallenges[challengeKey(chal)] = Challenge{Challenge: chal}
 	activeChallengesMu.Unlock()
 	return sw.Solver.Present(ctx, chal)
 }
@@ -670,7 +673,7 @@ func (sw solverWrapper) Wait(ctx context.Context, chal acme.Challenge) error {
 
 func (sw solverWrapper) CleanUp(ctx context.Context, chal acme.Challenge) error {
 	activeChallengesMu.Lock()
-	delete(activeChallenges, chal.Identifier.Value)
+	delete(activeChallenges, challengeKey(chal))
 	activeChallengesMu.Unlock()
 	return sw.Solver.CleanUp(ctx, chal)
 }
