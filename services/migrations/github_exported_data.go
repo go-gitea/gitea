@@ -256,6 +256,8 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 		repoName:           repoName,
 		users:              make(map[string]githubUser),
 		milestones:         make(map[string]githubMilestone),
+		issueAttachments:   make(map[string][]githubAttachment),
+		commentAttachments: make(map[string][]githubAttachment),
 	}
 	if err := restorer.readSchema(); err != nil {
 		return nil, err
