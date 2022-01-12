@@ -45,24 +45,24 @@ func WebAuthn(ctx *context.Context) {
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
 func WebAuthnLoginAssertion(ctx *context.Context) {
 	// Ensure user is in a WebAuthn session.
-	idSess := ctx.Session.Get("twofaUid")
-	if idSess == nil {
+	idSess, ok := ctx.Session.Get("twofaUid").(int64)
+	if !ok || idSess == 0 {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
 	}
 
-	user, err := user_model.GetUserByID(idSess.(int64))
+	user, err := user_model.GetUserByID(idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	creds, err := auth.WebAuthnCredentials(user.ID)
+	exists, err := auth.ExistsWebAuthnCredentialsForUID(user.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
-	if len(creds) == 0 {
+	if !exists {
 		ctx.ServerError("UserSignIn", errors.New("no device registered"))
 		return
 	}
@@ -90,45 +90,46 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 
 // WebAuthnLoginAssertionPost validates the signature and logs the user in
 func WebAuthnLoginAssertionPost(ctx *context.Context) {
-	idSess := ctx.Session.Get("twofaUid")
-	sessionData := ctx.Session.Get("webauthnAssertion")
-	if sessionData == nil || idSess == nil {
+	idSess, ok := ctx.Session.Get("twofaUid").(int64)
+	sessionData, okData := ctx.Session.Get("webauthnAssertion").(*webauthn.SessionData)
+	if !ok || !okData || sessionData == nil || idSess == 0 {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
 	}
 	defer func() {
 		_ = ctx.Session.Delete("webauthnAssertion")
 	}()
-	user, err := user_model.GetUserByID(idSess.(int64))
+
+	// Load the user from the db
+	user, err := user_model.GetUserByID(idSess)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	log.Trace("Finishing webauthn authentication with user: %s\n", user.Name)
+	log.Trace("Finishing webauthn authentication with user: %s", user.Name)
 
-	// With the session data retrieved, we need to call webauthn.FinishLogin to
-	// verify the signed challenge. This returns the webauthn.Credential that
-	// was used to authenticate.
-	cred, err := wa.WebAuthn.FinishLogin((*wa.User)(user), *sessionData.(*webauthn.SessionData), ctx.Req)
+	// Now we call webauthn.FinishLogin using a combination of our session data
+	// (from webauthnAssertion) and verify the provided request.
+	//
+	// FinishLogin will then return the webauthn.Credential that was used to authenticate.
+	cred, err := wa.WebAuthn.FinishLogin((*wa.User)(user), *sessionData, ctx.Req)
 	if err != nil {
-		ctx.ServerError("FinishLogin", err)
-		return
-	}
-
-	// At this point, we've confirmed the correct authenticator has been
-	// provided and it passed the challenge we gave it. We now need to make
-	// sure that the sign counter is higher than what we have stored to help
-	// give assurance that this credential wasn't cloned.
-	if cred.Authenticator.CloneWarning {
-		log.Error("credential appears to be cloned: %s", err)
+		// Failed authentication attempt.
+		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
-	// We're logged in! All that's left is to update the sign count with the
-	// new value we received. We could join the tables on the CredentialID
-	// field, but for our purposes we'll just get the stored credential and
-	// use that to find the authenticator we need to update.
+
+	// Ensure that the credential wasn't cloned by checking if CloneWarning is set.
+	// (This is set if the sign counter is less than the one we have stored.)
+	if cred.Authenticator.CloneWarning {
+		log.Info("Failed authentication attempt for %s from %s: cloned credential", user.Name, ctx.RemoteAddr())
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	// Success! Get the credential and update the sign count with the new value we received.
 	dbCred, err := auth.GetWebAuthnCredentialByCredID(base64.RawStdEncoding.EncodeToString(cred.ID))
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
@@ -141,6 +142,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		return
 	}
 
+	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
 		if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)

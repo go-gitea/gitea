@@ -7,6 +7,7 @@ package migrations
 import (
 	"crypto/elliptic"
 	"encoding/base64"
+	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -15,10 +16,13 @@ import (
 )
 
 func addWebAuthnCred(x *xorm.Engine) error {
+
+	// Create webauthnCredential table
 	type webauthnCredential struct {
-		ID              int64 `xorm:"pk autoincr"`
-		Name            string
-		UserID          int64  `xorm:"INDEX"`
+		ID              int64  `xorm:"pk autoincr"`
+		Name            string `xorm:"unique(s)"`
+		LowerName       string
+		UserID          int64  `xorm:"INDEX unique(s)"`
 		CredentialID    string `xorm:"INDEX"`
 		PublicKey       []byte
 		AttestationType string
@@ -31,10 +35,8 @@ func addWebAuthnCred(x *xorm.Engine) error {
 	if err := x.Sync2(&webauthnCredential{}); err != nil {
 		return err
 	}
-	return migrateU2FToWebAuthn(x)
-}
 
-func migrateU2FToWebAuthn(x *xorm.Engine) error {
+	// Now migrate the old u2f registrations to the new format
 	type u2fRegistration struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Name        string
@@ -43,20 +45,6 @@ func migrateU2FToWebAuthn(x *xorm.Engine) error {
 		Counter     uint32             `xorm:"BIGINT"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	type webauthnCredential struct {
-		ID              int64 `xorm:"pk autoincr"`
-		Name            string
-		UserID          int64  `xorm:"INDEX"`
-		CredentialID    string `xorm:"INDEX"`
-		PublicKey       []byte
-		AttestationType string
-		AAGUID          []byte
-		SignCount       uint32 `xorm:"BIGINT"`
-		CloneWarning    bool
-		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	var start int
@@ -77,6 +65,7 @@ func migrateU2FToWebAuthn(x *xorm.Engine) error {
 			c := &webauthnCredential{
 				ID:           reg.ID,
 				Name:         reg.Name,
+				LowerName:    strings.ToLower(reg.Name),
 				UserID:       reg.UserID,
 				CredentialID: base64.RawURLEncoding.EncodeToString(parsed.KeyHandle),
 				PublicKey:    elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),

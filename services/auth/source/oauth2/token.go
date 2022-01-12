@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // ___________     __

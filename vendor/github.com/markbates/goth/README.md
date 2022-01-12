@@ -70,10 +70,12 @@ $ go get github.com/markbates/goth
 * Uber
 * VK
 * Wepay
+* WeCom
 * Xero
 * Yahoo
 * Yammer
 * Yandex
+* Zoom
 
 ## Examples
 

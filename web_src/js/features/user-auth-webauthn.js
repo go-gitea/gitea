@@ -29,8 +29,10 @@ export function initUserAuthWebAuthn() {
         .then((credential) => {
           verifyAssertion(credential);
         }).catch((err) => {
-          webAuthnError(err.message);
+          webAuthnError(0, err.message);
         });
+    }).fail(() => {
+      webAuthnError('unknown');
     });
 }
 
@@ -64,8 +66,12 @@ function verifyAssertion(assertedCredential) {
         window.location.href = '/';
       }
     },
-    error: (ret) => {
-      webAuthnError(ret);
+    error: (xhr) => {
+      if (xhr.statusCode === 500) {
+        webAuthnError('unknown');
+        return;
+      }
+      webAuthnError('unable-to-process');
     }
   });
 }
@@ -145,15 +151,15 @@ function webauthnRegistered(newCredential) {
       window.location.reload();
     },
     fail() {
-      webAuthnError(1);
+      webAuthnError('unknown');
     }
   });
 }
 
-function webAuthnError(errorType) {
+function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
-  if (errorType !== 'browser' && errorType.length > 1) {
-    $(`#webauthn-error [data-webauthn-error-msg=0]`).text(errorType);
+  if (errorType === 0 && message.length > 1) {
+    $(`#webauthn-error [data-webauthn-error-msg=0]`).text(message);
     $(`#webauthn-error [data-webauthn-error-msg=0]`).show();
   } else {
     $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`).show();
@@ -172,7 +178,7 @@ function detectWebAuthnSupport() {
   if (window.location.protocol === 'http:' && (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
     $('#register-button').prop('disabled', true);
     $('#login-button').prop('disabled', true);
-    webAuthnError(2);
+    webAuthnError('insecure');
     return false;
   }
   return true;
@@ -221,10 +227,16 @@ function webAuthnRegisterRequest() {
     }).then(webauthnRegistered)
       .catch((err) => {
         if (err === undefined) {
-          webAuthnError(1);
+          webAuthnError('unknown');
           return;
         }
-        webAuthnError(err);
+        webAuthnError(0, err);
       });
+  }).fail((xhr) => {
+    if (xhr.statusCode === 409) {
+      webAuthnError('duplicated');
+      return;
+    }
+    webAuthnError('unknown');
   });
 }

@@ -455,10 +455,8 @@ github.com/gogs/cron
 # github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 ## explicit
 github.com/gogs/go-gogs-client
-# github.com/golang-jwt/jwt v3.2.2+incompatible
+# github.com/golang-jwt/jwt/v4 v4.2.0
 ## explicit
-github.com/golang-jwt/jwt
-# github.com/golang-jwt/jwt/v4 v4.1.0
 github.com/golang-jwt/jwt/v4
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
@@ -599,7 +597,7 @@ github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
 # github.com/markbates/going v1.0.0
 github.com/markbates/going/defaults
-# github.com/markbates/goth v1.68.0
+# github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.20220109111530-754359885dce
 ## explicit
 github.com/markbates/goth
 github.com/markbates/goth/gothic
@@ -1092,4 +1090,3 @@ xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
-# github.com/golang-jwt/jwt v3.2.1+incompatible => github.com/golang-jwt/jwt v3.2.2+incompatible
