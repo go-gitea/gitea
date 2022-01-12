@@ -193,6 +193,14 @@ func (u Unit) IsLessThan(unit Unit) bool {
 	return u.Idx < unit.Idx
 }
 
+// MaxPerm returns the max perms of this unit
+func (u Unit) MaxPerm() perm.AccessMode {
+	if u.Type == TypeExternalTracker || u.Type == TypeExternalWiki {
+		return perm.AccessModeRead
+	}
+	return perm.AccessModeAdmin
+}
+
 // Enumerate all the units
 var (
 	UnitCode = Unit{

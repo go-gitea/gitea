@@ -534,7 +534,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 		if isAdmin, err := isUserRepoAdmin(db.GetEngine(ctx), repo, doer); err != nil {
 			return fmt.Errorf("isUserRepoAdmin: %v", err)
 		} else if !isAdmin {
-			// Make creator repo admin if it wan't assigned automatically
+			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}

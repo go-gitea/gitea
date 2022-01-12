@@ -69,7 +69,7 @@ type onedevUser struct {
 	Email string `json:"email"`
 }
 
-// OneDevDownloader implements a Downloader interface to get repository informations
+// OneDevDownloader implements a Downloader interface to get repository information
 // from OneDev
 type OneDevDownloader struct {
 	base.NullDownloader

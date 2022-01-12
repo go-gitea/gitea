@@ -64,10 +64,13 @@ export function initRepoCommentForm() {
     });
   }
 
-  createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+  (async () => {
+    await createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+    initCompImagePaste($('.comment.form'));
+  })();
+
   initBranchSelector();
   initCompMarkupContentPreviewTab($('.comment.form'));
-  initCompImagePaste($('.comment.form'));
 
   // List submits
   function initListSubmits(selector, outerSelector) {
