@@ -1017,7 +1017,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//   "404":
 	//     description: the issue does not exist
 
-	createDep(ctx, models.DependencyTypeBlockedBy)
+	createIssueDependency(ctx, models.DependencyTypeBlockedBy)
 }
 
 // RemoveIssueDependency remove an issue dependency
@@ -1051,7 +1051,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Issue"
 
-	removeDep(ctx, models.DependencyTypeBlockedBy)
+	removeIssueDependency(ctx, models.DependencyTypeBlockedBy)
 }
 
 // GetIssueBlocks list issues that are blocked by this issue
@@ -1167,7 +1167,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	//   "404":
 	//     description: the issue does not exist
 
-	createDep(ctx, models.DependencyTypeBlocking)
+	createIssueDependency(ctx, models.DependencyTypeBlocking)
 }
 
 // RemoveIssueBlocking unblock the issue given in the body by the issue in path
@@ -1201,10 +1201,10 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Issue"
 
-	removeDep(ctx, models.DependencyTypeBlocking)
+	removeIssueDependency(ctx, models.DependencyTypeBlocking)
 }
 
-func createDep(ctx *context.APIContext, t models.DependencyType) {
+func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	if !ctx.Repo.Repository.IsDependenciesEnabled() {
 		ctx.NotFound()
 		return
@@ -1254,7 +1254,7 @@ func createDep(ctx *context.APIContext, t models.DependencyType) {
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(dep))
 }
 
-func removeDep(ctx *context.APIContext, t models.DependencyType) {
+func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	if !ctx.Repo.Repository.IsDependenciesEnabled() {
 		ctx.NotFound()
 		return
