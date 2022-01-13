@@ -202,13 +202,13 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 }
 
 // DeleteCredential will delete WebAuthnCredential
-func DeleteCredential(cred *WebAuthnCredential) error {
-	return deleteCredential(db.DefaultContext, cred)
+func DeleteCredential(id, userID int64) (bool, error) {
+	return deleteCredential(db.DefaultContext, id, userID)
 }
 
-func deleteCredential(ctx context.Context, cred *WebAuthnCredential) error {
-	_, err := db.GetEngine(ctx).Delete(cred)
-	return err
+func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
+	had, err := db.GetEngine(ctx).ID(id).Where("user_id = ?", userID).Delete(&WebAuthnCredential{})
+	return had > 0, err
 }
 
 //WebAuthnCredentials implementns the webauthn.User interface

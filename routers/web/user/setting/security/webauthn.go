@@ -109,23 +109,8 @@ func WebauthnRegisterPost(ctx *context.Context) {
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	reg, err := auth.GetWebAuthnCredentialByID(form.ID)
-	if err != nil {
-		if auth.IsErrWebAuthnCredentialNotExist(err) {
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/user/settings/security",
-			})
-			return
-		}
+	if _, err := auth.DeleteCredential(form.ID, ctx.User.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
-		return
-	}
-	if reg.UserID != ctx.User.ID {
-		ctx.Status(http.StatusUnauthorized)
-		return
-	}
-	if err := auth.DeleteCredential(reg); err != nil {
-		ctx.ServerError("DeleteRegistration", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
