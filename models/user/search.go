@@ -107,7 +107,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	}
 
 	// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
-	// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+	// TODO: Add a "is_2fa_enabled" column to the user' setting table.
 	if opts.IsTwoFactorEnabled.IsTrue() {
 		cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
 	} else {
