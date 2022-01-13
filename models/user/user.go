@@ -855,7 +855,7 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 			if _, err := e.Insert(&emailAddress); err != nil {
 				return err
 			}
-		} else if _, err := e.ID(emailAddress).Cols("is_primary").Update(&EmailAddress{
+		} else if _, err := e.ID(emailAddress.ID).Cols("is_primary").Update(&EmailAddress{
 			IsPrimary: true,
 		}); err != nil {
 			return err
