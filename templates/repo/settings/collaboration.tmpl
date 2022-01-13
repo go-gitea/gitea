@@ -69,9 +69,9 @@
 					<div class="ui eight wide column tooltip" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
-							<div class="text">{{if eq .Authorize 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Authorize 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Authorize 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .Authorize 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
+							<div class="text">{{if eq .AccessMode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 						</div>
-						{{ if or (eq .Authorize 1) (eq .Authorize 2) }}
+						{{ if or (eq .AccessMode 1) (eq .AccessMode 2) }}
 							{{ $first := true }}
 							<div class="description">
 							Sections: {{range $u, $unit := $.Units}}{{if and ($.Repo.UnitEnabled $unit.Type) ($team.UnitEnabled $unit.Type)}}{{if $first}}{{ $first = false }}{{else}}, {{end}}{{$.i18n.Tr $unit.NameKey}}{{end}}{{end}} {{if $first}}None{{end}}
