@@ -16,7 +16,7 @@ const BranchPrefix = "refs/heads/"
 
 // AGit Flow
 
-// PullRequestPrefix sepcial ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
+// PullRequestPrefix special ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
 // or refs/for/<targe-branch> -o topic='<topic-branch>'
 const PullRequestPrefix = "refs/for/"
 

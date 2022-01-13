@@ -1,5 +1,5 @@
 name: Bug Report
-description: Found something you weren't expecting?  Report it here!
+description: Found something you weren't expecting? Report it here!
 body:
 - type: markdown
   attributes:
@@ -11,7 +11,8 @@ body:
       1. Please speak English, this is the language all maintainers can speak and write.
       2. Please ask questions or configuration/deploy problems on our Discord
          server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
-      3. Please take a moment to check that your issue doesn't already exist.
+      3. Make sure you are using the latest release and
+         take a moment to check that your issue hasn't been reported before.
       4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
       5. Please give all relevant information below for bug reports, because
          incomplete details will be handled as an invalid report.
@@ -19,7 +20,7 @@ body:
   id: gitea-ver
   attributes:
     label: Gitea Version
-    description: Gitea version (or commit reference) your instance is running
+    description: Gitea version (or commit reference) of your instance
   validations:
     required: true
 - type: input
@@ -37,8 +38,8 @@ body:
   attributes:
     label: How are you running Gitea?
     description: |
-      Please include information on whether you built gitea yourself, used one of our downloads, are using https://try.gitea.io or are using some other package
-      Please also tell us how you are running gitea, e.g. if it is being run from docker, a command-line, systemd etc.
+      Please include information on whether you built Gitea yourself, used one of our downloads, are using https://try.gitea.io or are using some other package
+      Please also tell us how you are running Gitea, e.g. if it is being run from docker, a command-line, systemd etc.
       If you are using a package or systemd tell us what distribution you are using
   validations:
     required: true
@@ -67,7 +68,7 @@ body:
 - type: markdown
   attributes:
     value: |
-      It really is important to provide pertinent logs
+      It's really important to provide pertinent logs
       Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
       In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
 - type: input
@@ -81,9 +82,9 @@ body:
     label: Description
     description: |
       Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see above)
-      If using a proxy or a CDN (e.g. CloudFlare) in front of gitea, please disable the proxy/CDN fully and connect to gitea directly to confirm the issue still persists without those services.
+      If you are using a proxy or a CDN (e.g. Cloudflare) in front of Gitea, please disable the proxy/CDN fully and access Gitea directly to confirm the issue still persists without those services.
 - type: textarea
   id: screenshots
   attributes:
     label: Screenshots
-    description: If this issue involves the Web Interface, please provide a screenshot or multiple screenshots
+    description: If this issue involves the Web Interface, please provide one or more screenshots

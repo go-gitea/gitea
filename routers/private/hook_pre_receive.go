@@ -404,7 +404,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 
 	if ctx.opts.IsWiki {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "Pull requests are not suppported on the wiki.",
+			"err": "Pull requests are not supported on the wiki.",
 		})
 		return
 	}

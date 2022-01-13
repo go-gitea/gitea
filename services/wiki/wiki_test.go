@@ -190,7 +190,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 		assert.NoError(t, err)
-		assert.Equal(t, wikiPath, entry.Name(), "%s not editted correctly", newWikiName)
+		assert.Equal(t, wikiPath, entry.Name(), "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
 			_, err := masterTree.GetTreeEntryByPath("Home.md")
@@ -243,7 +243,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 		wikiPath:  "home-of-and-%26-or-wiki-page%21.md",
 		wantErr:   false,
 	}, {
-		name:      "fount unescaped cases",
+		name:      "found unescaped cases",
 		arg:       "Unescaped File",
 		existence: true,
 		wikiPath:  "Unescaped File.md",

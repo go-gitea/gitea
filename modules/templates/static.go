@@ -28,7 +28,7 @@ var (
 	bodyTemplates    = template.New("")
 )
 
-// GlobalModTime provide a gloabl mod time for embedded asset files
+// GlobalModTime provide a global mod time for embedded asset files
 func GlobalModTime(filename string) time.Time {
 	return timeutil.GetExecutableModTime()
 }

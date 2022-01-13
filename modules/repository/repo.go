@@ -296,7 +296,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	if err != nil {
 		return fmt.Errorf("GetTag: %v", err)
 	}
-	commit, err := tag.Commit()
+	commit, err := tag.Commit(gitRepo)
 	if err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}

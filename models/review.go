@@ -527,7 +527,7 @@ func getReviewByIssueIDAndUserID(e db.Engine, issueID, userID int64) (*Review, e
 	return review, nil
 }
 
-// GetTeamReviewerByIssueIDAndTeamID get the latest review requst of reviewer team for a pull request
+// GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
 func GetTeamReviewerByIssueIDAndTeamID(issueID, teamID int64) (review *Review, err error) {
 	return getTeamReviewerByIssueIDAndTeamID(db.GetEngine(db.DefaultContext), issueID, teamID)
 }

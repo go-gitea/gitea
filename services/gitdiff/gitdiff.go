@@ -880,7 +880,7 @@ parsingLoop:
 				// Handle ambiguous filenames
 				if curFile.IsAmbiguous {
 					// The shortest string that can end up here is:
-					// "--- a\t\n" without the qoutes.
+					// "--- a\t\n" without the quotes.
 					// This line has a len() of 7 but doesn't contain a oldName.
 					// So the amount that the line need is at least 8 or more.
 					// The code will otherwise panic for a out-of-bounds.
