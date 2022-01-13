@@ -75,7 +75,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 			Name:        packageName,
 			Version:     packageVersion,
 		},
-		filename,
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
 	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
@@ -150,10 +152,12 @@ func UploadPackageFile(ctx *context.APIContext) {
 				RequiresPython:  ctx.Req.FormValue("requires_python"),
 			},
 		},
-		&packages_service.PackageFileInfo{
-			Filename: fileHeader.Filename,
-			Data:     buf,
-			IsLead:   true,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: fileHeader.Filename,
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {

@@ -1026,7 +1026,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/list.json", composer.EnumeratePackages)
 				m.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
 				m.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
-				m.Get("/files/{versionid}/{filename}", composer.DownloadPackageFile)
+				m.Get("/files/{versionid}/{fileid}", composer.DownloadPackageFile)
 				m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
 			})
 			m.Group("/generic", func() {

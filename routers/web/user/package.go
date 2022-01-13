@@ -187,13 +187,17 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := packages_service.GetFileStreamByPackageVersionID(ctx.ContextUser, ctx.ParamsInt64(":versionid"), ctx.Params(":filename"))
+	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
+		ctx.ContextUser,
+		ctx.ParamsInt64(":versionid"),
+		ctx.ParamsInt64(":fileid"),
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.NotFound("", err)
 			return
 		}
-		ctx.ServerError("GetFileStreamByPackageVersionID", err)
+		ctx.ServerError("GetFileStreamByPackageVersionAndFileID", err)
 		return
 	}
 	defer s.Close()

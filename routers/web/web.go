@@ -623,7 +623,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("", user.Packages)
 			m.Group("/{versionid}", func() {
 				m.Get("", user.ViewPackage)
-				m.Get("/files/{filename}", user.DownloadPackageFile)
+				m.Get("/files/{fileid}", user.DownloadPackageFile)
 				m.Group("/settings", func() {
 					m.Get("", user.PackageSettings)
 					m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)

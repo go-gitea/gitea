@@ -161,12 +161,12 @@ func PackageMetadata(ctx *context.APIContext) {
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.APIContext) {
 	versionID := ctx.ParamsInt64("versionid")
-	filename := ctx.Params("filename")
+	fileID := ctx.ParamsInt64("fileid")
 
-	s, pf, err := packages_service.GetFileStreamByPackageVersionID(
+	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
 		ctx.Package.Owner,
 		versionID,
-		filename,
+		fileID,
 	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
@@ -225,10 +225,12 @@ func UploadPackage(ctx *context.APIContext) {
 				composer_module.TypeProperty: cp.Type,
 			},
 		},
-		&packages_service.PackageFileInfo{
-			Filename: strings.ToLower(fmt.Sprintf("%s.%s.zip", strings.ReplaceAll(cp.Name, "/", "-"), cp.Version)),
-			Data:     buf,
-			IsLead:   true,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: strings.ToLower(fmt.Sprintf("%s.%s.zip", strings.ReplaceAll(cp.Name, "/", "-"), cp.Version)),
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {

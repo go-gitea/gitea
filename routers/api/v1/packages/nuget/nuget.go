@@ -100,7 +100,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeNuGet, packageName, packageVersion)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeNuGet, packageName, packageVersion, packages.EmptyVersionKey)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -162,7 +162,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 			Name:        packageName,
 			Version:     packageVersion,
 		},
-		filename,
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
 	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
@@ -202,10 +204,12 @@ func UploadPackage(ctx *context.APIContext) {
 			Creator:          ctx.User,
 			Metadata:         np.Metadata,
 		},
-		&packages_service.PackageFileInfo{
-			Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
-			Data:     buf,
-			IsLead:   true,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {
@@ -240,10 +244,12 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 			Name:        np.ID,
 			Version:     np.Version,
 		},
-		&packages_service.PackageFileInfo{
-			Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
-			Data:     buf,
-			IsLead:   false,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
+			},
+			Data:   buf,
+			IsLead: false,
 		},
 	)
 	if err != nil {

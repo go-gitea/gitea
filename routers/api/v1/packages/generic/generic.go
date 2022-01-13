@@ -43,7 +43,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 			Name:        packageName,
 			Version:     packageVersion,
 		},
-		filename,
+		&package_service.PackageFileInfo{
+			Filename: filename,
+		},
 	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
@@ -95,10 +97,12 @@ func UploadPackage(ctx *context.APIContext) {
 			SemverCompatible: true,
 			Creator:          ctx.User,
 		},
-		&package_service.PackageFileInfo{
-			Filename: filename,
-			Data:     buf,
-			IsLead:   true,
+		&package_service.PackageFileCreationInfo{
+			PackageFileInfo: package_service.PackageFileInfo{
+				Filename: filename,
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {

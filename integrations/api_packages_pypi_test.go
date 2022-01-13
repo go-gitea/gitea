@@ -108,7 +108,7 @@ func TestPackagePyPI(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 2)
 
-		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pvs[0].ID, filename)
+		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pvs[0].ID, filename, packages.EmptyFileKey)
 		assert.NoError(t, err)
 		assert.Equal(t, filename, pf.Name)
 		assert.True(t, pf.IsLead)

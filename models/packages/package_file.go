@@ -23,14 +23,18 @@ var (
 	ErrPackageFileNotExist = errors.New("Package file does not exist")
 )
 
+// EmptyFileKey is a named constant for an empty file key
+const EmptyFileKey = ""
+
 // PackageFile represents a package file
 type PackageFile struct {
-	ID        int64 `xorm:"pk autoincr"`
-	VersionID int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	BlobID    int64 `xorm:"INDEX NOT NULL"`
-	Name      string
-	LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	IsLead    bool
+	ID           int64 `xorm:"pk autoincr"`
+	VersionID    int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	BlobID       int64 `xorm:"INDEX NOT NULL"`
+	Name         string
+	LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	CompositeKey string `xorm:"UNIQUE(s) INDEX"`
+	IsLead       bool
 }
 
 // TryInsertFile inserts a file. If the file exists already ErrDuplicatePackageFile is returned
@@ -38,8 +42,9 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 	e := db.GetEngine(ctx)
 
 	key := &PackageFile{
-		VersionID: pf.VersionID,
-		LowerName: pf.LowerName,
+		VersionID:    pf.VersionID,
+		LowerName:    pf.LowerName,
+		CompositeKey: pf.CompositeKey,
 	}
 
 	has, err := e.Get(key)
@@ -61,15 +66,32 @@ func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, 
 	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).Find(&pfs)
 }
 
+// GetFileForVersionByID gets a file of a version by id
+func GetFileForVersionByID(ctx context.Context, versionID, fileID int64) (*PackageFile, error) {
+	pf := &PackageFile{
+		VersionID: versionID,
+	}
+
+	has, err := db.GetEngine(ctx).ID(fileID).Get(pf)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPackageFileNotExist
+	}
+	return pf, nil
+}
+
 // GetFileForVersionByName gets a file of a version by name
-func GetFileForVersionByName(ctx context.Context, versionID int64, name string) (*PackageFile, error) {
+func GetFileForVersionByName(ctx context.Context, versionID int64, name, key string) (*PackageFile, error) {
 	if name == "" {
 		return nil, ErrPackageFileNotExist
 	}
 
 	pf := &PackageFile{
-		VersionID: versionID,
-		LowerName: strings.ToLower(name),
+		VersionID:    versionID,
+		LowerName:    strings.ToLower(name),
+		CompositeKey: key,
 	}
 
 	has, err := db.GetEngine(ctx).Get(pf)

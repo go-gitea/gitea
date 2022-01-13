@@ -31,6 +31,7 @@ func addPackageTables(x *xorm.Engine) error {
 		CreatorID     int64
 		Version       string
 		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CompositeKey  string             `xorm:"UNIQUE(s) INDEX"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 		MetadataJSON  string             `xorm:"TEXT metadata_json"`
 		DownloadCount int64
@@ -52,12 +53,13 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageFile struct {
-		ID        int64 `xorm:"pk autoincr"`
-		VersionID int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		BlobID    int64 `xorm:"INDEX NOT NULL"`
-		Name      string
-		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		IsLead    bool
+		ID           int64 `xorm:"pk autoincr"`
+		VersionID    int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		BlobID       int64 `xorm:"INDEX NOT NULL"`
+		Name         string
+		LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CompositeKey string `xorm:"UNIQUE(s) INDEX"`
+		IsLead       bool
 	}
 
 	if err := x.Sync2(new(PackageFile)); err != nil {

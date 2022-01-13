@@ -169,7 +169,12 @@ func DownloadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	s, pf, err := packages_service.GetPackageFileStream(pvs[0], filename)
+	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		pvs[0],
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
+	)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -230,10 +235,12 @@ func UploadPackageFile(ctx *context.APIContext) {
 			Creator:          ctx.User,
 			Metadata:         rp.Metadata,
 		},
-		&packages_service.PackageFileInfo{
-			Filename: filename,
-			Data:     buf,
-			IsLead:   true,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: filename,
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {

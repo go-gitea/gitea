@@ -118,7 +118,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 func servePackageFile(ctx *context.APIContext, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version, packages.EmptyVersionKey)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -135,7 +135,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		filename = filename[:len(filename)-len(ext)]
 	}
 
-	pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, filename)
+	pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, filename, packages.EmptyFileKey)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -222,7 +222,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, packages.EmptyVersionKey)
 		if err != nil {
 			if err == packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -231,7 +231,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, params.Filename[:len(params.Filename)-len(ext)])
+		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages.EmptyFileKey)
 		if err != nil {
 			if err == packages.ErrPackageFileNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -264,10 +264,12 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	pfi := &packages_service.PackageFileInfo{
-		Filename: params.Filename,
-		Data:     buf,
-		IsLead:   false,
+	pfi := &packages_service.PackageFileCreationInfo{
+		PackageFileInfo: packages_service.PackageFileInfo{
+			Filename: params.Filename,
+		},
+		Data:   buf,
+		IsLead: false,
 	}
 
 	// If it's the package pom file extract the metadata
@@ -281,7 +283,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		}
 
 		if pvci.Metadata != nil {
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, packages.EmptyVersionKey)
 			if err != nil && err != packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return

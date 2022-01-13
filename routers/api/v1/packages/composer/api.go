@@ -102,7 +102,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			Metadata: pd.Metadata.(*composer_module.Metadata),
 			Dist: Dist{
 				Type:     "zip",
-				URL:      registryURL + "/files/" + strconv.FormatInt(pd.Version.ID, 10) + "/" + pd.Files[0].File.Name,
+				URL:      registryURL + "/files/" + strconv.FormatInt(pd.Version.ID, 10) + "/" + strconv.FormatInt(pd.Files[0].File.ID, 10),
 				Checksum: pd.Files[0].Blob.HashSHA1,
 			},
 		})

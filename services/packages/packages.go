@@ -21,10 +21,11 @@ import (
 
 // PackageInfo describes a package
 type PackageInfo struct {
-	Owner       *user_model.User
-	PackageType packages_model.Type
-	Name        string
-	Version     string
+	Owner        *user_model.User
+	PackageType  packages_model.Type
+	Name         string
+	Version      string
+	CompositeKey string
 }
 
 // PackageCreationInfo describes a package to create
@@ -38,22 +39,28 @@ type PackageCreationInfo struct {
 
 // PackageFileInfo describes a package file
 type PackageFileInfo struct {
-	Filename string
-	Data     *packages_module.HashedBuffer
-	IsLead   bool
+	Filename     string
+	CompositeKey string
+}
+
+// PackageFileCreationInfo describes a package file to create
+type PackageFileCreationInfo struct {
+	PackageFileInfo
+	Data   *packages_module.HashedBuffer
+	IsLead bool
 }
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
-func CreatePackageAndAddFile(pvci *PackageCreationInfo, pfi *PackageFileInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(pvci, pfi, false)
+func CreatePackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+	return createPackageAndAddFile(pvci, pfci, false)
 }
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
-func CreatePackageOrAddFileToExisting(pvci *PackageCreationInfo, pfi *PackageFileInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(pvci, pfi, true)
+func CreatePackageOrAddFileToExisting(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+	return createPackageAndAddFile(pvci, pfci, true)
 }
 
-func createPackageAndAddFile(pvci *PackageCreationInfo, pfi *PackageFileInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, nil, err
@@ -65,7 +72,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfi *PackageFileInfo, al
 		return nil, nil, err
 	}
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfci)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
@@ -149,19 +156,19 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
-func AddFileToExistingPackage(pvi *PackageInfo, pfi *PackageFileInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, nil, err
 	}
 	defer committer.Close()
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfci)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
@@ -184,15 +191,15 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfi *PackageFileInfo) (*packages
 	return pv, pf, nil
 }
 
-func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-	log.Trace("Adding package file: %v, %s", pv.ID, pfi.Filename)
+func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
 
-	hashMD5, hashSHA1, hashSHA256, hashSHA512 := pfi.Data.Sums()
+	hashMD5, hashSHA1, hashSHA256, hashSHA512 := pfci.Data.Sums()
 
 	blobKey := fmt.Sprintf("%x", hashSHA256)
 
 	pb := &packages_model.PackageBlob{
-		Size:       pfi.Data.Size(),
+		Size:       pfci.Data.Size(),
 		HashMD5:    fmt.Sprintf("%x", hashMD5),
 		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
 		HashSHA256: blobKey,
@@ -205,18 +212,19 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
-		if err := contentStore.Save(packages_module.BlobHash256Key(blobKey), pfi.Data, pfi.Data.Size()); err != nil {
+		if err := contentStore.Save(packages_module.BlobHash256Key(blobKey), pfci.Data, pfci.Data.Size()); err != nil {
 			log.Error("Error saving package blob in content store: %v", err)
 			return nil, nil, false, err
 		}
 	}
 
 	pf := &packages_model.PackageFile{
-		VersionID: pv.ID,
-		BlobID:    pb.ID,
-		Name:      pfi.Filename,
-		LowerName: strings.ToLower(pfi.Filename),
-		IsLead:    pfi.IsLead,
+		VersionID:    pv.ID,
+		BlobID:       pb.ID,
+		Name:         pfci.Filename,
+		LowerName:    strings.ToLower(pfci.Filename),
+		CompositeKey: pfci.CompositeKey,
+		IsLead:       pfci.IsLead,
 	}
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
 		if err != packages_model.ErrDuplicatePackageFile {
@@ -230,7 +238,7 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 
 // DeletePackageVersionByNameAndVersion deletes a package version and all associated files
 func DeletePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
 	if err != nil {
 		return err
 	}
@@ -312,10 +320,10 @@ func DeleteUnreferencedBlobs() error {
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, filename string) (io.ReadCloser, *packages_model.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, filename)
+func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			return nil, nil, err
@@ -324,12 +332,12 @@ func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, filename string) (io
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(pv, filename)
+	return GetFileStreamByPackageVersion(pv, pfi)
 }
 
-// GetFileStreamByPackageVersionID returns the content of the specific package file
-func GetFileStreamByPackageVersionID(owner *user_model.User, versionID int64, filename string) (io.ReadCloser, *packages_model.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %s", owner.ID, versionID, filename)
+// GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
+func GetFileStreamByPackageVersionAndFileID(owner *user_model.User, versionID, fileID int64) (io.ReadCloser, *packages_model.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
 
 	pv, err := packages_model.GetVersionByID(db.DefaultContext, versionID)
 	if err != nil {
@@ -350,16 +358,27 @@ func GetFileStreamByPackageVersionID(owner *user_model.User, versionID int64, fi
 		return nil, nil, packages_model.ErrPackageNotExist
 	}
 
-	return GetPackageFileStream(pv, filename)
+	pf, err := packages_model.GetFileForVersionByID(db.DefaultContext, versionID, fileID)
+	if err != nil {
+		log.Error("Error getting file: %v", err)
+		return nil, nil, err
+	}
+
+	return GetPackageFileStream(pv, pf)
 }
 
-// GetPackageFileStream returns the cotent of the specific package file
-func GetPackageFileStream(pv *packages_model.PackageVersion, filename string) (io.ReadCloser, *packages_model.PackageFile, error) {
-	pf, err := packages_model.GetFileForVersionByName(db.DefaultContext, pv.ID, filename)
+// GetFileStreamByPackageVersion returns the content of the specific package file
+func GetFileStreamByPackageVersion(pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+	pf, err := packages_model.GetFileForVersionByName(db.DefaultContext, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	return GetPackageFileStream(pv, pf)
+}
+
+// GetPackageFileStream returns the cotent of the specific package file
+func GetPackageFileStream(pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(db.DefaultContext, pf.BlobID)
 	if err != nil {
 		return nil, nil, err

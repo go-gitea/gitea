@@ -98,7 +98,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 			Name:        packageName,
 			Version:     packageVersion,
 		},
-		filename,
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+		},
 	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
@@ -140,10 +142,12 @@ func UploadPackage(ctx *context.APIContext) {
 			Creator:          ctx.User,
 			Metadata:         npmPackage.Metadata,
 		},
-		&packages_service.PackageFileInfo{
-			Filename: npmPackage.Filename,
-			Data:     buf,
-			IsLead:   true,
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: npmPackage.Filename,
+			},
+			Data:   buf,
+			IsLead: true,
 		},
 	)
 	if err != nil {
@@ -213,7 +217,7 @@ func AddPackageTag(ctx *context.APIContext) {
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
-	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version)
+	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version, packages.EmptyVersionKey)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)

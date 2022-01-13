@@ -122,7 +122,11 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(0), pvs[0].DownloadCount)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%d/%s-%s.%s.zip", url, pvs[0].ID, vendorName, projectName, packageVersion))
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		assert.NoError(t, err)
+		assert.Len(t, pfs, 1)
+
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%d/%d", url, pvs[0].ID, pfs[0].ID))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -206,18 +210,4 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
 		assert.Equal(t, "7b40bfd6da811b2b78deec1e944f156dbb2c747b", pkgs[0].Dist.Checksum)
 	})
-
-	/*t.Run("PackageService", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
-
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
-		req = AddBasicAuthHeader(req, user.Name)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var result nuget.PackageVersionsResponse
-		DecodeJSON(t, resp, &result)
-
-		assert.Len(t, result.Versions, 1)
-		assert.Equal(t, packageVersion, result.Versions[0])
-	})*/
 }

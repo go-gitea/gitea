@@ -50,7 +50,7 @@
 						<div class="ui relaxed list">
 						{{range .PackageDescriptor.Files}}
 							<div class="item">
-								<a href="{{$.Link}}/files/{{.File.LowerName}}">{{.File.Name}}</a>
+								<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
 								<span class="text small file-size">{{FileSize .Blob.Size}}</span>
 							</div>
 						{{end}}
