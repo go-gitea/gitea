@@ -191,7 +191,7 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 		PublicKey:       cred.PublicKey,
 		AttestationType: cred.AttestationType,
 		AAGUID:          cred.Authenticator.AAGUID,
-		SignCount:       0,
+		SignCount:       cred.Authenticator.SignCount,
 		CloneWarning:    false,
 	}
 

@@ -34,6 +34,7 @@ func Init() {
 			AuthenticatorSelection: protocol.AuthenticatorSelection{
 				UserVerification: "discouraged",
 			},
+			AttestationPreference: protocol.PreferDirectAttestation,
 		},
 	}
 }
