@@ -145,17 +145,22 @@ func PackageSettingsPost(ctx *context.Context) {
 	switch form.Action {
 	case "link":
 		success := func() bool {
-			repo, err := repo_model.GetRepositoryByID(form.RepoID)
-			if err != nil {
-				log.Error("Error getting repository: %v", err)
-				return false
+			repoID := int64(0)
+			if form.RepoID != 0 {
+				repo, err := repo_model.GetRepositoryByID(form.RepoID)
+				if err != nil {
+					log.Error("Error getting repository: %v", err)
+					return false
+				}
+
+				if repo.OwnerID != pd.Owner.ID {
+					return false
+				}
+
+				repoID = repo.ID
 			}
 
-			if repo.OwnerID != pd.Owner.ID {
-				return false
-			}
-
-			if err = packages.SetRepositoryLink(pd.Package.ID, repo.ID); err != nil {
+			if err := packages.SetRepositoryLink(pd.Package.ID, repoID); err != nil {
 				log.Error("Error updating package: %v", err)
 				return false
 			}
