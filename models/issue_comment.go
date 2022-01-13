@@ -762,13 +762,12 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 			}
 		}
 		fallthrough
-	case CommentTypeReview:
-		fallthrough
 	case CommentTypeComment:
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-
+		fallthrough
+	case CommentTypeReview:
 		// Check attachments
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
