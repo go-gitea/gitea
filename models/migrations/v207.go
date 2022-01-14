@@ -63,14 +63,15 @@ func addWebAuthnCred(x *xorm.Engine) error {
 			}
 
 			c := &webauthnCredential{
-				ID:           reg.ID,
-				Name:         reg.Name,
-				LowerName:    strings.ToLower(reg.Name),
-				UserID:       reg.UserID,
-				CredentialID: base64.RawURLEncoding.EncodeToString(parsed.KeyHandle),
-				PublicKey:    elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
-				AAGUID:       []byte{},
-				SignCount:    reg.Counter,
+				ID:              reg.ID,
+				Name:            reg.Name,
+				LowerName:       strings.ToLower(reg.Name),
+				UserID:          reg.UserID,
+				CredentialID:    base64.RawStdEncoding.EncodeToString(parsed.KeyHandle),
+				PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
+				AttestationType: "fido-u2f",
+				AAGUID:          []byte{},
+				SignCount:       reg.Counter,
 			}
 
 			_, err := x.Insert(c)
