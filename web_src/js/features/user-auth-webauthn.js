@@ -122,6 +122,13 @@ function webAuthnError(errorType, message) {
 }
 
 function detectWebAuthnSupport() {
+  if (!window.isSecureContext) {
+    $('#register-button').prop('disabled', true);
+    $('#login-button').prop('disabled', true);
+    webAuthnError('insecure');
+    return false;
+  }
+
   if (typeof window.PublicKeyCredential !== 'function') {
     $('#register-button').prop('disabled', true);
     $('#login-button').prop('disabled', true);
@@ -129,12 +136,6 @@ function detectWebAuthnSupport() {
     return false;
   }
 
-  if (window.location.protocol === 'http:' && (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
-    $('#register-button').prop('disabled', true);
-    $('#login-button').prop('disabled', true);
-    webAuthnError('insecure');
-    return false;
-  }
   return true;
 }
 
