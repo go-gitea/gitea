@@ -55,7 +55,6 @@ func TestRepository_GetTag(t *testing.T) {
 	if lTag == nil {
 		assert.FailNow(t, "nil lTag: %s", lTagName)
 	}
-	lTag.repo = nil
 	assert.EqualValues(t, lTagName, lTag.Name)
 	assert.EqualValues(t, lTagCommitID, lTag.ID.String())
 	assert.EqualValues(t, lTagCommitID, lTag.Object.String())

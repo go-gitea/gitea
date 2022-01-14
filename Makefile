@@ -231,7 +231,7 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running go fmt..."
+	@echo "Running gitea-fmt(with gofmt)..."
 	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
 
 .PHONY: vet
@@ -280,7 +280,7 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
-	# get all go files and run go fmt on them
+	# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \

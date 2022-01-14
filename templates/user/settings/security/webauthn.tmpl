@@ -1,0 +1,52 @@
+<h4 class="ui top attached header">
+{{.i18n.Tr "settings.webauthn"}}
+</h4>
+<div class="ui attached segment">
+	<p>{{.i18n.Tr "settings.webauthn_desc" | Str2html}}</p>
+	<div class="ui key list">
+		{{range .WebAuthnCredentials}}
+			<div class="item">
+				<div class="right floated content">
+					<button class="ui red tiny button delete-button" data-modal-id="delete-registration" data-url="{{$.Link}}/webauthn/delete" data-id="{{.ID}}">
+					{{$.i18n.Tr "settings.delete_key"}}
+					</button>
+				</div>
+				<div class="content">
+					<strong>{{.Name}}</strong>
+				</div>
+				<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>
+			</div>
+		{{end}}
+	</div>
+	<div class="ui form">
+		{{.CsrfTokenHtml}}
+		<div class="required field">
+			<label for="nickname">{{.i18n.Tr "settings.webauthn_nickname"}}</label>
+			<input id="nickname" name="nickname" type="text" required>
+		</div>
+		<button id="register-webauthn" class="ui green button">{{svg "octicon-key"}} {{.i18n.Tr "settings.webauthn_register_key"}}</button>
+	</div>
+</div>
+
+<div class="ui small modal" id="register-device">
+	<div class="header">{{.i18n.Tr "settings.webauthn_register_key"}}</div>
+	<div class="content">
+		<i class="notched spinner loading icon"></i> {{.i18n.Tr "settings.webauthn_press_button"}}
+	</div>
+	<div class="actions">
+		<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
+	</div>
+</div>
+
+{{template "user/auth/webauthn_error" .}}
+
+<div class="ui small basic delete modal" id="delete-registration">
+	<div class="ui icon header">
+		{{svg "octicon-trash"}}
+	{{.i18n.Tr "settings.webauthn_delete_key"}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "settings.webauthn_delete_key_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>

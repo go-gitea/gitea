@@ -1,0 +1,22 @@
+<div class="ui small modal" id="webauthn-error">
+	<div class="header">{{.i18n.Tr "webauthn_error"}}</div>
+	<div class="content">
+		<div class="ui negative message">
+			<div class="header">
+			{{.i18n.Tr "webauthn_error"}}
+			</div>
+			<div class="hide" data-webauthn-error-msg="browser"><p>{{.i18n.Tr "webauthn_unsupported_browser"}}</div>
+			<div class="hide" data-webauthn-error-msg="unknown"><p>{{.i18n.Tr "webauthn_error_unknown"}}</div>
+			<div class="hide" data-webauthn-error-msg="insecure"><p>{{.i18n.Tr "webauthn_error_insecure"}}</div>
+			<div class="hide" data-webauthn-error-msg="unable-to-process"><p>{{.i18n.Tr "webauthn_error_unable_to_process"}}</div>
+			<div class="hide" data-webauthn-error-msg="duplicated"><p>{{.i18n.Tr "webauthn_error_duplicated"}}</div>
+			<div class="hide" data-webauthn-error-msg="empty"><p>{{.i18n.Tr "webauthn_error_empty"}}</div>
+			<div class="hide" data-webauthn-error-msg="timeout"><p>{{.i18n.Tr "webauthn_error_timeout"}}</div>
+			<div class="hide" data-webauthn-error-msg="0"></div>
+		</div>
+	</div>
+	<div class="actions">
+		<button onclick="window.location.reload()" class="success ui button hide webauthn_error_timeout">{{.i18n.Tr "webauthn_reload"}}</button>
+		<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
+	</div>
+</div>

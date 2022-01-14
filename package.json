@@ -30,6 +30,7 @@
     "sortablejs": "1.14.0",
     "swagger-ui-dist": "4.1.3",
     "tributejs": "5.1.3",
+    "uint8-to-base64": "0.2.0",
     "vue": "2.6.14",
     "vue-bar-graph": "1.3.0",
     "vue-calendar-heatmap": "0.8.4",
