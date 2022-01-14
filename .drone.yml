@@ -90,7 +90,7 @@ steps:
       GO111MODULE: on
       GOPROXY: off
     commands:
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - go build o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
@@ -115,7 +115,7 @@ steps:
       GOARCH: amd64
       TAGS: bindata gogit
     commands:
-      - go build -mod=vendor -o gitea_windows
+      - go build -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
@@ -126,7 +126,7 @@ steps:
       GOOS: linux
       GOARCH: 386
     commands:
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+      - go build -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [checks-backend]
 
 ---
