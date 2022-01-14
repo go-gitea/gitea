@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Fix inconsistent PR comment counts (#18260) (#18261)
   * Fix release link broken (#18252) (#18253)
-  * Fix update user bug (#18250) (#18251)
+  * Fix update user from site administration page bug (#18250) (#18251)
   * Set HeadCommit when creating tags. (#18116) (#18173)
   * Use correct translation key for error messages due to max repo limits (#18135 & #18153) (#18152)
 * MISC
