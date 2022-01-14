@@ -124,7 +124,7 @@ func (p *Permission) CanWriteToBranch(branch string) bool {
 		if err != nil {
 			continue
 		}
-		if pr.AllowEditsFromMaintainers {
+		if pr.AllowMaintainerEdit {
 			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, p.User)
 			if err != nil {
 				continue

@@ -8,10 +8,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func addAllowEditsFromMaintainers(x *xorm.Engine) error {
+func addAllowMaintainerEdit(x *xorm.Engine) error {
 	// PullRequest represents relation between pull request and repositories.
 	type PullRequest struct {
-		AllowEditsFromMaintainers bool `xorm:"NOT NULL DEFAULT true"`
+		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT true"`
 	}
 
 	return x.Sync2(new(PullRequest))

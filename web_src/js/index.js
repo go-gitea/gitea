@@ -34,7 +34,7 @@ import {
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
-  initRepoPullRequestAllowEditsFromMaintainers,
+  initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
 import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
@@ -151,7 +151,7 @@ $(document).ready(() => {
   initRepoMigrationStatusChecker();
   initRepoProject();
   initRepoPullRequestMergeInstruction();
-  initRepoPullRequestAllowEditsFromMaintainers();
+  initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
   initRepoReleaseEditor();

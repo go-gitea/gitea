@@ -1180,7 +1180,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		BaseRepo:                  repo,
 		MergeBase:                 ci.CompareInfo.MergeBase,
 		Type:                      models.PullRequestGitea,
-		AllowEditsFromMaintainers: form.AllowEditsFromMaintainers,
+		AllowMaintainerEdit: form.AllowEditsFromMaintainers,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -1497,6 +1497,6 @@ func updateAllowEditsStatus(ctx *context.Context, allow bool) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"allow_edits": pr.AllowEditsFromMaintainers,
+		"allow_edits": pr.AllowMaintainerEdit,
 	})
 }

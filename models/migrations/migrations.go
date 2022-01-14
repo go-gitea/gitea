@@ -367,7 +367,7 @@ var migrations = []Migration{
 	// v206 -> v207
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 	// v207 -> v208
-	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowEditsFromMaintainers),
+	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -78,7 +78,7 @@ type PullRequest struct {
 	BaseBranch                string
 	ProtectedBranch           *ProtectedBranch `xorm:"-"`
 	MergeBase                 string           `xorm:"VARCHAR(40)"`
-	AllowEditsFromMaintainers bool             `xorm:"NOT NULL DEFAULT true"`
+	AllowMaintainerEdit bool             `xorm:"NOT NULL DEFAULT true"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
@@ -710,7 +710,7 @@ func UpdateAllowEdits(pr *PullRequest, allow bool) error {
 }
 
 func updateAllowEdits(e db.Engine, pr *PullRequest, allow bool) error {
-	pr.AllowEditsFromMaintainers = allow
+	pr.AllowMaintainerEdit = allow
 	if _, err := e.ID(pr.ID).Cols("allow_edits_from_maintainers").Update(pr); err != nil {
 		return err
 	}

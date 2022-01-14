@@ -287,7 +287,7 @@ export function initRepoPullRequestMergeInstruction() {
   });
 }
 
-export function initRepoPullRequestAllowEditsFromMaintainers() {
+export function initRepoPullRequestAllowMaintainerEdit() {
   $('#allow-edits-from-maintainers input').on('change', function () {
     const $label = $('#allow-edits-from-maintainers label');
     let url = $label.data('url');
