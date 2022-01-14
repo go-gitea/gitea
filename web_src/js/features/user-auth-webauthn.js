@@ -45,6 +45,7 @@ function verifyAssertion(assertedCredential) {
       id: assertedCredential.id,
       rawId: bufferEncode(rawId),
       type: assertedCredential.type,
+      clientExtensionResults: assertedCredential.getClientExtensionResults(),
       response: {
         authenticatorData: bufferEncode(authData),
         clientDataJSON: bufferEncode(clientDataJSON),
