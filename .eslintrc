@@ -27,7 +27,6 @@ globals:
   CodeMirror: false
   Dropzone: false
   SimpleMDE: false
-  u2fApi: false
 
 settings:
   html/html-extensions: [".tmpl"]

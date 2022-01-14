@@ -34,7 +34,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"gitea.com/go-chi/binding"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
 )
 
@@ -149,7 +149,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	accessToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Type:    oauth2.TypeAccessToken,
-		StandardClaims: jwt.StandardClaims{
+		// FIXME: Migrate to RegisteredClaims
+		StandardClaims: jwt.StandardClaims{ //nolint
 			ExpiresAt: expirationDate.AsTime().Unix(),
 		},
 	}
@@ -167,7 +168,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		StandardClaims: jwt.StandardClaims{
+		// FIXME: Migrate to RegisteredClaims
+		StandardClaims: jwt.StandardClaims{ // nolint
 			ExpiresAt: refreshExpirationDate,
 		},
 	}
@@ -205,7 +207,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		}
 
 		idToken := &oauth2.OIDCToken{
-			StandardClaims: jwt.StandardClaims{
+			// FIXME: migrate to RegisteredClaims
+			StandardClaims: jwt.StandardClaims{ //nolint
 				ExpiresAt: expirationDate.AsTime().Unix(),
 				Issuer:    setting.AppURL,
 				Audience:  app.ClientID,
@@ -326,7 +329,8 @@ func IntrospectOAuth(ctx *context.Context) {
 	var response struct {
 		Active bool   `json:"active"`
 		Scope  string `json:"scope,omitempty"`
-		jwt.StandardClaims
+		// FIXME: Migrate to RegisteredClaims
+		jwt.StandardClaims //nolint
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
@@ -1066,10 +1070,10 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		log.Error("Error storing session: %v", err)
 	}
 
-	// If U2F is enrolled -> Redirect to U2F instead
-	regs, err := auth.GetU2FRegistrationsByUID(u.ID)
+	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
+	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 

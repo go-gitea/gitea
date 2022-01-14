@@ -15,6 +15,7 @@ type Session struct {
 	AccessToken  string
 	RefreshToken string
 	ExpiresAt    time.Time
+	IDToken      string
 }
 
 // GetAuthURL will return the URL set by calling the `BeginAuth` function on the Google provider.
@@ -40,6 +41,7 @@ func (s *Session) Authorize(provider goth.Provider, params goth.Params) (string,
 	s.AccessToken = token.AccessToken
 	s.RefreshToken = token.RefreshToken
 	s.ExpiresAt = token.Expiry
+	s.IDToken = token.Extra("id_token").(string)
 	return token.AccessToken, err
 }
 
