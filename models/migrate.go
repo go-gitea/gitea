@@ -5,6 +5,8 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -46,14 +48,15 @@ func InsertIssues(issues ...*Issue) error {
 	defer committer.Close()
 
 	for _, issue := range issues {
-		if err := insertIssue(db.GetEngine(ctx), issue); err != nil {
+		if err := insertIssue(ctx, issue); err != nil {
 			return err
 		}
 	}
 	return committer.Commit()
 }
 
-func insertIssue(sess db.Engine, issue *Issue) error {
+func insertIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
@@ -80,7 +83,7 @@ func insertIssue(sess db.Engine, issue *Issue) error {
 		}
 	}
 
-	return UpdateRepoStats(sess, issue.RepoID)
+	return UpdateRepoStats(ctx, issue.RepoID)
 }
 
 // InsertIssueComments inserts many comments of issues.
@@ -132,7 +135,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 	for _, pr := range prs {
-		if err := insertIssue(sess, pr.Issue); err != nil {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
 			return err
 		}
 		pr.IssueID = pr.Issue.ID

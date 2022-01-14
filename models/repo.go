@@ -962,12 +962,12 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 type repoChecker struct {
 	querySQL   string
-	correctSQL func(e db.Engine, id int64) error
+	correctSQL func(ctx context.Context, id int64) error
 	desc       string
 }
 
-func repoStatsCheck(ctx context.Context, e db.Engine, checker *repoChecker) {
-	results, err := e.Query(checker.querySQL)
+func repoStatsCheck(ctx context.Context, checker *repoChecker) {
+	results, err := db.GetEngine(ctx).Query(checker.querySQL)
 	if err != nil {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
@@ -981,59 +981,60 @@ func repoStatsCheck(ctx context.Context, e db.Engine, checker *repoChecker) {
 		default:
 		}
 		log.Trace("Updating %s: %d", checker.desc, id)
-		err = checker.correctSQL(e, id)
+		err = checker.correctSQL(ctx, id)
 		if err != nil {
 			log.Error("Update %s[%d]: %v", checker.desc, id, err)
 		}
 	}
 }
 
-func StatsCorrectSQL(e db.Engine, sql string, id int64) error {
-	_, err := e.Exec(sql, id, id)
+func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
+	_, err := db.GetEngine(ctx).Exec(sql, id, id)
 	return err
 }
 
-func repoStatsCorrectNumWatches(e db.Engine, id int64) error {
-	return StatsCorrectSQL(e, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
+func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
 }
 
-func repoStatsCorrectNumStars(e db.Engine, id int64) error {
-	return StatsCorrectSQL(e, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
+func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
 }
 
-func labelStatsCorrectNumIssues(e db.Engine, id int64) error {
-	return StatsCorrectSQL(e, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id)
+func labelStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id)
 }
 
-func labelStatsCorrectNumIssuesRepo(e db.Engine, id int64) error {
-	_, err := e.Exec("UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id) WHERE repo_id=?", id)
+func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id) WHERE repo_id=?", id)
 	return err
 }
 
-func labelStatsCorrectNumClosedIssues(e db.Engine, id int64) error {
-	_, err := e.Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.id=?", id)
+func labelStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.id=?", id)
 	return err
 }
 
-func labelStatsCorrectNumClosedIssuesRepo(e db.Engine, id int64) error {
-	_, err := e.Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.repo_id=?", id)
+func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.repo_id=?", id)
 	return err
 }
 
 var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=TRUE) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
 
-func milestoneStatsCorrectNumIssues(e db.Engine, id int64) error {
-	return updateMilestoneCounters(e, id)
+func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return updateMilestoneCounters(ctx, id)
 }
 
-func milestoneStatsCorrectNumIssuesRepo(e db.Engine, id int64) error {
+func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
+	e := db.GetEngine(ctx)
 	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", id)
 	if err != nil {
 		return err
 	}
 	for _, result := range results {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-		err = milestoneStatsCorrectNumIssues(e, id)
+		err = milestoneStatsCorrectNumIssues(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1041,37 +1042,37 @@ func milestoneStatsCorrectNumIssuesRepo(e db.Engine, id int64) error {
 	return nil
 }
 
-func userStatsCorrectNumRepos(e db.Engine, id int64) error {
-	return StatsCorrectSQL(e, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id)
+func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id)
 }
 
-func repoStatsCorrectIssueNumComments(e db.Engine, id int64) error {
-	return StatsCorrectSQL(e, "UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?", id)
+func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?", id)
 }
 
-func repoStatsCorrectNumIssues(e db.Engine, id int64) error {
-	return repoStatsCorrectNum(e, id, false, "num_issues")
+func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return repoStatsCorrectNum(ctx, id, false, "num_issues")
 }
 
-func repoStatsCorrectNumPulls(e db.Engine, id int64) error {
-	return repoStatsCorrectNum(e, id, true, "num_pulls")
+func repoStatsCorrectNumPulls(ctx context.Context, id int64) error {
+	return repoStatsCorrectNum(ctx, id, true, "num_pulls")
 }
 
-func repoStatsCorrectNum(e db.Engine, id int64, isPull bool, field string) error {
-	_, err := e.Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
+func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field string) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
 	return err
 }
 
-func repoStatsCorrectNumClosedIssues(e db.Engine, id int64) error {
-	return repoStatsCorrectNumClosed(e, id, false, "num_closed_issues")
+func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
+	return repoStatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
 }
 
-func repoStatsCorrectNumClosedPulls(e db.Engine, id int64) error {
-	return repoStatsCorrectNumClosed(e, id, true, "num_closed_pulls")
+func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
+	return repoStatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
 }
 
-func repoStatsCorrectNumClosed(e db.Engine, id int64, isPull bool, field string) error {
-	_, err := e.Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=TRUE AND is_pull=?) WHERE id=?", id, isPull, id)
+func repoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=TRUE AND is_pull=?) WHERE id=?", id, isPull, id)
 	return err
 }
 
@@ -1135,19 +1136,19 @@ func CheckRepoStats(ctx context.Context) error {
 			"issue count 'num_comments'",
 		},
 	}
-	e := db.GetEngine(db.DefaultContext)
 	for _, checker := range checkers {
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
 			return db.ErrCancelledf("before checking %s", checker.desc)
 		default:
-			repoStatsCheck(ctx, e, checker)
+			repoStatsCheck(ctx, checker)
 		}
 	}
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
+	e := db.GetEngine(ctx)
 	results, err := e.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
 	if err != nil {
 		log.Error("Select repository count 'num_forks': %v", err)
@@ -1185,10 +1186,10 @@ func CheckRepoStats(ctx context.Context) error {
 	return nil
 }
 
-func UpdateRepoStats(e db.Engine, id int64) error {
+func UpdateRepoStats(ctx context.Context, id int64) error {
 	var err error
 
-	for _, f := range []func(e db.Engine, id int64) error{
+	for _, f := range []func(ctx context.Context, id int64) error{
 		repoStatsCorrectNumWatches,
 		repoStatsCorrectNumStars,
 		repoStatsCorrectNumIssues,
@@ -1199,7 +1200,7 @@ func UpdateRepoStats(e db.Engine, id int64) error {
 		labelStatsCorrectNumClosedIssuesRepo,
 		milestoneStatsCorrectNumIssuesRepo,
 	} {
-		err = f(e, id)
+		err = f(ctx, id)
 		if err != nil {
 			return err
 		}
