@@ -103,11 +103,18 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	log.Trace("Finishing webauthn authentication with user: %s", user.Name)
 
-	// Now we call webauthn.FinishLogin using a combination of our session data
-	// (from webauthnAssertion) and verify the provided request.
-	//
-	// FinishLogin will then return the webauthn.Credential that was used to authenticate.
-	cred, err := wa.WebAuthn.FinishLogin((*wa.User)(user), *sessionData, ctx.Req)
+	// Now we do the equivalent of webauthn.FinishLogin using a combination of our session data
+	// (from webauthnAssertion) and verify the provided request.0
+	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
+	if err != nil {
+		// Failed authentication attempt.
+		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+
+	// Validate the parsed response.
+	cred, err := wa.WebAuthn.ValidateLogin((*wa.User)(user), *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
@@ -150,5 +157,13 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 	_ = ctx.Session.Delete("twofaUid")
+
+	// Finally check if the appid extension was used:
+	if value, ok := parsedResponse.ClientExtensionResults["appid"]; ok {
+		if appid, ok := value.(bool); ok && appid {
+			ctx.Flash.Error(ctx.Tr("webauthn_u2f_deprecated", dbCred.Name))
+		}
+	}
+
 	ctx.JSON(200, map[string]string{"redirect": redirect})
 }
