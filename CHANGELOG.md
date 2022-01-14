@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.10](https://github.com/go-gitea/gitea/releases/tag/v1.15.10) - 2022-01-14
+
+* BUGFIXES
+  * Fix inconsistent PR comment counts (#18260) (#18261)
+  * Fix release link broken (#18252) (#18253)
+  * Fix update user from site administration page bug (#18250) (#18251)
+  * Set HeadCommit when creating tags (#18116) (#18173)
+  * Use correct translation key for error messages due to max repo limits (#18135 & #18153) (#18152)
+  * Fix purple color in suggested label colors (#18241) (#18242)
+* SECURITY
+  * Bump mermaid from 8.10.1 to 8.13.8 (#18198) (#18206)
+
 ## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
 
 * BUGFIXES
