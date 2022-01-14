@@ -12,8 +12,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix update user from site administration page bug (#18250) (#18251)
   * Set HeadCommit when creating tags (#18116) (#18173)
   * Use correct translation key for error messages due to max repo limits (#18135 & #18153) (#18152)
-* MISC
   * Fix purple color in suggested label colors (#18241) (#18242)
+* SECURITY
   * Bump mermaid from 8.10.1 to 8.13.8 (#18198) (#18206)
 
 ## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
