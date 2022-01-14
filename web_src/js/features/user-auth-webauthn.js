@@ -1,4 +1,4 @@
-import {encode} from 'uint8-to-base64';
+import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -14,9 +14,9 @@ export function initUserAuthWebAuthn() {
 
   $.getJSON(`${appSubUrl}/user/webauthn/assertion`, {})
     .done((makeAssertionOptions) => {
-      makeAssertionOptions.publicKey.challenge = bufferDecode(makeAssertionOptions.publicKey.challenge);
+      makeAssertionOptions.publicKey.challenge = decode(makeAssertionOptions.publicKey.challenge);
       for (let i = 0; i < makeAssertionOptions.publicKey.allowCredentials.length; i++) {
-        makeAssertionOptions.publicKey.allowCredentials[i].id = bufferDecode(makeAssertionOptions.publicKey.allowCredentials[i].id);
+        makeAssertionOptions.publicKey.allowCredentials[i].id = decode(makeAssertionOptions.publicKey.allowCredentials[i].id);
       }
       navigator.credentials.get({
         publicKey: makeAssertionOptions.publicKey
@@ -155,10 +155,6 @@ export function initUserAuthWebAuthnRegister() {
   });
 }
 
-function bufferDecode(value) {
-  return Uint8Array.from(atob(value), (c) => c.codePointAt(0));
-}
-
 function webAuthnRegisterRequest() {
   if ($('#nickname').val() === '') {
     webAuthnError('empty');
@@ -171,11 +167,11 @@ function webAuthnRegisterRequest() {
     $('#nickname').closest('div.field').removeClass('error');
     $('#register-device').modal('show');
 
-    makeCredentialOptions.publicKey.challenge = bufferDecode(makeCredentialOptions.publicKey.challenge);
-    makeCredentialOptions.publicKey.user.id = bufferDecode(makeCredentialOptions.publicKey.user.id);
+    makeCredentialOptions.publicKey.challenge = decode(makeCredentialOptions.publicKey.challenge);
+    makeCredentialOptions.publicKey.user.id = decode(makeCredentialOptions.publicKey.user.id);
     if (makeCredentialOptions.publicKey.excludeCredentials) {
       for (let i = 0; i < makeCredentialOptions.publicKey.excludeCredentials.length; i++) {
-        makeCredentialOptions.publicKey.excludeCredentials[i].id = bufferDecode(makeCredentialOptions.publicKey.excludeCredentials[i].id);
+        makeCredentialOptions.publicKey.excludeCredentials[i].id = decode(makeCredentialOptions.publicKey.excludeCredentials[i].id);
       }
     }
 
