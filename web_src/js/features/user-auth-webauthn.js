@@ -181,7 +181,7 @@ function webAuthnRegisterRequest() {
       publicKey: makeCredentialOptions.publicKey
     }).then(webauthnRegistered)
       .catch((err) => {
-        if (err === undefined) {
+        if (!err) {
           webAuthnError('unknown');
           return;
         }
