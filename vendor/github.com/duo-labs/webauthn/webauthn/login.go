@@ -59,6 +59,7 @@ func (webauthn *WebAuthn) BeginLogin(user User, opts ...LoginOption) (*protocol.
 		UserID:               user.WebAuthnID(),
 		AllowedCredentialIDs: requestOptions.GetAllowedCredentialIDs(),
 		UserVerification:     requestOptions.UserVerification,
+		Extensions:           requestOptions.Extensions,
 	}
 
 	response := protocol.CredentialAssertion{requestOptions}
@@ -108,7 +109,7 @@ func (webauthn *WebAuthn) ValidateLogin(user User, session SessionData, parsedRe
 	// verify that credential.id identifies one of the public key credentials that were listed in
 	// allowCredentials.
 
-	// NON-NORMATIVE Prior Step: Verify that the allowCredentials for the sesssion are owned by the user provided
+	// NON-NORMATIVE Prior Step: Verify that the allowCredentials for the session are owned by the user provided
 	userCredentials := user.WebAuthnCredentials()
 	var credentialFound bool
 	if len(session.AllowedCredentialIDs) > 0 {
@@ -169,8 +170,13 @@ func (webauthn *WebAuthn) ValidateLogin(user User, session SessionData, parsedRe
 	rpID := webauthn.Config.RPID
 	rpOrigin := webauthn.Config.RPOrigin
 
+	appID, err := parsedResponse.GetAppID(session.Extensions, loginCredential.AttestationType)
+	if err != nil {
+		return nil, err
+	}
+
 	// Handle steps 4 through 16
-	validError := parsedResponse.Verify(session.Challenge, rpID, rpOrigin, shouldVerifyUser, loginCredential.PublicKey)
+	validError := parsedResponse.Verify(session.Challenge, rpID, rpOrigin, appID, shouldVerifyUser, loginCredential.PublicKey)
 	if validError != nil {
 		return nil, validError
 	}

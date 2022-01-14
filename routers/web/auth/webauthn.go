@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/externalaccount"
 
+	"github.com/duo-labs/webauthn/protocol"
 	"github.com/duo-labs/webauthn/webauthn"
 )
 
@@ -66,7 +67,9 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user), webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
+		"appid": setting.U2F.AppID,
+	}))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return

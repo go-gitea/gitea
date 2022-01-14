@@ -386,6 +386,10 @@ var (
 		MaxTokenLength:             math.MaxInt16,
 	}
 
+	U2F = struct {
+		AppID string
+	}{}
+
 	// Metrics settings
 	Metrics = struct {
 		Enabled                  bool
@@ -1017,6 +1021,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+
+	sec = Cfg.Section("U2F")
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {

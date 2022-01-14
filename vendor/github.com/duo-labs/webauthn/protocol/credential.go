@@ -32,14 +32,14 @@ type ParsedCredential struct {
 
 type PublicKeyCredential struct {
 	Credential
-	RawID      URLEncodedBase64                      `json:"rawId"`
-	Extensions AuthenticationExtensionsClientOutputs `json:"extensions,omitempty"`
+	RawID                  URLEncodedBase64                      `json:"rawId"`
+	ClientExtensionResults AuthenticationExtensionsClientOutputs `json:"clientExtensionResults,omitempty"`
 }
 
 type ParsedPublicKeyCredential struct {
 	ParsedCredential
-	RawID      []byte                                `json:"rawId"`
-	Extensions AuthenticationExtensionsClientOutputs `json:"extensions,omitempty"`
+	RawID                  []byte                                `json:"rawId"`
+	ClientExtensionResults AuthenticationExtensionsClientOutputs `json:"clientExtensionResults,omitempty"`
 }
 
 type CredentialCreationResponse struct {
@@ -159,4 +159,58 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge string, verifyUs
 	// TODO: Not implemented for the reasons mentioned under Step 16
 
 	return nil
+}
+
+// GetAppID takes a AuthenticationExtensions object or nil. It then performs the following checks in order:
+//
+// 1. Check that the Session Data's AuthenticationExtensions has been provided and return a blank appid if it hasn't been.
+// 2. Check that the AuthenticationExtensionsClientOutputs contains the extensions output and return a blank appid if it doesn't.
+// 3. Check that the Credential AttestationType is `fido-u2f` and return a blank appid if it isn't.
+// 4. Check that the AuthenticationExtensionsClientOutputs contains the appid key and return a blank appid if it doesn't.
+// 5. Check that the AuthenticationExtensionsClientOutputs appid is a bool and return an error if it isn't.
+// 6. Check that the appid output is true and return a blank appid if it isn't.
+// 7. Check that the Session Data has an appid extension defined and return an error if it doesn't.
+// 8. Check that the appid extension in Session Data is a string and return an error if it isn't.
+// 9. Return the appid extension value from the Session Data.
+func (ppkc ParsedPublicKeyCredential) GetAppID(authExt AuthenticationExtensions, credentialAttestationType string) (appID string, err error) {
+	var (
+		value, clientValue interface{}
+		enableAppID, ok    bool
+	)
+
+	if authExt == nil {
+		return "", nil
+	}
+
+	if ppkc.ClientExtensionResults == nil {
+		return "", nil
+	}
+
+	// If the credential does not have the correct attestation type it is assumed to NOT be a fido-u2f credential.
+	// https://w3c.github.io/webauthn/#sctn-fido-u2f-attestation
+	if credentialAttestationType != "fido-u2f" {
+		return "", nil
+	}
+
+	if clientValue, ok = ppkc.ClientExtensionResults["appid"]; !ok {
+		return "", nil
+	}
+
+	if enableAppID, ok = clientValue.(bool); !ok {
+		return "", ErrBadRequest.WithDetails("Client Output appid did not have the expected type")
+	}
+
+	if !enableAppID {
+		return "", nil
+	}
+
+	if value, ok = authExt["appid"]; !ok {
+		return "", ErrBadRequest.WithDetails("Session Data does not have an appid but Client Output indicates it should be set")
+	}
+
+	if appID, ok = value.(string); !ok {
+		return "", ErrBadRequest.WithDetails("Session Data appid did not have the expected type")
+	}
+
+	return appID, nil
 }

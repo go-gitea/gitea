@@ -9,4 +9,5 @@ type SessionData struct {
 	UserID               []byte                               `json:"user_id"`
 	AllowedCredentialIDs [][]byte                             `json:"allowed_credentials,omitempty"`
 	UserVerification     protocol.UserVerificationRequirement `json:"userVerification"`
+	Extensions           protocol.AuthenticationExtensions    `json:"extensions,omitempty"`
 }

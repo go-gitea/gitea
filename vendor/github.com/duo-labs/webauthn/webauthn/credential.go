@@ -21,7 +21,6 @@ type Credential struct {
 
 // MakeNewCredential will return a credential pointer on successful validation of a registration response
 func MakeNewCredential(c *protocol.ParsedCredentialCreationData) (*Credential, error) {
-
 	newCredential := &Credential{
 		ID:              c.Response.AttestationObject.AuthData.AttData.CredentialID,
 		PublicKey:       c.Response.AttestationObject.AuthData.AttData.CredentialPublicKey,

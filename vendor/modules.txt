@@ -253,7 +253,7 @@ github.com/dsnet/compress/bzip2/internal/sais
 github.com/dsnet/compress/internal
 github.com/dsnet/compress/internal/errors
 github.com/dsnet/compress/internal/prefix
-# github.com/duo-labs/webauthn v0.0.0-20211221191814-a22482edaa3b
+# github.com/duo-labs/webauthn v0.0.0-20211221191814-a22482edaa3b => github.com/authelia/webauthn v0.0.0-20211225121951-80d1f2a572e4
 ## explicit
 github.com/duo-labs/webauthn/metadata
 github.com/duo-labs/webauthn/protocol
@@ -1091,3 +1091,4 @@ xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
 # github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
+# github.com/duo-labs/webauthn => github.com/authelia/webauthn v0.0.0-20211225121951-80d1f2a572e4
