@@ -101,7 +101,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
-	mirrorUpdated, _ := time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
+	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
 		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)

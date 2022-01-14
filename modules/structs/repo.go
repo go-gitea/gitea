@@ -94,7 +94,7 @@ type Repository struct {
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
 	// swagger:strfmt date-time
-	MirrorUpdated time.Time     `json:"mirror_updated"`
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
