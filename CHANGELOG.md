@@ -8,12 +8,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BUGFIXES
   * Fix inconsistent PR comment counts (#18260) (#18261)
-  * Fix release link broken (#18253)
-  * Fix update user bug (#18251)
+  * Fix release link broken (#18252) (#18253)
+  * Fix update user bug (18250) (#18251)
   * Set HeadCommit when creating tags. (#18116) (#18173)
   * Use correct translation key for error messages due to max repo limits (#18135 & #18153) (#18152)
 * MISC
-  * Fix purple color in suggested label colors (#18242)
+  * Fix purple color in suggested label colors (#18241) (#18242)
   * Bump mermaid from 8.10.1 to 8.13.8 (#18198) (#18206)
 
 ## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
