@@ -1024,7 +1024,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 }
 
-// roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
+// roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {

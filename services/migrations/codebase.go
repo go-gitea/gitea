@@ -64,7 +64,7 @@ type codebaseUser struct {
 	Email string `json:"email"`
 }
 
-// CodebaseDownloader implements a Downloader interface to get repository informations
+// CodebaseDownloader implements a Downloader interface to get repository information
 // from Codebase
 type CodebaseDownloader struct {
 	base.NullDownloader
@@ -111,7 +111,7 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 	return downloader
 }
 
-// FormatCloneURL add authentification into remote URLs
+// FormatCloneURL add authentication into remote URLs
 func (d *CodebaseDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
 	return opts.CloneAddr, nil
 }

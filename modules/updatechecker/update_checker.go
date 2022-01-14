@@ -5,7 +5,7 @@
 package updatechecker
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/appstate"
@@ -43,7 +43,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func UpdateRemoteVersion(version string) (err error) {
 	return appstate.AppState.Set(&CheckerState{LatestVersion: version})
 }
 
-// GetRemoteVersion returns the current remote version (or currently installed verson if fail to fetch from DB)
+// GetRemoteVersion returns the current remote version (or currently installed version if fail to fetch from DB)
 func GetRemoteVersion() string {
 	item := new(CheckerState)
 	if err := appstate.AppState.Get(item); err != nil {

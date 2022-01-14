@@ -5,7 +5,6 @@
 package web
 
 import (
-	"encoding/gob"
 	"net/http"
 	"os"
 	"path"
@@ -45,7 +44,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/tstranex/u2f"
 )
 
 const (
@@ -98,8 +96,6 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
-
-	gob.Register(&u2f.Challenge{})
 
 	common := []interface{}{}
 
@@ -290,11 +286,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/scratch", auth.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(forms.TwoFactorScratchAuthForm{}), auth.TwoFactorScratchPost)
 		})
-		m.Group("/u2f", func() {
-			m.Get("", auth.U2F)
-			m.Get("/challenge", auth.U2FChallenge)
-			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), auth.U2FSign)
-
+		m.Group("/webauthn", func() {
+			m.Get("", auth.WebAuthn)
+			m.Get("/assertion", auth.WebAuthnLoginAssertion)
+			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})
 	}, reqSignOut)
 
@@ -337,10 +332,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/enroll", security.EnrollTwoFactor)
 				m.Post("/enroll", bindIgnErr(forms.TwoFactorAuthForm{}), security.EnrollTwoFactorPost)
 			})
-			m.Group("/u2f", func() {
-				m.Post("/request_register", bindIgnErr(forms.U2FRegistrationForm{}), security.U2FRegister)
-				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), security.U2FRegisterPost)
-				m.Post("/delete", bindIgnErr(forms.U2FDeleteForm{}), security.U2FDelete)
+			m.Group("/webauthn", func() {
+				m.Post("/request_register", bindIgnErr(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
+				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/delete", bindIgnErr(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", bindIgnErr(forms.AddOpenIDForm{}), security.OpenIDPost)

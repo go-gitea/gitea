@@ -405,7 +405,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoF
 	return files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts)
 }
 
-// DeleteFile Delete a fle in a repository
+// DeleteFile Delete a file in a repository
 func DeleteFile(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/contents/{filepath} repository repoDeleteFile
 	// ---

@@ -15,12 +15,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v2"
 )
 
 func TestDumpRestore(t *testing.T) {
@@ -56,6 +58,8 @@ func TestDumpRestore(t *testing.T) {
 		var opts = migrations.MigrateOptions{
 			GitServiceType: structs.GiteaService,
 			Issues:         true,
+			Labels:         true,
+			Milestones:     true,
 			Comments:       true,
 			AuthToken:      token,
 			CloneAddr:      repo.CloneLink().HTTPS,
@@ -68,7 +72,7 @@ func TestDumpRestore(t *testing.T) {
 		// Verify desired side effects of the dump
 		//
 		d := filepath.Join(basePath, repo.OwnerName, repo.Name)
-		for _, f := range []string{"repo.yml", "topic.yml", "issue.yml"} {
+		for _, f := range []string{"repo.yml", "topic.yml", "label.yml", "milestone.yml", "issue.yml"} {
 			assert.FileExists(t, filepath.Join(d, f))
 		}
 
@@ -77,7 +81,7 @@ func TestDumpRestore(t *testing.T) {
 		//
 
 		newreponame := "restoredrepo"
-		err = migrations.RestoreRepository(ctx, d, repo.OwnerName, newreponame, []string{"issues", "comments"})
+		err = migrations.RestoreRepository(ctx, d, repo.OwnerName, newreponame, []string{"labels", "milestones", "issues", "comments"})
 		assert.NoError(t, err)
 
 		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame}).(*repo_model.Repository)
@@ -94,11 +98,38 @@ func TestDumpRestore(t *testing.T) {
 		// Verify the dump of restoredrepo is the same as the dump of repo1
 		//
 		newd := filepath.Join(basePath, newrepo.OwnerName, newrepo.Name)
-		beforeBytes, err := os.ReadFile(filepath.Join(d, "repo.yml"))
+		for _, filename := range []string{"repo.yml", "label.yml", "milestone.yml"} {
+			beforeBytes, err := os.ReadFile(filepath.Join(d, filename))
+			assert.NoError(t, err)
+			before := strings.ReplaceAll(string(beforeBytes), reponame, newreponame)
+			after, err := os.ReadFile(filepath.Join(newd, filename))
+			assert.NoError(t, err)
+			assert.EqualValues(t, before, string(after))
+		}
+
+		beforeBytes, err := os.ReadFile(filepath.Join(d, "issue.yml"))
 		assert.NoError(t, err)
-		before := strings.ReplaceAll(string(beforeBytes), reponame, newreponame)
-		after, err := os.ReadFile(filepath.Join(newd, "repo.yml"))
+		var before = make([]*base.Issue, 0, 10)
+		assert.NoError(t, yaml.Unmarshal(beforeBytes, &before))
+		afterBytes, err := os.ReadFile(filepath.Join(newd, "issue.yml"))
 		assert.NoError(t, err)
-		assert.EqualValues(t, before, string(after))
+		var after = make([]*base.Issue, 0, 10)
+		assert.NoError(t, yaml.Unmarshal(afterBytes, &after))
+
+		assert.EqualValues(t, len(before), len(after))
+		if len(before) == len(after) {
+			for i := 0; i < len(before); i++ {
+				assert.EqualValues(t, before[i].Number, after[i].Number)
+				assert.EqualValues(t, before[i].Title, after[i].Title)
+				assert.EqualValues(t, before[i].Content, after[i].Content)
+				assert.EqualValues(t, before[i].Ref, after[i].Ref)
+				assert.EqualValues(t, before[i].Milestone, after[i].Milestone)
+				assert.EqualValues(t, before[i].State, after[i].State)
+				assert.EqualValues(t, before[i].IsLocked, after[i].IsLocked)
+				assert.EqualValues(t, before[i].Created, after[i].Created)
+				assert.EqualValues(t, before[i].Updated, after[i].Updated)
+				assert.EqualValues(t, before[i].Labels, after[i].Labels)
+			}
+		}
 	})
 }
