@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -99,11 +101,13 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
+	mirrorUpdated, _ := time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
 	if repo.IsMirror {
 		var err error
 		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
+			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
 		}
 	}
 
@@ -166,6 +170,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		AvatarURL:                 repo.AvatarLink(),
 		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:            mirrorInterval,
+		MirrorUpdated:             mirrorUpdated,
 		RepoTransfer:              transfer,
 	}
 }
