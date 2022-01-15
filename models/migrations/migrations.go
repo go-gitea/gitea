@@ -368,6 +368,8 @@ var migrations = []Migration{
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 	// v207 -> v208
 	NewMigration("Add webauthn table and migrate u2f data to webauthn", addWebAuthnCred),
+	// v208 -> v209
+	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive", useBase32HexForCredIDInWebAuthnCredential),
 }
 
 // GetCurrentDBVersion returns the current db version

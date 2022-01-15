@@ -6,7 +6,7 @@ package auth
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/base32"
 	"fmt"
 	"strings"
 
@@ -94,7 +94,7 @@ type WebAuthnCredentialList []*WebAuthnCredential
 func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
-		credID, _ := base64.RawStdEncoding.DecodeString(cred.CredentialID)
+		credID, _ := base32.HexEncoding.DecodeString(cred.CredentialID)
 		creds = append(creds, webauthn.Credential{
 			ID:              credID,
 			PublicKey:       cred.PublicKey,
@@ -187,7 +187,7 @@ func createCredential(ctx context.Context, userID int64, name string, cred *weba
 	c := &WebAuthnCredential{
 		UserID:          userID,
 		Name:            name,
-		CredentialID:    base64.RawStdEncoding.EncodeToString(cred.ID),
+		CredentialID:    base32.HexEncoding.EncodeToString(cred.ID),
 		PublicKey:       cred.PublicKey,
 		AttestationType: cred.AttestationType,
 		AAGUID:          cred.Authenticator.AAGUID,
