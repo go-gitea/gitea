@@ -56,7 +56,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 	}
 
 	if mergeStyle != "" {
-		templateFilepath := fmt.Sprintf(".gitea/MERGE_MESSAGE_%s_TEMPLATE.md", mergeStyle)
+		templateFilepath := fmt.Sprintf(".gitea/%s_MESSAGE_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			log.Error("GetBranchCommit: %v", err)

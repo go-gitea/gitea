@@ -306,7 +306,7 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 	return true, nil
 }
 
-// GetFileContent reads a file content as a string
+// GetFileContent reads a file content as a string or returns false if this was not possible
 func (c *Commit) GetFileContent(filename string) (string, bool) {
 	entry, err := c.GetTreeEntryByPath(filename)
 	if err != nil {
