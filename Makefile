@@ -292,7 +292,7 @@ fmt-check:
 checks: checks-frontend checks-backend
 
 .PHONY: checks-frontend
-checks-frontend: svg-check
+checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
 checks-backend: test-vendor swagger-check swagger-validate
@@ -696,6 +696,17 @@ svg-check: svg
 	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi
+
+.PHONY: lockfile-check
+lockfile-check:
+	npm install --package-lock-only
+	@diff=$$(git diff package-lock.json); \
+	if [ -n "$$diff" ]; then \
+		echo "package-lock.json is inconsistent with package.json"; \
+		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
