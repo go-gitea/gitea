@@ -38,9 +38,9 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	_ = ctx.Session.Delete("registration")
-	if err := ctx.Session.Set("WebauthnName", form.Name); err != nil {
-		ctx.ServerError("Unable to set session key for WebauthnName", err)
+	_ = ctx.Session.Delete("webauthnRegistration")
+	if err := ctx.Session.Set("webauthnName", form.Name); err != nil {
+		ctx.ServerError("Unable to set session key for webauthnName", err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func WebAuthnRegister(ctx *context.Context) {
 	}
 
 	// Save the session data as marshaled JSON
-	if err = ctx.Session.Set("registration", sessionData); err != nil {
+	if err = ctx.Session.Set("webauthnRegistration", sessionData); err != nil {
 		ctx.ServerError("Unable to set session", err)
 		return
 	}
@@ -61,20 +61,20 @@ func WebAuthnRegister(ctx *context.Context) {
 
 // WebauthnRegisterPost receives the response of the security key
 func WebauthnRegisterPost(ctx *context.Context) {
-	name, ok := ctx.Session.Get("WebauthnName").(string)
+	name, ok := ctx.Session.Get("webauthnName").(string)
 	if !ok || name == "" {
-		ctx.ServerError("Get WebauthnName", errors.New("no WebauthnName"))
+		ctx.ServerError("Get webauthnName", errors.New("no webauthnName"))
 		return
 	}
 
 	// Load the session data
-	sessionData, ok := ctx.Session.Get("registration").(*webauthn.SessionData)
+	sessionData, ok := ctx.Session.Get("webauthnRegistration").(*webauthn.SessionData)
 	if !ok || sessionData == nil {
 		ctx.ServerError("Get registration", errors.New("no registration"))
 		return
 	}
 	defer func() {
-		_ = ctx.Session.Delete("registration")
+		_ = ctx.Session.Delete("webauthnRegistration")
 	}()
 
 	// Verify that the challenge succeeded
@@ -103,6 +103,8 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
+	_ = ctx.Session.Delete("webauthnName")
+
 	ctx.JSON(http.StatusCreated, cred)
 }
 
