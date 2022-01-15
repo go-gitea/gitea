@@ -24,7 +24,7 @@ export function initUserAuthWebAuthn() {
         .then((credential) => {
           verifyAssertion(credential);
         }).catch((err) => {
-          webAuthnError(0, err.message);
+          webAuthnError('general', err.message);
         });
     }).fail(() => {
       webAuthnError('unknown');
@@ -113,10 +113,10 @@ function webauthnRegistered(newCredential) {
 
 function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
-  if (errorType === 0 && message && message.length > 1) {
-    $(`#webauthn-error [data-webauthn-error-msg=0]`).text(message);
-    $(`#webauthn-error [data-webauthn-error-msg=0]`).show();
-  } else {
+  if (errorType === 'general' && message && message.length > 1) {
+    $(`#webauthn-error [data-webauthn-error-msg=general]`).text(message);
+    $(`#webauthn-error [data-webauthn-error-msg=general]`).show();
+  } else if (errorType !== 'general') {
     $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`).show();
   }
   $('#webauthn-error').modal('show');
@@ -185,7 +185,7 @@ function webAuthnRegisterRequest() {
           webAuthnError('unknown');
           return;
         }
-        webAuthnError(0, err);
+        webAuthnError('general', err.message);
       });
   }).fail((xhr) => {
     if (xhr.status === 409) {
