@@ -113,11 +113,16 @@ function webauthnRegistered(newCredential) {
 
 function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
+  const $errorGeneral = $(`#webauthn-error [data-webauthn-error-msg=general]`);
   if (errorType === 'general') {
-    $(`#webauthn-error [data-webauthn-error-msg=general]`).text(message || 'unknown error');
-    $(`#webauthn-error [data-webauthn-error-msg=general]`).show();
-  } else if (errorType !== 'general') {
-    $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`).show();
+    $errorGeneral.show().text(message || 'unknown error');
+  } else {
+    const $errorTyped = $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    if ($errorTyped.length) {
+      $errorTyped.show();
+    } else {
+      $errorGeneral.show().text(`unknown error type: ${errorType}`);
+    }
   }
   $('#webauthn-error').modal('show');
 }
