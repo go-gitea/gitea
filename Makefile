@@ -702,7 +702,7 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	npm install
+	npm install --package-lock-only
 	@diff=$$(git diff package-lock.json); \
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
