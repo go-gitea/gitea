@@ -301,7 +301,7 @@ export function initGlobalButtons() {
     event.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
-      $(sel).hide();
+      $.find(sel).hide();
       return;
     }
     sel = $(this).attr('data-panel-closest');
