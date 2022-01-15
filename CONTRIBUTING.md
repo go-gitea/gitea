@@ -91,7 +91,7 @@ Here's how to run the test suite:
 
 ## Vendoring
 
-We managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
+We manage dependencies via [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance), more details: [go mod](https://go.dev/ref/mod).
 
 Pull requests should only include `go.mod`, `go.sum` updates if they are part of
 the same change, be it a bugfix or a feature addition.
