@@ -624,12 +624,16 @@ func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.R
 			content = "hooray"
 		}
 
-		user := r.users[l.User]
-		res = append(res, &base.Reaction{
-			UserID:   user.ID(),
-			UserName: user.Login,
-			Content:  content,
-		})
+		user, ok := r.users[l.User]
+		if !ok {
+			log.Warn("Cannot get user %s infomation, ignored", l.User)
+		} else {
+			res = append(res, &base.Reaction{
+				UserID:   user.ID(),
+				UserName: user.Login,
+				Content:  content,
+			})
+		}
 	}
 	return res
 }
@@ -656,6 +660,8 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 			if issue.ClosedAt != nil {
 				state = "closed"
 			}
+
+			issue.Body = strings.ReplaceAll(issue.Body, "\u0000", "")
 
 			issues = append(issues, &base.Issue{
 				Number:      issue.Index(),

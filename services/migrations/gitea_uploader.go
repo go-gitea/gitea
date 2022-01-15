@@ -468,6 +468,9 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			} else {
 				lb, err := models.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
 				if err != nil {
+					if models.IsErrLabelNotExist(err) {
+						continue
+					}
 					return err
 				}
 				if data["type"] == "add" {
@@ -540,46 +543,53 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 }
 
 func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
-	// download patch file
-	err = func() error {
-		if pr.PatchURL == "" {
-			return nil
-		}
-		// pr.PatchURL maybe a local file
-		ret, err := uri.Open(pr.PatchURL)
-		if err != nil {
-			return err
-		}
-		defer ret.Close()
-		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-			return err
-		}
-		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		_, err = io.Copy(f, ret)
-		return err
-	}()
+	refs, err := g.gitRepo.GetRefsFiltered(fmt.Sprintf("refs/pull/%d/head", pr.Number))
 	if err != nil {
 		return "", err
 	}
 
-	// set head information
 	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
-	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-		return "", err
-	}
-	p, err := os.Create(filepath.Join(pullHead, "head"))
-	if err != nil {
-		return "", err
-	}
-	_, err = p.WriteString(pr.Head.SHA)
-	p.Close()
-	if err != nil {
-		return "", err
+
+	if len(refs) == 0 {
+		// download patch file
+		if err = func() error {
+			if pr.PatchURL == "" {
+				return nil
+			}
+			// pr.PatchURL maybe a local file
+			ret, err := uri.Open(pr.PatchURL)
+			if err != nil {
+				return err
+			}
+			defer ret.Close()
+			pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
+			if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+				return err
+			}
+			f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			_, err = io.Copy(f, ret)
+			return err
+		}(); err != nil {
+			return "", err
+		}
+
+		// set head information
+		if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
+			return "", err
+		}
+		p, err := os.Create(filepath.Join(pullHead, "head"))
+		if err != nil {
+			return "", err
+		}
+		_, err = p.WriteString(pr.Head.SHA)
+		p.Close()
+		if err != nil {
+			return "", err
+		}
 	}
 
 	head = "unknown repository"
