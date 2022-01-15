@@ -24,7 +24,7 @@ export function initUserAuthWebAuthn() {
         .then((credential) => {
           verifyAssertion(credential);
         }).catch((err) => {
-          webAuthnError(0, err.message);
+          webAuthnError('general', err.message);
         });
     }).fail(() => {
       webAuthnError('unknown');
@@ -113,11 +113,16 @@ function webauthnRegistered(newCredential) {
 
 function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
-  if (errorType === 0 && message && message.length > 1) {
-    $(`#webauthn-error [data-webauthn-error-msg=0]`).text(message);
-    $(`#webauthn-error [data-webauthn-error-msg=0]`).show();
+  const $errorGeneral = $(`#webauthn-error [data-webauthn-error-msg=general]`);
+  if (errorType === 'general') {
+    $errorGeneral.show().text(message || 'unknown error');
   } else {
-    $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`).show();
+    const $errorTyped = $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    if ($errorTyped.length) {
+      $errorTyped.show();
+    } else {
+      $errorGeneral.show().text(`unknown error type: ${errorType}`);
+    }
   }
   $('#webauthn-error').modal('show');
 }
@@ -149,7 +154,6 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  $('#register-device').modal({allowMultiple: false});
   $('#webauthn-error').modal({allowMultiple: false});
   $('#register-webauthn').on('click', (e) => {
     e.preventDefault();
@@ -167,7 +171,6 @@ function webAuthnRegisterRequest() {
     name: $('#nickname').val(),
   }).done((makeCredentialOptions) => {
     $('#nickname').closest('div.field').removeClass('error');
-    $('#register-device').modal('show');
 
     makeCredentialOptions.publicKey.challenge = decode(makeCredentialOptions.publicKey.challenge);
     makeCredentialOptions.publicKey.user.id = decode(makeCredentialOptions.publicKey.user.id);
@@ -185,7 +188,7 @@ function webAuthnRegisterRequest() {
           webAuthnError('unknown');
           return;
         }
-        webAuthnError(0, err);
+        webAuthnError('general', err.message);
       });
   }).fail((xhr) => {
     if (xhr.status === 409) {
