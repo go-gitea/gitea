@@ -1,4 +1,5 @@
 {
+  "name": "gitea",
   "license": "MIT",
   "private": true,
   "type": "module",
