@@ -6,7 +6,7 @@ package migrations
 
 import (
 	"crypto/elliptic"
-	"encoding/base32"
+	"encoding/base64"
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
@@ -67,7 +67,7 @@ func addWebAuthnCred(x *xorm.Engine) error {
 				Name:            reg.Name,
 				LowerName:       strings.ToLower(reg.Name),
 				UserID:          reg.UserID,
-				CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
+				CredentialID:    base64.RawStdEncoding.EncodeToString(parsed.KeyHandle),
 				PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
 				AttestationType: "fido-u2f",
 				AAGUID:          []byte{},
