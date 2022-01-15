@@ -626,7 +626,7 @@ func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.R
 
 		user, ok := r.users[l.User]
 		if !ok {
-			log.Warn("Cannot get user %s infomation, ignored", l.User)
+			log.Warn("Cannot get user %s information, ignored", l.User)
 		} else {
 			res = append(res, &base.Reaction{
 				UserID:   user.ID(),
@@ -758,6 +758,7 @@ type githubIssueEvent struct {
 	LabelColor       string `json:"label_color"`
 	LabelTextColor   string `json:"label_text_color"`
 	MilestoneTitle   string `json:"milestone_title"`
+	Subject          string
 	TitleWas         string `json:"title_was"`
 	TitleIs          string `json:"title_is"`
 }
@@ -768,7 +769,9 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	case "closed":
 		return map[string]interface{}{}
 	case "referenced":
-		return map[string]interface{}{}
+		return map[string]interface{}{
+			"CommitID": g.CommitID,
+		}
 	case "merged":
 		return map[string]interface{}{}
 	case "mentioned":
@@ -779,6 +782,12 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 		return map[string]interface{}{}
 	case "milestoned":
 		return map[string]interface{}{
+			"type":           "add",
+			"MilestoneTitle": g.MilestoneTitle,
+		}
+	case "demilestoned":
+		return map[string]interface{}{
+			"type":           "remove",
 			"MilestoneTitle": g.MilestoneTitle,
 		}
 	case "labeled":
@@ -790,7 +799,10 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 			"LabelTextColor": g.LabelTextColor,
 		}
 	case "renamed":
-		return map[string]interface{}{}
+		return map[string]interface{}{
+			"OldTitle": g.TitleWas,
+			"NewTitle": g.TitleIs,
+		}
 	case "reopened":
 		return map[string]interface{}{}
 	case "unlabeled":
@@ -802,7 +814,10 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 			"LabelTextColor": g.LabelTextColor,
 		}
 	case "assigned":
-		return map[string]interface{}{}
+		return map[string]interface{}{
+			"Actor":   g.Actor,
+			"Subject": g.Subject,
+		}
 	default:
 		return map[string]interface{}{}
 	}
@@ -824,6 +839,8 @@ func (g *githubIssueEvent) CommentStr() string {
 	case "head_ref_deleted":
 		return "delete_branch"
 	case "milestoned":
+		return "milestone"
+	case "demilestoned":
 		return "milestone"
 	case "labeled":
 		return "label"

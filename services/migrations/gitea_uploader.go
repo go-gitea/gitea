@@ -465,6 +465,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
 			} else {
 				lb, err := models.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
 				if err != nil {
@@ -486,14 +487,42 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
 			} else {
 				milestone, err := models.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
 				if err != nil {
 					log.Error("GetMilestoneByRepoIDANDName %d, %s failed: %v", issue.RepoID, data["MilestoneTitle"], err)
 				} else {
-					cm.MilestoneID = milestone.ID
+					if data["type"] == "add" {
+						cm.MilestoneID = milestone.ID
+					} else if data["type"] == "remove" {
+						cm.OldMilestoneID = milestone.ID
+					}
 				}
 			}
+		case models.CommentTypeChangeTitle:
+			var data = make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
+			} else {
+				cm.OldTitle = data["OldTitle"]
+				cm.NewTitle = data["NewTitle"]
+			}
+		case models.CommentTypeCommitRef:
+			var data = make(map[string]string)
+			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
+				log.Error("unmarshal %s failed: %v", cm.Content, err)
+				continue
+			} else {
+				cm.CommitSHA = data["CommitID"]
+			}
+		/*{
+			"Actor":   g.Actor,
+			"Subject": g.Subject,
+		}*/
+		case models.CommentTypeAssignees:
+			continue
 		}
 
 		// add reactions
