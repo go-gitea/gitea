@@ -113,8 +113,8 @@ function webauthnRegistered(newCredential) {
 
 function webAuthnError(errorType, message) {
   $('#webauthn-error [data-webauthn-error-msg]').hide();
-  if (errorType === 'general' && message && message.length > 1) {
-    $(`#webauthn-error [data-webauthn-error-msg=general]`).text(message);
+  if (errorType === 'general') {
+    $(`#webauthn-error [data-webauthn-error-msg=general]`).text(message || 'unknown error');
     $(`#webauthn-error [data-webauthn-error-msg=general]`).show();
   } else if (errorType !== 'general') {
     $(`#webauthn-error [data-webauthn-error-msg=${errorType}]`).show();
