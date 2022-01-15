@@ -295,7 +295,7 @@ checks: checks-frontend checks-backend
 checks-frontend: svg-check
 
 .PHONY: checks-backend
-checks-backend: swagger-check swagger-validate
+checks-backend: test-vendor swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -371,7 +371,7 @@ vendor:
 
 .PHONY: test-vendor
 test-vendor: vendor
-	@diff=$$(git diff vendor/); \
+	@diff=$$(git diff go.mod go.sum); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make vendor' and commit the result:"; \
 		echo "$${diff}"; \
