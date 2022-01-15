@@ -12,7 +12,7 @@
     "codemirror": "5.61.0",
     "css-loader": "5.2.4",
     "dropzone": "5.9.2",
-    "easymde": "2.15.0",
+    "easymde": "2.16.1",
     "esbuild-loader": "2.13.0",
     "escape-goat": "4.0.0",
     "fast-glob": "3.2.5",
