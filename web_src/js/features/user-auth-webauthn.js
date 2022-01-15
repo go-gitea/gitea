@@ -149,7 +149,6 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  $('#register-device').modal({allowMultiple: false});
   $('#webauthn-error').modal({allowMultiple: false});
   $('#register-webauthn').on('click', (e) => {
     e.preventDefault();
@@ -167,7 +166,6 @@ function webAuthnRegisterRequest() {
     name: $('#nickname').val(),
   }).done((makeCredentialOptions) => {
     $('#nickname').closest('div.field').removeClass('error');
-    $('#register-device').modal('show');
 
     makeCredentialOptions.publicKey.challenge = decode(makeCredentialOptions.publicKey.challenge);
     makeCredentialOptions.publicKey.user.id = decode(makeCredentialOptions.publicKey.user.id);
