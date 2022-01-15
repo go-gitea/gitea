@@ -164,13 +164,13 @@ func HasWebAuthnRegistrationsByUID(uid int64) (bool, error) {
 }
 
 // GetWebAuthnCredentialByCredID returns WebAuthn credential by credential ID
-func GetWebAuthnCredentialByCredID(credID string) (*WebAuthnCredential, error) {
-	return getWebAuthnCredentialByCredID(db.DefaultContext, credID)
+func GetWebAuthnCredentialByCredID(userID int64, credID string) (*WebAuthnCredential, error) {
+	return getWebAuthnCredentialByCredID(db.DefaultContext, userID, credID)
 }
 
-func getWebAuthnCredentialByCredID(ctx context.Context, credID string) (*WebAuthnCredential, error) {
+func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID string) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
-	if found, err := db.GetEngine(ctx).Where("credential_id = ?", credID).Get(cred); err != nil {
+	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id = ?", userID, credID).Get(cred); err != nil {
 		return nil, err
 	} else if !found {
 		return nil, ErrWebAuthnCredentialNotExist{CredentialID: credID}
