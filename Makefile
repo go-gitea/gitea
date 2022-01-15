@@ -706,7 +706,7 @@ lockfile-check:
 	@diff=$$(git diff package-lock.json); \
 	if [ -n "$$diff" ]; then \
 		echo "package-lock.json is inconsistent with package.json"; \
-		echo "Please run 'npm install' and commit the result:"; \
+		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
