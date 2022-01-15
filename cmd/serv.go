@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -253,7 +253,8 @@ func runServ(c *cli.Context) error {
 
 		now := time.Now()
 		claims := lfs.Claims{
-			StandardClaims: jwt.StandardClaims{
+			// FIXME: we need to migrate to RegisteredClaims
+			StandardClaims: jwt.StandardClaims{ // nolint
 				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 				NotBefore: now.Unix(),
 			},

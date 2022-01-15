@@ -1,4 +1,5 @@
 {
+  "name": "gitea",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -12,7 +13,7 @@
     "codemirror": "5.64.0",
     "css-loader": "6.5.1",
     "dropzone": "6.0.0-beta.2",
-    "easymde": "2.15.0",
+    "easymde": "2.16.1",
     "esbuild-loader": "2.16.0",
     "escape-goat": "4.0.0",
     "fast-glob": "3.2.7",
@@ -30,6 +31,7 @@
     "sortablejs": "1.14.0",
     "swagger-ui-dist": "4.1.3",
     "tributejs": "5.1.3",
+    "uint8-to-base64": "0.2.0",
     "vue": "2.6.14",
     "vue-bar-graph": "1.3.0",
     "vue-calendar-heatmap": "0.8.4",
