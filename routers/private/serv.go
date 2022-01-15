@@ -113,7 +113,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			// User is fetching/cloning a non-existent repository
-			log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
@@ -144,7 +144,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
-					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+					log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 					ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 						Results: results,
 						Err:     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
@@ -334,7 +334,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			userMode := perm.UnitAccessMode(unitType)
 
 			if userMode < mode {
-				log.Error("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("User: %d:%s with Key: %d:%s is not authorized to %s %s/%s.", user.ID, user.Name, key.ID, key.Name, modeString, ownerName, repoName),
