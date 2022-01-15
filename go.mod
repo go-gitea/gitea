@@ -54,7 +54,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.2.0
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-github/v39 v39.2.0
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/sessions v1.2.1
@@ -146,3 +146,5 @@ replace github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/duo-labs/webauthn => github.com/authelia/webauthn v0.0.0-20211225121951-80d1f2a572e4
+
+replace github.com/satori/go.uuid v1.2.0 => github.com/zeripath/no-more-satori-go.uuid v1.2.1-0.20220115113349-b7876dc07aa8
