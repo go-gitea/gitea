@@ -175,7 +175,6 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 			return nil, nil, 0
 		}
 		log.Warn("loadBranches: missing default branch %s for %-v", ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository)
-		err = nil
 	}
 
 	rawBranches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, limit)
