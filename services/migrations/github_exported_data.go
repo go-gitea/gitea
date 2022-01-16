@@ -769,7 +769,14 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	case "closed":
 		return map[string]interface{}{}
 	case "referenced":
+		var tp = "commit_ref"
+		if g.Issue != "" {
+			tp = "issue_ref"
+		} else if g.PullRequest != "" {
+			tp = "pull_ref"
+		}
 		return map[string]interface{}{
+			"type":     tp,
 			"CommitID": g.CommitID,
 		}
 	case "merged":
@@ -852,6 +859,10 @@ func (g *githubIssueEvent) CommentStr() string {
 		return "label"
 	case "assigned":
 		return "assignees"
+	case "pinned":
+		return "pinned"
+	case "unpinned":
+		return "unpinned"
 	default:
 		return "comment"
 	}
@@ -1019,6 +1030,22 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 			if pr.MergedAt != nil || pr.ClosedAt != nil {
 				state = "closed"
 			}
+			var isFork = !(pr.Head.User == pr.Base.User && pr.Head.Repo == pr.Base.Repo)
+			var head = base.PullRequestBranch{
+				Ref: pr.Head.Ref,
+				SHA: pr.Head.Sha,
+			}
+			if isFork {
+				if pr.Head.User != "" {
+					fields := strings.Split(pr.Head.User, "/")
+					if pr.Head.Ref == "" {
+						pr.Head.Ref = fmt.Sprintf("%d", pr.Index())
+					}
+					head.Ref = fmt.Sprintf("%s/%s", fields[len(fields)-1], pr.Head.Ref)
+				} else {
+					head.Ref = fmt.Sprintf("pr/%d", pr.Index())
+				}
+			}
 			pulls = append(pulls, &base.PullRequest{
 				Number:      pr.Index(),
 				Title:       pr.Title,
@@ -1038,11 +1065,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				Merged:     pr.MergedAt != nil,
 				MergedTime: pr.MergedAt,
 				//MergeCommitSHA : pr.Merge
-				Head: base.PullRequestBranch{
-					Ref: pr.Head.Ref,
-					SHA: pr.Head.Sha,
-					// TODO:
-				},
+				Head: head,
 				Base: base.PullRequestBranch{
 					Ref: pr.Base.Ref,
 					SHA: pr.Base.Sha,

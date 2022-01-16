@@ -474,12 +474,12 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 					}
 					return err
 				}
+				cm.LabelID = lb.ID
 				if data["type"] == "add" {
-					cm.LabelID = lb.ID
+					cm.Content = "1"
 				} else {
-					cm.LabelID = -lb.ID
+					cm.Content = ""
 				}
-				cm.Content = "1"
 			}
 
 			/*{"MilestoneTitle":"1.1.0"}*/
@@ -492,6 +492,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				milestone, err := models.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
 				if err != nil {
 					log.Error("GetMilestoneByRepoIDANDName %d, %s failed: %v", issue.RepoID, data["MilestoneTitle"], err)
+					continue
 				} else {
 					if data["type"] == "add" {
 						cm.MilestoneID = milestone.ID
@@ -501,7 +502,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				}
 			}
 		case models.CommentTypeChangeTitle:
-			var data = make(map[string]string)
+			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
 				continue
@@ -510,18 +511,24 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				cm.NewTitle = data["NewTitle"]
 			}
 		case models.CommentTypeCommitRef:
-			var data = make(map[string]string)
+			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
 				continue
 			} else {
 				cm.CommitSHA = data["CommitID"]
+				// cm.Content = fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			}
+			continue
 		/*{
 			"Actor":   g.Actor,
 			"Subject": g.Subject,
 		}*/
 		case models.CommentTypeAssignees:
+			continue
+		case models.CommentTypeCommentRef, models.CommentTypeIssueRef, models.CommentTypePullRef:
+			continue
+		case models.CommentTypeDeleteBranch:
 			continue
 		}
 
@@ -571,7 +578,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 	return nil
 }
 
-func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
+func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (string, error) {
 	refs, err := g.gitRepo.GetRefsFiltered(fmt.Sprintf("refs/pull/%d/head", pr.Number))
 	if err != nil {
 		return "", err
@@ -621,41 +628,50 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		}
 	}
 
-	head = "unknown repository"
-	if pr.IsForkPullRequest() && pr.State != "closed" {
-		if pr.Head.OwnerName != "" {
-			remote := pr.Head.OwnerName
-			_, ok := g.prHeadCache[remote]
-			if !ok {
-				// git remote add
-				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-				if err != nil {
-					log.Error("AddRemote failed: %s", err)
-				} else {
-					g.prHeadCache[remote] = struct{}{}
-					ok = true
+	head := "unknown repository"
+	if pr.State != "closed" {
+		if pr.IsForkPullRequest() {
+			if pr.Head.OwnerName != "" {
+				remote := pr.Head.OwnerName
+				_, ok := g.prHeadCache[remote]
+				if !ok {
+					// git remote add
+					err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+					if err != nil {
+						log.Error("AddRemote failed: %s", err)
+					} else {
+						g.prHeadCache[remote] = struct{}{}
+						ok = true
+					}
+				}
+
+				if ok {
+					_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+					if err != nil {
+						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					} else {
+						headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+							return "", err
+						}
+						b, err := os.Create(headBranch)
+						if err != nil {
+							return "", err
+						}
+						_, err = b.WriteString(pr.Head.SHA)
+						b.Close()
+						if err != nil {
+							return "", err
+						}
+						head = pr.Head.OwnerName + "/" + pr.Head.Ref
+					}
 				}
 			}
-
-			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-				if err != nil {
-					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				} else {
-					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
-					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return "", err
-					}
-					b, err := os.Create(headBranch)
-					if err != nil {
-						return "", err
-					}
-					_, err = b.WriteString(pr.Head.SHA)
-					b.Close()
-					if err != nil {
-						return "", err
-					}
-					head = pr.Head.OwnerName + "/" + pr.Head.Ref
+		} else {
+			head = pr.Head.Ref
+			if !g.gitRepo.IsBranchExist(pr.Head.Ref) && pr.Head.SHA != "" {
+				if err := g.gitRepo.CreateBranch(pr.Head.Ref, pr.Head.SHA); err != nil {
+					return "", err
 				}
 			}
 		}
