@@ -124,7 +124,7 @@ export function initGlobalCommon() {
   $('.tabable.menu .item').tab();
 
   $('.toggle.button').on('click', function () {
-    $($(this).data('target')).slideToggle(100);
+    $.find($(this).data('target')).slideToggle(100);
   });
 
   // make table <tr> and <td> elements clickable like a link
@@ -202,7 +202,7 @@ export function initGlobalLinkActions() {
       closable: false,
       onApprove() {
         if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
+          $.find($this.data('form')).trigger('submit');
           return;
         }
 
@@ -240,7 +240,7 @@ export function initGlobalLinkActions() {
       closable: false,
       onApprove() {
         if ($this.data('type') === 'form') {
-          $($this.data('form')).trigger('submit');
+          $.find($this.data('form')).trigger('submit');
           return;
         }
 
@@ -293,7 +293,7 @@ export function initGlobalLinkActions() {
 
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
-    $($(this).data('panel')).show();
+    $.find($(this).data('panel')).show();
   });
 
   $('.hide-panel.button').on('click', function (event) {
@@ -301,7 +301,7 @@ export function initGlobalButtons() {
     event.preventDefault();
     let sel = $(this).attr('data-panel');
     if (sel) {
-      $(sel).hide();
+      $.find(sel).hide();
       return;
     }
     sel = $(this).attr('data-panel-closest');
@@ -314,8 +314,8 @@ export function initGlobalButtons() {
   });
 
   $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+    $.find($(this).data('modal')).modal('show');
+    const colorPickers = $.find($(this).data('modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }

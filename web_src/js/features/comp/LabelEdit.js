@@ -1,7 +1,7 @@
 import {initCompColorPicker} from './ColorPicker.js';
 
 export function initCompLabelEdit(selector) {
-  if (!$(selector).length) return;
+  if (!$.find(selector).length) return;
   // Create label
   const $newLabelPanel = $('.new-label.segment');
   $('.new-label.button').on('click', () => {
