@@ -4,43 +4,41 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "repo/sub_menu" .}}
-		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.default_branch"}}
-		</h4>
+		{{if .DefaultBranchBranch}}
+			<h4 class="ui top attached header">
+				{{.i18n.Tr "repo.default_branch"}}
+			</h4>
 
-		<div class="ui attached table segment">
-			<table class="ui very basic striped fixed table single line">
-				<tbody>
-					<tr>
-						<td>
-						{{range .Branches}}
-							{{if eq .Name $.DefaultBranch}}
-								{{if .IsProtected}}
+			<div class="ui attached table segment">
+				<table class="ui very basic striped fixed table single line">
+					<tbody>
+						<tr>
+							<td>
+								{{if .DefaultBranchBranch.IsProtected}}
 									{{svg "octicon-shield-lock"}}
 								{{end}}
-								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.DefaultBranch}}">{{$.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
-							{{end}}
-						{{end}}
-						</td>
-						<td class="right aligned overflow-visible">
-							{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-								<div class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
-									{{svg "octicon-git-branch"}}
+								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch}}">{{.DefaultBranch}}</a>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.i18n.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .i18n.Lang}}</p>
+							</td>
+							<td class="right aligned overflow-visible">
+								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
+									<div class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
+										{{svg "octicon-git-branch"}}
+									</div>
+								{{end}}
+								<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
+									{{svg "octicon-download"}}
+									<div class="menu">
+										<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+										<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+									</div>
 								</div>
-							{{end}}
-							<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
-								{{svg "octicon-download"}}
-								<div class="menu">
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
-								</div>
-							</div>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		{{end}}
 
 		{{if gt (len .Branches) 1}}
 			<h4 class="ui top attached header">
@@ -65,7 +63,7 @@
 									{{end}}
 									</td>
 									<td class="three wide ui">
-										{{if not .IsDeleted}}
+										{{if and (not .IsDeleted) $.DefaultBranchBranch}}
 										<div class="commit-divergence">
 											<div class="bar-group">
 												<div class="count count-behind">{{.CommitsBehind}}</div>
