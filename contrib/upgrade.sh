@@ -70,10 +70,14 @@ chown "$giteauser" "$binname"
 chmod +x "$binname"
 
 # stop gitea, create backup, replace binary, restart gitea
+echo "Stopping gitea at $(date)"
 giteacmd manager flush-queues
 $sudocmd systemctl stop gitea
+echo "Creating backup in $giteahome"
 giteacmd dump $backupopts
+echo "Updating binary at $giteabin"
 mv --force --backup "$binname" "$giteabin"
 $sudocmd systemctl start gitea
+$sudocmd systemctl status gitea
 
 popd
