@@ -19,6 +19,7 @@ set -e
 : ${giteauser:=git}
 : ${sudocmd:=sudo}
 : ${arch:=linux-amd64}
+: ${backupopts:=--skip-lfs-data --skip-repository --skip-attachment-data --skip-log}
 
 function giteacmd {
   "$sudocmd" -u "$giteauser" "$giteabin" -c "$giteaconf" -w "$giteahome" $@
@@ -71,7 +72,7 @@ chmod +x "$binname"
 # stop gitea, create backup, replace binary, restart gitea
 giteacmd manager flush-queues
 $sudocmd systemctl stop gitea
-giteacmd dump
+giteacmd dump $backupopts
 mv -fb $binname $giteabin
 $sudocmd systemctl start gitea
 
