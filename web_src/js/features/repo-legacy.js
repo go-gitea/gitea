@@ -42,7 +42,7 @@ export function initRepoCommentForm() {
     $branchMenu.find('.item:not(.no-select)').click(function () {
       const selectedValue = $(this).data('id');
       const editMode = $('#editing_mode').val();
-      $($(this).data('id-selector')).val(selectedValue);
+      $.find($(this).data('id-selector')).val(selectedValue);
       if ($isNewIssue) {
         $selectBranch.find('.ui .branch-name').text($(this).data('name'));
         return;
@@ -58,7 +58,7 @@ export function initRepoCommentForm() {
     $selectBranch.find('.reference.column').on('click', function () {
       $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
       $selectBranch.find('.reference .text').removeClass('black');
-      $($(this).data('target')).css('display', 'block');
+      $.find($(this).data('target')).css('display', 'block');
       $(this).find('.text').addClass('black');
       return false;
     });
@@ -145,9 +145,9 @@ export function initRepoCommentForm() {
       $(this).parent().find('.item').each(function () {
         if ($(this).hasClass('checked')) {
           listIds.push($(this).data('id'));
-          $($(this).data('id-selector')).removeClass('hide');
+          $.find($(this).data('id-selector')).removeClass('hide');
         } else {
-          $($(this).data('id-selector')).addClass('hide');
+          $.find($(this).data('id-selector')).addClass('hide');
         }
       });
       if (listIds.length === 0) {
@@ -155,7 +155,7 @@ export function initRepoCommentForm() {
       } else {
         $noSelect.addClass('hide');
       }
-      $($(this).parent().data('id')).val(listIds.join(','));
+      $.find($(this).parent().data('id')).val(listIds.join(','));
       return false;
     });
     $listMenu.find('.no-select.item').on('click', function (e) {
@@ -182,7 +182,7 @@ export function initRepoCommentForm() {
         $(this).addClass('hide');
       });
       $noSelect.removeClass('hide');
-      $($(this).parent().data('id')).val('');
+      $.find($(this).parent().data('id')).val('');
     });
   }
 
@@ -247,7 +247,7 @@ export function initRepoCommentForm() {
 
       $list.find('.selected').html('');
       $list.find('.no-select').removeClass('hide');
-      $(input_id).val('');
+      $.find(input_id).val('');
     });
   }
 
@@ -450,20 +450,20 @@ export function initRepository() {
     // Enable or select internal/external wiki system and issue tracker.
     $('.enable-system').on('change', function () {
       if (this.checked) {
-        $($(this).data('target')).removeClass('disabled');
-        if (!$(this).data('context')) $($(this).data('context')).addClass('disabled');
+        $.find($(this).data('target')).removeClass('disabled');
+        if (!$(this).data('context')) $.find($(this).data('context')).addClass('disabled');
       } else {
-        $($(this).data('target')).addClass('disabled');
-        if (!$(this).data('context')) $($(this).data('context')).removeClass('disabled');
+        $.find($(this).data('target')).addClass('disabled');
+        if (!$(this).data('context')) $.find($(this).data('context')).removeClass('disabled');
       }
     });
     $('.enable-system-radio').on('change', function () {
       if (this.value === 'false') {
-        $($(this).data('target')).addClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).removeClass('disabled');
+        $.find($(this).data('target')).addClass('disabled');
+        if (typeof $(this).data('context') !== 'undefined') $.find($(this).data('context')).removeClass('disabled');
       } else if (this.value === 'true') {
-        $($(this).data('target')).removeClass('disabled');
-        if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
+        $.find($(this).data('target')).removeClass('disabled');
+        if (typeof $(this).data('context') !== 'undefined') $.find($(this).data('context')).addClass('disabled');
       }
     });
   }

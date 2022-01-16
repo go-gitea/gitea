@@ -15,7 +15,7 @@ export function initRepoDiffFileViewToggle() {
     $this.parent().children().removeClass('active');
     $this.addClass('active');
 
-    const $target = $($this.data('toggle-selector'));
+    const $target = $.find($this.data('toggle-selector'));
     $target.parent().children().addClass('hide');
     $target.removeClass('hide');
   });

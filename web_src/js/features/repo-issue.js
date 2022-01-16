@@ -28,7 +28,7 @@ export function initRepoIssueTimeTracking() {
   });
   $(document).on('click', 'button.issue-delete-time', function () {
     const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
-    $(sel).modal({
+    $.find(sel).modal({
       duration: 200,
       onApprove() {
         $(`${sel} form`).trigger('submit');
@@ -535,7 +535,7 @@ export function initRepoIssueReferenceIssue() {
     const content = $(`#comment-${$this.data('target')}`).text();
     const poster = $this.data('poster-username');
     const reference = $this.data('reference');
-    const $modal = $($this.data('modal'));
+    const $modal = $.find($this.data('modal'));
     $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
     $modal.modal('show');
 
