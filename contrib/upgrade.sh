@@ -22,7 +22,7 @@ set -e
 : ${backupopts:=--skip-lfs-data --skip-repository --skip-attachment-data --skip-log}
 
 function giteacmd {
-  "$sudocmd" -u "$giteauser" "$giteabin" -c "$giteaconf" -w "$giteahome" $@
+  "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" $@
 }
 
 function require {
@@ -41,7 +41,7 @@ else
 fi
 
 # confirm update
-current=$(giteacmd --version | cut -d' ' -f3)
+current=$(giteacmd --version | cut --delimiter=' ' --fields=3)
 [[ "$current" == "$giteaversion" ]] && echo "$current is already installed, stopping." && exit 1
 echo "Make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
 echo "Are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
@@ -55,17 +55,17 @@ cd "$giteahome" # needed for gitea dump later
 binname=gitea-${giteaversion}-${arch}
 binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
 echo "Downloading $binurl..."
-curl --connect-timeout 10 -sSfLO "$binurl{,.sha256,.asc}"
+curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.sha256,.asc}"
 
 # validate checksum & gpg signature (exit script if error)
-sha256sum -c ${binname}.xz.sha256
+sha256sum --check ${binname}.xz.sha256
 # TODO 2022-06-24: this gpg key will expire!
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify ${binname}.xz.asc ${binname}.xz
 rm ${binname}.xz.{sha256,asc}
 
 # unpack binary + make executable
-xz -d ${binname}.xz
+xz --decompress ${binname}.xz
 chown "$giteauser" "$binname"
 chmod +x "$binname"
 
@@ -73,7 +73,7 @@ chmod +x "$binname"
 giteacmd manager flush-queues
 $sudocmd systemctl stop gitea
 giteacmd dump $backupopts
-mv -fb $binname $giteabin
+mv --force --backup "$binname" "$giteabin"
 $sudocmd systemctl start gitea
 
 popd
