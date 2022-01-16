@@ -52,14 +52,14 @@ export function initRepoSettingBranches() {
     initRepoCommonFilterSearchDropdown('.protected-branches .dropdown');
     $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
       if (this.checked) {
-        $.find($(this).data('target')).removeClass('disabled');
+        $($(this).data('target')).removeClass('disabled');
       } else {
-        $.find($(this).data('target')).addClass('disabled');
+        $($(this).data('target')).addClass('disabled');
       }
     });
     $('.disable-whitelist').on('change', function () {
       if (this.checked) {
-        $.find($(this).data('target')).addClass('disabled');
+        $($(this).data('target')).addClass('disabled');
       }
     });
   }
