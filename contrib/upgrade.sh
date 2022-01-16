@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# This is an update script for gitea deployed from the binary distribution
-# from dl.gitea.io on linux as systemd service. It performs backup and updates
+# This is an update script for gitea installed via the binary distribution
+# from dl.gitea.io on linux as systemd service. It performs a backup and updates
 # Gitea in place.
 # Depends on: bash, curl, xz, sha256sum, gpg, which. optionally jq.
 # Usage:      [environment vars] upgrade.sh [version]
@@ -34,26 +34,27 @@ require curl xz sha256sum gpg
 # select version to install
 if [[ -z "$1" ]]; then
   require jq
-	giteaversion=`curl -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version`
+  giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
 else
-	giteaversion="${1}"
+	giteaversion="$1"
 fi
 
 # confirm update
-current=`giteacmd --version | cut -d' ' -f3`
-echo "make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
-echo "are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
+current=$(giteacmd --version | cut -d' ' -f3)
+[[ "$current" == "$giteaversion" ]] && echo "$current is already installed, stopping." && exit 1
+echo "Make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
+echo "Are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
 read confirm
 [[ "$confirm" == "y" ]] || exit 1
 
-pushd `pwd`
-cd $giteahome # needed for gitea dump later
+pushd $(pwd)
+cd "$giteahome" # needed for gitea dump later
 
 # download new binary
 binname=gitea-${giteaversion}-${arch}
 binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
 echo "Downloading $binurl..."
-curl -sSfLO "$binurl{,.sha256,.asc}"
+curl --connect-timeout 10 -sSfLO "$binurl{,.sha256,.asc}"
 
 # validate checksum & gpg signature (exit script if error)
 sha256sum -c ${binname}.xz.sha256
@@ -64,7 +65,8 @@ rm ${binname}.xz.{sha256,asc}
 
 # unpack binary + make executable
 xz -d ${binname}.xz
-chmod +x $binname
+chown "$giteauser" "$binname"
+chmod +x "$binname"
 
 # stop gitea, create backup, replace binary, restart gitea
 giteacmd manager flush-queues
