@@ -2,7 +2,7 @@ import Vue from 'vue';
 import {vueDelimiters} from './VueComponentLoader.js';
 
 export function initRepoBranchTagDropdown(selector) {
-  $.find(selector).each(function () {
+  $(selector).each(function () {
     const $dropdown = $(this);
     const $data = $dropdown.find('.data');
     const data = {
