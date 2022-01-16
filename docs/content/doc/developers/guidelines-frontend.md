@@ -127,8 +127,3 @@ We forbid `dataset` usage, its camel-casing behaviour makes it hard to grep for 
 ### Vue2/Vue3 and JSX
 
 Gitea is using Vue2 now, we plan to upgrade to Vue3. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.
-
-### jQuery's `$(...)`
-
-jQuery's `$` function has a broad functionality depending on the input. Well, this can be seen as nice, it's also a fallpit for possible XSS attacks when the input is user-controlled.
-The usage of the function can be correct in certain situations, but it is discourage and recommended to use a more specific function of jQuery(e.g. `$.find`, `$.parseHTML`).
