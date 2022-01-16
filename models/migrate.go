@@ -52,6 +52,10 @@ func InsertIssues(issues ...*Issue) error {
 			return err
 		}
 	}
+	err = UpdateRepoStats(ctx, issues[0].RepoID)
+	if err != nil {
+		return err
+	}
 	return committer.Commit()
 }
 
@@ -83,7 +87,7 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 		}
 	}
 
-	return UpdateRepoStats(ctx, issue.RepoID)
+	return nil
 }
 
 // InsertIssueComments inserts many comments of issues.
