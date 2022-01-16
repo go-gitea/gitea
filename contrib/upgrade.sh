@@ -6,8 +6,8 @@ set -e
 # Gitea in place.
 # Depends on: bash, curl, xz, sha256sum, gpg, which. optionally jq.
 # Usage:      [environment vars] upgrade.sh [version]
-#   See below section for available environment vars.
-#   When no version is specied, updates to the latest release.
+#   See section below for available environment vars.
+#   When no version is specified, updates to the latest release.
 # Examples:
 #   upgrade.sh 1.15.10
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
