@@ -1,29 +1,63 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
-# this is an upgrade script, for gitea deployed on linux as systemd service
-# depends on: curl, xz, sha256sum, gpg
-# usage:      upgrade.sh [version]
+# This is an update script for gitea deployed from the binary distribution
+# from dl.gitea.io on linux as systemd service. It performs backup and updates
+# Gitea in place.
+# Depends on: bash, curl, xz, sha256sum, gpg, which. optionally jq.
+# Usage:      [environment vars] upgrade.sh [version]
+#   See below section for available environment vars.
+#   When no version is specied, updates to the latest release.
+# Examples:
+#   upgrade.sh 1.15.10
+#   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
-# change the variables below for your local setup
-giteaversion=${1:-1.15.10}
-giteabin=/usr/local/bin/gitea
-giteahome=/var/lib/gitea
-giteaconf=/etc/gitea/app.ini
-giteauser="git"
-giteacmd="sudo -u $giteauser $giteabin -c $giteaconf -w $giteahome"
+# apply variables from environment
+: ${giteabin:=/usr/local/bin/gitea}
+: ${giteahome:=/var/lib/gitea}
+: ${giteaconf:=/etc/gitea/app.ini}
+: ${giteauser:=git}
+: ${sudocmd:=sudo}
+: ${arch:=linux-amd64}
+
+function giteacmd {
+  "$sudocmd" -u "$giteauser" "$giteabin" -c "$giteaconf" -w "$giteahome" $@
+}
+
+function require {
+  for exe in $@; do
+    which $exe &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
+  done
+}
+require curl xz sha256sum gpg
+
+# select version to install
+if [[ -z "$1" ]]; then
+  require jq
+	giteaversion=`curl -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version`
+else
+	giteaversion="${1}"
+fi
+
+# confirm update
+current=`giteacmd --version | cut -d' ' -f3`
+echo "make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
+echo "are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
+read confirm
+[[ "$confirm" == "y" ]] || exit 1
+
+pushd `pwd`
+cd $giteahome # needed for gitea dump later
 
 # download new binary
-binname=gitea-${giteaversion}-linux-amd64
+binname=gitea-${giteaversion}-${arch}
 binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
-echo downloading $binurl
-cd $giteahome # needed for gitea dump later
-curl -sSfL "$binurl" > ${binname}.xz
-curl -sSfL "${binurl}.sha256" > ${binname}.xz.sha256
-curl -sSfL "${binurl}.asc" > ${binname}.xz.asc
+echo "Downloading $binurl..."
+curl -sSfLO "$binurl{,.sha256,.asc}"
 
 # validate checksum & gpg signature (exit script if error)
 sha256sum -c ${binname}.xz.sha256
+# TODO 2022-06-24: this gpg key will expire!
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
 gpg --verify ${binname}.xz.asc ${binname}.xz
 rm ${binname}.xz.{sha256,asc}
@@ -33,9 +67,10 @@ xz -d ${binname}.xz
 chmod +x $binname
 
 # stop gitea, create backup, replace binary, restart gitea
-$giteacmd manager flush-queues
-systemctl stop gitea
-$giteacmd --version
-$giteacmd dump
+giteacmd manager flush-queues
+$sudocmd systemctl stop gitea
+giteacmd dump
 mv -fb $binname $giteabin
-systemctl start gitea
+$sudocmd systemctl start gitea
+
+popd
