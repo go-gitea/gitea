@@ -750,7 +750,10 @@ type githubIssueEvent struct {
 	PullRequest      string `json:"pull_request"`
 	Actor            string
 	Event            string
-	CommitID         string    `json:"commit_id"`
+	CommitID         string `json:"commit_id"`
+	Ref              string
+	BeforeCommitOID  string    `json:"before_commit_oid"`
+	AfterCommitOID   string    `json:"after_commit_oid"`
 	CommitRepoistory string    `json:"commit_repository"`
 	CreatedAt        time.Time `json:"created_at"`
 	Label            string
@@ -767,6 +770,8 @@ type githubIssueEvent struct {
 func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	switch g.Event {
 	case "closed":
+		return map[string]interface{}{}
+	case "head_ref_force_pushed":
 		return map[string]interface{}{}
 	case "referenced":
 		var tp = "commit_ref"
@@ -835,6 +840,8 @@ func (g *githubIssueEvent) CommentStr() string {
 	switch g.Event {
 	case "closed":
 		return "close"
+	case "head_ref_force_pushed":
+		return "pull_push"
 	case "referenced":
 		return "commit_ref"
 	case "merged":

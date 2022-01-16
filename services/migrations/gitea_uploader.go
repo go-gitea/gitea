@@ -530,6 +530,8 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			continue
 		case models.CommentTypeDeleteBranch:
 			continue
+		case models.CommentTypePullPush:
+			continue
 		}
 
 		// add reactions
