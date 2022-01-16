@@ -65,18 +65,18 @@ export function initRepoClone() {
 }
 
 export function initRepoCommonBranchOrTagDropdown(selector) {
-  $.find(selector).each(function () {
+  $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
       $dropdown.find('.scrolling.reference-list-menu').hide();
-      $.find($(this).data('target')).show();
+      $($(this).data('target')).show();
       return false;
     });
   });
 }
 
 export function initRepoCommonFilterSearchDropdown(selector) {
-  const $dropdown = $.find(selector);
+  const $dropdown = $(selector);
   $dropdown.dropdown({
     fullTextSearch: true,
     selectOnKeydown: false,
