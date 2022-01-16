@@ -295,7 +295,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: test-vendor swagger-check swagger-validate
+checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -369,11 +369,12 @@ unit-test-coverage:
 vendor:
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff go.mod go.sum); \
+.PHONY: gomod-check
+gomod-check:
+	@$(GO) mod tidy
+	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
+		echo "Please run '$(GO) mod tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
