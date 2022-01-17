@@ -148,6 +148,10 @@ func InsertPullRequests(prs ...*PullRequest) error {
 		}
 	}
 
+	err = UpdateRepoStats(ctx, prs[0].Issue.RepoID)
+	if err != nil {
+		return err
+	}
 	return committer.Commit()
 }
 
