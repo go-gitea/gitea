@@ -978,6 +978,10 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
+	if err := models.UpdateRepoStats(db.DefaultContext, g.repo.ID); err != nil {
+		return err
+	}
+
 	g.repo.Status = repo_model.RepositoryReady
 	return repo_model.UpdateRepositoryCols(g.repo, "status")
 }

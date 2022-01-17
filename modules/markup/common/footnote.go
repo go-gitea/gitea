@@ -10,7 +10,6 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"unicode"
 
@@ -415,7 +414,6 @@ func (r *FootnoteHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegist
 func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		n := node.(*FootnoteLink)
-		n.Dump(source, 0)
 		is := strconv.Itoa(n.Index)
 		_, _ = w.WriteString(`<sup id="fnref:`)
 		_, _ = w.Write(n.Name)
@@ -431,7 +429,6 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
 		n := node.(*FootnoteBackLink)
-		fmt.Fprintf(os.Stdout, "source:\n%s\n", string(n.Text(source)))
 		_, _ = w.WriteString(` <a href="#fnref:`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
@@ -444,7 +441,6 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*Footnote)
 	if entering {
-		fmt.Fprintf(os.Stdout, "source:\n%s\n", string(n.Text(source)))
 		_, _ = w.WriteString(`<li id="fn:`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" role="doc-endnote"`)
