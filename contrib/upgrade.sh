@@ -47,7 +47,7 @@ current=$(giteacmd --version | cut --delimiter=' ' --fields=3)
 echo "Make sure to read the changelog first: https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md"
 echo "Are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
 read confirm
-[[ "$confirm" == "y" ]] || exit 1
+[[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]] || exit 1
 
 pushd $(pwd)
 cd "$giteahome" # needed for gitea dump later
