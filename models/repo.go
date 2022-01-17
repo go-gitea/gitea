@@ -961,13 +961,13 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 }
 
 type repoChecker struct {
-	querySQL   string
+	querySQL   func(ctx context.Context) ([]map[string][]byte, error)
 	correctSQL func(ctx context.Context, id int64) error
 	desc       string
 }
 
 func repoStatsCheck(ctx context.Context, checker *repoChecker) {
-	results, err := db.GetEngine(ctx).Query(checker.querySQL)
+	results, err := checker.querySQL(ctx)
 	if err != nil {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
@@ -1011,16 +1011,16 @@ func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 }
 
 func labelStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.id=?", id)
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.id=?", true, id)
 	return err
 }
 
 func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE) WHERE `label`.repo_id=?", id)
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.repo_id=?", true, id)
 	return err
 }
 
-var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=TRUE) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
 
 func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
 	return updateMilestoneCounters(ctx, id)
@@ -1028,7 +1028,7 @@ func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
 
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
-	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", id)
+	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
 	if err != nil {
 		return err
 	}
@@ -1072,8 +1072,14 @@ func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
 }
 
 func repoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=TRUE AND is_pull=?) WHERE id=?", id, isPull, id)
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
 	return err
+}
+
+func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
+	return func(ctx context.Context) ([]map[string][]byte, error) {
+		return db.GetEngine(ctx).Query(args...)
+	}
 }
 
 // CheckRepoStats checks the repository stats
@@ -1083,55 +1089,55 @@ func CheckRepoStats(ctx context.Context) error {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)"),
 			repoStatsCorrectNumWatches,
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)"),
 			repoStatsCorrectNumStars,
 			"repository count 'num_stars'",
 		},
 		// Repository.NumClosedIssues
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=TRUE AND is_pull=FALSE)",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
 			repoStatsCorrectNumClosedIssues,
 			"repository count 'num_closed_issues'",
 		},
 		// Repository.NumClosedPulls
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=TRUE AND is_pull=TRUE)",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
 			repoStatsCorrectNumClosedPulls,
 			"repository count 'num_closed_pulls'",
 		},
 		// Label.NumIssues
 		{
-			"SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)",
+			statsQuery("SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)"),
 			labelStatsCorrectNumIssues,
 			"label count 'num_issues'",
 		},
 		// Label.NumClosedIssues
 		{
-			"SELECT `label`.id FROM `label` WHERE `label`.num_closed_issues!=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=TRUE)",
+			statsQuery("SELECT `label`.id FROM `label` WHERE `label`.num_closed_issues!=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?)", true),
 			labelStatsCorrectNumClosedIssues,
 			"label count 'num_closed_issues'",
 		},
 		// Milestone.Num{,Closed}Issues
 		{
-			milestoneStatsQueryNumIssues,
+			statsQuery(milestoneStatsQueryNumIssues, true),
 			milestoneStatsCorrectNumIssues,
 			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
 		// User.NumRepos
 		{
-			"SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
+			statsQuery("SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)"),
 			userStatsCorrectNumRepos,
 			"user count 'num_repos'",
 		},
 		// Issue.NumComments
 		{
-			"SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)",
+			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)"),
 			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
