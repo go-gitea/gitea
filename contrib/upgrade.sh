@@ -20,7 +20,7 @@ set -e
 : ${giteauser:="git"}
 : ${sudocmd:="sudo"}
 : ${arch:="linux-amd64"}
-: ${backupopts:=""}
+: ${backupopts:=""} # see `gitea dump --help` for available options
 
 function giteacmd {
   "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" $@
@@ -38,7 +38,7 @@ if [[ -z "$1" ]]; then
   require jq
   giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
 else
-	giteaversion="$1"
+  giteaversion="$1"
 fi
 
 # confirm update
