@@ -4,6 +4,7 @@ set -e
 # This is an update script for gitea installed via the binary distribution
 # from dl.gitea.io on linux as systemd service. It performs a backup and updates
 # Gitea in place.
+# NOTE: This adds the GPG Signing Key of the Gitea maintainers to the keyring.
 # Depends on: bash, curl, xz, sha256sum, gpg, which. optionally jq.
 # Usage:      [environment vars] upgrade.sh [version]
 #   See section below for available environment vars.
