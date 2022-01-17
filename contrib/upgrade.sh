@@ -13,13 +13,13 @@ set -e
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
 # apply variables from environment
-: ${giteabin:=/usr/local/bin/gitea}
-: ${giteahome:=/var/lib/gitea}
-: ${giteaconf:=/etc/gitea/app.ini}
-: ${giteauser:=git}
-: ${sudocmd:=sudo}
-: ${arch:=linux-amd64}
-: ${backupopts:=--skip-lfs-data --skip-repository --skip-attachment-data --skip-log}
+: ${giteabin:="/usr/local/bin/gitea"}
+: ${giteahome:="/var/lib/gitea"}
+: ${giteaconf:="/etc/gitea/app.ini"}
+: ${giteauser:="git"}
+: ${sudocmd:="sudo"}
+: ${arch:="linux-amd64"}
+: ${backupopts:=""}
 
 function giteacmd {
   "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" $@
