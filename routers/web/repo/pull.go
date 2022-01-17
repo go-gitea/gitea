@@ -468,7 +468,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return compareInfo
 	}
 
-	var headBranchExist bool
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
@@ -480,25 +479,28 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		defer headGitRepo.Close()
 
 		if pull.Flow == models.PullRequestFlowGithub {
-			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
-		} else {
-			headBranchExist = git.IsReferenceExist(ctx, baseGitRepo.Path, pull.GetGitRefName())
+			if headGitRepo.IsBranchExist(pull.HeadBranch) {
+				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+				if err != nil {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
+			}
 		}
 
-		if headBranchExist {
-			if pull.Flow != models.PullRequestFlowGithub {
+		if headBranchSha == "" {
+			if git.IsReferenceExist(ctx, baseGitRepo.Path, pull.GetGitRefName()) {
 				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitRefName())
-			} else {
-				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-			}
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
+				if err != nil {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
 			}
 		}
+		headGitRepo.Close()
 	}
 
-	if headBranchExist {
+	if headBranchSha != "" {
 		var err error
 		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
@@ -554,7 +556,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	ctx.Data["HeadBranchCommitID"] = headBranchSha
 	ctx.Data["PullHeadCommitID"] = sha
 
-	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
+	if pull.HeadRepo == nil || headBranchSha == "" || headBranchSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true
 		if pull.IsSameRepo() {
 			ctx.Data["HeadTarget"] = pull.HeadBranch

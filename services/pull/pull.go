@@ -606,17 +606,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 	}
 	defer closer.Close()
 
-	var headCommit *git.Commit
-	if pr.Flow == models.PullRequestFlowGithub {
-		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
-	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
-			return ""
-		}
-		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
+	pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if err != nil {
+		log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
+		return ""
 	}
+	headCommit, err := gitRepo.GetCommit(pr.HeadCommitID)
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
 		return ""
