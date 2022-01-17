@@ -1,8 +1,9 @@
 {{$resolved := (index .comments 0).IsResolved}}
+{{$hidden := (index .comments 0).IsHidden}}
 {{$resolveDoer := (index .comments 0).ResolveDoer}}
 {{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
 <div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
-	{{if $resolved}}
+	{{if or $hidden $resolved}}
 		<div class="ui attached header resolved-placeholder df ac sb">
 			<div class="ui grey text">
 				{{svg "octicon-check" 16 "icon mr-2"}}

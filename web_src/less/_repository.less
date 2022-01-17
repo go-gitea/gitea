@@ -880,6 +880,10 @@
             }
           }
         }
+        
+        &.comment.resolved {
+          margin-left: 96px;
+        }
 
         &.comment > .content {
           margin-left: -16px;
@@ -2642,6 +2646,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+
+  &.arrow-none::before,
+  &.arrow-none:after {
+    display: none;
+  }
 
   &.arrow-top::before,
   &.arrow-top::after {

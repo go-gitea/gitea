@@ -257,7 +257,7 @@ export function initRepoCommentForm() {
 async function onEditContent(event) {
   event.preventDefault();
   $(this).closest('.dropdown').find('.menu').toggle('visible');
-  const $segment = $(this).closest('.header').next();
+  const $segment = $(this).closest('.comment-container').find('.comment-body, .comment-content');
   const $editContentZone = $segment.find('.edit-content-zone');
   const $renderContent = $segment.find('.render-content');
   const $rawContent = $segment.find('.raw-content');
@@ -508,6 +508,7 @@ export function initRepository() {
     initRepoDiffConversationNav();
     initRepoIssueReferenceIssue();
 
+    initRepoIssueCommentHide();
 
     initRepoIssueCommentDelete();
     initRepoIssueDependencyDelete();
@@ -568,5 +569,66 @@ function initRepoIssueCommentEdit() {
       });
     }
     event.preventDefault();
+  });
+}
+
+function onHideContent() {
+  $(this).closest('.dropdown').find('.menu').toggle('visible');
+  const $hideForm = $(this).closest('.comment-container').find('.hide-comment');
+  const $segment = $(this).closest('.comment-container').find('.comment-body, .comment-content');
+  $hideForm.removeClass('hide');
+  console.log($segment);
+  console.log($hideForm);
+}
+
+function onHideHideMenu() {
+  $(this).parent().addClass('hide');
+}
+
+function initRepoIssueCommentHide() {
+  $(document).on('click', '.hide-content', onHideContent);
+  $(document).on('click', '.hide-comment-close', onHideHideMenu);
+  $(document).on('click', '.hide-comment-submit', async function (e) {
+    e.preventDefault();
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+    const reason = $(this).siblings('.hide-reason').find('select').val();
+
+    const data = await $.post(url, {
+      _csrf: csrfToken,
+      origin,
+      action: action,
+      reason: reason
+    });
+
+    window.location.reload();
+  });
+  $(document).on('click', '.unhide-comment', async function (e) {
+    e.preventDefault();
+    const action = $(this).data('action');
+    const url = $(this).data('update-url');
+
+    const data = await $.post(url, {
+      _csrf: csrfToken,
+      origin,
+      action: action,
+    });
+    window.location.reload();
+  });
+
+  $(document).on('click', '.show-hidden', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment');
+    $(this).addClass('hide');
+    $(`#issuecomment-${id}`).removeClass('hide');
+    $(`#hide-hidden-${id}`).removeClass('hide');
+  });
+
+  $(document).on('click', '.hide-hidden', function (e) {
+    e.preventDefault();
+    const id = $(this).data('comment');
+    $(this).addClass('hide');
+    $(`#issuecomment-${id}`).addClass('hide');
+    $(`#show-hidden-${id}`).removeClass('hide');
   });
 }

@@ -47,7 +47,38 @@
 					{{end}}
 				{{end}}
 				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
-				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "hide" (not .IsHidden) "unhide" .IsHidden "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				</div>
+				</div>
+				<div class="ui attached segment hide-comment hide">
+					<i class="ui right tiny icon hide-comment-close" tabindex="0">{{svg "octicon-x"}}</i>
+					<strong>{{ $.root.i18n.Tr "repo.issues.hide.choose_reason_for_hiding"}}</strong>
+					<div class="mt-2">{{ $.root.i18n.Tr "repo.issues.hide.reason_display_others"}}</div>
+					<div class="mt-4">
+						<div class="ui dropdown selection hide-reason" tabindex="0">
+							<select name="hide_reason">
+								<option value="1">{{ $.root.i18n.Tr "repo.issues.hide.resolved" }}</option>
+								<option value="2">{{ $.root.i18n.Tr "repo.issues.hide.spam" }}</option>
+								<option value="3">{{ $.root.i18n.Tr "repo.issues.hide.abuse" }}</option>
+								<option value="4">{{ $.root.i18n.Tr "repo.issues.hide.off_topic" }}</option>
+								<option value="5">{{ $.root.i18n.Tr "repo.issues.hide.outdated" }}</option>
+								<option value="6">{{ $.root.i18n.Tr "repo.issues.hide.duplicate" }}</option>
+							</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="default text">
+								{{ $.root.i18n.Tr "repo.issues.hide.choose_reason"}}
+							</div>
+							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+								<div class="item" data-value="1">{{ $.root.i18n.Tr "repo.issues.hide.resolved" }}</div>
+								<div class="item" data-value="2">{{ $.root.i18n.Tr "repo.issues.hide.spam" }}</div>
+								<div class="item" data-value="3">{{ $.root.i18n.Tr "repo.issues.hide.abuse" }}</div>
+								<div class="item" data-value="4">{{ $.root.i18n.Tr "repo.issues.hide.off_topic" }}</div>
+								<div class="item" data-value="5">{{ $.root.i18n.Tr "repo.issues.hide.outdated" }}</div>
+								<div class="item" data-value="6">{{ $.root.i18n.Tr "repo.issues.hide.duplicate" }}</div>
+							</div>
+						</div>
+						<button class="ui green button hide-comment-submit" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}/hide" data-action="Resolve" type="submit">
+							{{ $.root.i18n.Tr "repo.issues.hide.hide_comment" }}
+						</button>
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">

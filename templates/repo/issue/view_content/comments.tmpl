@@ -11,7 +11,37 @@
 	29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 	32 = DISMISSED_REVIEW -->
 	{{if eq .Type 0}}
-		<div class="timeline-item comment" id="{{.HashTag}}">
+		{{$resolveDoer := .ResolveDoer}}
+		{{if .IsHidden}}
+		<div class="ui attached header resolved-placeholder df ac sb">
+			<div class="ui grey text">
+				{{if eq .ResolveReason 1}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_resolved"}}
+				{{else if eq .ResolveReason 2}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_spam"}}
+				{{else if eq .ResolveReason 3}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_abuse"}}
+				{{else if eq .ResolveReason 4}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_offtopic"}}
+				{{else if eq .ResolveReason 5}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_outdated"}}
+				{{else if eq .ResolveReason 6}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_duplicate"}}
+				{{end}}
+			</div>
+			<div>
+				<button id="show-hidden-{{.ID}}" data-comment="{{.ID}}" class="{{if not .IsHidden}}hide {{end}}ui compact right labeled button show-hidden df ac">
+					{{svg "octicon-unfold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.show_hidden"}}
+				</button>
+				<button id="hide-hidden-{{.ID}}" data-comment="{{.ID}}" class="{{if .IsHidden}}hide {{end}}ui compact right labeled button hide-hidden df ac">
+					{{svg "octicon-fold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.hide_hidden"}}
+				</button>
+			</div>
+		</div>
+		{{end}}
+		<div class="timeline-item comment{{if .IsHidden }} hide resolved{{end}}" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
 			<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 		{{else}}
@@ -60,8 +90,39 @@
 						{{end}}
 						{{if not $.Repository.IsArchived}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "hide" (not .IsHidden) "unhide" (.IsHidden) "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						{{end}}
+					</div>
+				</div>
+				<div class="ui attached segment hide-comment hide">
+					<i class="ui right tiny icon hide-comment-close" tabindex="0">{{svg "octicon-x"}}</i>
+					<strong>{{ $.i18n.Tr "repo.issues.hide.choose_reason_for_hiding"}}</strong>
+					<div class="mt-2">{{ $.i18n.Tr "repo.issues.hide.reason_display_others"}}</div>
+					<div class="mt-4">
+						<div class="ui dropdown selection hide-reason" tabindex="0">
+							<select name="hide_reason">
+								<option value="1">{{ $.i18n.Tr "repo.issues.hide.resolved" }}</option>
+								<option value="2">{{ $.i18n.Tr "repo.issues.hide.spam" }}</option>
+								<option value="3">{{ $.i18n.Tr "repo.issues.hide.abuse" }}</option>
+								<option value="4">{{ $.i18n.Tr "repo.issues.hide.off_topic" }}</option>
+								<option value="5">{{ $.i18n.Tr "repo.issues.hide.outdated" }}</option>
+								<option value="6">{{ $.i18n.Tr "repo.issues.hide.duplicate" }}</option>
+							</select>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="default text">
+								{{ $.i18n.Tr "repo.issues.hide.choose_reason"}}
+							</div>
+							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+								<div class="item" data-value="1">{{ $.i18n.Tr "repo.issues.hide.resolved" }}</div>
+								<div class="item" data-value="2">{{ $.i18n.Tr "repo.issues.hide.spam" }}</div>
+								<div class="item" data-value="3">{{ $.i18n.Tr "repo.issues.hide.abuse" }}</div>
+								<div class="item" data-value="4">{{ $.i18n.Tr "repo.issues.hide.off_topic" }}</div>
+								<div class="item" data-value="5">{{ $.i18n.Tr "repo.issues.hide.outdated" }}</div>
+								<div class="item" data-value="6">{{ $.i18n.Tr "repo.issues.hide.duplicate" }}</div>
+							</div>
+						</div>
+						<button class="ui green button hide-comment-submit" data-update-url="{{$.RepoLink}}/comments/{{.ID}}/hide" data-action="Resolve" type="submit">
+							{{ $.i18n.Tr "repo.issues.hide.hide_comment" }}
+						</button>
 					</div>
 				</div>
 				<div class="ui attached segment comment-body">

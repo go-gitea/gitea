@@ -581,10 +581,11 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 
 // LoadResolveDoer if comment.Type is CommentTypeCode and ResolveDoerID not zero, then load resolveDoer
 func (c *Comment) LoadResolveDoer() (err error) {
-	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
+	if c.ResolveDoerID == 0 || (c.Type != CommentTypeCode && c.Type != CommentTypeComment) {
 		return nil
 	}
 	c.ResolveDoer, err = user_model.GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
+	fmt.Println("testing resolve doer fetch", c.ResolveDoer)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.ResolveDoer = user_model.NewGhostUser()
@@ -596,7 +597,11 @@ func (c *Comment) LoadResolveDoer() (err error) {
 
 // IsResolved check if an code comment is resolved
 func (c *Comment) IsResolved() bool {
-	return c.ResolveDoerID != 0 && c.Type == CommentTypeCode
+	return c.ResolveDoerID != 0 && c.ResolveReason == ResolveReasonResolved
+}
+
+func (c *Comment) IsHidden() bool {
+	return c.ResolveDoerID != 0
 }
 
 // LoadDepIssueDetails loads Dependent Issue Details

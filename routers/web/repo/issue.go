@@ -1357,6 +1357,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
+			if err = comment.LoadResolveDoer(); err != nil {
+				ctx.ServerError("LoadResolveDoer", err)
+				return
+			}
+
 			comment.ShowRole, err = roleDescriptor(repo, comment.Poster, issue)
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)

@@ -18,6 +18,12 @@
 		{{if or .ctx.Permission.IsAdmin .IsCommentPoster .ctx.HasIssuesOrPullsWritePermission}}
 			<div class="divider"></div>
 			<div class="item context edit-content">{{.ctx.i18n.Tr "repo.issues.context.edit"}}</div>
+			{{if .hide}}
+				<div class="item context hide-content">{{.ctx.i18n.Tr "repo.issues.context.hide"}}</div>
+			{{end}}
+			{{if .unhide}}
+				<div class="item context unhide-comment" data-update-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/hide" data-action="UnResolve">{{.ctx.i18n.Tr "repo.issues.context.unhide"}}</div>
+			{{end}}
 			{{if .delete}}
 				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.i18n.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.i18n.Tr "repo.issues.context.delete"}}</div>
 			{{end}}
