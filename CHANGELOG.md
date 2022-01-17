@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Remove golang vendored directory (#18277)
   * Paginate releases page & set default page size to 10 (#16857)
+  * Only allow webhook to send requests to allowed hosts (#17510)
 * SECURITY
   * Use `hostmatcher` to replace `matchlist` to improve blocking of bad hosts in Webhooks (#17605)
   * Sanitize user-input on file name (#17666)
