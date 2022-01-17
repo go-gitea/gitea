@@ -113,7 +113,7 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 	milestones := make([]*base.Milestone, 0, 10)
 	p := filepath.Join(r.baseDir, "milestone.yml")
-	_, err := os.Stat(p)
+	err := base.Load(p, &milestones, r.validation)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -121,15 +121,6 @@ func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	bs, err := os.ReadFile(p)
-	if err != nil {
-		return nil, err
-	}
-
-	err = yaml.Unmarshal(bs, &milestones)
-	if err != nil {
-		return nil, err
-	}
 	return milestones, nil
 }
 

@@ -60,20 +60,25 @@ func validate(bs []byte, datatype interface{}, isJSON bool) error {
 		}
 	}
 
+	var schemaFilename string
 	switch datatype := datatype.(type) {
 	case *[]*Issue:
-		sch, err := getSchema("issue.json")
-		if err != nil {
-			return err
-		}
-		err = sch.Validate(v)
-		if err != nil {
-			log.Error("migration validation failed for\n%s", string(bs))
-		}
-		return err
+		schemaFilename = "issue.json"
+	case *[]*Milestone:
+		schemaFilename = "milestone.json"
 	default:
-		return fmt.Errorf("file_format:validate: %T is not a known time", datatype)
+		return fmt.Errorf("file_format:validate: %T has not a validation implemented", datatype)
 	}
+
+	sch, err := getSchema(schemaFilename)
+	if err != nil {
+		return err
+	}
+	err = sch.Validate(v)
+	if err != nil {
+		log.Error("migration validation with %s failed for\n%s", schemaFilename, string(bs))
+	}
+	return err
 }
 
 func toStringKeys(val interface{}) (interface{}, error) {

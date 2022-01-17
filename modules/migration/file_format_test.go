@@ -31,3 +31,9 @@ func TestMigrationJSON_IssueFail(t *testing.T) {
 		t.Fatalf("got: type %T with value %s, want: *jsonschema.ValidationError", err, err)
 	}
 }
+
+func TestMigrationJSON_MilestoneOK(t *testing.T) {
+	milestones := make([]*Milestone, 0, 10)
+	err := Load("file_format_testdata/milestones.json", &milestones, true)
+	assert.NoError(t, err)
+}
