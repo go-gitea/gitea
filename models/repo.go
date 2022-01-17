@@ -961,12 +961,13 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 }
 
 type repoChecker struct {
-	querySQL, correctSQL string
-	desc                 string
+	querySQL   func(ctx context.Context) ([]map[string][]byte, error)
+	correctSQL func(ctx context.Context, id int64) error
+	desc       string
 }
 
 func repoStatsCheck(ctx context.Context, checker *repoChecker) {
-	results, err := db.GetEngine(db.DefaultContext).Query(checker.querySQL)
+	results, err := checker.querySQL(ctx)
 	if err != nil {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
@@ -975,15 +976,109 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
 		select {
 		case <-ctx.Done():
-			log.Warn("CheckRepoStats: Cancelled before checking %s for Repo[%d]", checker.desc, id)
+			log.Warn("CheckRepoStats: Cancelled before checking %s for with id=%d", checker.desc, id)
 			return
 		default:
 		}
 		log.Trace("Updating %s: %d", checker.desc, id)
-		_, err = db.GetEngine(db.DefaultContext).Exec(checker.correctSQL, id, id)
+		err = checker.correctSQL(ctx, id)
 		if err != nil {
 			log.Error("Update %s[%d]: %v", checker.desc, id, err)
 		}
+	}
+}
+
+func StatsCorrectSQL(ctx context.Context, sql string, id int64) error {
+	_, err := db.GetEngine(ctx).Exec(sql, id, id)
+	return err
+}
+
+func repoStatsCorrectNumWatches(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?", id)
+}
+
+func repoStatsCorrectNumStars(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?", id)
+}
+
+func labelStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?", id)
+}
+
+func labelStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=id) WHERE repo_id=?", id)
+	return err
+}
+
+func labelStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.id=?", true, id)
+	return err
+}
+
+func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `label` SET num_closed_issues=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?) WHERE `label`.repo_id=?", true, id)
+	return err
+}
+
+var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
+
+func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return updateMilestoneCounters(ctx, id)
+}
+
+func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
+	e := db.GetEngine(ctx)
+	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
+	if err != nil {
+		return err
+	}
+	for _, result := range results {
+		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
+		err = milestoneStatsCorrectNumIssues(ctx, id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func userStatsCorrectNumRepos(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?", id)
+}
+
+func repoStatsCorrectIssueNumComments(ctx context.Context, id int64) error {
+	return StatsCorrectSQL(ctx, "UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?", id)
+}
+
+func repoStatsCorrectNumIssues(ctx context.Context, id int64) error {
+	return repoStatsCorrectNum(ctx, id, false, "num_issues")
+}
+
+func repoStatsCorrectNumPulls(ctx context.Context, id int64) error {
+	return repoStatsCorrectNum(ctx, id, true, "num_pulls")
+}
+
+func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field string) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_pull=?) WHERE id=?", id, isPull, id)
+	return err
+}
+
+func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
+	return repoStatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+}
+
+func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
+	return repoStatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
+}
+
+func repoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
+	return err
+}
+
+func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
+	return func(ctx context.Context) ([]map[string][]byte, error) {
+		return db.GetEngine(ctx).Query(args...)
 	}
 }
 
@@ -994,32 +1089,56 @@ func CheckRepoStats(ctx context.Context) error {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)",
-			"UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)"),
+			repoStatsCorrectNumWatches,
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)",
-			"UPDATE `repository` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE repo_id=?) WHERE id=?",
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_stars!=(SELECT COUNT(*) FROM `star` WHERE repo_id=repo.id)"),
+			repoStatsCorrectNumStars,
 			"repository count 'num_stars'",
+		},
+		// Repository.NumClosedIssues
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
+			repoStatsCorrectNumClosedIssues,
+			"repository count 'num_closed_issues'",
+		},
+		// Repository.NumClosedPulls
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
+			repoStatsCorrectNumClosedPulls,
+			"repository count 'num_closed_pulls'",
 		},
 		// Label.NumIssues
 		{
-			"SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)",
-			"UPDATE `label` SET num_issues=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=?) WHERE id=?",
+			statsQuery("SELECT label.id FROM `label` WHERE label.num_issues!=(SELECT COUNT(*) FROM `issue_label` WHERE label_id=label.id)"),
+			labelStatsCorrectNumIssues,
 			"label count 'num_issues'",
+		},
+		// Label.NumClosedIssues
+		{
+			statsQuery("SELECT `label`.id FROM `label` WHERE `label`.num_closed_issues!=(SELECT COUNT(*) FROM `issue_label`,`issue` WHERE `issue_label`.label_id=`label`.id AND `issue_label`.issue_id=`issue`.id AND `issue`.is_closed=?)", true),
+			labelStatsCorrectNumClosedIssues,
+			"label count 'num_closed_issues'",
+		},
+		// Milestone.Num{,Closed}Issues
+		{
+			statsQuery(milestoneStatsQueryNumIssues, true),
+			milestoneStatsCorrectNumIssues,
+			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
 		// User.NumRepos
 		{
-			"SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)",
-			"UPDATE `user` SET num_repos=(SELECT COUNT(*) FROM `repository` WHERE owner_id=?) WHERE id=?",
+			statsQuery("SELECT `user`.id FROM `user` WHERE `user`.num_repos!=(SELECT COUNT(*) FROM `repository` WHERE owner_id=`user`.id)"),
+			userStatsCorrectNumRepos,
 			"user count 'num_repos'",
 		},
 		// Issue.NumComments
 		{
-			"SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)",
-			"UPDATE `issue` SET num_comments=(SELECT COUNT(*) FROM `comment` WHERE issue_id=? AND type=0) WHERE id=?",
+			statsQuery("SELECT `issue`.id FROM `issue` WHERE `issue`.num_comments!=(SELECT COUNT(*) FROM `comment` WHERE issue_id=`issue`.id AND type=0)"),
+			repoStatsCorrectIssueNumComments,
 			"issue count 'num_comments'",
 		},
 	}
@@ -1033,55 +1152,10 @@ func CheckRepoStats(ctx context.Context) error {
 		}
 	}
 
-	// ***** START: Repository.NumClosedIssues *****
-	desc := "repository count 'num_closed_issues'"
-	results, err := db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
-	if err != nil {
-		log.Error("Select %s: %v", desc, err)
-	} else {
-		for _, result := range results {
-			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-			select {
-			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
-				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
-			default:
-			}
-			log.Trace("Updating %s: %d", desc, id)
-			_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
-			if err != nil {
-				log.Error("Update %s[%d]: %v", desc, id, err)
-			}
-		}
-	}
-	// ***** END: Repository.NumClosedIssues *****
-
-	// ***** START: Repository.NumClosedPulls *****
-	desc = "repository count 'num_closed_pulls'"
-	results, err = db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
-	if err != nil {
-		log.Error("Select %s: %v", desc, err)
-	} else {
-		for _, result := range results {
-			id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-			select {
-			case <-ctx.Done():
-				log.Warn("CheckRepoStats: Cancelled")
-				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
-			default:
-			}
-			log.Trace("Updating %s: %d", desc, id)
-			_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
-			if err != nil {
-				log.Error("Update %s[%d]: %v", desc, id, err)
-			}
-		}
-	}
-	// ***** END: Repository.NumClosedPulls *****
-
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
-	results, err = db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
+	e := db.GetEngine(ctx)
+	results, err := e.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
 	if err != nil {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
@@ -1090,7 +1164,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during repository count 'num_fork' for repo ID %d", id)
 			default:
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
@@ -1115,6 +1189,28 @@ func CheckRepoStats(ctx context.Context) error {
 		}
 	}
 	// ***** END: Repository.NumForks *****
+	return nil
+}
+
+func UpdateRepoStats(ctx context.Context, id int64) error {
+	var err error
+
+	for _, f := range []func(ctx context.Context, id int64) error{
+		repoStatsCorrectNumWatches,
+		repoStatsCorrectNumStars,
+		repoStatsCorrectNumIssues,
+		repoStatsCorrectNumPulls,
+		repoStatsCorrectNumClosedIssues,
+		repoStatsCorrectNumClosedPulls,
+		labelStatsCorrectNumIssuesRepo,
+		labelStatsCorrectNumClosedIssuesRepo,
+		milestoneStatsCorrectNumIssuesRepo,
+	} {
+		err = f(ctx, id)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
