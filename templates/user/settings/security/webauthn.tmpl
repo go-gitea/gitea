@@ -28,16 +28,6 @@
 	</div>
 </div>
 
-<div class="ui small modal" id="register-device">
-	<div class="header">{{.i18n.Tr "settings.webauthn_register_key"}}</div>
-	<div class="content">
-		<i class="notched spinner loading icon"></i> {{.i18n.Tr "settings.webauthn_press_button"}}
-	</div>
-	<div class="actions">
-		<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
-	</div>
-</div>
-
 {{template "user/auth/webauthn_error" .}}
 
 <div class="ui small basic delete modal" id="delete-registration">
