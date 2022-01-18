@@ -146,3 +146,11 @@ replace github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/duo-labs/webauthn => github.com/authelia/webauthn v0.0.0-20211225121951-80d1f2a572e4
+
+replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
+
+exclude github.com/gofrs/uuid v3.2.0+incompatible
+
+exclude github.com/gofrs/uuid v4.0.0+incompatible
+
+exclude github.com/goccy/go-json v0.4.11

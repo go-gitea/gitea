@@ -91,13 +91,12 @@ Here's how to run the test suite:
 
 ## Vendoring
 
-We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
+We manage dependencies via [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance), more details: [go mod](https://go.dev/ref/mod).
 
-Pull requests should only include `vendor/` updates if they are part of
+Pull requests should only include `go.mod`, `go.sum` updates if they are part of
 the same change, be it a bugfix or a feature addition.
 
-The `vendor/` update needs to be justified as part of the PR description,
+The `go.mod`, `go.sum` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
 

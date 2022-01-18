@@ -292,10 +292,10 @@ fmt-check:
 checks: checks-frontend checks-backend
 
 .PHONY: checks-frontend
-checks-frontend: svg-check
+checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: swagger-check swagger-validate
+checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -369,11 +369,12 @@ unit-test-coverage:
 vendor:
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff vendor/); \
+.PHONY: gomod-check
+gomod-check:
+	@$(GO) mod tidy
+	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
+		echo "Please run '$(GO) mod tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -696,6 +697,17 @@ svg-check: svg
 	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi
+
+.PHONY: lockfile-check
+lockfile-check:
+	npm install --package-lock-only
+	@diff=$$(git diff package-lock.json); \
+	if [ -n "$$diff" ]; then \
+		echo "package-lock.json is inconsistent with package.json"; \
+		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
