@@ -62,7 +62,8 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
   }
 
   const EasyMDE = await importEasyMDE();
-  const easyMDE = new EasyMDE(Object.assign({
+
+  const easyMDE = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: textarea,
     forceSync: true,
@@ -105,8 +106,7 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
-    ],
-  }, easyMDEOptions));
+    ], ...easyMDEOptions});
   const inputField = easyMDE.codemirror.getInputField();
   inputField.classList.add('js-quick-submit');
   easyMDE.codemirror.setOption('extraKeys', {
