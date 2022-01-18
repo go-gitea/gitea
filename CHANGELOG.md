@@ -4,15 +4,15 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-17
+## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-18
 
 * BREAKING
   * Remove golang vendored directory (#18277)
   * Paginate releases page & set default page size to 10 (#16857)
-  * Only allow webhook to send requests to allowed hosts (#17510)
+  * Only allow webhook to send requests to allowed hosts (#17482)
 * SECURITY
-  * Use `hostmatcher` to replace `matchlist` to improve blocking of bad hosts in Webhooks (#17605)
   * Sanitize user-input on file name (#17666)
+  * Use `hostmatcher` to replace `matchlist` to improve blocking of bad hosts in Webhooks (#17605)
 * FEATURES
   * Add/update SMTP auth providers via cli (#18197)
   * Support webauthn (#17957)
@@ -58,10 +58,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add API for get user org permissions (#17232)
   * Add API to get commit diff/patch (#17095)
   * Add API to fetch git notes (#16649)
-  * Allow Token API calls be authorized using the reverse-proxy header (#15119)
   * Add API Token Cache (#16547)
+  * Allow Token API calls be authorized using the reverse-proxy header (#15119)
 * ENHANCEMENTS
-  * Detect dark theme via css variable (#17800)
   * Return nicer error if trying to pull from non-existent user (#18288)
   * show pull link for agit pull request also (#18235)
   * Enable partial clone by default (#18195)
@@ -99,11 +98,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make `bind` error more readable (#17750)
   * Fix navbar on project view (#17749)
   * More pleasantly handle broken or missing git repositories (#17747)
+  * Use `*PushUpdateOptions` as receiver (#17724)
   * Remove unused `user` paramater (#17723)
   * Better builtin avatar generator (#17707)
   * Cleanup and use global style on popups (#17674)
   * Move user/org deletion to services (#17673)
   * Added comment for changing issue ref (#17672)
+  * Allow admins to change user avatars (#17661)
+  * Only set `data-path` once for each file in diff pages (#17657)
   * Add icon to vscode clone link (#17641)
   * Add download button for file viewer (#17640)
   * Add pagination to fork list (#17639)
@@ -175,6 +177,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fixes username tagging in "Reference in new issue" (#17074)
   * Notifications API: respond with updated notifications (#17064)
   * Use light/dark theme based on system preference (#17051)
+  * Always emit the configuration path (#17036)
+  * Add `AbsoluteListOptions` (#17028)
   * Use common sessioner for API and Web (#17027)
   * css: fix overflow label in small view (#17020)
   * Report the associated filter if there is an error in LDAP (#17014)
@@ -191,6 +195,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use conditions but not repo ids as query condition (#16839)
   * Add user settings key/value DB table (#16834)
   * Add buttons to allow loading of incomplete diffs (#16829)
+  * Add information for migrate failure (#16803)
   * Add EdDSA JWT signing algorithm (#16786)
   * Just use a slice when rendering file (#16774)
   * Add user status filter to admin user management page (#16770)
@@ -226,13 +231,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Switch migration icon to svg (#15954)
   * Add left padding for chunk header of split diff view (#13397)
   * Allow U2F 2FA without TOTP (#11573)
-  * Use `*PushUpdateOptions` as receiver (#17724)
-  * Allow admins to change user avatars (#17661)
-  * Only set `data-path` once for each file in diff pages (#17657)
-  * Always emit the configuration path (#17036)
-  * Add `AbsoluteListOptions` (#17028)
-  * Add information for migrate failure (#16803)
 * BUGFIXES
+  * Use indirect comparison when showing pull requests (#18313)
+  * Replace satori/go.uuid with gofrs/uuid (#18311)
+  * Don't show double error response in git hook (#18292)
   * Handle missing default branch better in owner/repo/branches page (#18290)
   * Fix CheckRepoStats and reuse it during migration (#18264)
   * Prevent underline hover on cards (#18259)
@@ -286,7 +288,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve SMTP authentication and Fix user creation bugs  (#16612)
   * Fixed emoji alias not parsed in links (#16221)
   * Calculate label URL on API  (#16186)
-  * Don't show double error response in git hook (#18292)
 * TRANSLATION
   * Fix mispelling of starred as stared (#17465)
   * Re-separate the color translation strings (#17390)
