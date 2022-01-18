@@ -537,7 +537,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
