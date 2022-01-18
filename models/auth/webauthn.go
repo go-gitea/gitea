@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/xorm"
 
 	"github.com/duo-labs/webauthn/webauthn"
+	"xorm.io/xorm"
 )
 
 // ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
