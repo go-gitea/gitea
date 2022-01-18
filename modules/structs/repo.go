@@ -93,7 +93,9 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
-	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
+	// swagger:strfmt date-time
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository

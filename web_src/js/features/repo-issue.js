@@ -486,7 +486,9 @@ export function initRepoPullRequestReview() {
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
     (async () => {
-      await createCommentEasyMDE($reviewBox.find('textarea'));
+      // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
+      // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
+      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
       initCompImagePaste($reviewBox);
     })();
   }
@@ -527,7 +529,7 @@ export function initRepoPullRequestReview() {
             <td class="lines-type-marker"></td>
             <td class="add-comment-right"></td>
           ` : `
-            <td colspan="2" class="lines-num"></td>
+            <td colspan="3" class="lines-num"></td>
             <td class="add-comment-left add-comment-right" colspan="2"></td>
           `}
         </tr>`);

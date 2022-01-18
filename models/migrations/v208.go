@@ -5,14 +5,47 @@
 package migrations
 
 import (
+	"encoding/base32"
+	"encoding/base64"
+
 	"xorm.io/xorm"
 )
 
-func addAllowMaintainerEdit(x *xorm.Engine) error {
-	// PullRequest represents relation between pull request and repositories.
-	type PullRequest struct {
-		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT true"`
+func useBase32HexForCredIDInWebAuthnCredential(x *xorm.Engine) error {
+
+	// Create webauthnCredential table
+	type webauthnCredential struct {
+		ID           int64  `xorm:"pk autoincr"`
+		CredentialID string `xorm:"INDEX"`
+	}
+	if err := x.Sync2(&webauthnCredential{}); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(PullRequest))
+	var start int
+	regs := make([]*webauthnCredential, 0, 50)
+	for {
+		err := x.OrderBy("id").Limit(50, start).Find(&regs)
+		if err != nil {
+			return err
+		}
+
+		for _, reg := range regs {
+			credID, _ := base64.RawStdEncoding.DecodeString(reg.CredentialID)
+			reg.CredentialID = base32.HexEncoding.EncodeToString(credID)
+
+			_, err := x.Update(reg)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(regs) < 50 {
+			break
+		}
+		start += 50
+		regs = regs[:0]
+	}
+
+	return nil
 }
