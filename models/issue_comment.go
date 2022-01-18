@@ -519,7 +519,7 @@ func (c *Comment) LoadPoster() error {
 	return c.loadPoster(db.GetEngine(db.DefaultContext))
 }
 
-// LoadAttachments loads attachments
+// LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
 func (c *Comment) LoadAttachments() error {
 	if len(c.Attachments) > 0 {
 		return nil

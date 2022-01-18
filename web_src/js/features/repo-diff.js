@@ -45,7 +45,7 @@ export function initRepoDiffConversationForm() {
   });
 
 
-  $('.resolve-conversation').on('click', async function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
     const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');
