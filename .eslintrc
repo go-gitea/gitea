@@ -13,7 +13,6 @@ plugins:
   - eslint-plugin-import
   - eslint-plugin-vue
   - eslint-plugin-html
-  - eslint-plugin-github
 
 extends:
   - plugin:vue/recommended
@@ -96,23 +95,6 @@ rules:
   function-paren-newline: [0]
   generator-star-spacing: [0]
   getter-return: [2]
-  github/array-foreach: [2]
-  github/async-currenttarget: [2]
-  github/async-preventdefault: [2]
-  github/authenticity-token: [0]
-  github/get-attribute: [2]
-  github/js-class-name: [0]
-  github/no-blur: [0]
-  github/no-d-none: [0]
-  github/no-dataset: [2]
-  github/no-implicit-buggy-globals: [0]
-  github/no-inner-html: [0]
-  github/no-innerText: [2]
-  github/no-then: [0]
-  github/no-useless-passive: [2]
-  github/prefer-observers: [0]
-  github/require-passive-events: [2]
-  github/unescaped-html-literal: [0]
   grouped-accessor-pairs: [2]
   guard-for-in: [0]
   id-blacklist: [0]
@@ -381,7 +363,7 @@ rules:
   unicorn/import-style: [0]
   unicorn/new-for-builtins: [2]
   unicorn/no-abusive-eslint-disable: [0]
-  unicorn/no-array-for-each: [0]
+  unicorn/no-array-for-each: [2]
   unicorn/no-array-instanceof: [0]
   unicorn/no-array-method-this-argument: [2]
   unicorn/no-array-push-push: [2]
