@@ -856,12 +856,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(e); err != nil {
+		if err = opts.Issue.updateClosedNum(ctx); err != nil {
 			return err
 		}
 	}
 	// update the issue's updated_unix column
-	return updateIssueCols(e, opts.Issue, "updated_unix")
+	return updateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {

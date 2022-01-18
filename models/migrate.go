@@ -5,6 +5,8 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -46,25 +48,28 @@ func InsertIssues(issues ...*Issue) error {
 	defer committer.Close()
 
 	for _, issue := range issues {
-		if err := insertIssue(db.GetEngine(ctx), issue); err != nil {
+		if err := insertIssue(ctx, issue); err != nil {
 			return err
 		}
+	}
+	err = UpdateRepoStats(ctx, issues[0].RepoID)
+	if err != nil {
+		return err
 	}
 	return committer.Commit()
 }
 
-func insertIssue(sess db.Engine, issue *Issue) error {
+func insertIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
 	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
-	labelIDs := make([]int64, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
 			LabelID: label.ID,
 		})
-		labelIDs = append(labelIDs, label.ID)
 	}
 	if len(issueLabels) > 0 {
 		if _, err := sess.Insert(issueLabels); err != nil {
@@ -78,54 +83,6 @@ func insertIssue(sess db.Engine, issue *Issue) error {
 
 	if len(issue.Reactions) > 0 {
 		if _, err := sess.Insert(issue.Reactions); err != nil {
-			return err
-		}
-	}
-
-	cols := make([]string, 0)
-	if !issue.IsPull {
-		sess.ID(issue.RepoID).Incr("num_issues")
-		cols = append(cols, "num_issues")
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-		}
-	} else {
-		sess.ID(issue.RepoID).Incr("num_pulls")
-		cols = append(cols, "num_pulls")
-		if issue.IsClosed {
-			sess.Incr("num_closed_pulls")
-			cols = append(cols, "num_closed_pulls")
-		}
-	}
-	if _, err := sess.NoAutoTime().Cols(cols...).Update(issue.Repo); err != nil {
-		return err
-	}
-
-	cols = []string{"num_issues"}
-	sess.Incr("num_issues")
-	if issue.IsClosed {
-		sess.Incr("num_closed_issues")
-		cols = append(cols, "num_closed_issues")
-	}
-	if _, err := sess.In("id", labelIDs).NoAutoTime().Cols(cols...).Update(new(Label)); err != nil {
-		return err
-	}
-
-	if issue.MilestoneID > 0 {
-		cols = []string{"num_issues"}
-		sess.Incr("num_issues")
-		cl := "num_closed_issues"
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-			cl = "(num_closed_issues + 1)"
-		}
-
-		if _, err := sess.ID(issue.MilestoneID).
-			SetExpr("completeness", cl+" * 100 / (num_issues + 1)").
-			NoAutoTime().Cols(cols...).
-			Update(new(Milestone)); err != nil {
 			return err
 		}
 	}
@@ -182,7 +139,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 	for _, pr := range prs {
-		if err := insertIssue(sess, pr.Issue); err != nil {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
 			return err
 		}
 		pr.IssueID = pr.Issue.ID
@@ -191,6 +148,10 @@ func InsertPullRequests(prs ...*PullRequest) error {
 		}
 	}
 
+	err = UpdateRepoStats(ctx, prs[0].Issue.RepoID)
+	if err != nil {
+		return err
+	}
 	return committer.Commit()
 }
 
