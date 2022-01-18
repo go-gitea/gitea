@@ -9,8 +9,8 @@
 				</tr>
 			</thead>
 			<tbody class="commit-list">
+				{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 				{{range .Commits}}
-					{{$commitRepoLink := $.HeadRepo.Link}}
 					<tr>
 						<td class="author">
 							{{$userName := .Author.Name}}
