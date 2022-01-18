@@ -2195,6 +2195,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
+
 	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
 		ctx.Error(http.StatusNoContent)
 		return

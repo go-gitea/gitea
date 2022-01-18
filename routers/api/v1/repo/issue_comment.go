@@ -538,6 +538,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.Status(http.StatusForbidden)
 		return
 	}
+
 	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
 		ctx.Status(http.StatusNoContent)
 		return
