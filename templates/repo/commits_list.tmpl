@@ -9,6 +9,7 @@
 				</tr>
 			</thead>
 			<tbody class="commit-list">
+				{{$commitRepoLink := $.RepoLink}}{{if $.CommitRepoLink}}{{$commitRepoLink = $.CommitRepoLink}}{{end}}
 				{{range .Commits}}
 					<tr>
 						<td class="author">
@@ -41,9 +42,9 @@
 								{{end}}
 							{{end}}
 							{{if $.PageIsWiki}}
-								<a href="{{$.RepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<a href="{{$commitRepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
-								<a href="{{$.RepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<a href="{{$commitRepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
@@ -62,8 +63,8 @@
 							{{if $.PageIsWiki}}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
-								{{ $commitLink:= printf "%s/commit/%s" $.RepoLink (PathEscape .ID.String) }}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								{{ $commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String) }}
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
@@ -71,7 +72,7 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
 						<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
