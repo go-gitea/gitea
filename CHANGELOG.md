@@ -72,7 +72,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Show OAuth callback error message (#18185)
   * Increase Salt randomness (#18179)
   * Add MP4 as default allowed attachment type (#18170)
-  * Remove unused route (#18160)
   * Include folders into size cost (#18158)
   * Remove `/email2user` endpoint (#18127)
   * Handle invalid issues (#18111)
