@@ -6,6 +6,7 @@ package files
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -22,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	repo_service "code.gitea.io/gitea/services/repository"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -125,7 +125,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (st
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
+func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -134,8 +134,14 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -143,7 +149,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -152,7 +158,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, opts.TreePath); err != nil {
 		return nil, err
 	}
 
@@ -180,7 +186,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("%v", err)
 	}
@@ -435,7 +441,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	file, err := GetFileResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +449,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
+func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
 	protectedBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 	if err != nil {
 		return err
@@ -460,7 +466,7 @@ func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, 
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

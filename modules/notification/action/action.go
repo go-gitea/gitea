@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -206,11 +208,14 @@ func (a *actionNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, re
 }
 
 func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*user_model.User) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("actionNotifier.NotifyPullRequestReview Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
+	defer finished()
+
 	if err := review.LoadReviewer(); err != nil {
 		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
 		return
 	}
-	if err := review.LoadCodeComments(); err != nil {
+	if err := review.LoadCodeComments(ctx); err != nil {
 		log.Error("LoadCodeComments '%d/%d': %v", review.Reviewer.ID, review.ID, err)
 		return
 	}
@@ -330,7 +335,7 @@ func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 	}
 }
 
-func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	opType := models.ActionCommitRepo
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
@@ -389,7 +394,7 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *re
 	}
 }
 
-func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
