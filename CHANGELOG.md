@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-19
+## [1.16.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.16.0-rc1) - 2022-01-19
 
 * BREAKING
   * Remove golang vendored directory (#18277)
