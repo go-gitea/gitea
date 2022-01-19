@@ -297,7 +297,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	)
 
 	if err != nil {
-		logger.Critical("Unable to iterate acrosss repounits to fix the broken units: Error %v", err)
+		logger.Critical("Unable to iterate across repounits to fix the broken units: Error %v", err)
 		return err
 	}
 

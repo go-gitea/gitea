@@ -7,7 +7,6 @@
 package repo
 
 import (
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"html"
@@ -320,8 +319,46 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
+	var baseCommit string
+	// Some migrated PR won't have any Base SHA and lose history, try to get one
+	if pull.MergeBase == "" {
+		var commitSHA, parentCommit string
+		// If there is a head or a patch file, and it is readable, grab info
+		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitRefName())
+		if err != nil {
+			// Head File does not exist, try the patch
+			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
+			if err == nil {
+				// Recreate pull head in files for next time
+				if err := ctx.Repo.GitRepo.SetReference(pull.GetGitRefName(), commitSHA); err != nil {
+					log.Error("Could not write head file", err)
+				}
+			} else {
+				// There is no history available
+				log.Trace("No history file available for PR %d", pull.Index)
+			}
+		}
+		if commitSHA != "" {
+			// Get immediate parent of the first commit in the patch, grab history back
+			parentCommit, err = git.NewCommandContext(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
+			if err == nil {
+				parentCommit = strings.TrimSpace(parentCommit)
+			}
+			// Special case on Git < 2.25 that doesn't fail on immediate empty history
+			if err != nil || parentCommit == "" {
+				log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
+				// bring at least partial history if it can work
+				parentCommit = commitSHA
+			}
+		}
+		baseCommit = parentCommit
+	} else {
+		// Keep an empty history or original commit
+		baseCommit = pull.MergeBase
+	}
+
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
-		pull.MergeBase, pull.GetGitRefName(), true, false)
+		baseCommit, pull.GetGitRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -404,7 +441,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-			pull.MergeBase, pull.GetGitRefName(), true, false)
+			pull.MergeBase, pull.GetGitRefName(), false, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 				ctx.Data["IsPullRequestBroken"] = true
@@ -520,7 +557,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), true, false)
+		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -701,7 +738,6 @@ func ViewPullFiles(ctx *context.Context) {
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
@@ -1014,6 +1050,17 @@ func MergePullRequest(ctx *context.Context) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
+		// Don't cleanup when other pr use this branch as head branch
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		if err != nil {
+			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+			return
+		}
+		if exist {
+			ctx.Redirect(issue.Link())
+			return
+		}
+
 		var headRepo *git.Repository
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
@@ -1050,7 +1097,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
@@ -1170,44 +1216,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Redirect(pullIssue.Link())
 }
 
-// TriggerTask response for a trigger task request
-func TriggerTask(ctx *context.Context) {
-	pusherID := ctx.FormInt64("pusher")
-	branch := ctx.FormString("branch")
-	secret := ctx.FormString("secret")
-	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
-		ctx.Error(http.StatusNotFound)
-		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
-		return
-	}
-	owner, repo := parseOwnerAndRepo(ctx)
-	if ctx.Written() {
-		return
-	}
-	got := []byte(base.EncodeMD5(owner.Salt))
-	want := []byte(secret)
-	if subtle.ConstantTimeCompare(got, want) != 1 {
-		ctx.Error(http.StatusNotFound)
-		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
-		return
-	}
-
-	pusher, err := user_model.GetUserByID(pusherID)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound)
-		} else {
-			ctx.ServerError("GetUserByID", err)
-		}
-		return
-	}
-
-	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
-
-	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, "", "")
-	ctx.Status(202)
-}
-
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
 func CleanUpPullRequest(ctx *context.Context) {
 	issue := checkPullInfo(ctx)
@@ -1219,6 +1227,17 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	// Don't cleanup unmerged and unclosed PRs
 	if !pr.HasMerged && !issue.IsClosed {
+		ctx.NotFound("CleanUpPullRequest", nil)
+		return
+	}
+
+	// Don't cleanup when there are other PR's that use this branch as head branch.
+	exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
+		return
+	}
+	if exist {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}

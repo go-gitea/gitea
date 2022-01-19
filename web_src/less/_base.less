@@ -110,6 +110,7 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
+  --color-navbar-transparent: #f8f8f800;
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
@@ -247,6 +248,7 @@ a.label,
 .repository-menu a,
 .ui.search .results a,
 .ui .menu a,
+.ui.cards a.card,
 .issue-keyword a {
   text-decoration: none !important;
 }
@@ -665,6 +667,12 @@ a.ui.card:hover,
 .ui.link.list.list a.item:active,
 .ui.link.list.list .item a:not(.ui):active {
   color: var(--color-text-dark);
+}
+
+.ui.error.message .header,
+.ui.warning.message .header {
+  color: inherit;
+  filter: saturate(2);
 }
 
 .dont-break-out {
@@ -1355,7 +1363,7 @@ footer {
 .ui.menu.new-menu::after {
   position: absolute;
   display: block;
-  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
+  background: linear-gradient(to right, var(--color-navbar-transparent), var(--color-navbar) 100%);
   content: '';
   right: 0;
   height: 39px;
@@ -1566,6 +1574,10 @@ a.ui.label:hover {
       padding-left: 1ch;
     }
   }
+}
+
+.lines-escape {
+  width: 0;
 }
 
 .lines-code {

@@ -268,7 +268,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 	return results
 }
 
-// UserNameChanged hanle user name change for agit flow pull
+// UserNameChanged handle user name change for agit flow pull
 func UserNameChanged(user *user_model.User, newName string) error {
 	pulls, err := models.GetAllUnmergedAgitPullRequestByPoster(user.ID)
 	if err != nil {

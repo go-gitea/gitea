@@ -5,11 +5,14 @@
 package convert
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -98,11 +101,27 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
+	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
 		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
+			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
+		}
+	}
+
+	var transfer *api.RepoTransfer
+	if repo.Status == repo_model.RepositoryPendingTransfer {
+		t, err := models.GetPendingRepositoryTransfer(repo)
+		if err != nil && !models.IsErrNoPendingTransfer(err) {
+			log.Warn("GetPendingRepositoryTransfer: %v", err)
+		} else {
+			if err := t.LoadAttributes(); err != nil {
+				log.Warn("LoadAttributes of RepoTransfer: %v", err)
+			} else {
+				transfer = ToRepoTransfer(t)
+			}
 		}
 	}
 
@@ -151,5 +170,21 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		AvatarURL:                 repo.AvatarLink(),
 		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:            mirrorInterval,
+		MirrorUpdated:             mirrorUpdated,
+		RepoTransfer:              transfer,
+	}
+}
+
+// ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
+func ToRepoTransfer(t *models.RepoTransfer) *api.RepoTransfer {
+	var teams []*api.Team
+	for _, v := range t.Teams {
+		teams = append(teams, ToTeam(v))
+	}
+
+	return &api.RepoTransfer{
+		Doer:      ToUser(t.Doer, nil),
+		Recipient: ToUser(t.Recipient, nil),
+		Teams:     teams,
 	}
 }

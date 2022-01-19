@@ -297,7 +297,7 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.LoginSources,
 		prometheus.GaugeValue,
-		float64(stats.Counter.LoginSource),
+		float64(stats.Counter.AuthSource),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Milestones,

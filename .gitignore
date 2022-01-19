@@ -85,6 +85,7 @@ cpu.out
 /public/css
 /public/fonts
 /public/img/webpack
+/vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js

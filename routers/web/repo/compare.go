@@ -735,6 +735,10 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("LoadIssue", err)
+				return
+			}
 			ctx.Data["PullRequest"] = pr
 			ctx.HTML(http.StatusOK, tplCompareDiff)
 			return
@@ -760,7 +764,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
