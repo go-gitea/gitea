@@ -17,6 +17,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCheckRepoStats(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	assert.NoError(t, CheckRepoStats(db.DefaultContext))
+}
+
 func TestWatchRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	const repoID = 3

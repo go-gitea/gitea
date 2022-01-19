@@ -72,11 +72,12 @@ func Branches(ctx *context.Context) {
 
 	skip := (page - 1) * limit
 	log.Debug("Branches: skip: %d limit: %d", skip, limit)
-	branches, branchesCount := loadBranches(ctx, skip, limit)
+	defaultBranchBranch, branches, branchesCount := loadBranches(ctx, skip, limit)
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["Branches"] = branches
+	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
 	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
@@ -165,25 +166,28 @@ func redirect(ctx *context.Context) {
 
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
-func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
+func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, int) {
 	defaultBranch, err := ctx.Repo.GitRepo.GetBranch(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		log.Error("loadBranches: get default branch: %v", err)
-		ctx.ServerError("GetDefaultBranch", err)
-		return nil, 0
+		if !git.IsErrBranchNotExist(err) {
+			log.Error("loadBranches: get default branch: %v", err)
+			ctx.ServerError("GetDefaultBranch", err)
+			return nil, nil, 0
+		}
+		log.Warn("loadBranches: missing default branch %s for %-v", ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository)
 	}
 
 	rawBranches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, limit)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		ctx.ServerError("GetBranches", err)
-		return nil, 0
+		return nil, nil, 0
 	}
 
 	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
-		return nil, 0
+		return nil, nil, 0
 	}
 
 	repoIDToRepo := map[int64]*repo_model.Repository{}
@@ -194,36 +198,40 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 
 	var branches []*Branch
 	for i := range rawBranches {
-		if rawBranches[i].Name == defaultBranch.Name {
+		if defaultBranch != nil && rawBranches[i].Name == defaultBranch.Name {
 			// Skip default branch
 			continue
 		}
 
-		var branch = loadOneBranch(ctx, rawBranches[i], protectedBranches, repoIDToRepo, repoIDToGitRepo)
+		var branch = loadOneBranch(ctx, rawBranches[i], defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
-			return nil, 0
+			return nil, nil, 0
 		}
 
 		branches = append(branches, branch)
 	}
 
-	// Always add the default branch
-	log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
-	branches = append(branches, loadOneBranch(ctx, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo))
+	var defaultBranchBranch *Branch
+	if defaultBranch != nil {
+		// Always add the default branch
+		log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
+		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
+		branches = append(branches, defaultBranchBranch)
+	}
 
 	if ctx.Repo.CanWrite(unit.TypeCode) {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
 			ctx.ServerError("getDeletedBranches", err)
-			return nil, 0
+			return nil, nil, 0
 		}
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches
+	return defaultBranchBranch, branches, totalNumOfBranches
 }
 
-func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
+func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository) *Branch {
 	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
@@ -243,10 +251,15 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 		}
 	}
 
-	divergence, divergenceError := files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
-	if divergenceError != nil {
-		ctx.ServerError("CountDivergingCommits", divergenceError)
-		return nil
+	divergence := &git.DivergeObject{
+		Ahead:  -1,
+		Behind: -1,
+	}
+	if defaultBranch != nil {
+		divergence, err = files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+		if err != nil {
+			log.Error("CountDivergingCommits", err)
+		}
 	}
 
 	pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)

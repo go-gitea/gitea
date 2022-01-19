@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -19,7 +19,7 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	s := &login.Source{ID: 1}
+	s := &auth.Source{ID: 1}
 
 	testCases := []struct {
 		keyString   string

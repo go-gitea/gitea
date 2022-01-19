@@ -5,7 +5,7 @@
 package db
 
 import (
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -29,6 +29,6 @@ func (source *Source) Authenticate(user *user_model.User, login, password string
 }
 
 func init() {
-	login.RegisterTypeConfig(login.NoType, &Source{})
-	login.RegisterTypeConfig(login.Plain, &Source{})
+	auth.RegisterTypeConfig(auth.NoType, &Source{})
+	auth.RegisterTypeConfig(auth.Plain, &Source{})
 }
