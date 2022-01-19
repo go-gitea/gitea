@@ -1333,7 +1333,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 
-		if comment.Type == models.CommentTypeComment {
+		if comment.Type == models.CommentTypeComment || comment.Type == models.CommentTypeReview {
 			if err := comment.LoadAttachments(); err != nil {
 				ctx.ServerError("LoadAttachments", err)
 				return
@@ -2194,7 +2194,9 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+	}
+
+	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -2212,11 +2214,9 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
+	if err := comment.LoadAttachments(); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
 	}
 
 	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
@@ -2404,7 +2404,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+	}
+
+	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode && comment.Type != models.CommentTypeReview {
 		ctx.Error(http.StatusNoContent)
 		return
 	}

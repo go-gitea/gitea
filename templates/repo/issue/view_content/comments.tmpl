@@ -399,7 +399,7 @@
 		</div>
 	{{else if eq .Type 22}}
 		<div class="timeline-item-group">
-			<div class="timeline-item event" id="{{.HashTag}}">
+			<div class="timeline-item event">
 				{{if .OriginalAuthor }}
 				{{else}}
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
@@ -434,23 +434,46 @@
 				</span>
 			</div>
 			{{if .Content}}
-			<div class="timeline-item comment">
+			<div class="timeline-item comment" id="{{.HashTag}}">
 				<div class="content comment-container">
 					<div class="ui top attached header comment-header df ac sb">
-						<span class="text grey">
-							{{if .OriginalAuthor }}
-								<span class="text black">
-									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-									{{ .OriginalAuthor }}
-								</span>
-								<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-								<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
-							{{else}}
-								<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
-							{{end}}
+						<div class="comment-header-left df ac">
+							<span class="text grey">
+								{{if .OriginalAuthor }}
+									<span class="text black">
+										{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+										{{ .OriginalAuthor }}
+									</span>
+									<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
+									<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
+								{{else}}
+									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+								{{end}}
 
-							{{$.i18n.Tr "repo.issues.review.left_comment" | Safe}}
-						</span>
+								{{$.i18n.Tr "repo.issues.review.left_comment" | Safe}}
+							</span>
+						</div>
+						<div class="comment-header-right actions df ac">
+								{{if (.ShowRole.HasRole "Poster")}}
+									<div class="ui basic label">
+											{{$.i18n.Tr "repo.issues.poster"}}
+									</div>
+								{{end}}
+								{{if (.ShowRole.HasRole "Writer")}}
+									<div class="ui basic label">
+											{{$.i18n.Tr "repo.issues.collaborator"}}
+									</div>
+								{{end}}
+								{{if (.ShowRole.HasRole "Owner")}}
+									<div class="ui basic label">
+											{{$.i18n.Tr "repo.issues.owner"}}
+									</div>
+								{{end}}
+								{{if not $.Repository.IsArchived}}
+										{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+										{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+								{{end}}
+						</div>
 					</div>
 					<div class="ui attached segment comment-body">
 						<div class="render-content markup">
@@ -460,10 +483,18 @@
 								<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
+						<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+						<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 						{{if .Attachments}}
 							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
 						{{end}}
 					</div>
+					{{$reactions := .Reactions.GroupByType}}
+					{{if $reactions}}
+						<div class="ui attached segment reactions">
+								{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
+						</div>
+					{{end}}
 				</div>
 			</div>
 			{{end}}

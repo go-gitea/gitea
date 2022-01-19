@@ -50,9 +50,10 @@ export async function importEasyMDE() {
 /**
  * create an EasyMDE editor for comment
  * @param textarea jQuery or HTMLElement
+ * @param easyMDEOptions the options for EasyMDE
  * @returns {null|EasyMDE}
  */
-export async function createCommentEasyMDE(textarea) {
+export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
   if (textarea instanceof jQuery) {
     textarea = textarea[0];
   }
@@ -61,6 +62,7 @@ export async function createCommentEasyMDE(textarea) {
   }
 
   const EasyMDE = await importEasyMDE();
+
   const easyMDE = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: textarea,
@@ -104,8 +106,7 @@ export async function createCommentEasyMDE(textarea) {
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
-    ],
-  });
+    ], ...easyMDEOptions});
   const inputField = easyMDE.codemirror.getInputField();
   inputField.classList.add('js-quick-submit');
   easyMDE.codemirror.setOption('extraKeys', {

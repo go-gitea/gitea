@@ -90,7 +90,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 	defer baseGitRepo.Close()
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), true, false)
+		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
 	if err != nil {
 		return err
 	}
@@ -522,7 +522,7 @@ func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error 
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) && !models.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 	}

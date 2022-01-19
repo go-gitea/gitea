@@ -359,6 +359,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  []string{treePath},
+			CachedOnly: true,
 		})
 		if err != nil {
 			return nil, err

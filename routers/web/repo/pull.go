@@ -358,7 +358,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	}
 
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
-		baseCommit, pull.GetGitRefName(), true, false)
+		baseCommit, pull.GetGitRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -446,7 +446,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-			pull.MergeBase, pull.GetGitRefName(), true, false)
+			pull.MergeBase, pull.GetGitRefName(), false, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 				ctx.Data["IsPullRequestBroken"] = true
@@ -563,7 +563,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), true, false)
+		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true

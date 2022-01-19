@@ -477,7 +477,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	ctx.Data["ApplicationUserLinkHTML"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
