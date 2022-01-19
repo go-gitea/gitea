@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/caddyserver/certmagic"
-	context2 "github.com/gorilla/context"
 )
 
 func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
@@ -48,13 +48,30 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary
-	err := magic.ManageSync([]string{domain})
+	err := magic.ManageSync(graceful.GetManager().HammerContext(), []string{domain})
 	if err != nil {
 		return err
 	}
 
 	tlsConfig := magic.TLSConfig()
 	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2")
+
+	if version := toTLSVersion(setting.SSLMinimumVersion); version != 0 {
+		tlsConfig.MinVersion = version
+	}
+	if version := toTLSVersion(setting.SSLMaximumVersion); version != 0 {
+		tlsConfig.MaxVersion = version
+	}
+
+	// Set curve preferences
+	if curves := toCurvePreferences(setting.SSLCurvePreferences); len(curves) > 0 {
+		tlsConfig.CurvePreferences = curves
+	}
+
+	// Set cipher suites
+	if ciphers := toTLSCiphers(setting.SSLCipherSuites); len(ciphers) > 0 {
+		tlsConfig.CipherSuites = ciphers
+	}
 
 	if enableHTTPChallenge {
 		go func() {
@@ -67,7 +84,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, context2.ClearHandler(m))
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

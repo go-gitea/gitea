@@ -7,7 +7,8 @@ package repo
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 )
@@ -23,7 +24,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
-		if err := models.CreateRepositoryNotice(description); err != nil {
+		if err := admin_model.CreateRepositoryNotice(description); err != nil {
 			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return
@@ -55,7 +56,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := ctx.User.UpdateDiffViewStyle(style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx.User, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }

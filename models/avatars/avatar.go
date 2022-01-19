@@ -10,6 +10,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
@@ -21,9 +22,6 @@ import (
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 const DefaultAvatarPixelSize = 28
 
-// AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
-const AvatarRenderedSizeFactor = 4
-
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
 	Hash  string `xorm:"pk varchar(32)"`
@@ -34,16 +32,24 @@ func init() {
 	db.RegisterModel(new(EmailHash))
 }
 
+var (
+	defaultAvatarLink string
+	once              sync.Once
+)
+
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
-	u, err := url.Parse(setting.AppSubURL)
-	if err != nil {
-		log.Error("GetUserByEmail: %v", err)
-		return ""
-	}
+	once.Do(func() {
+		u, err := url.Parse(setting.AppSubURL)
+		if err != nil {
+			log.Error("Can not parse AppSubURL: %v", err)
+			return
+		}
 
-	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
-	return u.String()
+		u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
+		defaultAvatarLink = u.String()
+	})
+	return defaultAvatarLink
 }
 
 // HashEmail hashes email address to MD5 string. https://en.gravatar.com/site/implement/hash/
@@ -112,15 +118,15 @@ func GenerateUserAvatarFastLink(userName string, size int) string {
 	if size < 0 {
 		size = 0
 	}
-	return setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
+	return setting.AppSubURL + "/user/avatar/" + url.PathEscape(userName) + "/" + strconv.Itoa(size)
 }
 
 // GenerateUserAvatarImageLink returns a link for `User.Avatar` image file: "/avatars/${User.Avatar}"
 func GenerateUserAvatarImageLink(userAvatar string, size int) string {
 	if size > 0 {
-		return setting.AppSubURL + "/avatars/" + userAvatar + "?size=" + strconv.Itoa(size)
+		return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar) + "?size=" + strconv.Itoa(size)
 	}
-	return setting.AppSubURL + "/avatars/" + userAvatar
+	return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar)
 }
 
 // generateRecognizedAvatarURL generate a recognized avatar (Gravatar/Libravatar) URL, it modifies the URL so the parameter is passed by a copy
@@ -155,7 +161,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 			return generateRecognizedAvatarURL(*avatarURL, size)
 		}
 		// for non-final link, we should return fast (use a 302 redirection link)
-		urlStr := setting.AppSubURL + "/avatar/" + emailHash
+		urlStr := setting.AppSubURL + "/avatar/" + url.PathEscape(emailHash)
 		if size > 0 {
 			urlStr += "?size=" + strconv.Itoa(size)
 		}

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -125,8 +126,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["Stats"] = models.GetStatistic()
-	ctx.Data["NeedUpdate"] = models.GetNeedUpdate()
-	ctx.Data["RemoteVersion"] = models.GetRemoteVersion()
+	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
+	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
@@ -326,7 +327,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes()
+	ctx.Data["Processes"] = process.GetManager().Processes(true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(http.StatusOK, tplMonitor)
@@ -334,8 +335,8 @@ func Monitor(ctx *context.Context) {
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
-	pid := ctx.ParamsInt64("pid")
-	process.GetManager().Cancel(pid)
+	pid := ctx.Params("pid")
+	process.GetManager().Cancel(process.IDType(pid))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})

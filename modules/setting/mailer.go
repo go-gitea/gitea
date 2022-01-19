@@ -16,13 +16,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name            string
-	From            string
-	FromName        string
-	FromEmail       string
-	SendAsPlainText bool
-	MailerType      string
-	SubjectPrefix   string
+	Name                 string
+	From                 string
+	EnvelopeFrom         string
+	OverrideEnvelopeFrom bool `ini:"-"`
+	FromName             string
+	FromEmail            string
+	SendAsPlainText      bool
+	MailerType           string
+	SubjectPrefix        string
 
 	// SMTP sender
 	Host              string
@@ -35,9 +37,10 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	SendmailPath    string
-	SendmailArgs    []string
-	SendmailTimeout time.Duration
+	SendmailPath        string
+	SendmailArgs        []string
+	SendmailTimeout     time.Duration
+	SendmailConvertCRLF bool
 }
 
 var (
@@ -69,10 +72,12 @@ func newMailService() {
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
-		SendmailPath:    sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
+	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
 		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
@@ -92,6 +97,21 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	switch MailService.EnvelopeFrom {
+	case "":
+		MailService.OverrideEnvelopeFrom = false
+	case "<>":
+		MailService.EnvelopeFrom = ""
+		MailService.OverrideEnvelopeFrom = true
+	default:
+		parsed, err = mail.ParseAddress(MailService.EnvelopeFrom)
+		if err != nil {
+			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
+		}
+		MailService.OverrideEnvelopeFrom = true
+		MailService.EnvelopeFrom = parsed.Address
+	}
 
 	if MailService.MailerType == "" {
 		MailService.MailerType = "smtp"

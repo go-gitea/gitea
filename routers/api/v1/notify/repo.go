@@ -29,7 +29,7 @@ func statusStringToNotificationStatus(status string) models.NotificationStatus {
 	}
 }
 
-func statusStringsToNotificationStatuses(statuses []string, defaultStatuses []string) []models.NotificationStatus {
+func statusStringsToNotificationStatuses(statuses, defaultStatuses []string) []models.NotificationStatus {
 	if len(statuses) == 0 {
 		statuses = defaultStatuses
 	}
@@ -121,7 +121,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 	err = nl.LoadAttributes()
-	if err != nil {
+	if err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}

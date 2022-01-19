@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserListIsPublicMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
 		expected map[int64]bool
@@ -32,14 +33,15 @@ func TestUserListIsPublicMember(t *testing.T) {
 }
 
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetUserByID(orgID)
+	org, err := GetOrgByID(orgID)
 	assert.NoError(t, err)
-	assert.NoError(t, org.GetMembers())
-	assert.Equal(t, expected, org.MembersIsPublic)
+	_, membersIsPublic, err := org.GetMembers()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, membersIsPublic)
 }
 
 func TestUserListIsUserOrgOwner(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
 		expected map[int64]bool
@@ -58,34 +60,9 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 }
 
 func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetUserByID(orgID)
+	org, err := GetOrgByID(orgID)
 	assert.NoError(t, err)
-	assert.NoError(t, org.GetMembers())
-	assert.Equal(t, expected, org.Members.IsUserOrgOwner(orgID))
-}
-
-func TestUserListIsTwoFaEnrolled(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
-	tt := []struct {
-		orgid    int64
-		expected map[int64]bool
-	}{
-		{3, map[int64]bool{2: false, 4: false, 28: false}},
-		{6, map[int64]bool{5: false, 28: false}},
-		{7, map[int64]bool{5: false}},
-		{25, map[int64]bool{24: true}},
-		{22, map[int64]bool{}},
-	}
-	for _, v := range tt {
-		t.Run(fmt.Sprintf("IsTwoFaEnrolledOfOrdIg%d", v.orgid), func(t *testing.T) {
-			testUserListIsTwoFaEnrolled(t, v.orgid, v.expected)
-		})
-	}
-}
-
-func testUserListIsTwoFaEnrolled(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetUserByID(orgID)
+	members, _, err := org.GetMembers()
 	assert.NoError(t, err)
-	assert.NoError(t, org.GetMembers())
-	assert.Equal(t, expected, org.Members.GetTwoFaStatus())
+	assert.Equal(t, expected, IsUserOrgOwner(members, orgID))
 }

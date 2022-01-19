@@ -11,12 +11,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -27,7 +30,7 @@ import (
 const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(m *models.Mirror, addr string) error {
+func UpdateAddress(m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
 	// Remove old remote
@@ -57,7 +60,7 @@ func UpdateAddress(m *models.Mirror, addr string) error {
 	}
 
 	m.Repo.OriginalURL = addr
-	return models.UpdateRepositoryCols(m.Repo, "original_url")
+	return repo_model.UpdateRepositoryCols(m.Repo, "original_url")
 }
 
 // mirrorSyncResult contains information of a updated reference.
@@ -142,7 +145,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 func pruneBrokenReferences(ctx context.Context,
-	m *models.Mirror,
+	m *repo_model.Mirror,
 	repoPath string,
 	timeout time.Duration,
 	stdoutBuilder, stderrBuilder *strings.Builder,
@@ -170,7 +173,7 @@ func pruneBrokenReferences(ctx context.Context,
 
 		log.Error("Failed to prune mirror repository %s%-v references:\nStdout: %s\nStderr: %s\nErr: %v", wiki, m.Repo, stdoutMessage, stderrMessage, pruneErr)
 		desc := fmt.Sprintf("Failed to prune mirror repository %s'%s' references: %s", wiki, repoPath, stderrMessage)
-		if err := models.CreateRepositoryNotice(desc); err != nil {
+		if err := admin_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		// this if will only be reached on a successful prune so try to get the mirror again
@@ -179,7 +182,7 @@ func pruneBrokenReferences(ctx context.Context,
 }
 
 // runSync returns true if sync finished without error.
-func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -191,7 +194,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 	gitArgs = append(gitArgs, m.GetRemoteName())
 
-	remoteAddr, remoteErr := git.GetRemoteAddress(repoPath, m.GetRemoteName())
+	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("GetRemoteAddress Error %v", remoteErr)
 	}
@@ -239,7 +242,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 		if err != nil {
 			log.Error("Failed to update mirror repository %-v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 			desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
-			if err = models.CreateRepositoryNotice(desc); err != nil {
+			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
 			return nil, false
@@ -260,15 +263,16 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		ep := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep, false); err != nil {
+		endpoint := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
+		lfsClient := lfs.NewClient(endpoint, nil)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("Failed to synchronize LFS objects for repository: %v", err)
 		}
 	}
 	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
-	if err := m.Repo.UpdateSize(db.DefaultContext); err != nil {
+	if err := models.UpdateRepoSize(db.DefaultContext, m.Repo); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
@@ -285,7 +289,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
 
-			remoteAddr, remoteErr := git.GetRemoteAddress(wikiPath, m.GetRemoteName())
+			remoteAddr, remoteErr := git.GetRemoteAddress(ctx, wikiPath, m.GetRemoteName())
 			if remoteErr != nil {
 				log.Error("GetRemoteAddress Error %v", remoteErr)
 			}
@@ -323,7 +327,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			if err != nil {
 				log.Error("Failed to update mirror repository wiki %-v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 				desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
-				if err = models.CreateRepositoryNotice(desc); err != nil {
+				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
 				return nil, false
@@ -333,7 +337,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := repo_module.GetBranches(m.Repo, 0, 0)
+	branches, _, err := git.GetBranchesByPath(m.Repo.RepoPath(), 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -359,11 +363,14 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("PANIC whilst syncMirrors[%d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
-	m, err := models.GetMirrorByRepoID(repoID)
+	m, err := repo_model.GetMirrorByRepoID(repoID)
 	if err != nil {
 		log.Error("GetMirrorByRepoID [%d]: %v", repoID, err)
 		return false
 	}
+
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
+	defer finished()
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
@@ -373,7 +380,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
-	if err = models.UpdateMirror(m); err != nil {
+	if err = repo_model.UpdateMirror(m); err != nil {
 		log.Error("UpdateMirror [%d]: %v", m.RepoID, err)
 		return false
 	}
@@ -383,7 +390,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
+		gitRepo, err = git.OpenRepositoryCtx(ctx, m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
 			return false
@@ -397,7 +404,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	for _, result := range results {
 		// Discard GitHub pull requests, i.e. refs/pull/*
-		if strings.HasPrefix(result.refName, "refs/pull/") {
+		if strings.HasPrefix(result.refName, git.PullPrefix) {
 			continue
 		}
 
@@ -469,7 +476,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+	if err = repo_model.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
 		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
 		return false
 	}
@@ -479,7 +486,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}
@@ -493,7 +500,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 	}
 	firstName := ""
 	for _, result := range results {
-		if strings.HasPrefix(result.refName, "refs/pull/") {
+		if strings.HasPrefix(result.refName, git.PullPrefix) {
 			continue
 		}
 		tp, name := git.SplitRefName(result.refName)
@@ -524,7 +531,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 			if !git.IsErrUnsupportedVersion(err) {
 				log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
 				desc := fmt.Sprintf("Failed to uupdate default branch of underlying git repository '%s': %v", m.Repo.RepoPath(), err)
-				if err = models.CreateRepositoryNotice(desc); err != nil {
+				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
 				return false
@@ -532,10 +539,10 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := models.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
-			if err = models.CreateRepositoryNotice(desc); err != nil {
+			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
 			return false

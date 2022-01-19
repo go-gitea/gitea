@@ -62,9 +62,8 @@ export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
-      .addClass('poping up')
+      .addClass('tooltip')
       .attr('data-content', $(this).attr('title'))
-      .attr('data-variation', 'inverted tiny')
       .attr('title', '');
   });
 
@@ -88,7 +87,7 @@ export function initGlobalCommon() {
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
-      $('.poping.up').popup('hide');
+      $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
@@ -104,8 +103,17 @@ export function initGlobalCommon() {
   $('.ui.progress').progress({
     showActivity: false
   });
-  $('.poping.up').popup();
-  $('.top.menu .poping.up').popup({
+
+  // init popups
+  $('.tooltip').each((_, el) => {
+    const $el = $(el);
+    const attr = $el.attr('data-variation');
+    const attrs = attr ? attr.split(' ') : [];
+    const variations = new Set([...attrs, 'inverted', 'tiny']);
+    $el.attr('data-variation', [...variations].join(' ')).popup();
+  });
+
+  $('.top.menu .tooltip').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
         return false;
@@ -119,22 +127,27 @@ export function initGlobalCommon() {
     $($(this).data('target')).slideToggle(100);
   });
 
-  // make table <tr> element clickable like a link
-  $('tr[data-href]').on('click', function () {
-    window.location = $(this).data('href');
-  });
-
-  // make table <td> element clickable like a link
-  $('td[data-href]').click(function () {
-    window.location = $(this).data('href');
+  // make table <tr> and <td> elements clickable like a link
+  $('tr[data-href], td[data-href]').on('click', function (e) {
+    const href = $(this).data('href');
+    if (e.target.nodeName === 'A') {
+      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      // ctrl+click or meta+click opens a new window in modern browsers
+      window.open(href);
+    } else {
+      window.location = href;
+    }
   });
 }
 
-export async function initGlobalDropzone() {
+export function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
-    await createDropzone(el, {
+    const _promise = createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),
@@ -283,8 +296,21 @@ export function initGlobalButtons() {
     $($(this).data('panel')).show();
   });
 
-  $('.hide-panel.button').on('click', function () {
-    $($(this).data('panel')).hide();
+  $('.hide-panel.button').on('click', function (event) {
+    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+    event.preventDefault();
+    let sel = $(this).attr('data-panel');
+    if (sel) {
+      $(sel).hide();
+      return;
+    }
+    sel = $(this).attr('data-panel-closest');
+    if (sel) {
+      $(this).closest(sel).hide();
+      return;
+    }
+    // should never happen, otherwise there is a bug in code
+    alert('Nothing to hide');
   });
 
   $('.show-modal.button').on('click', function () {

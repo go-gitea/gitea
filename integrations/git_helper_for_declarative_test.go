@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +56,7 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	u2 := *u
 	u2.Scheme = "ssh"
 	u2.User = url.User("git")
-	u2.Host = fmt.Sprintf("%s:%d", setting.SSH.ListenHost, setting.SSH.ListenPort)
+	u2.Host = net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort))
 	u2.Path = gitPath
 	return &u2
 }
@@ -138,6 +139,9 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
 		assert.NoError(t, git.InitRepository(dstPath, false))
+		// forcibly set default branch to master
+		_, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
+		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{

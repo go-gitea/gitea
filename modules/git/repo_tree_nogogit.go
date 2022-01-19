@@ -12,7 +12,7 @@ import (
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	wr, rd, cancel := repo.CatFileBatch()
+	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
@@ -34,7 +34,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(repo)
 		if err != nil {
 			return nil, err
 		}

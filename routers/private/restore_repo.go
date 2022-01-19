@@ -10,8 +10,8 @@ import (
 
 	myCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/services/migrations"
 )
 
 // RestoreRepo restore a repository from data

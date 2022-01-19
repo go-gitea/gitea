@@ -23,7 +23,10 @@ var CmdConvert = cli.Command{
 }
 
 func runConvert(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -32,7 +35,6 @@ func runConvert(ctx *cli.Context) error {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	setting.InitDBConfig()
 
 	if !setting.Database.UseMySQL {
 		fmt.Println("This command can only be used with a MySQL database")

@@ -7,20 +7,24 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/migrations"
+	"code.gitea.io/gitea/services/task"
 )
 
 const (
@@ -65,7 +69,7 @@ func Migrate(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, base.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *forms.MigrateRepoForm) {
+func handleMigrateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form *forms.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
@@ -76,12 +80,14 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
-	case models.IsErrRepoAlreadyExist(err):
+	case repo_model.IsErrReachLimitOfRepo(err):
+		maxCreationLimit := owner.MaxCreationLimit()
+		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		ctx.RenderWithErr(msg, tpl, form)
+	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
-	case models.IsErrRepoFilesAlreadyExist(err):
+	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
@@ -93,12 +99,12 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		default:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
-	case models.IsErrNameReserved(err):
+	case db.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
-	case models.IsErrNamePatternNotAllowed(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
+	case db.IsErrNamePatternNotAllowed(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
 		remoteAddr, _ := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
@@ -127,10 +133,8 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
-			} else if len(addrErr.PrivateNet) == 0 {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			}
 		case addrErr.IsInvalidPath:
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
@@ -229,7 +233,7 @@ func MigratePost(ctx *context.Context) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
+	err = repo_model.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
@@ -237,7 +241,7 @@ func MigratePost(ctx *context.Context) {
 
 	err = task.MigrateRepository(ctx.User, ctxUser, opts)
 	if err == nil {
-		ctx.Redirect(ctxUser.HomeLink() + "/" + opts.RepoName)
+		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
 	}
 

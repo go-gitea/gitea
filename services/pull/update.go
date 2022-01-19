@@ -8,20 +8,22 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // Update updates pull request with base branch.
-func Update(pull *models.PullRequest, doer *models.User, message string, rebase bool) error {
+func Update(pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	var (
 		pr    *models.PullRequest
-		style models.MergeStyle
+		style repo_model.MergeStyle
 	)
 
 	if rebase {
 		pr = pull
-		style = models.MergeStyleRebaseUpdate
+		style = repo_model.MergeStyleRebaseUpdate
 	} else {
 		//use merge functions but switch repo's and branch's
 		pr = &models.PullRequest{
@@ -30,7 +32,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 			HeadBranch: pull.BaseBranch,
 			BaseBranch: pull.HeadBranch,
 		}
-		style = models.MergeStyleMerge
+		style = repo_model.MergeStyleMerge
 	}
 
 	if pull.Flow == models.PullRequestFlowAGit {
@@ -53,7 +55,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
-	_, err = rawMerge(pr, doer, style, message)
+	_, err = rawMerge(pr, doer, style, "", message)
 
 	defer func() {
 		if rebase {
@@ -67,7 +69,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (mergeAllowed, rebaseAllowed bool, err error) {
+func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == models.PullRequestFlowAGit {
 		return false, false, nil
 	}

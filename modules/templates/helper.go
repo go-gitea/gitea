@@ -24,6 +24,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
@@ -124,7 +126,6 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt":  base.FileSize,
 		"CountFmt": base.FormatNumberSI,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
@@ -139,17 +140,14 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":        base.EllipsisString,
-		"DiffTypeToStr":         DiffTypeToStr,
-		"DiffLineTypeToStr":     DiffLineTypeToStr,
-		"Sha1":                  Sha1,
-		"ShortSha":              base.ShortSha,
-		"MD5":                   base.EncodeMD5,
-		"ActionContent2Commits": ActionContent2Commits,
-		"PathEscape":            url.PathEscape,
-		"EscapePound": func(str string) string {
-			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
-		},
+		"EllipsisString":                 base.EllipsisString,
+		"DiffTypeToStr":                  DiffTypeToStr,
+		"DiffLineTypeToStr":              DiffLineTypeToStr,
+		"Sha1":                           Sha1,
+		"ShortSha":                       base.ShortSha,
+		"MD5":                            base.EncodeMD5,
+		"ActionContent2Commits":          ActionContent2Commits,
+		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
 		"URLJoin":                        util.URLJoin,
 		"RenderCommitMessage":            RenderCommitMessage,
@@ -241,7 +239,6 @@ func NewFuncMap() []template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
 				return nil, errors.New("invalid dict call")
@@ -379,6 +376,8 @@ func NewFuncMap() []template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"Join":        strings.Join,
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -498,6 +497,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return sum
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -523,7 +523,7 @@ func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 }
 
 // AvatarHTML creates the HTML for an avatar
-func AvatarHTML(src string, size int, class string, name string) template.HTML {
+func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
 
 	if name == "" {
@@ -554,18 +554,24 @@ func SVG(icon string, others ...interface{}) template.HTML {
 func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	if user, ok := item.(*models.User); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+	switch t := item.(type) {
+	case *user_model.User:
+		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Collaborator:
+		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Organization:
+		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
 	}
-	if user, ok := item.(*models.Collaborator); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
-		}
-	}
+
 	return template.HTML("")
 }
 
@@ -576,7 +582,7 @@ func AvatarByAction(action *models.Action, others ...interface{}) template.HTML 
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
 	src := repo.RelAvatarLink()
@@ -587,9 +593,9 @@ func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
-	src := avatars.GenerateEmailAvatarFastLink(email, size*avatars.AvatarRenderedSizeFactor)
+	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
 		return AvatarHTML(src, size, class, name)
@@ -740,7 +746,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
@@ -850,69 +856,6 @@ func DiffLineTypeToStr(diffType int) string {
 	return "same"
 }
 
-// Language specific rules for translating plural texts
-var trNLangRules = map[string]func(int64) int{
-	"en-US": func(cnt int64) int {
-		if cnt == 1 {
-			return 0
-		}
-		return 1
-	},
-	"lv-LV": func(cnt int64) int {
-		if cnt%10 == 1 && cnt%100 != 11 {
-			return 0
-		}
-		return 1
-	},
-	"ru-RU": func(cnt int64) int {
-		if cnt%10 == 1 && cnt%100 != 11 {
-			return 0
-		}
-		return 1
-	},
-	"zh-CN": func(cnt int64) int {
-		return 0
-	},
-	"zh-HK": func(cnt int64) int {
-		return 0
-	},
-	"zh-TW": func(cnt int64) int {
-		return 0
-	},
-	"fr-FR": func(cnt int64) int {
-		if cnt > -2 && cnt < 2 {
-			return 0
-		}
-		return 1
-	},
-}
-
-// TrN returns key to be used for plural text translation
-func TrN(lang string, cnt interface{}, key1, keyN string) string {
-	var c int64
-	if t, ok := cnt.(int); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int16); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int32); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int64); ok {
-		c = t
-	} else {
-		return keyN
-	}
-
-	ruleFunc, ok := trNLangRules[lang]
-	if !ok {
-		ruleFunc = trNLangRules["en-US"]
-	}
-
-	if ruleFunc(c) == 0 {
-		return key1
-	}
-	return keyN
-}
-
 // MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
 func MigrationIcon(hostname string) string {
 	switch hostname {
@@ -948,10 +891,10 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(m repo_model.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a

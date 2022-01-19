@@ -11,7 +11,9 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -40,8 +42,8 @@ const bodyTpl = `
 </html>
 `
 
-func prepareMailerTest(t *testing.T) (doer *models.User, repo *models.Repository, issue *models.Issue, comment *models.Comment) {
-	assert.NoError(t, db.PrepareTestDatabase())
+func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, comment *models.Comment) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	var mailService = setting.Mailer{
 		From: "test@gitea.com",
 	}
@@ -49,11 +51,11 @@ func prepareMailerTest(t *testing.T) (doer *models.User, repo *models.Repository
 	setting.MailService = &mailService
 	setting.Domain = "localhost"
 
-	doer = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
-	issue = db.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
+	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
+	issue = unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 	assert.NoError(t, issue.LoadRepo())
-	comment = db.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
+	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
 	return
 }
 
@@ -64,7 +66,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	btpl := template.Must(template.New("issue/comment").Parse(bodyTpl))
 	InitMailRender(stpl, btpl)
 
-	recipients := []*models.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
+	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment}, "en-US", recipients, false, "issue comment")
 	assert.NoError(t, err)
@@ -91,7 +93,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	btpl := template.Must(template.New("issue/new").Parse(bodyTpl))
 	InitMailRender(stpl, btpl)
 
-	recipients := []*models.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
+	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body"}, "en-US", recipients, false, "issue create")
 	assert.NoError(t, err)
@@ -113,7 +115,7 @@ func TestComposeIssueMessage(t *testing.T) {
 
 func TestTemplateSelection(t *testing.T) {
 	doer, repo, issue, comment := prepareMailerTest(t)
-	recipients := []*models.User{{Name: "Test", Email: "test@gitea.com"}}
+	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 
 	stpl := texttmpl.Must(texttmpl.New("issue/default").Parse("issue/default/subject"))
 	texttmpl.Must(stpl.New("issue/new").Parse("issue/new/subject"))
@@ -144,8 +146,8 @@ func TestTemplateSelection(t *testing.T) {
 		Content: "test body", Comment: comment}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
-	pull := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
-	comment = db.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
+	pull := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
+	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{Issue: pull, Doer: doer, ActionType: models.ActionCommentPull,
 		Content: "test body", Comment: comment}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
@@ -159,14 +161,14 @@ func TestTemplateServices(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 	assert.NoError(t, issue.LoadRepo())
 
-	expect := func(t *testing.T, issue *models.Issue, comment *models.Comment, doer *models.User,
+	expect := func(t *testing.T, issue *models.Issue, comment *models.Comment, doer *user_model.User,
 		actionType models.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string) {
 
 		stpl := texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
 		btpl := template.Must(template.New("issue/default").Parse(tplBody))
 		InitMailRender(stpl, btpl)
 
-		recipients := []*models.User{{Name: "Test", Email: "test@gitea.com"}}
+		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msg := testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: actionType,
 			Content: "test body", Comment: comment}, recipients, fromMention, "TestTemplateServices")
 
@@ -198,7 +200,7 @@ func TestTemplateServices(t *testing.T) {
 		"//Re: //")
 }
 
-func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*models.User, fromMention bool, info string) *Message {
+func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recipients []*user_model.User, fromMention bool, info string) *Message {
 	msgs, err := composeIssueCommentMessages(ctx, "en-US", recipients, fromMention, info)
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
@@ -209,13 +211,14 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
 	ctx := &mailCommentContext{Issue: issue, Doer: doer}
-	recipient := &models.User{Name: "Test", Email: "test@gitea.com"}
+	recipient := &user_model.User{Name: "Test", Email: "test@gitea.com"}
 
 	headers := generateAdditionalHeaders(ctx, "dummy-reason", recipient)
 
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
 		"List-Archive":              "<https://try.gitea.io/user2/repo1>",
+		"List-Unsubscribe":          "https://try.gitea.io/user2/repo1/issues/1",
 		"X-Gitea-Reason":            "dummy-reason",
 		"X-Gitea-Sender":            "< U<se>r Tw<o > ><",
 		"X-Gitea-Recipient":         "Test",

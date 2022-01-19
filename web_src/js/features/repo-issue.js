@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
@@ -59,7 +59,6 @@ function updateDeadline(deadlineString) {
     }),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true,
     },
     contentType: 'application/json',
     type: 'POST',
@@ -167,9 +166,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -182,7 +181,8 @@ export function initRepoIssueCommentDelete() {
 export function initRepoIssueDependencyDelete() {
   // Delete Issue dependency
   $(document).on('click', '.delete-dependency-button', (e) => {
-    const {id, type} = e.currentTarget.dataset;
+    const id = e.currentTarget.getAttribute('data-id');
+    const type = e.currentTarget.getAttribute('data-type');
 
     $('.remove-dependency').modal({
       closable: false,
@@ -213,8 +213,8 @@ export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
-    const $simplemde = $(this).data('simplemde');
-    const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+    const easyMDE = getAttachedEasyMDE(this);
+    const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', () => {
@@ -332,42 +332,35 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export function updateIssuesMeta(url, action, issueIds, elementId) {
-  return new Promise((resolve, reject) => {
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrfToken,
-        action,
-        issue_ids: issueIds,
-        id: elementId,
-      },
-      success: resolve,
-      error: reject,
-    });
+export async function updateIssuesMeta(url, action, issueIds, elementId) {
+  return $.ajax({
+    type: 'POST',
+    url,
+    data: {
+      _csrf: csrfToken,
+      action,
+      issue_ids: issueIds,
+      id: elementId,
+    },
   });
 }
 
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (event) {
+  $('.re-request-review').on('click', function (e) {
+    e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    event.preventDefault();
     updateIssuesMeta(
       url,
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => {
-      window.location.reload();
-    });
-    return false;
+    ).then(() => window.location.reload());
   });
 
   $('.dismiss-review-btn').on('click', function (e) {
@@ -446,29 +439,31 @@ export function initRepoPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('hide');
   });
 
-  $(document).on('click', 'button.comment-form-reply', function (e) {
+  $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
+
     $(this).hide();
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
-    } else {
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = createCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+    let easyMDE = getAttachedEasyMDE($textarea);
+    if (!easyMDE) {
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      easyMDE = await createCommentEasyMDE($textarea);
     }
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
     assignMenuAttributes(form.find('.menu'));
   });
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentSimpleMDE($reviewBox.find('textarea'));
-    initCompImagePaste($reviewBox);
+    (async () => {
+      // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
+      // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
+      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
+      initCompImagePaste($reviewBox);
+    })();
   }
 
   // The following part is only for diff views
@@ -484,14 +479,14 @@ export function initRepoPullRequestReview() {
     $(this).closest('.menu').toggle('visible');
   });
 
-  $('a.add-code-comment').on('click', async function (e) {
+  $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
-    const path = $(this).data('path');
+    const path = $(this).closest('[data-path]').data('path');
     const tr = $(this).closest('tr');
     const lineType = tr.data('line-type');
 
@@ -507,7 +502,7 @@ export function initRepoPullRequestReview() {
             <td class="lines-type-marker"></td>
             <td class="add-comment-right"></td>
           ` : `
-            <td colspan="2" class="lines-num"></td>
+            <td colspan="3" class="lines-num"></td>
             <td class="add-comment-left add-comment-right" colspan="2"></td>
           `}
         </tr>`);
@@ -517,7 +512,7 @@ export function initRepoPullRequestReview() {
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
-      const data = await $.get($(this).data('new-comment-url'));
+      const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
       assignMenuAttributes(commentCloud.find('.menu'));
@@ -525,10 +520,10 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const $simplemde = createCommentSimpleMDE($textarea);
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const easyMDE = await createCommentEasyMDE($textarea);
       $textarea.focus();
-      $simplemde.codemirror.focus();
+      easyMDE.codemirror.focus();
     }
   });
 }
@@ -554,7 +549,10 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP
   $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
     e.preventDefault();
-    const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+    const toggleWip = e.currentTarget.closest('.toggle-wip');
+    const title = toggleWip.getAttribute('data-title');
+    const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
+    const updateUrl = toggleWip.getAttribute('data-update-url');
     await $.post(updateUrl, {
       _csrf: csrfToken,
       title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,

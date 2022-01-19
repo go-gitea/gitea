@@ -64,7 +64,7 @@ services:
 
 ## Ports
 
-To bind the integrated openSSH daemon and the webserver on a different port, adjust
+To bind the integrated OpenSSH daemon and the webserver on a different port, adjust
 the port section. It's common to just change the host port and keep the ports within
 the container like they are.
 
@@ -129,9 +129,9 @@ services:
       - ./gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-     ports:
-       - "3000:3000"
-       - "222:22"
+    ports:
+      - "3000:3000"
+      - "222:22"
 +    depends_on:
 +      - db
 +
@@ -303,7 +303,7 @@ services:
     - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
 ## SSH Container Passthrough
 
@@ -337,7 +337,7 @@ In the next step a file named `/app/gitea/gitea` (with executable permissions) n
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
 ```
 
-Here you should also make sure that you've set the permisson of `/app/gitea/gitea` correctly:
+Here you should also make sure that you've set the permission of `/app/gitea/gitea` correctly:
 
 ```bash
 sudo chmod +x /app/gitea/gitea

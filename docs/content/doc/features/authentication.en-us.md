@@ -111,7 +111,7 @@ Adds the following fields:
     the LDAP server. The default period is every 24 hours but that can be
     changed in the app.ini file. See the _cron.sync_external_users_ section in
     the [sample
-    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    app.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
     for detailed comments about that section. The _User Search Base_ and _User
     Filter_ settings described above will limit which users can use Gitea and
     which users will be synchronized. When initially run the task will create
@@ -282,12 +282,12 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - If you are using Chrome or Edge, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
 
-- Start Chrome or Edge and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
+- Start Chrome or Edge and navigate to the FQDN URL of Gitea (eg. `http://host.domain.local:3000`)
 
 - Click the `Sign In` button on the dashboard and choose SSPI to be automatically logged in with the same user that is currently logged on to the computer
 
 - If it does not work, make sure that:
-  - You are not running the web browser on the same server where gitea is running. You should be running the web browser on a domain joined computer (client) that is different from the server. If both the client and server are running on the same computer NTLM will be preferred over Kerberos.
+  - You are not running the web browser on the same server where Gitea is running. You should be running the web browser on a domain joined computer (client) that is different from the server. If both the client and server are running on the same computer NTLM will be preferred over Kerberos.
   - There is only one `HTTP/...` SPN for the host
   - The SPN contains only the hostname, without the port
   - You have added the URL of the web app to the `Local intranet zone`

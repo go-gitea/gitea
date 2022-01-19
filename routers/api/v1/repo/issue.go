@@ -14,6 +14,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -132,7 +134,7 @@ func SearchIssues(ctx *context.APIContext) {
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
-		OrderBy: models.SearchOrderByAlphabetically,
+		OrderBy: db.SearchOrderByAlphabetically,
 		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
@@ -140,9 +142,9 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -491,8 +493,8 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 		return 0
 	}
 
-	user, err := models.GetUserByName(userName)
-	if models.IsErrUserNotExist(err) {
+	user, err := user_model.GetUserByName(userName)
+	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0
 	}
@@ -582,7 +584,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -599,11 +601,11 @@ func CreateIssue(ctx *context.APIContext) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "AddAssigneeByName", err)
@@ -613,7 +615,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 		// Check if the passed assignees is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := models.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(aID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
