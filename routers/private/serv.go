@@ -401,7 +401,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		}
 
 		// Finally if we're trying to touch the wiki we should init it
-		if err = wiki_service.InitWiki(repo); err != nil {
+		if err = wiki_service.InitWiki(ctx, repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,

@@ -150,7 +150,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -161,13 +161,13 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
-		wikiRemotePath := repository.WikiRemoteURL(remoteAddr)
+		wikiRemotePath := repository.WikiRemoteURL(g.ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err := git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
@@ -181,7 +181,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
 	return err
 }
 
@@ -478,7 +478,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {

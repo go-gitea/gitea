@@ -6,6 +6,7 @@ package doctor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -254,7 +255,7 @@ func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed boo
 	return true, nil
 }
 
-func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
+func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix bool) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64

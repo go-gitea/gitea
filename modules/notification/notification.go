@@ -259,9 +259,9 @@ func NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opt
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func NotifyCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func NotifyCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	for _, notifier := range notifiers {
-		notifier.NotifyCreateRef(pusher, repo, refType, refFullName)
+		notifier.NotifyCreateRef(pusher, repo, refType, refFullName, refID)
 	}
 }
 
@@ -280,9 +280,9 @@ func NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository,
 }
 
 // NotifySyncCreateRef notifies branch or tag creation to notifiers
-func NotifySyncCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func NotifySyncCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 	for _, notifier := range notifiers {
-		notifier.NotifySyncCreateRef(pusher, repo, refType, refFullName)
+		notifier.NotifySyncCreateRef(pusher, repo, refType, refFullName, refID)
 	}
 }
 
