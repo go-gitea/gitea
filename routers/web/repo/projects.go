@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -652,40 +652,4 @@ func CreateProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-}
-
-// CreateProjectPost creates an individual and/or organization project
-func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-
-	user := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-
-	ctx.Data["ContextUser"] = user
-
-	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
-		return
-	}
-
-	var projectType = models.ProjectTypeIndividual
-	if user.IsOrganization() {
-		projectType = models.ProjectTypeOrganization
-	}
-
-	if err := models.NewProject(&models.Project{
-		Title:       form.Title,
-		Description: form.Content,
-		CreatorID:   user.ID,
-		BoardType:   form.BoardType,
-		Type:        projectType,
-	}); err != nil {
-		ctx.ServerError("NewProject", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
-	ctx.Redirect(setting.AppSubURL + "/")
 }

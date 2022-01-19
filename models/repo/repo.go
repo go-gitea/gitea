@@ -173,6 +173,13 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // ColorFormat returns a colored string to represent this repo
 func (repo *Repository) ColorFormat(s fmt.State) {
+	if repo == nil {
+		log.ColorFprintf(s, "%d:%s/%s",
+			log.NewColoredIDValue(0),
+			"<nil>",
+			"<nil>")
+		return
+	}
 	log.ColorFprintf(s, "%d:%s/%s",
 		log.NewColoredIDValue(repo.ID),
 		repo.OwnerName,
@@ -683,6 +690,16 @@ func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	return getRepositoryByID(e, repo.TemplateID)
 }
 
+// TemplateRepo returns the repository, which is template of this repository
+func (repo *Repository) TemplateRepo() *Repository {
+	repo, err := GetTemplateRepo(repo)
+	if err != nil {
+		log.Error("TemplateRepo: %v", err)
+		return nil
+	}
+	return repo
+}
+
 func countRepositories(userID int64, private bool) int64 {
 	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
 
@@ -714,15 +731,6 @@ func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
 }
 
-// GetUserMirrorRepositories returns a list of mirror repositories of given user.
-func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ?", userID).
-		And("is_mirror = ?", true).
-		Find(&repos)
-}
-
 func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
 	return e.Count(&Repository{OwnerID: ownerID})
 }
@@ -748,26 +756,4 @@ func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	for {
-		repos := make([]*Repository, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
 }

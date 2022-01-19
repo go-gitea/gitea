@@ -108,13 +108,17 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: SHA or branch to start listing commits from (usually 'master')
 	//   type: string
+	// - name: path
+	//   in: query
+	//   description: filepath of a file/dir
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: page size of results (ignored if used with 'path')
 	//   type: integer
 	// responses:
 	//   "200":
@@ -149,45 +153,72 @@ func GetAllCommits(ctx *context.APIContext) {
 	}
 
 	sha := ctx.FormString("sha")
+	path := ctx.FormString("path")
 
-	var baseCommit *git.Commit
-	if len(sha) == 0 {
-		// no sha supplied - use default branch
-		head, err := gitRepo.GetHEADBranch()
+	var (
+		commitsCountTotal int64
+		commits           []*git.Commit
+	)
+
+	if len(path) == 0 {
+		var baseCommit *git.Commit
+		if len(sha) == 0 {
+			// no sha supplied - use default branch
+			head, err := gitRepo.GetHEADBranch()
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
+				return
+			}
+
+			baseCommit, err = gitRepo.GetBranchCommit(head.Name)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
+			}
+		} else {
+			// get commit specified by sha
+			baseCommit, err = gitRepo.GetCommit(sha)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
+			}
+		}
+
+		// Total commit count
+		commitsCountTotal, err = baseCommit.CommitsCount()
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return
 		}
 
-		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
+		// Query commits
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
 			return
 		}
 	} else {
-		// get commit specified by sha
-		baseCommit, err = gitRepo.GetCommit(sha)
+		if len(sha) == 0 {
+			sha = ctx.Repo.Repository.DefaultBranch
+		}
+
+		commitsCountTotal, err = gitRepo.FileCommitsCount(sha, path)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
+			return
+		} else if commitsCountTotal == 0 {
+			ctx.NotFound("FileCommitsCount", nil)
+			return
+		}
+
+		commits, err = gitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 			return
 		}
 	}
 
-	// Total commit count
-	commitsCountTotal, err := baseCommit.CommitsCount()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
-		return
-	}
-
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
-
-	// Query commits
-	commits, err := baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
-		return
-	}
 
 	userCache := make(map[string]*user_model.User)
 
@@ -205,11 +236,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(commitsCountTotal)
 
 	// kept for backwards compatibility
-	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
-	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
-	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.RespHeader().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
+	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(pageCount))
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
 	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)

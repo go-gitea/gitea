@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
@@ -20,7 +20,7 @@ import (
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
-	sr := source.SearchEntry(userName, password, source.loginSource.Type == login.DLDAP)
+	sr := source.SearchEntry(userName, password, source.authSource.Type == auth.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, user_model.ErrUserNotExist{Name: userName}
@@ -65,7 +65,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 			teamCache := make(map[string]*models.Team)
 			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
 		}
-		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
 			return user, asymkey_model.RewriteAllPublicKeys()
 		}
 		return user, nil
@@ -85,8 +85,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
-		LoginType:    source.loginSource.Type,
-		LoginSource:  source.loginSource.ID,
+		LoginType:    source.authSource.Type,
+		LoginSource:  source.authSource.ID,
 		LoginName:    userName,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
@@ -100,7 +100,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 
 	mailer.SendRegisterNotifyMail(user)
 
-	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
+	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
 		err = asymkey_model.RewriteAllPublicKeys()
 	}
 	if err == nil && len(source.AttributeAvatar) > 0 {

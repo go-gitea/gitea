@@ -134,7 +134,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("ok"))
+	ctx.PlainText(http.StatusOK, "ok")
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
@@ -404,7 +404,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 
 	if ctx.opts.IsWiki {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "Pull requests are not suppported on the wiki.",
+			"err": "Pull requests are not supported on the wiki.",
 		})
 		return
 	}

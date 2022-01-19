@@ -698,8 +698,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
 				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
-				relPath := pr.GetGitRefName()
-				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+				err = g.gitRepo.RemoveReference(pr.GetGitRefName())
 			} else {
 				// The SHA is empty, remove the head file
 				log.Warn("Empty reference, removing : %v", pullHead)
@@ -976,6 +975,10 @@ func (g *GiteaLocalUploader) Finish() error {
 
 	// update issue_index
 	if err := models.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+		return err
+	}
+
+	if err := models.UpdateRepoStats(db.DefaultContext, g.repo.ID); err != nil {
 		return err
 	}
 

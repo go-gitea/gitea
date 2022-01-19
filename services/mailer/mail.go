@@ -78,7 +78,6 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -129,7 +128,6 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -160,7 +158,6 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -194,7 +191,6 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -278,7 +274,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var mailSubject bytes.Buffer
@@ -348,7 +343,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
-		//"List-Unsubscribe": https://github.com/go-gitea/gitea/issues/10808, https://github.com/go-gitea/gitea/issues/13283
+		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
 		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),

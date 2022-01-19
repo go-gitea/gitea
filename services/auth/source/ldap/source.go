@@ -7,7 +7,7 @@ package ldap
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -58,8 +58,8 @@ type Source struct {
 	TeamGroupMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
 	TeamGroupMapEnabled   bool   // if LDAP groups mapping to gitea organizations teams is enabled
 
-	// reference to the loginSource
-	loginSource *login.Source
+	// reference to the authSource
+	authSource *auth.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -112,12 +112,12 @@ func (source *Source) ProvidesSSHKeys() bool {
 	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 }
 
-// SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.Source) {
-	source.loginSource = loginSource
+// SetAuthSource sets the related AuthSource
+func (source *Source) SetAuthSource(authSource *auth.Source) {
+	source.authSource = authSource
 }
 
 func init() {
-	login.RegisterTypeConfig(login.LDAP, &Source{})
-	login.RegisterTypeConfig(login.DLDAP, &Source{})
+	auth.RegisterTypeConfig(auth.LDAP, &Source{})
+	auth.RegisterTypeConfig(auth.DLDAP, &Source{})
 }

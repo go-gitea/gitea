@@ -110,6 +110,47 @@ const (
 	CommentTypeChangeIssueRef
 )
 
+var commentStrings = []string{
+	"comment",
+	"reopen",
+	"close",
+	"issue_ref",
+	"commit_ref",
+	"comment_ref",
+	"pull_ref",
+	"label",
+	"milestone",
+	"assignees",
+	"change_title",
+	"delete_branch",
+	"start_tracking",
+	"stop_tracking",
+	"add_time_manual",
+	"cancel_tracking",
+	"added_deadline",
+	"modified_deadline",
+	"removed_deadline",
+	"add_dependency",
+	"remove_dependency",
+	"code",
+	"review",
+	"lock",
+	"unlock",
+	"change_target_branch",
+	"delete_time_manual",
+	"review_request",
+	"merge_pull",
+	"pull_push",
+	"project",
+	"project_board",
+	"dismiss_review",
+	"change_issue_ref",
+}
+
+func (t CommentType) String() string {
+	return commentStrings[t]
+}
+
 // RoleDescriptor defines comment tag type
 type RoleDescriptor int
 
@@ -123,8 +164,7 @@ const (
 
 // WithRole enable a specific tag on the RoleDescriptor.
 func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
-	rd |= (1 << role)
-	return rd
+	return rd | (1 << role)
 }
 
 func stringToRoleDescriptor(role string) RoleDescriptor {
@@ -479,7 +519,7 @@ func (c *Comment) LoadPoster() error {
 	return c.loadPoster(db.GetEngine(db.DefaultContext))
 }
 
-// LoadAttachments loads attachments
+// LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
 func (c *Comment) LoadAttachments() error {
 	if len(c.Attachments) > 0 {
 		return nil
@@ -593,7 +633,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err e
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, err = findReactions(e, FindReactionsOptions{
+	c.Reactions, _, err = findReactions(e, FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})
@@ -795,13 +835,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 		fallthrough
-	case CommentTypeReview:
-		fallthrough
 	case CommentTypeComment:
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-
+		fallthrough
+	case CommentTypeReview:
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
@@ -817,12 +856,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(e); err != nil {
+		if err = opts.Issue.updateClosedNum(ctx); err != nil {
 			return err
 		}
 	}
 	// update the issue's updated_unix column
-	return updateIssueCols(e, opts.Issue, "updated_unix")
+	return updateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {

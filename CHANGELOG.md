@@ -4,6 +4,55 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.10](https://github.com/go-gitea/gitea/releases/tag/v1.15.10) - 2022-01-14
+
+* BUGFIXES
+  * Fix inconsistent PR comment counts (#18260) (#18261)
+  * Fix release link broken (#18252) (#18253)
+  * Fix update user from site administration page bug (#18250) (#18251)
+  * Set HeadCommit when creating tags (#18116) (#18173)
+  * Use correct translation key for error messages due to max repo limits (#18135 & #18153) (#18152)
+  * Fix purple color in suggested label colors (#18241) (#18242)
+* SECURITY
+  * Bump mermaid from 8.10.1 to 8.13.8 (#18198) (#18206)
+
+## [1.15.9](https://github.com/go-gitea/gitea/releases/tag/v1.15.9) - 2021-12-30
+
+* BUGFIXES
+  * Fix wrong redirect on org labels (#18128) (#18134)
+  * Fix: unstable sort skips/duplicates issues across pages (#18094) (#18095)
+  * Revert "Fix delete u2f keys bug (#18042)" (#18107)
+  * Migrating wiki don't require token, so we should move it out of the require form (#17645) (#18104)
+  * Prevent NPE if gitea uploader fails to open url (#18080) (#18101)
+  * Reset locale on login (#17734) (#18100)
+  * Correctly handle failed migrations (#17575) (#18099)
+  * Instead of using routerCtx just escape the url before routing (#18086) (#18098)
+  * Quote references to the user table in consistency checks (#18072) (#18073)
+  * Add NotFound handler (#18062) (#18067)
+  * Ensure that git repository is closed before transfer (#18049) (#18057)
+  * Use common sessioner for API and web routes (#18114)
+* TRANSLATION
+  * Fix code search result hint on zh-CN (#18053)
+
+## [1.15.8](https://github.com/go-gitea/gitea/releases/tag/v1.15.8) - 2021-12-20
+
+* BUGFIXES
+  * Move POST /{username}/action/{action} to simply POST /{username} (#18045) (#18046)
+  * Fix delete u2f keys bug (#18040) (#18042)
+  * Reset Session ID on login (#18018) (#18041)
+  * Prevent off-by-one error on comments on newly appended lines (#18029) (#18035)
+  * Stop printing 03d after escaped characters in logs (#18030) (#18034)
+  * Reset locale on login (#18023) (#18025)
+  * Fix reset password email template (#17025) (#18022)
+  * Fix outType on gitea dump (#18000) (#18016)
+  * Ensure complexity, minlength and isPwned are checked on password setting (#18005) (#18015)
+  * Fix rename notification bug (#18011)
+  * Prevent double decoding of % in url params  (#17997) (#18001)
+  * Prevent hang in git cat-file if the repository is not a valid repository (Partial #17991) (#17992)
+  * Prevent deadlock in create issue (#17970) (#17982)
+* TESTING
+  * Use non-expiring key. (#17984) (#17985)
+
 ## [1.15.7](https://github.com/go-gitea/gitea/releases/tag/v1.15.7) - 2021-12-01
 
 * ENHANCEMENTS
@@ -71,7 +120,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix unwanted team review request deletion (#17257) (#17264)
   * Fix broken Activities link in team dashboard (#17255) (#17258)
   * API pull's head/base have correct permission(#17214) (#17245)
-  * Fix stange behavior of DownloadPullDiffOrPatch in incorect index (#17223) (#17227)
+  * Fix strange behavior of DownloadPullDiffOrPatch in incorrect index (#17223) (#17227)
   * Upgrade xorm to v1.2.5 (#17177) (#17188)
   * Fix missing repo link in issue/pull assigned emails (#17183) (#17184)
   * Fix bug of get context user (#17169) (#17172)

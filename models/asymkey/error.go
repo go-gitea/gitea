@@ -246,3 +246,19 @@ func IsErrDeployKeyNameAlreadyUsed(err error) bool {
 func (err ErrDeployKeyNameAlreadyUsed) Error() string {
 	return fmt.Sprintf("public key with name already exists [repo_id: %d, name: %s]", err.RepoID, err.Name)
 }
+
+// ErrSSHInvalidTokenSignature represents a "ErrSSHInvalidTokenSignature" kind of error.
+type ErrSSHInvalidTokenSignature struct {
+	Wrapped     error
+	Fingerprint string
+}
+
+// IsErrSSHInvalidTokenSignature checks if an error is a ErrSSHInvalidTokenSignature.
+func IsErrSSHInvalidTokenSignature(err error) bool {
+	_, ok := err.(ErrSSHInvalidTokenSignature)
+	return ok
+}
+
+func (err ErrSSHInvalidTokenSignature) Error() string {
+	return "the provided signature does not sign the token with the provided key"
+}

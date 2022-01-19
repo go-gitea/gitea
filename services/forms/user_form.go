@@ -349,12 +349,13 @@ func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding
 
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
-	Type       string `binding:"OmitEmpty"`
-	Title      string `binding:"Required;MaxSize(50)"`
-	Content    string `binding:"Required"`
-	Signature  string `binding:"OmitEmpty"`
-	KeyID      string `binding:"OmitEmpty"`
-	IsWritable bool
+	Type        string `binding:"OmitEmpty"`
+	Title       string `binding:"Required;MaxSize(50)"`
+	Content     string `binding:"Required"`
+	Signature   string `binding:"OmitEmpty"`
+	KeyID       string `binding:"OmitEmpty"`
+	Fingerprint string `binding:"OmitEmpty"`
+	IsWritable  bool
 }
 
 // Validate validates the fields
@@ -408,24 +409,24 @@ func (f *TwoFactorScratchAuthForm) Validate(req *http.Request, errs binding.Erro
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// U2FRegistrationForm for reserving an U2F name
-type U2FRegistrationForm struct {
+// WebauthnRegistrationForm for reserving an WebAuthn name
+type WebauthnRegistrationForm struct {
 	Name string `binding:"Required"`
 }
 
 // Validate validates the fields
-func (f *U2FRegistrationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+func (f *WebauthnRegistrationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// U2FDeleteForm for deleting U2F keys
-type U2FDeleteForm struct {
+// WebauthnDeleteForm for deleting WebAuthn keys
+type WebauthnDeleteForm struct {
 	ID int64 `binding:"Required"`
 }
 
 // Validate validates the fields
-func (f *U2FDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

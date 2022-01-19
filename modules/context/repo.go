@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
@@ -179,7 +180,7 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 }
 
 // GetCommitGraphsCount returns cached commit count for current view
-func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, files []string) (int64, error) {
+func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches, files []string) (int64, error) {
 	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
@@ -205,7 +206,7 @@ func (r *Repository) BranchNameSubURL() string {
 }
 
 // FileExists returns true if a file exists in the given repo branch
-func (r *Repository) FileExists(path string, branch string) (bool, error) {
+func (r *Repository) FileExists(path, branch string) (bool, error) {
 	if branch == "" {
 		branch = r.Repository.DefaultBranch
 	}
@@ -305,14 +306,14 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 	if username == "" || reponame == "" {
-		ctx.PlainText(400, []byte("invalid repository path"))
+		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
+	ctx.PlainText(http.StatusOK, com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
 			"GoGetImport": ComposeGoGetImport(username, reponame),
 			"CloneLink":   repo_model.ComposeHTTPSCloneURL(username, reponame),
-		})))
+		}))
 }
 
 // RedirectToRepo redirect to a differently-named repository
@@ -365,14 +366,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 
 	if repo.IsMirror {
 		var err error
-		mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = mirror.Interval
-		ctx.Data["Mirror"] = mirror
+		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+		ctx.Data["Mirror"] = ctx.Repo.Mirror
 	}
 
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
@@ -897,7 +898,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				}
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
-					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
 			} else {

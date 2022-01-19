@@ -97,6 +97,7 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  names,
+			CachedOnly: true,
 		})
 		if err != nil {
 			return err

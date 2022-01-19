@@ -14,7 +14,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -68,6 +70,8 @@ func Init() {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
 	}
+
+	webauthn.Init()
 }
 
 // Free should be called exactly once when the application is terminating to allow Auth plugins
@@ -106,15 +110,23 @@ func isGitRawReleaseOrLFSPath(req *http.Request) bool {
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
 func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
+	// We need to regenerate the session...
+	newSess, err := session.RegenerateSession(resp, req)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error regenerating session: %v", err))
+	} else {
+		sess = newSess
+	}
+
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
 	_ = sess.Delete("openid_determined_username")
 	_ = sess.Delete("twofaUid")
 	_ = sess.Delete("twofaRemember")
-	_ = sess.Delete("u2fChallenge")
+	_ = sess.Delete("webauthnAssertion")
 	_ = sess.Delete("linkAccount")
-	err := sess.Set("uid", user.ID)
+	err = sess.Set("uid", user.ID)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}

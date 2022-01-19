@@ -149,7 +149,7 @@ func PrettyNumber(v int64) string {
 }
 
 // Subtract deals with subtraction of all types of number.
-func Subtract(left interface{}, right interface{}) interface{} {
+func Subtract(left, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
 	var isInt = true

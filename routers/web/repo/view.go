@@ -141,6 +141,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
+	if ctx.Repo.TreePath != "" {
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
+	}
+
 	// 3 for the extensions in exts[] in order
 	// the last one is for a readme that doesn't
 	// strictly match an extension
@@ -335,21 +339,24 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
-						bs, _ := io.ReadAll(rd)
+						buf := &bytes.Buffer{}
+						ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
-							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
+							gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 						)
 					} else {
-						ctx.Data["FileContent"] = result.String()
+						ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					buf, err = io.ReadAll(rd)
+					buf := &bytes.Buffer{}
+					ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf)
 					if err != nil {
-						log.Error("ReadAll failed: %v", err)
+						log.Error("Read failed: %v", err)
 					}
+
 					ctx.Data["FileContent"] = strings.ReplaceAll(
-						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
+						gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 					)
 				}
 			}
@@ -374,7 +381,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -498,12 +505,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("Render", err)
 				return
 			}
-			ctx.Data["FileContent"] = result.String()
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist {
-			buf, _ := io.ReadAll(rd)
+			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
+
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+
 			ctx.Data["FileContent"] = strings.ReplaceAll(
-				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
+				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
@@ -536,7 +546,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), language, buf)
+			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
+			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
+			ctx.Data["EscapeStatus"] = status
+			statuses := make([]charset.EscapeStatus, len(fileContent))
+			for i, line := range fileContent {
+				statuses[i], fileContent[i] = charset.EscapeControlString(line)
+			}
+			ctx.Data["FileContent"] = fileContent
+			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
@@ -584,7 +602,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				ctx.ServerError("Render", err)
 				return
 			}
-			ctx.Data["FileContent"] = result.String()
+
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	}
 
@@ -790,7 +809,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -836,8 +855,30 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.HTML(http.StatusOK, tplRepoEMPTY)
-		return
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
+		if err != nil {
+			ctx.ServerError("GitRepo.IsEmpty", err)
+			return
+		}
+		if reallyEmpty {
+			ctx.HTML(http.StatusOK, tplRepoEMPTY)
+			return
+		}
+		// the repo is not really empty, so we should update the modal in database
+		// such problem may be caused by:
+		// 1) an error occurs during pushing/receiving.  2) the user replaces an empty git repo manually
+		// and even more: the IsEmpty flag is deeply broken and should be removed with the UI changed to manage to cope with empty repos.
+		// it's possible for a repository to be non-empty by that flag but still 500
+		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
+		ctx.Repo.Repository.IsEmpty = false
+		if err = repo_model.UpdateRepositoryCols(ctx.Repo.Repository, "is_empty"); err != nil {
+			ctx.ServerError("UpdateRepositoryCols", err)
+			return
+		}
+		if err = models.UpdateRepoSize(db.DefaultContext, ctx.Repo.Repository); err != nil {
+			ctx.ServerError("UpdateRepoSize", err)
+			return
+		}
 	}
 
 	title := ctx.Repo.Repository.Owner.Name + "/" + ctx.Repo.Repository.Name

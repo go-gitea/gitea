@@ -82,7 +82,7 @@ func NewPullRequest(repo *repo_model.Repository, pull *models.Issue, labelIDs []
 	defer baseGitRepo.Close()
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), true, false)
+		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), false, false)
 	if err != nil {
 		return err
 	}
@@ -514,7 +514,7 @@ func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error 
 
 	var errs errlist
 	for _, pr := range prs {
-		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) {
+		if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) && !models.IsErrDependenciesLeft(err) {
 			errs = append(errs, err)
 		}
 	}
@@ -746,7 +746,8 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 		if !ok {
 			gitRepo, err = git.OpenRepository(issue.Repo.RepoPath())
 			if err != nil {
-				return nil, err
+				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
+				continue
 			}
 			gitRepos[issue.RepoID] = gitRepo
 		}
@@ -782,7 +783,7 @@ func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statu
 		return nil, err
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	statusList, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -353,6 +353,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  []string{treePath},
+			CachedOnly: true,
 		})
 		if err != nil {
 			return nil, err
@@ -442,7 +443,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName string, treePath string) error {
+func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
 	protectedBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 	if err != nil {
 		return err

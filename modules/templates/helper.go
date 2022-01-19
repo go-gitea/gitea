@@ -239,7 +239,6 @@ func NewFuncMap() []template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
-		"TrN": TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
 				return nil, errors.New("invalid dict call")
@@ -524,7 +523,7 @@ func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (i
 }
 
 // AvatarHTML creates the HTML for an avatar
-func AvatarHTML(src string, size int, class string, name string) template.HTML {
+func AvatarHTML(src string, size int, class, name string) template.HTML {
 	sizeStr := fmt.Sprintf(`%d`, size)
 
 	if name == "" {
@@ -557,17 +556,17 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 
 	switch t := item.(type) {
 	case *user_model.User:
-		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *models.Collaborator:
-		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *models.Organization:
-		src := t.AsUser().AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
@@ -594,9 +593,9 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 }
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
-func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
-	src := avatars.GenerateEmailAvatarFastLink(email, size*avatars.AvatarRenderedSizeFactor)
+	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
 		return AvatarHTML(src, size, class, name)
@@ -855,69 +854,6 @@ func DiffLineTypeToStr(diffType int) string {
 		return "tag"
 	}
 	return "same"
-}
-
-// Language specific rules for translating plural texts
-var trNLangRules = map[string]func(int64) int{
-	"en-US": func(cnt int64) int {
-		if cnt == 1 {
-			return 0
-		}
-		return 1
-	},
-	"lv-LV": func(cnt int64) int {
-		if cnt%10 == 1 && cnt%100 != 11 {
-			return 0
-		}
-		return 1
-	},
-	"ru-RU": func(cnt int64) int {
-		if cnt%10 == 1 && cnt%100 != 11 {
-			return 0
-		}
-		return 1
-	},
-	"zh-CN": func(cnt int64) int {
-		return 0
-	},
-	"zh-HK": func(cnt int64) int {
-		return 0
-	},
-	"zh-TW": func(cnt int64) int {
-		return 0
-	},
-	"fr-FR": func(cnt int64) int {
-		if cnt > -2 && cnt < 2 {
-			return 0
-		}
-		return 1
-	},
-}
-
-// TrN returns key to be used for plural text translation
-func TrN(lang string, cnt interface{}, key1, keyN string) string {
-	var c int64
-	if t, ok := cnt.(int); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int16); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int32); ok {
-		c = int64(t)
-	} else if t, ok := cnt.(int64); ok {
-		c = t
-	} else {
-		return keyN
-	}
-
-	ruleFunc, ok := trNLangRules[lang]
-	if !ok {
-		ruleFunc = trNLangRules["en-US"]
-	}
-
-	if ruleFunc(c) == 0 {
-		return key1
-	}
-	return keyN
 }
 
 // MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
