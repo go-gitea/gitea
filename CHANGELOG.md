@@ -50,7 +50,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add agit flow support in gitea (#14295)
 * API
   * Add MirrorUpdated field to Repository API type (#18267)
-  * Fix NPE on try to get tag reference via API (#18245)
   * Adjust Fork API to allow setting a custom repository name (#18066)
   * Add API to manage repo tranfers (#17963)
   * Add API to get file commit history (#17652)
