@@ -728,7 +728,7 @@ func UploadFilePost(ctx *context.Context) {
 
 func cleanUploadFileName(name string) string {
 	// Rebase the filename
-	name = strings.Trim(path.Clean("/"+name), " /")
+	name = strings.Trim(path.Clean("/"+name), "/")
 	// Git disallows any filenames to have a .git directory in them.
 	for _, part := range strings.Split(name, "/") {
 		if strings.ToLower(part) == ".git" {
