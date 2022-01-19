@@ -128,7 +128,7 @@ require (
 	golang.org/x/net v0.0.0-20211020060615-d418f374d309
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
-	golang.org/x/text v0.3.6
+	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	golang.org/x/tools v0.1.0
 	google.golang.org/protobuf v1.27.1 // indirect
