@@ -7,6 +7,7 @@ package templates
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"html"
@@ -635,17 +636,18 @@ func Sha1(str string) string {
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
+func RenderCommitMessage(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
+	return RenderCommitMessageLink(ctx, msg, urlPrefix, "", metas)
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
-func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:         ctx,
 		URLPrefix:   urlPrefix,
 		DefaultLink: urlDefault,
 		Metas:       metas,
@@ -663,7 +665,7 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 
 // RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
 // the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -677,6 +679,7 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
+		Ctx:         ctx,
 		URLPrefix:   urlPrefix,
 		DefaultLink: urlDefault,
 		Metas:       metas,
@@ -689,7 +692,7 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -703,6 +706,7 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	}
 
 	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, template.HTMLEscapeString(msgLine))
@@ -714,8 +718,9 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, template.HTMLEscapeString(text))
@@ -750,9 +755,10 @@ func ReactionToEmoji(reaction string) template.HTML {
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
-func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, cleanMsg)
@@ -891,10 +897,10 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m repo_model.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a

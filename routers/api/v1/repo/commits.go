@@ -62,13 +62,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
-	}
-	defer gitRepo.Close()
-	commit, err := gitRepo.GetCommit(identifier)
+	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(identifier)
@@ -78,7 +72,7 @@ func getCommit(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	json, err := convert.ToCommit(ctx.Repo.Repository, commit, nil)
+	json, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
@@ -136,13 +130,6 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
-	}
-	defer gitRepo.Close()
-
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page <= 0 {
 		listOptions.Page = 1
@@ -158,26 +145,27 @@ func GetAllCommits(ctx *context.APIContext) {
 	var (
 		commitsCountTotal int64
 		commits           []*git.Commit
+		err               error
 	)
 
 	if len(path) == 0 {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			head, err := gitRepo.GetHEADBranch()
+			head, err := ctx.Repo.GitRepo.GetHEADBranch()
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
 				return
 			}
 
-			baseCommit, err = gitRepo.GetBranchCommit(head.Name)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				return
 			}
 		} else {
 			// get commit specified by sha
-			baseCommit, err = gitRepo.GetCommit(sha)
+			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 				return
@@ -202,7 +190,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = gitRepo.FileCommitsCount(sha, path)
+		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
 			return
@@ -211,7 +199,7 @@ func GetAllCommits(ctx *context.APIContext) {
 			return
 		}
 
-		commits, err = gitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
+		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 			return
@@ -225,7 +213,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	apiCommits := make([]*api.Commit, len(commits))
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
@@ -282,6 +270,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
+		ctx,
 		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":diffType")),

@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-func checkDBVersion(logger log.Logger, autofix bool) error {
-	if err := db.InitEngineWithMigration(context.Background(), migrations.EnsureUpToDate); err != nil {
+func checkDBVersion(ctx context.Context, logger log.Logger, autofix bool) error {
+	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
 		if !autofix {
 			logger.Critical("Error: %v during ensure up to date", err)
 			return err
@@ -21,7 +21,7 @@ func checkDBVersion(logger log.Logger, autofix bool) error {
 		logger.Warn("Got Error: %v during ensure up to date", err)
 		logger.Warn("Attempting to migrate to the latest DB version to fix this.")
 
-		err = db.InitEngineWithMigration(context.Background(), migrations.Migrate)
+		err = db.InitEngineWithMigration(ctx, migrations.Migrate)
 		if err != nil {
 			logger.Critical("Error: %v during migration", err)
 		}
