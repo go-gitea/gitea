@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const unmappedColumn = -1
-const maxRowsToInspect int = 10
-const minRatioToMatch float32 = 0.8
+const (
+	unmappedColumn           = -1
+	maxRowsToInspect int     = 10
+	minRatioToMatch  float32 = 0.8
+)
 
 // TableDiffCellType represents the type of a TableDiffCell.
 type TableDiffCellType uint8

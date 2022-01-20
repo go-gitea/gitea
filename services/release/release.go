@@ -210,7 +210,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
-	var deletedUUIDsMap = make(map[string]bool)
+	deletedUUIDsMap := make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
@@ -230,7 +230,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 	}
 
 	if len(editAttachments) > 0 {
-		var updateAttachmentsList = make([]string, 0, len(editAttachments))
+		updateAttachmentsList := make([]string, 0, len(editAttachments))
 		for k := range editAttachments {
 			updateAttachmentsList = append(updateAttachmentsList, k)
 		}

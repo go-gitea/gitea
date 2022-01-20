@@ -417,7 +417,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
 	ctx.HTML(http.StatusOK, tplSignUp)
@@ -438,7 +438,7 @@ func SignUpPost(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
 		ctx.Error(http.StatusForbidden)
 		return

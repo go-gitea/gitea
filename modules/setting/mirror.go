@@ -10,22 +10,20 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// Mirror settings
-	Mirror = struct {
-		Enabled         bool
-		DisableNewPull  bool
-		DisableNewPush  bool
-		DefaultInterval time.Duration
-		MinInterval     time.Duration
-	}{
-		Enabled:         true,
-		DisableNewPull:  false,
-		DisableNewPush:  false,
-		MinInterval:     10 * time.Minute,
-		DefaultInterval: 8 * time.Hour,
-	}
-)
+// Mirror settings
+var Mirror = struct {
+	Enabled         bool
+	DisableNewPull  bool
+	DisableNewPush  bool
+	DefaultInterval time.Duration
+	MinInterval     time.Duration
+}{
+	Enabled:         true,
+	DisableNewPull:  false,
+	DisableNewPush:  false,
+	MinInterval:     10 * time.Minute,
+	DefaultInterval: 8 * time.Hour,
+}
 
 func newMirror() {
 	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`

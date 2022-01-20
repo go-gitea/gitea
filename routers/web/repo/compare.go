@@ -541,8 +541,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior string) bool {
-
+	whitespaceBehavior string,
+) bool {
 	var (
 		repo  = ctx.Repo.Repository
 		err   error
@@ -839,7 +839,8 @@ func ExcerptBlob(ctx *context.Context) {
 				RightIdx:      idxRight,
 				LeftHunkSize:  leftHunkSize,
 				RightHunkSize: rightHunkSize,
-			}}
+			},
+		}
 		if direction == "up" {
 			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
 		} else if direction == "down" {

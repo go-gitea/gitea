@@ -167,7 +167,7 @@ func getWikiPage(ctx *context.APIContext, title string) *api.WikiPage {
 		return nil
 	}
 
-	//lookup filename in wiki - get filecontent, real filename
+	// lookup filename in wiki - get filecontent, real filename
 	content, pageFilename := wikiContentsByName(ctx, commit, title, false)
 	if ctx.Written() {
 		return nil
@@ -412,7 +412,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		pageName = "Home"
 	}
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	_, pageFilename := wikiContentsByName(ctx, commit, pageName, false)
 	if ctx.Written() {
 		return
@@ -501,7 +501,6 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName string, isSidebarOrFooter bool) (string, string) {
 	pageFilename := wiki_service.NameToFilename(wikiName)
 	entry, err := findEntryForFile(commit, pageFilename)
-
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			if !isSidebarOrFooter {

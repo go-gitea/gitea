@@ -21,45 +21,43 @@ const (
 	RedisQueueType   = "redis"
 )
 
-var (
-	// Indexer settings
-	Indexer = struct {
-		IssueType             string
-		IssuePath             string
-		IssueConnStr          string
-		IssueIndexerName      string
-		IssueQueueType        string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueDir         string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueConnStr     string // DEPRECATED - replaced by queue.issue_indexer
-		IssueQueueBatchNumber int    // DEPRECATED - replaced by queue.issue_indexer
-		StartupTimeout        time.Duration
+// Indexer settings
+var Indexer = struct {
+	IssueType             string
+	IssuePath             string
+	IssueConnStr          string
+	IssueIndexerName      string
+	IssueQueueType        string // DEPRECATED - replaced by queue.issue_indexer
+	IssueQueueDir         string // DEPRECATED - replaced by queue.issue_indexer
+	IssueQueueConnStr     string // DEPRECATED - replaced by queue.issue_indexer
+	IssueQueueBatchNumber int    // DEPRECATED - replaced by queue.issue_indexer
+	StartupTimeout        time.Duration
 
-		RepoIndexerEnabled bool
-		RepoType           string
-		RepoPath           string
-		RepoConnStr        string
-		RepoIndexerName    string
-		UpdateQueueLength  int // DEPRECATED - replaced by queue.issue_indexer
-		MaxIndexerFileSize int64
-		IncludePatterns    []glob.Glob
-		ExcludePatterns    []glob.Glob
-		ExcludeVendored    bool
-	}{
-		IssueType:        "bleve",
-		IssuePath:        "indexers/issues.bleve",
-		IssueConnStr:     "",
-		IssueIndexerName: "gitea_issues",
-		IssueQueueType:   LevelQueueType,
+	RepoIndexerEnabled bool
+	RepoType           string
+	RepoPath           string
+	RepoConnStr        string
+	RepoIndexerName    string
+	UpdateQueueLength  int // DEPRECATED - replaced by queue.issue_indexer
+	MaxIndexerFileSize int64
+	IncludePatterns    []glob.Glob
+	ExcludePatterns    []glob.Glob
+	ExcludeVendored    bool
+}{
+	IssueType:        "bleve",
+	IssuePath:        "indexers/issues.bleve",
+	IssueConnStr:     "",
+	IssueIndexerName: "gitea_issues",
+	IssueQueueType:   LevelQueueType,
 
-		RepoIndexerEnabled: false,
-		RepoType:           "bleve",
-		RepoPath:           "indexers/repos.bleve",
-		RepoConnStr:        "",
-		RepoIndexerName:    "gitea_codes",
-		MaxIndexerFileSize: 1024 * 1024,
-		ExcludeVendored:    true,
-	}
-)
+	RepoIndexerEnabled: false,
+	RepoType:           "bleve",
+	RepoPath:           "indexers/repos.bleve",
+	RepoConnStr:        "",
+	RepoIndexerName:    "gitea_codes",
+	MaxIndexerFileSize: 1024 * 1024,
+	ExcludeVendored:    true,
+}
 
 func newIndexerService() {
 	sec := Cfg.Section("indexer")

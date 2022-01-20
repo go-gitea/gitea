@@ -112,7 +112,7 @@ func TestRelease_Create(t *testing.T) {
 	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
-	var release = models.Release{
+	release := models.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,

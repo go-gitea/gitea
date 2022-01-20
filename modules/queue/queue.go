@@ -70,8 +70,7 @@ func NewDummyQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, erro
 }
 
 // DummyQueue represents an empty queue
-type DummyQueue struct {
-}
+type DummyQueue struct{}
 
 // Run does nothing
 func (*DummyQueue) Run(_, _ func(func())) {}

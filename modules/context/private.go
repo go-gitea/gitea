@@ -44,9 +44,7 @@ func (ctx *PrivateContext) Err() error {
 	return ctx.Req.Context().Err()
 }
 
-var (
-	privateContextKey interface{} = "default_private_context"
-)
+var privateContextKey interface{} = "default_private_context"
 
 // WithPrivateContext set up private context in request
 func WithPrivateContext(req *http.Request, ctx *PrivateContext) *http.Request {

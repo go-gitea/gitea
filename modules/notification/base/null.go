@@ -12,12 +12,9 @@ import (
 )
 
 // NullNotifier implements a blank notifier
-type NullNotifier struct {
-}
+type NullNotifier struct{}
 
-var (
-	_ Notifier = &NullNotifier{}
-)
+var _ Notifier = &NullNotifier{}
 
 // Run places a place holder function
 func (*NullNotifier) Run() {

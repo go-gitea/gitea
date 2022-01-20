@@ -29,9 +29,7 @@ type webhookNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &webhookNotifier{}
-)
+var _ base.Notifier = &webhookNotifier{}
 
 // NewNotifier create a new webhookNotifier notifier
 func NewNotifier() base.Notifier {
@@ -497,7 +495,6 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
-
 }
 
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,

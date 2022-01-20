@@ -18,9 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var (
-	notifiers []base.Notifier
-)
+var notifiers []base.Notifier
 
 // RegisterNotifier providers method to receive notify messages
 func RegisterNotifier(notifier base.Notifier) {

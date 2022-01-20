@@ -50,12 +50,12 @@ func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 }
 
 func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (string, string, error) {
-	refs, lastMethodName, err := GetGitRefs(ctx, refType+"/"+filter) //Search by type
+	refs, lastMethodName, err := GetGitRefs(ctx, refType+"/"+filter) // Search by type
 	if err != nil {
 		return "", lastMethodName, err
 	}
 	if len(refs) > 0 {
-		return refs[0].Object.String(), "", nil //Return found SHA
+		return refs[0].Object.String(), "", nil // Return found SHA
 	}
 	return "", "", nil
 }
