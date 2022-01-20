@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -77,15 +78,19 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return nil
 	}
 
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
+	defer finished()
+
 	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %v", err)
 	}
 
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
@@ -99,7 +104,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -121,16 +126,25 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				delTags = append(delTags, tagName)
 				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
+				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				if err != nil {
+					return fmt.Errorf("gitRepo.GetCommit: %v", err)
+				}
+
+				commits := repo_module.NewPushCommits()
+				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+				commits.CompareURL = repo.ComposeCompareURL(git.EmptySHA, opts.NewCommitID)
+
 				notification.NotifyPushCommits(
 					pusher, repo,
 					&repo_module.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: git.EmptySHA,
 						NewCommitID: opts.NewCommitID,
-					}, repo_module.NewPushCommits())
+					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -175,14 +189,14 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
 					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(opts)
+					isForce, err := repo_module.IsForcePush(ctx, opts)
 					if err != nil {
 						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
@@ -285,7 +299,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err != nil {
 			return fmt.Errorf("GetTag: %v", err)
 		}
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(gitRepo)
 		if err != nil {
 			return fmt.Errorf("Commit: %v", err)
 		}

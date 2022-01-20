@@ -7,7 +7,7 @@ package ldap
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -55,8 +55,8 @@ type Source struct {
 	UserUID               string // User Attribute listed in Group
 	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
-	// reference to the loginSource
-	loginSource *login.Source
+	// reference to the authSource
+	authSource *auth.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -109,12 +109,12 @@ func (source *Source) ProvidesSSHKeys() bool {
 	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 }
 
-// SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.Source) {
-	source.loginSource = loginSource
+// SetAuthSource sets the related AuthSource
+func (source *Source) SetAuthSource(authSource *auth.Source) {
+	source.authSource = authSource
 }
 
 func init() {
-	login.RegisterTypeConfig(login.LDAP, &Source{})
-	login.RegisterTypeConfig(login.DLDAP, &Source{})
+	auth.RegisterTypeConfig(auth.LDAP, &Source{})
+	auth.RegisterTypeConfig(auth.DLDAP, &Source{})
 }

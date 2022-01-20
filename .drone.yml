@@ -88,16 +88,16 @@ steps:
     image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
     commands:
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: arm64
       TAGS: bindata gogit
@@ -110,23 +110,23 @@ steps:
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: windows
       GOARCH: amd64
       TAGS: bindata gogit
     commands:
-      - go build -mod=vendor -o gitea_windows
+      - go build -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: 386
     commands:
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+      - go build -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [checks-backend]
 
 ---
@@ -224,7 +224,7 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -237,7 +237,7 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -249,7 +249,7 @@ steps:
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -264,7 +264,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -278,7 +278,7 @@ steps:
     commands:
       - make test-mssql-migration test-mssql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -291,7 +291,7 @@ steps:
     commands:
       - make coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
     depends_on:
       - unit-test
@@ -384,7 +384,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
@@ -398,7 +398,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit
       RACE_ENABLED: true
       TEST_TAGS: gogit
@@ -760,7 +760,7 @@ steps:
       auto_tag_suffix: linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -778,7 +778,7 @@ steps:
       auto_tag_suffix: linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -822,7 +822,7 @@ steps:
       tags: dev-linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -840,7 +840,7 @@ steps:
       tags: dev-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -875,7 +875,7 @@ steps:
       repo: gitea/gitea
       tags: linux-arm64
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
     environment:
       PLUGIN_MIRROR:
         from_secret: plugin_mirror
@@ -917,7 +917,7 @@ steps:
       auto_tag_suffix: linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -935,7 +935,7 @@ steps:
       auto_tag_suffix: linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -979,7 +979,7 @@ steps:
       tags: dev-linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -997,7 +997,7 @@ steps:
       tags: dev-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:

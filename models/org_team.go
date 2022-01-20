@@ -32,7 +32,7 @@ type Team struct {
 	LowerName               string
 	Name                    string
 	Description             string
-	Authorize               perm.AccessMode
+	AccessMode              perm.AccessMode          `xorm:"'authorize'"`
 	Repos                   []*repo_model.Repository `xorm:"-"`
 	Members                 []*user_model.User       `xorm:"-"`
 	NumRepos                int
@@ -126,7 +126,7 @@ func (t *Team) ColorFormat(s fmt.State) {
 		log.NewColoredIDValue(t.ID),
 		t.Name,
 		log.NewColoredIDValue(t.OrgID),
-		t.Authorize)
+		t.AccessMode)
 }
 
 // GetUnits return a list of available units for a team
@@ -145,15 +145,29 @@ func (t *Team) getUnits(e db.Engine) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
+	if t.AccessMode >= perm.AccessModeAdmin {
+		return unit.AllUnitKeyNames()
+	}
+
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
 	return
 }
 
-// HasWriteAccess returns true if team has at least write level access mode.
-func (t *Team) HasWriteAccess() bool {
-	return t.Authorize >= perm.AccessModeWrite
+// GetUnitsMap returns the team units permissions
+func (t *Team) GetUnitsMap() map[string]string {
+	m := make(map[string]string)
+	if t.AccessMode >= perm.AccessModeAdmin {
+		for _, u := range unit.Units {
+			m[u.NameKey] = t.AccessMode.String()
+		}
+	} else {
+		for _, u := range t.Units {
+			m[u.Unit().NameKey] = u.AccessMode.String()
+		}
+	}
+	return m
 }
 
 // IsOwnerTeam returns true if team is owner team.
@@ -455,16 +469,25 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 }
 
 func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
+	return t.unitAccessMode(e, tp) > perm.AccessModeNone
+}
+
+// UnitAccessMode returns if the team has the given unit type enabled
+func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
+	return t.unitAccessMode(db.GetEngine(db.DefaultContext), tp)
+}
+
+func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) perm.AccessMode {
 	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
 	for _, unit := range t.Units {
 		if unit.Type == tp {
-			return true
+			return unit.AccessMode
 		}
 	}
-	return false
+	return perm.AccessModeNone
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -661,7 +684,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
 			return err
 		}
 	}
@@ -1033,10 +1056,11 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode perm.AccessMode) ([]*Tea
 
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
-	ID     int64     `xorm:"pk autoincr"`
-	OrgID  int64     `xorm:"INDEX"`
-	TeamID int64     `xorm:"UNIQUE(s)"`
-	Type   unit.Type `xorm:"UNIQUE(s)"`
+	ID         int64     `xorm:"pk autoincr"`
+	OrgID      int64     `xorm:"INDEX"`
+	TeamID     int64     `xorm:"UNIQUE(s)"`
+	Type       unit.Type `xorm:"UNIQUE(s)"`
+	AccessMode perm.AccessMode
 }
 
 // Unit returns Unit

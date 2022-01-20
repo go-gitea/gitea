@@ -5,6 +5,7 @@
 package mailer
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -21,6 +22,7 @@ func fallbackMailSubject(issue *models.Issue) string {
 }
 
 type mailCommentContext struct {
+	context.Context
 	Issue      *models.Issue
 	Doer       *user_model.User
 	ActionType models.ActionType

@@ -8,6 +8,7 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
+	gocontext "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,8 +21,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -179,12 +180,12 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
-			_, err = login.GetTwoFactorByUID(ctx.User.ID)
+			_, err = auth.GetTwoFactorByUID(ctx.User.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
-			} else if !login.IsErrTwoFactorNotEnrolled(err) {
+			} else if !auth.IsErrTwoFactorNotEnrolled(err) {
 				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 				return
 			}
@@ -324,12 +325,12 @@ func dummyInfoRefs(ctx *context.Context) {
 			}
 		}()
 
-		if err := git.InitRepository(tmpDir, true); err != nil {
+		if err := git.InitRepository(ctx, tmpDir, true); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
 
-		refs, err := git.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		refs, err := git.NewCommandContext(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -412,17 +413,17 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 // one or more key=value pairs separated by colons
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
-func getGitConfig(option, dir string) string {
-	out, err := git.NewCommand("config", option).RunInDir(dir)
+func getGitConfig(ctx gocontext.Context, option, dir string) string {
+	out, err := git.NewCommandContext(ctx, "config", option).RunInDir(dir)
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
 	return out[0 : len(out)-1]
 }
 
-func getConfigSetting(service, dir string) bool {
+func getConfigSetting(ctx gocontext.Context, service, dir string) bool {
 	service = strings.ReplaceAll(service, "-", "")
-	setting := getGitConfig("http."+service, dir)
+	setting := getGitConfig(ctx, "http."+service, dir)
 
 	if service == "uploadpack" {
 		return setting != "false"
@@ -431,7 +432,7 @@ func getConfigSetting(service, dir string) bool {
 	return setting == "true"
 }
 
-func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
+func hasAccess(ctx gocontext.Context, service string, h serviceHandler, checkContentType bool) bool {
 	if checkContentType {
 		if h.r.Header.Get("Content-Type") != fmt.Sprintf("application/x-git-%s-request", service) {
 			return false
@@ -448,10 +449,10 @@ func hasAccess(service string, h serviceHandler, checkContentType bool) bool {
 		return h.cfg.UploadPack
 	}
 
-	return getConfigSetting(service, h.dir)
+	return getConfigSetting(ctx, service, h.dir)
 }
 
-func serviceRPC(h serviceHandler, service string) {
+func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	defer func() {
 		if err := h.r.Body.Close(); err != nil {
 			log.Error("serviceRPC: Close: %v", err)
@@ -459,7 +460,7 @@ func serviceRPC(h serviceHandler, service string) {
 
 	}()
 
-	if !hasAccess(service, h, true) {
+	if !hasAccess(ctx, service, h, true) {
 		h.w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -486,7 +487,6 @@ func serviceRPC(h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	// ctx, cancel := gocontext.WithCancel(git.DefaultContext)
 	ctx, _, finished := process.GetManager().AddContext(h.r.Context(), fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	defer finished()
 
@@ -508,7 +508,7 @@ func serviceRPC(h serviceHandler, service string) {
 func ServiceUploadPack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(*h, "upload-pack")
+		serviceRPC(ctx, *h, "upload-pack")
 	}
 }
 
@@ -516,7 +516,7 @@ func ServiceUploadPack(ctx *context.Context) {
 func ServiceReceivePack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
-		serviceRPC(*h, "receive-pack")
+		serviceRPC(ctx, *h, "receive-pack")
 	}
 }
 
@@ -528,8 +528,8 @@ func getServiceType(r *http.Request) string {
 	return strings.Replace(serviceType, "git-", "", 1)
 }
 
-func updateServerInfo(dir string) []byte {
-	out, err := git.NewCommand("update-server-info").RunInDirBytes(dir)
+func updateServerInfo(ctx gocontext.Context, dir string) []byte {
+	out, err := git.NewCommandContext(ctx, "update-server-info").RunInDirBytes(dir)
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -551,7 +551,7 @@ func GetInfoRefs(ctx *context.Context) {
 		return
 	}
 	h.setHeaderNoCache()
-	if hasAccess(getServiceType(h.r), *h, false) {
+	if hasAccess(ctx, getServiceType(h.r), *h, false) {
 		service := getServiceType(h.r)
 
 		if protocol := h.r.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
@@ -559,7 +559,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, err := git.NewCommand(service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
+		refs, err := git.NewCommandContext(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -570,7 +570,7 @@ func GetInfoRefs(ctx *context.Context) {
 		_, _ = h.w.Write([]byte("0000"))
 		_, _ = h.w.Write(refs)
 	} else {
-		updateServerInfo(h.dir)
+		updateServerInfo(ctx, h.dir)
 		h.sendFile("text/plain; charset=utf-8", "info/refs")
 	}
 }

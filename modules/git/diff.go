@@ -30,17 +30,17 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRawDiffForFile(repoPath, "", commitID, diffType, "", writer)
+func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRawDiffForFile(ctx, repoPath, "", commitID, diffType, "", writer)
 }
 
 // GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
-func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo, err := OpenRepository(repoPath)
+func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
+	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer repo.Close()
+	defer closer.Close()
 
 	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }
@@ -276,7 +276,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repository) ([]string, error) {
+func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []string) ([]string, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)
@@ -290,7 +290,7 @@ func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repos
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommand("diff", "--name-only", oldCommitID, newCommitID).
+	err = NewCommandContext(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {

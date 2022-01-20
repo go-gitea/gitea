@@ -117,7 +117,7 @@ func TestGetDiffPreview(t *testing.T) {
 	expectedDiff.NumFiles = len(expectedDiff.Files)
 
 	t.Run("with given branch", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, treePath, content)
 		assert.NoError(t, err)
 		expectedBs, err := json.Marshal(expectedDiff)
 		assert.NoError(t, err)
@@ -127,7 +127,7 @@ func TestGetDiffPreview(t *testing.T) {
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, "", treePath, content)
 		assert.NoError(t, err)
 		expectedBs, err := json.Marshal(expectedDiff)
 		assert.NoError(t, err)
@@ -152,20 +152,20 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
 	t.Run("empty repo", func(t *testing.T) {
-		diff, err := GetDiffPreview(&repo_model.Repository{}, branch, treePath, content)
+		diff, err := GetDiffPreview(ctx, &repo_model.Repository{}, branch, treePath, content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "repository does not exist [id: 0, uid: 0, owner_name: , name: ]")
 	})
 
 	t.Run("bad branch", func(t *testing.T) {
 		badBranch := "bad_branch"
-		diff, err := GetDiffPreview(ctx.Repo.Repository, badBranch, treePath, content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, badBranch, treePath, content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "branch does not exist [name: "+badBranch+"]")
 	})
 
 	t.Run("empty treePath", func(t *testing.T) {
-		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, "", content)
+		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, "", content)
 		assert.Nil(t, diff)
 		assert.EqualError(t, err, "path is invalid [path: ]")
 	})

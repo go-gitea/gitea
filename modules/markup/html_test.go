@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,6 +29,7 @@ func TestRender_Commits(t *testing.T) {
 	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			Filename:  ".md",
 			URLPrefix: TestRepoURL,
 			Metas:     localMetas,

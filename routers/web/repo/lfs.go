@@ -115,7 +115,7 @@ func LFSLocks(ctx *context.Context) {
 		}
 	}()
 
-	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
@@ -124,7 +124,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
@@ -300,10 +300,11 @@ func LFSFileGet(ctx *context.Context) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(rd)
+		escapedContent := &bytes.Buffer{}
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent)
 
 		var output bytes.Buffer
-		lines := strings.Split(string(fileContent), "\n")
+		lines := strings.Split(escapedContent.String(), "\n")
 		//Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]
@@ -421,12 +422,13 @@ func LFSPointerFiles(ctx *context.Context) {
 		var numAssociated, numNoExist, numAssociatable int
 
 		type pointerResult struct {
-			SHA        string
-			Oid        string
-			Size       int64
-			InRepo     bool
-			Exists     bool
-			Accessible bool
+			SHA          string
+			Oid          string
+			Size         int64
+			InRepo       bool
+			Exists       bool
+			Accessible   bool
+			Associatable bool
 		}
 
 		results := []pointerResult{}
@@ -461,14 +463,21 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
-				} else {
-					result.Accessible = true
+					if !result.Associatable {
+						associated, err := models.LFSObjectIsAssociated(pointerBlob.Oid)
+						if err != nil {
+							return err
+						}
+						result.Associatable = !associated
+					}
 				}
 			}
+
+			result.Accessible = result.InRepo || result.Associatable
 
 			if result.InRepo {
 				numAssociated++
@@ -476,7 +485,7 @@ func LFSPointerFiles(ctx *context.Context) {
 			if !result.Exists {
 				numNoExist++
 			}
-			if !result.InRepo && result.Accessible {
+			if result.Associatable {
 				numAssociatable++
 			}
 

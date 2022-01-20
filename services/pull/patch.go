@@ -26,17 +26,18 @@ import (
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
-func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch, binary bool) error {
+func DownloadDiffOrPatch(ctx context.Context, pr *models.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
+
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
@@ -53,8 +54,11 @@ var patchErrorSuffices = []string{
 
 // TestPatch will test whether a simple patch will apply
 func TestPatch(pr *models.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: Repo[%d]#%d", pr.BaseRepoID, pr.Index))
+	defer finished()
+
 	// Clone base repo.
-	tmpBasePath, err := createTemporaryRepo(pr)
+	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
 		log.Error("CreateTemporaryPath: %v", err)
 		return err
@@ -65,14 +69,14 @@ func TestPatch(pr *models.PullRequest) error {
 		}
 	}()
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, err = git.NewCommand("merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
+	pr.MergeBase, err = git.NewCommandContext(ctx, "merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
@@ -235,6 +239,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}()
 
 	numberOfConflicts := 0
+	pr.ConflictedFiles = make([]string, 0, 5)
 	conflict := false
 
 	for file := range unmerged {
@@ -321,7 +326,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	pr.Status = models.PullRequestStatusChecking
 
 	// 3. Read the base branch in to the index of the temporary repository
-	_, err = git.NewCommand("read-tree", "base").RunInDir(tmpBasePath)
+	_, err = git.NewCommandContext(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
@@ -364,7 +369,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 	// 7. Run the check command
 	conflict = false
-	err = git.NewCommand(args...).
+	err = git.NewCommandContext(gitRepo.Ctx, args...).
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
@@ -431,11 +436,11 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo *git.Repository) ([]string, error) {
+func CheckFileProtection(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
+	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -461,11 +466,11 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob, env []string, repo *git.Repository) (bool, error) {
+func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
+	affectedFiles, err := git.GetAffectedFiles(repo, oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -497,7 +502,7 @@ func checkPullFilesProtection(pr *models.PullRequest, gitRepo *git.Repository) e
 	}
 
 	var err error
-	pr.ChangedProtectedFiles, err = CheckFileProtection(pr.MergeBase, "tracking", pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ(), gitRepo)
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.MergeBase, "tracking", pr.ProtectedBranch.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !models.IsErrFilePathProtected(err) {
 		return err
 	}

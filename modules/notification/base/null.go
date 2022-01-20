@@ -142,7 +142,7 @@ func (*NullNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
@@ -162,7 +162,7 @@ func (*NullNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_m
 }
 
 // NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifySyncDeleteRef places a place holder function
