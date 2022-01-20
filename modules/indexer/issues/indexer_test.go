@@ -34,12 +34,12 @@ func TestBleveSearchIssues(t *testing.T) {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return
 	}
-	oldQueueDir := setting.Indexer.IssueQueueDir
+
+	setting.Cfg.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
+
 	oldIssuePath := setting.Indexer.IssuePath
-	setting.Indexer.IssueQueueDir = path.Join(tmpIndexerDir, "issues.queue")
 	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
 	defer func() {
-		setting.Indexer.IssueQueueDir = oldQueueDir
 		setting.Indexer.IssuePath = oldIssuePath
 		util.RemoveAll(tmpIndexerDir)
 	}()
