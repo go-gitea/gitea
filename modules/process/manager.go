@@ -260,7 +260,6 @@ func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, d
 	}
 
 	err := cmd.Wait()
-
 	if err != nil {
 		err = &Error{
 			PID:         GetPID(ctx),

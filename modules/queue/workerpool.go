@@ -341,7 +341,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 
 func (p *WorkerPool) doWork(ctx context.Context) {
 	delay := time.Millisecond * 300
-	var data = make([]Data, 0, p.batchLength)
+	data := make([]Data, 0, p.batchLength)
 	for {
 		select {
 		case <-ctx.Done():

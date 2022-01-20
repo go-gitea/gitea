@@ -56,29 +56,29 @@ type APIInvalidTopicsError struct {
 	InvalidTopics []string `json:"invalidTopics"`
 }
 
-//APIEmpty is an empty response
+// APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
 
-//APIForbiddenError is a forbidden error response
+// APIForbiddenError is a forbidden error response
 // swagger:response forbidden
 type APIForbiddenError struct {
 	APIError
 }
 
-//APINotFound is a not found empty response
+// APINotFound is a not found empty response
 // swagger:response notFound
 type APINotFound struct{}
 
-//APIConflict is a conflict empty response
+// APIConflict is a conflict empty response
 // swagger:response conflict
 type APIConflict struct{}
 
-//APIRedirect is a redirect response
+// APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}
 
-//APIString is a string response
+// APIString is a string response
 // swagger:response string
 type APIString string
 
@@ -269,13 +269,12 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
-	var csrfOpts = getCsrfOpts()
+	csrfOpts := getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var locale = middleware.Locale(w, req)
-			var ctx = APIContext{
+			locale := middleware.Locale(w, req)
+			ctx := APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},
@@ -354,7 +353,7 @@ func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.Ca
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
-	var message = ctx.Tr("error.not_found")
+	message := ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil

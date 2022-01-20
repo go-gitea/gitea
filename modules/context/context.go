@@ -362,7 +362,7 @@ func (ctx *Context) ServeStream(rd io.Reader, name string) {
 
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
-	var v = http.StatusText(status)
+	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]
 	}
@@ -606,16 +606,16 @@ func Auth(authMethod auth.Method) func(*Context) {
 
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
-	var csrfOpts = getCsrfOpts()
+	rnd := templates.HTMLRenderer()
+	csrfOpts := getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			var locale = middleware.Locale(resp, req)
-			var startTime = time.Now()
-			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			link := setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 
-			var ctx = Context{
+			ctx := Context{
 				Resp:    NewResponse(resp),
 				Cache:   mc.GetCache(),
 				Locale:  locale,

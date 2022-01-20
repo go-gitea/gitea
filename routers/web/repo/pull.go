@@ -48,16 +48,14 @@ const (
 	pullRequestTemplateKey = "PullRequestTemplate"
 )
 
-var (
-	pullRequestTemplateCandidates = []string{
-		"PULL_REQUEST_TEMPLATE.md",
-		"pull_request_template.md",
-		".gitea/PULL_REQUEST_TEMPLATE.md",
-		".gitea/pull_request_template.md",
-		".github/PULL_REQUEST_TEMPLATE.md",
-		".github/pull_request_template.md",
-	}
-)
+var pullRequestTemplateCandidates = []string{
+	"PULL_REQUEST_TEMPLATE.md",
+	"pull_request_template.md",
+	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/pull_request_template.md",
+	".github/PULL_REQUEST_TEMPLATE.md",
+	".github/pull_request_template.md",
+}
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByID(repoID)
@@ -125,7 +123,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 		}
 	}
 
-	var traverseParentRepo = forkRepo
+	traverseParentRepo := forkRepo
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -195,7 +193,7 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	var err error
-	var traverseParentRepo = forkRepo
+	traverseParentRepo := forkRepo
 	for {
 		if ctxUser.ID == traverseParentRepo.OwnerID {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
@@ -1085,7 +1083,6 @@ func MergePullRequest(ctx *context.Context) {
 }
 
 func stopTimerIfAvailable(user *user_model.User, issue *models.Issue) error {
-
 	if models.StopwatchExists(user.ID, issue.ID) {
 		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
 			return err

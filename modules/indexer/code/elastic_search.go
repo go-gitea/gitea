@@ -35,9 +35,7 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var (
-	_ Indexer = &ElasticSearchIndexer{}
-)
+var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
@@ -131,7 +129,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 		return false, err
 	}
 	if !exists {
-		var mapping = defaultMapping
+		mapping := defaultMapping
 
 		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
 		if err != nil {
@@ -327,7 +325,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		}
 
 		repoID, fileName := parseIndexerID(hit.Id)
-		var res = make(map[string]interface{})
+		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -378,7 +376,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		var repoStrs = make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]interface{}, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

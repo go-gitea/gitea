@@ -47,7 +47,6 @@ type Collector struct {
 
 // NewCollector returns a new Collector with all prometheus.Desc initialized
 func NewCollector() Collector {
-
 	return Collector{
 		Accesses: prometheus.NewDesc(
 			namespace+"accesses",

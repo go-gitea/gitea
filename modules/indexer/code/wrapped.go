@@ -12,9 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
-var (
-	indexer = newWrappedIndexer()
-)
+var indexer = newWrappedIndexer()
 
 // ErrWrappedIndexerClosed is the error returned if the indexer was closed before it was ready
 var ErrWrappedIndexerClosed = fmt.Errorf("Indexer closed before ready")
@@ -80,7 +78,6 @@ func (w *wrappedIndexer) Search(repoIDs []int64, language, keyword string, page,
 		return 0, nil, nil, err
 	}
 	return indexer.Search(repoIDs, language, keyword, page, pageSize, isMatch)
-
 }
 
 func (w *wrappedIndexer) Close() {

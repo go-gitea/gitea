@@ -54,7 +54,7 @@ func getDbTypeNames() []map[string]string {
 
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
+	rnd := templates.HTMLRenderer()
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
@@ -62,9 +62,9 @@ func Init(next http.Handler) http.Handler {
 			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
 			return
 		}
-		var locale = middleware.Locale(resp, req)
-		var startTime = time.Now()
-		var ctx = context.Context{
+		locale := middleware.Locale(resp, req)
+		startTime := time.Now()
+		ctx := context.Context{
 			Resp:    context.NewResponse(resp),
 			Flash:   &middleware.Flash{},
 			Locale:  locale,

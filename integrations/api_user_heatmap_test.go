@@ -22,7 +22,7 @@ func TestUserHeatmap(t *testing.T) {
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
 
-	var fakeNow = time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
+	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.Set(fakeNow)
 	defer timeutil.Unset()
 

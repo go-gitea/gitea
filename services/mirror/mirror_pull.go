@@ -150,8 +150,8 @@ func pruneBrokenReferences(ctx context.Context,
 	timeout time.Duration,
 	stdoutBuilder, stderrBuilder *strings.Builder,
 	sanitizer *strings.Replacer,
-	isWiki bool) error {
-
+	isWiki bool,
+) error {
 	wiki := ""
 	if isWiki {
 		wiki = "Wiki "

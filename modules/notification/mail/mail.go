@@ -21,9 +21,7 @@ type mailNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &mailNotifier{}
-)
+var _ base.Notifier = &mailNotifier{}
 
 // NewNotifier create a new mailNotifier notifier
 func NewNotifier() base.Notifier {

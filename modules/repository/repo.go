@@ -310,7 +310,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	}
 
 	var author *user_model.User
-	var createdAt = time.Unix(1, 0)
+	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
 		author, err = user_model.GetUserByEmail(sig.Email)
@@ -325,7 +325,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("CommitsCount: %v", err)
 	}
 
-	var rel = models.Release{
+	rel := models.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),

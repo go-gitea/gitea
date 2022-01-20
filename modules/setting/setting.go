@@ -387,6 +387,7 @@ var (
 		MaxTokenLength:             math.MaxInt16,
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
 	U2F = struct {
 		AppID string
 	}{}
@@ -563,6 +564,12 @@ func LoadForTest(extraConfigs ...string) {
 	}
 }
 
+func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
+	}
+}
+
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
 func loadFromConf(allowEmpty bool, extraConfig string) {
@@ -637,7 +644,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
-		if err != nil || UnixSocketPermissionParsed > 0777 {
+		if err != nil || UnixSocketPermissionParsed > 0o777 {
 			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
 
@@ -793,16 +800,16 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err := os.MkdirAll(SSH.RootPath, 0700); err != nil {
+		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
-		} else if err = os.MkdirAll(SSH.KeyTestPath, 0644); err != nil {
+		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 
 		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
 			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
 			if err := os.WriteFile(fname,
-				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
+				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0o600); err != nil {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
 		}
@@ -1022,6 +1029,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	if Cfg.Section("U2F").HasKey("APP_ID") {
+		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
+	}
 	sec = Cfg.Section("U2F")
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 }
@@ -1069,7 +1080,7 @@ func loadInternalToken(sec *ini.Section) string {
 	}
 	switch tempURI.Scheme {
 	case "file":
-		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0600)
+		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0o600)
 		if err != nil {
 			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
 		}
@@ -1162,7 +1173,6 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 			},
 		},
 	})
-
 	if err != nil {
 		log.Error("unable to marshal manifest JSON. Error: %v", err)
 		return make([]byte, 0)
