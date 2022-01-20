@@ -354,7 +354,7 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 	}
 	pc.Set(footnoteListKey, nil)
 	for footnote := list.FirstChild(); footnote != nil; {
-		var container ast.Node = footnote
+		container := footnote
 		next := footnote.NextSibling()
 		if fc := container.LastChild(); fc != nil && ast.IsParagraph(fc) {
 			container = fc
