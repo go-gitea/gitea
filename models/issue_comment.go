@@ -724,7 +724,7 @@ func (c *Comment) CodeCommentURL() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits() (err error) {
+func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
 		return nil
 	}
@@ -746,11 +746,11 @@ func (c *Comment) LoadPushCommits() (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 		if err != nil {
 			return err
 		}
-		defer gitRepo.Close()
+		defer closer.Close()
 
 		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
@@ -1272,6 +1272,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: issue.Repo.Link(),
 			Metas:     issue.Repo.ComposeMetas(),
 		}, comment.Content); err != nil {
@@ -1282,19 +1283,19 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.DefaultContext, opts, issue, currentUser, nil)
+	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(db.DefaultContext, issue, currentUser)
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeComments(ctx, issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
@@ -1318,7 +1319,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 }
 
 // CreatePushPullComment create push code to pull base comment
-func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
 	}
@@ -1331,7 +1332,7 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 
 	var data PushActionContent
 
-	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -1353,13 +1354,13 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 	if err != nil {
 		return nil, false, err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {

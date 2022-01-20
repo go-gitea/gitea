@@ -778,10 +778,10 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
-					m.Get("", repo.ListBranches)
-					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Get("", context.ReferencesGitRepo(false), repo.ListBranches)
+					m.Get("/*", context.ReferencesGitRepo(false), repo.GetBranch)
+					m.Delete("/*", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
@@ -957,7 +957,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
-					m.Get("", repo.GetAllCommits)
+					m.Get("", context.ReferencesGitRepo(false), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
@@ -965,7 +965,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/{sha}", repo.GetSingleCommit)
+						m.Get("/{sha}", context.ReferencesGitRepo(false), repo.GetSingleCommit)
 						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)

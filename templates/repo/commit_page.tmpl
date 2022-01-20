@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached header clearing segment pr {{$class}}">
 			<div class="df mb-4">
-				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="ui">
 						<a class="ui blue tiny button" href="{{.SourcePath}}">
@@ -134,7 +134,7 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body mt-0">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
 				<span class="text grey mr-3">{{svg "octicon-git-branch" 16 "mr-2"}}{{.BranchName}}</span>
@@ -281,7 +281,7 @@
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}

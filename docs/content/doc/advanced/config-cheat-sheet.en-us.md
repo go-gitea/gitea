@@ -291,7 +291,6 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
-- `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). From 1.11 paths are relative to `CUSTOM_PATH`.
 - `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
@@ -752,11 +751,16 @@ Default templates for project boards:
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
-- `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
-- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
-NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
-- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ENABLE_SSH_LOG`: **false**: save ssh log to log file
+- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
+ 
+### Router Log (`log`)
+- `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
+- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
+  NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
+
+### Access Log (`log`)
+- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default Gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
@@ -765,7 +769,6 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
-- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
 ### Log subsections (`log.name`, `log.name.*`)
 
