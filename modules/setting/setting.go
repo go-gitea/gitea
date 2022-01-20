@@ -387,6 +387,7 @@ var (
 		MaxTokenLength:             math.MaxInt16,
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
 	U2F = struct {
 		AppID string
 	}{}
@@ -560,6 +561,12 @@ func LoadForTest(extraConfigs ...string) {
 	loadFromConf(true, strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
+	}
+}
+
+func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated fallback `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be removed in v1.18.0", oldSection, oldKey, newSection, newKey)
 	}
 }
 
@@ -1022,6 +1029,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	if Cfg.Section("U2F").HasKey("APP_ID") {
+		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
+	}
 	sec = Cfg.Section("U2F")
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 }
