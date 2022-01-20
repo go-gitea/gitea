@@ -1137,6 +1137,55 @@ func (p *pullrequestReview) GetState() string {
 	return fmt.Sprintf("%d", p.State)
 }
 
+/*
+{
+    "type": "pull_request_review_thread",
+    "url": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreviewthread-203253693",
+    "pull_request": "https://github.com/go-xorm/xorm/pull/1445",
+    "pull_request_review": "https://github.com/go-xorm/xorm/pull/1445/files#pullrequestreview-295977501",
+    "diff_hunk": "@@ -245,12 +245,17 @@ func (session *Session) Sync2(beans ...interface{}) error {\n \t\tif err != nil {\n \t\t\treturn err\n \t\t}\n-\t\ttbName := engine.TableName(bean)\n-\t\ttbNameWithSchema := engine.TableName(tbName, true)\n+\t\tvar tbName string\n+\t\tif len(session.statement.AltTableName) > 0 {\n+\t\t\ttbName = session.statement.AltTableName\n+\t\t} else {\n+\t\t\ttbName = engine.TableName(bean)\n+\t\t}\n+\t\ttbNameWithSchema := engine.tbNameWithSchema(tbName)\n \n \t\tvar oriTable *core.Table\n \t\tfor _, tb := range tables {\n-\t\t\tif strings.EqualFold(tb.Name, tbName) {\n+\t\t\tif strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {",
+    "path": "session_schema.go",
+    "position": 17,
+    "original_position": 17,
+    "commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
+    "original_commit_id": "f6b642c82aab95178a4551a1ff65dc2a631a08cf",
+    "start_line": null,
+    "line": 258,
+    "start_side": null,
+    "side": "right",
+    "original_start_line": null,
+    "original_line": 258,
+    "created_at": "2019-10-02T01:40:41Z",
+    "resolved_at": null,
+    "resolver": null
+  },*/
+type pullrequestReviewThread struct {
+	URL               string
+	PullRequest       string `json:"pull_request"`
+	PullRequestReview string `json:"pull_request_review"`
+	DiffHunk          string `json:"diff_hunk"`
+	Path              string
+	Position          int64
+	OriginalPosition  int64  `json:"original_position"`
+	CommitID          string `json:"commit_id"`
+	OriginalCommitID  string `json:"original_commit_id"`
+	//StartLine
+	Line int64
+	//StartSide
+	Side string
+	//OriginalStartLine    string `json:"head_sha"`
+	OriginalLine int64
+	CreatedAt    time.Time  `json:"created_at"`
+	ResolvedAt   *time.Time `json:"resolved_at"`
+	Resolver     string
+}
+
+func (p *pullrequestReviewThread) Index() int64 {
+	fields := strings.Split(p.PullRequest, "/")
+	idx, _ := strconv.ParseInt(fields[len(fields)-1], 10, 64)
+	return idx
+}
+
 /*{
   "type": "pull_request_review_comment",
   "url": "https://github.com/go-gitea/test_repo/pull/4/files#r363017488",
@@ -1207,7 +1256,7 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 	}, func(content interface{}) error {
 		cs := *content.(*[]pullrequestReviewComment)
 		for _, c := range cs {
-			comments[c.PullRequestReview] = append(comments[c.PullRequestReview], c)
+			comments[c.PullRequestReviewThread] = append(comments[c.PullRequestReviewThread], c)
 		}
 		return nil
 	}); err != nil {
@@ -1220,8 +1269,11 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 	}, func(content interface{}) error {
 		prReviews := content.(*[]pullrequestReview)
 		for _, review := range *prReviews {
+			if review.State == 1 {
+				continue
+			}
 			user := r.users[review.User]
-			reviews = append(reviews, &base.Review{
+			baseReview := &base.Review{
 				IssueIndex:    review.Index(),
 				ReviewerID:    user.ID(),
 				ReviewerName:  user.Login,
@@ -1230,8 +1282,42 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 				Content:       review.Body,
 				CreatedAt:     review.CreatedAt,
 				State:         review.GetState(),
-				Comments:      r.getReviewComments(comments[review.URL]),
-			})
+			}
+			reviews = append(reviews, baseReview)
+		}
+		return nil
+	}); err != nil {
+		return nil, true, err
+	}
+
+	if err := r.readJSONFiles("pull_request_review_threads", func() interface{} {
+		return &[]pullrequestReviewThread{}
+	}, func(content interface{}) error {
+		cs := *content.(*[]pullrequestReviewThread)
+		for _, review := range cs {
+			reviewComments := comments[review.URL]
+			if len(reviewComments) == 0 {
+				continue
+			}
+			user := r.users[reviewComments[0].User]
+			baseReview := &base.Review{
+				IssueIndex:    review.Index(),
+				ReviewerID:    user.ID(),
+				ReviewerName:  user.Login,
+				ReviewerEmail: user.Email(),
+				CommitID:      reviewComments[0].CommitID,
+				CreatedAt:     review.CreatedAt,
+				State:         base.ReviewStateCommented,
+				Comments:      r.getReviewComments(reviewComments),
+				ResolvedAt:    review.ResolvedAt,
+			}
+
+			if resolver, ok := r.users[review.Resolver]; ok {
+				baseReview.ResolverID = resolver.ID()
+				baseReview.ResolverName = resolver.Login
+				baseReview.ResolverEmail = resolver.Email()
+			}
+			reviews = append(reviews, baseReview)
 		}
 		return nil
 	}); err != nil {

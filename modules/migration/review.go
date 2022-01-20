@@ -33,6 +33,10 @@ type Review struct {
 	CreatedAt     time.Time `yaml:"created_at"`
 	State         string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments      []*ReviewComment
+	ResolvedAt    *time.Time `yaml:"resolved_at"`
+	ResolverID    int64      `yaml:"resolver_id"`
+	ResolverName  string     `yaml:"resolver_name"`
+	ResolverEmail string     `yaml:"resolver_email"`
 }
 
 // GetExternalName ExternalUserMigrated interface
