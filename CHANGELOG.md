@@ -228,6 +228,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add left padding for chunk header of split diff view (#13397)
   * Allow U2F 2FA without TOTP (#11573)
 * BUGFIXES
+  * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
   * Restore propagation of ErrDependenciesLeft (#18325)
   * Fix PR comments UI (#18323)
   * Use indirect comparison when showing pull requests (#18313)

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -28,7 +29,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(pr)
+		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
@@ -41,7 +42,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		//Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(pr)
+		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 2, diffCount.Ahead)
@@ -56,7 +57,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
-		diffCount, err := pull_service.GetDiverging(pr)
+		diffCount, err := pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 1, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
@@ -69,7 +70,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		//Test GetDiverging after update
-		diffCount, err = pull_service.GetDiverging(pr)
+		diffCount, err = pull_service.GetDiverging(git.DefaultContext, pr)
 		assert.NoError(t, err)
 		assert.EqualValues(t, 0, diffCount.Behind)
 		assert.EqualValues(t, 1, diffCount.Ahead)
@@ -98,7 +99,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 	assert.NotEmpty(t, headRepo)
 
 	//create a commit on base Repo
-	_, err = files_service.CreateOrUpdateRepoFile(baseRepo, actor, &files_service.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_A",
 		Message:   "Add File A",
 		Content:   "File A",
@@ -121,7 +122,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 	assert.NoError(t, err)
 
 	//create a commit on head Repo
-	_, err = files_service.CreateOrUpdateRepoFile(headRepo, actor, &files_service.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, headRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_B",
 		Message:   "Add File on PR branch",
 		Content:   "File B",
@@ -160,7 +161,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 		BaseRepo:   baseRepo,
 		Type:       models.PullRequestGitea,
 	}
-	err = pull_service.NewPullRequest(baseRepo, pullIssue, nil, nil, pullRequest, nil)
+	err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)

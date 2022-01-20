@@ -64,6 +64,7 @@ type Engine interface {
 	Distinct(...string) *xorm.Session
 	Query(...interface{}) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
+	Context(ctx context.Context) *xorm.Session
 }
 
 // TableInfo returns table's information via an object

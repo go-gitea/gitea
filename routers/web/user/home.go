@@ -540,7 +540,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
