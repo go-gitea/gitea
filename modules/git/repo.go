@@ -146,7 +146,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	var envs = os.Environ()
+	envs := os.Environ()
 	u, err := url.Parse(from)
 	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
 		if proxy.Match(u.Host) {
@@ -154,7 +154,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		}
 	}
 
-	var stderr = new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 	if err = cmd.RunWithContext(&RunContext{
 		Timeout: opts.Timeout,
 		Env:     envs,

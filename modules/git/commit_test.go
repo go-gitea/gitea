@@ -234,5 +234,4 @@ func TestParseCommitFileStatus(t *testing.T) {
 		assert.Equal(t, kase.removed, fileStatus.Removed)
 		assert.Equal(t, kase.modified, fileStatus.Modified)
 	}
-
 }

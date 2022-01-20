@@ -14,39 +14,37 @@ import (
 	"github.com/gobwas/glob"
 )
 
-var (
-	// Indexer settings
-	Indexer = struct {
-		IssueType        string
-		IssuePath        string
-		IssueConnStr     string
-		IssueIndexerName string
-		StartupTimeout   time.Duration
+// Indexer settings
+var Indexer = struct {
+	IssueType        string
+	IssuePath        string
+	IssueConnStr     string
+	IssueIndexerName string
+	StartupTimeout   time.Duration
 
-		RepoIndexerEnabled bool
-		RepoType           string
-		RepoPath           string
-		RepoConnStr        string
-		RepoIndexerName    string
-		MaxIndexerFileSize int64
-		IncludePatterns    []glob.Glob
-		ExcludePatterns    []glob.Glob
-		ExcludeVendored    bool
-	}{
-		IssueType:        "bleve",
-		IssuePath:        "indexers/issues.bleve",
-		IssueConnStr:     "",
-		IssueIndexerName: "gitea_issues",
+	RepoIndexerEnabled bool
+	RepoType           string
+	RepoPath           string
+	RepoConnStr        string
+	RepoIndexerName    string
+	MaxIndexerFileSize int64
+	IncludePatterns    []glob.Glob
+	ExcludePatterns    []glob.Glob
+	ExcludeVendored    bool
+}{
+	IssueType:        "bleve",
+	IssuePath:        "indexers/issues.bleve",
+	IssueConnStr:     "",
+	IssueIndexerName: "gitea_issues",
 
-		RepoIndexerEnabled: false,
-		RepoType:           "bleve",
-		RepoPath:           "indexers/repos.bleve",
-		RepoConnStr:        "",
-		RepoIndexerName:    "gitea_codes",
-		MaxIndexerFileSize: 1024 * 1024,
-		ExcludeVendored:    true,
-	}
-)
+	RepoIndexerEnabled: false,
+	RepoType:           "bleve",
+	RepoPath:           "indexers/repos.bleve",
+	RepoConnStr:        "",
+	RepoIndexerName:    "gitea_codes",
+	MaxIndexerFileSize: 1024 * 1024,
+	ExcludeVendored:    true,
+}
 
 func newIndexerService() {
 	sec := Cfg.Section("indexer")

@@ -33,7 +33,7 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
-	//Ensure user is in a 2FA session.
+	// Ensure user is in a 2FA session.
 	if ctx.Session.Get("twofaUid") == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return

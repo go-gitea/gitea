@@ -25,9 +25,7 @@ type actionNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &actionNotifier{}
-)
+var _ base.Notifier = &actionNotifier{}
 
 // NewNotifier create a new actionNotifier notifier
 func NewNotifier() base.Notifier {
@@ -220,7 +218,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		return
 	}
 
-	var actions = make([]*models.Action, 0, 10)
+	actions := make([]*models.Action, 0, 10)
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comm := range comments {

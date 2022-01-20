@@ -28,7 +28,7 @@ const AssetsURLPathPrefix = "/assets/"
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
-	var custPath = filepath.Join(setting.CustomPath, "public")
+	custPath := filepath.Join(setting.CustomPath, "public")
 	if !filepath.IsAbs(custPath) {
 		custPath = filepath.Join(setting.AppWorkPath, custPath)
 	}
@@ -85,7 +85,7 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 // parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
 func parseAcceptEncoding(val string) map[string]bool {
 	parts := strings.Split(val, ";")
-	var types = make(map[string]bool)
+	types := make(map[string]bool)
 	for _, v := range strings.Split(parts[0], ",") {
 		types[strings.TrimSpace(v)] = true
 	}

@@ -13,7 +13,7 @@ type contextKeyType struct{}
 
 var contextKey contextKeyType
 
-//UpdateFuncInfo updates a context's func info
+// UpdateFuncInfo updates a context's func info
 func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
 	record, ok := ctx.Value(contextKey).(*requestRecord)
 	if !ok {
@@ -23,7 +23,6 @@ func UpdateFuncInfo(ctx context.Context, funcInfo *FuncInfo) {
 	record.lock.Lock()
 	record.funcInfo = funcInfo
 	record.lock.Unlock()
-
 }
 
 // MarkLongPolling marks the reuqest is a long-polling request, and the logger may output different message for it
@@ -38,7 +37,7 @@ func MarkLongPolling(resp http.ResponseWriter, req *http.Request) {
 	record.lock.Unlock()
 }
 
-//UpdatePanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
+// UpdatePanicError updates a context's error info, a panic may be recovered by other middlewares, but we still need to know that.
 func UpdatePanicError(ctx context.Context, err interface{}) {
 	record, ok := ctx.Value(contextKey).(*requestRecord)
 	if !ok {

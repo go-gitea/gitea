@@ -1158,5 +1158,4 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 
 	// no user found to login
 	return nil, gothUser, nil
-
 }

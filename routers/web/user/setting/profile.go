@@ -415,5 +415,4 @@ func UpdateUserLang(ctx *context.Context) {
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
-
 }

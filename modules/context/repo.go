@@ -111,7 +111,6 @@ type CanCommitToBranchResults struct {
 //   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
-
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
