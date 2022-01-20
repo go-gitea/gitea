@@ -36,18 +36,19 @@ var (
 
 func logPrinter(logger log.Logger) func(trigger Event, record *requestRecord) {
 	return func(trigger Event, record *requestRecord) {
-		if trigger == StartEvent && !logger.IsDebug() {
-			// for performance, if the "started" message shouldn't be logged, we just return as early as possible
-			// developers can set the router log level to DEBUG to get the "started" request messages.
+		if trigger == StartEvent {
+			if !logger.IsTrace() {
+				// for performance, if the "started" message shouldn't be logged, we just return as early as possible
+				// developers can set the router log level to TRACE to get the "started" request messages.
+				return
+			}
+			// when a request starts, we have no information about the handler function information, we only have the request path
+			req := record.request
+			logger.Trace("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
 			return
 		}
 
 		req := record.request
-		if trigger == StartEvent {
-			// when a request starts, we have no information about the handler function information, we only have the request path
-			logger.Debug("router: %s %v %s for %s", startMessage, log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr)
-			return
-		}
 
 		// Get data from the record
 		record.lock.Lock()
