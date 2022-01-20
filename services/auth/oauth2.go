@@ -44,7 +44,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if token.Type != oauth2.TypeAccessToken {
 		return 0
 	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
 		return 0
 	}
 	return grant.UserID
