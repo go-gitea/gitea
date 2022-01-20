@@ -17,13 +17,13 @@ import (
 type Event int
 
 const (
-	//StartEvent at the beginning of a request
+	// StartEvent at the beginning of a request
 	StartEvent Event = iota
 
-	//StillExecutingEvent the request is still executing
+	// StillExecutingEvent the request is still executing
 	StillExecutingEvent
 
-	//EndEvent the request has ended (either completed or failed)
+	// EndEvent the request has ended (either completed or failed)
 	EndEvent
 )
 

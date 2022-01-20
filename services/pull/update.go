@@ -26,7 +26,7 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		pr = pull
 		style = repo_model.MergeStyleRebaseUpdate
 	} else {
-		//use merge functions but switch repo's and branch's
+		// use merge functions but switch repo's and branch's
 		pr = &models.PullRequest{
 			HeadRepoID: pull.BaseRepoID,
 			BaseRepoID: pull.HeadRepoID,

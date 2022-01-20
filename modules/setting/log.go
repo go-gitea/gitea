@@ -19,9 +19,11 @@ import (
 	ini "gopkg.in/ini.v1"
 )
 
-var filenameSuffix = ""
-var descriptionLock = sync.RWMutex{}
-var logDescriptions = make(map[string]*LogDescription)
+var (
+	filenameSuffix  = ""
+	descriptionLock = sync.RWMutex{}
+	logDescriptions = make(map[string]*LogDescription)
+)
 
 // GetLogDescriptions returns a race safe set of descriptions
 func GetLogDescriptions() map[string]*LogDescription {
@@ -86,7 +88,7 @@ func RemoveSubLogDescription(key, name string) bool {
 type defaultLogOptions struct {
 	levelName      string // LogLevel
 	flags          string
-	filename       string //path.Join(LogRootPath, "gitea.log")
+	filename       string // path.Join(LogRootPath, "gitea.log")
 	bufferLength   int64
 	disableConsole bool
 }

@@ -312,7 +312,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			sig = commit.Committer
 		}
 		var author *user_model.User
-		var createdAt = time.Unix(1, 0)
+		createdAt := time.Unix(1, 0)
 
 		if sig != nil {
 			var ok bool

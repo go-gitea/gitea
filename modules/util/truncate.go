@@ -7,8 +7,10 @@ package util
 import "unicode/utf8"
 
 // in UTF8 "…" is 3 bytes so doesn't really gain us anything...
-const utf8Ellipsis = "…"
-const asciiEllipsis = "..."
+const (
+	utf8Ellipsis  = "…"
+	asciiEllipsis = "..."
+)
 
 // SplitStringAtByteN splits a string at byte n accounting for rune boundaries. (Combining characters are not accounted for.)
 func SplitStringAtByteN(input string, n int) (left, right string) {

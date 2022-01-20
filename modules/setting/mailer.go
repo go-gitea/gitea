@@ -43,10 +43,8 @@ type Mailer struct {
 	SendmailConvertCRLF bool
 }
 
-var (
-	// MailService the global mailer
-	MailService *Mailer
-)
+// MailService the global mailer
+var MailService *Mailer
 
 func newMailService() {
 	sec := Cfg.Section("mailer")

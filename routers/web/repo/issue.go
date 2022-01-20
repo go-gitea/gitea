@@ -57,17 +57,15 @@ const (
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
-var (
-	// IssueTemplateCandidates issue templates
-	IssueTemplateCandidates = []string{
-		"ISSUE_TEMPLATE.md",
-		"issue_template.md",
-		".gitea/ISSUE_TEMPLATE.md",
-		".gitea/issue_template.md",
-		".github/ISSUE_TEMPLATE.md",
-		".github/issue_template.md",
-	}
-)
+// IssueTemplateCandidates issue templates
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"issue_template.md",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/issue_template.md",
+	".github/ISSUE_TEMPLATE.md",
+	".github/issue_template.md",
+}
 
 // MustAllowUserComment checks to make sure if an issue is locked.
 // If locked and user has permissions to write to the repository,
@@ -245,7 +243,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var issueList = models.IssueList(issues)
+	issueList := models.IssueList(issues)
 	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
@@ -311,8 +309,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
-	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -442,7 +439,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-
 	var err error
 
 	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
@@ -2508,7 +2504,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
@@ -2522,7 +2518,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
 	}
-	var attachments = make([]*api.Attachment, 0)
+	attachments := make([]*api.Attachment, 0)
 	if comment.Type == models.CommentTypeComment {
 		if err := comment.LoadAttachments(); err != nil {
 			ctx.ServerError("LoadAttachments", err)
@@ -2667,7 +2663,7 @@ func handleTeamMentions(ctx *context.Context) {
 	var isAdmin bool
 	var err error
 	var teams []*models.Team
-	var org = models.OrgFromUser(ctx.Repo.Owner)
+	org := models.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.User.IsAdmin {
 		isAdmin = true

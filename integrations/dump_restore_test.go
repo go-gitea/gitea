@@ -55,7 +55,7 @@ func TestDumpRestore(t *testing.T) {
 		//
 
 		ctx := context.Background()
-		var opts = migrations.MigrateOptions{
+		opts := migrations.MigrateOptions{
 			GitServiceType: structs.GiteaService,
 			Issues:         true,
 			Labels:         true,
@@ -109,11 +109,11 @@ func TestDumpRestore(t *testing.T) {
 
 		beforeBytes, err := os.ReadFile(filepath.Join(d, "issue.yml"))
 		assert.NoError(t, err)
-		var before = make([]*base.Issue, 0, 10)
+		before := make([]*base.Issue, 0, 10)
 		assert.NoError(t, yaml.Unmarshal(beforeBytes, &before))
 		afterBytes, err := os.ReadFile(filepath.Join(newd, "issue.yml"))
 		assert.NoError(t, err)
-		var after = make([]*base.Issue, 0, 10)
+		after := make([]*base.Issue, 0, 10)
 		assert.NoError(t, yaml.Unmarshal(afterBytes, &after))
 
 		assert.EqualValues(t, len(before), len(after))

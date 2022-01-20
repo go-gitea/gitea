@@ -65,7 +65,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -87,7 +87,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -109,7 +109,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -131,7 +131,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
