@@ -79,9 +79,9 @@ configuration. `ROUTER` will default to `console` if unset and will default to s
 
 The Router logger logs the following:
 
-- `started` messages will be logged at DEBUG level
-- `slow` routers will be logged at WARN
+- `started` messages will be logged at TRACE level
 - `polling`/`completed` routers will be logged at INFO
+- `slow` routers will be logged at WARN
 - `failed` routers will be logged at WARN
 
 The logging level for the router will default to that of the main configuration. Set `[log.<mode>.router]` `LEVEL` to change this.
