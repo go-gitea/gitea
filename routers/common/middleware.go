@@ -51,18 +51,9 @@ func Middlewares() []func(http.Handler) http.Handler {
 	handlers = append(handlers, middleware.StripSlashes)
 
 	if !setting.DisableRouterLog {
-		var routerLogHandler func(http.Handler) http.Handler
-		if setting.RouterLogHandler == "router_logger_v1" {
-			routerLogHandler = routing.NewLoggerHandlerV1(setting.RouterLogLevel)
-		} else if setting.RouterLogHandler == "router_logger_v2" {
-			routerLogHandler = routing.NewLoggerHandlerV2()
-		}
-		if routerLogHandler == nil {
-			log.Warn("unknown router log handler '%s', fall back to router_logger_v2")
-			routerLogHandler = routing.NewLoggerHandlerV2()
-		}
-		handlers = append(handlers, routerLogHandler)
+		handlers = append(handlers, routing.NewLoggerHandler())
 	}
+
 	if setting.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())
 	}

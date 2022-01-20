@@ -757,8 +757,6 @@ Default templates for project boards:
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
   NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
-- `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, it's recommended to place this at Debug.)
-- `ROUTER_LOG_HANDLER`: **router_logger_v2**: The log handler that controls the log output format. Before 1.16 the router logs are outputted by handler `router_logger_v1`. From 1.16, the default handler is `router_logger_v2` which is more meaningful and friendly.
 
 ### Access Log (`log`)
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
