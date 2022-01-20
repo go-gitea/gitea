@@ -5,6 +5,9 @@
 package cmd
 
 import (
+	"crypto/x509"
+	"encoding/pem"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,7 +37,26 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 
 	magic := certmagic.NewDefault()
 	magic.Storage = &certmagic.FileStorage{Path: directory}
+	// Try to use private CA root if provided, otherwise defaults to system's trust
+	var CertPool *x509.CertPool = nil
+	if setting.ACMECARoot != "" {
+		r, err := ioutil.ReadFile(setting.ACMECARoot)
+		if err != nil {
+			log.Warn("Failed to read CARoot certificate, using default CA trust: %v", err)
+		} else {
+			block, _ := pem.Decode(r)
+			CARoot, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				log.Warn("Failed to parse CARoot certificate, using default CA trust: %v", err)
+			} else {
+				CertPool = x509.NewCertPool()
+				CertPool.AddCert(CARoot)
+			}
+		}
+	}
 	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
+		CA:                      setting.ACMECAURL,
+		TrustedRoots:            CertPool,
 		Email:                   email,
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,

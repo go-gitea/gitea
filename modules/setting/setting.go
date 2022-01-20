@@ -113,6 +113,8 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	ACMECAURL            string
+	ACMECARoot           string
 	SSLMinimumVersion    string
 	SSLMaximumVersion    string
 	SSLCurvePreferences  []string
@@ -654,6 +656,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+	ACMECAURL = sec.Key("ACME_CAURL").MustString("")
+	ACMECARoot = sec.Key("ACME_CARoot").MustString("")
 	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
 	if !LetsEncryptTOS && EnableLetsEncrypt {
 		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
