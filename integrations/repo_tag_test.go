@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/release"
@@ -21,13 +23,13 @@ import (
 func TestCreateNewTagProtected(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	t.Run("API", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(owner, repo, "master", "v-1", "first tag")
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
 		err = models.InsertProtectedTag(&models.ProtectedTag{
@@ -42,11 +44,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = release.CreateNewTag(owner, repo, "master", "v-2", "second tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
 		assert.True(t, models.IsErrProtectedTagName(err))
 
-		err = release.CreateNewTag(owner, repo, "master", "v-1.1", "third tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
 	})
 
@@ -72,4 +74,24 @@ func TestCreateNewTagProtected(t *testing.T) {
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
 	})
+
+	// Cleanup
+	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+		IncludeTags: true,
+		TagNames:    []string{"v-1", "v-1.1"},
+	})
+	assert.NoError(t, err)
+
+	for _, release := range releases {
+		err = models.DeleteReleaseByID(release.ID)
+		assert.NoError(t, err)
+	}
+
+	protectedTags, err := models.GetProtectedTags(repo.ID)
+	assert.NoError(t, err)
+
+	for _, protectedTag := range protectedTags {
+		err = models.DeleteProtectedTag(protectedTag)
+		assert.NoError(t, err)
+	}
 }

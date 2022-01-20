@@ -12,8 +12,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -104,12 +105,12 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 
 func TestAPIUpdateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo16 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)               // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)               // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)               // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)   // public repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository) // private repo
 		fileID := 0
 
 		// Get user2's token

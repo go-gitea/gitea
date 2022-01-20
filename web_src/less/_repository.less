@@ -76,6 +76,24 @@
     }
   }
 
+  .unicode-escaped .escaped-code-point {
+    &[data-escaped]::before {
+      visibility: visible;
+      content: attr(data-escaped);
+      font-family: var(--fonts-monospace);
+      color: var(--color-red);
+    }
+
+    .char {
+      display: none;
+    }
+  }
+
+  .broken-code-point {
+    font-family: var(--fonts-monospace);
+    color: blue;
+  }
+
   .metas {
     .menu {
       overflow-x: auto;
@@ -304,7 +322,6 @@
         .svg {
           margin-left: 3px;
           margin-right: 5px;
-          color: #777777;
 
           &.octicon-reply {
             margin-right: 10px;
@@ -313,6 +330,11 @@
           &.octicon-file-directory,
           &.octicon-file-submodule {
             color: var(--color-primary);
+          }
+
+          &.octicon-file,
+          &.octicon-file-symlink-file {
+            color: var(--color-secondary-dark-7);
           }
         }
       }
@@ -1294,6 +1316,15 @@
     .markup {
       font-size: 14px;
     }
+
+    .title {
+      .issue-title {
+        margin-bottom: .5rem;
+        .index {
+          color: var(--color-text-light-2);
+        }
+      }
+    }
   }
 
   .filter.dropdown .menu {
@@ -1364,7 +1395,7 @@
           text-align: center;
         }
 
-        width: 175px;
+        width: 200px;
       }
     }
 
@@ -1947,8 +1978,12 @@
     }
 
     #tags-table {
+      .tag {
+        padding: 8px 12px;
+      }
+
       .release-tag-name {
-        font-size: 1.5rem;
+        font-size: 20px;
         font-weight: normal;
       }
     }
@@ -2036,26 +2071,8 @@
     }
 
     &.new {
-      .CodeMirror {
-        .CodeMirror-code {
-          font-family: var(--fonts-monospace);
-
-          .cm-comment {
-            background: inherit;
-          }
-        }
-      }
-
-      .editor-preview {
-        background-color: white;
-      }
-
       .ui.attached.tabular.menu.previewtabs {
         margin-bottom: 15px;
-
-        & + .field .editor-toolbar:not(.fullscreen) a.fa-eye {
-          display: none;
-        }
       }
     }
 
@@ -2183,110 +2200,82 @@
   }
 
   .ui.attached.isSigned.isWarning {
-    border-left: 1px solid #c29393;
-    border-right: 1px solid #c29393;
+    border-left: 1px solid var(--color-error-border);
+    border-right: 1px solid var(--color-error-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c29393;
+      border-top: 1px solid var(--color-error-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fff5f5;
-      color: #d95c5c;
+      background-color: var(--color-error-bg);
+      color: var(--color-error-text);
 
       .ui.text {
-        color: #d64444;
+        color: var(--color-error-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c29393;
+      border-bottom: 1px solid var(--color-error-border);
     }
   }
 
-  .ui.attached.isSigned:not(.isWarning) .pull-right {
-    padding-top: 5px;
-  }
-
   .ui.attached.isSigned.isVerified {
-    border-left: 1px solid #a3c293;
-    border-right: 1px solid #a3c293;
+    border-left: 1px solid var(--color-success-border);
+    border-right: 1px solid var(--color-success-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #a3c293;
+      border-top: 1px solid var(--color-success-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fcfff5;
-      color: #6cc644;
+      background-color: var(--color-success-bg);
+      color: var(--color-success-text);
 
       .pull-right {
         color: var(--color-text);
       }
 
       .ui.text {
-        color: #21ba45;
+        color: var(--color-success-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #a3c293;
+      border-bottom: 1px solid var(--color-success-border);
     }
   }
 
-  .ui.attached.isSigned.isVerifiedUntrusted {
-    border-left: 1px solid #c2c193;
-    border-right: 1px solid #c2c193;
-
-    &.top,
-    &.message {
-      border-top: 1px solid #c2c193;
-    }
-
-    &.message {
-      box-shadow: none;
-      background-color: #fffff5;
-      color: #fbbd08;
-
-      .ui.text {
-        color: #d2ab00;
-      }
-    }
-
-    &:last-child,
-    &.bottom {
-      border-bottom: 1px solid #c2c193;
-    }
-  }
-
+  .ui.attached.isSigned.isVerifiedUntrusted,
   .ui.attached.isSigned.isVerifiedUnmatched {
-    border-left: 1px solid #c2a893;
-    border-right: 1px solid #c2a893;
+    border-left: 1px solid var(--color-warning-border);
+    border-right: 1px solid var(--color-warning-border);
 
     &.top,
     &.message {
-      border-top: 1px solid #c2a893;
+      border-top: 1px solid var(--color-warning-border);
     }
 
     &.message {
       box-shadow: none;
-      background-color: #fffaf5;
-      color: #f2711c;
+      background-color: var(--color-warning-bg);
+      color: var(--color-warning-text);
 
       .ui.text {
-        color: #ee5f00;
+        color: var(--color-warning-text);
       }
     }
 
     &:last-child,
     &.bottom {
-      border-bottom: 1px solid #c2a893;
+      border-bottom: 1px solid var(--color-warning-border);
     }
   }
 
@@ -2469,24 +2458,6 @@
     padding-top: 9px !important;
     padding-bottom: 9px !important;
   }
-
-  &.diff .committed-by {
-    padding-top: .5rem;
-
-    .ui.avatar {
-      width: 20px;
-      height: 20px;
-    }
-
-    span {
-      margin-right: .25rem;
-
-      svg {
-        vertical-align: text-bottom;
-        margin-right: 2px;
-      }
-    }
-  }
 }
 
 // End of .repository
@@ -2573,10 +2544,20 @@
   padding-top: 15px;
 }
 
+.browse-button {
+  position: absolute;
+  right: 1rem;
+  top: .75rem;
+}
+
+.commit-header-row {
+  min-height: 50px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
 .settings {
   .content {
-    margin-top: 2px;
-
     > .header,
     .segment {
       box-shadow: 0 1px 2px 0 var(--color-box-header);
@@ -2692,10 +2673,12 @@
 
   a {
     color: var(--color-text);
+    text-decoration: none;
   }
 
   a:hover {
     color: var(--color-primary);
+    text-decoration: none;
   }
 }
 
@@ -2778,7 +2761,8 @@
 #delete-repo-modal,
 #delete-wiki-modal,
 #convert-fork-repo-modal,
-#convert-mirror-repo-modal {
+#convert-mirror-repo-modal,
+#fork-repo-modal {
   .ui.message {
     width: 100% !important;
   }
@@ -2865,20 +2849,6 @@ tbody.commit-list {
 
   th .message-wrapper {
     max-width: 680px;
-  }
-}
-
-.commit-summary a {
-  &:hover {
-    text-decoration: underline solid;
-  }
-
-  &.default-link {
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline solid;
-    }
   }
 }
 
@@ -3043,13 +3013,12 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword,
-.commit-body .issue-keyword:hover {
-  border-bottom: 1px dotted var(--color-text-light-2);
+.issue-keyword {
+  border-bottom: 1px dotted var(--color-text-light-3) !important;
 }
 
 .issue-keyword:hover {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .file-header {
@@ -3073,6 +3042,26 @@ td.blob-excerpt {
   border-left: 1px solid currentColor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+.ui.message.unicode-escape-prompt {
+  margin-bottom: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wiki-content-sidebar .ui.message.unicode-escape-prompt,
+.wiki-content-footer .ui.message.unicode-escape-prompt {
+  p {
+    display: none;
+  }
+}
+
+/* fomantic's last-child selector does not work with hidden last child */
+.ui.buttons .unescape-button {
+  border-top-right-radius: .28571429rem;
+  border-bottom-right-radius: .28571429rem;
 }
 
 .webhook-info {
@@ -3165,6 +3154,7 @@ td.blob-excerpt {
 .code-diff-unified .del-code,
 .code-diff-unified .del-code td,
 .code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-escape-old,
 .code-diff-split .del-code .lines-type-marker-old,
 .code-diff-split .del-code .lines-code-old {
   background: var(--color-diff-removed-row-bg);
@@ -3175,9 +3165,11 @@ td.blob-excerpt {
 .code-diff-unified .add-code td,
 .code-diff-split .add-code .lines-num-new,
 .code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-escape-new,
 .code-diff-split .add-code .lines-code-new,
 .code-diff-split .del-code .add-code.lines-num-new,
 .code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-escape-new,
 .code-diff-split .del-code .add-code.lines-code-new {
   background: var(--color-diff-added-row-bg);
   border-color: var(--color-diff-added-row-border);
@@ -3186,7 +3178,9 @@ td.blob-excerpt {
 .code-diff-split .del-code .lines-num-new,
 .code-diff-split .del-code .lines-type-marker-new,
 .code-diff-split .del-code .lines-code-new,
+.code-diff-split .del-code .lines-escape-new,
 .code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-escape-old,
 .code-diff-split .add-code .lines-type-marker-old,
 .code-diff-split .add-code .lines-code-old {
   background: var(--color-diff-inactive);

@@ -6,6 +6,8 @@
 package pull
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
@@ -80,7 +82,7 @@ func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, require
 }
 
 // IsPullCommitStatusPass returns if all required status checks PASS
-func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
+func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, error) {
 	if err := pr.LoadProtectedBranch(); err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
@@ -88,7 +90,7 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 		return true, nil
 	}
 
-	state, err := GetPullRequestCommitStatusState(pr)
+	state, err := GetPullRequestCommitStatusState(ctx, pr)
 	if err != nil {
 		return false, err
 	}
@@ -96,23 +98,23 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 }
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
-func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStatusState, error) {
+func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest) (structs.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
 	if err := pr.LoadHeadRepo(); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
 	}
 
 	// check if all required status checks are successful
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	headGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
 		return "", errors.Wrap(err, "OpenRepository")
 	}
-	defer headGitRepo.Close()
+	defer closer.Close()
 
 	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(headGitRepo.Path, pr.GetGitRefName()) {
+	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(headGitRepo.Ctx, headGitRepo.Path, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
@@ -130,7 +132,7 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

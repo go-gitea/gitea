@@ -67,7 +67,7 @@ func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool 
 }
 
 // RemoveSubLogDescription removes a sub log description
-func RemoveSubLogDescription(key string, name string) bool {
+func RemoveSubLogDescription(key, name string) bool {
 	descriptionLock.Lock()
 	defer descriptionLock.Unlock()
 	desc, ok := logDescriptions[key]
@@ -119,13 +119,14 @@ func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.L
 	return log.FromString(value)
 }
 
-func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
+func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
 	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	level := getLogLevel(sec, "LEVEL", LogLevel)
+	levelName = level.String()
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -254,8 +255,10 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
-	Cfg.Section("log").Key("ACCESS").MustString("file")
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
+	)
+	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
+	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")

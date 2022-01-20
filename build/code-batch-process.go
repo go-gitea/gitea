@@ -21,9 +21,9 @@ import (
 )
 
 // Windows has a limitation for command line arguments, the size can not exceed 32KB.
-// So we have to feed the files to some tools (like gofmt/misspell`) batch by batch
+// So we have to feed the files to some tools (like gofmt/misspell) batch by batch
 
-// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports
+// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports. `gitea-fmt` calls `gofmt` internally.
 
 var optionLogVerbose bool
 
@@ -267,10 +267,10 @@ func main() {
 		logVerbose("batch cmd: %s %v", subCmd, substArgs)
 		switch subCmd {
 		case "gitea-fmt":
-			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
 			if containsString(subArgs, "-w") {
 				cmdErrors = append(cmdErrors, giteaFormatGoImports(files))
 			}
+			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
 		case "misspell":
 			cmdErrors = append(cmdErrors, passThroughCmd("misspell", substArgs))
 		default:

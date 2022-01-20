@@ -11,10 +11,12 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/routing"
 
 	"github.com/chi-middleware/proxy"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // Middlewares returns common middlewares
@@ -22,7 +24,12 @@ func Middlewares() []func(http.Handler) http.Handler {
 	var handlers = []func(http.Handler) http.Handler{
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				next.ServeHTTP(context.NewResponse(resp), req)
+				// First of all escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
+				req.URL.RawPath = req.URL.EscapedPath()
+
+				ctx, _, finished := process.GetManager().AddContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI))
+				defer finished()
+				next.ServeHTTP(context.NewResponse(resp), req.WithContext(ctx))
 			})
 		},
 	}
@@ -43,11 +50,10 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 	handlers = append(handlers, middleware.StripSlashes)
 
-	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
-		}
+	if !setting.DisableRouterLog {
+		handlers = append(handlers, routing.NewLoggerHandler())
 	}
+
 	if setting.EnableAccessLog {
 		handlers = append(handlers, context.AccessLogger())
 	}
@@ -57,10 +63,11 @@ func Middlewares() []func(http.Handler) http.Handler {
 			// Why we need this? The Recovery() will try to render a beautiful
 			// error page for user, but the process can still panic again, and other
 			// middleware like session also may panic then we have to recover twice
-			// and send a simple error page that should not panic any more.
+			// and send a simple error page that should not panic anymore.
 			defer func() {
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
+					routing.UpdatePanicError(req.Context(), err)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%v", combinedErr)
 					if setting.IsProd {
 						http.Error(resp, http.StatusText(500), 500)

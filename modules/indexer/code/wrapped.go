@@ -5,10 +5,11 @@
 package code
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 var (
@@ -57,12 +58,12 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
-func (w *wrappedIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (w *wrappedIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	indexer, err := w.get()
 	if err != nil {
 		return err
 	}
-	return indexer.Index(repo, sha, changes)
+	return indexer.Index(ctx, repo, sha, changes)
 }
 
 func (w *wrappedIndexer) Delete(repoID int64) error {

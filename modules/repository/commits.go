@@ -5,14 +5,16 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -35,24 +37,24 @@ type PushCommits struct {
 	Len        int
 
 	avatars    map[string]string
-	emailUsers map[string]*models.User
+	emailUsers map[string]*user_model.User
 }
 
 // NewPushCommits creates a new PushCommits object.
 func NewPushCommits() *PushCommits {
 	return &PushCommits{
 		avatars:    make(map[string]string),
-		emailUsers: make(map[string]*models.User),
+		emailUsers: make(map[string]*user_model.User),
 	}
 }
 
 // toAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
-func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
+func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
 	var err error
 	authorUsername := ""
 	author, ok := pc.emailUsers[commit.AuthorEmail]
 	if !ok {
-		author, err = models.GetUserByEmail(commit.AuthorEmail)
+		author, err = user_model.GetUserByEmail(commit.AuthorEmail)
 		if err == nil {
 			authorUsername = author.Name
 			pc.emailUsers[commit.AuthorEmail] = author
@@ -64,7 +66,7 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 	committerUsername := ""
 	committer, ok := pc.emailUsers[commit.CommitterEmail]
 	if !ok {
-		committer, err = models.GetUserByEmail(commit.CommitterEmail)
+		committer, err = user_model.GetUserByEmail(commit.CommitterEmail)
 		if err == nil {
 			// TODO: check errors other than email not found.
 			committerUsername = committer.Name
@@ -74,7 +76,7 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 		committerUsername = committer.Name
 	}
 
-	fileStatus, err := git.GetCommitFileStatus(repoPath, commit.Sha1)
+	fileStatus, err := git.GetCommitFileStatus(ctx, repoPath, commit.Sha1)
 	if err != nil {
 		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
 	}
@@ -102,15 +104,15 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 
 // ToAPIPayloadCommits converts a PushCommits object to api.PayloadCommit format.
 // It returns all converted commits and, if provided, the head commit or an error otherwise.
-func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
+func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 	var headCommit *api.PayloadCommit
 
 	if pc.emailUsers == nil {
-		pc.emailUsers = make(map[string]*models.User)
+		pc.emailUsers = make(map[string]*user_model.User)
 	}
 	for i, commit := range pc.Commits {
-		apiCommit, err := pc.toAPIPayloadCommit(repoPath, repoLink, commit)
+		apiCommit, err := pc.toAPIPayloadCommit(ctx, repoPath, repoLink, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -122,7 +124,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.Pa
 	}
 	if pc.HeadCommit != nil && headCommit == nil {
 		var err error
-		headCommit, err = pc.toAPIPayloadCommit(repoPath, repoLink, pc.HeadCommit)
+		headCommit, err = pc.toAPIPayloadCommit(ctx, repoPath, repoLink, pc.HeadCommit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -141,15 +143,15 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		return avatar
 	}
 
-	size := avatars.DefaultAvatarPixelSize * avatars.AvatarRenderedSizeFactor
+	size := avatars.DefaultAvatarPixelSize * setting.Avatar.RenderedSizeFactor
 
 	u, ok := pc.emailUsers[email]
 	if !ok {
 		var err error
-		u, err = models.GetUserByEmail(email)
+		u, err = user_model.GetUserByEmail(email)
 		if err != nil {
 			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(email, size)
-			if !models.IsErrUserNotExist(err) {
+			if !user_model.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
 			}
@@ -189,6 +191,6 @@ func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
 		CompareURL: "",
 		Len:        len(commits),
 		avatars:    make(map[string]string),
-		emailUsers: make(map[string]*models.User),
+		emailUsers: make(map[string]*user_model.User),
 	}
 }

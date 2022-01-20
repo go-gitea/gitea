@@ -128,7 +128,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 		tmpDir, err := os.MkdirTemp("", "doGitCloneFail")
 		assert.NoError(t, err)
 		defer util.RemoveAll(tmpDir)
-		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
+		assert.Error(t, git.Clone(git.DefaultContext, u.String(), tmpDir, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(tmpDir, "README.md"))
 		assert.NoError(t, err)
 		assert.False(t, exist)
@@ -138,7 +138,10 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(dstPath, false))
+		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false))
+		// forcibly set default branch to master
+		_, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
+		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{

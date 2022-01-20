@@ -5,10 +5,14 @@
 package mailer
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -18,8 +22,9 @@ func fallbackMailSubject(issue *models.Issue) string {
 }
 
 type mailCommentContext struct {
+	context.Context
 	Issue      *models.Issue
-	Doer       *models.User
+	Doer       *user_model.User
 	ActionType models.ActionType
 	Content    string
 	Comment    *models.Comment
@@ -34,7 +39,7 @@ const (
 // This function sends two list of emails:
 // 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.User) error {
+func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
 
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(); err != nil {
@@ -77,7 +82,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(db.DefaultContext, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -103,7 +108,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 		visited[i] = true
 	}
 
-	unfilteredUsers, err := models.GetMaileableUsersByIDs(unfiltered, false)
+	unfilteredUsers, err := user_model.GetMaileableUsersByIDs(unfiltered, false)
 	if err != nil {
 		return err
 	}
@@ -114,18 +119,18 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited map[int64]bool, fromMention bool) error {
 	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
 	}
 
-	langMap := make(map[string][]*models.User)
+	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
-		if !(user.EmailNotificationsPreference == models.EmailNotificationsEnabled ||
-			fromMention && user.EmailNotificationsPreference == models.EmailNotificationsOnMention) {
+		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
+			fromMention && user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention) {
 			continue
 		}
 
@@ -138,7 +143,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -164,7 +169,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil

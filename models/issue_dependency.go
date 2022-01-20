@@ -6,9 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -36,7 +34,7 @@ const (
 )
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) error {
+func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -61,7 +59,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 		return ErrCircularDependency{issue.ID, dep.ID}
 	}
 
-	if _, err := sess.Insert(&IssueDependency{
+	if err := db.Insert(ctx, &IssueDependency{
 		UserID:       user.ID,
 		IssueID:      issue.ID,
 		DependencyID: dep.ID,
@@ -78,7 +76,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 }
 
 // RemoveIssueDependency removes a dependency from an issue
-func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
+func RemoveIssueDependency(user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -133,19 +131,4 @@ func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
 		Exist(&Issue{})
 
 	return !exists, err
-}
-
-// IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
-func (repo *Repository) IsDependenciesEnabled() bool {
-	return repo.isDependenciesEnabled(db.GetEngine(db.DefaultContext))
-}
-
-func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
-	var u *RepoUnit
-	var err error
-	if u, err = repo.getUnit(e, unit.TypeIssues); err != nil {
-		log.Trace("%s", err)
-		return setting.Service.DefaultEnableDependencies
-	}
-	return u.IssuesConfig().EnableDependencies
 }

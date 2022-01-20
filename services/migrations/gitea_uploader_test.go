@@ -12,7 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -27,7 +29,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	unittest.PrepareTestEnv(t)
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	var (
 		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
@@ -52,9 +54,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 	}, nil)
 	assert.NoError(t, err)
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, Name: repoName}).(*repo_model.Repository)
 	assert.True(t, repo.HasWiki())
-	assert.EqualValues(t, models.RepositoryReady, repo.Status)
+	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
 
 	milestones, _, err := models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,

@@ -7,7 +7,9 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,23 +29,23 @@ func TestGetReviewByID(t *testing.T) {
 func TestReview_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
-	assert.NoError(t, review.LoadAttributes())
+	assert.NoError(t, review.LoadAttributes(db.DefaultContext))
 	assert.NotNil(t, review.Issue)
 	assert.NotNil(t, review.Reviewer)
 
 	invalidReview1 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 2}).(*Review)
-	assert.Error(t, invalidReview1.LoadAttributes())
+	assert.Error(t, invalidReview1.LoadAttributes(db.DefaultContext))
 
 	invalidReview2 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
-	assert.Error(t, invalidReview2.LoadAttributes())
+	assert.Error(t, invalidReview2.LoadAttributes(db.DefaultContext))
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
-	assert.NoError(t, review.LoadAttributes())
-	assert.NoError(t, review.LoadCodeComments())
+	assert.NoError(t, review.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, review.LoadCodeComments(db.DefaultContext))
 	assert.Len(t, review.CodeComments, 1)
 	assert.Equal(t, int64(4), review.CodeComments["README.md"][int64(4)][0].Line)
 }
@@ -72,7 +74,7 @@ func TestFindReviews(t *testing.T) {
 func TestGetCurrentReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	review, err := GetCurrentReview(user, issue)
 	assert.NoError(t, err)
@@ -80,7 +82,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.Equal(t, ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 7}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7}).(*user_model.User)
 	review2, err := GetCurrentReview(user2, issue)
 	assert.Error(t, err)
 	assert.True(t, IsErrReviewNotExist(err))
@@ -91,7 +93,7 @@ func TestCreateReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	review, err := CreateReview(CreateReviewOptions{
 		Content:  "New Review",
@@ -108,9 +110,9 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user3 := unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	user4 := unittest.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 
 	expectedReviews := []*Review{}
 	expectedReviews = append(expectedReviews,

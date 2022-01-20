@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -150,7 +150,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -161,13 +161,13 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
-		wikiRemotePath := repository.WikiRemoteURL(remoteAddr)
+		wikiRemotePath := repository.WikiRemoteURL(g.ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err := git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
@@ -181,7 +181,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
 	return err
 }
 
@@ -478,7 +478,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
@@ -606,8 +606,8 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string, units []string) error {
-	doer, err := models.GetAdminUser()
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
+	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}

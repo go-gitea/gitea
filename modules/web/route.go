@@ -18,134 +18,6 @@ import (
 	chi "github.com/go-chi/chi/v5"
 )
 
-// Wrap converts all kinds of routes to standard library one
-func Wrap(handlers ...interface{}) http.HandlerFunc {
-	if len(handlers) == 0 {
-		panic("No handlers found")
-	}
-
-	for _, handler := range handlers {
-		switch t := handler.(type) {
-		case http.HandlerFunc, func(http.ResponseWriter, *http.Request),
-			func(ctx *context.Context),
-			func(ctx *context.Context) goctx.CancelFunc,
-			func(*context.APIContext),
-			func(*context.PrivateContext),
-			func(*context.PrivateContext) goctx.CancelFunc,
-			func(http.Handler) http.Handler:
-		default:
-			panic(fmt.Sprintf("Unsupported handler type: %#v", t))
-		}
-	}
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		for i := 0; i < len(handlers); i++ {
-			handler := handlers[i]
-			switch t := handler.(type) {
-			case http.HandlerFunc:
-				t(resp, req)
-				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
-					return
-				}
-			case func(http.ResponseWriter, *http.Request):
-				t(resp, req)
-				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
-					return
-				}
-			case func(ctx *context.Context) goctx.CancelFunc:
-				ctx := context.GetContext(req)
-				cancel := t(ctx)
-				if cancel != nil {
-					defer cancel()
-				}
-				if ctx.Written() {
-					return
-				}
-			case func(*context.PrivateContext) goctx.CancelFunc:
-				ctx := context.GetPrivateContext(req)
-				cancel := t(ctx)
-				if cancel != nil {
-					defer cancel()
-				}
-				if ctx.Written() {
-					return
-				}
-			case func(ctx *context.Context):
-				ctx := context.GetContext(req)
-				t(ctx)
-				if ctx.Written() {
-					return
-				}
-			case func(*context.APIContext):
-				ctx := context.GetAPIContext(req)
-				t(ctx)
-				if ctx.Written() {
-					return
-				}
-			case func(*context.PrivateContext):
-				ctx := context.GetPrivateContext(req)
-				t(ctx)
-				if ctx.Written() {
-					return
-				}
-			case func(http.Handler) http.Handler:
-				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-				if len(handlers) > i+1 {
-					next = Wrap(handlers[i+1:]...)
-				}
-				t(next).ServeHTTP(resp, req)
-				return
-			default:
-				panic(fmt.Sprintf("Unsupported handler type: %#v", t))
-			}
-		}
-	})
-}
-
-// Middle wrap a context function as a chi middleware
-func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := context.GetContext(req)
-			f(ctx)
-			if ctx.Written() {
-				return
-			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
-		})
-	}
-}
-
-// MiddleCancel wrap a context function as a chi middleware
-func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := context.GetContext(req)
-			cancel := f(ctx)
-			if cancel != nil {
-				defer cancel()
-			}
-			if ctx.Written() {
-				return
-			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
-		})
-	}
-}
-
-// MiddleAPI wrap a context function as a chi middleware
-func MiddleAPI(f func(ctx *context.APIContext)) func(netx http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			ctx := context.GetAPIContext(req)
-			f(ctx)
-			if ctx.Written() {
-				return
-			}
-			next.ServeHTTP(ctx.Resp, ctx.Req)
-		})
-	}
-}
-
 // Bind binding an obj to a handler
 func Bind(obj interface{}) http.HandlerFunc {
 	var tp = reflect.TypeOf(obj)
@@ -251,7 +123,7 @@ func (r *Route) Any(pattern string, h ...interface{}) {
 }
 
 // Route delegate special methods
-func (r *Route) Route(pattern string, methods string, h ...interface{}) {
+func (r *Route) Route(pattern, methods string, h ...interface{}) {
 	p := r.getPattern(pattern)
 	ms := strings.Split(methods, ",")
 	var middlewares = r.getMiddlewares(h)

@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -58,7 +59,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	return nil
 }
 
-func checkConfigurationFiles(logger log.Logger, autofix bool) error {
+func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix bool) error {
 	if fi, err := os.Stat(setting.CustomConf); err != nil || !fi.Mode().IsRegular() {
 		logger.Error("Failed to find configuration file at '%s'.", setting.CustomConf)
 		logger.Error("If you've never ran Gitea yet, this is normal and '%s' will be created for you on first run.", setting.CustomConf)
@@ -67,7 +68,7 @@ func checkConfigurationFiles(logger log.Logger, autofix bool) error {
 		return err
 	}
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},

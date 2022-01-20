@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -20,9 +22,9 @@ import (
 
 // Milestone represents a milestone of repository.
 type Milestone struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX"`
-	Repo            *Repository `xorm:"-"`
+	ID              int64                  `xorm:"pk autoincr"`
+	RepoID          int64                  `xorm:"INDEX"`
+	Repo            *repo_model.Repository `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -85,22 +87,22 @@ func (m *Milestone) State() api.StateType {
 
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	m.Name = strings.TrimSpace(m.Name)
 
-	if _, err = sess.Insert(m); err != nil {
+	if err = db.Insert(ctx, m); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func getMilestoneByRepoID(e db.Engine, repoID, id int64) (*Milestone, error) {
@@ -150,41 +152,42 @@ func getMilestoneByID(e db.Engine, id int64) (*Milestone, error) {
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	if m.IsClosed && !oldIsClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
-	if err := updateMilestone(sess, m); err != nil {
+	if err := updateMilestone(ctx, m); err != nil {
 		return err
 	}
 
 	// if IsClosed changed, update milestone numbers of repository
 	if oldIsClosed != m.IsClosed {
-		if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
+		if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func updateMilestone(e db.Engine, m *Milestone) error {
+func updateMilestone(ctx context.Context, m *Milestone) error {
 	m.Name = strings.TrimSpace(m.Name)
-	_, err := e.ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
 	if err != nil {
 		return err
 	}
-	return updateMilestoneCounters(e, m.ID)
+	return updateMilestoneCounters(ctx, m.ID)
 }
 
 // updateMilestoneCounters calculates NumIssues, NumClosesIssues and Completeness
-func updateMilestoneCounters(e db.Engine, id int64) error {
+func updateMilestoneCounters(ctx context.Context, id int64) error {
+	e := db.GetEngine(ctx)
 	_, err := e.ID(id).
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{"milestone_id": id},
@@ -207,82 +210,81 @@ func updateMilestoneCounters(e db.Engine, id int64) error {
 
 // ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
 func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	m := &Milestone{
 		ID:     milestoneID,
 		RepoID: repoID,
 	}
 
-	has, err := sess.ID(milestoneID).Where("repo_id = ?", repoID).Get(m)
+	has, err := db.GetEngine(ctx).ID(milestoneID).Where("repo_id = ?", repoID).Get(m)
 	if err != nil {
 		return err
 	} else if !has {
 		return ErrMilestoneNotExist{ID: milestoneID, RepoID: repoID}
 	}
 
-	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
+	if err := changeMilestoneStatus(ctx, m, isClosed); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := changeMilestoneStatus(ctx, m, isClosed); err != nil {
 		return err
 	}
 
-	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func changeMilestoneStatus(e db.Engine, m *Milestone, isClosed bool) error {
+func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) error {
 	m.IsClosed = isClosed
 	if isClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
 	}
 
-	count, err := e.ID(m.ID).Where("repo_id = ? AND is_closed = ?", m.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
+	count, err := db.GetEngine(ctx).ID(m.ID).Where("repo_id = ? AND is_closed = ?", m.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(m)
 	if err != nil {
 		return err
 	}
 	if count < 1 {
 		return nil
 	}
-	return updateRepoMilestoneNum(e, m.RepoID)
+	return updateRepoMilestoneNum(ctx, m.RepoID)
 }
 
-func changeMilestoneAssign(ctx context.Context, doer *User, issue *Issue, oldMilestoneID int64) error {
-	e := db.GetEngine(ctx)
-	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
+func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
+	if err := updateIssueCols(ctx, issue, "milestone_id"); err != nil {
 		return err
 	}
 
 	if oldMilestoneID > 0 {
-		if err := updateMilestoneCounters(e, oldMilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, oldMilestoneID); err != nil {
 			return err
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return err
 		}
 	}
 
 	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
-		if err := issue.loadRepo(e); err != nil {
+		if err := issue.loadRepo(ctx); err != nil {
 			return err
 		}
 
@@ -303,7 +305,7 @@ func changeMilestoneAssign(ctx context.Context, doer *User, issue *Issue, oldMil
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
+func ChangeMilestoneAssign(issue *Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -330,16 +332,18 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	repo, err := GetRepositoryByID(m.RepoID)
+	repo, err := repo_model.GetRepositoryByID(m.RepoID)
 	if err != nil {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if _, err = sess.ID(m.ID).Delete(new(Milestone)); err != nil {
 		return err
@@ -360,10 +364,10 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // MilestoneList is a list of milestones offering additional functionality
@@ -440,7 +444,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 }
 
 // SearchMilestones search milestones
-func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType string, keyword string) (MilestoneList, error) {
+func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType, keyword string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
@@ -626,8 +630,8 @@ func CountMilestonesByRepoCondAndKw(repoCond builder.Cond, keyword string, isClo
 	return countMap, nil
 }
 
-func updateRepoMilestoneNum(e db.Engine, repoID int64) error {
-	_, err := e.Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
+func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
 		repoID,
 		repoID,
 		true,

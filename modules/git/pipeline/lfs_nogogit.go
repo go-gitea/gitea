@@ -53,7 +53,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
+		err := git.NewCommandContext(repo.Ctx, "rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -63,7 +63,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
@@ -212,7 +212,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			i++
 		}
 	}()
-	go NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()

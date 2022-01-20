@@ -18,7 +18,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,7 +60,7 @@ func testGit(t *testing.T, u *url.URL) {
 		defer util.RemoveAll(dstPath)
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
-		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, models.AccessModeRead))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(httpContext, forkedUserCtx.Username))
 
@@ -90,7 +93,7 @@ func testGit(t *testing.T, u *url.URL) {
 		keyname := "my-testing-key"
 		forkedUserCtx.Reponame = sshContext.Reponame
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
-		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, models.AccessModeRead))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, perm.AccessModeRead))
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(sshContext, forkedUserCtx.Username))
 
 		//Setup key the user ssh key
@@ -415,7 +418,7 @@ func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *tes
 	}
 }
 
-func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string, unprotectedFilePatterns string) func(t *testing.T) {
+func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
@@ -429,7 +432,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string, 
 			})
 			ctx.Session.MakeRequest(t, req, http.StatusFound)
 		} else {
-			user, err := models.GetUserByName(userToWhitelist)
+			user, err := user_model.GetUserByName(userToWhitelist)
 			assert.NoError(t, err)
 			// Change branch to protected
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
@@ -580,7 +583,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -626,7 +629,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			pr1, pr2 *models.PullRequest
 			commit   string
 		)
-		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
 		if !assert.NoError(t, err) {
 			return
 		}

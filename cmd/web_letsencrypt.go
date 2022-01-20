@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -47,7 +48,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary
-	err := magic.ManageSync([]string{domain})
+	err := magic.ManageSync(graceful.GetManager().HammerContext(), []string{domain})
 	if err != nil {
 		return err
 	}

@@ -23,8 +23,11 @@ type Options struct {
 	CorsHandler func(http.Handler) http.Handler
 }
 
-// AssetsHandler implements the static handler for serving custom or original assets.
-func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
+// AssetsURLPathPrefix is the path prefix for static asset files
+const AssetsURLPathPrefix = "/assets/"
+
+// AssetsHandlerFunc implements the static handler for serving custom or original assets.
+func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 	var custPath = filepath.Join(setting.CustomPath, "public")
 	if !filepath.IsAbs(custPath) {
 		custPath = filepath.Join(setting.AppWorkPath, custPath)
@@ -36,52 +39,46 @@ func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
 		opts.Prefix += "/"
 	}
 
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.HasPrefix(req.URL.Path, opts.Prefix) {
-				next.ServeHTTP(resp, req)
-				return
-			}
-			if req.Method != "GET" && req.Method != "HEAD" {
-				resp.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			file := req.URL.Path
-			file = file[len(opts.Prefix):]
-			if len(file) == 0 {
-				resp.WriteHeader(http.StatusNotFound)
-				return
-			}
-			if strings.Contains(file, "\\") {
-				resp.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			file = "/" + file
-
-			var written bool
-			if opts.CorsHandler != nil {
-				written = true
-				opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
-					written = false
-				})).ServeHTTP(resp, req)
-			}
-			if written {
-				return
-			}
-
-			// custom files
-			if opts.handle(resp, req, http.Dir(custPath), file) {
-				return
-			}
-
-			// internal files
-			if opts.handle(resp, req, fileSystem(opts.Directory), file) {
-				return
-			}
-
+	return func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" && req.Method != "HEAD" {
 			resp.WriteHeader(http.StatusNotFound)
-		})
+			return
+		}
+
+		file := req.URL.Path
+		file = file[len(opts.Prefix):]
+		if len(file) == 0 {
+			resp.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if strings.Contains(file, "\\") {
+			resp.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		file = "/" + file
+
+		var written bool
+		if opts.CorsHandler != nil {
+			written = true
+			opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+				written = false
+			})).ServeHTTP(resp, req)
+		}
+		if written {
+			return
+		}
+
+		// custom files
+		if opts.handle(resp, req, http.Dir(custPath), file) {
+			return
+		}
+
+		// internal files
+		if opts.handle(resp, req, fileSystem(opts.Directory), file) {
+			return
+		}
+
+		resp.WriteHeader(http.StatusNotFound)
 	}
 }
 

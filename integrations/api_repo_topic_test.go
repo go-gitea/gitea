@@ -10,8 +10,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -51,11 +52,11 @@ func TestAPITopicSearch(t *testing.T) {
 
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
-	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
-	user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
-	repo2 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of repo2
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User) // owner of repo3
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // write access to repo 3
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)

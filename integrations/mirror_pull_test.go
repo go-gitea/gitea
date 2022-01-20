@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
@@ -22,9 +24,9 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
@@ -41,7 +43,7 @@ func TestMirrorPull(t *testing.T) {
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
-		Status:      models.RepositoryBeingMigrated,
+		Status:      repo_model.RepositoryBeingMigrated,
 	})
 	assert.NoError(t, err)
 
@@ -72,7 +74,7 @@ func TestMirrorPull(t *testing.T) {
 		IsTag:        true,
 	}, nil, ""))
 
-	err = mirror.GetMirror()
+	_, err = repo_model.GetMirrorByRepoID(mirror.ID)
 	assert.NoError(t, err)
 
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
@@ -84,7 +86,7 @@ func TestMirrorPull(t *testing.T) {
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
 	assert.NoError(t, err)
-	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
+	assert.NoError(t, release_service.DeleteReleaseByID(ctx, release.ID, user, true))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)

@@ -22,7 +22,7 @@ type consistencyCheck struct {
 	FixedMessage string
 }
 
-func (c *consistencyCheck) Run(logger log.Logger, autofix bool) error {
+func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix bool) error {
 	count, err := c.Counter()
 	if err != nil {
 		logger.Critical("Error: %v whilst counting %s", err, c.Name)
@@ -73,9 +73,9 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 	}
 }
 
-func checkDBConsistency(logger log.Logger, autofix bool) error {
+func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -167,20 +167,20 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			"lfs_lock", "repository", "lfs_lock.repo_id=repository.id"),
 		// find collaborations without users
 		genericOrphanCheck("Collaborations without existing user",
-			"collaboration", "user", "collaboration.user_id=user.id"),
+			"collaboration", "user", "collaboration.user_id=`user`.id"),
 		// find collaborations without repository
 		genericOrphanCheck("Collaborations without existing repository",
 			"collaboration", "repository", "collaboration.repo_id=repository.id"),
 		// find access without users
 		genericOrphanCheck("Access entries without existing user",
-			"access", "user", "access.user_id=user.id"),
+			"access", "user", "access.user_id=`user`.id"),
 		// find access without repository
 		genericOrphanCheck("Access entries without existing repository",
 			"access", "repository", "access.repo_id=repository.id"),
 	)
 
 	for _, c := range consistencyChecks {
-		if err := c.Run(logger, autofix); err != nil {
+		if err := c.Run(ctx, logger, autofix); err != nil {
 			return err
 		}
 	}

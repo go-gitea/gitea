@@ -93,6 +93,9 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
+	// swagger:strfmt date-time
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -109,7 +112,7 @@ type CreateRepoOption struct {
 	Private bool `json:"private"`
 	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
-	// Whether the repository should be auto-intialized?
+	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
@@ -250,6 +253,7 @@ const (
 	GogsService                            // 5 gogs service
 	OneDevService                          // 6 onedev service
 	GitBucketService                       // 7 gitbucket service
+	CodebaseService                        // 8 codebase service
 )
 
 // Name represents the service type's name
@@ -273,6 +277,8 @@ func (gt GitServiceType) Title() string {
 		return "OneDev"
 	case GitBucketService:
 		return "GitBucket"
+	case CodebaseService:
+		return "Codebase"
 	case PlainGitService:
 		return "Git"
 	}
@@ -330,5 +336,13 @@ var (
 		GogsService,
 		OneDevService,
 		GitBucketService,
+		CodebaseService,
 	}
 )
+
+// RepoTransfer represents a pending repo transfer
+type RepoTransfer struct {
+	Doer      *User   `json:"doer"`
+	Recipient *User   `json:"recipient"`
+	Teams     []*Team `json:"teams"`
+}

@@ -1,6 +1,8 @@
 @import "../chroma/dark.less";
+@import "../codemirror/dark.less";
 
 :root {
+  --is-dark-theme: true;
   --color-primary: #87ab63;
   --color-primary-dark-1: #93b373;
   --color-primary-dark-2: #9fbc82;
@@ -77,6 +79,18 @@
   --color-diff-moved-row-border: #bcca6f;
   --color-diff-added-row-border: #314a37;
   --color-diff-inactive: #353846;
+  --color-error-border: #a53a37;
+  --color-error-bg: #482c2c;
+  --color-error-text: #ff4433;
+  --color-success-border: #458a57;
+  --color-success-bg: #284034;
+  --color-success-text: #6cc664;
+  --color-warning-border: #bb9d00;
+  --color-warning-bg: #3a3a30;
+  --color-warning-text: #fbbd08;
+  --color-info-border: #306090;
+  --color-info-bg: #26354c;
+  --color-info-text: #38a8e8;
   /* target-based colors */
   --color-body: #383c4a;
   --color-box-header: #404652;
@@ -93,6 +107,7 @@
   --color-input-border: #454a57;
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
+  --color-navbar-transparent: #2a2e3a00;
   --color-light: #00000028;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
@@ -279,19 +294,6 @@ a.ui.basic.green.label:hover {
   background-color: #393d4a !important;
 }
 
-.repository.file.editor.edit,
-.repository.wiki.new .CodeMirror {
-  .editor-preview,
-  .editor-preview-side,
-  & + .editor-preview-side {
-    background: #353945;
-
-    .markup.ui.segment {
-      border-width: 0;
-    }
-  }
-}
-
 .overflow.menu .items .item {
   color: #9d9d9d;
 }
@@ -307,10 +309,6 @@ a.ui.basic.green.label:hover {
 .repository .navbar .active.item,
 .repository .navbar .active.item:hover {
   border-color: transparent !important;
-}
-
-.ui .info.segment.top {
-  background-color: var(--color-secondary) !important;
 }
 
 .repository .diff-stats li {
@@ -331,57 +329,6 @@ td.blob-hunk {
   color: #dbdbdb !important;
 }
 
-.ui.attached.info.message,
-.ui.info.message {
-  box-shadow: 0 0 0 1px #4b5e71 inset, 0 0 0 0 transparent;
-}
-
-.ui.bottom.attached.message {
-  background-color: #2c662d;
-  color: #87ab63;
-}
-
-.ui.bottom.attached.message .pull-right {
-  color: #87ab63;
-}
-
-.ui.info.message {
-  background-color: #2c3b4a;
-  color: #9ebcc5;
-}
-
-.ui .warning.header,
-.ui.warning.message {
-  background-color: #542 !important;
-  border-color: #ec8;
-}
-
-.ui.warning.message {
-  color: #ec8;
-  box-shadow: 0 0 0 1px #ec8;
-}
-
-.ui.warning.segment {
-  border-color: #ec8;
-}
-
-.ui.red.message,
-.ui.error.message {
-  background-color: #522;
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px #a04141 inset;
-}
-
-.ui .error.header,
-.ui.error.message {
-  background-color: #522 !important;
-  border-color: #a04141;
-}
-
-.ui.error.segment {
-  border-color: #a04141;
-}
-
 .ui.red.button,
 .ui.red.buttons .button {
   background-color: #7d3434;
@@ -392,18 +339,6 @@ td.blob-hunk {
   background-color: #984646;
 }
 
-.ui.positive.message {
-  background-color: #0d491b;
-  color: #87ab63;
-  box-shadow: 0 0 0 1px #2d693b inset, 0 0 0 0 transparent;
-}
-
-.ui.negative.message {
-  background-color: rgba(80, 23, 17, .6);
-  color: #f9cbcb;
-  box-shadow: 0 0 0 1px rgba(121, 71, 66, .5) inset, 0 0 0 0 transparent;
-}
-
 .ui.list .list > .item .header,
 .ui.list > .item .header {
   color: #dedede;
@@ -412,11 +347,6 @@ td.blob-hunk {
 .ui.list .list > .item .description,
 .ui.list > .item .description {
   color: var(--color-secondary-dark-6);
-}
-
-.repository.file.list #repo-files-table tbody .svg.octicon-file-directory,
-.repository.file.list #repo-files-table tbody .svg.octicon-file-submodule {
-  color: #7c9b5e;
 }
 
 .repository.labels .ui.basic.black.label {
@@ -446,59 +376,6 @@ td.blob-excerpt {
   background: #393d4a;
   border-color: #393d4a;
   color: #dbdbdb;
-}
-
-.repository .ui.attached.message.isSigned.isVerified {
-  background-color: #394829;
-  color: var(--color-secondary-dark-6);
-
-  &.message {
-    color: #87ab63;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    .pull-right {
-      color: #87ab63;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUntrusted {
-  background-color: #4a3903;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2c193;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2c193;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUnmatched {
-  background-color: #4e3321;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2a893;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2a893;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isWarning {
-  background-color: rgba(80, 23, 17, .6);
-  &.message {
-    color: #d07d7d;
-    .ui.text {
-      color: #d07d7d;
-    }
-  }
 }
 
 .ui.header .sub.header {
@@ -549,7 +426,7 @@ td.blob-excerpt {
 .emoji[aria-label="paw prints"],
 .emoji[aria-label="musical note"],
 .emoji[aria-label="musical notes"] {
-  filter: invert(100%);
+  filter: invert(100%) hue-rotate(180deg);
 }
 
 .edit-diff > div > .ui.table {
@@ -557,105 +434,8 @@ td.blob-excerpt {
   border-right-color: var(--color-secondary) !important;
 }
 
-/* code mirror dark theme */
-
-.CodeMirror {
-  &.cm-s-default,
-  &.cm-s-paper {
-    .cm-property {
-      color: #a0cc75;
-    }
-
-    .cm-header {
-      color: #9daccc;
-    }
-
-    .cm-quote {
-      color: #009900;
-    }
-
-    .cm-keyword {
-      color: #cc8a61;
-    }
-
-    .cm-atom {
-      color: #ef5e77;
-    }
-
-    .cm-number {
-      color: #ff5656;
-    }
-
-    .cm-def {
-      color: #e4e4e4;
-    }
-
-    .cm-variable-2 {
-      color: #00bdbf;
-    }
-
-    .cm-variable-3 {
-      color: #008855;
-    }
-
-    .cm-comment {
-      color: #8e9ab3;
-    }
-
-    .cm-string {
-      color: #a77272;
-    }
-
-    .cm-string-2 {
-      color: #ff5500;
-    }
-
-    .cm-meta,
-    .cm-qualifier {
-      color: #ffb176;
-    }
-
-    .cm-builtin {
-      color: #b7c951;
-    }
-
-    .cm-bracket {
-      color: #999977;
-    }
-
-    .cm-tag {
-      color: #f1d273;
-    }
-
-    .cm-attribute {
-      color: #bfcc70;
-    }
-
-    .cm-hr {
-      color: #999999;
-    }
-
-    .cm-url {
-      color: #c5cfd0;
-    }
-
-    .cm-link {
-      color: #d8c792;
-    }
-
-    .cm-error {
-      /* color: #ff6e00; */
-      color: #dbdbeb;
-    }
-  }
-}
-
 footer .container .links > * {
   border-left-color: #888;
-}
-
-.repository.file.list #repo-files-table tbody .svg {
-  color: var(--color-secondary-dark-6);
 }
 
 .repository.release #release-list > li .detail .dot {
@@ -673,44 +453,6 @@ footer .container .links > * {
 
 img[src$="/img/matrix.svg"] {
   filter: invert(80%);
-}
-
-#git-graph-container li .time {
-  color: #6a737d;
-}
-
-#git-graph-container.monochrome #rel-container .flow-group {
-  stroke: dimgrey;
-  fill: dimgrey;
-}
-
-#git-graph-container.monochrome #rel-container .flow-group.highlight {
-  stroke: darkgrey;
-  fill: darkgrey;
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group {
-  &.flow-color-16-5 {
-    stroke: #5543b1;
-    fill: #5543b1;
-  }
-}
-
-#git-graph-container:not(.monochrome) #rel-container .flow-group.highlight {
-  &.flow-color-16-5 {
-    stroke: #7058e6;
-    fill: #7058e6;
-  }
-}
-
-#git-graph-container #rev-list li.highlight.hover {
-  background-color: rgba(255, 255, 255, .1);
-}
-
-#git-graph-container .ui.buttons button#flow-color-monochrome.ui.button {
-  border-left-color: rgb(76, 80, 92);
-  border-left-style: solid;
-  border-left-width: 1px;
 }
 
 .mermaid-chart {

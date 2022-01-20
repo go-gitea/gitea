@@ -41,19 +41,19 @@ func FlushQueues(ctx *context.PrivateContext) {
 			Err: fmt.Sprintf("%v", err),
 		})
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // PauseLogging pauses logging
 func PauseLogging(ctx *context.PrivateContext) {
 	log.Pause()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ResumeLogging resumes logging
 func ResumeLogging(ctx *context.PrivateContext) {
 	log.Resume()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ReleaseReopenLogging releases and reopens logging files
@@ -64,7 +64,7 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // RemoveLogger removes a logger
@@ -81,7 +81,7 @@ func RemoveLogger(ctx *context.PrivateContext) {
 	if ok {
 		setting.RemoveSubLogDescription(group, name)
 	}
-	ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("Removed %s %s", group, name)))
+	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", group, name))
 }
 
 // AddLogger adds a logger
@@ -154,5 +154,5 @@ func AddLogger(ctx *context.PrivateContext) {
 		Config:   config,
 	})
 
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }

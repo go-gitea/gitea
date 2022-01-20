@@ -14,15 +14,18 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/unknwon/com"
 )
 
-func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -37,7 +40,7 @@ func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, rep
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, err := git.NewCommand("clone", repoPath, tmpDir).
+	if stdout, err := git.NewCommandContext(ctx, "clone", repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunInDirWithEnv("", env); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
@@ -100,7 +103,7 @@ func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, rep
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, defaultBranch string) (err error) {
+func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Repository, u *user_model.User, defaultBranch string) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -114,7 +117,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	if stdout, err := git.NewCommand("add", "--all").
+	if stdout, err := git.NewCommandContext(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunInDir(tmpPath); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
@@ -132,11 +135,11 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	}
 
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 
-			if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+			if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 				// need to set the committer to the KeyID owner
 				committerName = signer.Name
 				committerEmail = signer.Email
@@ -151,7 +154,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		"GIT_COMMITTER_EMAIL="+committerEmail,
 	)
 
-	if stdout, err := git.NewCommand(args...).
+	if stdout, err := git.NewCommandContext(ctx, args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, env); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
@@ -162,7 +165,7 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, err := git.NewCommand("push", "origin", "HEAD:"+defaultBranch).
+	if stdout, err := git.NewCommandContext(ctx, "push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
@@ -172,23 +175,23 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	return nil
 }
 
-func checkInitRepository(owner, name string) (err error) {
+func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 	// Somehow the directory could exist.
-	repoPath := models.RepoPath(owner, name)
+	repoPath := repo_model.RepoPath(owner, name)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 		return err
 	}
 	if isExist {
-		return models.ErrRepoFilesAlreadyExist{
+		return repo_model.ErrRepoFilesAlreadyExist{
 			Uname: owner,
 			Name:  name,
 		}
 	}
 
 	// Init git bare new repository.
-	if err = git.InitRepository(repoPath, true); err != nil {
+	if err = git.InitRepository(ctx, repoPath, true); err != nil {
 		return fmt.Errorf("git.InitRepository: %v", err)
 	} else if err = createDelegateHooks(repoPath); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
@@ -197,8 +200,8 @@ func checkInitRepository(owner, name string) (err error) {
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
-	if err = checkInitRepository(repo.OwnerName, repo.Name); err != nil {
+func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
+	if err = checkInitRepository(ctx, repo.OwnerName, repo.Name); err != nil {
 		return err
 	}
 
@@ -219,14 +222,14 @@ func initRepository(ctx context.Context, repoPath string, u *models.User, repo *
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, repo, u, opts.DefaultBranch); err != nil {
+		if err = initRepoCommit(ctx, tmpDir, repo, u, opts.DefaultBranch); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
@@ -238,7 +241,7 @@ func initRepository(ctx context.Context, repoPath string, u *models.User, repo *
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 		if err != nil {
 			return fmt.Errorf("openRepository: %v", err)
 		}

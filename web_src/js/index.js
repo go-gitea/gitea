@@ -36,7 +36,7 @@ import {
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
-import {initRepoCommitButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
+import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -63,7 +63,7 @@ import {
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
-import {initUserAuthU2fAuth, initUserAuthU2fRegister} from './features/user-auth-u2f.js';
+import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
@@ -132,7 +132,7 @@ $(document).ready(() => {
   initRepoBranchButton();
   initRepoCodeView();
   initRepoCommentForm();
-  initRepoCommitButton();
+  initRepoEllipsisButton();
   initRepoCommitLastCommitLoader();
   initRepoDiffConversationForm();
   initRepoDiffFileViewToggle();
@@ -163,7 +163,7 @@ $(document).ready(() => {
 
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
-  initUserAuthU2fAuth();
-  initUserAuthU2fRegister();
+  initUserAuthWebAuthn();
+  initUserAuthWebAuthnRegister();
   initUserSettings();
 });

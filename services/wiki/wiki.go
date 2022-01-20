@@ -6,6 +6,7 @@
 package wiki
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -13,13 +14,15 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 var (
@@ -69,16 +72,16 @@ func FilenameToName(filename string) (string, error) {
 
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
-func InitWiki(repo *models.Repository) error {
+func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.HasWiki() {
 		return nil
 	}
 
-	if err := git.InitRepository(repo.WikiPath(), true); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiPath(), true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
-	} else if _, err = git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
+	} else if _, err = git.NewCommandContext(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil
@@ -116,18 +119,18 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 }
 
 // updateWikiPage adds a new page to the repository wiki.
-func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	if err = InitWiki(repo); err != nil {
+	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
+	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), "master")
 
 	basePath, err := models.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -148,12 +151,12 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		cloneOpts.Branch = "master"
 	}
 
-	if err := git.Clone(repo.WikiPath(), basePath, cloneOpts); err != nil {
+	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -223,10 +226,10 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -242,7 +245,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env: models.FullPushingEnvironment(
@@ -264,22 +267,22 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func AddWikiPage(doer *models.User, repo *models.Repository, wikiName, content, message string) error {
-	return updateWikiPage(doer, repo, "", wikiName, content, message, true)
+func AddWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName, content, message string) error {
+	return updateWikiPage(ctx, doer, repo, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func EditWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
-	return updateWikiPage(doer, repo, oldWikiName, newWikiName, content, message, false)
+func EditWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string) error {
+	return updateWikiPage(ctx, doer, repo, oldWikiName, newWikiName, content, message, false)
 }
 
 // DeleteWikiPage deletes a wiki page identified by its path.
-func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string) (err error) {
+func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	if err = InitWiki(repo); err != nil {
+	if err = InitWiki(ctx, repo); err != nil {
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
@@ -293,7 +296,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		}
 	}()
 
-	if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: "master",
@@ -302,7 +305,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -341,10 +344,10 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo.WikiPath(), doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -356,7 +359,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -371,11 +374,11 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func DeleteWiki(repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
+	if err := repo_model.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
+	admin_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 	return nil
 }

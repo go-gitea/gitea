@@ -4,11 +4,14 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+)
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
 type IssueLockOptions struct {
-	Doer   *User
+	Doer   *user_model.User
 	Issue  *Issue
 	Reason string
 }
@@ -43,7 +46,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 	}
 	defer committer.Close()
 
-	if err := updateIssueCols(db.GetEngine(ctx), opts.Issue, "is_locked"); err != nil {
+	if err := updateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
 		return err
 	}
 

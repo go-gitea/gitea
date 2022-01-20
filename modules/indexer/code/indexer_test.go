@@ -9,6 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
+
+	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +23,7 @@ func TestMain(m *testing.M) {
 func testIndexer(name string, t *testing.T, indexer Indexer) {
 	t.Run(name, func(t *testing.T) {
 		var repoID int64 = 1
-		err := index(indexer, repoID)
+		err := index(git.DefaultContext, indexer, repoID)
 		assert.NoError(t, err)
 		var (
 			keywords = []struct {

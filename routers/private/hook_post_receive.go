@@ -8,9 +8,11 @@ package private
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -35,7 +37,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repoName := ctx.Params(":repo")
 
 	// defer getting the repository at this point - as we should only retrieve it if we're going to call update
-	var repo *models.Repository
+	var repo *repo_model.Repository
 
 	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
@@ -57,7 +59,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repo_module.PushUpdateOptions{
+			option := &repo_module.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
@@ -66,11 +68,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				RepoUserName: ownerName,
 				RepoName:     repoName,
 			}
-			updates = append(updates, &option)
+			updates = append(updates, option)
 			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
 				// put the master/main branch first
 				copy(updates[1:], updates)
-				updates[0] = &option
+				updates[0] = option
 			}
 		}
 	}
@@ -104,7 +106,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := models.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
@@ -116,12 +118,49 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	// We have to reload the repo in case its state is changed above
 	repo = nil
-	var baseRepo *models.Repository
+	var baseRepo *repo_model.Repository
 
 	// Now handle the pull request notification trailers
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
+
+		// post update for agit pull request
+		if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullPrefix) {
+			if repo == nil {
+				repo = loadRepository(ctx, ownerName, repoName)
+				if ctx.Written() {
+					return
+				}
+			}
+
+			pullIndexStr := strings.TrimPrefix(refFullName, git.PullPrefix)
+			pullIndexStr = strings.Split(pullIndexStr, "/")[0]
+			pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
+			if pullIndex <= 0 {
+				continue
+			}
+
+			pr, err := models.GetPullRequestByIndex(repo.ID, pullIndex)
+			if err != nil && !models.IsErrPullRequestNotExist(err) {
+				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
+				})
+				return
+			}
+			if pr == nil {
+				continue
+			}
+
+			results = append(results, private.HookPostReceiveBranchResult{
+				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
+				Create:  false,
+				Branch:  "",
+				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			})
+			continue
+		}
 
 		branch := git.RefEndName(opts.RefFullNames[i])
 
