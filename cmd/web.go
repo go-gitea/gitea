@@ -88,7 +88,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
+			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
 		}
 	}()
 
