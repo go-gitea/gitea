@@ -95,7 +95,6 @@ func ListPullRequests(ctx *context.APIContext) {
 		Labels:      ctx.FormStrings("labels"),
 		MilestoneID: ctx.FormInt64("milestone"),
 	})
-
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PullRequests", err)
 		return

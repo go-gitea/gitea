@@ -78,9 +78,7 @@ type IndexerData struct {
 	RepoID int64
 }
 
-var (
-	indexerQueue queue.UniqueQueue
-)
+var indexerQueue queue.UniqueQueue
 
 func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(repoID)

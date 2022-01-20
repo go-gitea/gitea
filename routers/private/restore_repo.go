@@ -23,7 +23,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		})
 		return
 	}
-	var params = struct {
+	params := struct {
 		RepoDir   string
 		OwnerName string
 		RepoName  string

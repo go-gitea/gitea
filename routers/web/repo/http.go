@@ -104,7 +104,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	}
 
 	isWiki := false
-	var unitType = unit.TypeCode
+	unitType := unit.TypeCode
 	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
@@ -457,7 +457,6 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 		if err := h.r.Body.Close(); err != nil {
 			log.Error("serviceRPC: Close: %v", err)
 		}
-
 	}()
 
 	if !hasAccess(ctx, service, h, true) {
@@ -468,7 +467,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	var err error
-	var reqBody = h.r.Body
+	reqBody := h.r.Body
 
 	// Handle GZIP.
 	if h.r.Header.Get("Content-Encoding") == "gzip" {

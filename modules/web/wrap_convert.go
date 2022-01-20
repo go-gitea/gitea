@@ -87,7 +87,7 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(http.Handler) http.Handler:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
-			var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 			if len(others) > 0 {
 				next = wrapInternal(others)
 			}

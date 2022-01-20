@@ -64,7 +64,6 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 
 // CacheCommit will cache the commit from the gitRepository
 func (c *LastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
-
 	commitNodeIndex, _ := commit.repo.CommitNodeIndex()
 
 	index, err := commitNodeIndex.Get(commit.ID)

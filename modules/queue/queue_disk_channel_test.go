@@ -188,5 +188,4 @@ func TestPersistableChannelQueue(t *testing.T) {
 	for _, callback := range callbacks {
 		callback()
 	}
-
 }

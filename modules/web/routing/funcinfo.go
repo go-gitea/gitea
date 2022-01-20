@@ -12,9 +12,11 @@ import (
 	"sync"
 )
 
-var funcInfoMap = map[uintptr]*FuncInfo{}
-var funcInfoNameMap = map[string]*FuncInfo{}
-var funcInfoMapMu sync.RWMutex
+var (
+	funcInfoMap     = map[uintptr]*FuncInfo{}
+	funcInfoNameMap = map[string]*FuncInfo{}
+	funcInfoMapMu   sync.RWMutex
+)
 
 // FuncInfo contains information about the function to be logged by the router log
 type FuncInfo struct {

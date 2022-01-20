@@ -252,7 +252,8 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: len(repoNamesToCheck),
-		}, LowerNames: repoNamesToCheck})
+		}, LowerNames: repoNamesToCheck,
+	})
 	if err != nil {
 		return err
 	}

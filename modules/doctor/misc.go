@@ -119,7 +119,6 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 		logger.Info("Enabled push options for %d repositories.", numRepos)
 	} else {
 		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
-
 	}
 
 	return nil
