@@ -201,7 +201,7 @@ func NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef str
 
 // NotifyIssueChangeLabels notifies change labels to notifiers
 func NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeLabels(doer, issue, addedLabels, removedLabels)
 	}

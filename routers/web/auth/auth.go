@@ -297,7 +297,7 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 	ctx.Redirect(redirect)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, obeyRedirect bool) string {
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days)

@@ -14,8 +14,8 @@ import (
 // Notifier defines an interface to notify receiver
 type Notifier interface {
 	Run()
-	NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository)
-	NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository)
+	NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository)
+	NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository)
 	NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository)
 	NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository)
 	NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string)
@@ -30,7 +30,7 @@ type Notifier interface {
 	NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string)
 	NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef string)
 	NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-		addedLabels []*models.Label, removedLabels []*models.Label)
+		addedLabels, removedLabels []*models.Label)
 	NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User)
 	NotifyMergePullRequest(*models.PullRequest, *user_model.User)
 	NotifyPullRequestSynchronized(doer *user_model.User, pr *models.PullRequest)

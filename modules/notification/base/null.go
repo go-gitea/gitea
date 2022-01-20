@@ -115,7 +115,7 @@ func (*NullNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.I
 
 // NotifyIssueChangeLabels places a place holder function
 func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label) {
 }
 
 // NotifyCreateRepository places a place holder function

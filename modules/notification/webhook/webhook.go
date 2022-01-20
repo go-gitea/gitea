@@ -498,7 +498,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 }
 
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifyIssueChangeLabels User: %s[%d] Issue[%d] #%d in [%d]", doer.Name, doer.ID, issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 

@@ -174,7 +174,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*T
 	// createDiffTableRow takes the row # of the `a` line and `b` line of a diff (starting from 1), 0 if the line doesn't exist (undefined)
 	// in the base or head respectively.
 	// Returns a TableDiffRow which has the row index
-	createDiffTableRow := func(aLineNum int, bLineNum int) (*TableDiffRow, error) {
+	createDiffTableRow := func(aLineNum, bLineNum int) (*TableDiffRow, error) {
 		// diffTableCells is a row of the diff table. It will have a cells for added, deleted, changed, and unchanged content, thus either
 		// the same size as the head table or bigger
 		diffTableCells := make([]*TableDiffCell, numDiffTableCols)

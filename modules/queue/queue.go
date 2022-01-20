@@ -39,7 +39,7 @@ type Data interface{}
 type HandlerFunc func(...Data)
 
 // NewQueueFunc is a function that creates a queue
-type NewQueueFunc func(handler HandlerFunc, config interface{}, exemplar interface{}) (Queue, error)
+type NewQueueFunc func(handler HandlerFunc, config, exemplar interface{}) (Queue, error)
 
 // Shutdownable represents a queue that can be shutdown
 type Shutdownable interface {

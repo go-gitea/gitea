@@ -20,7 +20,7 @@ import (
 	"github.com/shurcooL/vfsgen"
 )
 
-func needsUpdate(dir string, filename string) (bool, []byte) {
+func needsUpdate(dir, filename string) (bool, []byte) {
 	needRegen := false
 	_, err := os.Stat(filename)
 	if err != nil {

@@ -111,7 +111,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		Error    string
 	}
 
-	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) CsvDiffResult {
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit, headCommit *git.Commit) CsvDiffResult {
 		if diffFile == nil || baseCommit == nil || headCommit == nil {
 			return CsvDiffResult{nil, ""}
 		}

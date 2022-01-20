@@ -213,7 +213,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
-		"DiffStatsWidth": func(adds int, dels int) string {
+		"DiffStatsWidth": func(adds, dels int) string {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
@@ -302,7 +302,7 @@ func NewFuncMap() []template.FuncMap {
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
-		"containGeneric": func(arr interface{}, v interface{}) bool {
+		"containGeneric": func(arr, v interface{}) bool {
 			arrV := reflect.ValueOf(arr)
 			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
 				return strings.Contains(arr.(string), v.(string))
