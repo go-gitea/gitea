@@ -1,7 +1,5 @@
-
-###################################
-#Build stage - temporarily using techknowlogick image until we upgrade to latest official alpine/go image
-FROM techknowlogick/go:1.17-alpine3.13 AS build-env
+#Build stage
+FROM golang:1.17-alpine3.15 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -25,7 +23,7 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
 # Begin env-to-ini build
 RUN go build contrib/environment-to-ini/environment-to-ini.go
 
-FROM alpine:3.13
+FROM alpine:3.15
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 2222 3000

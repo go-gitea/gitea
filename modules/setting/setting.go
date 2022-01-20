@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
@@ -334,12 +333,13 @@ var (
 	LogLevel           log.Level
 	StacktraceLogLevel string
 	LogRootPath        string
-	DisableRouterLog   bool
-	RouterLogLevel     log.Level
-	EnableAccessLog    bool
 	EnableSSHLog       bool
-	AccessLogTemplate  string
 	EnableXORMLog      bool
+
+	DisableRouterLog bool
+
+	EnableAccessLog   bool
+	AccessLogTemplate string
 
 	// Time settings
 	TimeFormat string
@@ -388,8 +388,7 @@ var (
 	}
 
 	U2F = struct {
-		AppID         string
-		TrustedFacets []string
+		AppID string
 	}{}
 
 	// Metrics settings
@@ -603,7 +602,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
-	RouterLogLevel = log.FromString(Cfg.Section("log").Key("ROUTER_LOG_LEVEL").MustString("Info"))
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
@@ -1015,10 +1013,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newMarkup()
 
-	sec = Cfg.Section("U2F")
-	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimSuffix(AppURL, AppSubURL+"/")))
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
@@ -1027,6 +1021,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+
+	sec = Cfg.Section("U2F")
+	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {

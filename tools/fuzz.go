@@ -9,6 +9,7 @@ package fuzz
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/markup"
@@ -25,6 +26,7 @@ import (
 
 var (
 	renderContext = markup.RenderContext{
+		Ctx:       context.Background(),
 		URLPrefix: "https://example.com/go-gitea/gitea",
 		Metas: map[string]string{
 			"user": "go-gitea",

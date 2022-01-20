@@ -24,7 +24,7 @@ func cloneRepo(url, dir, name string) (string, error) {
 	if _, err := os.Stat(repoDir); err == nil {
 		return repoDir, nil
 	}
-	return repoDir, Clone(url, repoDir, CloneRepoOptions{
+	return repoDir, Clone(DefaultContext, url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,

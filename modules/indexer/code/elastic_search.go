@@ -177,7 +177,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -186,7 +186,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {
 			return nil, err
@@ -244,7 +244,7 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repos
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -253,11 +253,11 @@ func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, ch
 			return err
 		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
 			if err != nil {
 				return err
 			}

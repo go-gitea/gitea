@@ -297,8 +297,20 @@ export function initGlobalButtons() {
   });
 
   $('.hide-panel.button').on('click', function (event) {
-    $($(this).data('panel')).hide();
+    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     event.preventDefault();
+    let sel = $(this).attr('data-panel');
+    if (sel) {
+      $(sel).hide();
+      return;
+    }
+    sel = $(this).attr('data-panel-closest');
+    if (sel) {
+      $(this).closest(sel).hide();
+      return;
+    }
+    // should never happen, otherwise there is a bug in code
+    alert('Nothing to hide');
   });
 
   $('.show-modal.button').on('click', function () {

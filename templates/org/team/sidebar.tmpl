@@ -29,19 +29,19 @@
 		<div class="item">
 			{{if eq .Team.LowerName "owners"}}
 				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
-			{{else if (eq .Team.Authorize 1)}}
+			{{else if (eq .Team.AccessMode 1)}}
 				{{if .Team.IncludesAllRepositories}}
 					{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
 				{{else}}
 					{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
 				{{end}}
-			{{else if (eq .Team.Authorize 2)}}
+			{{else if (eq .Team.AccessMode 2)}}
 				{{if .Team.IncludesAllRepositories}}
 					{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
 				{{else}}
 					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
 				{{end}}
-			{{else if (eq .Team.Authorize 3)}}
+			{{else if (eq .Team.AccessMode 3)}}
 				{{if .Team.IncludesAllRepositories}}
 					{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
 				{{else}}

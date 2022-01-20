@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -92,7 +92,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	if len(logMessage) > 0 {
 		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
 	}
-	return cli.NewExitError(fmt.Sprintf("Gitea: %s", userMessage), 1)
+	return cli.NewExitError("", 1)
 }
 
 func runServ(c *cli.Context) error {
@@ -253,7 +253,8 @@ func runServ(c *cli.Context) error {
 
 		now := time.Now()
 		claims := lfs.Claims{
-			StandardClaims: jwt.StandardClaims{
+			// FIXME: we need to migrate to RegisteredClaims
+			StandardClaims: jwt.StandardClaims{ // nolint
 				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
 				NotBefore: now.Unix(),
 			},

@@ -5,7 +5,7 @@
 package sspi_test
 
 import (
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 )
 
@@ -13,7 +13,7 @@ import (
 // It tightly binds the interfaces and implementation without breaking go import cycles
 
 type sourceInterface interface {
-	login.Config
+	auth.Config
 }
 
 var _ (sourceInterface) = &sspi.Source{}

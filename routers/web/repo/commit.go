@@ -118,12 +118,12 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
+	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 	if err != nil {
 		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
 		realBranches = []string{}
 		branches = []string{}
-		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
+		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 		if err != nil {
 			ctx.ServerError("GetCommitGraphsCount", err)
 			return
@@ -254,7 +254,6 @@ func FileHistory(ctx *context.Context) {
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
@@ -266,7 +265,7 @@ func Diff(ctx *context.Context) {
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -389,6 +388,7 @@ func RawDiff(ctx *context.Context) {
 		repoPath = repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	}
 	if err := git.GetRawDiff(
+		ctx,
 		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),

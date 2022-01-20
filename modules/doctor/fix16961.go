@@ -6,6 +6,7 @@ package doctor
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -254,7 +255,7 @@ func fixBrokenRepoUnit16961(repoUnit *repo_model.RepoUnit, bs []byte) (fixed boo
 	return true, nil
 }
 
-func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
+func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix bool) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
@@ -297,7 +298,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	)
 
 	if err != nil {
-		logger.Critical("Unable to iterate acrosss repounits to fix the broken units: Error %v", err)
+		logger.Critical("Unable to iterate across repounits to fix the broken units: Error %v", err)
 		return err
 	}
 

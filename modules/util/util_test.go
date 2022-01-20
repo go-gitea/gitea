@@ -157,6 +157,24 @@ func Test_RandomString(t *testing.T) {
 	assert.NotEqual(t, str3, str4)
 }
 
+func Test_RandomBytes(t *testing.T) {
+	bytes1, err := RandomBytes(32)
+	assert.NoError(t, err)
+
+	bytes2, err := RandomBytes(32)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes1, bytes2)
+
+	bytes3, err := RandomBytes(256)
+	assert.NoError(t, err)
+
+	bytes4, err := RandomBytes(256)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes3, bytes4)
+}
+
 func Test_OptionalBool(t *testing.T) {
 	assert.Equal(t, OptionalBoolNone, OptionalBoolParse(""))
 	assert.Equal(t, OptionalBoolNone, OptionalBoolParse("x"))

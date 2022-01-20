@@ -16,6 +16,7 @@ linters:
     - gocritic
     - bidichk
     - ineffassign
+    - revive
   enable-all: false
   disable-all: true
   fast: false
@@ -28,6 +29,34 @@ linters-settings:
     disabled-checks:
       - ifElseChain
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 1
+    warningCode: 1
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: duplicated-imports
+      - name: modifies-value-receiver
 
 issues:
   exclude-rules:

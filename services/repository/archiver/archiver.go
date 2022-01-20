@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -115,11 +116,13 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 }
 
 func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
-	ctx, committer, err := db.TxContext()
+	txCtx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
+	ctx, _, finished := process.GetManager().AddContext(txCtx, fmt.Sprintf("ArchiveRequest[%d]: %s", r.RepoID, r.GetArchiveName()))
+	defer finished()
 
 	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
@@ -175,7 +178,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +193,13 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 
 		if archiver.Type == git.BUNDLE {
 			err = gitRepo.CreateBundle(
-				graceful.GetManager().ShutdownContext(),
+				ctx,
 				archiver.CommitID,
 				w,
 			)
 		} else {
 			err = gitRepo.CreateArchive(
-				graceful.GetManager().ShutdownContext(),
+				ctx,
 				archiver.Type,
 				w,
 				setting.Repository.PrefixArchiveFiles,
@@ -252,7 +255,7 @@ func Init() error {
 			}
 			log.Trace("ArchiverData Process: %#v", archiveReq)
 			if _, err := doArchive(archiveReq); err != nil {
-				log.Error("Archive %v faild: %v", datum, err)
+				log.Error("Archive %v failed: %v", datum, err)
 			}
 		}
 	}

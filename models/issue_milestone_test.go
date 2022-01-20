@@ -228,14 +228,14 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 	issue.ClosedUnix = timeutil.TimeStampNow()
 	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
 	unittest.CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
 	unittest.CheckConsistencyFor(t, &Milestone{})
 }
 

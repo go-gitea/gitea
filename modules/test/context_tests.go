@@ -67,7 +67,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 
 // LoadRepoCommit loads a repo's commit into a test context.
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -89,7 +89,7 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, ctx.Repo.Repository.GetOwner(db.DefaultContext))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 }
 
@@ -101,6 +101,10 @@ func (l mockLocale) Language() string {
 
 func (l mockLocale) Tr(s string, _ ...interface{}) string {
 	return s
+}
+
+func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface{}) string {
+	return key1
 }
 
 type mockResponseWriter struct {

@@ -29,17 +29,16 @@ required to build the JavaScript and CSS files. The minimum supported Node.js
 version is {{< min-node-version >}} and the latest LTS version is recommended.
 
 **Note**: When executing make tasks that require external tools, like
-`make misspell-check`, Gitea will automatically download and build these as
+`make watch-backend`, Gitea will automatically download and build these as
 necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version {{< min-go-version >}} or higher is required; however, it is important
-to note that our continuous integration will check that the formatting of the
-source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
-the results of `gofmt` can differ by the version of `go`. It is therefore
+**Note 2**: Go version {{< min-go-version >}} or higher is required.
+Gitea uses `gofmt` to format source code. However, the results of 
+`gofmt` can differ by the version of `go`. Therefore it is
 recommended to install the version of Go that our continuous integration is
-running. As of last update, it should be Go version {{< go-version >}}.
+running. As of last update, the Go version should be {{< go-version >}}.
 
 ## Installing Make
 
@@ -73,6 +72,7 @@ One of these three distributions of Make will run on Windows:
   - MSYS2 is a collection of tools and libraries providing you with an easy-to-use environment for building, installing and running native Windows software, it includes MinGW-w64. 
   - In MingGW-w64, the binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
   - In MSYS2, you can use `make` directly. See [MSYS2 Porting](https://www.msys2.org/wiki/Porting/).
+  - To compile Gitea with CGO_ENABLED (eg: SQLite3), you might need to use [tdm-gcc](https://jmeubank.github.io/tdm-gcc/) instead of MSYS2 gcc, because MSYS2 gcc headers lack some Windows-only CRT functions like `_beginthread`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
 **Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (Git bash, or MinGW) are recommended, however if you only have command prompt (or potentially PowerShell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
@@ -148,31 +148,26 @@ On macOS, watching all backend source files may hit the default open files limit
 
 ### Formatting, code analysis and spell check
 
-Our continuous integration will reject PRs that are not properly formatted, fail
-code analysis or spell check.
+Our continuous integration will reject PRs that fail the code linters (including format check, code analysis and spell check).
 
-You should format your code with `go fmt` using:
+You should format your code:
 
 ```bash
 make fmt
 ```
 
-and can test whether your changes would match the results with:
+and lint the source code:
 
 ```bash
-make fmt-check # which runs make fmt internally
+# lint both frontend and backend code
+make lint
+# lint only backend code
+make lint-backend
 ```
 
-**Note**: The results of `go fmt` are dependent on the version of `go` present.
+**Note**: The results of `gofmt` are dependent on the version of `go` present.
 You should run the same version of go that is on the continuous integration
-server as mentioned above. `make fmt-check` will only check if your `go` would
-format differently - this may be different from the CI server version.
-
-You should run revive, vet and spell-check on the code with:
-
-```bash
-make revive vet misspell-check
-```
+server as mentioned above.
 
 ### Working on JS and CSS
 
@@ -273,9 +268,16 @@ make test-sqlite-migration # with SQLite switched for the appropriate database
 
 There are two types of test run by Gitea: Unit tests and Integration Tests.
 
+### Unit Tests
+
+Unit tests are covered by `*_test.go` in `go test` system.
+You can set the environment variable `GITEA_UNIT_TESTS_LOG_SQL=1` to display all SQL statements when running the tests in verbose mode (i.e. when `GOTESTFLAGS=-v` is set).
+
 ```bash
 TAGS="bindata sqlite sqlite_unlock_notify" make test # Runs the unit tests
 ```
+
+### Integration Tests
 
 Unit tests will not and cannot completely test Gitea alone. Therefore, we
 have written integration tests; however, these are database dependent.
@@ -288,9 +290,11 @@ will run the integration tests in an SQLite environment. Integration tests
 require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
-Look at
-[`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
+Take a look at [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
 for more information and how to run a single test.
+
+
+### Testing for a PR
 
 Our continuous integration will test the code passes its unit tests and that
 all supported databases will pass integration test in a Docker environment.

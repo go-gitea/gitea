@@ -109,7 +109,7 @@ type CanCommitToBranchResults struct {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranchResults, error) {
+func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
 
 	if err != nil {
@@ -122,7 +122,7 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := asymkey_service.SignCRUDAction(r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
@@ -180,14 +180,14 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 }
 
 // GetCommitGraphsCount returns cached commit count for current view
-func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches, files []string) (int64, error) {
+func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, branches, files []string) (int64, error) {
 	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return git.AllCommitsCount(r.Repository.RepoPath(), hidePRRefs, files...)
+			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
 		}
-		return git.CommitsCountFiles(r.Repository.RepoPath(), branches, files)
+		return git.CommitsCountFiles(ctx, r.Repository.RepoPath(), branches, files)
 	})
 }
 
@@ -366,14 +366,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 
 	if repo.IsMirror {
 		var err error
-		mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = mirror.Interval
-		ctx.Data["Mirror"] = mirror
+		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+		ctx.Data["Mirror"] = ctx.Repo.Mirror
 	}
 
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
