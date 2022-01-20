@@ -61,6 +61,14 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			done = ctx.Written()
 			return
 		}
+	case func(*context.APIContext) goctx.CancelFunc:
+		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			ctx := context.GetAPIContext(req)
+			deferrable = t(ctx)
+			done = ctx.Written()
+			return
+		}
 	case func(*context.PrivateContext):
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
