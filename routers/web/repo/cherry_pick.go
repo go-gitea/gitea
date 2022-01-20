@@ -131,7 +131,7 @@ func CherryPickPost(ctx *context.Context) {
 
 	// First lets try the simple plain read-tree -m approach
 	opts.Content = sha
-	if _, err := files.CherryPick(ctx.Repo.Repository, ctx.User, form.Revert, opts); err != nil {
+	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.User, form.Revert, opts); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			ctx.Data["Err_NewBranchName"] = true
@@ -181,7 +181,7 @@ func CherryPickPost(ctx *context.Context) {
 		opts.Content = buf.String()
 		ctx.Data["FileContent"] = opts.Content
 
-		if _, err := files.ApplyDiffPatch(ctx.Repo.Repository, ctx.User, opts); err != nil {
+		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
 			if models.IsErrBranchAlreadyExists(err) {
 				// For when a user specifies a new branch that already exists
 				ctx.Data["Err_NewBranchName"] = true
@@ -203,5 +203,4 @@ func CherryPickPost(ctx *context.Context) {
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName))
 	}
-
 }

@@ -84,7 +84,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		})
 	}
 
-	fileResponse, err := files.ApplyDiffPatch(ctx.Repo.Repository, ctx.User, opts)
+	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts)
 	if err != nil {
 		if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
 			ctx.Error(http.StatusForbidden, "Access", err)

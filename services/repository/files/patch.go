@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ApplyDiffPatchOptions holds the repository diff patch update options
@@ -33,7 +33,7 @@ type ApplyDiffPatchOptions struct {
 }
 
 // Validate validates the provided options
-func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *user_model.User) error {
+func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -42,15 +42,21 @@ func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *u
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return err
+	}
+	defer closer.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
 		return err
 	}
 	// A NewBranch can be specified for the patch to be applied to.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
 			return models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -70,7 +76,7 @@ func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *u
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err
@@ -85,8 +91,8 @@ func (opts *ApplyDiffPatchOptions) Validate(repo *repo_model.Repository, doer *u
 }
 
 // ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
-	if err := opts.Validate(repo, doer); err != nil {
+func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
 
@@ -94,7 +100,7 @@ func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *Ap
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("%v", err)
 	}

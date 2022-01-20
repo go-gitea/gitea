@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -20,15 +21,15 @@ import (
 )
 
 // CherryPick cherrypicks or reverts a commit to the given repository
-func CherryPick(repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
-	if err := opts.Validate(repo, doer); err != nil {
+func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	if err := opts.Validate(ctx, repo, doer); err != nil {
 		return nil, err
 	}
 	message := strings.TrimSpace(opts.Message)
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("%v", err)
 	}
