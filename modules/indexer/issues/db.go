@@ -14,6 +14,15 @@ func (db *DBIndexer) Init() (bool, error) {
 	return false, nil
 }
 
+// SetAvailabilityChangeCallback dummy function
+func (db *DBIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+}
+
+// Ping checks if database is available
+func (db *DBIndexer) Ping() bool {
+	return models.Ping() != nil
+}
+
 // Index dummy function
 func (db *DBIndexer) Index(issue []*IndexerData) error {
 	return nil
