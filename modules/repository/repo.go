@@ -247,7 +247,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 	existingRelTags := make(map[string]struct{})
 	opts := models.FindReleasesOptions{
 		IncludeDrafts: true,
-		IncludeTags:   true,
+		IncludeTags:   false,
 		ListOptions:   db.ListOptions{PageSize: 50},
 	}
 	for page := 1; ; page++ {
@@ -276,6 +276,12 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			}
 		}
 	}
+	// short-circuit to avoid costly tag lookups when there are no releases
+	// to be synced.
+	if len(existingRelTags) == 0 {
+		return nil
+	}
+
 	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return fmt.Errorf("GetTags: %v", err)
