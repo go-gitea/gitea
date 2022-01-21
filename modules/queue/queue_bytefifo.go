@@ -197,6 +197,13 @@ loop:
 			case <-resumed:
 				paused, _ = q.IsPausedIsResumed()
 				log.Trace("Queue %s resuming", q.name)
+				if q.HasNoWorkerScaling() {
+					log.Warn(
+						"Queue: %s is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
+							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", q.name)
+					q.Pause()
+					continue loop
+				}
 			case <-q.shutdownCtx.Done():
 				// tell the pool to shutdown.
 				q.baseCtxCancel()

@@ -101,6 +101,17 @@ func (p *WorkerPool) Push(data Data) {
 	}
 }
 
+// HasNoWorkerScaling will return true if the queue has no workers, and has no worker boosting
+func (p *WorkerPool) HasNoWorkerScaling() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.hasNoWorkerScaling()
+}
+
+func (p *WorkerPool) hasNoWorkerScaling() bool {
+	return p.numberOfWorkers == 0 && (p.boostTimeout == 0 || p.boostWorkers == 0 || p.maxNumberOfWorkers == 0)
+}
+
 func (p *WorkerPool) zeroBoost() {
 	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
 	mq := GetManager().GetManagedQueue(p.qid)
@@ -291,6 +302,12 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				p.cond.Broadcast()
 				cancel()
 			}
+			if p.hasNoWorkerScaling() {
+				log.Warn(
+					"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
+						"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				p.pause()
+			}
 			p.lock.Unlock()
 		}()
 	}
@@ -332,6 +349,10 @@ func (p *WorkerPool) IsPausedIsResumed() (<-chan struct{}, <-chan struct{}) {
 func (p *WorkerPool) Pause() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	p.pause()
+}
+
+func (p *WorkerPool) pause() {
 	select {
 	case <-p.paused:
 	default:
