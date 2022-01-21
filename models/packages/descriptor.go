@@ -30,15 +30,16 @@ type PackageDescriptor struct {
 	Version    *PackageVersion
 	SemVer     *version.Version
 	Creator    *user_model.User
-	Properties []*PackageVersionProperty
+	Properties []*PackageProperty
 	Metadata   interface{}
 	Files      []PackageFileDescriptor
 }
 
 // PackageFileDescriptor describes a package file
 type PackageFileDescriptor struct {
-	File *PackageFile
-	Blob *PackageBlob
+	File       *PackageFile
+	Blob       *PackageBlob
+	Properties []*PackageProperty
 }
 
 // WebLink returns the package's web link
@@ -85,7 +86,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 			return nil, err
 		}
 	}
-	pvps, err := GetVersionProperties(ctx, pv.ID)
+	pvps, err := GetProperties(ctx, PropertyTypeVersion, pv.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +101,14 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 		if err != nil {
 			return nil, err
 		}
+		pfps, err := GetProperties(ctx, PropertyTypeFile, pf.ID)
+		if err != nil {
+			return nil, err
+		}
 		pfds = append(pfds, PackageFileDescriptor{
 			pf,
 			pb,
+			pfps,
 		})
 	}
 

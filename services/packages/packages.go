@@ -146,7 +146,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 
 	for name, value := range pvci.Properties {
-		if _, err := packages_model.InsertVersionProperty(ctx, pv.ID, name, value); err != nil {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
 			log.Error("Error setting package version property: %v", err)
 			return nil, false, err
 		}
@@ -261,7 +261,7 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 
 	log.Trace("Deleting package: %v", pv.ID)
 
-	if err := packages_model.DeleteVersionPropertiesByVersionID(ctx, pv.ID); err != nil {
+	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
 		return err
 	}
 

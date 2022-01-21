@@ -189,7 +189,7 @@ func ListPackageTags(ctx *context.APIContext) {
 
 	tags := make(map[string]string)
 	for _, pv := range pvs {
-		pvps, err := packages.GetVersionPropertiesByName(ctx, pv.ID, npm_module.TagProperty)
+		pvps, err := packages.GetPropertiesByName(ctx, packages.PropertyTypeVersion, pv.ID, npm_module.TagProperty)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -284,14 +284,14 @@ func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) err
 	}
 
 	if len(pvs) == 1 {
-		pvps, err := packages.GetVersionPropertiesByName(ctx, pvs[0].ID, npm_module.TagProperty)
+		pvps, err := packages.GetPropertiesByName(ctx, packages.PropertyTypeVersion, pvs[0].ID, npm_module.TagProperty)
 		if err != nil {
 			return err
 		}
 
 		for _, pvp := range pvps {
 			if pvp.Value == tag {
-				if err := packages.DeleteVersionPropertyByID(ctx, pvp.ID); err != nil {
+				if err := packages.DeletePropertyByID(ctx, pvp.ID); err != nil {
 					return err
 				}
 				break
@@ -300,7 +300,7 @@ func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) err
 	}
 
 	if !deleteOnly {
-		_, err = packages.InsertVersionProperty(ctx, pv.ID, npm_module.TagProperty, tag)
+		_, err = packages.InsertProperty(ctx, packages.PropertyTypeVersion, pv.ID, npm_module.TagProperty, tag)
 		if err != nil {
 			return err
 		}

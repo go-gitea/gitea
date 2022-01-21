@@ -198,11 +198,12 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 		propsCond := builder.NewCond()
 		for name, value := range opts.Properties {
 			propsCond = propsCond.Or(builder.Eq{
-				"package_version_property.name":  name,
-				"package_version_property.value": value,
+				"package_property.ref_type": PropertyTypeVersion,
+				"package_property.name":     name,
+				"package_property.value":    value,
 			})
 		}
-		cond = cond.And(builder.In("package_version.id", builder.Select("package_version_property.version_id").Where(propsCond).From("package_version_property")))
+		cond = cond.And(builder.In("package_version.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
 	}
 
 	return cond
@@ -263,4 +264,20 @@ func SearchLatestVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64,
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
+}
+
+// FindVersionsByPropertyNameAndValue gets all package versions which are associated with a specific property + value
+func FindVersionsByPropertyNameAndValue(ctx context.Context, packageID int64, name, value string) ([]*PackageVersion, error) {
+	var cond builder.Cond = builder.Eq{
+		"package_property.ref_type":  PropertyTypeVersion,
+		"package_property.name":      name,
+		"package_property.value":     value,
+		"package_version.package_id": packageID,
+	}
+
+	pvs := make([]*PackageVersion, 0, 5)
+	return pvs, db.GetEngine(ctx).
+		Where(cond).
+		Join("INNER", "package_property", "package_property.ref_id = package_version.id").
+		Find(&pvs)
 }
