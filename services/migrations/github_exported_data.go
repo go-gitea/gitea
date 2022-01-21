@@ -1237,7 +1237,7 @@ func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestRev
 			DiffHunk:    c.DiffHunk,
 			Position:    c.Position,
 			Line:        c.OriginalPosition,
-			CommitID:    c.CommitID,
+			CommitID:    c.OriginalCommitID,
 			PosterID:    user.ID(),
 			PosterName:  user.Login,
 			PosterEmail: user.Email(),
@@ -1256,6 +1256,7 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 	}, func(content interface{}) error {
 		cs := *content.(*[]pullrequestReviewComment)
 		for _, c := range cs {
+			log.Info("111------%#v,,,,%#v, %#v", c.PullRequestReview, c.CommitID, c.OriginalCommitID)
 			comments[c.PullRequestReviewThread] = append(comments[c.PullRequestReviewThread], c)
 		}
 		return nil
@@ -1299,13 +1300,14 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 			if len(reviewComments) == 0 {
 				continue
 			}
+			log.Info("2222------- %#v", reviewComments[0])
 			user := r.users[reviewComments[0].User]
 			baseReview := &base.Review{
 				IssueIndex:    review.Index(),
 				ReviewerID:    user.ID(),
 				ReviewerName:  user.Login,
 				ReviewerEmail: user.Email(),
-				CommitID:      reviewComments[0].CommitID,
+				CommitID:      reviewComments[0].OriginalCommitID,
 				CreatedAt:     review.CreatedAt,
 				State:         base.ReviewStateCommented,
 				Comments:      r.getReviewComments(reviewComments),

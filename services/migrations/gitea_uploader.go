@@ -819,6 +819,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			IssueID:     issue.ID,
 			Content:     review.Content,
 			Official:    review.Official,
+			CommitID:    review.CommitID,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
@@ -839,13 +840,16 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		for _, comment := range review.Comments {
+			log.Info("444444=========== %#v", comment)
 			line := comment.Line
 			if line != 0 {
 				comment.Position = 1
 			} else {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
+				log.Info("5555555 %v", line)
 			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+			log.Info("66666666 %v,,,,,%v", headCommitID, pr.MergeBase)
 			if err != nil {
 				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
 				continue
@@ -866,6 +870,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}(comment)
 
 			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+			log.Info("7777777 patch:%s, line: %d, headCommitID: %s", patch, line+comment.Position-1, headCommitID)
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
