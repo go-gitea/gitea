@@ -17,7 +17,7 @@ import (
 )
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
 	format := "DATA:%D|%H|%ad|%h|%s"
 
 	if page == 0 {
@@ -29,7 +29,7 @@ func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRef
 	args = append(args, "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
-		args = append(args, "--exclude=refs/pull/*")
+		args = append(args, "--exclude="+git.PullPrefix+"*")
 	}
 
 	if len(branches) == 0 {
@@ -51,7 +51,7 @@ func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRef
 		args = append(args, files...)
 	}
 
-	graphCmd := git.NewCommand("log")
+	graphCmd := git.NewCommandContext(r.Ctx, "log")
 	graphCmd.AddArguments(args...)
 	graph := NewGraph()
 

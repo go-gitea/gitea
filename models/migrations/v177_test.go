@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,5 +85,4 @@ func Test_deleteOrphanedIssueLabels(t *testing.T) {
 		pre := preMigration[id]
 		assert.Equal(t, pre, post, "migration changed issueLabel %d", id)
 	}
-
 }

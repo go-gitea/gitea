@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/routers/web/auth"
 )
 
 // Events listens for events
@@ -93,7 +94,7 @@ loop:
 			go unregister()
 			break loop
 		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.User.ID, models.ListOptions{})
+			sws, err := models.GetUserStopwatches(ctx.User.ID, db.ListOptions{})
 			if err != nil {
 				log.Error("Unable to GetUserStopwatches: %v", err)
 				continue
@@ -132,7 +133,7 @@ loop:
 					}).WriteTo(ctx.Resp)
 					ctx.Resp.Flush()
 					go unregister()
-					user.HandleSignOut(ctx)
+					auth.HandleSignOut(ctx)
 					break loop
 				}
 				// Replace the event - we don't want to expose the session ID to the user

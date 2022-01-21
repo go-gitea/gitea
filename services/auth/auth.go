@@ -12,8 +12,11 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -67,6 +70,8 @@ func Init() {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
 	}
+
+	webauthn.Init()
 }
 
 // Free should be called exactly once when the application is terminating to allow Auth plugins
@@ -90,11 +95,13 @@ func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
-var gitRawPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|raw/)`)
-var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+var (
+	gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
+	lfsPathRe           = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+)
 
-func isGitRawOrLFSPath(req *http.Request) bool {
-	if gitRawPathRe.MatchString(req.URL.Path) {
+func isGitRawReleaseOrLFSPath(req *http.Request) bool {
+	if gitRawReleasePathRe.MatchString(req.URL.Path) {
 		return true
 	}
 	if setting.LFS.StartServer {
@@ -104,16 +111,24 @@ func isGitRawOrLFSPath(req *http.Request) bool {
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *models.User) {
+func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
+	// We need to regenerate the session...
+	newSess, err := session.RegenerateSession(resp, req)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error regenerating session: %v", err))
+	} else {
+		sess = newSess
+	}
+
 	_ = sess.Delete("openid_verified_uri")
 	_ = sess.Delete("openid_signin_remember")
 	_ = sess.Delete("openid_determined_email")
 	_ = sess.Delete("openid_determined_username")
 	_ = sess.Delete("twofaUid")
 	_ = sess.Delete("twofaRemember")
-	_ = sess.Delete("u2fChallenge")
+	_ = sess.Delete("webauthnAssertion")
 	_ = sess.Delete("linkAccount")
-	err := sess.Set("uid", user.ID)
+	err = sess.Set("uid", user.ID)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
@@ -127,7 +142,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
-		if err := models.UpdateUserCols(user, "language"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

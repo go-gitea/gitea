@@ -6,60 +6,14 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 )
-
-// AccessMode specifies the users access mode
-type AccessMode int
-
-const (
-	// AccessModeNone no access
-	AccessModeNone AccessMode = iota // 0
-	// AccessModeRead read access
-	AccessModeRead // 1
-	// AccessModeWrite write access
-	AccessModeWrite // 2
-	// AccessModeAdmin admin access
-	AccessModeAdmin // 3
-	// AccessModeOwner owner access
-	AccessModeOwner // 4
-)
-
-func (mode AccessMode) String() string {
-	switch mode {
-	case AccessModeRead:
-		return "read"
-	case AccessModeWrite:
-		return "write"
-	case AccessModeAdmin:
-		return "admin"
-	case AccessModeOwner:
-		return "owner"
-	default:
-		return "none"
-	}
-}
-
-// ColorFormat provides a ColorFormatted version of this AccessMode
-func (mode AccessMode) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(mode),
-		mode)
-}
-
-// ParseAccessMode returns corresponding access mode to given permission string.
-func ParseAccessMode(permission string) AccessMode {
-	switch permission {
-	case "write":
-		return AccessModeWrite
-	case "admin":
-		return AccessModeAdmin
-	default:
-		return AccessModeRead
-	}
-}
 
 // Access represents the highest access level of a user to the repository. The only access type
 // that is not in this table is the real owner of a repository. In case of an organization
@@ -68,11 +22,15 @@ type Access struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"UNIQUE(s)"`
 	RepoID int64 `xorm:"UNIQUE(s)"`
-	Mode   AccessMode
+	Mode   perm.AccessMode
 }
 
-func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
-	mode := AccessModeNone
+func init() {
+	db.RegisterModel(new(Access))
+}
+
+func accessLevel(e db.Engine, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
+	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
 
@@ -82,7 +40,7 @@ func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	}
 
 	if !restricted && !repo.IsPrivate {
-		mode = AccessModeRead
+		mode = perm.AccessModeRead
 	}
 
 	if userID == 0 {
@@ -90,7 +48,7 @@ func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	}
 
 	if userID == repo.OwnerID {
-		return AccessModeOwner, nil
+		return perm.AccessModeOwner, nil
 	}
 
 	a := &Access{UserID: userID, RepoID: repo.ID}
@@ -100,68 +58,8 @@ func accessLevel(e Engine, user *User, repo *Repository) (AccessMode, error) {
 	return a.Mode, nil
 }
 
-type repoAccess struct {
-	Access     `xorm:"extends"`
-	Repository `xorm:"extends"`
-}
-
-func (repoAccess) TableName() string {
-	return "access"
-}
-
-// GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
-func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	rows, err := x.
-		Join("INNER", "repository", "repository.id = access.repo_id").
-		Where("access.user_id = ?", user.ID).
-		And("repository.owner_id <> ?", user.ID).
-		Rows(new(repoAccess))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	repos := make(map[*Repository]AccessMode, 10)
-	ownerCache := make(map[int64]*User, 10)
-	for rows.Next() {
-		var repo repoAccess
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, err
-		}
-
-		var ok bool
-		if repo.Owner, ok = ownerCache[repo.OwnerID]; !ok {
-			if err = repo.GetOwner(); err != nil {
-				return nil, err
-			}
-			ownerCache[repo.OwnerID] = repo.Owner
-		}
-
-		repos[&repo.Repository] = repo.Access.Mode
-	}
-	return repos, nil
-}
-
-// GetAccessibleRepositories finds repositories which the user has access but does not own.
-// If limit is smaller than 1 means returns all found results.
-func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := x.
-		Where("owner_id !=? ", user.ID).
-		Desc("updated_unix")
-	if limit > 0 {
-		sess.Limit(limit)
-		repos = make([]*Repository, 0, limit)
-	} else {
-		repos = make([]*Repository, 0, 10)
-	}
-	return repos, sess.
-		Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).
-		Find(&repos)
-}
-
-func maxAccessMode(modes ...AccessMode) AccessMode {
-	max := AccessModeNone
+func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
+	max := perm.AccessModeNone
 	for _, mode := range modes {
 		if mode > max {
 			max = mode
@@ -171,12 +69,12 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 }
 
 type userAccess struct {
-	User *User
-	Mode AccessMode
+	User *user_model.User
+	Mode perm.AccessMode
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode perm.AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {
@@ -185,10 +83,10 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMo
 }
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAccess) (err error) {
-	minMode := AccessModeRead
+func refreshAccesses(e db.Engine, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
+	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
-		minMode = AccessModeWrite
+		minMode = perm.AccessModeWrite
 	}
 
 	newAccesses := make([]Access, 0, len(accessMap))
@@ -219,12 +117,15 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAcces
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e, ListOptions{})
+func refreshCollaboratorAccesses(e db.Engine, repoID int64, accessMap map[int64]*userAccess) error {
+	collaborators, err := getCollaborators(e, repoID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
 	for _, c := range collaborators {
+		if c.User.IsGhost() {
+			continue
+		}
 		updateUserAccess(accessMap, c.User, c.Collaboration.Mode)
 	}
 	return nil
@@ -233,24 +134,27 @@ func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int6
 // recalculateTeamAccesses recalculates new accesses for teams of an organization
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
-func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err error) {
+func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
 
-	if err = repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	e := db.GetEngine(ctx)
+
+	if err = refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.getTeams(e); err != nil {
+	teams, err := OrgFromUser(repo.Owner).loadTeams(e)
+	if err != nil {
 		return err
 	}
 
-	for _, t := range repo.Owner.Teams {
+	for _, t := range teams {
 		if t.ID == ignTeamID {
 			continue
 		}
@@ -258,7 +162,7 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 		// Owner team gets owner access, and skip for teams that do not
 		// have relations with repository.
 		if t.IsOwnerTeam() {
-			t.Authorize = AccessModeOwner
+			t.AccessMode = perm.AccessModeOwner
 		} else if !t.hasRepository(e, repo.ID) {
 			continue
 		}
@@ -267,30 +171,31 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
 		}
 		for _, m := range t.Members {
-			updateUserAccess(accessMap, m, t.Authorize)
+			updateUserAccess(accessMap, m, t.AccessMode)
 		}
 	}
 
-	return repo.refreshAccesses(e, accessMap)
+	return refreshAccesses(e, repo, accessMap)
 }
 
 // recalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
-	minMode := AccessModeRead
+func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
+	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
-		minMode = AccessModeWrite
+		minMode = perm.AccessModeWrite
 	}
 
-	accessMode := AccessModeNone
-	collaborator, err := repo.getCollaboration(e, uid)
+	accessMode := perm.AccessModeNone
+	e := db.GetEngine(ctx)
+	collaborator, err := getCollaboration(e, repo.ID, uid)
 	if err != nil {
 		return err
 	} else if collaborator != nil {
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []Team
@@ -305,10 +210,10 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 
 		for _, t := range teams {
 			if t.IsOwnerTeam() {
-				t.Authorize = AccessModeOwner
+				t.AccessMode = perm.AccessModeOwner
 			}
 
-			accessMode = maxAccessMode(accessMode, t.Authorize)
+			accessMode = maxAccessMode(accessMode, t.AccessMode)
 		}
 	}
 
@@ -323,19 +228,20 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 	return nil
 }
 
-func (repo *Repository) recalculateAccesses(e Engine) error {
+func recalculateAccesses(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.Owner.IsOrganization() {
-		return repo.recalculateTeamAccesses(e, 0)
+		return recalculateTeamAccesses(ctx, repo, 0)
 	}
 
+	e := db.GetEngine(ctx)
 	accessMap := make(map[int64]*userAccess, 20)
-	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	if err := refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
-	return repo.refreshAccesses(e, accessMap)
+	return refreshAccesses(e, repo, accessMap)
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
-func (repo *Repository) RecalculateAccesses() error {
-	return repo.recalculateAccesses(x)
+func RecalculateAccesses(repo *repo_model.Repository) error {
+	return recalculateAccesses(db.DefaultContext, repo)
 }

@@ -5,7 +5,7 @@
 package avatar
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -30,7 +30,7 @@ func Test_PrepareWithPNG(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
-	data, err := ioutil.ReadFile("testdata/avatar.png")
+	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
 	imgPtr, err := Prepare(data)
@@ -44,7 +44,7 @@ func Test_PrepareWithJPEG(t *testing.T) {
 	setting.Avatar.MaxWidth = 4096
 	setting.Avatar.MaxHeight = 4096
 
-	data, err := ioutil.ReadFile("testdata/avatar.jpeg")
+	data, err := os.ReadFile("testdata/avatar.jpeg")
 	assert.NoError(t, err)
 
 	imgPtr, err := Prepare(data)
@@ -61,11 +61,12 @@ func Test_PrepareWithInvalidImage(t *testing.T) {
 	_, err := Prepare([]byte{})
 	assert.EqualError(t, err, "DecodeConfig: image: unknown format")
 }
+
 func Test_PrepareWithInvalidImageSize(t *testing.T) {
 	setting.Avatar.MaxWidth = 5
 	setting.Avatar.MaxHeight = 5
 
-	data, err := ioutil.ReadFile("testdata/avatar.png")
+	data, err := os.ReadFile("testdata/avatar.png")
 	assert.NoError(t, err)
 
 	_, err = Prepare(data)

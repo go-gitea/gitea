@@ -92,7 +92,7 @@ shouldn't be touched without fully understanding these components.
 
 Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/main/templates/home.tmpl) for your version of Gitea from `templates` to `$GITEA_CUSTOM/templates`.
 Edit as you wish.
-Dont forget to restart your gitea to apply the changes.
+Dont forget to restart your Gitea to apply the changes.
 
 ### Adding links and tabs
 
@@ -248,7 +248,7 @@ $GITEA_CUSTOM/public
            `-- three.min.js
 ```
 
-Then restart gitea and open a STL file on your gitea instance.
+Then restart Gitea and open a STL file on your Gitea instance.
 
 ## Customizing Gitea mails
 
@@ -287,7 +287,7 @@ To add a custom license, add a file with the license text to `$GITEA_CUSTOM/opti
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea).
+Locales are managed via our [Crowdin](https://crowdin.com/project/gitea).
 You can override a locale by placing an altered locale file in `$GITEA_CUSTOM/options/locale`.
 Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/main/options/locale) source folder and these should be used as examples for your changes.
 
@@ -321,8 +321,24 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
-As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
+The default theme can be changed via `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+Gitea also has support for user themes, which means every user can select which theme should be used.
+The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+To make a custom theme available to all users:
+
+1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+
+Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
+
+The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
+
+If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
+This allows Gitea to adjust the Monaco code editor's theme accordingly.
 
 ## Customizing fonts
 

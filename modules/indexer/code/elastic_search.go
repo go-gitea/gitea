@@ -9,12 +9,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -36,9 +35,7 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var (
-	_ Indexer = &ElasticSearchIndexer{}
-)
+var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
@@ -83,7 +80,10 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 		indexerAliasName: indexerName,
 	}
 	exists, err := indexer.init()
-
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, !exists, err
 }
 
@@ -129,7 +129,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 		return false, err
 	}
 	if !exists {
-		var mapping = defaultMapping
+		mapping := defaultMapping
 
 		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
 		if err != nil {
@@ -175,7 +175,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -184,7 +184,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {
 			return nil, err
@@ -207,7 +207,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 		return nil, err
 	}
 
-	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -234,7 +234,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) elastic.BulkableRequest {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.indexerAliasName).
@@ -242,15 +242,20 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
+			return err
+		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -320,7 +325,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		}
 
 		repoID, fileName := parseIndexerID(hit.Id)
-		var res = make(map[string]interface{})
+		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -371,7 +376,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		var repoStrs = make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]interface{}, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

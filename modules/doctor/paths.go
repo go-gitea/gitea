@@ -5,8 +5,8 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +27,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	fi, err := os.Stat(fileOpts.Path)
 	if err != nil {
 		if os.IsNotExist(err) && autofix && fileOpts.IsDirectory {
-			if err := os.MkdirAll(fileOpts.Path, 0777); err != nil {
+			if err := os.MkdirAll(fileOpts.Path, 0o777); err != nil {
 				logger.Error("    Directory does not exist and could not be created. ERROR: %v", err)
 				return fmt.Errorf("Configuration directory: \"%q\" does not exist and could not be created. ERROR: %v", fileOpts.Path, err)
 			}
@@ -59,7 +59,7 @@ func checkConfigurationFile(logger log.Logger, autofix bool, fileOpts configurat
 	return nil
 }
 
-func checkConfigurationFiles(logger log.Logger, autofix bool) error {
+func checkConfigurationFiles(ctx context.Context, logger log.Logger, autofix bool) error {
 	if fi, err := os.Stat(setting.CustomConf); err != nil || !fi.Mode().IsRegular() {
 		logger.Error("Failed to find configuration file at '%s'.", setting.CustomConf)
 		logger.Error("If you've never ran Gitea yet, this is normal and '%s' will be created for you on first run.", setting.CustomConf)
@@ -68,7 +68,7 @@ func checkConfigurationFiles(logger log.Logger, autofix bool) error {
 		return err
 	}
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},
@@ -102,7 +102,7 @@ func isWritableDir(path string) error {
 	// There's no platform-independent way of checking if a directory is writable
 	// https://stackoverflow.com/questions/20026320/how-to-tell-if-folder-exists-and-is-writable
 
-	tmpFile, err := ioutil.TempFile(path, "doctors-order")
+	tmpFile, err := os.CreateTemp(path, "doctors-order")
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
@@ -21,7 +22,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
+		res, err := NewCommandContext(repo.Ctx, "rev-parse", "--verify", idStr).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
 		}

@@ -5,19 +5,20 @@
 package repository
 
 import (
-	"container/list"
 	"crypto/md5"
 	"fmt"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -48,8 +49,8 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	}
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
-	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository)
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
 	assert.NotNil(t, headCommit)
@@ -100,7 +101,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -123,13 +124,13 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	}
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=112",
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=84",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/"+
 			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
-			"?d=identicon&s=112",
+			"?d=identicon&s=84",
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
@@ -173,21 +174,22 @@ func TestListToPushCommits(t *testing.T) {
 	hash2, err := git.NewIDFromString(hexString2)
 	assert.NoError(t, err)
 
-	l := list.New()
-	l.PushBack(&git.Commit{
-		ID:            hash1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message1",
-	})
-	l.PushBack(&git.Commit{
-		ID:            hash2,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message2",
-	})
+	l := []*git.Commit{
+		{
+			ID:            hash1,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message1",
+		},
+		{
+			ID:            hash2,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message2",
+		},
+	}
 
-	pushCommits := ListToPushCommits(l)
+	pushCommits := GitToPushCommits(l)
 	if assert.Len(t, pushCommits.Commits, 2) {
 		assert.Equal(t, "Message1", pushCommits.Commits[0].Message)
 		assert.Equal(t, hexString1, pushCommits.Commits[0].Sha1)

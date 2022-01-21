@@ -9,9 +9,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // This file contains common functions between the gogit and !gogit variants for git Blobs
@@ -29,7 +29,7 @@ func (b *Blob) GetBlobContent() (string, error) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 	return string(buf), nil
 }
@@ -83,7 +83,7 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 		}
 	}()
 
-	out, err := ioutil.ReadAll(pr)
+	out, err := io.ReadAll(pr)
 	if err != nil {
 		return "", err
 	}

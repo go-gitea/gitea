@@ -37,8 +37,14 @@
 						{{$repo := (index $.RepoMaps .RepoID)}}
 						<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
 							<h4 class="ui top attached normal header">
-								<span class="file"><a rel="nofollow" href="{{EscapePound $repo.HTMLURL}}">{{$repo.FullName}}</a> - {{.Filename}}</span>
-								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								<span class="file">
+									<a rel="nofollow" href="{{$repo.HTMLURL}}">{{$repo.FullName}}</a>
+										{{if $repo.IsArchived}}
+											<span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+										{{end}}
+									- {{.Filename}}
+								</span>
+								<a class="ui basic tiny button" rel="nofollow" href="{{$repo.HTMLURL}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 							</h4>
 							<div class="ui attached table segment">
 								<div class="file-body file-code code-view">
@@ -47,7 +53,7 @@
 											<tr>
 												<td class="lines-num">
 													{{range .LineNumbers}}
-														<a href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+														<a href="{{$repo.HTMLURL}}/src/commit/{{$result.CommitID | PathEscape}}/{{$result.Filename | PathEscapeSegments}}#L{{.}}"><span>{{.}}</span></a>
 													{{end}}
 												</td>
 												<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines | Safe}}</code></td>

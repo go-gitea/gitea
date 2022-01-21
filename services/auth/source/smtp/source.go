@@ -5,7 +5,7 @@
 package smtp
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -22,16 +22,19 @@ type Source struct {
 	Host           string
 	Port           int
 	AllowedDomains string `xorm:"TEXT"`
-	TLS            bool
+	ForceSMTPS     bool
 	SkipVerify     bool
+	HeloHostname   string
+	DisableHelo    bool
+	SkipLocalTwoFA bool `json:",omitempty"`
 
-	// reference to the loginSource
-	loginSource *models.LoginSource
+	// reference to the authSource
+	authSource *auth.Source
 }
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	return json.UnmarshalHandleDoubleEncode(bs, &source)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
@@ -51,14 +54,14 @@ func (source *Source) HasTLS() bool {
 
 // UseTLS returns if TLS is set
 func (source *Source) UseTLS() bool {
-	return source.TLS
+	return source.ForceSMTPS || source.Port == 465
 }
 
-// SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
-	source.loginSource = loginSource
+// SetAuthSource sets the related AuthSource
+func (source *Source) SetAuthSource(authSource *auth.Source) {
+	source.authSource = authSource
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginSMTP, &Source{})
+	auth.RegisterTypeConfig(auth.SMTP, &Source{})
 }

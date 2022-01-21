@@ -7,7 +7,7 @@ package private
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -44,16 +44,17 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		var ret = struct {
+		ret := struct {
 			Err string `json:"err"`
 		}{}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 		}
 		if err := json.Unmarshal(body, &ret); err != nil {
 			return http.StatusInternalServerError, fmt.Sprintf("Response body Unmarshal error: %v", err.Error())
 		}
+		return http.StatusInternalServerError, ret.Err
 	}
 
 	return http.StatusOK, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName)

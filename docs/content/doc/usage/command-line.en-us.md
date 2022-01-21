@@ -77,10 +77,22 @@ Admin operations:
         - One of `--id`, `--username` or `--email` is required. If more than one is provided then all have to match.
       - Examples:
         - `gitea admin user delete --id 1`
-    - `create`: - Options: - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead. - `--username value`: Username. Required. New in gitea 1.9.0. - `--password value`: Password. Required. - `--email value`: Email. Required. - `--admin`: If provided, this makes the user an admin. Optional. - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false). - `--must-change-password`: If provided, the created user will be required to choose a newer password after
-      the initial login. Optional. (default: true). - `--random-password`: If provided, a randomly generated password will be used as the password of
-      the created user. The value of `--password` will be discarded. Optional. - `--random-password-length`: If provided, it will be used to configure the length of the randomly
-      generated password. Optional. (default: 12) - Examples: - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
+    - `create`:
+      - Options:
+        - `--name value`: Username. Required. As of Gitea 1.9.0, use the `--username` flag instead.
+        - `--username value`: Username. Required. New in Gitea 1.9.0.
+        - `--password value`: Password. Required.
+        - `--email value`: Email. Required.
+        - `--admin`: If provided, this makes the user an admin. Optional.
+        - `--access-token`: If provided, an access token will be created for the user. Optional. (default: false).
+        - `--must-change-password`: If provided, the created user will be required to choose a newer password after the
+          initial login. Optional. (default: true).
+        - `--random-password`: If provided, a randomly generated password will be used as the password of the created
+          user. The value of `--password` will be discarded. Optional.
+        - `--random-password-length`: If provided, it will be used to configure the length of the randomly generated
+          password. Optional. (default: 12)
+      - Examples:
+        - `gitea admin user create --username myname --password asecurepassword --email me@example.com`
     - `change-password`:
       - Options:
         - `--username value`, `-u value`: Username. Required.
@@ -89,7 +101,7 @@ Admin operations:
         - `gitea admin user change-password --username myname --password asecurepassword`
   - `regenerate`
     - Options:
-      - `hooks`: Regenerate git-hooks for all repositories
+      - `hooks`: Regenerate Git Hooks for all repositories
       - `keys`: Regenerate authorized_keys file
     - Examples:
       - `gitea admin regenerate hooks`
@@ -117,6 +129,13 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
+        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Additional scopes to request for this OAuth2 source. (Optional)
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
+        - `--group-claim-name`: Claim name providing group names for this source. (Optional)
+        - `--admin-group`: Group Claim value for administrator users. (Optional)
+        - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -133,8 +152,42 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
+        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Additional scopes to request for this OAuth2 source.
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
+        - `--group-claim-name`: Claim name providing group names for this source. (Optional)
+        - `--admin-group`: Group Claim value for administrator users. (Optional)
+        - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
+    - `add-smtp`:
+      - Options:
+        - `--name`: Application Name. Required.
+        - `--auth-type`: SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5). Default to PLAIN.
+        - `--host`: SMTP host. Required.
+        - `--port`: SMTP port. Required.
+        - `--force-smtps`: SMTPS is always used on port 465. Set this to force SMTPS on other ports.
+        - `--skip-verify`: Skip TLS verify.
+        - `--helo-hostname`: Hostname sent with HELO. Leave blank to send current hostname.
+        - `--disable-helo`: Disable SMTP helo.
+        - `--allowed-domains`: Leave empty to allow all domains. Separate multiple domains with a comma (',').
+        - `--skip-local-2fa`: Skip 2FA to log on.
+        - `--active`: This Authentication Source is Activated.
+        Remarks:
+        `--force-smtps`, `--skip-verify`, `--disable-helo`, `--skip-loca-2fs` and `--active` options can be used in form:
+        - `--option`, `--option=true` to enable
+        - `--option=false` to disable
+        If those options are not specified value would not be changed in `update-smtp` or would use default `false` value in `add-smtp`
+      - Examples:
+        - `gitea admin auth add-smtp --name ldap --host smtp.mydomain.org --port 587 --skip-verify --active`
+    - `update-smtp`:
+      - Options:
+        - `--id`: ID of source to be updated. Required.
+        - other options are shared with `add-smtp`
+      - Examples:
+        - `gitea admin auth update-smtp --id 1 --host smtp.mydomain.org --port 587 --skip-verify=false`
+        - `gitea admin auth update-smtp --id 1 --active=false`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
       - Options:
         - `--name value`: Authentication name. Required.
@@ -152,6 +205,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
         - `--bind-password value`: The password for the Bind DN, if any.
         - `--attributes-in-bind`: Fetch attributes in bind DN context.
@@ -177,6 +231,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
         - `--bind-password value`: The password for the Bind DN, if any.
         - `--attributes-in-bind`: Fetch attributes in bind DN context.
@@ -202,6 +257,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--user-dn value`: The user’s DN. Required.
       - Examples:
         - `gitea admin auth add-ldap-simple --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-dn "cn=%s,ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(cn=%s))" --email-attribute mail`
@@ -223,6 +279,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--user-dn value`: The user’s DN.
       - Examples:
         - `gitea admin auth update-ldap-simple --id 1 --name "my ldap auth source"`
@@ -285,7 +342,7 @@ Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd confi
 ```ini
 ...
 # The value of -e and the AuthorizedKeysCommandUser should match the
-# username running gitea
+# username running Gitea
 AuthorizedKeysCommandUser git
 AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
 ```
@@ -295,7 +352,7 @@ provided key. You should also set the value
 `SSH_CREATE_AUTHORIZED_KEYS_FILE=false` in the `[server]` section of
 `app.ini`.
 
-NB: opensshd requires the gitea program to be owned by root and not
+NB: opensshd requires the Gitea program to be owned by root and not
 writable by group or others. The program must be specified by an absolute
 path.
 NB: Gitea must be running for this command to succeed.
@@ -311,13 +368,13 @@ Converts an existing MySQL database from utf8 to utf8mb4.
 
 ### doctor
 
-Diagnose the problems of current gitea instance according the given configuration.
+Diagnose the problems of current Gitea instance according the given configuration.
 Currently there are a check list below:
 
 - Check if OpenSSH authorized_keys file id correct
-  When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys`
-  when there is any public key added or changed on your gitea instance.
-  Sometimes if you moved or renamed your gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
+  When your Gitea instance support OpenSSH, your Gitea instance binary path will be written to `authorized_keys`
+  when there is any public key added or changed on your Gitea instance.
+  Sometimes if you moved or renamed your Gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
   This check will help you to check if it works well.
 
 For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
@@ -351,7 +408,7 @@ with the defaults set appropriately by using:
 gitea doctor recreate-table user
 ```
 
-You can ask gitea to recreate multiple tables using:
+You can ask Gitea to recreate multiple tables using:
 
 ```
 gitea doctor recreate-table table1 table2 ...
@@ -449,7 +506,7 @@ Manage running server operations:
 
 ### dump-repo
 
-Dump-repo dumps repository data from git/github/gitea/gitlab:
+Dump-repo dumps repository data from Git/GitHub/Gitea/GitLab:
 
 - Options:
   - `--git_service service` : Git service, it could be `git`, `github`, `gitea`, `gitlab`, If clone_addr could be recognized, this could be ignored.

@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -22,12 +21,14 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
 
 func storageHandler(storageSetting setting.Storage, prefix string, objStore storage.ObjectStorage) func(next http.Handler) http.Handler {
+	funcInfo := routing.GetFuncInfo(storageHandler, prefix)
 	return func(next http.Handler) http.Handler {
 		if storageSetting.ServeDirect {
 			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -40,6 +41,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					next.ServeHTTP(w, req)
 					return
 				}
+				routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 				rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 				u, err := objStore.URL(rPath, path.Base(rPath))
@@ -74,6 +76,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				next.ServeHTTP(w, req)
 				return
 			}
+			routing.UpdateFuncInfo(req.Context(), funcInfo)
 
 			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
@@ -89,7 +92,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			//If we have matched and access to release or issue
+			// If we have matched and access to release or issue
 			fr, err := objStore.Open(rPath)
 			if err != nil {
 				if os.IsNotExist(err) || errors.Is(err, os.ErrNotExist) {
@@ -122,40 +125,25 @@ func (d *dataStore) GetData() map[string]interface{} {
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // This error will be created with the gitea 500 page.
 func Recovery() func(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
+	rnd := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
+					routing.UpdatePanicError(req.Context(), err)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+					log.Error("%s", combinedErr)
 
 					sessionStore := session.GetSession(req)
-					if sessionStore == nil {
-						if setting.IsProd() {
-							http.Error(w, http.StatusText(500), 500)
-						} else {
-							http.Error(w, combinedErr, 500)
-						}
-						return
-					}
 
-					var lc = middleware.Locale(w, req)
-					var store = dataStore{
+					lc := middleware.Locale(w, req)
+					store := dataStore{
 						"Language":   lc.Language(),
 						"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
 						"i18n":       lc,
 					}
 
-					var user *models.User
-					if apiContext := context.GetAPIContext(req); apiContext != nil {
-						user = apiContext.User
-					}
-					if user == nil {
-						if ctx := context.GetContext(req); ctx != nil {
-							user = ctx.User
-						}
-					}
+					user := context.GetContextUser(req)
 					if user == nil {
 						// Get user from session if logged in - do not attempt to sign-in
 						user = auth.SessionUser(sessionStore)
@@ -173,7 +161,7 @@ func Recovery() func(next http.Handler) http.Handler {
 
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-					if !setting.IsProd() {
+					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
 					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))

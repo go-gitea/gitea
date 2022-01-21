@@ -16,14 +16,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	QueueLength     int
-	Name            string
-	From            string
-	FromName        string
-	FromEmail       string
-	SendAsPlainText bool
-	MailerType      string
-	SubjectPrefix   string
+	Name                 string
+	From                 string
+	EnvelopeFrom         string
+	OverrideEnvelopeFrom bool `ini:"-"`
+	FromName             string
+	FromEmail            string
+	SendAsPlainText      bool
+	MailerType           string
+	SubjectPrefix        string
 
 	// SMTP sender
 	Host              string
@@ -36,15 +37,14 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	SendmailPath    string
-	SendmailArgs    []string
-	SendmailTimeout time.Duration
+	SendmailPath        string
+	SendmailArgs        []string
+	SendmailTimeout     time.Duration
+	SendmailConvertCRLF bool
 }
 
-var (
-	// MailService the global mailer
-	MailService *Mailer
-)
+// MailService the global mailer
+var MailService *Mailer
 
 func newMailService() {
 	sec := Cfg.Section("mailer")
@@ -54,7 +54,6 @@ func newMailService() {
 	}
 
 	MailService = &Mailer{
-		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
 		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
@@ -71,18 +70,22 @@ func newMailService() {
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
-		SendmailPath:    sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
+	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
-		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "USE_SENDMAIL", "mailer", "MAILER_TYPE")
 	if sec.HasKey("USE_SENDMAIL") {
-		log.Warn("USE_SENDMAIL is deprecated, use MAILER_TYPE=sendmail")
 		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
 			MailService.MailerType = "sendmail"
 		}
@@ -94,6 +97,21 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	switch MailService.EnvelopeFrom {
+	case "":
+		MailService.OverrideEnvelopeFrom = false
+	case "<>":
+		MailService.EnvelopeFrom = ""
+		MailService.OverrideEnvelopeFrom = true
+	default:
+		parsed, err = mail.ParseAddress(MailService.EnvelopeFrom)
+		if err != nil {
+			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
+		}
+		MailService.OverrideEnvelopeFrom = true
+		MailService.EnvelopeFrom = parsed.Address
+	}
 
 	if MailService.MailerType == "" {
 		MailService.MailerType = "smtp"

@@ -5,10 +5,12 @@
 package markup_test
 
 import (
+	"io"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,29 +26,43 @@ var localMetas = map[string]string{
 }
 
 func TestRender_Commits(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-
+	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
+			Ctx:       git.DefaultContext,
 			Filename:  ".md",
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	var commit = util.URLJoin(AppSubURL, "commit", sha)
-	var subtree = util.URLJoin(commit, "src")
-	var tree = strings.ReplaceAll(subtree, "/commit/", "/tree/")
+	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	repo := TestRepoURL
+	commit := util.URLJoin(repo, "commit", sha)
+	tree := util.URLJoin(repo, "tree", sha, "src")
+
+	file := util.URLJoin(repo, "commit", sha, "example.txt")
+	fileWithExtra := file + ":"
+	fileWithHash := file + "#L2"
+	fileWithHasExtra := file + "#L2:"
+	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
+	commitCompareWithHash := commitCompare + "#L2"
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
 	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
+
+	test(file, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a></p>`)
+	test(fileWithExtra, `<p><a href="`+file+`" rel="nofollow"><code>65f1bf27bc/example.txt</code></a>:</p>`)
+	test(fileWithHash, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a></p>`)
+	test(fileWithHasExtra, `<p><a href="`+fileWithHash+`" rel="nofollow"><code>65f1bf27bc/example.txt (L2)</code></a>:</p>`)
+	test(commitCompare, `<p><a href="`+commitCompare+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc</code></a></p>`)
+	test(commitCompareWithHash, `<p><a href="`+commitCompareWithHash+`" rel="nofollow"><code>65f1bf27bc...65f1bf27bc (L2)</code></a></p>`)
+
 	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
@@ -60,8 +76,7 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
@@ -75,21 +90,20 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"gogits/gogs#12345",
-		`<p><a href="`+util.URLJoin(AppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogits", "gogs", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogits/gogs#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="`+util.URLJoin(AppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
-	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	var commit = util.URLJoin(AppSubURL, "commit", sha)
+	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	commit := util.URLJoin(TestRepoURL, "commit", sha)
 
 	assert.True(t, IsSameDomain(commit))
 	assert.False(t, IsSameDomain("http://google.com/ncr"))
@@ -97,13 +111,12 @@ func TestMisc_IsSameDomain(t *testing.T) {
 }
 
 func TestRender_links(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
 			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -197,13 +210,12 @@ func TestRender_links(t *testing.T) {
 }
 
 func TestRender_email(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
 			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -254,15 +266,14 @@ func TestRender_email(t *testing.T) {
 }
 
 func TestRender_emoji(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-	setting.StaticURLPrefix = AppURL
+	setting.AppURL = TestAppURL
+	setting.StaticURLPrefix = TestAppURL
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
 			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -280,7 +291,7 @@ func TestRender_emoji(t *testing.T) {
 			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
 	}
 
-	//Text that should be turned into or recognized as emoji
+	// Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
 		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
@@ -319,9 +330,8 @@ func TestRender_emoji(t *testing.T) {
 }
 
 func TestRender_ShortLinks(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-	tree := util.URLJoin(AppSubURL, "src", "master")
+	setting.AppURL = TestAppURL
+	tree := util.URLJoin(TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
@@ -330,7 +340,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
 		}, input)
@@ -338,7 +348,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	rawtree := util.URLJoin(AppSubURL, "raw", "master")
+	rawtree := util.URLJoin(TestRepoURL, "raw", "master")
 	url := util.URLJoin(tree, "Link")
 	otherURL := util.URLJoin(tree, "Other-Link")
 	encodedURL := util.URLJoin(tree, "Link%3F")
@@ -346,13 +356,13 @@ func TestRender_ShortLinks(t *testing.T) {
 	otherImgurl := util.URLJoin(rawtree, "Link+Other.jpg")
 	encodedImgurl := util.URLJoin(rawtree, "Link+%23.jpg")
 	notencodedImgurl := util.URLJoin(rawtree, "some", "path", "Link+#.jpg")
-	urlWiki := util.URLJoin(AppSubURL, "wiki", "Link")
-	otherURLWiki := util.URLJoin(AppSubURL, "wiki", "Other-Link")
-	encodedURLWiki := util.URLJoin(AppSubURL, "wiki", "Link%3F")
-	imgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link.jpg")
-	otherImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link+Other.jpg")
-	encodedImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link+%23.jpg")
-	notencodedImgurlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "some", "path", "Link+#.jpg")
+	urlWiki := util.URLJoin(TestRepoURL, "wiki", "Link")
+	otherURLWiki := util.URLJoin(TestRepoURL, "wiki", "Other-Link")
+	encodedURLWiki := util.URLJoin(TestRepoURL, "wiki", "Link%3F")
+	imgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link.jpg")
+	otherImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+Other.jpg")
+	encodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "Link+%23.jpg")
+	notencodedImgurlWiki := util.URLJoin(TestRepoURL, "wiki", "raw", "some", "path", "Link+#.jpg")
 	favicon := "http://google.com/favicon.ico"
 
 	test(
@@ -426,9 +436,8 @@ func TestRender_ShortLinks(t *testing.T) {
 }
 
 func TestRender_RelativeImages(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
-	tree := util.URLJoin(AppSubURL, "src", "master")
+	setting.AppURL = TestAppURL
+	tree := util.URLJoin(TestRepoURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
@@ -438,7 +447,7 @@ func TestRender_RelativeImages(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer, err = markdown.RenderString(&RenderContext{
-			URLPrefix: setting.AppSubURL,
+			URLPrefix: TestRepoURL,
 			Metas:     localMetas,
 			IsWiki:    true,
 		}, input)
@@ -446,8 +455,8 @@ func TestRender_RelativeImages(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
-	rawwiki := util.URLJoin(AppSubURL, "wiki", "raw")
-	mediatree := util.URLJoin(AppSubURL, "media", "master")
+	rawwiki := util.URLJoin(TestRepoURL, "wiki", "raw")
+	mediatree := util.URLJoin(TestRepoURL, "media", "master")
 
 	test(
 		`<img src="Link">`,
@@ -461,10 +470,9 @@ func TestRender_RelativeImages(t *testing.T) {
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
-	var localMetas = map[string]string{
+	localMetas := map[string]string{
 		"user": "go-gitea",
 		"repo": "gitea",
 	}
@@ -492,10 +500,9 @@ func Test_ParseClusterFuzz(t *testing.T) {
 }
 
 func TestIssue16020(t *testing.T) {
-	setting.AppURL = AppURL
-	setting.AppSubURL = AppSubURL
+	setting.AppURL = TestAppURL
 
-	var localMetas = map[string]string{
+	localMetas := map[string]string{
 		"user": "go-gitea",
 		"repo": "gitea",
 	}
@@ -525,4 +532,19 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 		}, strings.NewReader(data), &res)
 		assert.NoError(b, err)
 	}
+}
+
+func TestFuzz(t *testing.T) {
+	s := "t/l/issues/8#/../../a"
+	renderContext := RenderContext{
+		URLPrefix: "https://example.com/go-gitea/gitea",
+		Metas: map[string]string{
+			"user": "go-gitea",
+			"repo": "gitea",
+		},
+	}
+
+	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
+
+	assert.NoError(t, err)
 }

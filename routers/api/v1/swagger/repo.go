@@ -254,6 +254,13 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
+// Note
+// swagger:response Note
+type swaggerNote struct {
+	// in: body
+	Body api.Note `json:"body"`
+}
+
 // EmptyRepository
 // swagger:response EmptyRepository
 type swaggerEmptyRepository struct {
@@ -315,4 +322,25 @@ type swaggerLanguageStatistics struct {
 type swaggerCombinedStatus struct {
 	// in: body
 	Body api.CombinedStatus `json:"body"`
+}
+
+// WikiPageList
+// swagger:response WikiPageList
+type swaggerWikiPageList struct {
+	// in:body
+	Body []api.WikiPageMetaData `json:"body"`
+}
+
+// WikiPage
+// swagger:response WikiPage
+type swaggerWikiPage struct {
+	// in:body
+	Body api.WikiPage `json:"body"`
+}
+
+// WikiCommitList
+// swagger:response WikiCommitList
+type swaggerWikiCommitList struct {
+	// in:body
+	Body api.WikiCommitList `json:"body"`
 }

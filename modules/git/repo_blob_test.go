@@ -6,7 +6,7 @@ package git
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -34,7 +34,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 		dataReader, err := blob.DataAsync()
 		assert.NoError(t, err)
 
-		data, err := ioutil.ReadAll(dataReader)
+		data, err := io.ReadAll(dataReader)
 		assert.NoError(t, dataReader.Close())
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.Data, data)

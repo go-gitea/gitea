@@ -5,7 +5,10 @@
 package convert
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -19,22 +22,24 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		URL:       n.APIURL(),
 	}
 
-	//since user only get notifications when he has access to use minimal access mode
+	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(n.Repository, models.AccessModeRead)
+		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
 	}
 
-	//handle Subject
+	// handle Subject
 	switch n.Source {
 	case models.NotificationSourceIssue:
 		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 		}
 	case models.NotificationSourcePullRequest:
@@ -42,10 +47,12 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 
 			pr, _ := n.Issue.GetPullRequest()
@@ -54,16 +61,20 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 		}
 	case models.NotificationSourceCommit:
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
-			Type:  api.NotifySubjectCommit,
-			Title: n.CommitID,
-			URL:   n.Repository.HTMLURL() + "/commit/" + n.CommitID,
+			Type:    api.NotifySubjectCommit,
+			Title:   n.CommitID,
+			URL:     url,
+			HTMLURL: url,
 		}
 	case models.NotificationSourceRepository:
 		result.Subject = &api.NotificationSubject{
 			Type:  api.NotifySubjectRepository,
 			Title: n.Repository.FullName(),
-			URL:   n.Repository.Link(),
+			// FIXME: this is a relative URL, rather useless and inconsistent, but keeping for backwards compat
+			URL:     n.Repository.Link(),
+			HTMLURL: n.Repository.HTMLURL(),
 		}
 	}
 
@@ -72,7 +83,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 // ToNotifications convert list of Notification to api.NotificationThread list
 func ToNotifications(nl models.NotificationList) []*api.NotificationThread {
-	var result = make([]*api.NotificationThread, 0, len(nl))
+	result := make([]*api.NotificationThread, 0, len(nl))
 	for _, n := range nl {
 		result = append(result, ToNotificationThread(n))
 	}

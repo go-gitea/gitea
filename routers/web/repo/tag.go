@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -58,7 +59,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
 // EditProtectedTag render the page to edit a protect tag
@@ -134,14 +135,14 @@ func setTagsContext(ctx *context.Context) error {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsTags"] = true
 
-	protectedTags, err := ctx.Repo.Repository.GetProtectedTags()
+	protectedTags, err := models.GetProtectedTags(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedTags", err)
 		return err
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
-	users, err := ctx.Repo.Repository.GetReaders()
+	users, err := models.GetRepoReaders(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("Repo.Repository.GetReaders", err)
 		return err
@@ -149,7 +150,7 @@ func setTagsContext(ctx *context.Context) error {
 	ctx.Data["Users"] = users
 
 	if ctx.Repo.Owner.IsOrganization() {
-		teams, err := ctx.Repo.Owner.TeamsWithAccessToRepo(ctx.Repo.Repository.ID, models.AccessModeRead)
+		teams, err := models.OrgFromUser(ctx.Repo.Owner).TeamsWithAccessToRepo(ctx.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return err

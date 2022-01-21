@@ -15,7 +15,7 @@
   <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
+  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
   <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">
@@ -36,8 +36,8 @@
   <a href="https://crowdin.com/project/gitea" title="Crowdin">
     <img src="https://badges.crowdin.net/gitea/localized.svg">
   </a>
-  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea" title="TODOs">
-    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea">
+  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
+    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
   <a href="https://www.bountysource.com/teams/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">
@@ -67,14 +67,14 @@ From the root of the source tree, run:
 
     TAGS="bindata" make build
 
-or if sqlite support is required:
+or if SQLite support is required:
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.13](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 12.17](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
+- `make backend` which requires [Go 1.16](https://golang.org/dl/) or greater.
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
 
 When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
 

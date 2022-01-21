@@ -43,13 +43,15 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /git/ { # Note: Trailing slash
-        proxy_pass http://localhost:3000/; # Note: Trailing slash
+    # Note: Trailing slash
+    location /git/ { 
+        # Note: Trailing slash
+        proxy_pass http://localhost:3000/;
     }
 }
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
 ## Nginx and serve static resources directly
 
@@ -58,7 +60,7 @@ We can tune the performance in splitting requests into categories static and dyn
 CSS files, JavaScript files, images and web fonts are static content.
 The front page, a repository view or issue list is dynamic content.
 
-Nginx can serve static resources directly and proxy only the dynamic requests to gitea.
+Nginx can serve static resources directly and proxy only the dynamic requests to Gitea.
 Nginx is optimized for serving static content, while the proxying of large responses might be the opposite of that
 (see [https://serverfault.com/q/587386](https://serverfault.com/q/587386)).
 
@@ -78,7 +80,7 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /_/static {
+    location /_/static/assets {
         alias /path/to/gitea/public;
     }
 
@@ -93,7 +95,7 @@ server {
 Set `[server] STATIC_URL_PREFIX = http://cdn.example.com/gitea` in your configuration.
 
 ```apacheconf
-# application server running gitea
+# application server running Gitea
 server {
     listen 80;
     server_name git.example.com;
@@ -126,6 +128,7 @@ This error indicates nginx is configured to restrict the file upload size.
 
 In your nginx config file containing your Gitea proxy directive, find the `location { ... }` block for Gitea and add the line
 `client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
+If you use Git LFS, this will also limit the size of the largest file you will be able to push.
 
 
 ## Apache HTTPD
@@ -139,11 +142,10 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
-    ProxyPassReverse / http://localhost:3000/
 </VirtualHost>
 ```
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
 
@@ -161,13 +163,12 @@ In case you already have a site, and you want Gitea to share the domain name, yo
     AllowEncodedSlashes NoDecode
     # Note: no trailing slash after either /git or port
     ProxyPass /git http://localhost:3000 nocanon
-    ProxyPassReverse /git http://localhost:3000
 </VirtualHost>
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 ## Caddy
 
@@ -292,3 +293,50 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
     </system.webServer>
 </configuration>
 ```
+
+## HAProxy
+
+If you want HAProxy to serve your Gitea instance, you can add the following to your HAProxy configuration
+
+add an acl in the frontend section to redirect calls to gitea.example.com to the correct backend
+```
+frontend http-in
+    ...
+    acl acl_gitea hdr(host) -i gitea.example.com
+    use_backend gitea if acl_gitea
+    ...
+```
+
+add the previously defined backend section
+```
+backend gitea
+    server localhost:3000 check
+```
+
+If you redirect the http content to https, the configuration work the same way, just remember that the connection between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
+
+## HAProxy with a sub-path
+
+In case you already have a site, and you want Gitea to share the domain name, you can setup HAProxy to serve Gitea under a sub-path by adding the following to you HAProxy configuration:
+
+```
+frontend http-in
+    ...
+    acl acl_gitea path_beg /gitea
+    use_backend gitea if acl_gitea
+    ...
+```
+
+With that configuration http://example.com/gitea/ will redirect to your Gitea instance.
+
+then for the backend section
+```
+backend gitea
+    http-request replace-path /gitea\/?(.*) \/\1
+    server localhost:3000 check
+```
+
+The added http-request will automatically add a trailing slash if needed and internally remove /gitea from the path to allow it to work correctly with Gitea by setting properly http://example.com/gitea as the root.
+
+Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
+

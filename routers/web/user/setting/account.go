@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -21,6 +23,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -72,7 +75,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := models.UpdateUserCols(ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -90,8 +93,8 @@ func EmailPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	// Make emailaddress primary.
-	if ctx.Form("_method") == "PRIMARY" {
-		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+	if ctx.FormString("_method") == "PRIMARY" {
+		if err := user_model.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -101,7 +104,7 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Send activation Email
-	if ctx.Form("_method") == "SENDACTIVATION" {
+	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
@@ -110,7 +113,7 @@ func EmailPost(ctx *context.Context) {
 		}
 
 		id := ctx.FormInt64("id")
-		email, err := models.GetEmailAddressByID(ctx.User.ID, id)
+		email, err := user_model.GetEmailAddressByID(ctx.User.ID, id)
 		if err != nil {
 			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -147,16 +150,16 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Set Email Notification Preference
-	if ctx.Form("_method") == "NOTIFICATION" {
-		preference := ctx.Form("preference")
-		if !(preference == models.EmailNotificationsEnabled ||
-			preference == models.EmailNotificationsOnMention ||
-			preference == models.EmailNotificationsDisabled) {
+	if ctx.FormString("_method") == "NOTIFICATION" {
+		preference := ctx.FormString("preference")
+		if !(preference == user_model.EmailNotificationsEnabled ||
+			preference == user_model.EmailNotificationsOnMention ||
+			preference == user_model.EmailNotificationsDisabled) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+		if err := user_model.SetEmailNotifications(ctx.User, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
@@ -174,18 +177,18 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	email := &models.EmailAddress{
+	email := &user_model.EmailAddress{
 		UID:         ctx.User.ID,
 		Email:       form.Email,
 		IsActivated: !setting.Service.RegisterEmailConfirm,
 	}
-	if err := models.AddEmailAddress(email); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+	if err := user_model.AddEmailAddress(email); err != nil {
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
-		} else if models.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailInvalid(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
@@ -212,7 +215,7 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
@@ -229,8 +232,8 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, err := auth.UserSignIn(ctx.User.Name, ctx.Form("password")); err != nil {
-		if models.IsErrUserNotExist(err) {
+	if _, _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
+		if user_model.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
@@ -240,7 +243,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(ctx.User); err != nil {
+	if err := user.DeleteUser(ctx.User); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
@@ -257,42 +260,14 @@ func DeleteAccount(ctx *context.Context) {
 	}
 }
 
-// UpdateUIThemePost is used to update users' specific theme
-func UpdateUIThemePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
-	ctx.Data["PageIsSettingsAccount"] = true
-
-	if ctx.HasError() {
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		return
-	}
-
-	if !form.IsThemeExists() {
-		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		return
-	}
-
-	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
-		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		return
-	}
-
-	log.Trace("Update user theme: %s", ctx.User.Name)
-	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
-	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-}
-
 func loadAccountData(ctx *context.Context) {
-	emlist, err := models.GetEmailAddresses(ctx.User.ID)
+	emlist, err := user_model.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
 	type UserEmail struct {
-		models.EmailAddress
+		user_model.EmailAddress
 		CanBePrimary bool
 	}
 	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)

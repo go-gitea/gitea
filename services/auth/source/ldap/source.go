@@ -7,7 +7,7 @@ package ldap
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,6 +41,7 @@ type Source struct {
 	AttributeMail         string // E-mail attribute
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	AttributeAvatar       string
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
@@ -52,14 +53,15 @@ type Source struct {
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
 	UserUID               string // User Attribute listed in Group
+	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
-	// reference to the loginSource
-	loginSource *models.LoginSource
+	// reference to the authSource
+	authSource *auth.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	err := models.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	err := json.UnmarshalHandleDoubleEncode(bs, &source)
 	if err != nil {
 		return err
 	}
@@ -107,12 +109,12 @@ func (source *Source) ProvidesSSHKeys() bool {
 	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 }
 
-// SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
-	source.loginSource = loginSource
+// SetAuthSource sets the related AuthSource
+func (source *Source) SetAuthSource(authSource *auth.Source) {
+	source.authSource = authSource
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginLDAP, &Source{})
-	models.RegisterLoginTypeConfig(models.LoginDLDAP, &Source{})
+	auth.RegisterTypeConfig(auth.LDAP, &Source{})
+	auth.RegisterTypeConfig(auth.DLDAP, &Source{})
 }

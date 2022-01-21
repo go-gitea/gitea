@@ -5,7 +5,7 @@
 package misc
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,12 +22,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const (
+	AppURL    = "http://localhost:3000/"
+	Repo      = "gogits/gogs"
+	AppSubURL = AppURL + Repo + "/"
+)
 
 func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecorder) {
-	var rnd = templates.HTMLRenderer()
+	rnd := templates.HTMLRenderer()
 	resp := httptest.NewRecorder()
 	c := &context.Context{
 		Req:    req,
@@ -172,7 +174,7 @@ func TestAPI_RenderRaw(t *testing.T) {
 	ctx := wrap(m)
 
 	for i := 0; i < len(simpleCases); i += 2 {
-		ctx.Req.Body = ioutil.NopCloser(strings.NewReader(simpleCases[i]))
+		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
 		MarkdownRaw(ctx)
 		assert.Equal(t, simpleCases[i+1], resp.Body.String())
 		resp.Body.Reset()

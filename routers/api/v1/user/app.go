@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -44,9 +45,16 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)})
+	opts := models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)}
+
+	count, err := models.CountAccessTokens(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
+		ctx.InternalServerError(err)
+		return
+	}
+	tokens, err := models.ListAccessTokens(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +66,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
@@ -203,7 +213,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
 		RedirectURIs: data.RedirectURIs,
@@ -242,7 +252,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
+	apps, total, err := auth.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -253,6 +263,8 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		apiApps[i] = convert.ToOAuth2Application(apps[i])
 		apiApps[i].ClientSecret = "" // Hide secret on application list
 	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiApps)
 }
 
@@ -276,8 +288,8 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	if err := models.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
-		if models.IsErrOAuthApplicationNotFound(err) {
+	if err := auth.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
+		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
@@ -308,9 +320,9 @@ func GetOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	app, err := models.GetOAuth2ApplicationByID(appID)
+	app, err := auth.GetOAuth2ApplicationByID(appID)
 	if err != nil {
-		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+		if auth.IsErrOauthClientIDInvalid(err) || auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetOauth2ApplicationByID", err)
@@ -351,14 +363,14 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
+	app, err := auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
 		ID:           appID,
 		RedirectURIs: data.RedirectURIs,
 	})
 	if err != nil {
-		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+		if auth.IsErrOauthClientIDInvalid(err) || auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateOauth2ApplicationByID", err)

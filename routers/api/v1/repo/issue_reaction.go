@@ -67,9 +67,9 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, err := models.FindCommentReactions(comment)
+	reactions, _, err := models.FindCommentReactions(comment)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
+		ctx.Error(http.StatusInternalServerError, "FindCommentReactions", err)
 		return
 	}
 	_, err = reactions.LoadUsers(ctx.Repo.Repository)
@@ -225,7 +225,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 			ctx.Error(http.StatusInternalServerError, "DeleteCommentReaction", err)
 			return
 		}
-		//ToDo respond 204
+		// ToDo respond 204
 		ctx.Status(http.StatusOK)
 	}
 }
@@ -285,7 +285,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	reactions, err := models.FindIssueReactions(issue, utils.GetListOptions(ctx))
+	reactions, count, err := models.FindIssueReactions(issue, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
@@ -305,6 +305,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		})
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, result)
 }
 
@@ -434,7 +435,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueReaction", err)
 			return
 		}
-		//ToDo respond 204
+		// ToDo respond 204
 		ctx.Status(http.StatusOK)
 	}
 }

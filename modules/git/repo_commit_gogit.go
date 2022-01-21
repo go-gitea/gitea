@@ -3,6 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
@@ -30,6 +31,16 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	return ref.Hash().String(), nil
 }
 
+// SetReference sets the commit ID string of given reference (e.g. branch or tag).
+func (repo *Repository) SetReference(name, commitID string) error {
+	return repo.gogitRepo.Storer.SetReference(plumbing.NewReferenceFromStrings(name, commitID))
+}
+
+// RemoveReference removes the given reference (e.g. branch or tag).
+func (repo *Repository) RemoveReference(name string) error {
+	return repo.gogitRepo.Storer.RemoveReference(plumbing.ReferenceName(name))
+}
+
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 	if len(commitID) == 40 {
@@ -39,7 +50,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
+	actualCommitID, err := NewCommandContext(repo.Ctx, "rev-parse", "--verify", commitID).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {

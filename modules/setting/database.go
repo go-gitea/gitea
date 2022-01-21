@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	// SupportedDatabases includes all supported databases type
-	SupportedDatabases = []string{"MySQL", "PostgreSQL", "MSSQL"}
-	dbTypes            = map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
+	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
+	// DatabaseTypeNames contains the friendly names for all database types
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
@@ -51,11 +52,6 @@ var (
 		IterateBufferSize: 50,
 	}
 )
-
-// GetDBTypeByName returns the database type as it defined on XORM according the given name
-func GetDBTypeByName(name string) string {
-	return dbTypes[name]
-}
 
 // InitDBConfig loads the database settings
 func InitDBConfig() {
@@ -91,9 +87,9 @@ func InitDBConfig() {
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
-		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFE_TIME").MustDuration(3 * time.Second)
+		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
 	} else {
-		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFE_TIME").MustDuration(0)
+		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
 	}
 	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
@@ -106,7 +102,7 @@ func InitDBConfig() {
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
 	connStr := ""
-	var Param = "?"
+	Param := "?"
 	if strings.Contains(Database.Name, Param) {
 		Param = "&"
 	}

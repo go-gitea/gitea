@@ -81,14 +81,14 @@ type HookPostReceiveBranchResult struct {
 	URL     string
 }
 
-// HockProcReceiveResult represents an individual result from ProcReceive
-type HockProcReceiveResult struct {
-	Results []HockProcReceiveRefResult
+// HookProcReceiveResult represents an individual result from ProcReceive
+type HookProcReceiveResult struct {
+	Results []HookProcReceiveRefResult
 	Err     string
 }
 
-// HockProcReceiveRefResult represents an individual result from ProcReceive
-type HockProcReceiveRefResult struct {
+// HookProcReceiveRefResult represents an individual result from ProcReceive
+type HookProcReceiveRefResult struct {
 	OldOID       string
 	NewOID       string
 	Ref          string
@@ -150,7 +150,7 @@ func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookO
 }
 
 // HookProcReceive proc-receive hook
-func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HockProcReceiveResult, error) {
+func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookProcReceiveResult, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
@@ -170,7 +170,7 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(decodeJSONError(resp).Err)
 	}
-	res := &HockProcReceiveResult{}
+	res := &HookProcReceiveResult{}
 	_ = json.NewDecoder(resp.Body).Decode(res)
 
 	return res, nil

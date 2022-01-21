@@ -5,19 +5,21 @@
 package convert
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPullReview convert a review to api format
-func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) {
-	if err := r.LoadAttributes(); err != nil {
-		if !models.IsErrUserNotExist(err) {
+func ToPullReview(ctx context.Context, r *models.Review, doer *user_model.User) (*api.PullReview, error) {
+	if err := r.LoadAttributes(ctx); err != nil {
+		if !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		}
-		r.Reviewer = models.NewGhostUser()
+		r.Reviewer = user_model.NewGhostUser()
 	}
 
 	result := &api.PullReview{
@@ -53,14 +55,14 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 }
 
 // ToPullReviewList convert a list of review to it's api format
-func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview, error) {
+func ToPullReviewList(ctx context.Context, rl []*models.Review, doer *user_model.User) ([]*api.PullReview, error) {
 	result := make([]*api.PullReview, 0, len(rl))
 	for i := range rl {
 		// show pending reviews only for the user who created them
 		if rl[i].Type == models.ReviewTypePending && !(doer.IsAdmin || doer.ID == rl[i].ReviewerID) {
 			continue
 		}
-		r, err := ToPullReview(rl[i], doer)
+		r, err := ToPullReview(ctx, rl[i], doer)
 		if err != nil {
 			return nil, err
 		}
@@ -70,12 +72,12 @@ func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview
 }
 
 // ToPullReviewCommentList convert the CodeComments of an review to it's api format
-func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
-	if err := review.LoadAttributes(); err != nil {
-		if !models.IsErrUserNotExist(err) {
+func ToPullReviewCommentList(ctx context.Context, review *models.Review, doer *user_model.User) ([]*api.PullReviewComment, error) {
+	if err := review.LoadAttributes(ctx); err != nil {
+		if !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		}
-		review.Reviewer = models.NewGhostUser()
+		review.Reviewer = user_model.NewGhostUser()
 	}
 
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))

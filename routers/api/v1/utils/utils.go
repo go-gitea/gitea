@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -54,14 +54,14 @@ func parseTime(value string) (int64, error) {
 
 // prepareQueryArg unescape and trim a query arg
 func prepareQueryArg(ctx *context.APIContext, name string) (value string, err error) {
-	value, err = url.PathUnescape(ctx.Form(name))
+	value, err = url.PathUnescape(ctx.FormString(name))
 	value = strings.TrimSpace(value)
 	return
 }
 
 // GetListOptions returns list options using the page and limit parameters
-func GetListOptions(ctx *context.APIContext) models.ListOptions {
-	return models.ListOptions{
+func GetListOptions(ctx *context.APIContext) db.ListOptions {
+	return db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}

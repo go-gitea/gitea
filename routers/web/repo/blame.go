@@ -5,20 +5,23 @@
 package repo
 
 import (
-	"container/list"
 	"fmt"
-	"html"
 	gotemplate "html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -37,6 +40,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
+	EscapeStatus   charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -56,7 +60,7 @@ func RefBlame(ctx *context.Context) {
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	var treeNames []string
@@ -87,7 +91,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 
-	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
+	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	ctx.Data["PageIsViewCode"] = true
 
 	ctx.Data["IsBlame"] = true
@@ -101,7 +105,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
@@ -138,15 +142,15 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlame)
 }
 
-func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]models.UserCommit, map[string]string) {
+func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
 	// store commit data by SHA to look up avatar info etc
-	commitNames := make(map[string]models.UserCommit)
+	commitNames := make(map[string]*user_model.UserCommit)
 	// previousCommits contains links from SHA to parent SHA,
 	// if parent also contains the current TreePath.
 	previousCommits := make(map[string]string)
 	// and as blameParts can reference the same commits multiple
 	// times, we cache the lookup work locally
-	commits := list.New()
+	commits := make([]*git.Commit, 0, len(blameParts))
 	commitCache := map[string]*git.Commit{}
 	commitCache[ctx.Repo.Commit.ID.String()] = ctx.Repo.Commit
 
@@ -190,29 +194,51 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 			}
 		}
 
-		commits.PushBack(commit)
-
-		commitNames[commit.ID.String()] = models.UserCommit{}
+		commits = append(commits, commit)
 	}
 
 	// populate commit email addresses to later look up avatars.
-	commits = models.ValidateCommitsWithEmails(commits)
-	for e := commits.Front(); e != nil; e = e.Next() {
-		c := e.Value.(models.UserCommit)
+	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
 		commitNames[c.ID.String()] = c
 	}
 
 	return commitNames, previousCommits
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit, previousCommits map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
-	var lines = make([]string, 0)
-	rows := make([]*blameRow, 0)
+	language := ""
 
-	var i = 0
-	var commitCnt = 0
+	indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
+	if err == nil {
+		defer deleteTemporaryFile()
+
+		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+			CachedOnly: true,
+			Attributes: []string{"linguist-language", "gitlab-language"},
+			Filenames:  []string{ctx.Repo.TreePath},
+			IndexFile:  indexFilename,
+			WorkTree:   worktree,
+		})
+		if err != nil {
+			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+		}
+
+		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+		if language == "" || language == "unspecified" {
+			language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
+		}
+		if language == "unspecified" {
+			language = ""
+		}
+	}
+	lines := make([]string, 0)
+	rows := make([]*blameRow, 0)
+	escapeStatus := charset.EscapeStatus{}
+
+	i := 0
+	commitCnt := 0
 	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
@@ -242,9 +268,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
 				br.PreviousSha = previousSha
-				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
-				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
-				br.CommitMessage = html.EscapeString(commit.CommitMessage)
+				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(previousSha), util.PathEscapeSegments(ctx.Repo.TreePath))
+				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
+				br.CommitMessage = commit.CommitMessage
 				br.CommitSince = commitSince
 			}
 
@@ -252,13 +278,16 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				line += "\n"
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line = highlight.Code(fileName, line)
+			line = highlight.Code(fileName, language, line)
 
+			br.EscapeStatus, line = charset.EscapeControlString(line)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
+			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}
 	}
 
+	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
 }

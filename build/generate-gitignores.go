@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -8,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -33,8 +33,7 @@ func main() {
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
 
-	file, err := ioutil.TempFile(os.TempDir(), prefix)
-
+	file, err := os.CreateTemp(os.TempDir(), prefix)
 	if err != nil {
 		log.Fatalf("Failed to create temp file. %s", err)
 	}
@@ -65,7 +64,6 @@ func main() {
 	}
 
 	gz, err := gzip.NewReader(file)
-
 	if err != nil {
 		log.Fatalf("Failed to gunzip the archive. %s", err)
 	}
@@ -96,7 +94,6 @@ func main() {
 		}
 
 		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".gitignore")))
-
 		if err != nil {
 			log.Fatalf("Failed to create new file. %s", err)
 		}
@@ -113,13 +110,13 @@ func main() {
 	for dst, src := range filesToCopy {
 		// Read all content of src to data
 		src = path.Join(destination, src)
-		data, err := ioutil.ReadFile(src)
+		data, err := os.ReadFile(src)
 		if err != nil {
 			log.Fatalf("Failed to read src file. %s", err)
 		}
 		// Write data to dst
 		dst = path.Join(destination, dst)
-		err = ioutil.WriteFile(dst, data, 0644)
+		err = os.WriteFile(dst, data, 0o644)
 		if err != nil {
 			log.Fatalf("Failed to write new file. %s", err)
 		}

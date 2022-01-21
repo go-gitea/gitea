@@ -50,7 +50,7 @@ func ListTags(ctx *context.APIContext) {
 
 	listOpts := utils.GetListOptions(ctx)
 
-	tags, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTags", err)
 		return
@@ -61,6 +61,7 @@ func ListTags(ctx *context.APIContext) {
 		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
 	}
 
+	ctx.SetTotalCountHeader(int64(total))
 	ctx.JSON(http.StatusOK, &apiTags)
 }
 
@@ -102,7 +103,7 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
 		ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 	} else {
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(ctx.Repo.GitRepo)
 		if err != nil {
 			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 		}
@@ -190,7 +191,7 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err := releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+	if err := releaseservice.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "tag exist", err)
 			return
@@ -254,7 +255,7 @@ func DeleteTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(tag.ID, ctx.User, true); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.User, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 	}
 

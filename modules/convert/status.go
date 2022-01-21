@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -23,7 +24,7 @@ func ToCommitStatus(status *models.CommitStatus) *api.CommitStatus {
 	}
 
 	if status.CreatorID != 0 {
-		creator, _ := models.GetUserByID(status.CreatorID)
+		creator, _ := user_model.GetUserByID(status.CreatorID)
 		apiStatus.Creator = ToUser(creator, nil)
 	}
 
@@ -32,7 +33,6 @@ func ToCommitStatus(status *models.CommitStatus) *api.CommitStatus {
 
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
 func ToCombinedStatus(statuses []*models.CommitStatus, repo *api.Repository) *api.CombinedStatus {
-
 	if len(statuses) == 0 {
 		return nil
 	}

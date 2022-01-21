@@ -409,6 +409,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 func (p *WorkerPool) doWork(ctx context.Context) {
 	delay := time.Millisecond * 300
 
+	// Create a common timer - we will use this elsewhere
 	timer := time.NewTimer(0)
 	if !timer.Stop() {
 		select {
@@ -417,8 +418,8 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 		}
 	}
 
-	var data = make([]Data, 0, p.batchLength)
 	paused, _ := p.IsPausedIsResumed()
+	data := make([]Data, 0, p.batchLength)
 	for {
 		select {
 		case <-paused:

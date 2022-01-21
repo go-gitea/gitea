@@ -7,7 +7,8 @@ package auth
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // Ensure the struct implements the interface.
@@ -59,8 +60,8 @@ func (b *Group) Free() error {
 }
 
 // Verify extracts and validates
-func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-	if !models.HasEngine {
+func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+	if !db.HasEngine {
 		return nil
 	}
 

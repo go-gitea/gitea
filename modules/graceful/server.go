@@ -7,7 +7,6 @@ package graceful
 
 import (
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -96,48 +95,14 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 	return srv.Serve(serve)
 }
 
-// ListenAndServeTLS listens on the provided network address and then calls
-// Serve to handle requests on incoming TLS connections.
-//
-// Filenames containing a certificate and matching private key for the server must
-// be provided. If the certificate is signed by a certificate authority, the
-// certFile should be the concatenation of the server's certificate followed by the
-// CA's certificate.
-func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFunction) error {
-	config := &tls.Config{}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"h2", "http/1.1"}
-	}
-
-	config.Certificates = make([]tls.Certificate, 1)
-
-	certPEMBlock, err := ioutil.ReadFile(certFile)
-	if err != nil {
-		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
-		return err
-	}
-
-	keyPEMBlock, err := ioutil.ReadFile(keyFile)
-	if err != nil {
-		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
-		return err
-	}
-
-	config.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, srv.network, srv.address, err)
-		return err
-	}
-
-	return srv.ListenAndServeTLSConfig(config, serve)
-}
-
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
 	go srv.awaitShutdown()
 
-	tlsConfig.MinVersion = tls.VersionTLS12
+	if tlsConfig.MinVersion == 0 {
+		tlsConfig.MinVersion = tls.VersionTLS12
+	}
 
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
@@ -229,7 +194,7 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 
 	closed := int32(0)
 
-	c = wrappedConn{
+	c = &wrappedConn{
 		Conn:                 c,
 		server:               wl.server,
 		closed:               &closed,
@@ -264,7 +229,7 @@ type wrappedConn struct {
 	perWritePerKbTimeout time.Duration
 }
 
-func (w wrappedConn) Write(p []byte) (n int, err error) {
+func (w *wrappedConn) Write(p []byte) (n int, err error) {
 	if w.perWriteTimeout > 0 {
 		minTimeout := time.Duration(len(p)/1024) * w.perWritePerKbTimeout
 		minDeadline := time.Now().Add(minTimeout).Add(w.perWriteTimeout)
@@ -278,7 +243,7 @@ func (w wrappedConn) Write(p []byte) (n int, err error) {
 	return w.Conn.Write(p)
 }
 
-func (w wrappedConn) Close() error {
+func (w *wrappedConn) Close() error {
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		defer func() {
 			if err := recover(); err != nil {

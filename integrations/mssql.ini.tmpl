@@ -15,6 +15,9 @@ ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mssql/indexers/issues.q
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mssql/indexers/repos.bleve
 
+[queue]
+TYPE = immediate
+
 [queue.code_indexer]
 TYPE = immediate
 

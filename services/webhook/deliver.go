@@ -13,8 +13,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,16 +20,19 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gobwas/glob"
 )
 
 // Deliver deliver hook task
-func Deliver(t *models.HookTask) error {
-	w, err := models.GetWebhookByID(t.HookID)
+func Deliver(t *webhook_model.HookTask) error {
+	w, err := webhook_model.GetWebhookByID(t.HookID)
 	if err != nil {
 		return err
 	}
@@ -55,15 +56,15 @@ func Deliver(t *models.HookTask) error {
 		fallthrough
 	case http.MethodPost:
 		switch w.ContentType {
-		case models.ContentTypeJSON:
+		case webhook_model.ContentTypeJSON:
 			req, err = http.NewRequest("POST", w.URL, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return err
 			}
 
 			req.Header.Set("Content-Type", "application/json")
-		case models.ContentTypeForm:
-			var forms = url.Values{
+		case webhook_model.ContentTypeForm:
+			forms := url.Values{
 				"payload": []string{t.PayloadContent},
 			}
 
@@ -88,16 +89,16 @@ func Deliver(t *models.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case models.MATRIX:
+		case webhook_model.MATRIX:
 			req, err = getMatrixHookRequest(w, t)
 			if err != nil {
 				return err
 			}
 		default:
-			return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
+			return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 		}
 	default:
-		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
+		return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 	}
 
 	var signatureSHA1 string
@@ -113,19 +114,24 @@ func Deliver(t *models.HookTask) error {
 		signatureSHA256 = hex.EncodeToString(sig256.Sum(nil))
 	}
 
+	event := t.EventType.Event()
+	eventType := string(t.EventType)
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
-	req.Header.Add("X-Gitea-Event", t.EventType.Event())
+	req.Header.Add("X-Gitea-Event", event)
+	req.Header.Add("X-Gitea-Event-Type", eventType)
 	req.Header.Add("X-Gitea-Signature", signatureSHA256)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
-	req.Header.Add("X-Gogs-Event", t.EventType.Event())
+	req.Header.Add("X-Gogs-Event", event)
+	req.Header.Add("X-Gogs-Event-Type", eventType)
 	req.Header.Add("X-Gogs-Signature", signatureSHA256)
 	req.Header.Add("X-Hub-Signature", "sha1="+signatureSHA1)
 	req.Header.Add("X-Hub-Signature-256", "sha256="+signatureSHA256)
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
-	req.Header["X-GitHub-Event"] = []string{t.EventType.Event()}
+	req.Header["X-GitHub-Event"] = []string{event}
+	req.Header["X-GitHub-Event-Type"] = []string{eventType}
 
 	// Record delivery information.
-	t.RequestInfo = &models.HookRequest{
+	t.RequestInfo = &webhook_model.HookRequest{
 		URL:        req.URL.String(),
 		HTTPMethod: req.Method,
 		Headers:    map[string]string{},
@@ -134,7 +140,7 @@ func Deliver(t *models.HookTask) error {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	t.ResponseInfo = &models.HookResponse{
+	t.ResponseInfo = &webhook_model.HookResponse{
 		Headers: map[string]string{},
 	}
 
@@ -146,27 +152,27 @@ func Deliver(t *models.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := models.UpdateHookTask(t); err != nil {
+		if err := webhook_model.UpdateHookTask(t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = models.HookStatusSucceed
+			w.LastStatus = webhook_model.HookStatusSucceed
 		} else {
-			w.LastStatus = models.HookStatusFail
+			w.LastStatus = webhook_model.HookStatusFail
 		}
-		if err = models.UpdateWebhookLastStatus(w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
 	}()
 
 	if setting.DisableWebhooks {
-		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
+		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
-	resp, err := webhookHTTPClient.Do(req)
+	resp, err := webhookHTTPClient.Do(req.WithContext(graceful.GetManager().ShutdownContext()))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
@@ -180,7 +186,7 @@ func Deliver(t *models.HookTask) error {
 		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	p, err := ioutil.ReadAll(resp.Body)
+	p, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
 		return err
@@ -198,7 +204,7 @@ func DeliverHooks(ctx context.Context) {
 		return
 	default:
 	}
-	tasks, err := models.FindUndeliveredHookTasks()
+	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
 		return
@@ -232,7 +238,7 @@ func DeliverHooks(ctx context.Context) {
 				continue
 			}
 
-			tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
+			tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
 			if err != nil {
 				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
 				continue
@@ -249,7 +255,6 @@ func DeliverHooks(ctx context.Context) {
 			}
 		}
 	}
-
 }
 
 var (
@@ -260,7 +265,7 @@ var (
 
 func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
-		return http.ProxyFromEnvironment
+		return proxy.Proxy()
 	}
 
 	once.Do(func() {
@@ -287,15 +292,19 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 func InitDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
+	allowedHostListValue := setting.Webhook.AllowedHostList
+	if allowedHostListValue == "" {
+		allowedHostListValue = hostmatcher.MatchBuiltinExternal
+	}
+	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", allowedHostListValue)
+
 	webhookHTTPClient = &http.Client{
+		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Proxy:           webhookProxy(),
-			Dial: func(netw, addr string) (net.Conn, error) {
-				return net.DialTimeout(netw, addr, timeout) // dial timeout
-			},
+			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil),
 		},
-		Timeout: timeout, // request timeout
 	}
 
 	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)

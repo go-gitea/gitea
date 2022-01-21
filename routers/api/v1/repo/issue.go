@@ -13,6 +13,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -87,6 +90,14 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
 	//   type: boolean
+	// - name: owner
+	//   in: query
+	//   description: filter by owner
+	//   type: string
+	// - name: team
+	//   in: query
+	//   description: filter by team (requires organization owner parameter to be provided)
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -106,7 +117,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -123,12 +134,43 @@ func SearchIssues(ctx *context.APIContext) {
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
-		OrderBy: models.SearchOrderByAlphabetically,
+		OrderBy: db.SearchOrderByAlphabetically,
 		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+			return
+		}
+		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Team not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.TeamID = team.ID
 	}
 
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
@@ -140,7 +182,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -153,7 +195,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -162,13 +204,13 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := strings.TrimSpace(ctx.Form("labels"))
+	labels := ctx.FormTrim("labels")
 	var includedLabelNames []string
 	if len(labels) > 0 {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
-	milestones := strings.TrimSpace(ctx.Form("milestones"))
+	milestones := ctx.FormTrim("milestones")
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
@@ -187,7 +229,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &models.IssuesOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
@@ -222,7 +264,7 @@ func SearchIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
@@ -232,8 +274,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -279,27 +320,27 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: string
 	// - name: since
 	//   in: query
-	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated after the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: before
 	//   in: query
-	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: filter (issues / pulls) created to
+	//   description: Only show items which were created by the the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
-	//   description: filter (issues / pulls) assigned to
+	//   description: Only show items for which the given user is assigned
 	//   type: string
 	// - name: mentioned_by
 	//   in: query
-	//   description: filter (issues / pulls) mentioning to
+	//   description: Only show items in which the given user was mentioned
 	//   type: string
 	// - name: page
 	//   in: query
@@ -319,7 +360,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -331,7 +372,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -345,7 +386,7 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	if splitted := strings.Split(ctx.Form("labels"), ","); len(splitted) > 0 {
+	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
@@ -354,7 +395,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var mileIDs []int64
-	if part := strings.Split(ctx.Form("milestones"), ","); len(part) > 0 {
+	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
@@ -386,7 +427,7 @@ func ListIssues(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -432,7 +473,7 @@ func ListIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
@@ -442,19 +483,18 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
-	userName := ctx.Form(queryName)
+	userName := ctx.FormString(queryName)
 	if len(userName) == 0 {
 		return 0
 	}
 
-	user, err := models.GetUserByName(userName)
-	if models.IsErrUserNotExist(err) {
+	user, err := user_model.GetUserByName(userName)
+	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0
 	}
@@ -544,7 +584,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -559,13 +599,13 @@ func CreateIssue(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	var assigneeIDs = make([]int64, 0)
+	assigneeIDs := make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "AddAssigneeByName", err)
@@ -575,7 +615,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 		// Check if the passed assignees is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := models.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(aID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -752,6 +792,15 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.State != nil {
+		if issue.IsPull {
+			if pr, err := issue.GetPullRequest(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
+				return
+			} else if pr.HasMerged {
+				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
+				return
+			}
+		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)

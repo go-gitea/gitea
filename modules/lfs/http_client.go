@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxy"
 )
 
 const batchSize = 20
@@ -32,8 +33,16 @@ func (c *HTTPClient) BatchSize() int {
 	return batchSize
 }
 
-func newHTTPClient(endpoint *url.URL) *HTTPClient {
-	hc := &http.Client{}
+func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+	if httpTransport == nil {
+		httpTransport = &http.Transport{
+			Proxy: proxy.Proxy(),
+		}
+	}
+
+	hc := &http.Client{
+		Transport: httpTransport,
+	}
 
 	client := &HTTPClient{
 		client:    hc,

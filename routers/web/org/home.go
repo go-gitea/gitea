@@ -6,9 +6,10 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -30,7 +31,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org, ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -39,6 +40,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
 		desc, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,
@@ -50,35 +52,35 @@ func Home(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = desc
 	}
 
-	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Form("sort")
-	switch ctx.Form("sort") {
+	var orderBy db.SearchOrderBy
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByNewest
+		orderBy = db.SearchOrderByNewest
 	case "oldest":
-		orderBy = models.SearchOrderByOldest
+		orderBy = db.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
+		orderBy = db.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = db.SearchOrderByAlphabetically
 	case "moststars":
-		orderBy = models.SearchOrderByStarsReverse
+		orderBy = db.SearchOrderByStarsReverse
 	case "feweststars":
-		orderBy = models.SearchOrderByStars
+		orderBy = db.SearchOrderByStars
 	case "mostforks":
-		orderBy = models.SearchOrderByForksReverse
+		orderBy = db.SearchOrderByForksReverse
 	case "fewestforks":
-		orderBy = models.SearchOrderByForks
+		orderBy = db.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 
 	page := ctx.FormInt("page")
@@ -87,12 +89,12 @@ func Home(ctx *context.Context) {
 	}
 
 	var (
-		repos []*models.Repository
+		repos []*repo_model.Repository
 		count int64
 		err   error
 	)
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		},
@@ -108,10 +110,10 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
-		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
+		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	if ctx.User != nil {
@@ -123,7 +125,7 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(&opts)
+	members, _, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
@@ -140,9 +142,9 @@ func Home(ctx *context.Context) {
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = org.Teams
-
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["Teams"] = ctx.Org.Teams
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
+	ctx.Data["PageIsViewRepositories"] = true
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

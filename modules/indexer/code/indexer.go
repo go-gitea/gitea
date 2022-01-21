@@ -11,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -41,7 +42,7 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
-	Index(repo *models.Repository, sha string, changes *repoChanges) error
+	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
@@ -74,36 +75,36 @@ func filenameOfIndexerID(indexerID string) string {
 
 // IndexerData represents data stored in the code indexer
 type IndexerData struct {
-	RepoID   int64
-	IsDelete bool
+	RepoID int64
 }
 
-var (
-	indexerQueue queue.Queue
-)
+var indexerQueue queue.UniqueQueue
 
-func index(indexer Indexer, repoID int64) error {
-	repo, err := models.GetRepositoryByID(repoID)
+func index(ctx context.Context, indexer Indexer, repoID int64) error {
+	repo, err := repo_model.GetRepositoryByID(repoID)
+	if repo_model.IsErrRepoNotExist(err) {
+		return indexer.Delete(repoID)
+	}
 	if err != nil {
 		return err
 	}
 
-	sha, err := getDefaultBranchSha(repo)
+	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(repo, sha)
+	changes, err := getRepoChanges(ctx, repo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
 		return nil
 	}
 
-	if err := indexer.Index(repo, sha, changes); err != nil {
+	if err := indexer.Index(ctx, repo, sha, changes); err != nil {
 		return err
 	}
 
-	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+	return repo_model.UpdateIndexerStatus(repo, repo_model.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer
@@ -145,23 +146,17 @@ func Init() {
 					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
 					continue
 				}
-				log.Trace("IndexerData Process: %v %t", indexerData.RepoID, indexerData.IsDelete)
+				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
-				if indexerData.IsDelete {
-					if err := indexer.Delete(indexerData.RepoID); err != nil {
-						log.Error("indexer.Delete: %v", err)
-					}
-				} else {
-					if err := index(indexer, indexerData.RepoID); err != nil {
-						log.Error("index: %v", err)
-						continue
-					}
+				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
+					log.Error("index: %v", err)
+					continue
 				}
 			}
 			return nil
 		}
 
-		indexerQueue = queue.CreateQueue("code_indexer", handler, &IndexerData{})
+		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler, &IndexerData{})
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -189,9 +184,6 @@ func Init() {
 
 			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
@@ -209,9 +201,6 @@ func Init() {
 
 			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
@@ -265,16 +254,8 @@ func Init() {
 	}
 }
 
-// DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *models.Repository) {
-	indexData := &IndexerData{RepoID: repo.ID, IsDelete: true}
-	if err := indexerQueue.Push(indexData); err != nil {
-		log.Error("Delete repo index data %v failed: %v", indexData, err)
-	}
-}
-
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *models.Repository) {
+func UpdateRepoIndexer(repo *repo_model.Repository) {
 	indexData := &IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
@@ -286,7 +267,7 @@ func UpdateRepoIndexer(repo *models.Repository) {
 func populateRepoIndexer(ctx context.Context) {
 	log.Info("Populating the repo indexer with existing repositories")
 
-	exist, err := models.IsTableNotEmpty("repository")
+	exist, err := db.IsTableNotEmpty("repository")
 	if err != nil {
 		log.Fatal("System error: %v", err)
 	} else if !exist {
@@ -296,12 +277,12 @@ func populateRepoIndexer(ctx context.Context) {
 	// if there is any existing repo indexer metadata in the DB, delete it
 	// since we are starting afresh. Also, xorm requires deletes to have a
 	// condition, and we want to delete everything, thus 1=1.
-	if err := models.DeleteAllRecords("repo_indexer_status"); err != nil {
+	if err := db.DeleteAllRecords("repo_indexer_status"); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 
 	var maxRepoID int64
-	if maxRepoID, err = models.GetMaxID("repository"); err != nil {
+	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 
@@ -315,7 +296,7 @@ func populateRepoIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		ids, err := models.GetUnindexedRepos(models.RepoIndexerTypeCode, maxRepoID, 0, 50)
+		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

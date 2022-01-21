@@ -7,7 +7,7 @@ package recaptcha
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -46,7 +46,7 @@ func Verify(ctx context.Context, response string) (bool, error) {
 		return false, fmt.Errorf("Failed to send CAPTCHA response: %s", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read CAPTCHA response: %s", err)
 	}

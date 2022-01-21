@@ -9,13 +9,14 @@ import (
 	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAdminViewUsers(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users")
@@ -27,7 +28,7 @@ func TestAdminViewUsers(t *testing.T) {
 }
 
 func TestAdminViewUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users/1")
@@ -39,16 +40,16 @@ func TestAdminViewUser(t *testing.T) {
 }
 
 func TestAdminEditUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
-	testSuccessfullEdit(t, models.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
+	testSuccessfullEdit(t, user_model.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
 }
 
-func testSuccessfullEdit(t *testing.T, formData models.User) {
+func testSuccessfullEdit(t *testing.T, formData user_model.User) {
 	makeRequest(t, formData, http.StatusFound)
 }
 
-func makeRequest(t *testing.T, formData models.User, headerCode int) {
+func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/users/"+strconv.Itoa(int(formData.ID)))
 	req := NewRequestWithValues(t, "POST", "/admin/users/"+strconv.Itoa(int(formData.ID)), map[string]string{
@@ -60,7 +61,7 @@ func makeRequest(t *testing.T, formData models.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: formData.ID}).(*user_model.User)
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)
@@ -78,5 +79,5 @@ func TestAdminDeleteUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &user_model.User{})
 }

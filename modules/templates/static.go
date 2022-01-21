@@ -1,22 +1,25 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package templates
 
 import (
 	"html/template"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	texttmpl "text/template"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -25,9 +28,14 @@ var (
 	bodyTemplates    = template.New("")
 )
 
+// GlobalModTime provide a global mod time for embedded asset files
+func GlobalModTime(filename string) time.Time {
+	return timeutil.GetExecutableModTime()
+}
+
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
-	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	} else if err == nil {
@@ -39,7 +47,7 @@ func GetAsset(name string) ([]byte, error) {
 // GetAssetNames only for chi
 func GetAssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var tmpls = make([]string, 0, len(realFS))
+	tmpls := make([]string, 0, len(realFS))
 	for k := range realFS {
 		tmpls = append(tmpls, "templates/"+k[1:])
 	}
@@ -68,7 +76,6 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		}
 
 		content, err := Asset(assetPath)
-
 		if err != nil {
 			log.Warn("Failed to read embedded %s template. %v", assetPath, err)
 			continue
@@ -102,8 +109,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
-
+				content, err := os.ReadFile(path.Join(customDir, filePath))
 				if err != nil {
 					log.Warn("Failed to read custom %s template. %v", filePath, err)
 					continue
@@ -129,12 +135,12 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
+	results := make([]string, 0, len(realFS))
 	for k := range realFS {
 		results = append(results, k[1:])
 	}

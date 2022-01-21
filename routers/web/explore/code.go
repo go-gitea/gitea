@@ -6,9 +6,10 @@ package explore
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -33,14 +34,14 @@ func Code(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 
-	language := strings.TrimSpace(ctx.Form("l"))
-	keyword := strings.TrimSpace(ctx.Form("q"))
+	language := ctx.FormTrim("l")
+	keyword := ctx.FormTrim("q")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	queryType := strings.TrimSpace(ctx.Form("t"))
+	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
 	var (
@@ -69,16 +70,16 @@ func Code(ctx *context.Context) {
 
 	// if non-admin login user, we need check UnitTypeCode at first
 	if ctx.User != nil && len(repoIDs) > 0 {
-		repoMaps, err := models.GetRepositoriesMapByIDs(repoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 
-		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
+		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(ctx.User, models.UnitTypeCode) {
+			if models.CheckRepoUnitUser(repo, ctx.User, unit.TypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}
@@ -99,7 +100,7 @@ func Code(ctx *context.Context) {
 			return
 		}
 
-		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
 			var find bool
 			for _, id := range loadRepoIDs {
@@ -113,7 +114,7 @@ func Code(ctx *context.Context) {
 			}
 		}
 
-		repoMaps, err := models.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

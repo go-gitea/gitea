@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -35,7 +36,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel := t.repo.CatFileBatch()
+		wr, rd, cancel := t.repo.CatFileBatch(t.repo.Ctx)
 		defer cancel()
 
 		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
@@ -80,7 +81,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, err := NewCommand("ls-tree", "-l", t.ID.String()).RunInDirBytes(t.repo.Path)
+	stdout, err := NewCommandContext(t.repo.Ctx, "ls-tree", "-l", t.ID.String()).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -103,7 +104,7 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
-	stdout, err := NewCommand("ls-tree", "-t", "-l", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
+	stdout, err := NewCommandContext(t.repo.Ctx, "ls-tree", "-t", "-l", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		return nil, err
 	}

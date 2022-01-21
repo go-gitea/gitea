@@ -1,8 +1,9 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package public
 
@@ -10,7 +11,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -18,7 +18,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 )
+
+// GlobalModTime provide a global mod time for embedded asset files
+func GlobalModTime(filename string) time.Time {
+	return timeutil.GetExecutableModTime()
+}
 
 func fileSystem(dir string) http.FileSystem {
 	return Assets
@@ -30,12 +36,12 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
+	results := make([]string, 0, len(realFS))
 	for k := range realFS {
 		results = append(results, k[1:])
 	}

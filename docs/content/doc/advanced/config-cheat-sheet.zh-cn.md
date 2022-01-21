@@ -36,6 +36,11 @@ menu:
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
+### Repository - Release (`repository.release`)
+
+- `ALLOWED_TYPES`: **\<empty\>**: 允许扩展名的列表，用逗号分隔 (`.zip`), mime 类型 (`text/plain`) 或者匹配符号 (`image/*`, `audio/*`, `video/*`). 空值或者 `*/*` 允许所有类型。
+- `DEFAULT_PAGING_NUM`: **10**: 默认的发布版本页面分页。
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
@@ -79,14 +84,14 @@ menu:
 
 ## Database (`database`)
 
-- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql`, `tidb` 或 `sqlite3`。
+- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql` 或 `sqlite3`。
 - `HOST`: 数据库服务器地址和端口。
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
 - `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
-- `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
+- `PATH`: SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
 - `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
@@ -330,8 +335,9 @@ IS_INPUT_FILE = false
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 - `ALLOWED_DOMAINS`: **\<empty\>**: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项将会被忽略。
+- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项有更高的优先级拒绝这里的域名。
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918
+- `SKIP_TLS_VERIFY`: **false**: 允许忽略 TLS 认证
 
 ## LFS (`lfs`)
 
@@ -396,6 +402,19 @@ Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配�
 - `MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
 - `MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+
+## Proxy (`proxy`)
+
+- `PROXY_ENABLED`: **false**: 是否启用全局代理。如果为否，则不使用代理，环境变量中的代理也不使用
+- `PROXY_URL`: **\<empty\>**: 代理服务器地址，支持 http://, https//, socks://，为空则不启用代理而使用环境变量中的 http_proxy/https_proxy
+- `PROXY_HOSTS`: **\<empty\>**: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
+
+i.e.
+```ini
+PROXY_ENABLED = true
+PROXY_URL = socks://127.0.0.1:1080
+PROXY_HOSTS = *.github.com
+```
 
 ## Other (`other`)
 

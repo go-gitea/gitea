@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -29,19 +32,19 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := oauth2.ParseToken(accessToken)
+	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
 	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
+		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
-	var grant *models.OAuth2Grant
-	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+	var grant *auth.OAuth2Grant
+	if grant, err = auth.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
 		return 0
 	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
 		return 0
 	}
 	return grant.UserID
@@ -50,8 +53,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 // OAuth2 implements the Auth interface and authenticates requests
 // (API requests only) by looking for an OAuth token in query parameters or the
 // "Authorization" header.
-type OAuth2 struct {
-}
+type OAuth2 struct{}
 
 // Name represents the name of auth method
 func (o *OAuth2) Name() string {
@@ -108,12 +110,12 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-	if !models.HasEngine {
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+	if !db.HasEngine {
 		return nil
 	}
 
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
 		return nil
 	}
 
@@ -123,9 +125,9 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 	}
 	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
-	user, err := models.GetUserByID(id)
+	user, err := user_model.GetUserByID(id)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 		}
 		return nil
@@ -133,4 +135,14 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user
+}
+
+func isAuthenticatedTokenRequest(req *http.Request) bool {
+	switch req.URL.Path {
+	case "/login/oauth/userinfo":
+		fallthrough
+	case "/login/oauth/introspect":
+		return true
+	}
+	return false
 }

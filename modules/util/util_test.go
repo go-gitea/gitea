@@ -46,7 +46,6 @@ func TestURLJoin(t *testing.T) {
 }
 
 func TestIsEmptyString(t *testing.T) {
-
 	cases := []struct {
 		s        string
 		expected bool
@@ -155,4 +154,35 @@ func Test_RandomString(t *testing.T) {
 	assert.True(t, matches)
 
 	assert.NotEqual(t, str3, str4)
+}
+
+func Test_RandomBytes(t *testing.T) {
+	bytes1, err := RandomBytes(32)
+	assert.NoError(t, err)
+
+	bytes2, err := RandomBytes(32)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes1, bytes2)
+
+	bytes3, err := RandomBytes(256)
+	assert.NoError(t, err)
+
+	bytes4, err := RandomBytes(256)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes3, bytes4)
+}
+
+func Test_OptionalBool(t *testing.T) {
+	assert.Equal(t, OptionalBoolNone, OptionalBoolParse(""))
+	assert.Equal(t, OptionalBoolNone, OptionalBoolParse("x"))
+
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("0"))
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("f"))
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("False"))
+
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("1"))
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("t"))
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("True"))
 }

@@ -5,15 +5,14 @@
 package external
 
 import (
-	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
@@ -74,7 +73,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 	if p.IsInputFile {
 		// write to temp file
-		f, err := ioutil.TempFile("", "gitea_input")
+		f, err := os.CreateTemp("", "gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
@@ -99,14 +98,16 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	}
 
 	if ctx == nil || ctx.Ctx == nil {
-		return fmt.Errorf("RenderContext did not provide context")
+		if ctx == nil {
+			log.Warn("RenderContext not provided defaulting to empty ctx")
+			ctx = &markup.RenderContext{}
+		}
+		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
+		ctx.Ctx = graceful.GetManager().ShutdownContext()
 	}
 
-	processCtx, cancel := context.WithCancel(ctx.Ctx)
-	defer cancel()
-
-	pid := process.GetManager().Add(fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix), cancel)
-	defer process.GetManager().Remove(pid)
+	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix))
+	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(

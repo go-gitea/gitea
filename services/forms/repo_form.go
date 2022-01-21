@@ -161,7 +161,8 @@ type RepoSettingForm struct {
 	TrustModel string
 
 	// Admin settings
-	EnableHealthCheck bool
+	EnableHealthCheck  bool
+	RequestReindexType string
 }
 
 // Validate validates the fields
@@ -199,6 +200,7 @@ type ProtectBranchForm struct {
 	DismissStaleApprovals         bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
+	UnprotectedFilePatterns       string
 }
 
 // Validate validates the fields
@@ -498,6 +500,7 @@ type UserCreateProjectForm struct {
 type EditProjectBoardForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
+	Color   string `binding:"MaxSize(7)"`
 }
 
 //    _____  .__.__                   __
@@ -568,6 +571,7 @@ type MergePullRequestForm struct {
 	MergeTitleField        string
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
+	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }

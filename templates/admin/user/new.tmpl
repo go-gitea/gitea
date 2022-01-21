@@ -8,6 +8,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -19,7 +20,7 @@
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
-								<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
+								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
 						</div>
 					</div>
@@ -28,7 +29,7 @@
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{.i18n.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="visibility" name="visibility" value="{{.visibility}}">
+						<input type="hidden" id="visibility" name="visibility" value="{{if .visibility}}{{.visibility}}{{else}}{{printf "%d" .DefaultUserVisibilityMode}}{{end}}">
 						<div class="text">
 							{{if .DefaultUserVisibilityMode.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
 							{{if .DefaultUserVisibilityMode.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
@@ -38,11 +39,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -61,7 +62,6 @@
 					<label for="email">{{.i18n.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
-				<input class="fake" type="password">
 				<div class="required local field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>

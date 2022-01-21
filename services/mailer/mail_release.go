@@ -6,8 +6,12 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -22,16 +26,21 @@ const (
 )
 
 // MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(rel *models.Release) {
-	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
+func MailNewRelease(ctx context.Context, rel *models.Release) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	recipients, err := models.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(watcherIDList, false)
 	if err != nil {
-		log.Error("models.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
 	}
 
@@ -43,15 +52,16 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	for lang, tos := range langMap {
-		mailNewRelease(lang, tos, rel)
+		mailNewRelease(ctx, lang, tos, rel)
 	}
 }
 
-func mailNewRelease(lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)
@@ -68,7 +78,6 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer

@@ -49,13 +49,20 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Form("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	count, err := models.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, nil))
 }
 
 // GetLabel get label by repository and label id
@@ -105,7 +112,7 @@ func GetLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(label))
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // CreateLabel create a label for a repository
@@ -158,7 +165,8 @@ func CreateLabel(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToLabel(label))
+
+	ctx.JSON(http.StatusCreated, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // EditLabel modify a label for a repository
@@ -228,7 +236,8 @@ func EditLabel(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToLabel(label))
+
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // DeleteLabel delete a label for a repository

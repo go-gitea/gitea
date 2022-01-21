@@ -9,8 +9,12 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,9 +23,9 @@ func TestAPIRepoTeams(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// publicOrgRepo = user3/repo21
-	publicOrgRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
+	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32}).(*repo_model.Repository)
 	// user4
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -34,7 +38,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	if assert.Len(t, teams, 2) {
 		assert.EqualValues(t, "Owners", teams[0].Name)
 		assert.False(t, teams[0].CanCreateOrgRepo)
-		assert.EqualValues(t, []string{"repo.code", "repo.issues", "repo.pulls", "repo.releases", "repo.wiki", "repo.ext_wiki", "repo.ext_issues"}, teams[0].Units)
+		assert.True(t, util.IsEqualSlice(unit.AllUnitKeyNames(), teams[0].Units), fmt.Sprintf("%v == %v", unit.AllUnitKeyNames(), teams[0].Units))
 		assert.EqualValues(t, "owner", teams[0].Permission)
 
 		assert.EqualValues(t, "test_team", teams[1].Name)
@@ -53,25 +57,25 @@ func TestAPIRepoTeams(t *testing.T) {
 
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "NonExistingTeam", token)
 	req = NewRequest(t, "GET", url)
-	res = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// AddTeam with user4
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	res = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	// AddTeam with user2
-	user = models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "PUT", url)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 
 	// DeleteTeam
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)
 	req = NewRequest(t, "DELETE", url)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
+	session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
 }

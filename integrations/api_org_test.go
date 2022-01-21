@@ -10,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -22,7 +23,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		token := getTokenForLoggedInUser(t, session)
-		var org = api.CreateOrgOption{
+		org := api.CreateOrgOption{
 			UserName:    "user1_org",
 			FullName:    "User1's organization",
 			Description: "This organization created by user1",
@@ -43,7 +44,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		assert.Equal(t, org.Location, apiOrg.Location)
 		assert.Equal(t, org.Visibility, apiOrg.Visibility)
 
-		models.AssertExistsAndLoadBean(t, &models.User{
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name:      org.UserName,
 			LowerName: strings.ToLower(org.UserName),
 			FullName:  org.FullName,
@@ -79,7 +80,7 @@ func TestAPIOrgEdit(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		token := getTokenForLoggedInUser(t, session)
-		var org = api.EditOrgOption{
+		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
@@ -106,7 +107,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		token := getTokenForLoggedInUser(t, session)
-		var org = api.EditOrgOption{
+		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
 			Website:     "https://try.gitea.io/new",
@@ -125,7 +126,7 @@ func TestAPIOrgDeny(t *testing.T) {
 			setting.Service.RequireSignInView = false
 		}()
 
-		var orgName = "user1_org"
+		orgName := "user1_org"
 		req := NewRequestf(t, "GET", "/api/v1/orgs/%s", orgName)
 		MakeRequest(t, req, http.StatusNotFound)
 

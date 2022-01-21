@@ -1,13 +1,19 @@
 import Vue from 'vue';
 
 import ContextPopup from '../components/ContextPopup.vue';
+import {parseIssueHref} from '../utils.js';
 
 export default function initContextPopups() {
   const refIssues = $('.ref-issue');
   if (!refIssues.length) return;
 
   refIssues.each(function () {
-    const [index, _issues, repo, owner] = $(this).attr('href').replace(/[#?].*$/, '').split('/').reverse();
+    if ($(this).hasClass('ref-external-issue')) {
+      return;
+    }
+
+    const {owner, repo, index} = parseIssueHref($(this).attr('href'));
+    if (!owner) return;
 
     const el = document.createElement('div');
     el.className = 'ui custom popup hidden';

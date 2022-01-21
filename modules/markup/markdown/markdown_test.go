@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,9 +18,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const (
+	AppURL    = "http://localhost:3000/"
+	Repo      = "gogits/gogs"
+	AppSubURL = AppURL + Repo + "/"
+)
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
@@ -94,10 +98,11 @@ func TestRender_Images(t *testing.T) {
 	title := "Train"
 	href := "https://gitea.io"
 	result := util.URLJoin(AppSubURL, url)
+	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -109,7 +114,7 @@ func TestRender_Images(t *testing.T) {
 	url = "/../../.images/src/02/train.jpg"
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -117,7 +122,6 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
-
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
@@ -277,6 +281,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -316,6 +321,7 @@ func TestTotal_RenderString(t *testing.T) {
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
 			Metas:     localMetas,
 		}, sameCases[i])
@@ -373,6 +379,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
+		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
 		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
 		assert.NoError(t, err)
 	}
@@ -382,11 +389,19 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	testcase := `![image1](/image1)
 ![image2](/image2)
 `
-	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
-<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
 	res, err := RenderRawString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
+}
 
+func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
+	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
+	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+`
+	res, err := RenderString(&markup.RenderContext{}, testcase)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, res)
 }

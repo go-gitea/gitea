@@ -5,12 +5,14 @@
 package wiki
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
@@ -18,7 +20,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestWikiNameToSubURL(t *testing.T) {
@@ -110,23 +112,23 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 }
 
 func TestRepository_InitWiki(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	// repo1 already has a wiki
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	assert.NoError(t, InitWiki(repo1))
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	assert.NoError(t, InitWiki(git.DefaultContext, repo1))
 
 	// repo2 does not already have a wiki
-	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	assert.NoError(t, InitWiki(repo2))
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	assert.NoError(t, InitWiki(git.DefaultContext, repo2))
 	assert.True(t, repo2.HasWiki())
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	for _, wikiName := range []string{
 		"Another page",
 		"Here's a <tag> and a/slash",
@@ -134,9 +136,9 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		wikiName := wikiName
 		t.Run("test wiki exist: "+wikiName, func(t *testing.T) {
 			t.Parallel()
-			assert.NoError(t, AddWikiPage(doer, repo, wikiName, wikiContent, commitMsg))
+			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, wikiName, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
@@ -151,7 +153,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	t.Run("check wiki already exist", func(t *testing.T) {
 		t.Parallel()
 		// test for already-existing wiki name
-		err := AddWikiPage(doer, repo, "Home", wikiContent, commitMsg)
+		err := AddWikiPage(git.DefaultContext, doer, repo, "Home", wikiContent, commitMsg)
 		assert.Error(t, err)
 		assert.True(t, models.IsErrWikiAlreadyExist(err))
 	})
@@ -159,36 +161,36 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	t.Run("check wiki reserved name", func(t *testing.T) {
 		t.Parallel()
 		// test for reserved wiki name
-		err := AddWikiPage(doer, repo, "_edit", wikiContent, commitMsg)
+		err := AddWikiPage(git.DefaultContext, doer, repo, "_edit", wikiContent, commitMsg)
 		assert.Error(t, err)
 		assert.True(t, models.IsErrWikiReservedName(err))
 	})
 }
 
 func TestRepository_EditWikiPage(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	for _, newWikiName := range []string{
 		"Home", // same name as before
 		"New home",
 		"New/name/with/slashes",
 	} {
-		models.PrepareTestEnv(t)
-		assert.NoError(t, EditWikiPage(doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
+		unittest.PrepareTestEnv(t)
+		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepository(repo.WikiPath())
+		gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
 		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 		assert.NoError(t, err)
-		assert.Equal(t, wikiPath, entry.Name(), "%s not editted correctly", newWikiName)
+		assert.Equal(t, wikiPath, entry.Name(), "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
 			_, err := masterTree.GetTreeEntryByPath("Home.md")
@@ -199,13 +201,13 @@ func TestRepository_EditWikiPage(t *testing.T) {
 }
 
 func TestRepository_DeleteWikiPage(t *testing.T) {
-	models.PrepareTestEnv(t)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	assert.NoError(t, DeleteWikiPage(doer, repo, "Home"))
+	unittest.PrepareTestEnv(t)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
@@ -216,9 +218,9 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 }
 
 func TestPrepareWikiFileName(t *testing.T) {
-	models.PrepareTestEnv(t)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	unittest.PrepareTestEnv(t)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
@@ -241,7 +243,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 		wikiPath:  "home-of-and-%26-or-wiki-page%21.md",
 		wantErr:   false,
 	}, {
-		name:      "fount unescaped cases",
+		name:      "found unescaped cases",
 		arg:       "Unescaped File",
 		existence: true,
 		wikiPath:  "Unescaped File.md",
@@ -267,10 +269,10 @@ func TestPrepareWikiFileName(t *testing.T) {
 }
 
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := ioutil.TempDir("", "empty-wiki")
+	tmpDir, err := os.MkdirTemp("", "empty-wiki")
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
@@ -278,7 +280,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 		}
 	}()
 
-	err = git.InitRepository(tmpDir, true)
+	err = git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(tmpDir)

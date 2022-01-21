@@ -13,6 +13,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -35,14 +39,14 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
 
 	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineDel))
+	}, DiffLineDel).Content)
 
 	assertEqual(t, "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil</span><span class=\"added-code\"> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)</span></span> <span class=\"p\">{</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\""},
@@ -50,7 +54,7 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil"},
 		{Type: dmp.DiffInsert, Text: "</span> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)"},
 		{Type: dmp.DiffEqual, Text: "</span> <span class=\"p\">{</span>"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
 
 	assertEqual(t, "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"removed-code\"><span class=\"nx\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\"</span></span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">BaseURL</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Owner</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Repo</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)</span></span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"n"},
@@ -60,7 +64,7 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffDelete, Text: "from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)"},
 		{Type: dmp.DiffInsert, Text: "ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone</span><span class=\"p\">,</span> <span class=\"nx\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">)</span>"},
-	}, DiffLineDel))
+	}, DiffLineDel).Content)
 
 	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"nx\">"},
@@ -68,14 +72,14 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "c"},
 		{Type: dmp.DiffDelete, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
-	}, DiffLineDel))
+	}, DiffLineDel).Content)
 
 	assertEqual(t, "<span class=\"added-code\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffInsert, Text: "language</span><span "},
 		{Type: dmp.DiffEqual, Text: "c"},
 		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
 
 	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
@@ -84,14 +88,14 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
 		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
 		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
 
 	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "sh &#3"},
 		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
 		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
 		{Type: dmp.DiffEqual, Text: ";"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
 
 	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
@@ -99,7 +103,178 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "3"},
 		{Type: dmp.DiffInsert, Text: "4;release-list-title df ac&#34;"},
 		{Type: dmp.DiffEqual, Text: "&gt;</span>"},
-	}, DiffLineAdd))
+	}, DiffLineAdd).Content)
+}
+
+func TestParsePatch_skipTo(t *testing.T) {
+	type testcase struct {
+		name        string
+		gitdiff     string
+		wantErr     bool
+		addition    int
+		deletion    int
+		oldFilename string
+		filename    string
+		skipTo      string
+	}
+	tests := []testcase{
+		{
+			name: "readme.md2readme.md",
+			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git "\\a/README.md" "\\b/README.md"
+--- "\\a/README.md"
++++ "\\b/README.md"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+`,
+			addition:    4,
+			deletion:    1,
+			filename:    "README.md",
+			oldFilename: "README.md",
+			skipTo:      "README.md",
+		},
+		{
+			name: "A \\ B",
+			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`,
+			addition:    4,
+			deletion:    1,
+			filename:    "A \\ B",
+			oldFilename: "A \\ B",
+			skipTo:      "A \\ B",
+		},
+		{
+			name: "A \\ B",
+			gitdiff: `diff --git "\\a/README.md" "\\b/README.md"
+--- "\\a/README.md"
++++ "\\b/README.md"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`,
+			addition:    4,
+			deletion:    1,
+			filename:    "A \\ B",
+			oldFilename: "A \\ B",
+			skipTo:      "A \\ B",
+		},
+		{
+			name: "readme.md2readme.md",
+			gitdiff: `diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+diff --git "\\a/README.md" "\\b/README.md"
+--- "\\a/README.md"
++++ "\\b/README.md"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off
+`,
+			addition:    4,
+			deletion:    1,
+			filename:    "README.md",
+			oldFilename: "README.md",
+			skipTo:      "README.md",
+		},
+	}
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), testcase.skipTo)
+			if (err != nil) != testcase.wantErr {
+				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
+				return
+			}
+
+			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
+			if got.NumFiles != 1 {
+				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
+				return
+			}
+			if got.TotalAddition != testcase.addition {
+				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
+			}
+			if got.TotalDeletion != testcase.deletion {
+				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
+			}
+			file := got.Files[0]
+			if file.Addition != testcase.addition {
+				t.Errorf("ParsePath(%q) does not have correct file addition %d, wanted %d", testcase.name, file.Addition, testcase.addition)
+			}
+			if file.Deletion != testcase.deletion {
+				t.Errorf("ParsePath(%q) did not have correct file deletion %d, wanted %d", testcase.name, file.Deletion, testcase.deletion)
+			}
+			if file.OldName != testcase.oldFilename {
+				t.Errorf("ParsePath(%q) did not have correct OldName %q, wanted %q", testcase.name, file.OldName, testcase.oldFilename)
+			}
+			if file.Name != testcase.filename {
+				t.Errorf("ParsePath(%q) did not have correct Name %q, wanted %q", testcase.name, file.Name, testcase.filename)
+			}
+		})
+	}
 }
 
 func TestParsePatch_singlefile(t *testing.T) {
@@ -293,7 +468,7 @@ index 6961180..9ba1a00 100644
 
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
-			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 			if (err != nil) != testcase.wantErr {
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
@@ -329,7 +504,7 @@ index 6961180..9ba1a00 100644
 	// Test max lines
 	diffBuilder := &strings.Builder{}
 
-	var diff = `diff --git a/newfile2 b/newfile2
+	diff := `diff --git a/newfile2 b/newfile2
 new file mode 100644
 index 0000000..6bb8f39
 --- /dev/null
@@ -342,21 +517,21 @@ index 0000000..6bb8f39
 		diffBuilder.WriteString("+line" + strconv.Itoa(i) + "\n")
 	}
 	diff = diffBuilder.String()
-	result, err := ParsePatch(20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err := ParsePatch(20, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err = ParsePatch(40, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if result.Files[0].IsIncomplete {
 		t.Errorf("Files should not be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err = ParsePatch(40, 5, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -387,14 +562,14 @@ index 0000000..6bb8f39
 	diffBuilder.WriteString("+line" + strconv.Itoa(35) + "\n")
 	diff = diffBuilder.String()
 
-	result, err = ParsePatch(20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err = ParsePatch(20, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
 	if !result.Files[0].IsIncomplete {
 		t.Errorf("Files should be incomplete! %v", result.Files[0])
 	}
-	result, err = ParsePatch(40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err = ParsePatch(40, 4096, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("There should not be an error: %v", err)
 	}
@@ -413,13 +588,13 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
 	println(result)
 
-	var diff2 = `diff --git "a/A \\ B" "b/A \\ B"
+	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
 +++ "b/A \\ B"
 @@ -1,3 +1,6 @@
@@ -430,13 +605,13 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2))
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
 	println(result)
 
-	var diff2a = `diff --git "a/A \\ B" b/A/B
+	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
 +++ b/A/B
 @@ -1,3 +1,6 @@
@@ -447,13 +622,13 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a))
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2a), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
 	println(result)
 
-	var diff3 = `diff --git a/README.md b/README.md
+	diff3 := `diff --git a/README.md b/README.md
 --- a/README.md
 +++ b/README.md
 @@ -1,3 +1,6 @@
@@ -464,7 +639,7 @@ index 0000000..6bb8f39
  Docker Pulls
 + cut off
 + cut off`
-	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3))
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
@@ -490,13 +665,14 @@ func setupDefaultDiff() *Diff {
 		},
 	}
 }
-func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+func TestDiff_LoadComments(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 
@@ -514,9 +690,21 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
+	gitRepo, err := git.OpenRepository("./testdata/academic-module")
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer gitRepo.Close()
 	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
-		diffs, err := GetDiffRangeWithWhitespaceBehavior("./testdata/academic-module", "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)
+		diffs, err := GetDiff(gitRepo,
+			&DiffOptions{
+				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
+				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
+				MaxLines:           setting.Git.MaxGitDiffLines,
+				MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+				MaxFiles:           setting.Git.MaxGitDiffFiles,
+				WhitespaceBehavior: behavior,
+			})
 		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
 		for _, f := range diffs.Files {
 			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
@@ -526,11 +714,31 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 
 func TestDiffToHTML_14231(t *testing.T) {
 	setting.Cfg = ini.Empty()
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "		run()\n"), highlight.Code("main.v", "		run(db)\n"), true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "", "		run()\n"), highlight.Code("main.v", "", "		run(db)\n"), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>`
+	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>
+</span></span>`
 	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
 
-	assertEqual(t, expected, output)
+	assertEqual(t, expected, output.Content)
+}
+
+func TestNoCrashes(t *testing.T) {
+	type testcase struct {
+		gitdiff string
+	}
+
+	tests := []testcase{
+		{
+			gitdiff: "diff --git \n--- a\t\n",
+		},
+		{
+			gitdiff: "diff --git \"0\n",
+		},
+	}
+	for _, testcase := range tests {
+		// It shouldn't crash, so don't care about the output.
+		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
+	}
 }

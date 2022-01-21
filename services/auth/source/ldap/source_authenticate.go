@@ -8,26 +8,31 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
-	sr := source.SearchEntry(login, password, source.loginSource.Type == models.LoginDLDAP)
+func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
+	sr := source.SearchEntry(userName, password, source.authSource.Type == auth.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
-		return nil, models.ErrUserNotExist{Name: login}
+		return nil, user_model.ErrUserNotExist{Name: userName}
 	}
 
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
-	if isExist, err := models.IsUserExist(0, sr.Username); err != nil {
+	if isExist, err := user_model.IsUserExist(0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
 		if user == nil {
-			user, err = models.GetUserByName(sr.Username)
+			user, err = user_model.GetUserByName(sr.Username)
 			if err != nil {
 				return nil, err
 			}
@@ -45,7 +50,7 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = models.UpdateUserCols(user, cols...)
+				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -54,8 +59,8 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
-			return user, models.RewriteAllPublicKeys()
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
+			return user, asymkey_model.RewriteAllPublicKeys()
 		}
 
 		return user, nil
@@ -63,31 +68,45 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 
 	// Fallback.
 	if len(sr.Username) == 0 {
-		sr.Username = login
+		sr.Username = userName
 	}
 
 	if len(sr.Mail) == 0 {
 		sr.Mail = fmt.Sprintf("%s@localhost", sr.Username)
 	}
 
-	user = &models.User{
+	user = &user_model.User{
 		LowerName:    strings.ToLower(sr.Username),
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
-		LoginType:    source.loginSource.Type,
-		LoginSource:  source.loginSource.ID,
-		LoginName:    login,
+		LoginType:    source.authSource.Type,
+		LoginSource:  source.authSource.ID,
+		LoginName:    userName,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
 		IsRestricted: sr.IsRestricted,
 	}
 
-	err := models.CreateUser(user)
+	err := user_model.CreateUser(user)
+	if err != nil {
+		return user, err
+	}
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
-		err = models.RewriteAllPublicKeys()
+	mailer.SendRegisterNotifyMail(user)
+
+	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
+		err = asymkey_model.RewriteAllPublicKeys()
+	}
+
+	if err == nil && len(source.AttributeAvatar) > 0 {
+		_ = user_service.UploadAvatar(user, sr.Avatar)
 	}
 
 	return user, err
+}
+
+// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
+func (source *Source) IsSkipLocalTwoFA() bool {
+	return source.SkipLocalTwoFA
 }

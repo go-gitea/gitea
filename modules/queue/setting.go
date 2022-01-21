@@ -75,7 +75,7 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 		return nil
 	}
 
-	if len(q.Type) > 0 && q.Type != "dummy" && !strings.HasPrefix(q.Type, "unique-") {
+	if len(q.Type) > 0 && q.Type != "dummy" && q.Type != "immediate" && !strings.HasPrefix(q.Type, "unique-") {
 		q.Type = "unique-" + q.Type
 	}
 

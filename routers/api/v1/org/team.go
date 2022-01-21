@@ -6,11 +6,13 @@
 package org
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -45,23 +47,26 @@ func ListTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	org := ctx.Org.Organization
-	if err := org.GetTeams(&models.SearchTeamOptions{
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
+		OrgID:       ctx.Org.Organization.ID,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadTeams", err)
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(org.Teams))
-	for i := range org.Teams {
-		if err := org.Teams[i].GetUnits(); err != nil {
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
 			return
 		}
 
-		apiTeams[i] = convert.ToTeam(org.Teams[i])
+		apiTeams[i] = convert.ToTeam(teams[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -85,7 +90,10 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, err := models.GetUserTeams(ctx.User.ID, utils.GetListOptions(ctx))
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
@@ -96,7 +104,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := models.GetOrgByID(teams[i].OrgID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -104,9 +112,15 @@ func ListUserTeams(ctx *context.APIContext) {
 			apiOrg = convert.ToOrganization(org)
 			cache[teams[i].OrgID] = apiOrg
 		}
+		if err := teams[i].GetUnits(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "teams[i].GetUnits()", err)
+			return
+		}
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -128,7 +142,43 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
+	if err := ctx.Org.Team.GetUnits(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "team.GetUnits", err)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToTeam(ctx.Org.Team))
+}
+
+func attachTeamUnits(team *models.Team, units []string) {
+	unitTypes := unit_model.FindUnitTypes(units...)
+	team.Units = make([]*models.TeamUnit, 0, len(units))
+	for _, tp := range unitTypes {
+		team.Units = append(team.Units, &models.TeamUnit{
+			OrgID:      team.OrgID,
+			Type:       tp,
+			AccessMode: team.AccessMode,
+		})
+	}
+}
+
+func convertUnitsMap(unitsMap map[string]string) map[unit_model.Type]perm.AccessMode {
+	res := make(map[unit_model.Type]perm.AccessMode, len(unitsMap))
+	for unitKey, p := range unitsMap {
+		res[unit_model.TypeFromKey(unitKey)] = perm.ParseAccessMode(p)
+	}
+	return res
+}
+
+func attachTeamUnitsMap(team *models.Team, unitsMap map[string]string) {
+	team.Units = make([]*models.TeamUnit, 0, len(unitsMap))
+	for unitKey, p := range unitsMap {
+		team.Units = append(team.Units, &models.TeamUnit{
+			OrgID:      team.OrgID,
+			Type:       unit_model.TypeFromKey(unitKey),
+			AccessMode: perm.ParseAccessMode(p),
+		})
+	}
 }
 
 // CreateTeam api for create a team
@@ -156,26 +206,28 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
+	p := perm.ParseAccessMode(form.Permission)
+	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
+		p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
+	}
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Authorize:               models.ParseAccessMode(form.Permission),
+		AccessMode:              p,
 	}
 
-	unitTypes := models.FindUnitTypes(form.Units...)
-
-	if team.Authorize < models.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range unitTypes {
-			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
-				Type:  tp,
-			})
+	if team.AccessMode < perm.AccessModeAdmin {
+		if len(form.UnitsMap) > 0 {
+			attachTeamUnitsMap(team, form.UnitsMap)
+		} else if len(form.Units) > 0 {
+			attachTeamUnits(team, form.Units)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "getTeamUnits", errors.New("units permission should not be empty"))
+			return
 		}
-		team.Units = units
 	}
 
 	if err := models.NewTeam(team); err != nil {
@@ -214,7 +266,6 @@ func EditTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Team"
 
 	form := web.GetForm(ctx).(*api.EditTeamOption)
-
 	team := ctx.Org.Team
 	if err := team.GetUnits(); err != nil {
 		ctx.InternalServerError(err)
@@ -237,11 +288,14 @@ func EditTeam(ctx *context.APIContext) {
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
-		auth := models.ParseAccessMode(form.Permission)
+		p := perm.ParseAccessMode(form.Permission)
+		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
+			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
+		}
 
-		if team.Authorize != auth {
+		if team.AccessMode != p {
 			isAuthChanged = true
-			team.Authorize = auth
+			team.AccessMode = p
 		}
 
 		if form.IncludesAllRepositories != nil {
@@ -250,17 +304,11 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
-	if team.Authorize < models.AccessModeOwner {
-		if len(form.Units) > 0 {
-			var units = make([]*models.TeamUnit, 0, len(form.Units))
-			unitTypes := models.FindUnitTypes(form.Units...)
-			for _, tp := range unitTypes {
-				units = append(units, &models.TeamUnit{
-					OrgID: ctx.Org.Team.OrgID,
-					Type:  tp,
-				})
-			}
-			team.Units = units
+	if team.AccessMode < perm.AccessModeAdmin {
+		if len(form.UnitsMap) > 0 {
+			attachTeamUnitsMap(team, form.UnitsMap)
+		} else if len(form.Units) > 0 {
+			attachTeamUnits(team, form.Units)
 		}
 	}
 
@@ -328,17 +376,19 @@ func GetTeamMembers(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	team := ctx.Org.Team
-	if err := team.GetMembers(&models.SearchMembersOptions{
+
+	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{
 		ListOptions: utils.GetListOptions(ctx),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
-	members := make([]*api.User, len(team.Members))
-	for i, member := range team.Members {
+	members := make([]*api.User, len(ctx.Org.Team.Members))
+	for i, member := range ctx.Org.Team.Members {
 		members[i] = convert.ToUser(member, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
 	ctx.JSON(http.StatusOK, members)
 }
 
@@ -497,14 +547,15 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		repos[i] = convert.ToRepo(repo, access)
 	}
+	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
-func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
-	repo, err := models.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
+func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
+	repo, err := repo_model.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
@@ -551,7 +602,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeAdmin {
+	} else if access < perm.AccessModeAdmin {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
@@ -601,7 +652,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeAdmin {
+	} else if access < perm.AccessModeAdmin {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
@@ -658,9 +709,9 @@ func SearchTeam(ctx *context.APIContext) {
 
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
-		Keyword:     strings.TrimSpace(ctx.Form("q")),
+		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: ctx.Form("include_desc") == "" || ctx.FormBool("include_desc"),
+		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
 	}
 
@@ -688,11 +739,9 @@ func SearchTeam(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,
 	})
-
 }

@@ -5,10 +5,11 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -115,7 +116,7 @@ func ListReleases(ctx *context.APIContext) {
 
 	opts := models.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+		IncludeDrafts: ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite,
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
@@ -142,8 +143,7 @@ func ListReleases(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprint(filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, rels)
 }
 
@@ -356,7 +356,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if err := releaseservice.DeleteReleaseByID(id, ctx.User, false); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, id, ctx.User, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 		return
 	}

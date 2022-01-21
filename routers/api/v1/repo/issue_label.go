@@ -61,7 +61,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // AddIssueLabels add labels for an issue
@@ -117,7 +117,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -243,7 +243,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // ClearIssueLabels delete all the labels for an issue

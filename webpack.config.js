@@ -46,6 +46,7 @@ export default {
       resolve(__dirname, 'web_src/js/jquery.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
       resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),
@@ -59,10 +60,6 @@ export default {
     ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
-    ],
-    'easymde': [
-      resolve(__dirname, 'web_src/js/easymde.js'),
-      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
     ],
     ...themes,
   },
@@ -137,8 +134,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
@@ -154,8 +151,8 @@ export default {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
           {
@@ -176,7 +173,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
       {
@@ -184,7 +180,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
     ],
@@ -218,6 +213,10 @@ export default {
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC)',
+      ignore: [
+        'font-awesome',
+      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {

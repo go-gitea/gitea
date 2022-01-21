@@ -1,5 +1,6 @@
 ---
 kind: pipeline
+type: docker
 name: compliance
 
 platform:
@@ -65,7 +66,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -87,16 +88,16 @@ steps:
     image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
     commands:
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: arm64
       TAGS: bindata gogit
@@ -106,30 +107,31 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: windows
       GOARCH: amd64
       TAGS: bindata gogit
     commands:
-      - go build -mod=vendor -o gitea_windows
+      - go build -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: 386
     commands:
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+      - go build -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [checks-backend]
 
 ---
 kind: pipeline
+type: docker
 name: testing-amd64
 
 platform:
@@ -191,61 +193,65 @@ steps:
         exclude:
           - pull_request
 
-  - name: build
-    pull: always
-    image: golang:1.16
-    commands:
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-
   - name: tag-pre-condition
     pull: always
     image: drone/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
+  - name: prepare-test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - ./build/test-env-prepare.sh
+
+  - name: build
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
+    commands:
+      - ./build/test-env-check.sh
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
+
   - name: unit-test
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata sqlite sqlite_unlock_notify
-      GITHUB_READ_TOKEN:
-        from_secret: github_read_token
-
-  - name: unit-test-race
-    image: golang:1.16
-    commands:
-      - make test-backend
-    environment:
-      GOPROXY: off
-      TAGS: sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
   - name: test-mysql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -254,11 +260,13 @@ steps:
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -266,22 +274,24 @@ steps:
 
   - name: test-mssql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mssql-migration test-mssql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: generate-coverage
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
     depends_on:
       - unit-test
@@ -349,23 +359,34 @@ steps:
         exclude:
           - pull_request
 
+  - name: prepare-test-env
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    commands:
+      - ./build/test-env-prepare.sh
+
   - name: build
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -373,11 +394,13 @@ steps:
 
   - name: test-pgsql
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit
+      RACE_ENABLED: true
       TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -447,6 +470,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: update_gitignore_and_licenses
 
 platform:
@@ -463,7 +487,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 
@@ -483,6 +507,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: release-latest
 
 platform:
@@ -512,7 +537,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -538,7 +563,7 @@ steps:
 
   - name: release-branch
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
@@ -559,7 +584,7 @@ steps:
         - push
 
   - name: release-main
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
@@ -608,7 +633,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -634,7 +659,7 @@ steps:
 
   - name: release-tag
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
@@ -661,6 +686,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docs
 
 platform:
@@ -702,6 +728,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release-version
 
 platform:
@@ -733,7 +760,7 @@ steps:
       auto_tag_suffix: linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -751,14 +778,11 @@ steps:
       auto_tag_suffix: linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -766,6 +790,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release
 
 platform:
@@ -797,7 +822,7 @@ steps:
       tags: dev-linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -815,14 +840,11 @@ steps:
       tags: dev-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -830,6 +852,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-dry-run
 
 platform:
@@ -852,7 +875,7 @@ steps:
       repo: gitea/gitea
       tags: linux-arm64
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
     environment:
       PLUGIN_MIRROR:
         from_secret: plugin_mirror
@@ -862,6 +885,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release-version
 
 platform:
@@ -893,14 +917,11 @@ steps:
       auto_tag_suffix: linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -914,14 +935,11 @@ steps:
       auto_tag_suffix: linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -929,6 +947,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release
 
 platform:
@@ -960,14 +979,11 @@ steps:
       tags: dev-linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
@@ -981,20 +997,18 @@ steps:
       tags: dev-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
     when:
       event:
         exclude:
         - pull_request
 ---
 kind: pipeline
+type: docker
 name: docker-manifest-version
 
 platform:
@@ -1038,6 +1052,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: docker-manifest
 
 platform:
@@ -1081,6 +1096,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: notifications
 
 platform:

@@ -16,13 +16,33 @@
         </div>
       </div>
     </div>
+    <div v-if="!loading && issue === null">
+      <p><small>{{ i18nErrorOccurred }}</small></p>
+      <p>{{ i18nErrorMessage }}</p>
+    </div>
   </div>
 </template>
 
 <script>
 import {SvgIcon} from '../svg.js';
 
-const {AppSubUrl} = window.config;
+const {appSubUrl, i18n} = window.config;
+
+// NOTE: see models/issue_label.go for similar implementation
+const srgbToLinear = (color) => {
+  color /= 255;
+  if (color <= 0.04045) {
+    return color / 12.92;
+  }
+  return ((color + 0.055) / 1.055) ** 2.4;
+};
+const luminance = (colorString) => {
+  const r = srgbToLinear(parseInt(colorString.substring(0, 2), 16));
+  const g = srgbToLinear(parseInt(colorString.substring(2, 4), 16));
+  const b = srgbToLinear(parseInt(colorString.substring(4, 6), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const luminanceThreshold = 0.179;
 
 export default {
   name: 'ContextPopup',
@@ -33,7 +53,9 @@ export default {
 
   data: () => ({
     loading: false,
-    issue: null
+    issue: null,
+    i18nErrorOccurred: i18n.error_occurred,
+    i18nErrorMessage: null,
   }),
 
   computed: {
@@ -74,14 +96,13 @@ export default {
 
     labels() {
       return this.issue.labels.map((label) => {
-        const red = parseInt(label.color.substring(0, 2), 16);
-        const green = parseInt(label.color.substring(2, 4), 16);
-        const blue = parseInt(label.color.substring(4, 6), 16);
-        let color = '#ffffff';
-        if ((red * 0.299 + green * 0.587 + blue * 0.114) > 125) {
-          color = '#000000';
+        let textColor;
+        if (luminance(label.color) < luminanceThreshold) {
+          textColor = '#ffffff';
+        } else {
+          textColor = '#000000';
         }
-        return {name: label.name, color: `#${label.color}`, textColor: color};
+        return {name: label.name, color: `#${label.color}`, textColor};
       });
     }
   },
@@ -97,14 +118,20 @@ export default {
   methods: {
     load(data, callback) {
       this.loading = true;
-      $.get(`${AppSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
+      this.i18nErrorMessage = null;
+      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`).done((issue) => {
         this.issue = issue;
+      }).fail((jqXHR) => {
+        if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+          this.i18nErrorMessage = jqXHR.responseJSON.message;
+        } else {
+          this.i18nErrorMessage = i18n.network_error;
+        }
+      }).always(() => {
         this.loading = false;
-        this.$nextTick(() => {
-          if (callback) {
-            callback();
-          }
-        });
+        if (callback) {
+          this.$nextTick(callback);
+        }
       });
     }
   }

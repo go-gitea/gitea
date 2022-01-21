@@ -8,7 +8,6 @@ package markdown
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -29,20 +28,19 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var converter goldmark.Markdown
-var once = sync.Once{}
+var (
+	converter goldmark.Markdown
+	once      = sync.Once{}
+)
 
-var urlPrefixKey = parser.NewContextKey()
-var isWikiKey = parser.NewContextKey()
-var renderMetasKey = parser.NewContextKey()
-
-type closesWithError interface {
-	io.WriteCloser
-	CloseWithError(err error) error
-}
+var (
+	urlPrefixKey   = parser.NewContextKey()
+	isWikiKey      = parser.NewContextKey()
+	renderMetasKey = parser.NewContextKey()
+)
 
 type limitWriter struct {
-	w     closesWithError
+	w     io.Writer
 	sum   int64
 	limit int64
 }
@@ -56,22 +54,11 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		_ = l.w.Close()
 		return n, fmt.Errorf("Rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)
 	return n, err
-}
-
-// Close closes the writer
-func (l *limitWriter) Close() error {
-	return l.w.Close()
-}
-
-// CloseWithError closes the writer
-func (l *limitWriter) CloseWithError(err error) error {
-	return l.w.CloseWithError(err)
 }
 
 // newParserContext creates a parser.Context with the render context set
@@ -108,25 +95,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 							languageStr := string(language)
 
-							preClasses := []string{}
+							preClasses := []string{"code-block"}
 							if languageStr == "mermaid" {
 								preClasses = append(preClasses, "is-loading")
 							}
 
-							if len(preClasses) > 0 {
-								_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
-								if err != nil {
-									return
-								}
-							} else {
-								_, err := w.WriteString(`<pre>`)
-								if err != nil {
-									return
-								}
+							_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
+							if err != nil {
+								return
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err := w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
 							if err != nil {
 								return
 							}
@@ -158,54 +138,42 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
-
 	})
 
-	rd, wr := io.Pipe()
-	defer func() {
-		_ = rd.Close()
-		_ = wr.Close()
-	}()
-
 	lw := &limitWriter{
-		w:     wr,
+		w:     output,
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: should we include a timeout that closes the pipe to abort the renderer and sanitizer if it takes too long?
-	go func() {
-		defer func() {
-			err := recover()
-			if err == nil {
-				return
-			}
-
-			log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
-			if log.IsDebug() {
-				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
-			}
-			_ = lw.CloseWithError(fmt.Errorf("%v", err))
-		}()
-
-		// FIXME: Don't read all to memory, but goldmark doesn't support
-		pc := newParserContext(ctx)
-		buf, err := ioutil.ReadAll(input)
-		if err != nil {
-			log.Error("Unable to ReadAll: %v", err)
+	// FIXME: should we include a timeout to abort the renderer if it takes too long?
+	defer func() {
+		err := recover()
+		if err == nil {
 			return
 		}
-		if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
-			log.Error("Unable to render: %v", err)
-			_ = lw.CloseWithError(err)
-			return
+
+		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
+		if log.IsDebug() {
+			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
 		}
-		_ = lw.Close()
 	}()
-	buf := markup.SanitizeReader(rd, "")
-	_, err := io.Copy(output, buf)
-	return err
+
+	// FIXME: Don't read all to memory, but goldmark doesn't support
+	pc := newParserContext(ctx)
+	buf, err := io.ReadAll(input)
+	if err != nil {
+		log.Error("Unable to ReadAll: %v", err)
+		return err
+	}
+	if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+		log.Error("Unable to render: %v", err)
+		return err
+	}
+
+	return nil
 }
 
+// Note: The output of this method must get sanitized.
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	defer func() {
 		err := recover()
@@ -213,23 +181,20 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			return
 		}
 
-		log.Warn("Unable to render markdown due to panic in goldmark - will return sanitized raw bytes")
+		log.Warn("Unable to render markdown due to panic in goldmark - will return raw bytes")
 		if log.IsDebug() {
 			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
 		}
-		ret := markup.SanitizeReader(input, "")
-		_, err = io.Copy(output, ret)
+		_, err = io.Copy(output, input)
 		if err != nil {
-			log.Error("SanitizeReader failed: %v", err)
+			log.Error("io.Copy failed: %v", err)
 		}
 	}()
 	return actualRender(ctx, input, output)
 }
 
-var (
-	// MarkupName describes markup's name
-	MarkupName = "markdown"
-)
+// MarkupName describes markup's name
+var MarkupName = "markdown"
 
 func init() {
 	markup.RegisterRenderer(Renderer{})
@@ -263,8 +228,8 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 // Render renders Markdown to HTML with all specific handling stuff.
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.Filename == "" {
-		ctx.Filename = "a.md"
+	if ctx.Type == "" {
+		ctx.Type = MarkupName
 	}
 	return markup.Render(ctx, input, output)
 }
@@ -280,7 +245,21 @@ func RenderString(ctx *markup.RenderContext, content string) (string, error) {
 
 // RenderRaw renders Markdown to HTML without handling special links.
 func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	return render(ctx, input, output)
+	rd, wr := io.Pipe()
+	defer func() {
+		_ = rd.Close()
+		_ = wr.Close()
+	}()
+
+	go func() {
+		if err := render(ctx, input, wr); err != nil {
+			_ = wr.CloseWithError(err)
+			return
+		}
+		_ = wr.Close()
+	}()
+
+	return markup.SanitizeReader(rd, "", output)
 }
 
 // RenderRawString renders Markdown to HTML without handling special links and return string

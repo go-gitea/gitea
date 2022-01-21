@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -108,7 +110,7 @@ func InitIssueIndexer(syncReindex bool) {
 				return data
 			}
 
-			iData := make([]*IndexerData, 0, setting.Indexer.IssueQueueBatchNumber)
+			iData := make([]*IndexerData, 0, len(data))
 			for _, datum := range data {
 				indexerData, ok := datum.(*IndexerData)
 				if !ok {
@@ -242,8 +244,8 @@ func populateIssueIndexer(ctx context.Context) {
 		default:
 		}
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
-			OrderBy:     models.SearchOrderByID,
+			ListOptions: db.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
+			OrderBy:     db.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
 		})
@@ -269,7 +271,7 @@ func populateIssueIndexer(ctx context.Context) {
 }
 
 // UpdateRepoIndexer add/update all issues of the repositories
-func UpdateRepoIndexer(repo *models.Repository) {
+func UpdateRepoIndexer(repo *repo_model.Repository) {
 	is, err := models.Issues(&models.IssuesOptions{
 		RepoIDs:  []int64{repo.ID},
 		IsClosed: util.OptionalBoolNone,
@@ -310,7 +312,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 }
 
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
-func DeleteRepoIssueIndexer(repo *models.Repository) {
+func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 	var ids []int64
 	ids, err := models.GetIssueIDsByRepoID(repo.ID)
 	if err != nil {

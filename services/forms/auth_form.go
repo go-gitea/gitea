@@ -29,6 +29,7 @@ type AuthenticationForm struct {
 	AttributeSurname              string
 	AttributeMail                 string
 	AttributeSSHPublicKey         string
+	AttributeAvatar               string
 	AttributesInBind              bool
 	UsePagedSearch                bool
 	SearchPageSize                int
@@ -50,6 +51,9 @@ type AuthenticationForm struct {
 	SecurityProtocol              int `binding:"Range(0,2)"`
 	TLS                           bool
 	SkipVerify                    bool
+	HeloHostname                  string
+	DisableHelo                   bool
+	ForceSMTPS                    bool
 	PAMServiceName                string
 	PAMEmailDomain                string
 	Oauth2Provider                string
@@ -63,6 +67,13 @@ type AuthenticationForm struct {
 	Oauth2EmailURL                string
 	Oauth2IconURL                 string
 	Oauth2Tenant                  string
+	Oauth2Scopes                  string
+	Oauth2RequiredClaimName       string
+	Oauth2RequiredClaimValue      string
+	Oauth2GroupClaimName          string
+	Oauth2AdminGroup              string
+	Oauth2RestrictedGroup         string
+	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

@@ -7,6 +7,8 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -16,7 +18,7 @@ import (
 
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
-	ListOptions
+	db.ListOptions
 	State       string
 	SortType    string
 	Labels      []string
@@ -24,7 +26,7 @@ type PullRequestsOptions struct {
 }
 
 func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
-	sess := x.Where("pull_request.base_repo_id=?", baseRepoID)
+	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", baseRepoID)
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
@@ -50,18 +52,28 @@ func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xor
 // by given head information (repo and branch).
 func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, x.
+	return prs, db.GetEngine(db.DefaultContext).
 		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Find(&prs)
 }
 
+// HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
+// by given head information (repo and branch)
+func HasUnmergedPullRequestsByHeadInfo(repoID int64, branch string) (bool, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
+			repoID, branch, false, false, PullRequestFlowGithub).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Exist(&PullRequest{})
+}
+
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	return prs, x.
+	return prs, db.GetEngine(db.DefaultContext).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -71,7 +83,7 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 // GetPullRequestIDsByCheckStatus returns all pull requests according the special checking status.
 func GetPullRequestIDsByCheckStatus(status PullRequestStatus) ([]int64, error) {
 	prs := make([]int64, 0, 10)
-	return prs, x.Table("pull_request").
+	return prs, db.GetEngine(db.DefaultContext).Table("pull_request").
 		Where("status=?", status).
 		Cols("pull_request.id").
 		Find(&prs)
@@ -100,7 +112,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
-	findSession = opts.setSessionPagination(findSession)
+	findSession = db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
 }
@@ -108,7 +120,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 // PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
-func (prs PullRequestList) loadAttributes(e Engine) error {
+func (prs PullRequestList) loadAttributes(e db.Engine) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -143,10 +155,10 @@ func (prs PullRequestList) getIssueIDs() []int64 {
 
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
-	return prs.loadAttributes(x)
+	return prs.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
+func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *user_model.User, repo *git.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -167,6 +179,6 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *gi
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
-	return prs.invalidateCodeComments(x, doer, repo, branch)
+func (prs PullRequestList) InvalidateCodeComments(doer *user_model.User, repo *git.Repository, branch string) error {
+	return prs.invalidateCodeComments(db.GetEngine(db.DefaultContext), doer, repo, branch)
 }

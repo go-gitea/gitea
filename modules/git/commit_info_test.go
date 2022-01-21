@@ -12,18 +12,21 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
-const testReposDir = "tests/repos/"
-const benchmarkReposDir = "benchmark/repos/"
+const (
+	testReposDir      = "tests/repos/"
+	benchmarkReposDir = "benchmark/repos/"
+)
 
 func cloneRepo(url, dir, name string) (string, error) {
 	repoDir := filepath.Join(dir, name)
 	if _, err := os.Stat(repoDir); err == nil {
 		return repoDir, nil
 	}
-	return repoDir, Clone(url, repoDir, CloneRepoOptions{
+	return repoDir, Clone(DefaultContext, url, repoDir, CloneRepoOptions{
 		Mirror:  false,
 		Bare:    false,
 		Quiet:   true,

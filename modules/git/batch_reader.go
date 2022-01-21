@@ -8,8 +8,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"math"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -25,24 +27,41 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
+// EnsureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
+// Run before opening git cat-file.
+// This is needed otherwise the git cat-file will hang for invalid repositories.
+func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
+	stderr := strings.Builder{}
+	err := NewCommandContext(ctx, "rev-parse").
+		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
+		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
+	if err != nil {
+		return ConcatenateError(err, (&stderr).String())
+	}
+	return nil
+}
+
 // CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	ctx, ctxCancel := context.WithCancel(DefaultContext)
+	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
 		ctxCancel()
+		_ = batchStdoutReader.Close()
+		_ = batchStdinWriter.Close()
 		<-closed
 	}
 
+	_, filename, line, _ := runtime.Caller(2)
+	filename = strings.TrimPrefix(filename, callerPrefix)
+
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch-check").RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		err := NewCommandContext(ctx, "cat-file", "--batch-check").
+			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -60,25 +79,28 @@ func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()
 }
 
 // CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
-	ctx, ctxCancel := context.WithCancel(DefaultContext)
+	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
-		_ = batchStdinReader.Close()
+		ctxCancel()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-		ctxCancel()
 		<-closed
 	}
 
+	_, filename, line, _ := runtime.Caller(2)
+	filename = strings.TrimPrefix(filename, callerPrefix)
+
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch").RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		err := NewCommandContext(ctx, "cat-file", "--batch").
+			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -291,4 +313,11 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	sha = shaBuf
 	return
+}
+
+var callerPrefix string
+
+func init() {
+	_, filename, _, _ := runtime.Caller(0)
+	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
 }

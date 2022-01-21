@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -120,8 +121,8 @@ func GetManager() *Manager {
 func (m *Manager) Add(managed interface{},
 	t Type,
 	configuration,
-	exemplar interface{}) int64 {
-
+	exemplar interface{},
+) int64 {
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
 		Type:          t,
@@ -152,7 +153,6 @@ func (m *Manager) Remove(qid int64) {
 	delete(m.Queues, qid)
 	m.mutex.Unlock()
 	log.Trace("Queue Manager removed: QID: %d", qid)
-
 }
 
 // GetManagedQueue by qid
@@ -181,7 +181,17 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			mqs := m.ManagedQueues()
+			nonEmptyQueues := []string{}
+			for _, mq := range mqs {
+				if !mq.IsEmpty() {
+					nonEmptyQueues = append(nonEmptyQueues, mq.Name)
+				}
+			}
+			if len(nonEmptyQueues) > 0 {
+				return fmt.Errorf("flush timeout with non-empty queues: %s", strings.Join(nonEmptyQueues, ", "))
+			}
+			return nil
 		default:
 		}
 		mqs := m.ManagedQueues()
@@ -234,7 +244,6 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 		wg.Wait()
 	}
 	return nil
-
 }
 
 // ManagedQueues returns the managed queues

@@ -8,7 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"container/list"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -36,7 +36,7 @@ type Commit struct {
 // CommitGPGSignature represents a git commit signature part.
 type CommitGPGSignature struct {
 	Signature string
-	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -88,8 +88,8 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs []string, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -139,12 +139,12 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	args := []string{"--all", "--count"}
 	if hidePRRefs {
-		args = append([]string{"--exclude=refs/pull/*"}, args...)
+		args = append([]string{"--exclude=" + PullPrefix + "*"}, args...)
 	}
-	cmd := NewCommand("rev-list")
+	cmd := NewCommandContext(ctx, "rev-list")
 	cmd.AddArguments(args...)
 	if len(files) > 0 {
 		cmd.AddArguments("--")
@@ -160,8 +160,8 @@ func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, 
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
-	cmd := NewCommand("rev-list", "--count")
+func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
+	cmd := NewCommandContext(ctx, "rev-list", "--count")
 	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--")
@@ -177,22 +177,22 @@ func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, erro
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath string, revision ...string) (int64, error) {
-	return CommitsCountFiles(repoPath, revision, []string{})
+func CommitsCount(ctx context.Context, repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(ctx, repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+	return CommitsCount(c.repo.Ctx, c.repo.Path, c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
+func (c *Commit) CommitsByRange(page, pageSize int) ([]*Commit, error) {
 	return c.repo.commitsByRange(c.ID, page, pageSize)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() (*list.List, error) {
+func (c *Commit) CommitsBefore() ([]*Commit, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
@@ -206,7 +206,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 	}
 
 	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, err := NewCommand("merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		_, err := NewCommandContext(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
 		if err == nil {
 			return true, nil
 		}
@@ -219,7 +219,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	result, err := NewCommandContext(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
 	if err != nil {
 		return false, err
 	}
@@ -228,12 +228,12 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
+func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
+func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
+func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
 	return c.repo.searchCommits(c.ID, opts)
 }
 
@@ -381,7 +381,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	data, err := NewCommand(args...).RunInDir(c.repo.Path)
+	data, err := NewCommandContext(c.repo.Ctx, args...).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -407,7 +407,7 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommandContext(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
@@ -474,7 +474,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 }
 
 // GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
@@ -486,7 +486,7 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	stderr := new(bytes.Buffer)
 	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
 
-	err := NewCommand(args...).RunInDirPipeline(repoPath, w, stderr)
+	err := NewCommandContext(ctx, args...).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
 		return nil, ConcatenateError(err, stderr.String())
@@ -497,8 +497,8 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
-func GetFullCommitID(repoPath, shortID string) (string, error) {
-	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
+	commitID, err := NewCommandContext(ctx, "rev-parse", shortID).RunInDir(repoPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}

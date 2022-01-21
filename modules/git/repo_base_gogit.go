@@ -3,11 +3,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 
@@ -29,10 +31,17 @@ type Repository struct {
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
+
+	Ctx context.Context
 }
 
 // OpenRepository opens the repository at the given path.
 func OpenRepository(repoPath string) (*Repository, error) {
+	return OpenRepositoryCtx(DefaultContext, repoPath)
+}
+
+// OpenRepositoryCtx opens the repository at the given path within the context.Context
+func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -59,17 +68,19 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
+		Ctx:          ctx,
 	}, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() (err error) {
 	if repo == nil || repo.gogitStorage == nil {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	return
 }
 
 // GoGitRepo gets the go-git repo representation

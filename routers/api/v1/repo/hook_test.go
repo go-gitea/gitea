@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func TestTestHook(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
 	ctx.SetParams(":id", "1")
@@ -26,8 +27,8 @@ func TestTestHook(t *testing.T) {
 	TestHook(&context.APIContext{Context: ctx, Org: nil})
 	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.HookTask{
+	unittest.AssertExistsAndLoadBean(t, &webhook.HookTask{
 		RepoID: 1,
 		HookID: 1,
-	}, models.Cond("is_delivered=?", false))
+	}, unittest.Cond("is_delivered=?", false))
 }

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -20,7 +21,7 @@ import (
 )
 
 // ProcRecive handle proc receive work
-func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HockProcReceiveRefResult {
+func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HookProcReceiveRefResult {
 	// TODO: Add more options?
 	var (
 		topicBranch string
@@ -29,7 +30,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		forcePush   bool
 	)
 
-	results := make([]private.HockProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	ownerName := ctx.Repo.Repository.OwnerName
@@ -40,7 +41,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -50,7 +51,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if !strings.HasPrefix(opts.RefFullNames[i], git.PullRequestPrefix) {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				IsNotMatched: true,
 				OriginalRef:  opts.RefFullNames[i],
 			})
@@ -71,7 +72,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -124,7 +125,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := models.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(opts.UserID)
 			if err != nil {
 				log.Error("Failed to get user. Error: %v", err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -155,7 +156,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				Flow:         models.PullRequestFlowAGit,
 			}
 
-			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
 				if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 					ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 					return nil
@@ -166,7 +167,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      git.EmptySHA,
@@ -194,7 +195,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if oldCommitID == opts.NewCommitIDs[i] {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -204,7 +205,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if !forcePush {
-			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
+			output, err := git.NewCommandContext(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
 			if err != nil {
 				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, opts.NewCommitIDs[i], repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -212,8 +213,8 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				})
 				return nil
 			} else if len(output) > 0 {
-				results = append(results, private.HockProcReceiveRefResult{
-					OriginalRef: oldCommitID,
+				results = append(results, private.HookProcReceiveRefResult{
+					OriginalRef: opts.RefFullNames[i],
 					OldOID:      opts.OldCommitIDs[i],
 					NewOID:      opts.NewCommitIDs[i],
 					Err:         "request `force-push` push option",
@@ -223,7 +224,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(pr); err != nil {
+		if err = pull_service.UpdateRef(ctx, pr); err != nil {
 			log.Error("Failed to update pull ref. Error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"Err": fmt.Sprintf("Failed to update pull ref. Error: %v", err),
@@ -232,7 +233,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := models.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(opts.UserID)
 		if err != nil {
 			log.Error("Failed to get user. Error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -248,14 +249,14 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 			})
 			return nil
 		}
-		comment, err := models.CreatePushPullComment(pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := models.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
 		}
 		notification.NotifyPullRequestSynchronized(pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
-		results = append(results, private.HockProcReceiveRefResult{
+		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:      oldCommitID,
 			NewOID:      opts.NewCommitIDs[i],
 			Ref:         pr.GetGitRefName(),
@@ -267,8 +268,8 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 	return results
 }
 
-// UserNameChanged hanle user name change for agit flow pull
-func UserNameChanged(user *models.User, newName string) error {
+// UserNameChanged handle user name change for agit flow pull
+func UserNameChanged(user *user_model.User, newName string) error {
 	pulls, err := models.GetAllUnmergedAgitPullRequestByPoster(user.ID)
 	if err != nil {
 		return err
