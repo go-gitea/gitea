@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -62,7 +63,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AppSubURL
 		},
 		"AssetUrlPrefix": func() string {
-			return setting.StaticURLPrefix + "/assets"
+			return setting.StaticURLPrefix + "/" + public.WebPublicDirName
 		},
 		"AppUrl": func() string {
 			return setting.AppURL
@@ -146,7 +147,6 @@ func NewFuncMap() []template.FuncMap {
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"Sha1":                           Sha1,
 		"ShortSha":                       base.ShortSha,
-		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
 		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,

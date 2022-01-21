@@ -23,8 +23,8 @@ type Options struct {
 	CorsHandler func(http.Handler) http.Handler
 }
 
-// AssetsURLPathPrefix is the path prefix for static asset files
-const AssetsURLPathPrefix = "/assets/"
+// WebPublicDirName is the directory name for public(static) asset files. It may be set to the build time by `static.go`
+var WebPublicDirName = "public-dynamic"
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {

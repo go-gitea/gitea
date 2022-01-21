@@ -85,9 +85,9 @@ func Routes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
+	r.Use(web.WrapWithPrefix("/"+public.WebPublicDirName, public.AssetsHandlerFunc(&public.Options{
 		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    public.AssetsURLPathPrefix,
+		Prefix:    "/" + public.WebPublicDirName,
 	}), "InstallAssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{

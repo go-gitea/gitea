@@ -10,6 +10,7 @@ package public
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -18,12 +19,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
 )
+
+var assetModTime time.Time
 
 // GlobalModTime provide a global mod time for embedded asset files
 func GlobalModTime(filename string) time.Time {
-	return timeutil.GetExecutableModTime()
+	return assetModTime
 }
 
 func fileSystem(dir string) http.FileSystem {
@@ -90,4 +92,9 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 
 	http.ServeContent(w, req, fi.Name(), modtime, content)
 	return
+}
+
+func init() {
+	assetModTime = timeutil.GetExecutableModTime()
+	WebPublicDirName = fmt.Sprintf("public-%x", assetModTime.UnixMilli())
 }
