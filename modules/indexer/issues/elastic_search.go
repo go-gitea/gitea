@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"time"
 
@@ -260,7 +261,8 @@ func (b *ElasticSearchIndexer) Close() {
 }
 
 func (b *ElasticSearchIndexer) checkError(err error) error {
-	if elastic.IsConnErr(err) && b.available {
+	var opErr *net.OpError
+	if b.available && (elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
 		b.available = false
 		if b.availabilityCallback != nil {
 			b.availabilityCallback(b.available)

@@ -163,8 +163,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	if len(keyword) > 0 {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
 		if err != nil {
-			ctx.ServerError("issueIndexer.Search", err)
-			return
+			if issue_indexer.IsAvailable() {
+				ctx.ServerError("issueIndexer.Search", err)
+				return
+			}
+			ctx.Data["IssueIndexerUnavailable"] = true
 		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true

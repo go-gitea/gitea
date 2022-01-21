@@ -387,3 +387,14 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	}
 	return issueIDs, nil
 }
+
+// IsAvailable checks if issue indexer is available
+func IsAvailable() bool {
+	indexer := holder.get()
+	if indexer == nil {
+		log.Error("IsAvailable(): unable to get indexer!")
+		return false
+	}
+
+	return indexer.Ping()
+}
