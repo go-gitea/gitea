@@ -55,20 +55,33 @@ PORT_TO_REDIRECT = 3080
 
 If you are using Docker, make sure that this port is configured in your `docker-compose.yml` file.
 
-## Using Let's Encrypt
+## Using ACME (Default: Let's Encrypt)
 
-[Let's Encrypt](https://letsencrypt.org/) is a Certificate Authority that allows you to automatically request and renew SSL/TLS certificates. In addition to starting Gitea on your configured port, to request HTTPS certificates, Gitea will also need to listed on port 80, and will set up an autoredirect to HTTPS for you. Let's Encrypt will need to be able to access Gitea via the Internet to verify your ownership of the domain.
+[ACME](https://tools.ietf.org/html/rfc8555) is a Certificate Authority standard protocol that allows you to automatically request and renew SSL/TLS certificates. [Let's Encrypt](https://letsencrypt.org/) is a free publicly trusted Certificate Authority server using this standard. Currently only the `HTTP-01` challenge is implemented, so gitea needs to listen on port 80 to answer the ACME challenge and verify your domain ownership. Setting up [HTTP redirection](#setting-up-http-redirection) might be needed. Normal traffic to port 80 will otherwise be automatically redirected to HTTPS.
 
-By using Let's Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
-
+If you are using the default Let's Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf). Refer to the following configuration for the minimum setup:
 ```ini
 [server]
 PROTOCOL=https
 DOMAIN=git.example.com
-ENABLE_LETSENCRYPT=true
+ENABLE_ACME=true
 LETSENCRYPT_ACCEPTTOS=true
-LETSENCRYPT_DIRECTORY=https
-LETSENCRYPT_EMAIL=email@example.com
+ACME_DIRECTORY=https
+;; Email can be omitted here and provided manually at first run, after which it is cached
+ACME_EMAIL=email@example.com
+```
+
+For generic ACME setup, you are responsible to adhere to the terms of service of the ACME server you are configuring for. The following is an example configuration using [smallstep CA](https://github.com/smallstep/certificates), refer to [their tutorial](https://smallstep.com/docs/tutorials/acme-challenge) for more information.
+```ini
+[server]
+PROTOCOL=https
+DOMAIN=git.example.com
+ENABLE_ACME=true
+ACME_URL=https://ca.example.com/acme/acme/directory
+;; Can be omitted if using the system's trust is preferred
+;ACME_CA_ROOT=/path/to/root_ca.crt
+ACME_DIRECTORY=https
+ACME_EMAIL=email@example.com
 ```
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server-server).
