@@ -31,7 +31,7 @@ function require {
     which "$exe" &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
   done
 }
-require curl xz sha256sum gpg "$sudocmd"
+require systemctl curl xz sha256sum gpg "$sudocmd"
 
 # select version to install
 if [[ -z "${1:-}" ]]; then
@@ -49,11 +49,11 @@ echo "Are you ready to update Gitea from ${current} to ${giteaversion}? (y/N)"
 read -r confirm
 [[ "$confirm" == "y" ]] || [[ "$confirm" == "Y" ]] || exit 1
 
-pushd "$(pwd)"
+pushd "$(pwd)" &>/dev/null
 cd "$giteahome" # needed for gitea dump later
 
 # download new binary
-binname=gitea-${giteaversion}-${arch}
+binname="gitea-${giteaversion}-${arch}"
 binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
 echo "Downloading $binurl..."
 curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.sha256,.asc}"
