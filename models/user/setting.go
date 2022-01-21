@@ -63,6 +63,9 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 }
 
 func validateUserSettingKey(key string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("setting key must be set")
+	}
 	if strings.ToLower(key) != key {
 		return fmt.Errorf("setting key should be lowercase")
 	}
