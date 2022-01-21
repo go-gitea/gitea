@@ -42,7 +42,7 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
-	Index(repo *repo_model.Repository, sha string, changes *repoChanges) error
+	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
 	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
@@ -78,11 +78,9 @@ type IndexerData struct {
 	RepoID int64
 }
 
-var (
-	indexerQueue queue.UniqueQueue
-)
+var indexerQueue queue.UniqueQueue
 
-func index(indexer Indexer, repoID int64) error {
+func index(ctx context.Context, indexer Indexer, repoID int64) error {
 	repo, err := repo_model.GetRepositoryByID(repoID)
 	if repo_model.IsErrRepoNotExist(err) {
 		return indexer.Delete(repoID)
@@ -91,18 +89,18 @@ func index(indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	sha, err := getDefaultBranchSha(repo)
+	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(repo, sha)
+	changes, err := getRepoChanges(ctx, repo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
 		return nil
 	}
 
-	if err := indexer.Index(repo, sha, changes); err != nil {
+	if err := indexer.Index(ctx, repo, sha, changes); err != nil {
 		return err
 	}
 
@@ -150,7 +148,7 @@ func Init() {
 				}
 				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
-				if err := index(indexer, indexerData.RepoID); err != nil {
+				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
 					log.Error("index: %v", err)
 					continue
 				}

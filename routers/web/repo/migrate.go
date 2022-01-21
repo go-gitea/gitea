@@ -203,7 +203,7 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	var opts = migrations.MigrateOptions{
+	opts := migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: form.Service,
 		CloneAddr:      remoteAddr,

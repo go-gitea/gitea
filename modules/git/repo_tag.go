@@ -174,7 +174,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 		tagNames = util.PaginateSlice(tagNames, page, pageSize).([]string)
 	}
 
-	var tags = make([]*Tag, 0, len(tagNames))
+	tags := make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
 		if len(tagName) == 0 {
