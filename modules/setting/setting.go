@@ -109,12 +109,12 @@ var (
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
-	EnableLetsEncrypt    bool
+	EnableAcme           bool
 	LetsEncryptTOS       bool
-	LetsEncryptDirectory string
-	LetsEncryptEmail     string
-	ACMECAURL            string
-	ACMECARoot           string
+	AcmeLiveDirectory    string
+	AcmeEmail            string
+	AcmeURL              string
+	AcmeCARoot           string
 	SSLMinimumVersion    string
 	SSLMaximumVersion    string
 	SSLCurvePreferences  []string
@@ -624,14 +624,49 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
-		CertFile = sec.Key("CERT_FILE").String()
-		KeyFile = sec.Key("KEY_FILE").String()
-		if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
-			CertFile = filepath.Join(CustomPath, CertFile)
+		// FIXME: DEPRECATED to be removed in v1.18.0
+		if sec.HasKey("ENABLE_ACME") {
+			EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
+		} else {
+			deprecatedSetting("server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME")
+			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 		}
-		if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
-			KeyFile = filepath.Join(CustomPath, KeyFile)
+		if EnableAcme {
+			AcmeURL = sec.Key("ACME_URL").MustString("")
+			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
+			LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+			// The TOS is only required when using LetsEncrypt
+			if AcmeURL == "" && !LetsEncryptTOS {
+				log.Fatal("Let's Encrypt TOS (LETSENCRYPT_ACCEPTTOS) is not accepted. Either accept it or configure a different ACME provider (ACME_URL)")
+			}
+			// FIXME: DEPRECATED to be removed in v1.18.0
+			if sec.HasKey("ACME_DIRECTORY") {
+				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
+			} else {
+				deprecatedSetting("server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY")
+				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+			}
+			// FIXME: DEPRECATED to be removed in v1.18.0
+			if sec.HasKey("ACME_EMAIL") {
+				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
+			} else {
+				deprecatedSetting("server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL")
+				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+			}
+		} else {
+			CertFile = sec.Key("CERT_FILE").String()
+			KeyFile = sec.Key("KEY_FILE").String()
+			if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+				CertFile = filepath.Join(CustomPath, CertFile)
+			}
+			if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
+				KeyFile = filepath.Join(CustomPath, KeyFile)
+			}
 		}
+		SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
+		SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
+		SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
+		SSLCipherSuites = sec.Key("SSL_CIPHER_SUITES").Strings(",")
 	case "fcgi":
 		Protocol = FCGI
 	case "fcgi+unix", "unix", "http+unix":
@@ -655,20 +690,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	}
-	EnableLetsEncrypt = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
-	ACMECAURL = sec.Key("ACME_CAURL").MustString("")
-	ACMECARoot = sec.Key("ACME_CARoot").MustString("")
-	LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-	if !LetsEncryptTOS && EnableLetsEncrypt {
-		log.Warn("Failed to enable Let's Encrypt due to Let's Encrypt TOS not being accepted")
-		EnableLetsEncrypt = false
-	}
-	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
-	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
-	SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
-	SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
-	SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
-	SSLCipherSuites = sec.Key("SSL_CIPHER_SUITES").Strings(",")
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)

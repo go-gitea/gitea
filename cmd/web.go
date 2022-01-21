@@ -222,8 +222,8 @@ func listen(m http.Handler, handleRedirector bool) error {
 		}
 		err = runHTTP("tcp", listenAddr, "Web", m)
 	case setting.HTTPS:
-		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
+		if setting.EnableAcme {
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.AcmeLiveDirectory, setting.AcmeEmail, m)
 			break
 		}
 		if handleRedirector {
