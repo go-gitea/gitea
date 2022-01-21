@@ -5,7 +5,7 @@ set -euo pipefail
 # from dl.gitea.io on linux as systemd service. It performs a backup and updates
 # Gitea in place.
 # NOTE: This adds the GPG Signing Key of the Gitea maintainers to the keyring.
-# Depends on: bash, curl, xz, sha256sum, gpg, which. optionally jq.
+# Depends on: bash, curl, xz, sha256sum, gpg. optionally jq.
 # Usage:      [environment vars] upgrade.sh [version]
 #   See section below for available environment vars.
 #   When no version is specified, updates to the latest release.
@@ -28,7 +28,7 @@ function giteacmd {
 
 function require {
   for exe in "$@"; do
-    which "$exe" &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
+    command -v "$exe" &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
   done
 }
 require systemctl curl xz sha256sum gpg "$sudocmd"
