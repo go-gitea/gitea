@@ -478,5 +478,4 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	for _, callback := range callbacks {
 		callback()
 	}
-
 }

@@ -37,8 +37,10 @@ type WorkerPool struct {
 	numInQueue         int64
 }
 
-var _ Flushable = &WorkerPool{}
-var _ ManagedPool = &WorkerPool{}
+var (
+	_ Flushable   = &WorkerPool{}
+	_ ManagedPool = &WorkerPool{}
+)
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
 type WorkerPoolConfiguration struct {

@@ -250,5 +250,4 @@ func TestChannelQueue_Pause(t *testing.T) {
 	}
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
-
 }
