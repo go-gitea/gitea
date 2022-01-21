@@ -24,7 +24,7 @@ func runACME(listenAddr string, m http.Handler) error {
 	// Due to docker port mapping this can't be checked programmatically
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
-	enableTLSALPNChallenge := false
+	enableTLSALPNChallenge := true
 	altHTTPPort := 0
 	altTLSALPNPort := 0
 

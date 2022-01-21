@@ -57,7 +57,7 @@ If you are using Docker, make sure that this port is configured in your `docker-
 
 ## Using ACME (Default: Let's Encrypt)
 
-[ACME](https://tools.ietf.org/html/rfc8555) is a Certificate Authority standard protocol that allows you to automatically request and renew SSL/TLS certificates. [Let's Encrypt](https://letsencrypt.org/) is a free publicly trusted Certificate Authority server using this standard. Currently only the `HTTP-01` challenge is implemented, so gitea needs to listen on port 80 to answer the ACME challenge and verify your domain ownership. Setting up [HTTP redirection](#setting-up-http-redirection) might be needed. Normal traffic to port 80 will otherwise be automatically redirected to HTTPS.
+[ACME](https://tools.ietf.org/html/rfc8555) is a Certificate Authority standard protocol that allows you to automatically request and renew SSL/TLS certificates. [Let's Encrypt](https://letsencrypt.org/) is a free publicly trusted Certificate Authority server using this standard. Only `HTTP-01` and `TLS-ALPN-01` challenges are implemented. In order for ACME challenges to pass and verify your domain ownership, external traffic to the gitea domain on port `80` (`HTTP-01`) or port `443` (`TLS-ALPN-01`) has to be served by the gitea instance. Setting up [HTTP redirection](#setting-up-http-redirection) and port-forwards might be needed for external traffic to route correctly. Normal traffic to port `80` will otherwise be automatically redirected to HTTPS.
 
 If you are using the default Let's Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf). Refer to the following configuration for the minimum setup:
 ```ini
