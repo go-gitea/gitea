@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -92,7 +92,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	if len(logMessage) > 0 {
 		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
 	}
-	return cli.NewExitError(fmt.Sprintf("Gitea: %s", userMessage), 1)
+	return cli.NewExitError("", 1)
 }
 
 func runServ(c *cli.Context) error {
@@ -247,15 +247,15 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
 	os.Setenv(models.EnvAppURL, setting.AppURL)
 
-	//LFS token authentication
+	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
 		claims := lfs.Claims{
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-				NotBefore: now.Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+				NotBefore: jwt.NewNumericDate(now),
 			},
 			RepoID: results.RepoID,
 			Op:     lfsVerb,

@@ -15,8 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type mockFileInfo struct {
-}
+type mockFileInfo struct{}
 
 func (m mockFileInfo) Name() string       { return "gitea.test" }
 func (m mockFileInfo) Size() int64        { return int64(10) }

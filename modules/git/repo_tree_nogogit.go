@@ -34,7 +34,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(repo)
 		if err != nil {
 			return nil, err
 		}

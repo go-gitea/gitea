@@ -22,9 +22,7 @@ type indexerNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &indexerNotifier{}
-)
+var _ base.Notifier = &indexerNotifier{}
 
 // NewNotifier create a new indexerNotifier notifier
 func NewNotifier() base.Notifier {

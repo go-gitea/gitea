@@ -55,7 +55,7 @@ func (q *delayedStarter) setInternal(atShutdown func(func()), handle HandlerFunc
 	for q.internal == nil {
 		select {
 		case <-ctx.Done():
-			var cfg = q.cfg
+			cfg := q.cfg
 			if s, ok := cfg.([]byte); ok {
 				cfg = string(s)
 			}

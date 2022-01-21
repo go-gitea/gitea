@@ -160,7 +160,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = util.OptionalBoolFalse
 	}
 
-	var mode = ctx.FormString("mode")
+	mode := ctx.FormString("mode")
 	switch mode {
 	case "source":
 		opts.Fork = util.OptionalBoolFalse
@@ -186,9 +186,9 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
 	}
 
-	var sortMode = ctx.FormString("sort")
+	sortMode := ctx.FormString("sort")
 	if len(sortMode) > 0 {
-		var sortOrder = ctx.FormString("order")
+		sortOrder := ctx.FormString("order")
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
@@ -704,7 +704,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+		ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
@@ -1023,7 +1023,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.Repo.GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, repo, true); err != nil {
+	if err := repo_service.DeleteRepository(ctx, ctx.User, repo, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}

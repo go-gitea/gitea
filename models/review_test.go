@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -28,23 +29,23 @@ func TestGetReviewByID(t *testing.T) {
 func TestReview_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
-	assert.NoError(t, review.LoadAttributes())
+	assert.NoError(t, review.LoadAttributes(db.DefaultContext))
 	assert.NotNil(t, review.Issue)
 	assert.NotNil(t, review.Reviewer)
 
 	invalidReview1 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 2}).(*Review)
-	assert.Error(t, invalidReview1.LoadAttributes())
+	assert.Error(t, invalidReview1.LoadAttributes(db.DefaultContext))
 
 	invalidReview2 := unittest.AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
-	assert.Error(t, invalidReview2.LoadAttributes())
+	assert.Error(t, invalidReview2.LoadAttributes(db.DefaultContext))
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	review := unittest.AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
-	assert.NoError(t, review.LoadAttributes())
-	assert.NoError(t, review.LoadCodeComments())
+	assert.NoError(t, review.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, review.LoadCodeComments(db.DefaultContext))
 	assert.Len(t, review.CodeComments, 1)
 	assert.Equal(t, int64(4), review.CodeComments["README.md"][int64(4)][0].Line)
 }
@@ -198,5 +199,4 @@ func TestDismissReview(t *testing.T) {
 	assert.False(t, rejectReviewExample.Dismissed)
 	assert.False(t, requestReviewExample.Dismissed)
 	assert.True(t, approveReviewExample.Dismissed)
-
 }

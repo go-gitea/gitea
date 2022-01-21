@@ -190,9 +190,11 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-var unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
-var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
-var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
+var (
+	unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
+	trailingSpanRegex  = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+	entityRegex        = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
+)
 
 // shouldWriteInline represents combinations where we manually write inline changes
 func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
@@ -206,7 +208,6 @@ func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
 }
 
 func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
-
 	// Create a new array to store our fixed up blocks
 	fixedup := make([]diffmatchpatch.Diff, 0, len(diffs))
 
@@ -658,10 +659,10 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 			LastRightIdx: lastLine.RightIdx,
 			LeftIdx:      leftLineCount,
 			RightIdx:     rightLineCount,
-		}}
+		},
+	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
 	return tailSection
-
 }
 
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
@@ -685,8 +686,8 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *models.Issue, currentUser *user_model.User) error {
-	allComments, err := models.FetchCodeComments(issue, currentUser)
+func (diff *Diff) LoadComments(ctx context.Context, issue *models.Issue, currentUser *user_model.User) error {
+	allComments, err := models.FetchCodeComments(ctx, issue, currentUser)
 	if err != nil {
 		return err
 	}
@@ -942,8 +943,8 @@ parsingLoop:
 	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
-	var diffLineTypeBuffers = make(map[DiffLineType]*bytes.Buffer, 3)
-	var diffLineTypeDecoders = make(map[DiffLineType]*encoding.Decoder, 3)
+	diffLineTypeBuffers := make(map[DiffLineType]*bytes.Buffer, 3)
+	diffLineTypeDecoders := make(map[DiffLineType]*encoding.Decoder, 3)
 	diffLineTypeBuffers[DiffLinePlain] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
@@ -1407,7 +1408,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				IndexFile:  indexFilename,
 				WorkTree:   worktree,
 			}
-			ctx, cancel := context.WithCancel(git.DefaultContext)
+			ctx, cancel := context.WithCancel(ctx)
 			if err := checker.Init(ctx); err != nil {
 				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 			} else {
@@ -1484,12 +1485,12 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
 		shortstatArgs = []string{git.EmptyTreeSHA, opts.AfterCommitID}
 	}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(ctx, repoPath, shortstatArgs...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
 		shortstatArgs = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
+		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(ctx, repoPath, shortstatArgs...)
 	}
 	if err != nil {
 		return nil, err
@@ -1539,7 +1540,8 @@ func GetWhitespaceFlag(whiteSpaceBehavior string) string {
 		"ignore-all":    "-w",
 		"ignore-change": "-b",
 		"ignore-eol":    "--ignore-space-at-eol",
-		"":              ""}
+		"":              "",
+	}
 
 	return whitespaceFlags[whiteSpaceBehavior]
 }

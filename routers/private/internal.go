@@ -35,12 +35,12 @@ func CheckInternalToken(next http.Handler) http.Handler {
 
 // bind binding an obj to a handler
 func bind(obj interface{}) http.HandlerFunc {
-	var tp = reflect.TypeOf(obj)
+	tp := reflect.TypeOf(obj)
 	for tp.Kind() == reflect.Ptr {
 		tp = tp.Elem()
 	}
 	return web.Wrap(func(ctx *context.PrivateContext) {
-		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		web.SetForm(ctx, theObj)
 	})
@@ -49,7 +49,7 @@ func bind(obj interface{}) http.HandlerFunc {
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Route {
-	var r = web.NewRoute()
+	r := web.NewRoute()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
 
@@ -57,8 +57,8 @@ func Routes() *web.Route {
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
 	r.Post("/ssh/log", bind(private.SSHLogOption{}), SSHLog)
 	r.Post("/hook/pre-receive/{owner}/{repo}", RepoAssignment, bind(private.HookOptions{}), HookPreReceive)
-	r.Post("/hook/post-receive/{owner}/{repo}", bind(private.HookOptions{}), HookPostReceive)
-	r.Post("/hook/proc-receive/{owner}/{repo}", RepoAssignment, bind(private.HookOptions{}), HookProcReceive)
+	r.Post("/hook/post-receive/{owner}/{repo}", context.OverrideContext, bind(private.HookOptions{}), HookPostReceive)
+	r.Post("/hook/proc-receive/{owner}/{repo}", context.OverrideContext, RepoAssignment, bind(private.HookOptions{}), HookProcReceive)
 	r.Post("/hook/set-default-branch/{owner}/{repo}/{branch}", RepoAssignment, SetDefaultBranch)
 	r.Get("/serv/none/{keyid}", ServNoCommand)
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
