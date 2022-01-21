@@ -223,7 +223,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := ioutil.TempDir("", "persistable-channel-queue-pause-test-data")
+	tmpDir, err := os.MkdirTemp("", "persistable-channel-queue-pause-test-data")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
