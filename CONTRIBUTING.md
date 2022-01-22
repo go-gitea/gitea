@@ -141,8 +141,8 @@ For imports you should use the following format (_without_ the comments)
 ```go
 import (
   // stdlib
-  "math"
   "fmt"
+  "math"
 
   // local packages
   "code.gitea.io/gitea/models"
