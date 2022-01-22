@@ -323,6 +323,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
 			m.Post("/language", bindIgnErr(forms.UpdateLanguageForm{}), user_setting.UpdateUserLang)
+			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
