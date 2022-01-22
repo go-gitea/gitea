@@ -178,8 +178,7 @@ func NewFootnoteList() *FootnoteList {
 
 var footnoteListKey = parser.NewContextKey()
 
-type footnoteBlockParser struct {
-}
+type footnoteBlockParser struct{}
 
 var defaultFootnoteBlockParser = &footnoteBlockParser{}
 
@@ -265,8 +264,7 @@ func (b *footnoteBlockParser) CanAcceptIndentedLine() bool {
 	return false
 }
 
-type footnoteParser struct {
-}
+type footnoteParser struct{}
 
 var defaultFootnoteParser = &footnoteParser{}
 
@@ -337,8 +335,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 	return NewFootnoteLink(index, name)
 }
 
-type footnoteASTTransformer struct {
-}
+type footnoteASTTransformer struct{}
 
 var defaultFootnoteASTTransformer = &footnoteASTTransformer{}
 
@@ -357,7 +354,7 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 	}
 	pc.Set(footnoteListKey, nil)
 	for footnote := list.FirstChild(); footnote != nil; {
-		var container ast.Node = footnote
+		container := footnote
 		next := footnote.NextSibling()
 		if fc := container.LastChild(); fc != nil && ast.IsParagraph(fc) {
 			container = fc

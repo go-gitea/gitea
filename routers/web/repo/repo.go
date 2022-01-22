@@ -410,7 +410,7 @@ func Download(ctx *context.Context) {
 	}
 
 	var times int
-	var t = time.NewTicker(time.Second * 1)
+	t := time.NewTicker(time.Second * 1)
 	defer t.Stop()
 
 	for {
@@ -447,7 +447,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 	}
 
 	if setting.RepoArchive.ServeDirect {
-		//If we have a signed url (S3, object storage), redirect to this directly.
+		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
@@ -455,7 +455,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		}
 	}
 
-	//If we have matched and access to release or issue
+	// If we have matched and access to release or issue
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
 		ctx.ServerError("Open", err)

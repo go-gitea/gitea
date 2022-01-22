@@ -110,7 +110,7 @@ func InitIssueIndexer(syncReindex bool) {
 				return
 			}
 
-			iData := make([]*IndexerData, 0, setting.Indexer.IssueQueueBatchNumber)
+			iData := make([]*IndexerData, 0, len(data))
 			for _, datum := range data {
 				indexerData, ok := datum.(*IndexerData)
 				if !ok {

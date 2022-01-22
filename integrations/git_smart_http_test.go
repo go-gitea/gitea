@@ -18,7 +18,7 @@ func TestGitSmartHTTP(t *testing.T) {
 }
 
 func testGitSmartHTTP(t *testing.T, u *url.URL) {
-	var kases = []struct {
+	kases := []struct {
 		p    string
 		code int
 	}{

@@ -100,7 +100,6 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 }
 
 func TestCollaborationPost(t *testing.T) {
-
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
@@ -136,7 +135,6 @@ func TestCollaborationPost(t *testing.T) {
 }
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
-
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
@@ -160,7 +158,6 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 }
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
-
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
@@ -202,7 +199,6 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 }
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
-
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
@@ -302,7 +298,6 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 	assert.False(t, team.HasRepository(re.ID))
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
-
 }
 
 func TestAddTeamPost_AddTeamTwice(t *testing.T) {

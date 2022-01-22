@@ -18,7 +18,6 @@ import (
 func Restart(ctx *context.PrivateContext) {
 	graceful.GetManager().DoGracefulRestart()
 	ctx.PlainText(http.StatusOK, "success")
-
 }
 
 // Shutdown causes the server to perform a graceful shutdown

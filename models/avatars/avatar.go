@@ -175,12 +175,12 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 	return DefaultAvatarLink()
 }
 
-//GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
+// GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
 func GenerateEmailAvatarFastLink(email string, size int) string {
 	return generateEmailAvatarLink(email, size, false)
 }
 
-//GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
+// GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
 func GenerateEmailAvatarFinalLink(email string, size int) string {
 	return generateEmailAvatarLink(email, size, true)
 }
