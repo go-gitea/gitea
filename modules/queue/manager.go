@@ -109,8 +109,8 @@ func GetManager() *Manager {
 func (m *Manager) Add(managed interface{},
 	t Type,
 	configuration,
-	exemplar interface{}) int64 {
-
+	exemplar interface{},
+) int64 {
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
 		Type:          t,
@@ -141,7 +141,6 @@ func (m *Manager) Remove(qid int64) {
 	delete(m.Queues, qid)
 	m.mutex.Unlock()
 	log.Trace("Queue Manager removed: QID: %d", qid)
-
 }
 
 // GetManagedQueue by qid
@@ -225,7 +224,6 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 		wg.Wait()
 	}
 	return nil
-
 }
 
 // ManagedQueues returns the managed queues

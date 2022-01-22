@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// GlobalModTime provide a gloabl mod time for embedded asset files
+// GlobalModTime provide a global mod time for embedded asset files
 func GlobalModTime(filename string) time.Time {
 	return timeutil.GetExecutableModTime()
 }
@@ -41,7 +41,7 @@ func Asset(name string) ([]byte, error) {
 
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
+	results := make([]string, 0, len(realFS))
 	for k := range realFS {
 		results = append(results, k[1:])
 	}

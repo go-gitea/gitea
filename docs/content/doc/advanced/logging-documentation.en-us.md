@@ -68,16 +68,23 @@ multiple subloggers that will log to files.
 
 ### The "Router" logger
 
-You can disable Router log by setting `DISABLE_ROUTER_LOG`.
+The Router logger has been substantially changed in v1.17. If you are using the router logger for fail2ban or other monitoring
+you will need to update this configuration.
+
+You can disable Router log by setting `DISABLE_ROUTER_LOG` or by setting all of its sublogger configurations to `none`.
 
 You can configure the outputs of this
 router log by setting the `ROUTER` value in the `[log]` section of the
-configuration. `ROUTER` will default to `console` if unset. The Gitea
-Router logs at the `Info` level by default, but this can be
-changed if desired by setting the `ROUTER_LOG_LEVEL` value.
+configuration. `ROUTER` will default to `console` if unset and will default to same level as main logger.
 
-Please note, setting the `LEVEL` of this logger to a level above
-`ROUTER_LOG_LEVEL` will result in no router logs.
+The Router logger logs the following:
+
+- `started` messages will be logged at TRACE level
+- `polling`/`completed` routers will be logged at INFO
+- `slow` routers will be logged at WARN
+- `failed` routers will be logged at WARN
+
+The logging level for the router will default to that of the main configuration. Set `[log.<mode>.router]` `LEVEL` to change this.
 
 Each output sublogger for this logger is configured in
 `[log.sublogger.router]` sections. There are certain default values

@@ -128,6 +128,7 @@ This error indicates nginx is configured to restrict the file upload size.
 
 In your nginx config file containing your Gitea proxy directive, find the `location { ... }` block for Gitea and add the line
 `client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
+If you use Git LFS, this will also limit the size of the largest file you will be able to push.
 
 
 ## Apache HTTPD
@@ -312,7 +313,7 @@ backend gitea
     server localhost:3000 check
 ```
 
-If you redirect the http content to https, the configuration work the same way, just remember that the connexion between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
+If you redirect the http content to https, the configuration work the same way, just remember that the connection between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
 
 ## HAProxy with a sub-path
 

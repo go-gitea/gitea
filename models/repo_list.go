@@ -244,9 +244,9 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 				builder.In(
 					"team_id", builder.Select("team_id").From("team_unit").Where(
 						builder.Eq{
-							"org_id": orgID,
+							"`team_unit`.org_id": orgID,
 						}.And(
-							builder.In("type", units),
+							builder.In("`team_unit`.type", units),
 						),
 					),
 				),
@@ -259,8 +259,8 @@ func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
 		Where(builder.And(
-			builder.Eq{"user_id": userID},
-			builder.Gt{"mode": int(perm.AccessModeNone)},
+			builder.Eq{"`access`.user_id": userID},
+			builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
 		)),
 	)
 }
@@ -289,7 +289,7 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Build
 func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"org_id": orgID}),
+			And(builder.Eq{"`team_unit`.org_id": orgID}),
 	)
 }
 

@@ -29,8 +29,8 @@ import (
 
 // MockContext mock context for unit tests
 func MockContext(t *testing.T, path string) *context.Context {
-	var resp = &mockResponseWriter{}
-	var ctx = context.Context{
+	resp := &mockResponseWriter{}
+	ctx := context.Context{
 		Render: &mockRender{},
 		Data:   make(map[string]interface{}),
 		Flash: &middleware.Flash{
@@ -42,7 +42,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
-	var req = &http.Request{
+	req := &http.Request{
 		URL:  requestURL,
 		Form: url.Values{},
 	}
@@ -67,7 +67,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 
 // LoadRepoCommit loads a repo's commit into a test context.
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -89,7 +89,7 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
 	assert.NoError(t, ctx.Repo.Repository.GetOwner(db.DefaultContext))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 }
 
@@ -133,8 +133,7 @@ func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error 
 	return nil
 }
 
-type mockRender struct {
-}
+type mockRender struct{}
 
 func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
 	return nil

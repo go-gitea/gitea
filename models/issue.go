@@ -595,8 +595,8 @@ func (issue *Issue) ReadBy(userID int64) error {
 	return setIssueNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, issue.ID)
 }
 
-func updateIssueCols(e db.Engine, issue *Issue, cols ...string) error {
-	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
+func updateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
+	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
 	return nil
@@ -646,7 +646,7 @@ func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, i
 		issue.ClosedUnix = 0
 	}
 
-	if err := updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err := updateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -662,12 +662,12 @@ func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, i
 
 	// Update issue count of milestone
 	if issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := issue.updateClosedNum(e); err != nil {
+	if err := issue.updateClosedNum(ctx); err != nil {
 		return nil, err
 	}
 
@@ -722,7 +722,7 @@ func (issue *Issue) ChangeTitle(doer *user_model.User, oldTitle string) (err err
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "name"); err != nil {
+	if err = updateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
@@ -756,7 +756,7 @@ func (issue *Issue) ChangeRef(doer *user_model.User, oldRef string) (err error) 
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "ref"); err != nil {
+	if err = updateIssueCols(ctx, issue, "ref"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
@@ -847,7 +847,7 @@ func (issue *Issue) ChangeContent(doer *user_model.User, content string) (err er
 
 	issue.Content = content
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "content"); err != nil {
+	if err = updateIssueCols(ctx, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
@@ -956,7 +956,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(e, opts.Issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -1970,10 +1970,9 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Update the deadline
-	if err = updateIssueCols(sess, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
+	if err = updateIssueCols(ctx, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
 		return err
 	}
 
@@ -2059,21 +2058,11 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockingDependencies(db.GetEngine(db.DefaultContext))
 }
 
-func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
+func (issue *Issue) updateClosedNum(ctx context.Context) (err error) {
 	if issue.IsPull {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			true,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			false,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
 	}
 	return
 }

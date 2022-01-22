@@ -72,7 +72,6 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 			Type:    tp,
 			Tagger:  commit.Committer,
 			Message: commit.Message(),
-			repo:    repo,
 		}
 
 		repo.tagCache.Set(tagID.String(), tag)
@@ -92,7 +91,6 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 
 	tag.Name = name
 	tag.ID = tagID
-	tag.repo = repo
 	tag.Type = tp
 
 	repo.tagCache.Set(tagID.String(), tag)
@@ -176,7 +174,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 		tagNames = util.PaginateSlice(tagNames, page, pageSize).([]string)
 	}
 
-	var tags = make([]*Tag, 0, len(tagNames))
+	tags := make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
 		if len(tagName) == 0 {

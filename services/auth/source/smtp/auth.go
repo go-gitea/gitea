@@ -51,10 +51,8 @@ const (
 // Authenticators contains available SMTP authentication type names.
 var Authenticators = []string{PlainAuthentication, LoginAuthentication, CRAMMD5Authentication}
 
-var (
-	// ErrUnsupportedLoginType login source is unknown error
-	ErrUnsupportedLoginType = errors.New("Login source is unknown")
-)
+// ErrUnsupportedLoginType login source is unknown error
+var ErrUnsupportedLoginType = errors.New("Login source is unknown")
 
 // Authenticate performs an SMTP authentication.
 func Authenticate(a smtp.Auth, source *Source) error {

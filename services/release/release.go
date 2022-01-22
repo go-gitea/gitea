@@ -5,6 +5,7 @@
 package release
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -83,7 +84,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
@@ -141,7 +142,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 }
 
 // CreateNewTag creates a new repository tag
-func CreateNewTag(doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string) error {
+func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string) error {
 	isExist, err := models.IsReleaseExist(repo.ID, tagName)
 	if err != nil {
 		return err
@@ -151,11 +152,11 @@ func CreateNewTag(doer *user_model.User, repo *repo_model.Repository, commit, ta
 		}
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		return err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	rel := &models.Release{
 		RepoID:       repo.ID,
@@ -209,7 +210,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
-	var deletedUUIDsMap = make(map[string]bool)
+	deletedUUIDsMap := make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
@@ -229,7 +230,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 	}
 
 	if len(editAttachments) > 0 {
-		var updateAttachmentsList = make([]string, 0, len(editAttachments))
+		updateAttachmentsList := make([]string, 0, len(editAttachments))
 		for k := range editAttachments {
 			updateAttachmentsList = append(updateAttachmentsList, k)
 		}
@@ -283,7 +284,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
+func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, delTag bool) error {
 	rel, err := models.GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -295,7 +296,7 @@ func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
 	}
 
 	if delTag {
-		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
+		if stdout, err := git.NewCommandContext(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)

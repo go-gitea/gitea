@@ -83,11 +83,15 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 
 // WalkReferences walks all the references from the repository
 func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) error) (int, error) {
-	repo, err := OpenRepositoryCtx(ctx, repoPath)
-	if err != nil {
-		return 0, err
+	repo := RepositoryFromContext(ctx, repoPath)
+	if repo == nil {
+		var err error
+		repo, err = OpenRepositoryCtx(ctx, repoPath)
+		if err != nil {
+			return 0, err
+		}
+		defer repo.Close()
 	}
-	defer repo.Close()
 
 	i := 0
 	iter, err := repo.gogitRepo.References()

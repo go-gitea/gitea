@@ -79,7 +79,7 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 }
 
 // AddContextTimeout creates a new context and add it as a process. Once the process is finished, finished must be called
-// to remove the process from the process table. It should not be called until the process is finsihed but must always be called.
+// to remove the process from the process table. It should not be called until the process is finished but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
 // finished will cancel the returned context and remove it from the process table.
@@ -210,32 +210,32 @@ func (pm *Manager) Processes(onlyRoots bool) []*Process {
 
 // Exec a command and use the default timeout.
 func (pm *Manager) Exec(desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDir(-1, "", desc, cmdName, args...)
+	return pm.ExecDir(DefaultContext, -1, "", desc, cmdName, args...)
 }
 
 // ExecTimeout a command and use a specific timeout duration.
 func (pm *Manager) ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDir(timeout, "", desc, cmdName, args...)
+	return pm.ExecDir(DefaultContext, timeout, "", desc, cmdName, args...)
 }
 
 // ExecDir a command and use the default timeout.
-func (pm *Manager) ExecDir(timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDirEnv(timeout, dir, desc, nil, cmdName, args...)
+func (pm *Manager) ExecDir(ctx context.Context, timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDirEnv(ctx, timeout, dir, desc, nil, cmdName, args...)
 }
 
 // ExecDirEnv runs a command in given path and environment variables, and waits for its completion
 // up to the given timeout (or DefaultTimeout if -1 is given).
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
-func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDirEnvStdIn(timeout, dir, desc, env, nil, cmdName, args...)
+func (pm *Manager) ExecDirEnv(ctx context.Context, timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDirEnvStdIn(ctx, timeout, dir, desc, env, nil, cmdName, args...)
 }
 
 // ExecDirEnvStdIn runs a command in given path and environment variables with provided stdIN, and waits for its completion
 // up to the given timeout (or DefaultTimeout if -1 is given).
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
-func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
+func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
 	if timeout == -1 {
 		timeout = 60 * time.Second
 	}
@@ -243,7 +243,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, _, finished := pm.AddContextTimeout(DefaultContext, timeout, desc)
+	ctx, _, finished := pm.AddContextTimeout(ctx, timeout, desc)
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)
@@ -260,7 +260,6 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	}
 
 	err := cmd.Wait()
-
 	if err != nil {
 		err = &Error{
 			PID:         GetPID(ctx),

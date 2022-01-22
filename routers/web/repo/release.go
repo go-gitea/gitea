@@ -325,7 +325,7 @@ func NewReleasePost(ctx *context.Context) {
 		}
 
 		if len(form.TagOnly) > 0 {
-			if err = releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
+			if err = releaseservice.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
 				if models.IsErrTagAlreadyExists(err) {
 					e := err.(models.ErrTagAlreadyExists)
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
@@ -481,7 +481,7 @@ func EditReleasePost(ctx *context.Context) {
 	const delPrefix = "attachment-del-"
 	const editPrefix = "attachment-edit-"
 	var addAttachmentUUIDs, delAttachmentUUIDs []string
-	var editAttachments = make(map[string]string) // uuid -> new name
+	editAttachments := make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
 		for k, v := range ctx.Req.Form {
@@ -516,7 +516,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {
