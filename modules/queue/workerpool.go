@@ -434,12 +434,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 
 	// Create a common timer - we will use this elsewhere
 	timer := time.NewTimer(0)
-	if !timer.Stop() {
-		select {
-		case <-timer.C:
-		default:
-		}
-	}
+	util.StopTimer(timer)
 
 	paused, _ := p.IsPausedIsResumed()
 	data := make([]Data, 0, p.batchLength)
@@ -459,12 +454,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			case <-resumed:
 				paused, _ = p.IsPausedIsResumed()
 				log.Trace("Worker for Queue %d Resuming", p.qid)
-				if !timer.Stop() {
-					select {
-					case <-timer.C:
-					default:
-					}
-				}
+				util.StopTimer(timer)
 			case <-ctx.Done():
 				log.Trace("Worker shutting down")
 				return
@@ -498,12 +488,8 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				return
 			}
 			data = append(data, datum)
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
+			util.StopTimer(timer)
+
 			if len(data) >= p.batchLength {
 				log.Trace("Handling: %d data, %v", len(data), data)
 				if unhandled := p.handle(data...); unhandled != nil {

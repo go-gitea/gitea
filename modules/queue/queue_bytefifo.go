@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ByteFIFOQueueConfiguration is the configuration for a ByteFIFOQueue
@@ -178,12 +179,8 @@ func (q *ByteFIFOQueue) readToChan() {
 	// Default backoff values
 	backOffTime := time.Millisecond * 100
 	backOffTimer := time.NewTimer(0)
-	if !backOffTimer.Stop() {
-		select {
-		case <-backOffTimer.C:
-		default:
-		}
-	}
+	util.StopTimer(backOffTimer)
+
 	paused, _ := q.IsPausedIsResumed()
 
 loop:
@@ -225,12 +222,7 @@ loop:
 
 		err := q.doPop()
 
-		if !backOffTimer.Stop() {
-			select {
-			case <-backOffTimer.C:
-			default:
-			}
-		}
+		util.StopTimer(backOffTimer)
 
 		if err != nil {
 			if err == errQueueEmpty && q.waitOnEmpty {
