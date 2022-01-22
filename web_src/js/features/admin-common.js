@@ -165,14 +165,14 @@ export function initAdminCommon() {
     $('#use_paged_search').on('change', onUsePagedSearchChange);
     $('#oauth2_provider').on('change', () => onOAuth2Change(true));
     $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
-    $('.ldap_group_options').on('change', onVerifyGroupMembershipChange);
+    $('.ldap-group-options').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
-      $('.ldap_group_options').on('change', onVerifyGroupMembershipChange);
+      $('.ldap-group-options').on('change', onVerifyGroupMembershipChange);
       onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
