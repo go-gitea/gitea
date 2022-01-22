@@ -1056,11 +1056,15 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 					head.Ref = fmt.Sprintf("pr/%d", pr.Index())
 				}
 			}
+			var milestone string
+			if pr.Milestone != "" {
+				milestone = r.milestones[pr.Milestone].Title
+			}
 			pulls = append(pulls, &base.PullRequest{
 				Number:      pr.Index(),
 				Title:       pr.Title,
 				Content:     pr.Body,
-				Milestone:   pr.Milestone,
+				Milestone:   milestone,
 				State:       state,
 				PosterID:    user.ID(),
 				PosterName:  user.Login,
