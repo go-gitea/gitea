@@ -291,6 +291,7 @@ func (ctx *Context) PlainTextBytes(status int, bs []byte) {
 	}
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		log.Error("Write bytes failed: %v", err)
 	}
