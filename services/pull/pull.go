@@ -108,7 +108,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 		}
 
 		ops := &models.CreateCommentOptions{
-			Type:        models.CommentTypePullPush,
+			Type:        models.CommentTypePullRequestPush,
 			Doer:        pull.Poster,
 			Repo:        repo,
 			Issue:       pr.Issue,

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"path"
@@ -1465,7 +1466,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypePullPush {
+		} else if comment.Type == models.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
 			if err = comment.LoadPushCommits(ctx); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
@@ -1650,6 +1651,20 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+
+	var hiddenCommentTypes *big.Int
+	if ctx.IsSigned {
+		val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
+		if err != nil {
+			ctx.ServerError("GetUserSetting", err)
+			return
+		}
+		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
+	}
+	ctx.Data["ShouldShowCommentType"] = func(commentType models.CommentType) bool {
+		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
+	}
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 

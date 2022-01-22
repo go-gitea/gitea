@@ -253,10 +253,9 @@ func runServ(c *cli.Context) error {
 
 		now := time.Now()
 		claims := lfs.Claims{
-			// FIXME: we need to migrate to RegisteredClaims
-			StandardClaims: jwt.StandardClaims{ // nolint
-				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-				NotBefore: now.Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+				NotBefore: jwt.NewNumericDate(now),
 			},
 			RepoID: results.RepoID,
 			Op:     lfsVerb,
