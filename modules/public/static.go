@@ -96,5 +96,5 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 
 func init() {
 	assetModTime = timeutil.GetExecutableModTime()
-	WebPublicDirName = fmt.Sprintf("public-%x", assetModTime.UnixMilli())
+	WebPublicDirName = fmt.Sprintf("public~%x", assetModTime.UnixMilli())
 }

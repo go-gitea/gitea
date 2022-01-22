@@ -24,7 +24,8 @@ type Options struct {
 }
 
 // WebPublicDirName is the directory name for public(static) asset files. It may be set to the build time by `static.go`
-var WebPublicDirName = "public-dynamic"
+// the char `~` is not valid for user/repo names, so we do not need to reserve the names anymore.
+var WebPublicDirName = "public~dynamic"
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
