@@ -93,6 +93,9 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 			}
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			t(next).ServeHTTP(resp, req)
+			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
+				done = true
+			}
 			return
 		}
 	default:
