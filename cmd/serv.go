@@ -247,16 +247,15 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
 	os.Setenv(models.EnvAppURL, setting.AppURL)
 
-	//LFS token authentication
+	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
 		claims := lfs.Claims{
-			// FIXME: we need to migrate to RegisteredClaims
-			StandardClaims: jwt.StandardClaims{ // nolint
-				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-				NotBefore: now.Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+				NotBefore: jwt.NewNumericDate(now),
 			},
 			RepoID: results.RepoID,
 			Op:     lfsVerb,

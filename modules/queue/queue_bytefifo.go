@@ -195,9 +195,11 @@ loop:
 	}
 }
 
-var errQueueEmpty = fmt.Errorf("empty queue")
-var errEmptyBytes = fmt.Errorf("empty bytes")
-var errUnmarshal = fmt.Errorf("failed to unmarshal")
+var (
+	errQueueEmpty = fmt.Errorf("empty queue")
+	errEmptyBytes = fmt.Errorf("empty bytes")
+	errUnmarshal  = fmt.Errorf("failed to unmarshal")
+)
 
 func (q *ByteFIFOQueue) doPop() error {
 	q.lock.Lock()

@@ -35,9 +35,7 @@ const (
 	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var (
-	_ Indexer = &ElasticSearchIndexer{}
-)
+var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
@@ -131,7 +129,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 		return false, err
 	}
 	if !exists {
-		var mapping = defaultMapping
+		mapping := defaultMapping
 
 		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
 		if err != nil {
@@ -177,7 +175,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -186,7 +184,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {
 			return nil, err
@@ -244,7 +242,7 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repos
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
@@ -253,11 +251,11 @@ func (b *ElasticSearchIndexer) Index(repo *repo_model.Repository, sha string, ch
 			return err
 		}
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(batchWriter, batchReader, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -327,7 +325,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		}
 
 		repoID, fileName := parseIndexerID(hit.Id)
-		var res = make(map[string]interface{})
+		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -378,7 +376,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		var repoStrs = make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]interface{}, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}

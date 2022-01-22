@@ -31,7 +31,7 @@ func Members(ctx *context.Context) {
 		page = 1
 	}
 
-	var opts = &models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}

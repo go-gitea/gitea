@@ -197,7 +197,6 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 		q.internal.(*LevelUniqueQueue).Shutdown()
 		GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
 	}
-
 }
 
 // Flush flushes the queue

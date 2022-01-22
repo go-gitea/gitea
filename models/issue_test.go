@@ -394,7 +394,6 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
-
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
