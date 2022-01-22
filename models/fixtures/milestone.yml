@@ -6,6 +6,7 @@
   is_closed: false
   num_issues: 1
   num_closed_issues: 0
+  deadline_unix: 253370764800
 
 -
   id: 2
@@ -15,6 +16,7 @@
   is_closed: false
   num_issues: 0
   num_closed_issues: 0
+  deadline_unix: 253370764800
 
 -
   id: 3
@@ -24,6 +26,7 @@
   is_closed: true
   num_issues: 1
   num_closed_issues: 0
+  deadline_unix: 253370764800
 
 -
   id: 4
@@ -33,6 +36,7 @@
   is_closed: false
   num_issues: 0
   num_closed_issues: 0
+  deadline_unix: 253370764800
 
 - 
   id: 5
@@ -42,3 +46,4 @@
   is_closed: false
   num_issues: 0
   num_closed_issues: 0
+  deadline_unix: 253370764800

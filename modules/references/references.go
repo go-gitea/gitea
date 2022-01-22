@@ -371,7 +371,6 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 
 // FindAllIssueReferencesBytes returns a list of unvalidated references found in a byte slice.
 func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference {
-
 	ret := make([]*rawReference, 0, 10)
 	pos := 0
 

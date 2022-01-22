@@ -17,8 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const maxLines = 10
-const guessSampleSize = 1e4 // 10k
+const (
+	maxLines        = 10
+	guessSampleSize = 1e4 // 10k
+)
 
 // CreateReader creates a csv.Reader with the given delimiter.
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
@@ -35,7 +37,7 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 // CreateReaderAndDetermineDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
 // Reads at most guessSampleSize bytes.
 func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) (*stdcsv.Reader, error) {
-	var data = make([]byte, guessSampleSize)
+	data := make([]byte, guessSampleSize)
 	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
 		return nil, err

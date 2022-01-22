@@ -86,7 +86,7 @@ func TestMirrorPull(t *testing.T) {
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
 	assert.NoError(t, err)
-	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
+	assert.NoError(t, release_service.DeleteReleaseByID(ctx, release.ID, user, true))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)

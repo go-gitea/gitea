@@ -28,7 +28,7 @@ func (d *dataStore) GetData() map[string]interface{} {
 }
 
 func installRecovery() func(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
+	rnd := templates.HTMLRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
@@ -38,8 +38,8 @@ func installRecovery() func(next http.Handler) http.Handler {
 				// should not panic any more.
 				defer func() {
 					if err := recover(); err != nil {
-						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-						log.Error(combinedErr)
+						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+						log.Error("%s", combinedErr)
 						if setting.IsProd {
 							http.Error(w, http.StatusText(500), 500)
 						} else {
@@ -49,11 +49,11 @@ func installRecovery() func(next http.Handler) http.Handler {
 				}()
 
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+					log.Error("%s", combinedErr)
 
 					lc := middleware.Locale(w, req)
-					var store = dataStore{
+					store := dataStore{
 						"Language":       lc.Language(),
 						"CurrentURL":     setting.AppSubURL + req.URL.RequestURI(),
 						"i18n":           lc,
@@ -85,10 +85,10 @@ func Routes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(public.AssetsHandler(&public.Options{
+	r.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    "/assets",
-	}))
+		Prefix:    public.AssetsURLPathPrefix,
+	}), "InstallAssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -106,8 +106,11 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
-	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, setting.AppURL, http.StatusFound)
-	})
+
+	r.NotFound(web.Wrap(installNotFound))
 	return r
+}
+
+func installNotFound(w http.ResponseWriter, req *http.Request) {
+	http.Redirect(w, req, setting.AppURL, http.StatusFound)
 }

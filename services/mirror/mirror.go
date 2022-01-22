@@ -130,11 +130,12 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	return nil
 }
 
-func queueHandle(data ...queue.Data) {
+func queueHandle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		req := datum.(*SyncRequest)
 		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
 	}
+	return nil
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors

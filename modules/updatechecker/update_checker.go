@@ -60,7 +60,6 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 	}
 
 	return UpdateRemoteVersion(respData.Latest.Version)
-
 }
 
 // UpdateRemoteVersion updates the latest available version of Gitea

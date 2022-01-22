@@ -150,7 +150,5 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, "user15", results.OwnerName)
 		assert.Equal(t, "big_test_private_2", results.RepoName)
 		assert.Equal(t, int64(20), results.RepoID)
-
 	})
-
 }
