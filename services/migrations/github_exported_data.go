@@ -135,16 +135,20 @@ func (g *githubAttachment) IssueID() int64 {
 }
 
 func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) []*base.Asset {
-	var res = make([]*base.Asset, 0, len(ls))
+	res := make([]*base.Asset, 0, len(ls))
 	for _, l := range ls {
-		var assetURL = "file://" + strings.TrimPrefix(l.AssetURL, "tarball://root")
+		fPath := strings.TrimPrefix(l.AssetURL, "tarball://root")
+		info, err := os.Stat(fPath)
+		var size int
+		if err == nil {
+			size = int(info.Size())
+		}
+		assetURL := "file://" + fPath
 		res = append(res, &base.Asset{
 			Name:        l.AssetName,
 			ContentType: &l.AssetContentType,
-			//Size          : l.Size,
-			//DownloadCount *int `yaml:"download_count"`
-			Created: l.CreatedAt,
-			//Updated       time.Time
+			Size:        &size,
+			Created:     l.CreatedAt,
 			DownloadURL: &assetURL,
 		})
 	}
@@ -248,7 +252,7 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 		return nil, err
 	}
 
-	var restorer = &GithubExportedDataRestorer{
+	restorer := &GithubExportedDataRestorer{
 		ctx:                ctx,
 		githubDataFilePath: githubDataFilePath,
 		tmpDir:             tmpDir,
@@ -325,13 +329,13 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 		DefaultBranch string    `json:"default_branch"`
 	}
 
-	var githubRepositories []GithubRepo
 	p := filepath.Join(r.tmpDir, "repositories_000001.json")
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
 
+	var githubRepositories []GithubRepo
 	if err := json.Unmarshal(bs, &githubRepositories); err != nil {
 		return nil, err
 	}
@@ -366,7 +370,7 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return github topics
 func (r *GithubExportedDataRestorer) GetTopics() ([]string, error) {
-	var topics = struct {
+	topics := struct {
 		Topics []string `yaml:"topics"`
 	}{}
 
@@ -461,7 +465,7 @@ type githubMilestone struct {
 
 // GetMilestones returns milestones
 func (r *GithubExportedDataRestorer) GetMilestones() ([]*base.Milestone, error) {
-	var milestones = make([]*base.Milestone, 0, 10)
+	milestones := make([]*base.Milestone, 0, 10)
 	if err := r.readJSONFiles("milestones", func() interface{} {
 		return &[]githubMilestone{}
 	}, func(content interface{}) error {
@@ -521,7 +525,7 @@ type githubRelease struct {
 
 // GetReleases returns releases
 func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
-	var releases = make([]*base.Release, 0, 30)
+	releases := make([]*base.Release, 0, 30)
 	if err := r.readJSONFiles("releases", func() interface{} {
 		return &[]githubRelease{}
 	}, func(content interface{}) error {
@@ -601,7 +605,7 @@ func (g *githubIssue) Index() int64 {
 }
 
 func (r *GithubExportedDataRestorer) getLabels(ls []githubLabel) []*base.Label {
-	var res = make([]*base.Label, 0, len(ls))
+	res := make([]*base.Label, 0, len(ls))
 	for _, l := range ls {
 		for _, ll := range r.labels {
 			if l.GetName() == ll.Name {
@@ -614,9 +618,9 @@ func (r *GithubExportedDataRestorer) getLabels(ls []githubLabel) []*base.Label {
 }
 
 func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.Reaction {
-	var res = make([]*base.Reaction, 0, len(ls))
+	res := make([]*base.Reaction, 0, len(ls))
 	for _, l := range ls {
-		var content = l.Content
+		content := l.Content
 		switch content {
 		case "thinking_face":
 			content = "confused"
@@ -644,7 +648,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 		return nil, false, err
 	}
 
-	var issues = make([]*base.Issue, 0, 50)
+	issues := make([]*base.Issue, 0, 50)
 	if err := r.readJSONFiles("issues", func() interface{} {
 		return &[]githubIssue{}
 	}, func(content interface{}) error {
@@ -656,7 +660,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				milestone = r.milestones[issue.Milestone].Title
 			}
 
-			var state = "open"
+			state := "open"
 			if issue.ClosedAt != nil {
 				state = "closed"
 			}
@@ -675,12 +679,11 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				Assets:      r.convertAttachments(r.issueAttachments[issue.URL]),
 				Milestone:   milestone,
 				Assignees:   issue.Assignees,
-				//Ref: issue.
-				State:   state,
-				Context: base.BasicIssueContext(issue.Index()),
-				Closed:  issue.ClosedAt,
-				Created: issue.CreatedAt,
-				Updated: issue.UpdatedAt,
+				State:       state,
+				Context:     base.BasicIssueContext(issue.Index()),
+				Closed:      issue.ClosedAt,
+				Created:     issue.CreatedAt,
+				Updated:     issue.UpdatedAt,
 			})
 		}
 		return nil
@@ -774,7 +777,7 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	case "head_ref_force_pushed":
 		return map[string]interface{}{}
 	case "referenced":
-		var tp = "commit_ref"
+		tp := "commit_ref"
 		if g.Issue != "" {
 			tp = "issue_ref"
 		} else if g.PullRequest != "" {
@@ -880,13 +883,13 @@ func (g *githubIssueEvent) GetIssueIndex() int64 {
 }
 
 func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
-	var comments []*base.Comment
+	comments := make([]*base.Comment, 0, 10)
 	if err := r.readJSONFiles("issue_events", func() interface{} {
 		return &[]githubIssueEvent{}
 	}, func(content interface{}) error {
 		rss := content.(*[]githubIssueEvent)
 		for _, c := range *rss {
-			var u = r.users[c.Actor]
+			u := r.users[c.Actor]
 			v := c.CommentContent()
 			bs, err := json.Marshal(v)
 			if err != nil {
@@ -913,7 +916,7 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 
 // GetComments returns comments according issueNumber
 func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var comments = make([]*base.Comment, 0, 10)
+	comments := make([]*base.Comment, 0, 10)
 	if err := r.readJSONFiles("issue_comments", func() interface{} {
 		return &[]githubComment{}
 	}, func(content interface{}) error {
@@ -1026,19 +1029,19 @@ func (g *githubPullRequest) Index() int64 {
 
 // GetPullRequests returns pull requests according page and perPage
 func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
-	var pulls = make([]*base.PullRequest, 0, 50)
+	pulls := make([]*base.PullRequest, 0, 50)
 	if err := r.readJSONFiles("pull_requests", func() interface{} {
 		return &[]githubPullRequest{}
 	}, func(content interface{}) error {
 		prs := content.(*[]githubPullRequest)
 		for _, pr := range *prs {
 			user := r.users[pr.User]
-			var state = "open"
+			state := "open"
 			if pr.MergedAt != nil || pr.ClosedAt != nil {
 				state = "closed"
 			}
-			var isFork = !(pr.Head.User == pr.Base.User && pr.Head.Repo == pr.Base.Repo)
-			var head = base.PullRequestBranch{
+			isFork := !(pr.Head.User == pr.Base.User && pr.Head.Repo == pr.Base.Repo)
+			head := base.PullRequestBranch{
 				Ref: pr.Head.Ref,
 				SHA: pr.Head.Sha,
 			}
@@ -1065,18 +1068,14 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				Context:     base.BasicIssueContext(pr.Index()),
 				Reactions:   r.getReactions(pr.Reactions),
 				Created:     pr.CreatedAt,
-				//Updated:     pr.,
-				Closed: pr.ClosedAt,
-				Labels: r.getLabels(pr.Labels),
-				//PatchURL       : pr.
-				Merged:     pr.MergedAt != nil,
-				MergedTime: pr.MergedAt,
-				//MergeCommitSHA : pr.Merge
-				Head: head,
+				Closed:      pr.ClosedAt,
+				Labels:      r.getLabels(pr.Labels),
+				Merged:      pr.MergedAt != nil,
+				MergedTime:  pr.MergedAt,
+				Head:        head,
 				Base: base.PullRequestBranch{
 					Ref: pr.Base.Ref,
 					SHA: pr.Base.Sha,
-					// TODO:
 				},
 				Assignees: pr.Assignees,
 			})
@@ -1169,15 +1168,12 @@ type pullrequestReviewThread struct {
 	OriginalPosition  int64  `json:"original_position"`
 	CommitID          string `json:"commit_id"`
 	OriginalCommitID  string `json:"original_commit_id"`
-	//StartLine
-	Line int64
-	//StartSide
-	Side string
-	//OriginalStartLine    string `json:"head_sha"`
-	OriginalLine int64      `json:"original_line"`
-	CreatedAt    time.Time  `json:"created_at"`
-	ResolvedAt   *time.Time `json:"resolved_at"`
-	Resolver     string
+	Line              int64
+	Side              string
+	OriginalLine      int64      `json:"original_line"`
+	CreatedAt         time.Time  `json:"created_at"`
+	ResolvedAt        *time.Time `json:"resolved_at"`
+	Resolver          string
 }
 
 func (p *pullrequestReviewThread) Index() int64 {
@@ -1221,28 +1217,24 @@ type pullrequestReviewComment struct {
 	CommitID                string `json:"commit_id"`
 	OriginalCommitID        string `json:"original_commit_id"`
 	State                   int
-	//InReplyTo
-	Reactions []githubReaction
-	CreatedAt time.Time `json:"created_at"`
+	Reactions               []githubReaction
+	CreatedAt               time.Time `json:"created_at"`
 }
 
 func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReviewThread, comments []pullrequestReviewComment) []*base.ReviewComment {
-	var res []*base.ReviewComment
+	res := make([]*base.ReviewComment, 0, 10)
 	for _, c := range comments {
 		user := r.users[c.User]
 		position := int(thread.Position)
-		//line := -int(thread.Line)
 		if thread.Side == "right" {
 			position = int(thread.OriginalPosition)
-			//line = int(thread.OriginalLine)
 		}
+		// Line will be parse from diffhunk, so we ignore it here
 		res = append(res, &base.ReviewComment{
-			//InReplyTo: ,
-			Content:  c.Body,
-			TreePath: c.Path,
-			DiffHunk: c.DiffHunk,
-			Position: position,
-			//Line:        line, line will be parse from diffhunk
+			Content:     c.Body,
+			TreePath:    c.Path,
+			DiffHunk:    c.DiffHunk,
+			Position:    position,
 			CommitID:    c.OriginalCommitID,
 			PosterID:    user.ID(),
 			PosterName:  user.Login,
@@ -1256,7 +1248,7 @@ func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReview
 
 // GetReviews returns pull requests review
 func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
-	var comments = make(map[string][]pullrequestReviewComment)
+	comments := make(map[string][]pullrequestReviewComment)
 	if err := r.readJSONFiles("pull_request_review_comments", func() interface{} {
 		return &[]pullrequestReviewComment{}
 	}, func(content interface{}) error {
@@ -1269,7 +1261,7 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 		return nil, true, err
 	}
 
-	var reviews = make(map[string]*base.Review, 10)
+	reviews := make(map[string]*base.Review, 10)
 	if err := r.readJSONFiles("pull_request_reviews", func() interface{} {
 		return &[]pullrequestReview{}
 	}, func(content interface{}) error {
@@ -1320,7 +1312,7 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 		return nil, true, err
 	}
 
-	var rs = make([]*base.Review, 0, len(reviews))
+	rs := make([]*base.Review, 0, len(reviews))
 	for _, review := range reviews {
 		rs = append(rs, review)
 	}

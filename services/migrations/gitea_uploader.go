@@ -514,10 +514,8 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
-				continue
 			} else {
 				cm.CommitSHA = data["CommitID"]
-				// cm.Content = fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			}
 			continue
 		/*{

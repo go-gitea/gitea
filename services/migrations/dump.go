@@ -643,13 +643,13 @@ func RestoreFromGithubExportedData(ctx context.Context, baseDir, ownerName, repo
 	if err != nil {
 		return err
 	}
-	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
 	downloader, err := NewGithubExportedDataRestorer(ctx, baseDir, ownerName, repoName)
 	if err != nil {
 		return err
 	}
 
-	var migrateOpts = base.MigrateOptions{
+	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GithubService,
 	}
 	updateOptionsUnits(&migrateOpts, units)
