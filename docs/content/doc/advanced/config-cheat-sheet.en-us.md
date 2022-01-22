@@ -415,6 +415,7 @@ relation to port exhaustion.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
+- `BLEVE_ANALYSIS_WORKERS`: **1**: The amount of background workers bleve has, these workers analyzes new issues and repo's(when enabled).
 
 ## Queue (`queue` and `queue.*`)
 
