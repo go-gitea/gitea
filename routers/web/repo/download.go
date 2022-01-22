@@ -6,7 +6,10 @@
 package repo
 
 import (
+	"path"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -79,34 +82,57 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	return common.ServeBlob(ctx, blob)
 }
 
+func getBlobForEntry(ctx *context.Context) *git.Blob {
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetBlobByPath", err)
+		return nil
+	}
+
+	if entry.IsDir() || entry.IsSubModule() {
+		ctx.NotFound("GetBlobByPath", nil)
+		return nil
+	}
+
+	var c *git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
+	}
+
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	if err != nil {
+		ctx.ServerError("GetCommitsInfo", err)
+		return nil
+	}
+
+	if len(info) == 1 && httpcache.HandleGenericTimeCache(ctx.Req, ctx.Resp, info[0].Commit.Committer.When) {
+		// Not Modified
+		return nil
+	}
+
+	return entry.Blob()
+}
+
 // SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlobByPath", nil)
-		} else {
-			ctx.ServerError("GetBlobByPath", err)
-		}
+	blob := getBlobForEntry(ctx)
+	if blob == nil {
 		return
 	}
-	if err = common.ServeBlob(ctx, blob); err != nil {
+
+	if err := common.ServeBlob(ctx, blob); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
 
 // SingleDownloadOrLFS download a file by repos path redirecting to LFS if necessary
 func SingleDownloadOrLFS(ctx *context.Context) {
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlobByPath", nil)
-		} else {
-			ctx.ServerError("GetBlobByPath", err)
-		}
+	blob := getBlobForEntry(ctx)
+	if blob == nil {
 		return
 	}
-	if err = ServeBlobOrLFS(ctx, blob); err != nil {
+
+	if err := ServeBlobOrLFS(ctx, blob); err != nil {
 		ctx.ServerError("ServeBlobOrLFS", err)
 	}
 }
