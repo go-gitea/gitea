@@ -5,7 +5,6 @@
 package web
 
 import (
-	"encoding/gob"
 	"net/http"
 	"os"
 	"path"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
@@ -45,7 +45,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/tstranex/u2f"
 )
 
 const (
@@ -57,9 +56,9 @@ const (
 func CorsHandler() func(next http.Handler) http.Handler {
 	if setting.CORSConfig.Enabled {
 		return cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
 			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
@@ -75,11 +74,11 @@ func CorsHandler() func(next http.Handler) http.Handler {
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(public.AssetsHandler(&public.Options{
+	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
-		Prefix:      "/assets",
+		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),
-	}))
+	}), "AssetsHandler"))
 
 	routes.Use(sessioner)
 
@@ -98,8 +97,6 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
-
-	gob.Register(&u2f.Challenge{})
 
 	common := []interface{}{}
 
@@ -290,15 +287,14 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/scratch", auth.TwoFactorScratch)
 			m.Post("/scratch", bindIgnErr(forms.TwoFactorScratchAuthForm{}), auth.TwoFactorScratchPost)
 		})
-		m.Group("/u2f", func() {
-			m.Get("", auth.U2F)
-			m.Get("/challenge", auth.U2FChallenge)
-			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), auth.U2FSign)
-
+		m.Group("/webauthn", func() {
+			m.Get("", auth.WebAuthn)
+			m.Get("/assertion", auth.WebAuthnLoginAssertion)
+			m.Post("/assertion", auth.WebAuthnLoginAssertionPost)
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", events.Events)
+	m.Any("/user/events", routing.MarkLongPolling, events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
@@ -327,6 +323,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
 			m.Post("/language", bindIgnErr(forms.UpdateLanguageForm{}), user_setting.UpdateUserLang)
+			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
@@ -337,10 +334,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/enroll", security.EnrollTwoFactor)
 				m.Post("/enroll", bindIgnErr(forms.TwoFactorAuthForm{}), security.EnrollTwoFactorPost)
 			})
-			m.Group("/u2f", func() {
-				m.Post("/request_register", bindIgnErr(forms.U2FRegistrationForm{}), security.U2FRegister)
-				m.Post("/register", bindIgnErr(u2f.RegisterResponse{}), security.U2FRegisterPost)
-				m.Post("/delete", bindIgnErr(forms.U2FDeleteForm{}), security.U2FDelete)
+			m.Group("/webauthn", func() {
+				m.Post("/request_register", bindIgnErr(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
+				m.Post("/register", security.WebauthnRegisterPost)
+				m.Post("/delete", bindIgnErr(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", bindIgnErr(forms.AddOpenIDForm{}), security.OpenIDPost)
@@ -463,7 +460,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-
 		})
 
 		m.Group("/auths", func() {
@@ -695,7 +691,6 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
-
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
@@ -822,7 +817,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
-
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Releases
@@ -861,7 +855,6 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	// to maintain compatibility with old attachments
@@ -1089,5 +1082,4 @@ func RegisterRoutes(m *web.Route) {
 		ctx := context.GetContext(req)
 		ctx.NotFound("", nil)
 	})
-
 }

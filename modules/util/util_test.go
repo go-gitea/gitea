@@ -46,7 +46,6 @@ func TestURLJoin(t *testing.T) {
 }
 
 func TestIsEmptyString(t *testing.T) {
-
 	cases := []struct {
 		s        string
 		expected bool

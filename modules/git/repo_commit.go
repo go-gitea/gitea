@@ -88,7 +88,6 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
 	stdout, err := NewCommandContext(repo.Ctx, "log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
 		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +194,7 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 
 // FileCommitsCount return the number of files at a revision
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
-	return CommitsCountFiles(repo.Path, []string{revision}, []string{file})
+	return CommitsCountFiles(repo.Ctx, repo.Path, []string{revision}, []string{file})
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
@@ -321,11 +320,11 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := CommitsCountFiles(repo.Path, []string{start + ".." + end}, []string{})
+	count, err := CommitsCountFiles(repo.Ctx, repo.Path, []string{start + ".." + end}, []string{})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
-		return CommitsCountFiles(repo.Path, []string{start, end}, []string{})
+		return CommitsCountFiles(repo.Ctx, repo.Path, []string{start, end}, []string{})
 	}
 
 	return count, err

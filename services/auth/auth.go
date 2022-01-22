@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -69,6 +70,8 @@ func Init() {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
 	}
+
+	webauthn.Init()
 }
 
 // Free should be called exactly once when the application is terminating to allow Auth plugins
@@ -92,8 +95,10 @@ func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
-var gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
-var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+var (
+	gitRawReleasePathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|(?:raw/)|(?:releases/download/))`)
+	lfsPathRe           = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+)
 
 func isGitRawReleaseOrLFSPath(req *http.Request) bool {
 	if gitRawReleasePathRe.MatchString(req.URL.Path) {
@@ -121,7 +126,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	_ = sess.Delete("openid_determined_username")
 	_ = sess.Delete("twofaUid")
 	_ = sess.Delete("twofaRemember")
-	_ = sess.Delete("u2fChallenge")
+	_ = sess.Delete("webauthnAssertion")
 	_ = sess.Delete("linkAccount")
 	err = sess.Set("uid", user.ID)
 	if err != nil {

@@ -16,10 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var (
-	// ErrURLNotSupported represents url is not supported
-	ErrURLNotSupported = errors.New("url method not supported")
-)
+// ErrURLNotSupported represents url is not supported
+var ErrURLNotSupported = errors.New("url method not supported")
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
 type ErrInvalidConfiguration struct {

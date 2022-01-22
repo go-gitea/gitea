@@ -23,9 +23,9 @@
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
 			{{end}}
-			<h3 class="mt-0"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+			<h3 class="mt-0"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
 				<span class="text grey mr-3">{{svg "octicon-git-branch" 16 "mr-2"}}{{.BranchName}}</span>
@@ -172,7 +172,7 @@
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}

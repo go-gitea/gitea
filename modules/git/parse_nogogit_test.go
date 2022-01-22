@@ -14,7 +14,6 @@ import (
 )
 
 func TestParseTreeEntries(t *testing.T) {
-
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry

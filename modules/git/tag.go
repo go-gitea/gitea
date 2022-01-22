@@ -10,14 +10,15 @@ import (
 	"strings"
 )
 
-const beginpgp = "\n-----BEGIN PGP SIGNATURE-----\n"
-const endpgp = "\n-----END PGP SIGNATURE-----"
+const (
+	beginpgp = "\n-----BEGIN PGP SIGNATURE-----\n"
+	endpgp   = "\n-----END PGP SIGNATURE-----"
+)
 
 // Tag represents a Git tag.
 type Tag struct {
 	Name      string
 	ID        SHA1
-	repo      *Repository
 	Object    SHA1 // The id of this commit object
 	Type      string
 	Tagger    *Signature
@@ -26,8 +27,8 @@ type Tag struct {
 }
 
 // Commit return the commit of the tag reference
-func (tag *Tag) Commit() (*Commit, error) {
-	return tag.repo.getCommit(tag.Object)
+func (tag *Tag) Commit(gitRepo *Repository) (*Commit, error) {
+	return gitRepo.getCommit(tag.Object)
 }
 
 // Parse commit information from the (uncompressed) raw

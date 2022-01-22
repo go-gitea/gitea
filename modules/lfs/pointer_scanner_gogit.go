@@ -51,7 +51,6 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 			return nil
 		})
 	}()
-
 	if err != nil {
 		select {
 		case <-ctx.Done():

@@ -53,7 +53,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, branchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -176,29 +176,24 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
-
+	err := repo_service.CreateNewBranch(ctx, ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
 		}
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
-
 		} else if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "", "The branch already exists.")
-
 		} else if models.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
-
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepoBranch", err)
-
 		}
 		return
 	}
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, opt.BranchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
@@ -257,7 +252,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
+	branches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
@@ -532,7 +527,6 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(bp))
-
 }
 
 // EditBranchProtection edits a branch protection for a repo

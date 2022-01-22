@@ -10,23 +10,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// CORSConfig defines CORS settings
-	CORSConfig = struct {
-		Enabled          bool
-		Scheme           string
-		AllowDomain      []string
-		AllowSubdomain   bool
-		Methods          []string
-		MaxAge           time.Duration
-		AllowCredentials bool
-		XFrameOptions    string
-	}{
-		Enabled:       false,
-		MaxAge:        10 * time.Minute,
-		XFrameOptions: "SAMEORIGIN",
-	}
-)
+// CORSConfig defines CORS settings
+var CORSConfig = struct {
+	Enabled          bool
+	Scheme           string
+	AllowDomain      []string
+	AllowSubdomain   bool
+	Methods          []string
+	MaxAge           time.Duration
+	AllowCredentials bool
+	XFrameOptions    string
+}{
+	Enabled:       false,
+	MaxAge:        10 * time.Minute,
+	XFrameOptions: "SAMEORIGIN",
+}
 
 func newCORSService() {
 	sec := Cfg.Section("cors")

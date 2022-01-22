@@ -93,7 +93,9 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
-	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
+	// swagger:strfmt date-time
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -324,19 +326,17 @@ func (gt GitServiceType) TokenAuth() bool {
 	return false
 }
 
-var (
-	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
-	// TODO: add to this list after new git service added
-	SupportedFullGitService = []GitServiceType{
-		GithubService,
-		GitlabService,
-		GiteaService,
-		GogsService,
-		OneDevService,
-		GitBucketService,
-		CodebaseService,
-	}
-)
+// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+// TODO: add to this list after new git service added
+var SupportedFullGitService = []GitServiceType{
+	GithubService,
+	GitlabService,
+	GiteaService,
+	GogsService,
+	OneDevService,
+	GitBucketService,
+	CodebaseService,
+}
 
 // RepoTransfer represents a pending repo transfer
 type RepoTransfer struct {

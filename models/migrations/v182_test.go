@@ -37,10 +37,10 @@ func Test_addIssueResourceIndexTable(t *testing.T) {
 		MaxIndex int64 `xorm:"index"`
 	}
 
-	var start = 0
+	start := 0
 	const batchSize = 1000
 	for {
-		var indexes = make([]ResourceIndex, 0, batchSize)
+		indexes := make([]ResourceIndex, 0, batchSize)
 		err := x.Table("issue_index").Limit(batchSize, start).Find(&indexes)
 		assert.NoError(t, err)
 
