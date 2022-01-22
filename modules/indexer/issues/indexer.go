@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/blevesearch/bleve/v2"
 )
 
 // IndexerData data stored in the issue indexer
@@ -99,6 +100,13 @@ var (
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
 	waitChannel := make(chan time.Duration)
+
+	if setting.Indexer.IssueType != "bleve" {
+		// When bleve isn't used, shutdown any open goroutines they have.
+		bleve.Config.Shutdown()
+	} else {
+		bleve.Config.SetAnalysisQueueSize(setting.Indexer.BleveAnalysisWorkers)
+	}
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {

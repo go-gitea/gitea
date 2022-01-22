@@ -16,11 +16,12 @@ import (
 
 // Indexer settings
 var Indexer = struct {
-	IssueType        string
-	IssuePath        string
-	IssueConnStr     string
-	IssueIndexerName string
-	StartupTimeout   time.Duration
+	IssueType            string
+	IssuePath            string
+	IssueConnStr         string
+	IssueIndexerName     string
+	BleveAnalysisWorkers int
+	StartupTimeout       time.Duration
 
 	RepoIndexerEnabled bool
 	RepoType           string
@@ -78,6 +79,7 @@ func newIndexerService() {
 	Indexer.ExcludeVendored = sec.Key("REPO_INDEXER_EXCLUDE_VENDORED").MustBool(true)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
+	Indexer.BleveAnalysisWorkers = sec.Key("BLEVE_ANALYSIS_WORKERS").MustInt(1)
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
