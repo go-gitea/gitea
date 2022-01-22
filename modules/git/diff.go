@@ -52,6 +52,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	if err != nil {
 		return err
 	}
+
 	fileArgs := make([]string, 0)
 	if len(file) > 0 {
 		fileArgs = append(fileArgs, "--", file)

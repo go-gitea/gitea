@@ -1174,7 +1174,7 @@ type pullrequestReviewThread struct {
 	//StartSide
 	Side string
 	//OriginalStartLine    string `json:"head_sha"`
-	OriginalLine int64
+	OriginalLine int64      `json:"original_line"`
 	CreatedAt    time.Time  `json:"created_at"`
 	ResolvedAt   *time.Time `json:"resolved_at"`
 	Resolver     string
@@ -1226,17 +1226,23 @@ type pullrequestReviewComment struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (r *GithubExportedDataRestorer) getReviewComments(comments []pullrequestReviewComment) []*base.ReviewComment {
+func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReviewThread, comments []pullrequestReviewComment) []*base.ReviewComment {
 	var res []*base.ReviewComment
 	for _, c := range comments {
 		user := r.users[c.User]
+		position := int(thread.Position)
+		//line := -int(thread.Line)
+		if thread.Side == "right" {
+			position = int(thread.OriginalPosition)
+			//line = int(thread.OriginalLine)
+		}
 		res = append(res, &base.ReviewComment{
 			//InReplyTo: ,
-			Content:     c.Body,
-			TreePath:    c.Path,
-			DiffHunk:    c.DiffHunk,
-			Position:    c.Position,
-			Line:        c.OriginalPosition,
+			Content:  c.Body,
+			TreePath: c.Path,
+			DiffHunk: c.DiffHunk,
+			Position: position,
+			//Line:        line, line will be parse from diffhunk
 			CommitID:    c.OriginalCommitID,
 			PosterID:    user.ID(),
 			PosterName:  user.Login,
@@ -1256,7 +1262,6 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 	}, func(content interface{}) error {
 		cs := *content.(*[]pullrequestReviewComment)
 		for _, c := range cs {
-			log.Info("111------%#v,,,,%#v, %#v", c.PullRequestReview, c.CommitID, c.OriginalCommitID)
 			comments[c.PullRequestReviewThread] = append(comments[c.PullRequestReviewThread], c)
 		}
 		return nil
@@ -1264,15 +1269,12 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 		return nil, true, err
 	}
 
-	var reviews = make([]*base.Review, 0, 10)
+	var reviews = make(map[string]*base.Review, 10)
 	if err := r.readJSONFiles("pull_request_reviews", func() interface{} {
 		return &[]pullrequestReview{}
 	}, func(content interface{}) error {
 		prReviews := content.(*[]pullrequestReview)
 		for _, review := range *prReviews {
-			if review.State == 1 {
-				continue
-			}
 			user := r.users[review.User]
 			baseReview := &base.Review{
 				IssueIndex:    review.Index(),
@@ -1284,7 +1286,7 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 				CreatedAt:     review.CreatedAt,
 				State:         review.GetState(),
 			}
-			reviews = append(reviews, baseReview)
+			reviews[review.URL] = baseReview
 		}
 		return nil
 	}); err != nil {
@@ -1300,31 +1302,28 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 			if len(reviewComments) == 0 {
 				continue
 			}
-			log.Info("2222------- %#v", reviewComments[0])
-			user := r.users[reviewComments[0].User]
-			baseReview := &base.Review{
-				IssueIndex:    review.Index(),
-				ReviewerID:    user.ID(),
-				ReviewerName:  user.Login,
-				ReviewerEmail: user.Email(),
-				CommitID:      reviewComments[0].OriginalCommitID,
-				CreatedAt:     review.CreatedAt,
-				State:         base.ReviewStateCommented,
-				Comments:      r.getReviewComments(reviewComments),
-				ResolvedAt:    review.ResolvedAt,
+			rr, ok := reviews[review.PullRequestReview]
+			if !ok {
+				return fmt.Errorf("cannot find review thread %s's review", review.PullRequestReview)
 			}
 
+			rr.Comments = r.getReviewComments(&review, reviewComments)
+			rr.ResolvedAt = review.ResolvedAt
 			if resolver, ok := r.users[review.Resolver]; ok {
-				baseReview.ResolverID = resolver.ID()
-				baseReview.ResolverName = resolver.Login
-				baseReview.ResolverEmail = resolver.Email()
+				rr.ResolverID = resolver.ID()
+				rr.ResolverName = resolver.Login
+				rr.ResolverEmail = resolver.Email()
 			}
-			reviews = append(reviews, baseReview)
 		}
 		return nil
 	}); err != nil {
 		return nil, true, err
 	}
 
-	return reviews, true, nil
+	var rs = make([]*base.Review, 0, len(reviews))
+	for _, review := range reviews {
+		rs = append(rs, review)
+	}
+
+	return rs, true, nil
 }

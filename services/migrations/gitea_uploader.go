@@ -840,22 +840,20 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		for _, comment := range review.Comments {
-			log.Info("444444=========== %#v", comment)
 			line := comment.Line
 			if line != 0 {
-				comment.Position = 1
+				if comment.Position == 0 {
+					comment.Position = 1
+				}
 			} else {
 				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
-				log.Info("5555555 %v", line)
 			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
-			log.Info("66666666 %v,,,,,%v", headCommitID, pr.MergeBase)
 			if err != nil {
 				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
 				continue
 			}
 
-			var patch string
 			reader, writer := io.Pipe()
 			defer func() {
 				_ = reader.Close()
@@ -869,8 +867,15 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_ = writer.Close()
 			}(comment)
 
-			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-			log.Info("7777777 patch:%s, line: %d, headCommitID: %s", patch, line+comment.Position-1, headCommitID)
+			unsignedLine := int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine())
+			patch, err := git.CutDiffAroundLine(reader, unsignedLine, line < 0, setting.UI.CodeCommentLines)
+			if err != nil {
+				log.Warn("CutDiffAroundLine failed when migrating [%s, %d, %v]", g.gitRepo.Path, unsignedLine, line < 0)
+			}
+			if patch == "" {
+				patch = fmt.Sprintf("diff --git a/%s b/%s\n--- a/%s\n+++ b/%s\n%s", comment.TreePath, comment.TreePath, comment.TreePath, comment.TreePath, comment.DiffHunk)
+			}
+			_ = reader.Close()
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
