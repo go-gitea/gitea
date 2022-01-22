@@ -45,8 +45,7 @@ type Claims struct {
 	RepoID int64
 	Op     string
 	UserID int64
-	// FIXME: Migrate to RegisteredClaims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // DownloadLink builds a URL to download the object.
