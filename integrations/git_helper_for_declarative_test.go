@@ -123,6 +123,17 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	}
 }
 
+func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{
+			Filter: "blob:none",
+		}))
+		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
+		assert.NoError(t, err)
+		assert.True(t, exist)
+	}
+}
+
 func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		tmpDir, err := os.MkdirTemp("", "doGitCloneFail")
