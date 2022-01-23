@@ -493,10 +493,8 @@ func serviceRPC(h serviceHandler, service string) {
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
-
 	cmd.Env = append(os.Environ(), h.environ...)
 	cmd.Args = append(cmd.Args, git.GlobalCommandArgs...)
-
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
