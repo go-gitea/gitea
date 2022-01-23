@@ -485,7 +485,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommandContextNoGlobals(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd := git.NewCommandContext(h.r.Context(), service, "--stateless-rpc", h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.RunWithContext(&git.RunContext{
 		Timeout: -1,
