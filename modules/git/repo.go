@@ -101,6 +101,7 @@ type CloneRepoOptions struct {
 	Shared     bool
 	NoCheckout bool
 	Depth      int
+	Filter     string
 }
 
 // Clone clones original repository to target path.
@@ -141,7 +142,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	if opts.Depth > 0 {
 		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
 	}
-
+	if opts.Filter != "" {
+		cmd.AddArguments("--filter", opts.Filter)
+	}
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
