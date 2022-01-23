@@ -133,11 +133,11 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(data ...queue.Data) {
+		handler := func(data ...queue.Data) []queue.Data {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
 				log.Error("Codes indexer handler: unable to get indexer!")
-				return
+				return data
 			}
 
 			for _, datum := range data {
@@ -153,6 +153,7 @@ func Init() {
 					continue
 				}
 			}
+			return nil
 		}
 
 		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler, &IndexerData{})
