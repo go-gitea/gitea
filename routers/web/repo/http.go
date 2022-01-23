@@ -494,6 +494,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
 	cmd.Env = append(os.Environ(), h.environ...)
+	cmd.Env = append(cmd.Env, git.GlobalCommandArgs...)
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
