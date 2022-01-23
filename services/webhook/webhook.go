@@ -58,6 +58,10 @@ var webhooks = map[webhook_model.HookType]*webhook{
 		name:           webhook_model.WECHATWORK,
 		payloadCreator: GetWechatworkPayload,
 	},
+	webhook_model.PACKAGIST: {
+		name:           webhook_model.PACKAGIST,
+		payloadCreator: GetPackagistPayload,
+	},
 }
 
 // RegisterWebhook registers a webhook
