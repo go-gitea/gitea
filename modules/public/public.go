@@ -95,6 +95,15 @@ func parseAcceptEncoding(val string) map[string]bool {
 	return types
 }
 
+// setWellKnownContentType will set the Content-Type if the file is a well-known type.
+// See the comments of detectWellKnownMimeType
+func setWellKnownContentType(w http.ResponseWriter, file string) {
+	mimeType := detectWellKnownMimeType(filepath.Ext(file))
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
+}
+
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
 	// use clean to keep the file is a valid path with no . or ..
 	f, err := fs.Open(path.Clean(file))
@@ -124,6 +133,8 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 	if httpcache.HandleFileETagCache(req, w, fi) {
 		return true
 	}
+
+	setWellKnownContentType(w, file)
 
 	serveContent(w, req, fi, fi.ModTime(), f)
 	return true
