@@ -69,6 +69,12 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
+		dstPath2, err := os.MkdirTemp("", httpContext.Reponame)
+		assert.NoError(t, err)
+		defer util.RemoveAll(dstPath2)
+
+		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
+
 		little, big := standardCommitAndPushTest(t, dstPath)
 		littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
 		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
