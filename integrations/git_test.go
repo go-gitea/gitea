@@ -167,7 +167,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
-		err = git.CommitChangesWithArgs(dstPath, git.HelperForTestsToAllowLFSFilters(), git.CommitChangesOptions{
+		err = git.CommitChangesWithArgs(dstPath, git.AllowLFSFiltersArgs(), git.CommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -346,7 +346,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 	// Commit
 	// Now here we should explicitly allow lfs filters to run
-	globalArgs := git.HelperForTestsToAllowLFSFilters()
+	globalArgs := git.AllowLFSFiltersArgs()
 	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err

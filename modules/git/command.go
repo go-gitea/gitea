@@ -279,8 +279,8 @@ func (c *Command) Run() (string, error) {
 	return c.RunTimeout(-1)
 }
 
-// HelperForTestsToAllowLFSFilters should only be used for tests
-func HelperForTestsToAllowLFSFilters() []string {
+// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
+func AllowLFSFiltersArgs() []string {
 	// Now here we should explicitly allow lfs filters to run
 	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
 	j := 0
