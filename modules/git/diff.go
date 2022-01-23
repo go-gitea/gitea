@@ -81,7 +81,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := NewCommandContextNoGlobals(repo.Ctx, args...)
+	cmd := NewCommandContext(repo.Ctx, args...)
 	if err = cmd.RunWithContext(&RunContext{
 		Timeout: -1,
 		Dir:     repo.Path,
