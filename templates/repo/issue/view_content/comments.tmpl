@@ -669,12 +669,18 @@
 																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 																			{{ .OriginalAuthor }}
 																		</span>
-																		<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-																		<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
+																		<span class="text grey">
+																			{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+																			{{if $.Repository.OriginalURL}}
+																				<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})</span>
+																			{{end}}
+																		</span>
 																	{{else}}
-																		<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+																		<span class="text grey">
+																			<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+																			{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+																		</span>
 																	{{end}}
-																	{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
 																</span>
 															</div>
 															<div class="comment-header-right actions df ac">
