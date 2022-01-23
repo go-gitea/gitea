@@ -42,7 +42,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *rep
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
-	} else if comment.Type == models.CommentTypePullPush {
+	} else if comment.Type == models.CommentTypePullRequestPush {
 		act = 0
 	}
 
