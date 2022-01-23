@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	// GlobalCommandArgs global command args for external package setting
-	GlobalCommandArgs []string
+	// globalCommandArgs global command args for external package setting
+	globalCommandArgs []string
 
 	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
@@ -52,9 +52,9 @@ func NewCommand(args ...string) *Command {
 
 // NewCommandContext creates and returns a new Git Command based on given command and arguments.
 func NewCommandContext(ctx context.Context, args ...string) *Command {
-	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return &Command{
 		name:          GitExecutable,
 		args:          append(cargs, args...),
@@ -277,4 +277,20 @@ func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) Run() (string, error) {
 	return c.RunTimeout(-1)
+}
+
+// HelperForTestsToAllowLFSFilters should only be used for tests
+func HelperForTestsToAllowLFSFilters() []string {
+	// Now here we should explicitly allow lfs filters to run
+	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	j := 0
+	for _, arg := range globalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	return filteredLFSGlobalArgs[:j]
 }

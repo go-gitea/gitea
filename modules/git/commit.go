@@ -84,7 +84,7 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)
+	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
@@ -108,8 +108,8 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CommitChangesWithArgs(repoPath, cargs, opts)
 }
 
