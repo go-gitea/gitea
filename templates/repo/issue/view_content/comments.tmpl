@@ -96,17 +96,31 @@
 		{{else if eq .Type 1}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
-				<a href="{{.Poster.HomeLink}}">
-					{{avatar .Poster}}
-				</a>
-				<span class="text grey">
-					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if .Issue.IsPull }}
-						{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
-					{{else}}
-						{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
-					{{end}}
-				</span>
+				{{if .OriginalAuthor }}
+					<span class="text black mr-2">
+						{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{if .Issue.IsPull }}
+							{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{if .Issue.IsPull }}
+							{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -145,18 +159,38 @@
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
-				<a href="{{.Poster.HomeLink}}">
-					{{avatar .Poster}}
-				</a>
-				<span class="text grey">
-					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
-					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.i18n.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
-					{{else}}
-						{{$.i18n.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+				{{if .OriginalAuthor }}
+					<span class="text black mr-2">
+						{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
+						{{if eq $.Issue.PullRequest.Status 3}}
+							{{$.i18n.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{end}}
+					</span>
+					{{if $.Repository.OriginalURL}}
+						<span class="text migrate">
+							({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})
+						</span>
 					{{end}}
-				</span>
+				{{else}}
+					<a href="{{.Poster.HomeLink}}">
+						{{avatar .Poster}}
+					</a>
+					<span class="text grey">
+						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
+						{{if eq $.Issue.PullRequest.Status 3}}
+							{{$.i18n.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{else}}
+							{{$.i18n.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{end}}
+					</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 3 5 6}}
 			{{ $refFrom:= "" }}
@@ -207,19 +241,40 @@
 			{{if or .AddedLabels .RemovedLabels}}
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<span class="badge">{{svg "octicon-tag"}}</span>
-					<a href="{{.Poster.HomeLink}}">
-						{{avatar .Poster}}
-					</a>
-					<span class="text grey">
-						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{$.i18n.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
-						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{$.i18n.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
-						{{else}}
-							{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+					{{if .OriginalAuthor }}
+						<span class="text black mr-2">
+							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+							{{ .OriginalAuthor }}
+						</span>
+						<span class="text grey">
+							{{if and .AddedLabels (not .RemovedLabels)}}
+								{{$.i18n.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
+							{{else if and (not .AddedLabels) .RemovedLabels}}
+								{{$.i18n.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{else}}
+								{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{end}}
+						</span>
+						{{if $.Repository.OriginalURL}}
+							<span class="text migrate">
+								({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})
+							</span>
 						{{end}}
-					</span>
+					{{else}}
+						<a href="{{.Poster.HomeLink}}">
+							{{avatar .Poster}}
+						</a>
+						<span class="text grey">
+							<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+							{{if and .AddedLabels (not .RemovedLabels)}}
+								{{$.i18n.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
+							{{else if and (not .AddedLabels) .RemovedLabels}}
+								{{$.i18n.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{else}}
+								{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{end}}
+						</span>
+					{{end}}
 				</div>
 			{{end}}
 		{{else if eq .Type 8}}
@@ -441,21 +496,19 @@
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group">
 				<div class="timeline-item event">
-					{{if .OriginalAuthor }}
+					{{if .OriginalAuthor}}
 					{{else}}
-					<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-						{{avatar .Poster}}
-					</a>
+						<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+							{{avatar .Poster}}
+						</a>
 					{{end}}
 					<span class="badge{{if eq .Review.Type 1}} bg-green text-white{{else if eq .Review.Type 3}} bg-red text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 					<span class="text grey">
-						{{if .OriginalAuthor }}
+						{{if .OriginalAuthor}}
 							<span class="text black">
 								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 								{{ .OriginalAuthor }}
 							</span>
-							<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-							<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 						{{else}}
 							<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 						{{end}}
@@ -471,6 +524,9 @@
 						{{end}}
 						{{if .Review.Dismissed}}
 							<div class="ui small label">{{$.i18n.Tr "repo.issues.review.dismissed_label"}}</div>
+						{{end}}
+						{{if $.Repository.OriginalURL}}
+							<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})</span>
 						{{end}}
 					</span>
 				</div>

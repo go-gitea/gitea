@@ -1300,7 +1300,17 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 			}
 			rr, ok := reviews[review.PullRequestReview]
 			if !ok {
-				return fmt.Errorf("cannot find review thread %s's review", review.PullRequestReview)
+				user := r.users[reviewComments[0].User]
+				rr = &base.Review{
+					IssueIndex:    review.Index(),
+					ReviewerID:    user.ID(),
+					ReviewerName:  user.Login,
+					ReviewerEmail: user.Email(),
+					CommitID:      review.CommitID,
+					CreatedAt:     review.CreatedAt,
+					State:         base.ReviewStateCommented,
+				}
+				reviews[review.URL] = rr
 			}
 
 			rr.Comments = r.getReviewComments(&review, reviewComments)
