@@ -11,13 +11,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 )
 
 // RawDiffType type of a raw diff.
@@ -55,43 +53,41 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	if len(file) > 0 {
 		fileArgs = append(fileArgs, "--", file)
 	}
-	// FIXME: graceful: These commands should have a timeout
-	ctx, _, finished := process.GetManager().AddContext(repo.Ctx, fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path))
-	defer finished()
 
-	var cmd *exec.Cmd
+	var args []string
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+			args = append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
+			args = append([]string{"show", endCommit}, fileArgs...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
+			args = append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+			args = append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
+			args = append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd = exec.CommandContext(ctx, GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
+			args = append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
 	}
 
 	stderr := new(bytes.Buffer)
-
-	cmd.Dir = repo.Path
-	cmd.Stdout = writer
-	cmd.Stderr = stderr
-
-	if err = cmd.Run(); err != nil {
+	cmd := NewCommandContextNoGlobals(repo.Ctx, args...)
+	if err = cmd.RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  writer,
+		Stderr:  stderr,
+	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
 	return nil

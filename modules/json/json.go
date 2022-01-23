@@ -4,6 +4,7 @@
 
 package json
 
+// Allow "encoding/json" import.
 import (
 	"bytes"
 	"encoding/binary"
