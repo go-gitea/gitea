@@ -495,9 +495,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Dir = h.dir
 
 	cmd.Env = append(os.Environ(), h.environ...)
-	cargs := make([]string, len(git.GlobalCommandArgs))
-	copy(cargs, git.GlobalCommandArgs)
-	cmd.Env = append(cmd.Env, cargs...)
+	cmd.Args = append(cmd.Args, git.GlobalCommandArgs...)
 
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
