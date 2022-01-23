@@ -90,7 +90,8 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	cmd.Dir = repo.Path
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
-	cmd.Args = append(cmd.Args, GlobalCommandArgs...)
+	gArgs := git.GlobalCommandArgs
+	cmd.Args = append(gArgs, cmd.Args...)
 
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
