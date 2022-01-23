@@ -85,12 +85,12 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 func getBlobForEntry(ctx *context.Context) *git.Blob {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetBlobByPath", err)
+		ctx.ServerError("GetTreeEntryByPath", err)
 		return nil
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.NotFound("GetBlobByPath", nil)
+		ctx.NotFound("getBlobForEntry", nil)
 		return nil
 	}
 
