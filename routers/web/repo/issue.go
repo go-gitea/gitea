@@ -1348,11 +1348,13 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue); err != nil {
-		ctx.ServerError("roleDescriptor", err)
-		return
+	if issue.OriginalAuthor == "" {
+		if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue); err != nil {
+			ctx.ServerError("roleDescriptor", err)
+			return
+		}
+		marked[issue.PosterID] = issue.ShowRole
 	}
-	marked[issue.PosterID] = issue.ShowRole
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -1380,20 +1382,22 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("RenderString", err)
 				return
 			}
-			// Check tag.
-			role, ok = marked[comment.PosterID]
-			if ok {
-				comment.ShowRole = role
-				continue
-			}
+			if comment.OriginalAuthor == "" {
+				// Check tag.
+				role, ok = marked[comment.PosterID]
+				if ok {
+					comment.ShowRole = role
+					continue
+				}
 
-			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue)
-			if err != nil {
-				ctx.ServerError("roleDescriptor", err)
-				return
+				comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue)
+				if err != nil {
+					ctx.ServerError("roleDescriptor", err)
+					return
+				}
+				marked[comment.PosterID] = comment.ShowRole
+				participants = addParticipant(comment.Poster, participants)
 			}
-			marked[comment.PosterID] = comment.ShowRole
-			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -1479,6 +1483,9 @@ func ViewIssue(ctx *context.Context) {
 			for _, codeComments := range comment.Review.CodeComments {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
+						if c.OriginalAuthor != "" {
+							continue
+						}
 						// Check tag.
 						role, ok = marked[c.PosterID]
 						if ok {
