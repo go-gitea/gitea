@@ -371,7 +371,7 @@ The idea of this option is to use (essentially unchanged) the authorized_keys th
     ```bash
     cat <<"EOF" | sudo tee /usr/local/bin/gitea
     #!/bin/sh
-    ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"\$SSH_ORIGINAL_COMMAND\" $0 $@"
+    ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
     EOF
     chmod +x /usr/local/bin/gitea
     ```
@@ -414,7 +414,7 @@ we create a new shell for the git user:
   cat <<"EOF" | sudo tee /home/git/ssh-shell
   #!/bin/sh
   shift
-  ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"\$SSH_ORIGINAL_COMMAND\" $@"
+  ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $@"
   EOF
   sudo chmod +x /home/git/ssh-shell
   sudo usermod -s /home/git/ssh-shell git
