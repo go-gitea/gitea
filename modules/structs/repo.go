@@ -59,6 +59,8 @@ type Repository struct {
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
+	Language      string      `json:"language"`
+	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
