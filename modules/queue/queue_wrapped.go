@@ -271,6 +271,46 @@ func (q *WrappedQueue) Terminate() {
 	log.Debug("WrappedQueue: %s Terminated", q.name)
 }
 
+// IsPaused will return if the pool or queue is paused
+func (q *WrappedQueue) IsPaused() bool {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	pausable, ok := q.internal.(Pausable)
+	return ok && pausable.IsPaused()
+}
+
+// Pause will pause the pool or queue
+func (q *WrappedQueue) Pause() {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		pausable.Pause()
+	}
+}
+
+// Resume will resume the pool or queue
+func (q *WrappedQueue) Resume() {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		pausable.Resume()
+	}
+}
+
+// IsPausedIsResumed will return a bool indicating if the pool or queue is paused and a channel that will be closed when it is resumed
+func (q *WrappedQueue) IsPausedIsResumed() (paused, resumed <-chan struct{}) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		return pausable.IsPausedIsResumed()
+	}
+	return context.Background().Done(), closedChan
+}
+
+var closedChan chan struct{}
+
 func init() {
 	queuesMap[WrappedQueueType] = NewWrappedQueue
+	closedChan = make(chan struct{})
+	close(closedChan)
 }
