@@ -150,13 +150,12 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  if (!detectWebAuthnSupport()) {
-    return;
-  }
-
   $('#webauthn-error').modal({allowMultiple: false});
   $('#register-webauthn').on('click', (e) => {
     e.preventDefault();
+    if (!detectWebAuthnSupport()) {
+      return;
+    }
     webAuthnRegisterRequest();
   });
 }
