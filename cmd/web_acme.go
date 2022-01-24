@@ -40,7 +40,7 @@ func runACME(listenAddr string, m http.Handler) error {
 	// Try to use private CA root if provided, otherwise defaults to system's trust
 	var certPool *x509.CertPool
 	if setting.AcmeCARoot != "" {
-		r, err := ioutil.ReadFile(setting.AcmeCARoot)
+		r, err := os.ReadFile(setting.AcmeCARoot)
 		if err != nil {
 			log.Warn("Failed to read CA Root certificate, using default CA trust: %v", err)
 		} else {
