@@ -7,8 +7,8 @@ package cmd
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"os"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
