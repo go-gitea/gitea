@@ -92,7 +92,7 @@ func (q *ByteFIFOQueue) Push(data Data) error {
 // PushBack pushes data to the fifo
 func (q *ByteFIFOQueue) PushBack(data Data) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -110,7 +110,7 @@ func (q *ByteFIFOQueue) PushBack(data Data) error {
 // PushFunc pushes data to the fifo
 func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -398,7 +398,7 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 // Has checks if the provided data is in the queue
 func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if !assignableTo(data, q.exemplar) {
-		return false, fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return false, fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {

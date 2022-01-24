@@ -111,7 +111,7 @@ func (q *ChannelUniqueQueue) Push(data Data) error {
 // PushFunc will push data into the queue
 func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
 	}
 
 	bs, err := json.Marshal(data)
