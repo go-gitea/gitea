@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -22,8 +23,8 @@ import (
 )
 
 // ServeBlob download a git.Blob
-func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
+func ServeBlob(ctx *context.Context, blob *git.Blob, lastModified time.Time) error {
+	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
 

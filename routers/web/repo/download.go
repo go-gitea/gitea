@@ -7,6 +7,7 @@ package repo
 
 import (
 	"path"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -21,8 +22,8 @@ import (
 )
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
-func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
-	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
+func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time) error {
+	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
 
@@ -48,7 +49,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 			closed = true
-			return common.ServeBlob(ctx, blob)
+			return common.ServeBlob(ctx, blob, lastModified)
 		}
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return nil
@@ -79,19 +80,19 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	}
 	closed = true
 
-	return common.ServeBlob(ctx, blob)
+	return common.ServeBlob(ctx, blob, lastModified)
 }
 
-func getBlobForEntry(ctx *context.Context) *git.Blob {
+func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
-		return nil
+		return
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
 		ctx.NotFound("getBlobForEntry", nil)
-		return nil
+		return
 	}
 
 	var c *git.LastCommitCache
@@ -102,37 +103,38 @@ func getBlobForEntry(ctx *context.Context) *git.Blob {
 	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
-		return nil
+		return
 	}
 
-	if len(info) == 1 && httpcache.HandleGenericTimeCache(ctx.Req, ctx.Resp, info[0].Commit.Committer.When) {
+	if len(info) == 1 {
 		// Not Modified
-		return nil
+		lastModified = info[0].Commit.Committer.When
 	}
+	blob = entry.Blob()
 
-	return entry.Blob()
+	return
 }
 
 // SingleDownload download a file by repos path
 func SingleDownload(ctx *context.Context) {
-	blob := getBlobForEntry(ctx)
+	blob, lastModified := getBlobForEntry(ctx)
 	if blob == nil {
 		return
 	}
 
-	if err := common.ServeBlob(ctx, blob); err != nil {
+	if err := common.ServeBlob(ctx, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
 
 // SingleDownloadOrLFS download a file by repos path redirecting to LFS if necessary
 func SingleDownloadOrLFS(ctx *context.Context) {
-	blob := getBlobForEntry(ctx)
+	blob, lastModified := getBlobForEntry(ctx)
 	if blob == nil {
 		return
 	}
 
-	if err := ServeBlobOrLFS(ctx, blob); err != nil {
+	if err := ServeBlobOrLFS(ctx, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlobOrLFS", err)
 	}
 }
@@ -148,7 +150,7 @@ func DownloadByID(ctx *context.Context) {
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx, blob); err != nil {
+	if err = common.ServeBlob(ctx, blob, time.Time{}); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
@@ -164,7 +166,7 @@ func DownloadByIDOrLFS(ctx *context.Context) {
 		}
 		return
 	}
-	if err = ServeBlobOrLFS(ctx, blob); err != nil {
+	if err = ServeBlobOrLFS(ctx, blob, time.Time{}); err != nil {
 		ctx.ServerError("ServeBlob", err)
 	}
 }
