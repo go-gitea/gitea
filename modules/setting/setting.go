@@ -656,7 +656,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
 			KeyFile = sec.Key("KEY_FILE").String()
-			if !filepath.IsAbs(CertFile) && len(CertFile) > 0 {
+			if len(CertFile) > 0 && !filepath.IsAbs(CertFile) {
 				CertFile = filepath.Join(CustomPath, CertFile)
 			}
 			if !filepath.IsAbs(KeyFile) && len(KeyFile) > 0 {
