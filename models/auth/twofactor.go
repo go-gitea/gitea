@@ -8,6 +8,7 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 
@@ -58,11 +59,13 @@ func init() {
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() (string, error) {
-	token, err := util.RandomString(8)
+	tokenBytes, err := util.SecureRandomBytes(6)
 	if err != nil {
 		return "", err
 	}
-	t.ScratchSalt, _ = util.RandomString(10)
+	const base32Chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	token := base32.NewEncoding(base32Chars).WithPadding(base32.NoPadding).EncodeToString(tokenBytes)
+	t.ScratchSalt, _ = util.SecureRandomString(10)
 	t.ScratchHash = HashToken(token, t.ScratchSalt)
 	return token, nil
 }

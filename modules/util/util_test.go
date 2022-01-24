@@ -120,20 +120,20 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	int, err := RandomInt(255)
+	int, err := SecureRandomInt(255)
 	assert.True(t, int >= 0)
 	assert.True(t, int <= 255)
 	assert.NoError(t, err)
 }
 
 func Test_RandomString(t *testing.T) {
-	str1, err := RandomString(32)
+	str1, err := SecureRandomString(32)
 	assert.NoError(t, err)
 	matches, err := regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str2, err := RandomString(32)
+	str2, err := SecureRandomString(32)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
@@ -141,13 +141,13 @@ func Test_RandomString(t *testing.T) {
 
 	assert.NotEqual(t, str1, str2)
 
-	str3, err := RandomString(256)
+	str3, err := SecureRandomString(256)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str3)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str4, err := RandomString(256)
+	str4, err := SecureRandomString(256)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str4)
 	assert.NoError(t, err)
@@ -157,18 +157,18 @@ func Test_RandomString(t *testing.T) {
 }
 
 func Test_RandomBytes(t *testing.T) {
-	bytes1, err := RandomBytes(32)
+	bytes1, err := SecureRandomBytes(32)
 	assert.NoError(t, err)
 
-	bytes2, err := RandomBytes(32)
+	bytes2, err := SecureRandomBytes(32)
 	assert.NoError(t, err)
 
 	assert.NotEqual(t, bytes1, bytes2)
 
-	bytes3, err := RandomBytes(256)
+	bytes3, err := SecureRandomBytes(256)
 	assert.NoError(t, err)
 
-	bytes4, err := RandomBytes(256)
+	bytes4, err := SecureRandomBytes(256)
 	assert.NoError(t, err)
 
 	assert.NotEqual(t, bytes3, bytes4)
