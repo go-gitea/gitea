@@ -33,8 +33,13 @@ func Search(ctx *context.Context) {
 	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
 		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 	if err != nil {
-		ctx.ServerError("SearchResults", err)
-		return
+		if code_indexer.IsAvailable() {
+			ctx.ServerError("SearchResults", err)
+			return
+		}
+		ctx.Data["CodeIndexerUnavailable"] = true
+	} else {
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 	}
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language

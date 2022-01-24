@@ -7,8 +7,10 @@ package code
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -39,8 +41,11 @@ var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client           *elastic.Client
-	indexerAliasName string
+	client               *elastic.Client
+	indexerAliasName     string
+	available            bool
+	availabilityCallback func(bool)
+	stopTimer            chan struct{}
 }
 
 type elasticLogger struct {
@@ -78,7 +83,23 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 	indexer := &ElasticSearchIndexer{
 		client:           client,
 		indexerAliasName: indexerName,
+		available:        true,
+		stopTimer:        make(chan struct{}),
 	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				indexer.checkAvailability()
+			case <-indexer.stopTimer:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	exists, err := indexer.init()
 	if err != nil {
 		indexer.Close()
@@ -126,14 +147,14 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	ctx := context.Background()
 	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
 	if err != nil {
-		return false, err
+		return false, b.checkError(err)
 	}
 	if !exists {
 		mapping := defaultMapping
 
 		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !createIndex.Acknowledged {
 			return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
@@ -143,7 +164,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	// check version
 	r, err := b.client.Aliases().Do(ctx)
 	if err != nil {
-		return false, err
+		return false, b.checkError(err)
 	}
 
 	realIndexerNames := r.IndicesByAlias(b.indexerAliasName)
@@ -152,10 +173,10 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 			Add(b.realIndexerName(), b.indexerAliasName).
 			Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("")
+			return false, fmt.Errorf("create alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
 		}
 	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
 		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
@@ -165,14 +186,24 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 			Add(b.realIndexerName(), b.indexerAliasName).
 			Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("")
+			return false, fmt.Errorf("change alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
 		}
 	}
 
 	return exists, nil
+}
+
+// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
+func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+	b.availabilityCallback = callback
+}
+
+// Ping checks if elastic is available
+func (b *ElasticSearchIndexer) Ping() bool {
+	return b.available
 }
 
 func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
@@ -190,7 +221,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 			return nil, err
 		}
 		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
-			return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
+			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
 		}
 	}
 
@@ -275,7 +306,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 			Index(b.indexerAliasName).
 			Add(reqs...).
 			Do(context.Background())
-		return err
+		return b.checkError(err)
 	}
 	return nil
 }
@@ -285,7 +316,7 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 	_, err := b.client.DeleteByQuery(b.indexerAliasName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
 		Do(context.Background())
-	return err
+	return b.checkError(err)
 }
 
 // indexPos find words positions for start and the following end on content. It will
@@ -409,7 +440,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 			From(start).Size(pageSize).
 			Do(context.Background())
 		if err != nil {
-			return 0, nil, nil, err
+			return 0, nil, nil, b.checkError(err)
 		}
 
 		return convertResult(searchResult, kw, pageSize)
@@ -423,7 +454,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		Size(0). // We only needs stats information
 		Do(context.Background())
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, b.checkError(err)
 	}
 
 	query = query.Must(langQuery)
@@ -440,7 +471,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		From(start).Size(pageSize).
 		Do(context.Background())
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, b.checkError(err)
 	}
 
 	total, hits, _, err := convertResult(searchResult, kw, pageSize)
@@ -449,4 +480,33 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 }
 
 // Close implements indexer
-func (b *ElasticSearchIndexer) Close() {}
+func (b *ElasticSearchIndexer) Close() {
+	close(b.stopTimer)
+}
+
+func (b *ElasticSearchIndexer) checkError(err error) error {
+	var opErr *net.OpError
+	if b.available && (elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
+		b.available = false
+		if b.availabilityCallback != nil {
+			b.availabilityCallback(b.available)
+		}
+	}
+	return err
+}
+
+func (b *ElasticSearchIndexer) checkAvailability() {
+	if b.available {
+		return
+	}
+
+	// Request cluster state to check if elastic is available again
+	_, err := b.client.ClusterState().Do(context.Background())
+	if err != nil {
+		return
+	}
+	b.available = true
+	if b.availabilityCallback != nil {
+		b.availabilityCallback(b.available)
+	}
+}

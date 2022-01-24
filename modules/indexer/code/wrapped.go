@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 )
 
 var indexer = newWrappedIndexer()
@@ -54,6 +55,26 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 		}
 	}
 	return w.internal, nil
+}
+
+// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
+func (w *wrappedIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+	indexer, err := w.get()
+	if err != nil {
+		log.Error("Failed to get indexer: %v", err)
+		return
+	}
+	indexer.SetAvailabilityChangeCallback(callback)
+}
+
+// Ping checks if elastic is available
+func (w *wrappedIndexer) Ping() bool {
+	indexer, err := w.get()
+	if err != nil {
+		log.Warn("Failed to get indexer: %v", err)
+		return false
+	}
+	return indexer.Ping()
 }
 
 func (w *wrappedIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {

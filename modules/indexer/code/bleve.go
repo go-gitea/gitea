@@ -271,6 +271,15 @@ func (b *BleveIndexer) Close() {
 	log.Info("PID: %d Repository Indexer closed", os.Getpid())
 }
 
+// SetAvailabilityChangeCallback does nothing
+func (b *BleveIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+}
+
+// Ping does nothing
+func (b *BleveIndexer) Ping() bool {
+	return true
+}
+
 // Index indexes the data
 func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
