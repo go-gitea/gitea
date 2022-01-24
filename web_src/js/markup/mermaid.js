@@ -11,7 +11,7 @@ function displayError(el, err) {
 export async function renderMermaid(els) {
   if (!els || !els.length) return;
 
-  const mermaid = await import(/* webpackChunkName: "mermaid" */'mermaid');
+  const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
   mermaid.initialize({
     mermaid: {
