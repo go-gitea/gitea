@@ -533,6 +533,11 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Repository"
 
+	if err := ctx.Repo.Repository.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "Repository.LoadAttributes", err)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }
 
