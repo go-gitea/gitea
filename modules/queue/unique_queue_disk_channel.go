@@ -239,6 +239,26 @@ func (q *PersistableChannelUniqueQueue) IsEmpty() bool {
 	return q.channelQueue.IsEmpty()
 }
 
+// IsPaused will return if the pool or queue is paused
+func (q *PersistableChannelUniqueQueue) IsPaused() bool {
+	return q.channelQueue.IsPaused()
+}
+
+// Pause will pause the pool or queue
+func (q *PersistableChannelUniqueQueue) Pause() {
+	q.channelQueue.Pause()
+}
+
+// Resume will resume the pool or queue
+func (q *PersistableChannelUniqueQueue) Resume() {
+	q.channelQueue.Resume()
+}
+
+// IsPausedIsResumed will return a bool indicating if the pool or queue is paused and a channel that will be closed when it is resumed
+func (q *PersistableChannelUniqueQueue) IsPausedIsResumed() (paused, resumed <-chan struct{}) {
+	return q.channelQueue.IsPausedIsResumed()
+}
+
 // Shutdown processing this queue
 func (q *PersistableChannelUniqueQueue) Shutdown() {
 	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
