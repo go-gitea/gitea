@@ -76,7 +76,11 @@
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
-						<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+						{{if .Committer}}
+							<td class="text right aligned">{{TimeSince .Committer.When $.Lang}}</td>
+						{{else}}
+							<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+						{{end}}
 					</tr>
 				{{end}}
 			</tbody>
