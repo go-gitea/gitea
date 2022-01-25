@@ -51,7 +51,7 @@ type Indexer interface {
 	SetAvailabilityChangeCallback(callback func(bool))
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
-	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 	Close()
 }
 
@@ -370,7 +370,7 @@ func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
 
@@ -378,7 +378,7 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
 		return nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(keyword, repoIDs, 50, 0)
+	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
 	if err != nil {
 		return nil, err
 	}

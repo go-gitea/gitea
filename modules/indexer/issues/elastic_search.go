@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/olivere/elastic/v7"
@@ -26,6 +28,7 @@ type ElasticSearchIndexer struct {
 	available            bool
 	availabilityCallback func(bool)
 	stopTimer            chan struct{}
+	lock                 sync.RWMutex
 }
 
 type elasticLogger struct {
@@ -114,7 +117,7 @@ const (
 
 // Init will initialize the indexer
 func (b *ElasticSearchIndexer) Init() (bool, error) {
-	ctx := context.Background()
+	ctx := graceful.GetManager().HammerContext()
 	exists, err := b.client.IndexExists(b.indexerName).Do(ctx)
 	if err != nil {
 		return false, b.checkError(err)
@@ -138,11 +141,15 @@ func (b *ElasticSearchIndexer) Init() (bool, error) {
 
 // SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
 func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	b.availabilityCallback = callback
 }
 
 // Ping checks if elastic is available
 func (b *ElasticSearchIndexer) Ping() bool {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 	return b.available
 }
 
@@ -162,7 +169,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 				"content":  issue.Content,
 				"comments": issue.Comments,
 			}).
-			Do(context.Background())
+			Do(graceful.GetManager().HammerContext())
 		return b.checkError(err)
 	}
 
@@ -185,7 +192,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 	_, err := b.client.Bulk().
 		Index(b.indexerName).
 		Add(reqs...).
-		Do(context.Background())
+		Do(graceful.GetManager().HammerContext())
 	return b.checkError(err)
 }
 
@@ -197,7 +204,7 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 		_, err := b.client.Delete().
 			Index(b.indexerName).
 			Id(fmt.Sprintf("%d", ids[0])).
-			Do(context.Background())
+			Do(graceful.GetManager().HammerContext())
 		return b.checkError(err)
 	}
 
@@ -213,13 +220,13 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 	_, err := b.client.Bulk().
 		Index(b.indexerName).
 		Add(reqs...).
-		Do(context.Background())
+		Do(graceful.GetManager().HammerContext())
 	return b.checkError(err)
 }
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *ElasticSearchIndexer) Search(keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
 	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
@@ -236,7 +243,7 @@ func (b *ElasticSearchIndexer) Search(keyword string, repoIDs []int64, limit, st
 		Query(query).
 		Sort("_score", false).
 		From(start).Size(limit).
-		Do(context.Background())
+		Do(ctx)
 	if err != nil {
 		return nil, b.checkError(err)
 	}
@@ -262,27 +269,41 @@ func (b *ElasticSearchIndexer) Close() {
 
 func (b *ElasticSearchIndexer) checkError(err error) error {
 	var opErr *net.OpError
-	if b.available && (elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
-		b.available = false
-		if b.availabilityCallback != nil {
-			b.availabilityCallback(b.available)
-		}
+	if !(elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
+		return err
 	}
+
+	b.setAvailability(false)
+
 	return err
 }
 
 func (b *ElasticSearchIndexer) checkAvailability() {
-	if b.available {
+	if b.Ping() {
 		return
 	}
 
 	// Request cluster state to check if elastic is available again
-	_, err := b.client.ClusterState().Do(context.Background())
+	_, err := b.client.ClusterState().Do(graceful.GetManager().ShutdownContext())
 	if err != nil {
+		b.setAvailability(false)
 		return
 	}
-	b.available = true
+
+	b.setAvailability(true)
+}
+
+func (b *ElasticSearchIndexer) setAvailability(available bool) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.available == available {
+		return
+	}
+
+	b.available = available
 	if b.availabilityCallback != nil {
+		// Call the callback from within the lock to ensure that the ordering remains correct
 		b.availabilityCallback(b.available)
 	}
 }

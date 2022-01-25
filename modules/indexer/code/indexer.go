@@ -46,7 +46,7 @@ type Indexer interface {
 	SetAvailabilityChangeCallback(callback func(bool))
 	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 

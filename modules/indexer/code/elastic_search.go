@@ -13,12 +13,14 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -46,6 +48,7 @@ type ElasticSearchIndexer struct {
 	available            bool
 	availabilityCallback func(bool)
 	stopTimer            chan struct{}
+	lock                 sync.RWMutex
 }
 
 type elasticLogger struct {
@@ -144,7 +147,7 @@ func (b *ElasticSearchIndexer) realIndexerName() string {
 
 // Init will initialize the indexer
 func (b *ElasticSearchIndexer) init() (bool, error) {
-	ctx := context.Background()
+	ctx := graceful.GetManager().HammerContext()
 	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
 	if err != nil {
 		return false, b.checkError(err)
@@ -198,11 +201,15 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 
 // SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
 func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	b.availabilityCallback = callback
 }
 
 // Ping checks if elastic is available
 func (b *ElasticSearchIndexer) Ping() bool {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 	return b.available
 }
 
@@ -305,7 +312,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 		_, err := b.client.Bulk().
 			Index(b.indexerAliasName).
 			Add(reqs...).
-			Do(context.Background())
+			Do(ctx)
 		return b.checkError(err)
 	}
 	return nil
@@ -315,7 +322,7 @@ func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repos
 func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 	_, err := b.client.DeleteByQuery(b.indexerAliasName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
-		Do(context.Background())
+		Do(graceful.GetManager().HammerContext())
 	return b.checkError(err)
 }
 
@@ -397,7 +404,7 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	searchType := esMultiMatchTypeBestFields
 	if isMatch {
 		searchType = esMultiMatchTypePhrasePrefix
@@ -438,7 +445,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 			).
 			Sort("repo_id", true).
 			From(start).Size(pageSize).
-			Do(context.Background())
+			Do(ctx)
 		if err != nil {
 			return 0, nil, nil, b.checkError(err)
 		}
@@ -452,7 +459,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only needs stats information
-		Do(context.Background())
+		Do(ctx)
 	if err != nil {
 		return 0, nil, nil, b.checkError(err)
 	}
@@ -469,7 +476,7 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		).
 		Sort("repo_id", true).
 		From(start).Size(pageSize).
-		Do(context.Background())
+		Do(ctx)
 	if err != nil {
 		return 0, nil, nil, b.checkError(err)
 	}
@@ -486,27 +493,41 @@ func (b *ElasticSearchIndexer) Close() {
 
 func (b *ElasticSearchIndexer) checkError(err error) error {
 	var opErr *net.OpError
-	if b.available && (elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
-		b.available = false
-		if b.availabilityCallback != nil {
-			b.availabilityCallback(b.available)
-		}
+	if !(elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
+		return err
 	}
+
+	b.setAvailability(false)
+
 	return err
 }
 
 func (b *ElasticSearchIndexer) checkAvailability() {
-	if b.available {
+	if b.Ping() {
 		return
 	}
 
 	// Request cluster state to check if elastic is available again
-	_, err := b.client.ClusterState().Do(context.Background())
+	_, err := b.client.ClusterState().Do(graceful.GetManager().ShutdownContext())
 	if err != nil {
+		b.setAvailability(false)
 		return
 	}
-	b.available = true
+
+	b.setAvailability(true)
+}
+
+func (b *ElasticSearchIndexer) setAvailability(available bool) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.available == available {
+		return
+	}
+
+	b.available = available
 	if b.availabilityCallback != nil {
+		// Call the callback from within the lock to ensure that the ordering remains correct
 		b.availabilityCallback(b.available)
 	}
 }

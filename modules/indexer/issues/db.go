@@ -5,6 +5,8 @@
 package issues
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 )
@@ -41,8 +43,8 @@ func (i *DBIndexer) Close() {
 }
 
 // Search dummy function
-func (i *DBIndexer) Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	total, ids, err := models.SearchIssueIDsByKeyword(kw, repoIDs, limit, start)
+func (i *DBIndexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+	total, ids, err := models.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
 	if err != nil {
 		return nil, err
 	}
