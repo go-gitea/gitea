@@ -222,6 +222,30 @@ func (repo *Repository) MustOwner() *user_model.User {
 	return repo.mustOwner(db.DefaultContext)
 }
 
+// LoadAttributes loads attributes of the repository.
+func (repo *Repository) LoadAttributes(ctx context.Context) error {
+	// Load owner
+	if err := repo.GetOwner(ctx); err != nil {
+		return fmt.Errorf("load owner: %w", err)
+	}
+
+	// Load primary language
+	stats := make(LanguageStatList, 0, 1)
+	if err := db.GetEngine(ctx).
+		Where("`repo_id` = ? AND `is_primary` = ? AND `language` != ?", repo.ID, true, "other").
+		Find(&stats); err != nil {
+		return fmt.Errorf("find primary languages: %w", err)
+	}
+	stats.LoadAttributes()
+	for _, st := range stats {
+		if st.RepoID == repo.ID {
+			repo.PrimaryLanguage = st
+			break
+		}
+	}
+	return nil
+}
+
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.OwnerName + "/" + repo.Name

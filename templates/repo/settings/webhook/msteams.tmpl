@@ -1,5 +1,5 @@
 {{if eq .HookType "msteams"}}
-	<p>{{.i18n.Tr "repo.settings.add_msteams_hook_desc" "https://teams.microsoft.com" | Str2html}}</p>
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://teams.microsoft.com" (.i18n.Tr "repo.settings.web_hook_name_msteams") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/msteams/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">

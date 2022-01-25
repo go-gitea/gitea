@@ -57,14 +57,12 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dataChan := make(chan Data, config.QueueLength)
-	resumed := make(chan struct{})
-	close(resumed)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
-		resumed:            resumed,
+		resumed:            closedChan,
 		paused:             make(chan struct{}),
 		handle:             handle,
 		blockTimeout:       config.BlockTimeout,
