@@ -15,5 +15,5 @@ type Milestone struct {
 	Created     time.Time  `json:"created"`
 	Updated     *time.Time `json:"updated"`
 	Closed      *time.Time `json:"closed"`
-	State       string     `json:"state"`
+	State       string     `json:"state"` // open, closed
 }
