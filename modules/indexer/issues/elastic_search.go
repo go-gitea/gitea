@@ -264,7 +264,11 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, keyword string, repoI
 
 // Close implements indexer
 func (b *ElasticSearchIndexer) Close() {
-	close(b.stopTimer)
+	select {
+	case <-b.stopTimer:
+	default:
+		close(b.stopTimer)
+	}
 }
 
 func (b *ElasticSearchIndexer) checkError(err error) error {

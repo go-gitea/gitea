@@ -488,7 +488,11 @@ func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, lang
 
 // Close implements indexer
 func (b *ElasticSearchIndexer) Close() {
-	close(b.stopTimer)
+	select {
+	case <-b.stopTimer:
+	default:
+		close(b.stopTimer)
+	}
 }
 
 func (b *ElasticSearchIndexer) checkError(err error) error {
