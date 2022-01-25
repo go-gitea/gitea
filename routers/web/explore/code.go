@@ -87,7 +87,7 @@ func Code(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			if code_indexer.IsAvailable() {
 				ctx.ServerError("SearchResults", err)
@@ -99,7 +99,7 @@ func Code(ctx *context.Context) {
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			if code_indexer.IsAvailable() {
 				ctx.ServerError("SearchResults", err)

@@ -30,7 +30,7 @@ func Search(ctx *context.Context) {
 	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
-	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},
+	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
 		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 	if err != nil {
 		if code_indexer.IsAvailable() {
