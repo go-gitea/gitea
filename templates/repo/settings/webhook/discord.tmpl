@@ -1,5 +1,5 @@
 {{if eq .HookType "discord"}}
-	<p>{{.i18n.Tr "repo.settings.add_discord_hook_desc" "https://discord.com" | Str2html}}</p>
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://discord.com" (.i18n.Tr "repo.settings.web_hook_name_discord") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/discord/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">

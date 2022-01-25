@@ -99,6 +99,9 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 
 	bs, err := os.ReadFile(p)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

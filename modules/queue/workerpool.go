@@ -57,14 +57,12 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dataChan := make(chan Data, config.QueueLength)
-	resumed := make(chan struct{})
-	close(resumed)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
-		resumed:            resumed,
+		resumed:            closedChan,
 		paused:             make(chan struct{}),
 		handle:             handle,
 		blockTimeout:       config.BlockTimeout,
@@ -303,9 +301,14 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				cancel()
 			}
 			if p.hasNoWorkerScaling() {
-				log.Warn(
-					"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
-						"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				select {
+				case <-p.baseCtx.Done():
+					// Don't warn if the baseCtx is shutdown
+				default:
+					log.Warn(
+						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
+							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				}
 				p.pause()
 			}
 			p.lock.Unlock()
