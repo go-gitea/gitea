@@ -73,7 +73,7 @@ type githubUser struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func getID(s string) int64 {
+func parseGitHubResID(s string) int64 {
 	u, err := url.Parse(s)
 	if err != nil {
 		log.Error("parse %s failed: %v", s, err)
@@ -88,7 +88,7 @@ func getID(s string) int64 {
 }
 
 func (g *githubUser) ID() int64 {
-	return getID(g.AvatarURL)
+	return parseGitHubResID(g.AvatarURL)
 }
 
 func (g *githubUser) Email() string {
@@ -127,7 +127,7 @@ type githubAttachment struct {
 }
 
 func (g *githubAttachment) GetUserID() int64 {
-	return getID(g.User)
+	return parseGitHubResID(g.User)
 }
 
 func (g *githubAttachment) IsIssue() bool {
@@ -136,9 +136,9 @@ func (g *githubAttachment) IsIssue() bool {
 
 func (g *githubAttachment) IssueID() int64 {
 	if g.IsIssue() {
-		return getID(g.Issue)
+		return parseGitHubResID(g.Issue)
 	}
-	return getID(g.IssueComment)
+	return parseGitHubResID(g.IssueComment)
 }
 
 func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) []*base.Asset {
