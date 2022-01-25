@@ -63,11 +63,41 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
-	whitespaceBehavior := ctx.FormString("whitespace")
-	switch whitespaceBehavior {
-	case "ignore-all", "ignore-eol", "ignore-change":
-		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
-	default:
+	queryWhitespaceBehavior := ctx.FormString("whitespace")
+	if !ctx.IsSigned {
+		switch queryWhitespaceBehavior {
+		case "ignore-all", "ignore-eol", "ignore-change":
+			ctx.Data["WhitespaceBehavior"] = queryWhitespaceBehavior
+		default:
+			ctx.Data["WhitespaceBehavior"] = ""
+		}
+		return
+	}
+
+	userWhitespaceBehaviour, err := user_model.GetUserSetting(ctx.User.ID, "diff.whitespace_behaviour", "all")
+	if err != nil {
+		ctx.ServerError("ErrFetchWhitespaceBehavior", err)
+	}
+
+	var whitespaceBehavior string
+
+	if queryWhitespaceBehavior == "ignore-all" || queryWhitespaceBehavior == "ignore-eol" || queryWhitespaceBehavior == "ignore-change" || queryWhitespaceBehavior == "all" {
+		whitespaceBehavior = queryWhitespaceBehavior
+	} else if userWhitespaceBehaviour == "ignore-all" || userWhitespaceBehaviour == "ignore-eol" || userWhitespaceBehaviour == "ignore-change" || userWhitespaceBehaviour == "all" {
+		whitespaceBehavior = userWhitespaceBehaviour
+	} else {
+		whitespaceBehavior = "all"
+	}
+
+	if whitespaceBehavior == "all" {
 		ctx.Data["WhitespaceBehavior"] = ""
+	} else {
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	}
+
+	if userWhitespaceBehaviour != whitespaceBehavior {
+		if err := user_model.SetUserSetting(ctx.User.ID, "diff.whitespace_behaviour", whitespaceBehavior); err != nil {
+			ctx.ServerError("ErrUpdateWhitespaceBehavior", err)
+		}
 	}
 }

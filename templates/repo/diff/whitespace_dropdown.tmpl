@@ -2,7 +2,7 @@
 	{{.i18n.Tr "repo.diff.whitespace_button"}}
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
-		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=">
+		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=all">
 			<i class="circle {{ if eq .WhitespaceBehavior "" }}dot{{else}}outline{{end}} icon"></i>
 			{{.i18n.Tr "repo.diff.whitespace_show_everything"}}
 		</a>
