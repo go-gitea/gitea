@@ -92,3 +92,7 @@ func (n NullDownloader) SupportGetRepoComments() bool {
 func (n NullDownloader) SupportGetRepoReviews() bool {
 	return false
 }
+
+// CleanUp clean the downloader temporary resources
+func (n NullDownloader) CleanUp() {
+}

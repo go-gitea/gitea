@@ -40,6 +40,7 @@ type Downloader interface {
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(reviewable Reviewable) ([]*Review, bool, error)
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
+	CleanUp()
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader

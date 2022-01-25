@@ -74,8 +74,15 @@ type githubUser struct {
 }
 
 func getID(s string) int64 {
-	u, _ := url.Parse(s)
+	u, err := url.Parse(s)
+	if err != nil {
+		log.Error("parse %s failed: %v", s, err)
+		return 0
+	}
 	fields := strings.Split(u.Path, "/")
+	if len(fields) == 0 {
+		return 0
+	}
 	i, _ := strconv.ParseInt(fields[len(fields)-1], 10, 64)
 	return i
 }
@@ -173,6 +180,9 @@ type githubLabel string
 
 func (l githubLabel) GetName() string {
 	fields := strings.Split(string(l), "/labels/")
+	if len(fields) == 0 {
+		return ""
+	}
 	s, err := url.PathUnescape(fields[len(fields)-1])
 	if err != nil {
 		log.Error("url.PathUnescape %s failed: %v", fields[len(fields)-1], err)
@@ -196,6 +206,8 @@ type GithubExportedDataRestorer struct {
 	milestones         map[string]githubMilestone
 	attachmentLoaded   bool
 }
+
+var _ base.Downloader = &GithubExportedDataRestorer{}
 
 func decompressFile(targzFile, targetDir string) error {
 	f, err := os.Open(targzFile)
@@ -271,6 +283,19 @@ func NewGithubExportedDataRestorer(ctx context.Context, githubDataFilePath, owne
 	}
 
 	return restorer, nil
+}
+
+// CleanUp clean the downloader temporary resources
+func (r *GithubExportedDataRestorer) CleanUp() {
+	if r.tmpDir != "" {
+		_ = os.RemoveAll(r.tmpDir)
+	}
+}
+
+// replaceComment replace #id to new form
+// i.e. https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 ->
+func (r *GithubExportedDataRestorer) replaceComment(content string) string {
+	return ""
 }
 
 // SupportGetRepoComments return true if it can get all comments once

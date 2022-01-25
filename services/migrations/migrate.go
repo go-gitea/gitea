@@ -121,6 +121,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	if err != nil {
 		return nil, err
 	}
+	defer downloader.CleanUp()
 
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
