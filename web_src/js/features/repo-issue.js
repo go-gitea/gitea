@@ -523,9 +523,11 @@ export function initRepoPullRequestReview() {
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
             <td class="add-comment-left"></td>
             <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
             <td class="add-comment-right"></td>
           ` : `

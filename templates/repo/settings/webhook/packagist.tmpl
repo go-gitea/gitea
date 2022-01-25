@@ -1,0 +1,19 @@
+{{if eq .HookType "packagist"}}
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://packagist.org" (.i18n.Tr "repo.settings.web_hook_name_packagist") | Str2html}}</p>
+	<form class="ui form" action="{{.BaseLink}}/packagist/{{or .Webhook.ID "new"}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_Username}}error{{end}}">
+			<label for="username">{{.i18n.Tr "repo.settings.packagist_username"}}</label>
+			<input id="username" name="username" value="{{.PackagistHook.Username}}" placeholder="e.g. Gitea" autofocus required>
+		</div>
+		<div class="required field {{if .Err_APIToken}}error{{end}}">
+			<label for="api_token">{{.i18n.Tr "repo.settings.packagist_api_token"}}</label>
+			<input id="api_token" name="api_token" value="{{.PackagistHook.APIToken}}" placeholder="e.g. X5F_tZ-Wj3c1vqaU2Rky" required>
+		</div>
+		<div class="required field {{if .Err_PackageURL}}error{{end}}">
+			<label for="package_url">{{.i18n.Tr "repo.settings.packagist_package_url"}}</label>
+			<input id="package_url" name="package_url" value="{{.PackagistHook.PackageURL}}" placeholder="e.g. https://packagist.org/packages/laravel/framework" required>
+		</div>
+		{{template "repo/settings/webhook/settings" .}}
+	</form>
+{{end}}

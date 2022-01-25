@@ -396,6 +396,20 @@ func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewPackagistHookForm form for creating packagist hook
+type NewPackagistHookForm struct {
+	Username   string `binding:"Required"`
+	APIToken   string `binding:"Required"`
+	PackageURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \

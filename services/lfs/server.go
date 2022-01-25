@@ -45,8 +45,7 @@ type Claims struct {
 	RepoID int64
 	Op     string
 	UserID int64
-	// FIXME: Migrate to RegisteredClaims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // DownloadLink builds a URL to download the object.
@@ -440,7 +439,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		if download {
 			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
 			if setting.LFS.ServeDirect {
-				//If we have a signed url (S3, object storage), redirect to this directly.
+				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
 					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}

@@ -13,7 +13,7 @@ import (
 )
 
 func TestFileURLToPath(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		url      string
 		expected string
 		haserror bool

@@ -27,12 +27,11 @@ import (
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
-
 	tmpDir, err := os.MkdirTemp("", "key-file")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
-	err = os.Chmod(tmpDir, 0700)
+	err = os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
 	keyFile := filepath.Join(tmpDir, keyname)
@@ -40,10 +39,10 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	err = os.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
-		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0700)
+		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0o700)
 	assert.NoError(t, err)
 
-	//Setup ssh wrapper
+	// Setup ssh wrapper
 	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
 	os.Setenv("GIT_SSH_COMMAND",
 		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
@@ -103,7 +102,7 @@ func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...
 	}()
 
 	go s.Serve(listener)
-	//Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+	// Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 
 	callback(t, u)
 }
@@ -123,12 +122,23 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	}
 }
 
+func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstLocalPath, allowLFSFilters(), git.CloneRepoOptions{
+			Filter: "blob:none",
+		}))
+		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
+		assert.NoError(t, err)
+		assert.True(t, exist)
+	}
+}
+
 func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
 		tmpDir, err := os.MkdirTemp("", "doGitCloneFail")
 		assert.NoError(t, err)
 		defer util.RemoveAll(tmpDir)
-		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
+		assert.Error(t, git.Clone(git.DefaultContext, u.String(), tmpDir, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(tmpDir, "README.md"))
 		assert.NoError(t, err)
 		assert.False(t, exist)
@@ -138,11 +148,11 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(dstPath, false))
+		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false))
 		// forcibly set default branch to master
 		_, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
 		assert.NoError(t, err)
-		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0o644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",

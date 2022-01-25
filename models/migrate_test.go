@@ -45,7 +45,7 @@ func assertCreateIssues(t *testing.T, reponame string, isPull bool) {
 	}
 
 	title := "issuetitle1"
-	var is = &Issue{
+	is := &Issue{
 		RepoID:      repo.ID,
 		MilestoneID: milestone.ID,
 		Repo:        repo,
@@ -130,7 +130,7 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
-	var i = &Issue{
+	i := &Issue{
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "title1",
@@ -140,7 +140,7 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 		Poster:   owner,
 	}
 
-	var p = &PullRequest{
+	p := &PullRequest{
 		Issue: i,
 	}
 

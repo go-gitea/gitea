@@ -49,13 +49,14 @@ func Init() error {
 	return nil
 }
 
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		task := datum.(*models.Task)
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
 	}
+	return nil
 }
 
 // MigrateRepository add migration repository to task
@@ -92,7 +93,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		return nil, err
 	}
 
-	var task = &models.Task{
+	task := &models.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,

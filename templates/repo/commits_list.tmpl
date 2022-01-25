@@ -64,7 +64,7 @@
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
 								{{ $commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String) }}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
@@ -72,10 +72,14 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
-						<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+						{{if .Committer}}
+							<td class="text right aligned">{{TimeSince .Committer.When $.Lang}}</td>
+						{{else}}
+							<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+						{{end}}
 					</tr>
 				{{end}}
 			</tbody>
