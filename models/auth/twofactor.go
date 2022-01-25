@@ -59,13 +59,14 @@ func init() {
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() (string, error) {
-	tokenBytes, err := util.SecureRandomBytes(6)
+	tokenBytes, err := util.CryptoRandomBytes(6)
 	if err != nil {
 		return "", err
 	}
+	// these chars are specially chosen, avoid ambiguous chars like `0`, `O`, `1`, `I`.
 	const base32Chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 	token := base32.NewEncoding(base32Chars).WithPadding(base32.NoPadding).EncodeToString(tokenBytes)
-	t.ScratchSalt, _ = util.SecureRandomString(10)
+	t.ScratchSalt, _ = util.CryptoRandomString(10)
 	t.ScratchHash = HashToken(token, t.ScratchSalt)
 	return token, nil
 }

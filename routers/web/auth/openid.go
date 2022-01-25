@@ -416,7 +416,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	if length < 256 {
 		length = 256
 	}
-	password, err := util.SecureRandomString(int64(length))
+	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return

@@ -24,7 +24,7 @@ func New() (string, error) {
 
 // NewWithLength creates a new secret for a given length
 func NewWithLength(length int64) (string, error) {
-	return util.SecureRandomString(length)
+	return util.CryptoRandomString(length)
 }
 
 // AesEncrypt encrypts text and given key with AES.
