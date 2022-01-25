@@ -106,8 +106,8 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)
 }
 
