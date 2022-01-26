@@ -215,6 +215,7 @@ type GithubExportedDataRestorer struct {
 	repoName           string
 	baseURL            string
 	regMatchIssue      *regexp.Regexp
+	regMatchCommit     *regexp.Regexp
 	labels             []*base.Label
 	users              map[string]githubUser
 	issueAttachments   map[string][]githubAttachment
@@ -310,13 +311,12 @@ func (r *GithubExportedDataRestorer) CleanUp() {
 
 // replaceComment replace #id to new form
 // i.e.
-// 1) https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 ->
+// 1) https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 -> b70d545a1cbb5c92ca20f442f59de5d955600408
 // 2) https://github.com/go-gitea/gitea/issue/1 -> #1
 // 3) https://github.com/go-gitea/gitea/pull/2 -> #2
 func (r *GithubExportedDataRestorer) replaceGithubLinks(content string) string {
-	c := strings.ReplaceAll(content, r.baseURL+"/issue/", "#")
-	c = strings.ReplaceAll(c, r.baseURL+"/pull/", "#")
-	c = strings.ReplaceAll(c, r.baseURL+"/commit/", "")
+	c := r.regMatchIssue.ReplaceAllString(content, "#$2")
+	c = r.regMatchCommit.ReplaceAllString(c, "$1")
 	return c
 }
 
@@ -404,7 +404,11 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 		})
 	}
 	r.baseURL = opts.URL
-	r.regMatchIssue, err = regexp.Compile(r.baseURL + "/[issue|pull]/([0-9]+).*")
+	r.regMatchIssue, err = regexp.Compile(r.baseURL + "/(issue|pull)/([0-9]+)")
+	if err != nil {
+		return nil, err
+	}
+	r.regMatchCommit, err = regexp.Compile(r.baseURL + "/commit/([a-z0-9]{7, 40})")
 	if err != nil {
 		return nil, err
 	}
