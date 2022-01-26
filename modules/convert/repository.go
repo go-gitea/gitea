@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -38,7 +40,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		}
 	}
 
-	//check enabled/disabled units
+	// check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -99,11 +101,13 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
+	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
 		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
+			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
 		}
 	}
 
@@ -120,6 +124,13 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 			}
 		}
 	}
+
+	var language string
+	if repo.PrimaryLanguage != nil {
+		language = repo.PrimaryLanguage.Language
+	}
+
+	repoAPIURL := repo.APIURL()
 
 	return &api.Repository{
 		ID:                        repo.ID,
@@ -140,6 +151,8 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		CloneURL:                  cloneLink.HTTPS,
 		OriginalURL:               repo.SanitizedOriginalURL(),
 		Website:                   repo.Website,
+		Language:                  language,
+		LanguagesURL:              repoAPIURL + "/languages",
 		Stars:                     repo.NumStars,
 		Forks:                     repo.NumForks,
 		Watchers:                  repo.NumWatches,
@@ -166,6 +179,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		AvatarURL:                 repo.AvatarLink(),
 		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:            mirrorInterval,
+		MirrorUpdated:             mirrorUpdated,
 		RepoTransfer:              transfer,
 	}
 }

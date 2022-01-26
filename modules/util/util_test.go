@@ -46,7 +46,6 @@ func TestURLJoin(t *testing.T) {
 }
 
 func TestIsEmptyString(t *testing.T) {
-
 	cases := []struct {
 		s        string
 		expected bool
@@ -121,20 +120,20 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	int, err := RandomInt(255)
+	int, err := CryptoRandomInt(255)
 	assert.True(t, int >= 0)
 	assert.True(t, int <= 255)
 	assert.NoError(t, err)
 }
 
 func Test_RandomString(t *testing.T) {
-	str1, err := RandomString(32)
+	str1, err := CryptoRandomString(32)
 	assert.NoError(t, err)
 	matches, err := regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str2, err := RandomString(32)
+	str2, err := CryptoRandomString(32)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
 	assert.NoError(t, err)
@@ -142,19 +141,37 @@ func Test_RandomString(t *testing.T) {
 
 	assert.NotEqual(t, str1, str2)
 
-	str3, err := RandomString(256)
+	str3, err := CryptoRandomString(256)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str3)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
-	str4, err := RandomString(256)
+	str4, err := CryptoRandomString(256)
 	assert.NoError(t, err)
 	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str4)
 	assert.NoError(t, err)
 	assert.True(t, matches)
 
 	assert.NotEqual(t, str3, str4)
+}
+
+func Test_RandomBytes(t *testing.T) {
+	bytes1, err := CryptoRandomBytes(32)
+	assert.NoError(t, err)
+
+	bytes2, err := CryptoRandomBytes(32)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes1, bytes2)
+
+	bytes3, err := CryptoRandomBytes(256)
+	assert.NoError(t, err)
+
+	bytes4, err := CryptoRandomBytes(256)
+	assert.NoError(t, err)
+
+	assert.NotEqual(t, bytes3, bytes4)
 }
 
 func Test_OptionalBool(t *testing.T) {

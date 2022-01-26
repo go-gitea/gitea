@@ -15,9 +15,11 @@ import (
 	"path/filepath"
 	"strings"
 	texttmpl "text/template"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -25,6 +27,11 @@ var (
 	subjectTemplates = texttmpl.New("")
 	bodyTemplates    = template.New("")
 )
+
+// GlobalModTime provide a global mod time for embedded asset files
+func GlobalModTime(filename string) time.Time {
+	return timeutil.GetExecutableModTime()
+}
 
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
@@ -40,7 +47,7 @@ func GetAsset(name string) ([]byte, error) {
 // GetAssetNames only for chi
 func GetAssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var tmpls = make([]string, 0, len(realFS))
+	tmpls := make([]string, 0, len(realFS))
 	for k := range realFS {
 		tmpls = append(tmpls, "templates/"+k[1:])
 	}
@@ -69,7 +76,6 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		}
 
 		content, err := Asset(assetPath)
-
 		if err != nil {
 			log.Warn("Failed to read embedded %s template. %v", assetPath, err)
 			continue
@@ -104,7 +110,6 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 				}
 
 				content, err := os.ReadFile(path.Join(customDir, filePath))
-
 				if err != nil {
 					log.Warn("Failed to read custom %s template. %v", filePath, err)
 					continue
@@ -135,7 +140,7 @@ func Asset(name string) ([]byte, error) {
 
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
+	results := make([]string, 0, len(realFS))
 	for k := range realFS {
 		results = append(results, k[1:])
 	}

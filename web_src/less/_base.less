@@ -248,7 +248,9 @@ a.label,
 .repository-menu a,
 .ui.search .results a,
 .ui .menu a,
-.issue-keyword a {
+.ui.cards a.card,
+.issue-keyword a,
+a.commit-statuses-trigger {
   text-decoration: none !important;
 }
 
@@ -666,6 +668,12 @@ a.ui.card:hover,
 .ui.link.list.list a.item:active,
 .ui.link.list.list .item a:not(.ui):active {
   color: var(--color-text-dark);
+}
+
+.ui.error.message .header,
+.ui.warning.message .header {
+  color: inherit;
+  filter: saturate(2);
 }
 
 .dont-break-out {
@@ -1567,6 +1575,10 @@ a.ui.label:hover {
       padding-left: 1ch;
     }
   }
+}
+
+.lines-escape {
+  width: 0;
 }
 
 .lines-code {

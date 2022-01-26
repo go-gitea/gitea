@@ -102,7 +102,7 @@ func InitDBConfig() {
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
 	connStr := ""
-	var Param = "?"
+	Param := "?"
 	if strings.Contains(Database.Name, Param) {
 		Param = "&"
 	}

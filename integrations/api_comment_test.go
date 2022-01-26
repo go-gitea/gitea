@@ -44,10 +44,10 @@ func TestAPIListRepoComments(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
 
-	//test before and since filters
+	// test before and since filters
 	query := url.Values{}
-	before := "2000-01-01T00:00:11+00:00" //unix: 946684811
-	since := "2000-01-01T00:00:12+00:00"  //unix: 946684812
+	before := "2000-01-01T00:00:11+00:00" // unix: 946684811
+	since := "2000-01-01T00:00:12+00:00"  // unix: 946684812
 	query.Add("before", before)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
@@ -179,4 +179,26 @@ func TestAPIDeleteComment(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
+}
+
+func TestAPIListIssueTimeline(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	// load comment
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+
+	// make request
+	session := loginUser(t, repoOwner.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
+		repoOwner.Name, repo.Name, issue.Index)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// check if lens of list returned by API and
+	// lists extracted directly from DB are the same
+	var comments []*api.TimelineComment
+	DecodeJSON(t, resp, &comments)
+	expectedCount := unittest.GetCount(t, &models.Comment{IssueID: issue.ID})
+	assert.EqualValues(t, expectedCount, len(comments))
 }

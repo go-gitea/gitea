@@ -6,8 +6,8 @@ package models
 
 import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -21,7 +21,7 @@ type Statistic struct {
 		Repo, Watch, Star, Action, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
-		Mirror, Release, LoginSource, Webhook,
+		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
 		ProjectBoard, Attachment int64
@@ -98,7 +98,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(Release))
-	stats.Counter.LoginSource = login.CountSources()
+	stats.Counter.AuthSource = auth.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(Milestone))
 	stats.Counter.Label, _ = e.Count(new(Label))

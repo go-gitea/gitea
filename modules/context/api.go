@@ -13,13 +13,13 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/auth"
+	auth_service "code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -56,29 +56,29 @@ type APIInvalidTopicsError struct {
 	InvalidTopics []string `json:"invalidTopics"`
 }
 
-//APIEmpty is an empty response
+// APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
 
-//APIForbiddenError is a forbidden error response
+// APIForbiddenError is a forbidden error response
 // swagger:response forbidden
 type APIForbiddenError struct {
 	APIError
 }
 
-//APINotFound is a not found empty response
+// APINotFound is a not found empty response
 // swagger:response notFound
 type APINotFound struct{}
 
-//APIConflict is a conflict empty response
+// APIConflict is a conflict empty response
 // swagger:response conflict
 type APIConflict struct{}
 
-//APIRedirect is a redirect response
+// APIRedirect is a redirect response
 // swagger:response redirect
 type APIRedirect struct{}
 
-//APIString is a string response
+// APIString is a string response
 // swagger:response string
 type APIString string
 
@@ -225,9 +225,9 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := login.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
+		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
 		ctx.Context.Error(http.StatusInternalServerError)
@@ -244,8 +244,8 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts auth.Auth as a middleware
-func APIAuth(authMethod auth.Method) func(*APIContext) {
+// APIAuth converts auth_service.Auth as a middleware
+func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
@@ -253,7 +253,7 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 			if ctx.Locale.Language() != ctx.User.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
@@ -269,13 +269,12 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
-	var csrfOpts = getCsrfOpts()
+	csrfOpts := getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
-
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var locale = middleware.Locale(w, req)
-			var ctx = APIContext{
+			locale := middleware.Locale(w, req)
+			ctx := APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},
@@ -303,6 +302,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 
@@ -321,42 +321,39 @@ func APIContexter() func(http.Handler) http.Handler {
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := GetAPIContext(req)
-			// Empty repository does not have reference information.
-			if !allowEmpty && ctx.Repo.Repository.IsEmpty {
+func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.CancelFunc) {
+	return func(ctx *APIContext) (cancel context.CancelFunc) {
+		// Empty repository does not have reference information.
+		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		// For API calls.
+		if ctx.Repo.GitRepo == nil {
+			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 				return
 			}
-
-			// For API calls.
-			if ctx.Repo.GitRepo == nil {
-				repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-				gitRepo, err := git.OpenRepository(repoPath)
-				if err != nil {
-					ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-					return
+			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			return func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
 				}
-				ctx.Repo.GitRepo = gitRepo
-				// We opened it, we should close it
-				defer func() {
-					// If it's been set to nil then assume someone else has closed it.
-					if ctx.Repo.GitRepo != nil {
-						ctx.Repo.GitRepo.Close()
-					}
-				}()
 			}
+		}
 
-			next.ServeHTTP(w, req)
-		})
+		return
 	}
 }
 
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
-	var message = ctx.Tr("error.not_found")
+	message := ctx.Tr("error.not_found")
 	var errors []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -391,7 +388,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
 			if err != nil {
 				ctx.InternalServerError(err)
 				return

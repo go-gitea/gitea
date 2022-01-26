@@ -27,6 +27,7 @@ Gitea 的儲存庫事件支援 web hook。這可以有儲存庫管理員在設�
 - Microsoft Teams
 - Feishu
 - Wechatwork
+- Packagist
 
 ### 事件資訊
 

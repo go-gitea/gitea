@@ -27,7 +27,7 @@ COMMA := ,
 XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
-MIN_GOLANGCI_LINT_VERSION := 001043000
+MIN_GOLANGCI_LINT_VERSION := 001044000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -92,7 +92,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
-GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/))
+GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
@@ -116,7 +116,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
-GO_DIRS := cmd integrations models modules routers build services vendor tools
+GO_DIRS := cmd integrations models modules routers build services tools
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -126,7 +126,7 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 endif
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
-SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
+SWAGGER := $(GO) run github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
@@ -186,8 +186,6 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
-	@echo " - revive                           run revive linter"
-	@echo " - misspell                         check for misspellings"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
@@ -233,13 +231,15 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running go fmt..."
-	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
+	@hash xgogofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
+	gofumpt -w -l -extra -lang 1.16 .
 
 .PHONY: vet
 vet:
 	@echo "Running go vet..."
-	@GOOS= GOARCH= $(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
@@ -280,32 +280,9 @@ errcheck:
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
 
-.PHONY: revive
-revive:
-	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/mgechev/revive@v1.1.2; \
-	fi
-	@revive -config .revive.toml -exclude=./vendor/... ./...
-
-.PHONY: misspell-check
-misspell-check:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
-	fi
-	@echo "Running misspell-check..."
-	@$(GO) run build/code-batch-process.go misspell -error -i unknwon '{file-list}'
-
-.PHONY: misspell
-misspell:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
-	fi
-	@echo "Running go misspell..."
-	@$(GO) run build/code-batch-process.go misspell -w -i unknwon '{file-list}'
-
 .PHONY: fmt-check
 fmt-check:
-	# get all go files and run go fmt on them
+	# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
@@ -317,10 +294,10 @@ fmt-check:
 checks: checks-frontend checks-backend
 
 .PHONY: checks-frontend
-checks-frontend: svg-check
+checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: misspell-check test-vendor swagger-check swagger-validate
+checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -332,7 +309,7 @@ lint-frontend: node_modules
 	npx editorconfig-checker templates
 
 .PHONY: lint-backend
-lint-backend: golangci-lint revive vet
+lint-backend: golangci-lint vet
 
 .PHONY: watch
 watch:
@@ -356,7 +333,7 @@ test: test-frontend test-backend
 .PHONY: test-backend
 test-backend:
 	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
+	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
 test-frontend: node_modules
@@ -377,28 +354,29 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test -mod=vendor $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
+	GO111MODULE=on $(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
-	@$(GO) test $(GOTESTFLAGS) -mod=vendor -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
+	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
 vendor:
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff vendor/); \
+.PHONY: gomod-check
+gomod-check:
+	@$(GO) mod tidy
+	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
+		echo "Please run '$(GO) mod tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -526,22 +504,22 @@ integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 integrations.mysql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
 integrations.mysql8.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.mysql8.test
 
 integrations.pgsql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.pgsql.test
 
 integrations.mssql.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.mssql.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.mssql.test
 
 integrations.sqlite.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags '$(TEST_TAGS)'
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
 integrations.cover.test: git-check $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -mod=vendor -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
@@ -602,13 +580,13 @@ backend: go-check generate $(EXECUTABLE)
 .PHONY: generate
 generate: $(TAGS_PREREQ)
 	@echo "Running go generate..."
-	@CC= GOOS= GOARCH= $(GO) generate -mod=vendor -tags '$(TAGS)' $(GO_PACKAGES)
+	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-copy release-compress release-sources release-docs release-check
+release: frontend generate release-windows release-linux release-darwin release-copy release-compress vendor release-sources release-docs release-check
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
@@ -721,6 +699,17 @@ svg-check: svg
 	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi
+
+.PHONY: lockfile-check
+lockfile-check:
+	npm install --package-lock-only
+	@diff=$$(git diff package-lock.json); \
+	if [ -n "$$diff" ]; then \
+		echo "package-lock.json is inconsistent with package.json"; \
+		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi

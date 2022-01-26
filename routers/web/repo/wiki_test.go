@@ -20,8 +20,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const content = "Wiki contents for unit tests"
-const message = "Wiki commit message for unit tests"
+const (
+	content = "Wiki contents for unit tests"
+	message = "Wiki commit message for unit tests"
+)
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(repo.WikiPath())

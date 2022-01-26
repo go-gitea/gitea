@@ -21,9 +21,9 @@ import (
 )
 
 // Windows has a limitation for command line arguments, the size can not exceed 32KB.
-// So we have to feed the files to some tools (like gofmt/misspell`) batch by batch
+// So we have to feed the files to some tools (like gofmt/misspell) batch by batch
 
-// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports
+// We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports. `gitea-fmt` calls `gofmt` internally.
 
 var optionLogVerbose bool
 
@@ -136,7 +136,7 @@ func (fc *fileCollector) collectFiles() (res [][]string, err error) {
 }
 
 // substArgFiles expands the {file-list} to a real file list for commands
-func substArgFiles(args []string, files []string) []string {
+func substArgFiles(args, files []string) []string {
 	for i, s := range args {
 		if s == "{file-list}" {
 			newArgs := append(args[:i], files...)

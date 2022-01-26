@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/avatars"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -154,7 +154,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig() (*sspi.Source, error) {
-	sources, err := login.ActiveSources(login.SSPI)
+	sources, err := auth.ActiveSources(auth.SSPI)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +250,7 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
 func specialInit() {
-	if login.IsSSPIEnabled() {
+	if auth.IsSSPIEnabled() {
 		Register(&SSPI{})
 	}
 }

@@ -76,7 +76,7 @@ func Code(ctx *context.Context) {
 			return
 		}
 
-		var rightRepoMap = make(map[int64]*repo_model.Repository, len(repoMaps))
+		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
 			if models.CheckRepoUnitUser(repo, ctx.User, unit.TypeCode) {
@@ -100,7 +100,7 @@ func Code(ctx *context.Context) {
 			return
 		}
 
-		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
 			var find bool
 			for _, id := range loadRepoIDs {

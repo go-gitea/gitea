@@ -46,7 +46,7 @@
 			]).values()),
 			{{end}}
 			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-			{{/* this global i18n object should only contain gereral texts. for specalized texts, it should be provied inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
+			{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 			i18n: {
 				copy_success: '{{.i18n.Tr "copy_success"}}',
 				copy_error: '{{.i18n.Tr "copy_error"}}',
@@ -59,9 +59,6 @@
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireEasyMDE}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
-{{end}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>

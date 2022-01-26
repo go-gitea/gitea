@@ -36,6 +36,8 @@ _testmain.go
 coverage.all
 cpu.out
 
+/modules/migration/bindata.go
+/modules/migration/bindata.go.hash
 /modules/options/bindata.go
 /modules/options/bindata.go.hash
 /modules/public/bindata.go
@@ -85,6 +87,7 @@ cpu.out
 /public/css
 /public/fonts
 /public/img/webpack
+/vendor
 /web_src/fomantic/node_modules
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js

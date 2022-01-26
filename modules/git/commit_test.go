@@ -15,7 +15,7 @@ import (
 func TestCommitsCount(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	commitsCount, err := CommitsCount(bareRepo1Path, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
+	commitsCount, err := CommitsCount(DefaultContext, bareRepo1Path, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), commitsCount)
 }
@@ -23,7 +23,7 @@ func TestCommitsCount(t *testing.T) {
 func TestGetFullCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(bareRepo1Path, "8006ff9a")
+	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "8006ff9a")
 	assert.NoError(t, err)
 	assert.Equal(t, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", id)
 }
@@ -31,7 +31,7 @@ func TestGetFullCommitID(t *testing.T) {
 func TestGetFullCommitIDError(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	id, err := GetFullCommitID(bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(DefaultContext, bareRepo1Path, "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
@@ -234,5 +234,4 @@ func TestParseCommitFileStatus(t *testing.T) {
 		assert.Equal(t, kase.removed, fileStatus.Removed)
 		assert.Equal(t, kase.modified, fileStatus.Modified)
 	}
-
 }

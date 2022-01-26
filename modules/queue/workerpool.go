@@ -22,6 +22,8 @@ type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
+	paused             chan struct{}
+	resumed            chan struct{}
 	cond               *sync.Cond
 	qid                int64
 	maxNumberOfWorkers int
@@ -34,6 +36,11 @@ type WorkerPool struct {
 	boostWorkers       int
 	numInQueue         int64
 }
+
+var (
+	_ Flushable   = &WorkerPool{}
+	_ ManagedPool = &WorkerPool{}
+)
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
 type WorkerPoolConfiguration struct {
@@ -55,6 +62,8 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
+		resumed:            closedChan,
+		paused:             make(chan struct{}),
 		handle:             handle,
 		blockTimeout:       config.BlockTimeout,
 		boostTimeout:       config.BoostTimeout,
@@ -69,6 +78,14 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 func (p *WorkerPool) Push(data Data) {
 	atomic.AddInt64(&p.numInQueue, 1)
 	p.lock.Lock()
+	select {
+	case <-p.paused:
+		p.lock.Unlock()
+		p.dataChan <- data
+		return
+	default:
+	}
+
 	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
 		if p.numberOfWorkers == 0 {
 			p.zeroBoost()
@@ -80,6 +97,17 @@ func (p *WorkerPool) Push(data Data) {
 		p.lock.Unlock()
 		p.dataChan <- data
 	}
+}
+
+// HasNoWorkerScaling will return true if the queue has no workers, and has no worker boosting
+func (p *WorkerPool) HasNoWorkerScaling() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.hasNoWorkerScaling()
+}
+
+func (p *WorkerPool) hasNoWorkerScaling() bool {
+	return p.numberOfWorkers == 0 && (p.boostTimeout == 0 || p.boostWorkers == 0 || p.maxNumberOfWorkers == 0)
 }
 
 func (p *WorkerPool) zeroBoost() {
@@ -272,6 +300,17 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				p.cond.Broadcast()
 				cancel()
 			}
+			if p.hasNoWorkerScaling() {
+				select {
+				case <-p.baseCtx.Done():
+					// Don't warn if the baseCtx is shutdown
+				default:
+					log.Warn(
+						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
+							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				}
+				p.pause()
+			}
 			p.lock.Unlock()
 		}()
 	}
@@ -290,13 +329,65 @@ func (p *WorkerPool) Wait() {
 	p.cond.Wait()
 }
 
+// IsPaused returns if the pool is paused
+func (p *WorkerPool) IsPaused() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	select {
+	case <-p.paused:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsPausedIsResumed returns if the pool is paused and a channel that is closed when it is resumed
+func (p *WorkerPool) IsPausedIsResumed() (<-chan struct{}, <-chan struct{}) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.paused, p.resumed
+}
+
+// Pause pauses the WorkerPool
+func (p *WorkerPool) Pause() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.pause()
+}
+
+func (p *WorkerPool) pause() {
+	select {
+	case <-p.paused:
+	default:
+		p.resumed = make(chan struct{})
+		close(p.paused)
+	}
+}
+
+// Resume resumes the WorkerPool
+func (p *WorkerPool) Resume() {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	select {
+	case <-p.resumed:
+	default:
+		p.paused = make(chan struct{})
+		close(p.resumed)
+	}
+}
+
 // CleanUp will drain the remaining contents of the channel
 // This should be called after AddWorkers context is closed
 func (p *WorkerPool) CleanUp(ctx context.Context) {
 	log.Trace("WorkerPool: %d CleanUp", p.qid)
 	close(p.dataChan)
 	for data := range p.dataChan {
-		p.handle(data)
+		if unhandled := p.handle(data); unhandled != nil {
+			if unhandled != nil {
+				log.Error("Unhandled Data in clean-up of queue %d", p.qid)
+			}
+		}
+
 		atomic.AddInt64(&p.numInQueue, -1)
 		select {
 		case <-ctx.Done():
@@ -327,7 +418,9 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 	for {
 		select {
 		case data := <-p.dataChan:
-			p.handle(data)
+			if unhandled := p.handle(data); unhandled != nil {
+				log.Error("Unhandled Data whilst flushing queue %d", p.qid)
+			}
 			atomic.AddInt64(&p.numInQueue, -1)
 		case <-p.baseCtx.Done():
 			return p.baseCtx.Err()
@@ -341,13 +434,45 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 
 func (p *WorkerPool) doWork(ctx context.Context) {
 	delay := time.Millisecond * 300
-	var data = make([]Data, 0, p.batchLength)
+
+	// Create a common timer - we will use this elsewhere
+	timer := time.NewTimer(0)
+	util.StopTimer(timer)
+
+	paused, _ := p.IsPausedIsResumed()
+	data := make([]Data, 0, p.batchLength)
 	for {
 		select {
+		case <-paused:
+			log.Trace("Worker for Queue %d Pausing", p.qid)
+			if len(data) > 0 {
+				log.Trace("Handling: %d data, %v", len(data), data)
+				if unhandled := p.handle(data...); unhandled != nil {
+					log.Error("Unhandled Data in queue %d", p.qid)
+				}
+				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
+			}
+			_, resumed := p.IsPausedIsResumed()
+			select {
+			case <-resumed:
+				paused, _ = p.IsPausedIsResumed()
+				log.Trace("Worker for Queue %d Resuming", p.qid)
+				util.StopTimer(timer)
+			case <-ctx.Done():
+				log.Trace("Worker shutting down")
+				return
+			}
+		default:
+		}
+		select {
+		case <-paused:
+			// go back around
 		case <-ctx.Done():
 			if len(data) > 0 {
 				log.Trace("Handling: %d data, %v", len(data), data)
-				p.handle(data...)
+				if unhandled := p.handle(data...); unhandled != nil {
+					log.Error("Unhandled Data in queue %d", p.qid)
+				}
 				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 			}
 			log.Trace("Worker shutting down")
@@ -357,59 +482,36 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				// the dataChan has been closed - we should finish up:
 				if len(data) > 0 {
 					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
+					if unhandled := p.handle(data...); unhandled != nil {
+						log.Error("Unhandled Data in queue %d", p.qid)
+					}
 					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				}
 				log.Trace("Worker shutting down")
 				return
 			}
 			data = append(data, datum)
+			util.StopTimer(timer)
+
 			if len(data) >= p.batchLength {
 				log.Trace("Handling: %d data, %v", len(data), data)
-				p.handle(data...)
+				if unhandled := p.handle(data...); unhandled != nil {
+					log.Error("Unhandled Data in queue %d", p.qid)
+				}
 				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 				data = make([]Data, 0, p.batchLength)
+			} else {
+				timer.Reset(delay)
 			}
-		default:
-			timer := time.NewTimer(delay)
-			select {
-			case <-ctx.Done():
-				util.StopTimer(timer)
-				if len(data) > 0 {
-					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
-					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
+		case <-timer.C:
+			delay = time.Millisecond * 100
+			if len(data) > 0 {
+				log.Trace("Handling: %d data, %v", len(data), data)
+				if unhandled := p.handle(data...); unhandled != nil {
+					log.Error("Unhandled Data in queue %d", p.qid)
 				}
-				log.Trace("Worker shutting down")
-				return
-			case datum, ok := <-p.dataChan:
-				util.StopTimer(timer)
-				if !ok {
-					// the dataChan has been closed - we should finish up:
-					if len(data) > 0 {
-						log.Trace("Handling: %d data, %v", len(data), data)
-						p.handle(data...)
-						atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
-					}
-					log.Trace("Worker shutting down")
-					return
-				}
-				data = append(data, datum)
-				if len(data) >= p.batchLength {
-					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
-					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
-					data = make([]Data, 0, p.batchLength)
-				}
-			case <-timer.C:
-				delay = time.Millisecond * 100
-				if len(data) > 0 {
-					log.Trace("Handling: %d data, %v", len(data), data)
-					p.handle(data...)
-					atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
-					data = make([]Data, 0, p.batchLength)
-				}
-
+				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
+				data = make([]Data, 0, p.batchLength)
 			}
 		}
 	}

@@ -27,6 +27,8 @@
 					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/matrix.svg">
 				{{else if eq .HookType "wechatwork"}}
 					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/wechatwork.png">
+				{{else if eq .HookType "packagist"}}
+					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/packagist.png">
 				{{end}}
 			</div>
 		</h4>
@@ -41,6 +43,7 @@
 			{{template "repo/settings/webhook/feishu" .}}
 			{{template "repo/settings/webhook/matrix" .}}
 			{{template "repo/settings/webhook/wechatwork" .}}
+			{{template "repo/settings/webhook/packagist" .}}
 		</div>
 
 		{{template "repo/settings/webhook/history" .}}
