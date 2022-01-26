@@ -263,14 +263,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Equal(t, test1.TestInt, result1.TestInt)
 
 	pausable.Pause()
-	paused, resumed := pausable.IsPausedIsResumed()
+	paused, _ := pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
@@ -287,14 +284,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Nil(t, result2)
 
 	pausable.Resume()
-	paused, resumed = pausable.IsPausedIsResumed()
+	_, resumed := pausable.IsPausedIsResumed()
 
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should be resumed")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
 		return
 	}
@@ -308,23 +302,26 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Equal(t, test2.TestString, result2.TestString)
 	assert.Equal(t, test2.TestInt, result2.TestInt)
 
+	// Set pushBack to so that the next handle will result in a Pause
 	lock.Lock()
 	pushBack = true
 	lock.Unlock()
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	// Ensure that we're still resumed
+	_, resumed = pausable.IsPausedIsResumed()
 
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should not be paused")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not resumed")
 		return
 	}
 
+	// push test1
 	queue.Push(&test1)
+
+	// Now as this is handled it should pause
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
@@ -336,27 +333,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		return
 	}
 
-	paused, resumed = pausable.IsPausedIsResumed()
-
-	select {
-	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
-		assert.Fail(t, "Queue is not paused")
-		return
-	}
-
 	pausable.Resume()
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	_, resumed = pausable.IsPausedIsResumed()
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should not be paused")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
 		return
 	}
@@ -453,14 +435,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	case <-paused:
 	}
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
@@ -473,13 +452,10 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	}
 
 	pausable.Resume()
-	paused, resumed = pausable.IsPausedIsResumed()
+	_, resumed = pausable.IsPausedIsResumed()
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should not be paused")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
 		return
 	}
