@@ -65,6 +65,12 @@ func SetDiffViewStyle(ctx *context.Context) {
 func SetWhitespaceBehavior(ctx *context.Context) {
 	const defaultWhitespaceBehavior = "show-all"
 	whitespaceBehavior := ctx.FormString("whitespace")
+	switch whitespaceBehavior {
+	case "", "ignore-all", "ignore-eol", "ignore-change":
+		break
+	default:
+		whitespaceBehavior = defaultWhitespaceBehavior
+	}
 	if ctx.IsSigned {
 		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
 		if err == nil {
@@ -77,10 +83,9 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 	}
 
 	// these behaviors are for gitdiff.GetWhitespaceFlag
-	switch whitespaceBehavior {
-	case "ignore-all", "ignore-eol", "ignore-change":
-		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
-	default:
+	if whitespaceBehavior == "" {
 		ctx.Data["WhitespaceBehavior"] = defaultWhitespaceBehavior
+	} else {
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
 	}
 }
