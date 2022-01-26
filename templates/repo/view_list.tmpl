@@ -30,7 +30,7 @@
 				{{end}}
 				</span>
 			</th>
-			<th class="text grey right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
+			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When $.Lang}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
