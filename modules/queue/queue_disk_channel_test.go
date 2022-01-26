@@ -287,11 +287,16 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Nil(t, result2)
 
 	pausable.Resume()
+	paused, resumed = pausable.IsPausedIsResumed()
 
 	select {
+	case <-paused:
+		assert.Fail(t, "Queue should be resumed")
+		return
 	case <-resumed:
 	default:
 		assert.Fail(t, "Queue should be resumed")
+		return
 	}
 
 	select {
@@ -345,16 +350,22 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 
 	pausable.Resume()
 
+	paused, resumed = pausable.IsPausedIsResumed()
 	select {
+	case <-paused:
+		assert.Fail(t, "Queue should not be paused")
+		return
 	case <-resumed:
 	default:
 		assert.Fail(t, "Queue should be resumed")
+		return
 	}
 
 	select {
 	case result1 = <-handleChan:
 	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "handler chan should contain test1")
+		return
 	}
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
@@ -369,7 +380,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	}
 
 	// Wait til it is closed
-	<-queue.(*PersistableChannelQueue).closed
+	select {
+	case <-queue.(*PersistableChannelQueue).closed:
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "queue should close")
+		return
+	}
 
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
@@ -378,6 +394,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
@@ -393,6 +410,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
@@ -431,6 +449,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	case <-paused:
 	}
 
@@ -449,13 +468,36 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
 	pausable.Resume()
+	paused, resumed = pausable.IsPausedIsResumed()
+	select {
+	case <-paused:
+		assert.Fail(t, "Queue should not be paused")
+		return
+	case <-resumed:
+	default:
+		assert.Fail(t, "Queue should be resumed")
+		return
+	}
 
-	result3 := <-handleChan
-	result4 := <-handleChan
+	var result3, result4 *testData
+
+	select {
+	case result3 = <-handleChan:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Handler processing should have resumed")
+		return
+	}
+	select {
+	case result4 = <-handleChan:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Handler processing should have resumed")
+		return
+	}
 	if result4.TestString == test1.TestString {
 		result3, result4 = result4, result3
 	}
