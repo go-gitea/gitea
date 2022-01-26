@@ -29,7 +29,7 @@ func CheckLFSVersion() {
 			logger.Error("LFS server support needs at least Git v2.1.2")
 		} else {
 			once.Do(func() {
-				GlobalCommandArgs = append(GlobalCommandArgs, "-c", "filter.lfs.required=",
+				globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=",
 					"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 			})
 		}
