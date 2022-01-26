@@ -337,6 +337,20 @@
 		{{else if eq .Type 10}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-pencil"}}</span>
+				{{if .OriginalAuthor }}
+					<span class="text black mr-2">
+						{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+						{{ .OriginalAuthor }}
+					</span>
+					<span class="text grey">
+						{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
+					</span>
+					{{if $.Repository.OriginalURL}}
+						<span class="text migrate">
+							({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }})
+						</span>
+					{{end}}
+				{{else}}
 				<a href="{{.Poster.HomeLink}}">
 					{{avatar .Poster}}
 				</a>
@@ -344,6 +358,7 @@
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 				</span>
+				{{end}}
 			</div>
 		{{else if eq .Type 11}}
 			<div class="timeline-item event" id="{{.HashTag}}">

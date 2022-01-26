@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -71,6 +72,19 @@ type githubUser struct {
 		Verified bool
 	}
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func getURLLastField(s string) string {
+	u, err := url.Parse(s)
+	if err != nil {
+		log.Error("parse %s failed: %v", s, err)
+		return ""
+	}
+	fields := strings.Split(u.Path, "/")
+	if len(fields) == 0 {
+		return ""
+	}
+	return fields[len(fields)-1]
 }
 
 func parseGitHubResID(s string) int64 {
@@ -199,6 +213,8 @@ type GithubExportedDataRestorer struct {
 	githubDataFilePath string
 	repoOwner          string
 	repoName           string
+	baseURL            string
+	regMatchIssue      *regexp.Regexp
 	labels             []*base.Label
 	users              map[string]githubUser
 	issueAttachments   map[string][]githubAttachment
@@ -293,9 +309,15 @@ func (r *GithubExportedDataRestorer) CleanUp() {
 }
 
 // replaceComment replace #id to new form
-// i.e. https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 ->
-func (r *GithubExportedDataRestorer) replaceComment(content string) string {
-	return ""
+// i.e.
+// 1) https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 ->
+// 2) https://github.com/go-gitea/gitea/issue/1 -> #1
+// 3) https://github.com/go-gitea/gitea/pull/2 -> #2
+func (r *GithubExportedDataRestorer) replaceGithubLinks(content string) string {
+	c := strings.ReplaceAll(content, r.baseURL+"/issue/", "#")
+	c = strings.ReplaceAll(c, r.baseURL+"/pull/", "#")
+	c = strings.ReplaceAll(c, r.baseURL+"/commit/", "")
+	return c
 }
 
 // SupportGetRepoComments return true if it can get all comments once
@@ -380,6 +402,11 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 			Color:       label.Color,
 			Description: label.Description,
 		})
+	}
+	r.baseURL = opts.URL
+	r.regMatchIssue, err = regexp.Compile(r.baseURL + "/[issue|pull]/([0-9]+).*")
+	if err != nil {
+		return nil, err
 	}
 
 	return &base.Repository{
@@ -548,6 +575,14 @@ type githubRelease struct {
 	PublishedAt     time.Time          `json:"published_at"`
 }
 
+func (r *GithubExportedDataRestorer) getUserInfo(u string) (int64, string, string) {
+	user, ok := r.users[u]
+	if !ok {
+		return 0, getURLLastField(u), ""
+	}
+	return user.ID(), user.Login, user.Email()
+}
+
 // GetReleases returns releases
 func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
 	releases := make([]*base.Release, 0, 30)
@@ -556,7 +591,7 @@ func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
 	}, func(content interface{}) error {
 		rss := content.(*[]githubRelease)
 		for _, rel := range *rss {
-			user := r.users[rel.User]
+			id, login, email := r.getUserInfo(rel.User)
 			releases = append(releases, &base.Release{
 				TagName:         rel.TagName,
 				TargetCommitish: rel.TargetCommitish,
@@ -564,9 +599,9 @@ func (r *GithubExportedDataRestorer) GetReleases() ([]*base.Release, error) {
 				Body:            rel.Body,
 				Draft:           rel.State == "draft",
 				Prerelease:      rel.Prerelease,
-				PublisherID:     user.ID(),
-				PublisherName:   user.Login,
-				PublisherEmail:  user.Email(),
+				PublisherID:     id,
+				PublisherName:   login,
+				PublisherEmail:  email,
 				Assets:          r.convertAttachments(rel.ReleaseAssets),
 				Created:         rel.CreatedAt,
 				Published:       rel.PublishedAt,
@@ -653,13 +688,13 @@ func (r *GithubExportedDataRestorer) getReactions(ls []githubReaction) []*base.R
 			content = "hooray"
 		}
 
-		user, ok := r.users[l.User]
-		if !ok {
-			log.Warn("Cannot get user %s information, ignored", l.User)
+		id, login, _ := r.getUserInfo(l.User)
+		if id == 0 {
+			log.Warn("Cannot get user %s information, userid will be set 0", l.User)
 		} else {
 			res = append(res, &base.Reaction{
-				UserID:   user.ID(),
-				UserName: user.Login,
+				UserID:   id,
+				UserName: login,
 				Content:  content,
 			})
 		}
@@ -679,7 +714,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 	}, func(content interface{}) error {
 		rss := content.(*[]githubIssue)
 		for _, issue := range *rss {
-			user := r.users[issue.User]
+			id, login, email := r.getUserInfo(issue.User)
 			var milestone string
 			if issue.Milestone != "" {
 				milestone = r.milestones[issue.Milestone].Title
@@ -696,9 +731,9 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 				Number:      issue.Index(),
 				Title:       issue.Title,
 				Content:     issue.Body,
-				PosterID:    user.ID(),
-				PosterName:  user.Login,
-				PosterEmail: user.Email(),
+				PosterID:    id,
+				PosterName:  login,
+				PosterEmail: email,
 				Labels:      r.getLabels(issue.Labels),
 				Reactions:   r.getReactions(issue.Reactions),
 				Assets:      r.convertAttachments(r.issueAttachments[issue.URL]),
@@ -801,6 +836,8 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 		return map[string]interface{}{}
 	case "head_ref_force_pushed":
 		return map[string]interface{}{}
+	case "moved_columns_in_project":
+		return map[string]interface{}{}
 	case "referenced":
 		tp := "commit_ref"
 		if g.Issue != "" {
@@ -819,6 +856,8 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 	case "subscribed":
 		return map[string]interface{}{}
 	case "head_ref_deleted":
+		return map[string]interface{}{}
+	case "head_ref_restored":
 		return map[string]interface{}{}
 	case "milestoned":
 		return map[string]interface{}{
@@ -843,6 +882,8 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 			"OldTitle": g.TitleWas,
 			"NewTitle": g.TitleIs,
 		}
+	case "ready_for_review":
+		return map[string]interface{}{}
 	case "reopened":
 		return map[string]interface{}{}
 	case "unlabeled":
@@ -858,6 +899,8 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 			"Actor":   g.Actor,
 			"Subject": g.Subject,
 		}
+	case "added_to_project":
+		return map[string]interface{}{}
 	default:
 		return map[string]interface{}{}
 	}
@@ -872,6 +915,12 @@ func (g *githubIssueEvent) CommentStr() string {
 		return "pull_push"
 	case "referenced":
 		return "commit_ref"
+	case "moved_columns_in_project":
+		return "unknown"
+	case "convert_to_draft":
+		return "unknown"
+	case "ready_for_review":
+		return "unknown"
 	case "merged":
 		return "merge_pull"
 	case "mentioned":
@@ -880,6 +929,10 @@ func (g *githubIssueEvent) CommentStr() string {
 		return "unknown" // ignore
 	case "head_ref_deleted":
 		return "delete_branch"
+	case "head_ref_restored":
+		return "unknown"
+	case "added_to_project":
+		return "unknown"
 	case "milestoned":
 		return "milestone"
 	case "demilestoned":
@@ -914,7 +967,7 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 	}, func(content interface{}) error {
 		rss := content.(*[]githubIssueEvent)
 		for _, c := range *rss {
-			u := r.users[c.Actor]
+			id, login, email := r.getUserInfo(c.Actor)
 			v := c.CommentContent()
 			bs, err := json.Marshal(v)
 			if err != nil {
@@ -924,9 +977,9 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 			comments = append(comments, &base.Comment{
 				Type:        c.CommentStr(),
 				IssueIndex:  c.GetIssueIndex(),
-				PosterID:    u.ID(),
-				PosterName:  u.Login,
-				PosterEmail: u.Email(),
+				PosterID:    id,
+				PosterName:  login,
+				PosterEmail: email,
 				Created:     c.CreatedAt,
 				Updated:     c.CreatedAt, // FIXME:
 				Content:     string(bs),
@@ -947,16 +1000,15 @@ func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([
 	}, func(content interface{}) error {
 		rss := content.(*[]githubComment)
 		for _, c := range *rss {
-			u := r.users[c.User]
-
+			id, login, email := r.getUserInfo(c.User)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  c.GetIssueIndex(),
-				PosterID:    u.ID(),
-				PosterName:  u.Login,
-				PosterEmail: u.Email(),
+				PosterID:    id,
+				PosterName:  login,
+				PosterEmail: email,
 				Created:     c.CreatedAt,
 				Updated:     c.CreatedAt, // FIXME:
-				Content:     c.Body,
+				Content:     r.replaceGithubLinks(c.Body),
 				Reactions:   r.getReactions(c.Reactions),
 			})
 		}
@@ -1060,7 +1112,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 	}, func(content interface{}) error {
 		prs := content.(*[]githubPullRequest)
 		for _, pr := range *prs {
-			user := r.users[pr.User]
+			id, login, email := r.getUserInfo(pr.User)
 			state := "open"
 			if pr.MergedAt != nil || pr.ClosedAt != nil {
 				state = "closed"
@@ -1091,9 +1143,9 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				Content:     pr.Body,
 				Milestone:   milestone,
 				State:       state,
-				PosterID:    user.ID(),
-				PosterName:  user.Login,
-				PosterEmail: user.Email(),
+				PosterID:    id,
+				PosterName:  login,
+				PosterEmail: email,
 				Context:     base.BasicIssueContext(pr.Index()),
 				Reactions:   r.getReactions(pr.Reactions),
 				Created:     pr.CreatedAt,
@@ -1253,7 +1305,7 @@ type pullrequestReviewComment struct {
 func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReviewThread, comments []pullrequestReviewComment) []*base.ReviewComment {
 	res := make([]*base.ReviewComment, 0, 10)
 	for _, c := range comments {
-		user := r.users[c.User]
+		id, login, email := r.getUserInfo(c.User)
 		position := int(thread.Position)
 		if thread.Side == "right" {
 			position = int(thread.OriginalPosition)
@@ -1265,9 +1317,9 @@ func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReview
 			DiffHunk:    c.DiffHunk,
 			Position:    position,
 			CommitID:    c.OriginalCommitID,
-			PosterID:    user.ID(),
-			PosterName:  user.Login,
-			PosterEmail: user.Email(),
+			PosterID:    id,
+			PosterName:  login,
+			PosterEmail: email,
 			Reactions:   r.getReactions(c.Reactions),
 			CreatedAt:   c.CreatedAt,
 		})
@@ -1296,12 +1348,12 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 	}, func(content interface{}) error {
 		prReviews := content.(*[]pullrequestReview)
 		for _, review := range *prReviews {
-			user := r.users[review.User]
+			id, login, email := r.getUserInfo(review.User)
 			baseReview := &base.Review{
 				IssueIndex:    review.Index(),
-				ReviewerID:    user.ID(),
-				ReviewerName:  user.Login,
-				ReviewerEmail: user.Email(),
+				ReviewerID:    id,
+				ReviewerName:  login,
+				ReviewerEmail: email,
 				CommitID:      review.HeadSha,
 				Content:       review.Body,
 				CreatedAt:     review.CreatedAt,
@@ -1325,12 +1377,12 @@ func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*
 			}
 			rr, ok := reviews[review.PullRequestReview]
 			if !ok {
-				user := r.users[reviewComments[0].User]
+				id, login, email := r.getUserInfo(reviewComments[0].User)
 				rr = &base.Review{
 					IssueIndex:    review.Index(),
-					ReviewerID:    user.ID(),
-					ReviewerName:  user.Login,
-					ReviewerEmail: user.Email(),
+					ReviewerID:    id,
+					ReviewerName:  login,
+					ReviewerEmail: email,
 					CommitID:      review.CommitID,
 					CreatedAt:     review.CreatedAt,
 					State:         base.ReviewStateCommented,
