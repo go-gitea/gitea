@@ -268,7 +268,7 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
-	milestone, err := models.GetMilestoneByID(milestoneID)
+	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("GetMilestoneByID", err)

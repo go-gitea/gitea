@@ -51,17 +51,15 @@ const (
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
-var (
-	// IssueTemplateCandidates issue templates
-	IssueTemplateCandidates = []string{
-		"ISSUE_TEMPLATE.md",
-		"issue_template.md",
-		".gitea/ISSUE_TEMPLATE.md",
-		".gitea/issue_template.md",
-		".github/ISSUE_TEMPLATE.md",
-		".github/issue_template.md",
-	}
-)
+// IssueTemplateCandidates issue templates
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"issue_template.md",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/issue_template.md",
+	".github/ISSUE_TEMPLATE.md",
+	".github/issue_template.md",
+}
 
 // MustAllowUserComment checks to make sure if an issue is locked.
 // If locked and user has permissions to write to the repository,
@@ -239,7 +237,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var issueList = models.IssueList(issues)
+	issueList := models.IssueList(issues)
 	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
@@ -422,7 +420,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 }
 
 func retrieveProjects(ctx *context.Context, repo *models.Repository) {
-
 	var err error
 
 	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
@@ -781,7 +778,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.QueryInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -865,7 +862,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
+		ctx.Data["Milestone"], err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
@@ -2446,7 +2443,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
@@ -2460,7 +2457,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
 	}
-	var attachments = make([]*api.Attachment, 0)
+	attachments := make([]*api.Attachment, 0)
 	if comment.Type == models.CommentTypeComment {
 		if err := comment.LoadAttachments(); err != nil {
 			ctx.ServerError("LoadAttachments", err)
