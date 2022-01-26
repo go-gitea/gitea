@@ -127,22 +127,6 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 	return &mile, nil
 }
 
-// GetMilestoneByID returns the milestone via id .
-func GetMilestoneByID(id int64) (*Milestone, error) {
-	return getMilestoneByID(x, id)
-}
-
-func getMilestoneByID(e Engine, id int64) (*Milestone, error) {
-	var m Milestone
-	has, err := e.ID(id).Get(&m)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrMilestoneNotExist{ID: id, RepoID: 0}
-	}
-	return &m, nil
-}
-
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 	sess := x.NewSession()
