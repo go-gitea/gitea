@@ -136,6 +136,8 @@ type SearchRepoOptions struct {
 	Archived util.OptionalBool
 	// only search topic name
 	TopicOnly bool
+	// only search repositories with specified primary language
+	Language string
 	// include description in keyword search
 	IncludeDescription bool
 	// None -> include has milestones AND has no milestone
@@ -437,6 +439,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			keywordCond = keywordCond.Or(likes)
 		}
 		cond = cond.And(keywordCond)
+	}
+
+	if opts.Language != "" {
+		cond = cond.And(builder.In("id", builder.
+			Select("repo_id").
+			From("language_stat").
+			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
 	if opts.Fork != util.OptionalBoolNone {
