@@ -139,5 +139,10 @@
 			</div>
 		</li>
 	{{end}}
+	{{if .IssueIndexerUnavailable}}
+		<div class="ui error message">
+			<p>{{$.i18n.Tr "repo.issues.keyword_search_unavailable"}}</p>
+		</div>
+	{{end}}
 </div>
 {{template "base/paginate" .}}
