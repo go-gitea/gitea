@@ -81,8 +81,12 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
 	if err := NewCommandContext(repo.Ctx, "log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+		defaultBranch, err := repo.GetDefaultBranch()
+		if err != nil {
+			return false, err
+		}
 		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
-			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
+			strings.Contains(errbuf.String(), fmt.Sprintf("fatal: your current branch '%s' does not have any commits yet", defaultBranch)) {
 			return true, nil
 		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
