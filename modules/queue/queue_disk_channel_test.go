@@ -207,7 +207,6 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 				log.Info("pausing")
 				pausable.Pause()
 			}
-			pushBack = false
 			lock.Unlock()
 			return data
 		}
@@ -333,6 +332,10 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		return
 	}
 
+	lock.Lock()
+	pushBack = false
+	lock.Unlock()
+
 	pausable.Resume()
 
 	_, resumed = pausable.IsPausedIsResumed()
@@ -450,6 +453,10 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		return
 	default:
 	}
+
+	lock.Lock()
+	pushBack = false
+	lock.Unlock()
 
 	pausable.Resume()
 	_, resumed = pausable.IsPausedIsResumed()
