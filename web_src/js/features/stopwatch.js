@@ -1,6 +1,7 @@
+import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
+const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 let updateTimeInterval = null; // holds setInterval id when active
 
 export function initStopwatch() {
