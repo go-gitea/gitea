@@ -81,7 +81,7 @@ func TestDumpRestore(t *testing.T) {
 		//
 
 		newreponame := "restoredrepo"
-		err = migrations.RestoreRepository(ctx, d, repo.OwnerName, newreponame, []string{"labels", "milestones", "issues", "comments"})
+		err = migrations.RestoreRepository(ctx, d, repo.OwnerName, newreponame, []string{"labels", "milestones", "issues", "comments"}, false)
 		assert.NoError(t, err)
 
 		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame}).(*repo_model.Repository)
