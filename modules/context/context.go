@@ -232,7 +232,7 @@ func (ctx *Context) NotFound(logMsg string, logErr error) {
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -248,7 +248,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		ctx.PlainText(http.StatusNotFound, "Not found.\n")
+		ctx.PlainText(http.StatusNotFound, "Not found.\n", 2)
 		return
 	}
 
@@ -286,21 +286,29 @@ func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bo
 }
 
 // PlainTextBytes renders bytes as plain text
-func (ctx *Context) PlainTextBytes(status int, bs []byte) {
-	if (status/100 == 4) || (status/100 == 5) {
-		log.Error("PlainTextBytes: %s", string(bs))
+func (ctx *Context) PlainTextBytes(status int, bs []byte, optionalSkip ...int) {
+	skip := 1
+	if len(optionalSkip) == 1 {
+		skip = optionalSkip[0] + 1
+	}
+	if status/100 == 4 || status/100 == 5 {
+		log.Log(skip, log.TRACE, "PlainTextBytes: %s", string(bs))
 	}
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		log.Error("Write bytes failed: %v", err)
+		log.ErrorWithSkip(skip, "Write bytes failed: %v", err)
 	}
 }
 
 // PlainText renders content as plain text
-func (ctx *Context) PlainText(status int, text string) {
-	ctx.PlainTextBytes(status, []byte(text))
+func (ctx *Context) PlainText(status int, text string, optionalSkip ...int) {
+	skip := 1
+	if len(optionalSkip) == 1 {
+		skip = optionalSkip[0] + 1
+	}
+	ctx.PlainTextBytes(status, []byte(text), skip)
 }
 
 // RespHeader returns the response header
