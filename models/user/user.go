@@ -585,10 +585,7 @@ var (
 		"explore",
 		"favicon.ico",
 		"ghost",
-		"help",
-		"install",
 		"issues",
-		"less",
 		"login",
 		"manifest.json",
 		"metrics",
@@ -596,7 +593,6 @@ var (
 		"new",
 		"notifications",
 		"org",
-		"plugins",
 		"pulls",
 		"raw",
 		"repo",
@@ -605,9 +601,7 @@ var (
 		"search",
 		"serviceworker.js",
 		"ssh_info",
-		"stars",
 		"swagger.v1.json",
-		"template",
 		"user",
 	}
 
