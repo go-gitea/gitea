@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -397,10 +396,12 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChalleng
 }
 
 func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	var codeSecret string
-	if codeSecret, err = secret.New(); err != nil {
+	rBytes, err := util.CryptoRandomBytes(44)
+	if err != nil {
 		return &OAuth2AuthorizationCode{}, err
 	}
+	codeSecret := hex.EncodeToString(rBytes)
+
 	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
 		GrantID:             grant.ID,
