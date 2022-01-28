@@ -82,9 +82,10 @@ func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
 	if err := NewCommandContext(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
 		RunWithContext(&RunContext{
-			Dir:    repo.Path,
-			Stdout: &output,
-			Stderr: &errbuf,
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  &output,
+			Stderr:  &errbuf,
 		}); err != nil {
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
