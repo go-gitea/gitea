@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -44,80 +44,10 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
-	if seeker, ok := reader.(io.Seeker); ok {
-		if Range := ctx.Req.Header.Get("Range"); len(Range) > 0 {
-			var ranges [][3]int64
-			Range = strings.ReplaceAll(strings.TrimLeft(Range, "bytes="), " ", "")
-			for _, str := range strings.Split(Range, ",") {
-				var rangeStart int64
-				var rangeEnd int64
-				var length int64
-				var err1, err2 error
-				slc := strings.Split(str, "-")
-				if len(slc) != 2 {
-					err1 = http.ErrNotSupported
-				} else if len(slc[0]) == 0 {
-					length, err1 = strconv.ParseInt(slc[1], 10, 64)
-					rangeStart = size - length
-					rangeEnd = size - 1
-				} else if len(slc[1]) == 0 {
-					rangeStart, err1 = strconv.ParseInt(slc[0], 10, 64)
-					rangeEnd = size - 1
-					length = rangeEnd - rangeStart + 1
-				} else {
-					rangeStart, err1 = strconv.ParseInt(slc[0], 10, 64)
-					rangeEnd, err2 = strconv.ParseInt(slc[1], 10, 64)
-					length = rangeEnd - rangeStart + 1
-				}
-
-				if nil != err1 || nil != err2 {
-					ctx.Resp.WriteHeader(http.StatusBadRequest)
-					_, err := ctx.Resp.Write([]byte(fmt.Sprintln("invalid range:", Range)))
-					return err
-				}
-
-				if rangeStart < 0 || rangeEnd >= size || length <= 0 {
-					ctx.Status(http.StatusRequestedRangeNotSatisfiable)
-					return nil
-				}
-
-				ranges = append(ranges, [3]int64{rangeStart, rangeEnd, length})
-			}
-
-			if len(ranges) == 1 {				
-				fileExtension := strings.ToLower(filepath.Ext(name))				
-				if mappedMimeType, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
-					ctx.Resp.Header().Set("Content-Type", mappedMimeType)
-				}
-				ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(ranges[0][2], 10))
-				// ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Range")
-				ctx.Resp.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", ranges[0][0], ranges[0][1], size))
-
-				ctx.Resp.WriteHeader(http.StatusPartialContent)
-
-				if "HEAD" == ctx.Req.Method {
-					return nil
-				}
-
-				if ranges[0][0] > 0 {
-					if _, err := seeker.Seek(ranges[0][0], io.SeekStart); nil != err {
-						return err
-					}
-				}
-
-				_, err := io.CopyN(ctx.Resp, reader, ranges[0][2])
-				if nil == err || strings.Contains(err.Error(), "write: broken pipe") {
-					return nil
-				}
-				return err
-			} else {
-				// todo Multipart ranges support
-			}
-		} else {
-			ctx.Resp.Header().Set("Accept-Ranges", "bytes")
-		}
+	if seeker, ok := reader.(io.ReadSeeker); ok {
+		http.ServeContent(ctx.Resp, ctx.Req, name, time.Now(), seeker)
+		return nil
 	}
-
 	
 	buf := make([]byte, 1024)
 	n, err := util.ReadAtMost(reader, buf)
