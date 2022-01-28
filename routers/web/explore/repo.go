@@ -78,6 +78,9 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
@@ -91,6 +94,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		AllPublic:          true,
 		AllLimited:         true,
 		TopicOnly:          topicOnly,
+		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
@@ -105,6 +109,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
+	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)
