@@ -59,10 +59,12 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(32)
+	rBytes, err := util.CryptoRandomBytes(34)
 	if err != nil {
 		return "", err
 	}
+	// Add a prefix to the hexadecimal, this is in order to make it easier
+	// for code scanners to grab sensitive tokens.
 	clientSecret := "gto_" + hex.EncodeToString(rBytes)
 
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
@@ -396,10 +398,12 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChalleng
 }
 
 func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	rBytes, err := util.CryptoRandomBytes(32)
+	rBytes, err := util.CryptoRandomBytes(34)
 	if err != nil {
 		return &OAuth2AuthorizationCode{}, err
 	}
+	// Add a prefix to the hexadecimal, this is in order to make it easier
+	// for code scanners to grab sensitive tokens.
 	codeSecret := "gta_" + hex.EncodeToString(rBytes)
 
 	code = &OAuth2AuthorizationCode{
