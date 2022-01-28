@@ -75,12 +75,15 @@ func InitRepository(repoPath string, bare bool) error {
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
-	if err := NewCommand("rev-list", "--all", "--count", "--max-count=1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+	var errbuf, output strings.Builder
+	if err := NewCommand("rev-list", "--all", "--count", "--max-count=1").RunInDirPipeline(repo.Path, &output, &errbuf); err != nil {
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	c, _ := strconv.Atoi(errbuf.String())
+	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
+	if err != nil {
+		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
+	}
 	return c == 0, nil
 }
 
