@@ -79,16 +79,22 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
-	if err := NewCommandContext(repo.Ctx, "log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
-		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
-			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
-			return true, nil
-		}
+	var errbuf, output strings.Builder
+	if err := NewCommandContext(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  &output,
+			Stderr:  &errbuf,
+		}); err != nil {
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	return false, nil
+	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
+	if err != nil {
+		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
+	}
+	return c == 0, nil
 }
 
 // CloneRepoOptions options when clone a repository
