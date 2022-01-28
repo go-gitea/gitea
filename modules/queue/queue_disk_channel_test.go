@@ -497,6 +497,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		callback()
 	}
 	lock.Lock()
+	log.Info("Finally terminating")
 	callbacks = make([]func(), len(queueTerminate))
 	copy(callbacks, queueTerminate)
 	lock.Unlock()
