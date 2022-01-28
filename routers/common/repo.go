@@ -7,8 +7,10 @@ package common
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/charset"
