@@ -23,6 +23,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
+	mod_strings "code.gitea.io/gitea/modules/strings"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1862,7 +1864,12 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	kw = strings.ToUpper(kw)
+	// SQLite's UPPER function only transforms ASCII letters.
+	if setting.Database.UseSQLite3 {
+		kw = mod_strings.ToASCIIUpper(kw)
+	} else {
+		kw = strings.ToUpper(kw)
+	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
