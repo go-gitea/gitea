@@ -6,8 +6,8 @@ package auth
 
 import (
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -57,15 +57,21 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
+// Base32 characters, but lowercased.
+const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
+
+// base32 encoder that uses lowered characters without padding.
+var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
+
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 	rBytes, err := util.CryptoRandomBytes(34)
 	if err != nil {
 		return "", err
 	}
-	// Add a prefix to the hexadecimal, this is in order to make it easier
+	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
-	clientSecret := "gto_" + hex.EncodeToString(rBytes)
+	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
 
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
 	if err != nil {
@@ -402,9 +408,9 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI,
 	if err != nil {
 		return &OAuth2AuthorizationCode{}, err
 	}
-	// Add a prefix to the hexadecimal, this is in order to make it easier
+	// Add a prefix to the base32, this is in order to make it easier
 	// for code scanners to grab sensitive tokens.
-	codeSecret := "gta_" + hex.EncodeToString(rBytes)
+	codeSecret := "gta_" + base32Lower.EncodeToString(rBytes)
 
 	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
