@@ -95,14 +95,14 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 
 				ctx.Resp.WriteHeader(http.StatusPartialContent)
 
+				if "HEAD" == ctx.Req.Method {
+					return nil
+				}
+
 				if ranges[0][0] > 0 {
 					if _, err := seeker.Seek(ranges[0][0], io.SeekStart); nil != err {
 						return err
 					}
-				}
-
-				if "HEAD" == ctx.Req.Method {
-					return nil
 				}
 
 				_, err := io.CopyN(ctx.Resp, reader, ranges[0][2])
