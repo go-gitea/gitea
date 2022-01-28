@@ -10,17 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
-	result, err := New()
-	assert.NoError(t, err)
-	assert.True(t, len(result) == 44)
-
-	result2, err := New()
-	assert.NoError(t, err)
-	// check if secrets
-	assert.NotEqual(t, result, result2)
-}
-
 func TestEncryptDecrypt(t *testing.T) {
 	var hex string
 	var str string

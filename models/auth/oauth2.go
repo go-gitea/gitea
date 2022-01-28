@@ -7,6 +7,7 @@ package auth
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -59,10 +60,12 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
-	clientSecret, err := secret.New()
+	rBytes, err := util.CryptoRandomBytes(44)
 	if err != nil {
 		return "", err
 	}
+	clientSecret := hex.EncodeToString(rBytes)
+
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
