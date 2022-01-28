@@ -248,7 +248,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		ctx.PlainText(http.StatusNotFound, "Not found.\n", 2)
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
 		return
 	}
 
@@ -286,29 +286,27 @@ func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bo
 }
 
 // PlainTextBytes renders bytes as plain text
-func (ctx *Context) PlainTextBytes(status int, bs []byte, optionalSkip ...int) {
-	skip := 1
-	if len(optionalSkip) == 1 {
-		skip = optionalSkip[0] + 1
-	}
-	if status/100 == 4 || status/100 == 5 {
-		log.Log(skip, log.TRACE, "PlainTextBytes: %s", string(bs))
+func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
+	statusPrefix := status / 100
+	if statusPrefix == 4 || statusPrefix == 5 {
+		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		log.ErrorWithSkip(skip, "Write bytes failed: %v", err)
+		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
 }
 
+// PlainTextBytes renders bytes as plain text
+func (ctx *Context) PlainTextBytes(status int, bs []byte) {
+	ctx.plainTextInternal(2, status, bs)
+}
+
 // PlainText renders content as plain text
-func (ctx *Context) PlainText(status int, text string, optionalSkip ...int) {
-	skip := 1
-	if len(optionalSkip) == 1 {
-		skip = optionalSkip[0] + 1
-	}
-	ctx.PlainTextBytes(status, []byte(text), skip)
+func (ctx *Context) PlainText(status int, text string) {
+	ctx.plainTextInternal(2, status, []byte(text))
 }
 
 // RespHeader returns the response header
