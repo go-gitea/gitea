@@ -6,6 +6,12 @@ package migration
 
 import "time"
 
+// Reviewable can be reviewed
+type Reviewable interface {
+	GetLocalID() int64
+	GetForeignID() int64
+}
+
 // enumerate all review states
 const (
 	ReviewStatePending          = "PENDING"

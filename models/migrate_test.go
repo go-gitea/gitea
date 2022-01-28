@@ -45,6 +45,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		UserID: owner.ID,
 	}
 
+	foreignID := int64(12345)
 	title := "issuetitle1"
 	is := &Issue{
 		RepoID:      repo.ID,
@@ -58,11 +59,20 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		IsClosed:    true,
 		Labels:      []*Label{label},
 		Reactions:   []*Reaction{reaction},
+		ForeignReference: &ForeignReference{
+			ForeignID: foreignID,
+			RepoID:    repo.ID,
+			Type:      "issue",
+		},
 	}
 	err := InsertIssues(is)
 	assert.NoError(t, err)
 
 	i := unittest.AssertExistsAndLoadBean(t, &Issue{Title: title}).(*Issue)
+	assert.Nil(t, i.ForeignReference)
+	err = i.LoadAttributes()
+	assert.NoError(t, err)
+	assert.EqualValues(t, foreignID, i.ForeignReference.ForeignID)
 	unittest.AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 

@@ -35,8 +35,13 @@ type PullRequest struct {
 	Assignees      []string
 	IsLocked       bool `yaml:"is_locked"`
 	Reactions      []*Reaction
-	Context        IssueContext `yaml:"-"`
+	ForeignID      int64
+	Context        DownloaderContext `yaml:"-"`
 }
+
+func (p *PullRequest) GetLocalID() int64             { return p.Number }
+func (p *PullRequest) GetForeignID() int64           { return p.ForeignID }
+func (p *PullRequest) GetContext() DownloaderContext { return p.Context }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository
 func (p *PullRequest) IsForkPullRequest() bool {

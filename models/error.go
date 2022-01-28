@@ -1385,3 +1385,46 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.UserID,
 		err.RepoID)
 }
+
+//
+// ___________                  .__             __________        _____
+// \_   _____/__________   ____ |__| ____   ____\______   \ _____/ ____\___________   ____   ____   ____  ____
+//  |    __)/  _ \_  __ \_/ __ \|  |/ ___\ /    \|       _// __ \   __\/ __ \_  __ \_/ __ \ /    \_/ ___\/ __ \
+//  |     \(  <_> )  | \/\  ___/|  / /_/  >   |  \    |   \  ___/|  | \  ___/|  | \/\  ___/|   |  \  \__\  ___/
+//  \___  / \____/|__|    \___  >__\___  /|___|  /____|_  /\___  >__|  \___  >__|    \___  >___|  /\___  >___  >
+//      \/                    \/  /_____/      \/       \/     \/          \/            \/     \/     \/    \/
+//
+
+// ErrLocalIDNotExist represents a "LocalIDNotExist" kind of error.
+type ErrLocalIDNotExist struct {
+	RepoID    int64
+	ForeignID int64
+	Type      string
+}
+
+// ErrLocalIDNotExist checks if an error is a ErrLocalIDNotExist.
+func IsErrLocalIDNotExist(err error) bool {
+	_, ok := err.(ErrLocalIDNotExist)
+	return ok
+}
+
+func (err ErrLocalIDNotExist) Error() string {
+	return fmt.Sprintf("repository %d has no LocalID for ForeignID %d of type %s", err.RepoID, err.ForeignID, err.Type)
+}
+
+// ErrForeignIDNotExist represents a "ForeignIDNotExist" kind of error.
+type ErrForeignIDNotExist struct {
+	RepoID  int64
+	LocalID int64
+	Type    string
+}
+
+// ErrForeignIDNotExist checks if an error is a ErrForeignIDNotExist.
+func IsErrForeignIDNotExist(err error) bool {
+	_, ok := err.(ErrForeignIDNotExist)
+	return ok
+}
+
+func (err ErrForeignIDNotExist) Error() string {
+	return fmt.Sprintf("repository %d has no ForeignID for LocalID %d of type %s", err.RepoID, err.LocalID, err.Type)
+}

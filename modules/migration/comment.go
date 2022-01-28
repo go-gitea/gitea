@@ -7,6 +7,13 @@ package migration
 
 import "time"
 
+// Commentable can be commented upon
+type Commentable interface {
+	GetLocalID() int64
+	GetForeignID() int64
+	GetContext() DownloaderContext
+}
+
 // Comment is a standard comment information
 type Comment struct {
 	IssueIndex  int64 `yaml:"issue_index"`

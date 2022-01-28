@@ -72,6 +72,7 @@ type Issue struct {
 	Reactions        ReactionList             `xorm:"-"`
 	TotalTrackedTime int64                    `xorm:"-"`
 	Assignees        []*user_model.User       `xorm:"-"`
+	ForeignReference *ForeignReference        `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -271,6 +272,25 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
+	if issue.ForeignReference != nil {
+		return nil
+	}
+	reference := &ForeignReference{
+		LocalID: issue.ID,
+		RepoID:  issue.RepoID,
+		Type:    "issue",
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrForeignIDNotExist{issue.RepoID, issue.ID, "issue"}
+	}
+	issue.ForeignReference = reference
+	return nil
+}
+
 func (issue *Issue) loadMilestone(e db.Engine) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
@@ -330,6 +350,10 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
+	}
+
+	if err = issue.loadForeignReference(ctx); err != nil && !IsErrForeignIDNotExist(err) {
+		return err
 	}
 
 	return issue.loadReactions(ctx)
@@ -1108,6 +1132,22 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 		return nil, ErrIssueNotExist{0, repoID, index}
 	}
 	return issue, nil
+}
+
+// GetIssueByForeignID returns raw issue by foreign ID
+func GetIssueByForeignID(ctx context.Context, repoID, foreignID int64) (*Issue, error) {
+	reference := &ForeignReference{
+		RepoID:    repoID,
+		ForeignID: foreignID,
+		Type:      "issue",
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrLocalIDNotExist{repoID, foreignID, "issue"}
+	}
+	return getIssueByID(db.GetEngine(ctx), reference.LocalID)
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.

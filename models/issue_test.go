@@ -534,3 +534,34 @@ func TestCorrectIssueStats(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
 }
+
+func TestIssueForeignReference(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+
+	// it is fine for an issue to not have a foreign reference
+	err := issue.LoadAttributes()
+	assert.NoError(t, err)
+	assert.Nil(t, issue.ForeignReference)
+
+	var foreignID int64 = 12345
+	_, err = GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
+	assert.True(t, IsErrLocalIDNotExist(err))
+
+	_, err = db.GetEngine(db.DefaultContext).Insert(&ForeignReference{
+		LocalID:   issue.ID,
+		ForeignID: foreignID,
+		RepoID:    issue.RepoID,
+		Type:      "issue",
+	})
+	assert.NoError(t, err)
+
+	err = issue.LoadAttributes()
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, issue.ForeignReference.ForeignID, foreignID)
+
+	found, err := GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, found.ID, issue.ID)
+}

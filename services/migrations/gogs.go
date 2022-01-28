@@ -223,10 +223,10 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 }
 
 // GetComments returns comments according issueNumber
-func (g *GogsDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+func (g *GogsDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, 100)
 
-	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID())
+	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignID())
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
@@ -235,7 +235,7 @@ func (g *GogsDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comme
 			continue
 		}
 		allComments = append(allComments, &base.Comment{
-			IssueIndex:  opts.Context.LocalID(),
+			IssueIndex:  commentable.GetLocalID(),
 			Index:       comment.ID,
 			PosterID:    comment.Poster.ID,
 			PosterName:  comment.Poster.Login,
@@ -300,7 +300,7 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 		Updated:     issue.Updated,
 		Labels:      labels,
 		Closed:      closed,
-		Context:     base.BasicIssueContext(issue.Index),
+		ForeignID:   issue.Index,
 	}
 }
 

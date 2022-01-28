@@ -373,6 +373,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
+			ForeignReference: &models.ForeignReference{
+				LocalID:   issue.GetLocalID(),
+				ForeignID: issue.GetForeignID(),
+				RepoID:    g.repo.ID,
+				Type:      "issue",
+			},
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
