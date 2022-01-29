@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
-	mod_strings "code.gitea.io/gitea/modules/strings"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1866,7 +1865,7 @@ func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, li
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
 	// SQLite's UPPER function only transforms ASCII letters.
 	if setting.Database.UseSQLite3 {
-		kw = mod_strings.ToASCIIUpper(kw)
+		kw = util.ToUpperASCII(kw)
 	} else {
 		kw = strings.ToUpper(kw)
 	}
