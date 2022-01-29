@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initInstall() {
   if ($('.page-content.install').length === 0) {
     return;

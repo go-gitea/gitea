@@ -1,7 +1,7 @@
+import $ from 'jquery';
 import {svg} from '../svg.js';
 
 const {appSubUrl, csrfToken} = window.config;
-
 let i18nTextEdited;
 let i18nTextOptions;
 let i18nTextDeleteFromHistory;
