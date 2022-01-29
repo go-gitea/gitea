@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,7 +40,15 @@ var (
 )
 
 func init() {
+	shortVer := strings.Split(Version, "+")[0]
+	shortVer = strings.Replace(shortVer, ".", "", -1)
+	numVer, err := strconv.Atoi(shortVer)
+	if err != nil {
+		numVer = -1
+	}
+
 	setting.AppVer = Version
+	setting.NumAppVer = numVer
 	setting.AppBuiltWith = formatBuiltWith()
 	setting.AppStartTime = time.Now().UTC()
 

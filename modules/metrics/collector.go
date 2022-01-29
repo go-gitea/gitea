@@ -6,6 +6,7 @@ package metrics
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -41,6 +42,7 @@ type Collector struct {
 	Teams              *prometheus.Desc
 	UpdateTasks        *prometheus.Desc
 	Users              *prometheus.Desc
+	Version            *prometheus.Desc
 	Watches            *prometheus.Desc
 	Webhooks           *prometheus.Desc
 }
@@ -178,6 +180,11 @@ func NewCollector() Collector {
 			"Number of Users",
 			nil, nil,
 		),
+		Version: prometheus.NewDesc(
+			namespace+"version",
+			"Gitea version",
+			nil, nil,
+		),
 		Watches: prometheus.NewDesc(
 			namespace+"watches",
 			"Number of Watches",
@@ -219,6 +226,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Teams
 	ch <- c.UpdateTasks
 	ch <- c.Users
+	ch <- c.Version
 	ch <- c.Watches
 	ch <- c.Webhooks
 }
@@ -362,6 +370,11 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		c.Users,
 		prometheus.GaugeValue,
 		float64(stats.Counter.User),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Version,
+		prometheus.GaugeValue,
+		float64(setting.NumAppVer),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.Watches,

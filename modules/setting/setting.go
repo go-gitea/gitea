@@ -67,6 +67,8 @@ const (
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
+	// NumAppVer is the version of the current build of Gitea in numerical form. It is set in main.go from main.Version.
+	NumAppVer int
 	// AppBuiltWith represents a human readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
 	AppBuiltWith string
 	// AppStartTime store time gitea has started
