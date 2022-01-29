@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -194,11 +195,23 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
+
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
-	if len(passwd) == 0 {
+	// Don't authenticate against LDAP if already authenticated by reverse proxy.
+	if setting.Service.EnableReverseProxyAuth {
+		if directBind {
+			log.Debug("Cannot bind pre-authenticated user %s. BindDN must be used.", name)
+			return nil
+		}
+		if !ls.AttributesInBind {
+			log.Debug("Cannot get attributes for pre-authenticated user %s without --attributes-in-bind.", name)
+			return nil
+		}
+	} else if len(passwd) == 0 {
 		log.Debug("Auth. failed for %s, password cannot be empty", name)
 		return nil
 	}
+
 	l, err := dial(ls)
 	if err != nil {
 		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
@@ -361,8 +374,8 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		isRestricted = checkRestricted(l, ls, userDN)
 	}
 
-	if !directBind && ls.AttributesInBind {
-		// binds user (checking password) after looking-up attributes in BindDN context
+	if !directBind && ls.AttributesInBind && !setting.Service.EnableReverseProxyAuth {
+		// Binds user (checking password) after looking-up attributes in BindDN context if not already authenticated.
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
 			return nil

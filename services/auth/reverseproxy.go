@@ -6,9 +6,11 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -55,32 +57,74 @@ func (r *ReverseProxy) Name() string {
 // the revese proxy.
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
-// Returns nil if header is empty.
+// Returns nil if header is empty or internal API is being called.
 func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+
+	// Internal API should not use this auth method.
+	if middleware.IsInternalPath(req) {
+		return nil
+	}
+
+	// Just return user if session is estabilshed already.
+	user := SessionUser(sess)
+	if user != nil {
+		return user
+	}
+
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := user_model.GetUserByName(username)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
-			log.Error("GetUserByName: %v", err)
+	var err error
+
+	if r.isAutoRegisterAllowed() {
+		// Use auto registration from reverse proxy if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION enabled.
+		if user, err = user_model.GetUserByName(username); err != nil {
+			if user_model.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
+				if user = r.newUser(req); user == nil {
+					return nil
+				}
+			} else {
+				log.Error("GetUserByName: %v", err)
+				return nil
+			}
+		}
+	} else {
+		// Use auto registration from other backends if ENABLE_REVERSE_PROXY_AUTO_REGISTRATION not enabled.
+		if user, _, err = UserSignIn(username, ""); err != nil {
+			if !user_model.IsErrUserNotExist(err) {
+				log.Error("UserSignIn: %v", err)
+			}
 			return nil
 		}
-		user = r.newUser(req)
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
-			handleSignIn(w, req, sess, user)
-		}
-	}
-	store.GetData()["IsReverseProxy"] = true
 
-	log.Trace("ReverseProxy Authorization: Logged in user %-v", user)
+			// Register last login.
+			user.SetLastLogin()
+
+			if err = user_model.UpdateUserCols(db.DefaultContext, user, "last_login_unix"); err != nil {
+				log.Error(fmt.Sprintf("ReverseProxy Authorization: error updating user last login time [user: %d]", user.ID))
+			}
+
+			// Initialize new session. Will set lang and CSRF cookies.
+			handleSignIn(w, req, sess, user)
+
+			log.Trace("ReverseProxy Authorization: Logged in user %-v", user)
+		}
+
+		// Unfortunatelly we cannot do redirect here (would break git HTTP requests) to
+		// reload page with user locale so first page after login may be displayed in
+		// wrong language. Language handling in SSO mode should be reconsidered
+		// in future gitea versions.
+	}
+
+	store.GetData()["IsReverseProxy"] = true
 	return user
 }
 
