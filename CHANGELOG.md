@@ -4,6 +4,20 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+
+## [1.15.11](https://github.com/go-gitea/gitea/releases/tag/v1.15.11) - 2022-01-29
+
+* SECURITY
+  * Only view milestones from current repo (#18414) (#18418)
+* BUGFIXES
+  * Fix broken when no commits and default branch is not master (#18422) (#18424)
+  * Fix commit's time (#18375) (#18409)
+  * Fix restore without topic failure (#18387) (#18401)
+  * Fix mermaid import in 1.15 (it uses ESModule now) (#18382)
+  * Update to go/text 0.3.7 (#18336)
+* MISC
+  * Upgrade EasyMDE to 2.16.1 (#18278) (#18279)
+
 ## [1.15.10](https://github.com/go-gitea/gitea/releases/tag/v1.15.10) - 2022-01-14
 
 * BUGFIXES
