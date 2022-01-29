@@ -4,6 +4,24 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-29
+
+* SECURITY
+  * Disable content sniffing on `PlainTextBytes` (#18359) (#18365)
+  * Only view milestones from current repo (#18414) (#18417)
+* BUGFIXES
+  * Fix detection of no commits when the default branch is not master (#18422) (#18423)
+  * Fix broken oauth2 authentication source edit page (#18412) (#18419)
+  * Place inline diff comment dialogs on split diff in 4th and 8th columns (#18403) (#18404)
+  * Fix restore without topic failure (#18387) (#18400)
+  * Fix commit's time (#18375) (#18392)
+  * Fix partial cloning a repo (#18373) (#18377)
+  * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
+  * Prevent showing webauthn error for every time visiting `/user/settings/security` (#18386)
+  * Fix mime-type detection for HTTP server (#18370) (#18371)
+* MISC
+  * Update github.com/duo-labs/webauthn (#18357) (#18364)
+
 ## [1.16.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.16.0-rc1) - 2022-01-19
 
 * BREAKING
