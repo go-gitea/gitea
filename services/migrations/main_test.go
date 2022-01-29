@@ -6,8 +6,6 @@
 package migrations
 
 import (
-	"fmt"
-	"math"
 	"path/filepath"
 	"testing"
 	"time"
@@ -28,11 +26,6 @@ func timePtr(t time.Time) *time.Time {
 
 func assertTimeEqual(t *testing.T, expected, actual time.Time) {
 	assert.Equal(t, expected.UTC(), actual.UTC())
-}
-
-func assertTimeEqualEpsilon(t *testing.T, expected, actual time.Time) {
-	d := expected.UTC().Sub(actual.UTC()).Seconds()
-	assert.True(t, math.Abs(d) < 1, fmt.Sprintf("%v - %v >= 1", expected, actual))
 }
 
 func assertTimePtrEqual(t *testing.T, expected, actual *time.Time) {
@@ -237,7 +230,7 @@ func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.Official, actual.Official, "Official")
 	assert.Equal(t, expected.CommitID, actual.CommitID, "CommitID")
 	assert.Equal(t, expected.Content, actual.Content, "Content")
-	assertTimeEqualEpsilon(t, expected.CreatedAt, actual.CreatedAt)
+	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
 	assert.Equal(t, expected.State, actual.State, "State")
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
