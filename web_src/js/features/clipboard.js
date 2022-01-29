@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {copy_success, copy_error} = window.config.i18n;
 
 function onSuccess(btn) {

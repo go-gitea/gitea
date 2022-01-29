@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import $ from 'jquery';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
