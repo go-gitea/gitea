@@ -8,13 +8,16 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
 	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xanzy/go-gitlab"
 )
 
 func TestGitlabDownloadRepo(t *testing.T) {
@@ -310,12 +313,14 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
+			IssueIndex:   1,
 			ReviewerID:   4102996,
 			ReviewerName: "zeripath",
 			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
 			State:        "APPROVED",
 		},
 		{
+			IssueIndex:   1,
 			ReviewerID:   527793,
 			ReviewerName: "axifive",
 			CreatedAt:    time.Date(2019, 11, 28, 16, 2, 8, 377000000, time.UTC),
@@ -327,10 +332,145 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
+			IssueIndex:   2,
 			ReviewerID:   4575606,
 			ReviewerName: "real6543",
 			CreatedAt:    time.Date(2020, 4, 19, 19, 24, 21, 108000000, time.UTC),
 			State:        "APPROVED",
 		},
 	}, rvs)
+}
+
+func gitlabClientMockSetup(t *testing.T) (*http.ServeMux, *httptest.Server, *gitlab.Client) {
+	// mux is the HTTP request multiplexer used with the test server.
+	mux := http.NewServeMux()
+
+	// server is a test HTTP server used to provide mock API responses.
+	server := httptest.NewServer(mux)
+
+	// client is the Gitlab client being tested.
+	client, err := gitlab.NewClient("", gitlab.WithBaseURL(server.URL))
+	if err != nil {
+		server.Close()
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	return mux, server, client
+}
+
+func gitlabClientMockTeardown(server *httptest.Server) {
+	server.Close()
+}
+
+type reviewTestCase struct {
+	repoID, prID, reviewerID int
+	reviewerName             string
+	createdAt, updatedAt     *time.Time
+	expectedCreatedAt        time.Time
+}
+
+func convertTestCase(t reviewTestCase) (func(w http.ResponseWriter, r *http.Request), base.Review) {
+	var updatedAtField string
+	if t.updatedAt == nil {
+		updatedAtField = ""
+	} else {
+		updatedAtField = `"updated_at": "` + t.updatedAt.Format(time.RFC3339) + `",`
+	}
+
+	var createdAtField string
+	if t.createdAt == nil {
+		createdAtField = ""
+	} else {
+		createdAtField = `"created_at": "` + t.createdAt.Format(time.RFC3339) + `",`
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `
+{
+  "id": 5,
+  "iid": `+strconv.Itoa(t.prID)+`,
+  "project_id": `+strconv.Itoa(t.repoID)+`,
+  "title": "Approvals API",
+  "description": "Test",
+  "state": "opened",
+  `+createdAtField+`
+  `+updatedAtField+`
+  "merge_status": "cannot_be_merged",
+  "approvals_required": 2,
+  "approvals_left": 1,
+  "approved_by": [
+    {
+      "user": {
+        "name": "Administrator",
+        "username": "`+t.reviewerName+`",
+        "id": `+strconv.Itoa(t.reviewerID)+`,
+        "state": "active",
+        "avatar_url": "http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80\u0026d=identicon",
+        "web_url": "http://localhost:3000/root"
+      }
+    }
+  ]
+}`)
+	}
+	review := base.Review{
+		IssueIndex:   int64(t.prID),
+		ReviewerID:   int64(t.reviewerID),
+		ReviewerName: t.reviewerName,
+		CreatedAt:    t.expectedCreatedAt,
+		State:        "APPROVED",
+	}
+
+	return handler, review
+}
+
+func TestGitlabGetReviews(t *testing.T) {
+	mux, server, client := gitlabClientMockSetup(t)
+	defer gitlabClientMockTeardown(server)
+
+	repoID := 1324
+
+	downloader := &GitlabDownloader{
+		ctx:    context.Background(),
+		client: client,
+		repoID: repoID,
+	}
+
+	createdAt := time.Date(2020, 4, 19, 19, 24, 21, 0, time.UTC)
+
+	for _, testCase := range []reviewTestCase{
+		{
+			repoID:            repoID,
+			prID:              1,
+			reviewerID:        801,
+			reviewerName:      "someone1",
+			createdAt:         nil,
+			updatedAt:         &createdAt,
+			expectedCreatedAt: createdAt,
+		},
+		{
+			repoID:            repoID,
+			prID:              2,
+			reviewerID:        802,
+			reviewerName:      "someone2",
+			createdAt:         &createdAt,
+			updatedAt:         nil,
+			expectedCreatedAt: createdAt,
+		},
+		{
+			repoID:            repoID,
+			prID:              3,
+			reviewerID:        803,
+			reviewerName:      "someone3",
+			createdAt:         nil,
+			updatedAt:         nil,
+			expectedCreatedAt: time.Now(),
+		},
+	} {
+		mock, review := convertTestCase(testCase)
+		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
+
+		rvs, err := downloader.GetReviews(base.BasicIssueContext(testCase.prID))
+		assert.NoError(t, err)
+		assertReviewsEqual(t, []*base.Review{&review}, rvs)
+	}
 }

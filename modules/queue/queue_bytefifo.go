@@ -205,7 +205,10 @@ loop:
 				// tell the pool to shutdown.
 				q.baseCtxCancel()
 				return
-			case data := <-q.dataChan:
+			case data, ok := <-q.dataChan:
+				if !ok {
+					return
+				}
 				if err := q.PushBack(data); err != nil {
 					log.Error("Unable to push back data into queue %s", q.name)
 				}
