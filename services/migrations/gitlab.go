@@ -641,10 +641,10 @@ func (g *GitlabDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 	}
 
 	var createdAt time.Time
-	if approvals.UpdatedAt != nil {
-		createdAt = *approvals.UpdatedAt
-	} else if approvals.CreatedAt != nil {
+	if approvals.CreatedAt != nil {
 		createdAt = *approvals.CreatedAt
+	} else if approvals.UpdatedAt != nil {
+		createdAt = *approvals.UpdatedAt
 	} else {
 		createdAt = time.Now()
 	}
