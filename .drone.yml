@@ -305,7 +305,7 @@ steps:
 
   - name: coverage-codecov
     pull: always
-    image: plugins/codecov
+    image: woodpeckerci/plugin-codecov:next-alpine
     settings:
       files:
         - coverage.all
