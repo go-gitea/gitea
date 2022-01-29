@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	testReposDir      = "tests/repos/"
-	benchmarkReposDir = "benchmark/repos/"
+	testReposDir = "tests/repos/"
 )
 
 func cloneRepo(url, name string) (string, error) {
