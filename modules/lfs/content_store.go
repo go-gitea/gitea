@@ -114,7 +114,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
-func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
+func ReadMetaObject(pointer Pointer) (io.ReadSeekCloser, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer)
 }

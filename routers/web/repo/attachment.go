@@ -144,7 +144,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err = common.ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
+	if err = common.ServeLargeFile(ctx, attach.Name, attach.CreatedUnix.AsTime(), fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}

@@ -129,6 +129,18 @@ func RemoveBOMIfPresent(content []byte) []byte {
 	return content
 }
 
+// DetectEncodingFromReader
+// Read the head 1024 bytes from the reader and detect it's encoding
+// Note: you may need reader.Seek(0, io.SeekStart) to reset the offset
+func DetectEncodingFromReader(reader io.Reader) (string, error) {
+	buf := make([]byte, 1024)
+	n, err := util.ReadAtMost(reader, buf)
+	if err != nil {
+		return "", fmt.Errorf("DetectEncoding io error: %w", err)
+	}
+	return DetectEncoding(buf[:n])
+}
+
 // DetectEncoding detect the encoding of content
 func DetectEncoding(content []byte) (string, error) {
 	if utf8.Valid(content) {
