@@ -247,6 +247,25 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
+	// Shutdown and Terminate in defer
+	defer func() {
+		lock.Lock()
+		callbacks := make([]func(), len(queueShutdown))
+		copy(callbacks, queueShutdown)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+		lock.Lock()
+		log.Info("Finally terminating")
+		callbacks = make([]func(), len(queueTerminate))
+		copy(callbacks, queueTerminate)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+	}()
+
 	test1 := testData{"A", 1}
 	test2 := testData{"B", 2}
 
@@ -358,6 +377,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	lock.Lock()
 	callbacks := make([]func(), len(queueShutdown))
 	copy(callbacks, queueShutdown)
+	queueShutdown = queueShutdown[:0]
 	lock.Unlock()
 	// Now shutdown the queue
 	for _, callback := range callbacks {
@@ -387,6 +407,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	lock.Lock()
 	callbacks = make([]func(), len(queueTerminate))
 	copy(callbacks, queueTerminate)
+	queueShutdown = queueTerminate[:0]
 	lock.Unlock()
 	for _, callback := range callbacks {
 		callback()
@@ -489,19 +510,4 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	lock.Lock()
-	callbacks = make([]func(), len(queueShutdown))
-	copy(callbacks, queueShutdown)
-	lock.Unlock()
-	for _, callback := range callbacks {
-		callback()
-	}
-	lock.Lock()
-	log.Info("Finally terminating")
-	callbacks = make([]func(), len(queueTerminate))
-	copy(callbacks, queueTerminate)
-	lock.Unlock()
-	for _, callback := range callbacks {
-		callback()
-	}
 }
