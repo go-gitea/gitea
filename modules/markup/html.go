@@ -55,7 +55,7 @@ var (
 	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(\.\.\.?)([0-9a-f]{40})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,40})(\.\.\.?)([0-9a-f]{7,40})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -942,6 +942,13 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 		m := comparePattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
+		}
+
+		// Ensure that every group (m[0]...m[7]) has a match
+		for i := 0; i < 8; i++ {
+			if m[i] == -1 {
+				return
+			}
 		}
 
 		urlFull := node.Data[m[0]:m[1]]
