@@ -93,9 +93,8 @@ func DetectContentTypeExtFirst(name string, data []byte) SniffedType {
 	ct := mime.TypeByExtension(filepath.Ext(name))
 	if ct == "" {
 		return DetectContentType(data)
-	} else {
-		return SniffedType{ct}
 	}
+	return SniffedType{ct}
 }
 
 // DetectContentTypeFromReader guesses the content type contained in the reader.
