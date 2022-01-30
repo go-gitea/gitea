@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -277,6 +278,10 @@ func newRepository() {
 		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
+
+	if _, err := exec.LookPath(ScriptType); err != nil {
+		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
+	}
 
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
