@@ -118,7 +118,7 @@ func (p *WorkerPool) zeroBoost() {
 		boost = p.maxNumberOfWorkers - p.numberOfWorkers
 	}
 	if mq != nil {
-		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
+		log.Debug("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
 
 		start := time.Now()
 		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
@@ -126,7 +126,7 @@ func (p *WorkerPool) zeroBoost() {
 			mq.RemoveWorkers(pid)
 		}
 	} else {
-		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+		log.Debug("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
 	}
 	p.lock.Unlock()
 	p.addWorkers(ctx, cancel, boost)
@@ -163,7 +163,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				boost = p.maxNumberOfWorkers - p.numberOfWorkers
 			}
 			if mq != nil {
-				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
 				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), boostCtxCancel, false)
@@ -173,7 +173,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 					boostCtxCancel()
 				}()
 			} else {
-				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)

@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initUserSettings() {
   if ($('.user.settings.profile').length > 0) {
     $('#username').on('keyup', function () {
