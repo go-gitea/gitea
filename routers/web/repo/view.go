@@ -900,6 +900,15 @@ func renderCode(ctx *context.Context) {
 		return
 	}
 
+	isCommitInBranchOrTag, err := ctx.Repo.GitRepo.IsCommitInBranchOrTag(ctx.Repo.Commit.ID.String())
+	if err != nil {
+		ctx.ServerError("Repo.gitRepo.IsCommitInBranchOrTag", err)
+		return
+	}
+	if !isCommitInBranchOrTag {
+		ctx.Flash.Warning(ctx.Tr("warn.no_branch_or_tag"), true)
+	}
+
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
