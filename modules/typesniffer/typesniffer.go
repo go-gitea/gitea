@@ -89,12 +89,24 @@ func DetectContentType(data []byte) SniffedType {
 	return SniffedType{ct}
 }
 
-func DetectContentTypeExtFirst(name string, data []byte) SniffedType {
+func DetectContentTypeExtFirst(name string, readSeekerOrBytes interface{}) SniffedType {
+	// we can merge `setting.MimeTypeMap` by mime.AddExtensionType()
 	ct := mime.TypeByExtension(filepath.Ext(name))
-	if ct == "" {
-		return DetectContentType(data)
+	if ct != "" && !strings.Contains(ct, "text/") {
+		return SniffedType{ct}
 	}
-	return SniffedType{ct}
+	if r, ok := readSeekerOrBytes.(io.ReadSeeker); ok {
+		st, err := DetectContentTypeFromReader(r)
+		if nil != err {
+			panic(err)
+		}
+		_, err = r.Seek(0, io.SeekStart)
+		if nil != err {
+			panic(err)
+		}
+		return st
+	}
+	return DetectContentType(readSeekerOrBytes.([]byte))
 }
 
 // DetectContentTypeFromReader guesses the content type contained in the reader.
