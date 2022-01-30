@@ -596,6 +596,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via Gitea.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
 - `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the Git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
+- `DISABLE_LOCAL_USER_MANAGEMENT`: **false** Set to true to disable local user management in gitea (i.e. when users are managed in LDAP).
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 - `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles

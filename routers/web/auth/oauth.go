@@ -1021,7 +1021,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			cols = append(cols, "is_admin", "is_restricted")
 		}
 
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, cols...); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, false, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -1048,7 +1048,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 	changed := setUserGroupClaims(source, u, &gothUser)
 	if changed {
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_restricted"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, false, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}

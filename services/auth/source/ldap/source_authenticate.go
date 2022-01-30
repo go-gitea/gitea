@@ -50,7 +50,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
+				err = user_model.UpdateUserCols(db.DefaultContext, user, false, cols...)
 				if err != nil {
 					return nil, err
 				}

@@ -6,6 +6,7 @@ package admin
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -27,6 +28,12 @@ func Emails(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.emails")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminEmails"] = true
+
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("Emails", fmt.Errorf("access to Emails function denied; local user management disabled"))
+		return
+	}
 
 	opts := &user_model.SearchEmailOptions{
 		ListOptions: db.ListOptions{
@@ -111,6 +118,12 @@ func isKeywordValid(keyword string) bool {
 
 // ActivateEmail serves a POST request for activating/deactivating a user's email
 func ActivateEmail(ctx *context.Context) {
+
+	// Don't allow to activate/deactivate emails if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("ActivateEmail", fmt.Errorf("cannot activate email; local user management disabled"))
+		return
+	}
 
 	truefalse := map[string]bool{"1": true, "0": false}
 

@@ -239,6 +239,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
+		"DisableLocalUserManagement": func() bool {
+			return setting.Service.DisableLocalUserManagement
+		},
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
 				return nil, errors.New("invalid dict call")

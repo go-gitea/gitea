@@ -508,7 +508,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
+	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, false, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 

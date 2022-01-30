@@ -30,6 +30,7 @@ var Service = struct {
 	DisableRegistration                     bool
 	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
+	DisableLocalUserManagement              bool
 	ShowRegistrationButton                  bool
 	ShowMilestonesDashboardPage             bool
 	RequireSignInView                       bool
@@ -115,6 +116,7 @@ func newService() {
 	} else {
 		Service.RegisterManualConfirm = false
 	}
+	Service.DisableLocalUserManagement = sec.Key("DISABLE_LOCAL_USER_MANAGEMENT").MustBool()
 	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.EmailDomainBlocklist = sec.Key("EMAIL_DOMAIN_BLOCKLIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))

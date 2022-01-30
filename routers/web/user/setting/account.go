@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -75,7 +76,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, false, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -94,6 +95,11 @@ func EmailPost(ctx *context.Context) {
 
 	// Make emailaddress primary.
 	if ctx.FormString("_method") == "PRIMARY" {
+		// No access to this function if local user management is disabled.
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("MakeEmailPrimary", fmt.Errorf("access to MakeEmailPrimary function denied; local user management disabled"))
+			return
+		}
 		if err := user_model.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
@@ -105,6 +111,11 @@ func EmailPost(ctx *context.Context) {
 	}
 	// Send activation Email
 	if ctx.FormString("_method") == "SENDACTIVATION" {
+		// No access to this function if local user management is disabled.
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("SendActivation", fmt.Errorf("access to SendActivation function denied; local user management disabled"))
+			return
+		}
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
@@ -170,6 +181,12 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
+	// No access to this function if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("AddEmailAddress", fmt.Errorf("access to AddEmailAddress function denied; local user management disabled"))
+		return
+	}
+
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
@@ -215,6 +232,12 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
+	// No access to this function if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("DeleteEmail", fmt.Errorf("access to DeleteEmail function denied; local user management disabled"))
+		return
+	}
+
 	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
@@ -229,6 +252,12 @@ func DeleteEmail(ctx *context.Context) {
 
 // DeleteAccount render user suicide page and response for delete user himself
 func DeleteAccount(ctx *context.Context) {
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("DeleteAccount", fmt.Errorf("access to DeleteAccount function denied; local user management disabled"))
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 

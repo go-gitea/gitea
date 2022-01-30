@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -81,6 +82,12 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewUser", fmt.Errorf("access to NewUser function denied; local user management disabled"))
+		return
+	}
+
 	sources, err := auth.Sources()
 	if err != nil {
 		ctx.ServerError("auth.Sources", err)
@@ -99,6 +106,11 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
+
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewUserPost", fmt.Errorf("cannot create new user; local user management disabled"))
+		return
+	}
 
 	sources, err := auth.Sources()
 	if err != nil {
@@ -278,6 +290,13 @@ func EditUserPost(ctx *context.Context) {
 
 	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
 		var err error
+
+		// Don't allow password changes if local user management is disabled.
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("UpdateUser", fmt.Errorf("cannot change %s password; local user management disabled", u.Name))
+			return
+		}
+
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)

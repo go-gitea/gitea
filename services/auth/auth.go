@@ -140,7 +140,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	if len(user.Language) == 0 {
 		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "language"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, user, false, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
 			return
 		}

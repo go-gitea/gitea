@@ -49,6 +49,12 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("Authentications", fmt.Errorf("access to Authentications function denied; local user management disabled"))
+		return
+	}
+
 	var err error
 	ctx.Data["Sources"], err = auth.Sources()
 	if err != nil {
@@ -110,6 +116,12 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
+
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewAuthSource", fmt.Errorf("access to NewAuthSource function denied; local user management disabled"))
+		return
+	}
 
 	// only the first as default
 	ctx.Data["oauth2_provider"] = oauth2providers[0]
@@ -240,6 +252,12 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
+	// Don't allow to create auth source if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("NewAuthSourcePost", fmt.Errorf("cannot create auth source; local user management disabled"))
+		return
+	}
+
 	hasTLS := false
 	var config convert.Conversion
 	switch auth.Type(form.Type) {
@@ -314,6 +332,12 @@ func EditAuthSource(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
+	// No access to this page if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("EditAuthSource", fmt.Errorf("access to EditAuthSource page denied; local user management disabled"))
+		return
+	}
+
 	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("auth.GetSourceByID", err)
@@ -348,6 +372,12 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
+
+	// Don't allow to update auth source if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement {
+		ctx.ServerError("EditAuthSourcePost", fmt.Errorf("cannot update auth source; local user management disabled"))
+		return
+	}
 
 	source, err := auth.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {

@@ -303,7 +303,7 @@ func updateActivation(e db.Engine, email *EmailAddress, activate bool) error {
 	if _, err := e.ID(email.ID).Cols("is_activated").Update(email); err != nil {
 		return err
 	}
-	return UpdateUserColsEngine(e, user, "rands")
+	return UpdateUserColsEngine(e, user, false, "rands")
 }
 
 // MakeEmailPrimary sets primary email address of given user.
@@ -513,7 +513,7 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 			if user.Rands, err = GetUserSalt(); err != nil {
 				return fmt.Errorf("unable to generate salt: %v", err)
 			}
-			if err = UpdateUserColsEngine(sess, &user, "is_active", "rands"); err != nil {
+			if err = UpdateUserColsEngine(sess, &user, false, "is_active", "rands"); err != nil {
 				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
 			}
 		}

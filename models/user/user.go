@@ -206,13 +206,13 @@ func (u *User) SetLastLogin() {
 // UpdateUserDiffViewStyle updates the users diff view style
 func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
+	return UpdateUserCols(db.DefaultContext, u, false, "diff_view_style")
 }
 
 // UpdateUserTheme updates a users' theme irrespective of the site wide theme
 func UpdateUserTheme(u *User, themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(db.DefaultContext, u, "theme")
+	return UpdateUserCols(db.DefaultContext, u, false, "theme")
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his
@@ -502,7 +502,7 @@ func (u *User) EmailNotifications() string {
 // SetEmailNotifications sets the user's email notification preference
 func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(db.DefaultContext, u, false, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -827,7 +827,43 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
+// updateUserAllowed is used to block updating selected user fields when local user managemement is disabled.
+func updateUserAllowed(u *User) error {
+	// Don't allow changes of selected user fields if local user management is disabled.
+	if setting.Service.DisableLocalUserManagement && (u.Type == UserTypeIndividual) {
+		if currUser, err := GetUserByID(u.ID); err == nil {
+			if currUser.Name != u.Name {
+				return fmt.Errorf("cannot change user %s username; local user management disabled", u.Name)
+			}
+			if (currUser.LoginSource != u.LoginSource) || (currUser.LoginName != u.LoginName) {
+				return fmt.Errorf("cannot change user %s login; local user management disabled", u.Name)
+			}
+			if currUser.FullName != u.FullName {
+				return fmt.Errorf("cannot change user %s full name; local user management disabled", u.Name)
+			}
+			if currUser.Email != u.Email {
+				return fmt.Errorf("cannot change user %s e-mail; local user management disabled", u.Name)
+			}
+			if (currUser.Passwd != u.Passwd) || (currUser.PasswdHashAlgo != u.PasswdHashAlgo) {
+				return fmt.Errorf("cannot change user %s password; local user management disabled", u.Name)
+			}
+			if currUser.IsActive != u.IsActive {
+				return fmt.Errorf("cannot change user %s activity; local user management disabled", u.Name)
+			}
+			if currUser.IsAdmin != u.IsAdmin {
+				return fmt.Errorf("cannot change user %s admin permission; local user management disabled", u.Name)
+			}
+		} else {
+			return err
+		}
+	}
+	return nil
+}
+
 func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
+	if err := updateUserAllowed(u); err != nil {
+		return err
+	}
 	if err := validateUser(u); err != nil {
 		return err
 	}
@@ -872,16 +908,21 @@ func UpdateUser(u *User, emailChanged bool) error {
 }
 
 // UpdateUserCols update user according special columns
-func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	return updateUserCols(db.GetEngine(ctx), u, cols...)
+func UpdateUserCols(ctx context.Context, u *User, force bool, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, force, cols...)
 }
 
 // UpdateUserColsEngine update user according special columns
-func UpdateUserColsEngine(e db.Engine, u *User, cols ...string) error {
-	return updateUserCols(e, u, cols...)
+func UpdateUserColsEngine(e db.Engine, u *User, force bool, cols ...string) error {
+	return updateUserCols(e, u, force, cols...)
 }
 
-func updateUserCols(e db.Engine, u *User, cols ...string) error {
+func updateUserCols(e db.Engine, u *User, force bool, cols ...string) error {
+	if !force {
+		if err := updateUserAllowed(u); err != nil {
+			return err
+		}
+	}
 	if err := validateUser(u); err != nil {
 		return err
 	}

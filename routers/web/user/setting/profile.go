@@ -59,6 +59,9 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 
 	// Check if user name has been changed
 	if user.LowerName != strings.ToLower(newName) {
+		if setting.Service.DisableLocalUserManagement {
+			ctx.ServerError("ChangeUserName", fmt.Errorf("cannot change user %s username; local user management disabled", user.Name))
+		}
 		if err := user_model.ChangeUserName(user, newName); err != nil {
 			switch {
 			case user_model.IsErrUserAlreadyExist(err):
@@ -184,7 +187,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		}
 	}
 
-	if err := user_model.UpdateUserCols(db.DefaultContext, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := user_model.UpdateUserCols(db.DefaultContext, ctxUser, false, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 

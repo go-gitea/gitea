@@ -27,7 +27,7 @@ func Authenticate(user *user_model.User, login, password string) (*user_model.Us
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, user, false, "passwd", "passwd_hash_algo", "salt"); err != nil {
 			return nil, err
 		}
 	}
