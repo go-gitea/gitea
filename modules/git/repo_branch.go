@@ -148,6 +148,20 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 	return err
 }
 
+// IsCommitInBranchOrTag return true if the special commit in a branch or a tag
+func (repo *Repository) IsCommitInBranchOrTag(commitID string) (bool, error) {
+	var buf, stderr strings.Builder
+	if err := NewCommandContext(repo.Ctx, "describe", commitID).RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  &buf,
+		Stderr:  &stderr,
+	}); err != nil {
+		return false, ConcatenateError(err, stderr.String())
+	}
+	return strings.TrimSpace(buf.String()) != "", nil
+}
+
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	cmd := NewCommandContext(repo.Ctx, "remote", "add")

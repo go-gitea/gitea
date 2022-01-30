@@ -288,6 +288,15 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
+	isCommitInBranchOrTag, err := gitRepo.IsCommitInBranchOrTag(commitID)
+	if err != nil {
+		ctx.ServerError("Repo.gitRepo.IsCommitInBranchOrTag", err)
+		return
+	}
+	if !isCommitInBranchOrTag {
+		ctx.Flash.Warning(ctx.Tr("warn.no_branch_or_tag"), true)
+	}
+
 	fileOnly := ctx.FormBool("file-only")
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
