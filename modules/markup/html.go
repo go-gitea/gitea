@@ -944,7 +944,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
-		// Check m[0...7] to not be be -1
+		// Ensure that every group (m[0]...m[7]) has a match
 		for i := 0; i < 8; i++ {
 			if m[i] == -1 {
 				return
