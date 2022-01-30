@@ -65,7 +65,7 @@ var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadd
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
-	rBytes, err := util.CryptoRandomBytes(34)
+	rBytes, err := util.CryptoRandomBytes(32)
 	if err != nil {
 		return "", err
 	}
@@ -404,7 +404,7 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChalleng
 }
 
 func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	rBytes, err := util.CryptoRandomBytes(34)
+	rBytes, err := util.CryptoRandomBytes(32)
 	if err != nil {
 		return &OAuth2AuthorizationCode{}, err
 	}
