@@ -546,3 +546,16 @@ func TestFuzz(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+func TestIssue18471(t *testing.T) {
+	data := `http://domain/org/repo/compare/783b039...da951ce`
+
+	var res strings.Builder
+	err := PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
+
+	assert.NoError(t, err)
+	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
+}
