@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable content sniffing on `PlainTextBytes` (#18359) (#18365)
   * Only view milestones from current repo (#18414) (#18417)
 * BUGFIXES
+  * GitLab reviews may not have the updated_at field set (#18450) (#18461)
   * Fix detection of no commits when the default branch is not master (#18422) (#18423)
   * Fix broken oauth2 authentication source edit page (#18412) (#18419)
   * Place inline diff comment dialogs on split diff in 4th and 8th columns (#18403) (#18404)
