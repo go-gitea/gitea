@@ -427,14 +427,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 				buf = buf[:n]
 
-				st = typesniffer.DetectContentTypeExtFirst(blob.Name(), buf)
-				isTextFile = st.IsText()
-
 				fileSize = meta.Size
 				ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 			}
 		}
 	}
+	
+	st = typesniffer.DetectContentTypeExtFirst(blob.Name(), buf)
+	isTextFile = st.IsText()
 
 	isRepresentableAsText := st.IsRepresentableAsText()
 	if !isRepresentableAsText {
