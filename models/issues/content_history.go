@@ -155,7 +155,6 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int6
 		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
 		OrderBy("edited_unix DESC").
 		Find(&res)
-
 	if err != nil {
 		log.Error("can not fetch issue content history list. err=%v", err)
 		return nil, err

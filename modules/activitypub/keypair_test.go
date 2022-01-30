@@ -26,7 +26,6 @@ func TestKeygen(t *testing.T) {
 
 	assert.Regexp(t, regexp.MustCompile("^-----BEGIN RSA PRIVATE KEY-----.*"), priv)
 	assert.Regexp(t, regexp.MustCompile("^-----BEGIN PUBLIC KEY-----.*"), pub)
-
 }
 
 func TestSignUsingKeys(t *testing.T) {

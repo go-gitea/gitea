@@ -112,8 +112,8 @@ func SetExecutablePath(path string) error {
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	var format = "Git Version: %s"
-	var args = []interface{}{gitVersion.Original()}
+	format := "Git Version: %s"
+	args := []interface{}{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"

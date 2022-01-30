@@ -525,7 +525,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	// always default to true
-	var changePassword = true
+	changePassword := true
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
@@ -577,7 +577,6 @@ func runListUsers(c *cli.Context) error {
 	}
 
 	users, err := user_model.GetAllUsers()
-
 	if err != nil {
 		return err
 	}
@@ -601,7 +600,6 @@ func runListUsers(c *cli.Context) error {
 
 	w.Flush()
 	return nil
-
 }
 
 func runDeleteUser(c *cli.Context) error {
@@ -669,7 +667,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue
@@ -826,7 +824,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("required-claim-name") {
 		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
-
 	}
 	if c.IsSet("required-claim-value") {
 		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
@@ -843,7 +840,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping = &oauth2.CustomURLMapping{}
+	customURLMapping := &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
@@ -926,7 +923,7 @@ func runAddSMTP(c *cli.Context) error {
 	if !c.IsSet("port") {
 		return errors.New("port must be set")
 	}
-	var active = true
+	active := true
 	if c.IsSet("active") {
 		active = c.BoolT("active")
 	}
@@ -994,7 +991,6 @@ func runListAuth(c *cli.Context) error {
 	}
 
 	authSources, err := auth.Sources()
-
 	if err != nil {
 		return err
 	}

@@ -21,10 +21,8 @@ import (
 	"xorm.io/builder"
 )
 
-var (
-	// ErrEmailNotActivated e-mail address has not been activated error
-	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
-)
+// ErrEmailNotActivated e-mail address has not been activated error
+var ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
 type ErrEmailInvalid struct {

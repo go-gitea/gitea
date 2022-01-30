@@ -38,7 +38,7 @@ func Test_addPrimaryEmail2EmailAddress(t *testing.T) {
 		IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 	}
 
-	var users = make([]User, 0, 20)
+	users := make([]User, 0, 20)
 	err = x.Find(&users)
 	assert.NoError(t, err)
 

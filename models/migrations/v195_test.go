@@ -40,10 +40,10 @@ func Test_addTableCommitStatusIndex(t *testing.T) {
 		MaxIndex int64  `xorm:"index"`
 	}
 
-	var start = 0
+	start := 0
 	const batchSize = 1000
 	for {
-		var indexes = make([]CommitStatusIndex, 0, batchSize)
+		indexes := make([]CommitStatusIndex, 0, batchSize)
 		err := x.Table("commit_status_index").Limit(batchSize, start).Find(&indexes)
 		assert.NoError(t, err)
 

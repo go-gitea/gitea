@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"time"
@@ -48,7 +49,7 @@ func NewPushCommits() *PushCommits {
 }
 
 // toAPIPayloadCommit converts a single PushCommit to an api.PayloadCommit object.
-func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
+func (pc *PushCommits) toAPIPayloadCommit(ctx context.Context, repoPath, repoLink string, commit *PushCommit) (*api.PayloadCommit, error) {
 	var err error
 	authorUsername := ""
 	author, ok := pc.emailUsers[commit.AuthorEmail]
@@ -75,7 +76,7 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 		committerUsername = committer.Name
 	}
 
-	fileStatus, err := git.GetCommitFileStatus(repoPath, commit.Sha1)
+	fileStatus, err := git.GetCommitFileStatus(ctx, repoPath, commit.Sha1)
 	if err != nil {
 		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
 	}
@@ -103,7 +104,7 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 
 // ToAPIPayloadCommits converts a PushCommits object to api.PayloadCommit format.
 // It returns all converted commits and, if provided, the head commit or an error otherwise.
-func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
+func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 	var headCommit *api.PayloadCommit
 
@@ -111,7 +112,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.Pa
 		pc.emailUsers = make(map[string]*user_model.User)
 	}
 	for i, commit := range pc.Commits {
-		apiCommit, err := pc.toAPIPayloadCommit(repoPath, repoLink, commit)
+		apiCommit, err := pc.toAPIPayloadCommit(ctx, repoPath, repoLink, commit)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -123,7 +124,7 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.Pa
 	}
 	if pc.HeadCommit != nil && headCommit == nil {
 		var err error
-		headCommit, err = pc.toAPIPayloadCommit(repoPath, repoLink, pc.HeadCommit)
+		headCommit, err = pc.toAPIPayloadCommit(ctx, repoPath, repoLink, pc.HeadCommit)
 		if err != nil {
 			return nil, nil, err
 		}
