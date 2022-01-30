@@ -7,7 +7,9 @@ package typesniffer
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -85,6 +87,15 @@ func DetectContentType(data []byte) SniffedType {
 	}
 
 	return SniffedType{ct}
+}
+
+func DetectContentTypeExtFirst(name string, data []byte) SniffedType {
+	ct := mime.TypeByExtension(filepath.Ext(name))
+	if ct == "" {
+		return DetectContentType(data)
+	} else {
+		return SniffedType{ct}
+	}
 }
 
 // DetectContentTypeFromReader guesses the content type contained in the reader.
