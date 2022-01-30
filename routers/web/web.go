@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
@@ -149,6 +150,9 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		}
 		rw.WriteHeader(200)
 	})
+
+	hc := &healthcheck.HealthChecker{}
+	routes.Get("/api/healthz", hc.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
