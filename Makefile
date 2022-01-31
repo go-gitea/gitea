@@ -132,6 +132,15 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
 
+<<<<<<< HEAD
+=======
+ifneq ($(NO_DEPS_PLAYWRIGHT),1)
+	PLAYWRIGHT_FLAGS += --with-deps
+endif
+
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
+SWAGGER := $(GO) run github.com/go-swagger/go-swagger/cmd/swagger
+>>>>>>> d2c9f5bba (Simplify Makefile)
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
@@ -501,20 +510,18 @@ test-e2e: test-e2e-pgsql
 
 .PHONY: test-e2e\#%
 test-e2e\#%: test-e2e-pgsql\#%
-	echo "Why do I need this?"
+	true
 
 # Can I share the database with integration tests? Is it cleaned up between tests?
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: build generate-ini-pgsql
-	npx playwright install --with-deps
-	GITEA_ROOT="$(CURDIR)" ./$(EXECUTABLE) web -c integrations/pgsql.ini --quiet & \
-	(wait $i && npx playwright test && killall gitea)
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-pgsql\#%
 test-e2e-pgsql\#%: build generate-ini-pgsql
-	npx playwright install --with-deps
-	GITEA_ROOT="$(CURDIR)" ./$(EXECUTABLE) web -c integrations/pgsql.ini --quiet & \
-	(wait $i && npx playwright test $* && killall gitea)
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite

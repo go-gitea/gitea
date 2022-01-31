@@ -541,28 +541,20 @@ steps:
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
-  - name: build
-    pull: always
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
-    commands:
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
-      - make build
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-
+  # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    image: mcr.microsoft.com/playwright:v1.18.1-focal
     commands:
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
-      - timeout -s ABRT 40m make test-e2e-pgsql
-    environment:
+      - curl -sL https://go.dev/dl/go1.17.6.linux-amd64.tar.gz -o go1.17.6.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz
+      - groupadd --gid 1001 gitea
+      - useradd -m --gid 1001 --uid 1001 gitea
+      - ./build/test-env-prepare.sh
+      - su gitea GOPROXY=$GOPROXY GOSUMDB=$GOSUMDB TAGS=$TAGS NO_DEPS_PLAYWRIGHT=$NO_DEPS_PLAYWRIGHT bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
       GOPROXY: https://goproxy.cn
+      GOSUMDB: sum.golang.org
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
+      NO_DEPS_PLAYWRIGHT: 1
 
 ---
 kind: pipeline
