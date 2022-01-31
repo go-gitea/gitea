@@ -63,7 +63,10 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.ReplaceAll(name, ",", " ")
 
-	st := typesniffer.DetectContentTypeExtFirst(name, buf)
+	st, err := typesniffer.DetectContentTypeExtFirst(name, buf)
+	if nil != err {
+		return err
+	}
 
 	mappedMimeType := ""
 	if setting.MimeTypeMap.Enabled {
