@@ -6,6 +6,7 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -44,6 +45,11 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	if setting.DisableAccessTokens {
+		ctx.ServerError("AccessToken", fmt.Errorf("cannot modify access token; access tokens disabled"))
+		return
+	}
+
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,
@@ -73,6 +79,10 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
+	if setting.DisableAccessTokens {
+		ctx.ServerError("DeleteAccessToken", fmt.Errorf("cannot delete access token; access tokens disabled"))
+		return
+	}
 	if err := models.DeleteAccessTokenByID(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
@@ -85,14 +95,17 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
-	if err != nil {
-		ctx.ServerError("ListAccessTokens", err)
-		return
+	if setting.DisableAccessTokens {
+		tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
+		if err != nil {
+			ctx.ServerError("ListAccessTokens", err)
+			return
+		}
+		ctx.Data["Tokens"] = tokens
 	}
-	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 	if setting.OAuth2.Enable {
+		var err error
 		ctx.Data["Applications"], err = auth.GetOAuth2ApplicationsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)

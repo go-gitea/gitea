@@ -12,9 +12,11 @@
 		<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 			{{.i18n.Tr "settings.security"}}
 		</a>
+		{{if or (not DisableAccessTokens) (not DisableOAuth2)}}
 		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 			{{.i18n.Tr "settings.applications"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
 			{{.i18n.Tr "settings.ssh_gpg_keys"}}
 		</a>
