@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initAdminUserListSearchForm() {
   const searchForm = window.config.pageData.adminUserListSearchForm;
   if (!searchForm) return;

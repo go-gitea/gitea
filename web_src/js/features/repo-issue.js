@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';

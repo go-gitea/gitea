@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
@@ -262,23 +263,26 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-			MergeMessageField: "doAPIMergePullRequest Merge",
-			Do:                string(repo_model.MergeStyleMerge),
-		})
 
-		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+		var req *http.Request
+		var resp *httptest.ResponseRecorder
 
-		if resp.Code == http.StatusMethodNotAllowed {
-			err := api.APIError{}
-			DecodeJSON(t, resp, &err)
-			assert.EqualValues(t, "Please try again later", err.Message)
-			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+		for i := 0; i < 6; i++ {
 			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
 				Do:                string(repo_model.MergeStyleMerge),
 			})
+
 			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+
+			if resp.Code != http.StatusMethodNotAllowed {
+				break
+			}
+			err := api.APIError{}
+			DecodeJSON(t, resp, &err)
+			assert.EqualValues(t, "Please try again later", err.Message)
+			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			<-time.After(1 * time.Second)
 		}
 
 		expected := ctx.ExpectedCode
