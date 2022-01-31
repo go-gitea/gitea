@@ -433,7 +433,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	}
 
-	st = typesniffer.DetectContentTypeExtFirst(blob.Name(), buf)
+	st, _ = typesniffer.DetectContentTypeExtFirst(blob.Name(), buf)
 	isTextFile = st.IsText()
 
 	isRepresentableAsText := st.IsRepresentableAsText()
