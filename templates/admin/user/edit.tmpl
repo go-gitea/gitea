@@ -116,7 +116,7 @@
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field"{{if DisableGitHooks}} hidden{{end}}>
 					<div class="ui checkbox tooltip" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
