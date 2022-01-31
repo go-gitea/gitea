@@ -4,7 +4,10 @@
 
 package setting
 
-import "strings"
+import (
+	"mime"
+	"strings"
+)
 
 // MimeTypeMap defines custom mime type mapping settings
 var MimeTypeMap = struct {
@@ -21,6 +24,7 @@ func newMimeTypeMap() {
 	m := make(map[string]string, len(keys))
 	for _, key := range keys {
 		m[strings.ToLower(key.Name())] = key.Value()
+		_ = mime.AddExtensionType(key.Name(), key.Value())
 	}
 	MimeTypeMap.Map = m
 	if len(keys) > 0 {
