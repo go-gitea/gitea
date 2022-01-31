@@ -67,6 +67,7 @@
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
 		{{end}}
+		<td class="blob-excerpt lines-escape"></td>
 		<td class="blob-excerpt lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 		<td class="blob-excerpt lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
 	</tr>
