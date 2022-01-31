@@ -706,6 +706,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+			ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 

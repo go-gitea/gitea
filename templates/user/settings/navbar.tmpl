@@ -9,9 +9,11 @@
 		<a class="{{if .PageIsSettingsAppearance}}active{{end}} item" href="{{AppSubUrl}}/user/settings/appearance">
 			{{.i18n.Tr "settings.appearance"}}
 		</a>
+		{{if or (not Disable2FA) .EnableOpenIDSignIn .EnableOpenIDSignUp}}
 		<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
 			{{.i18n.Tr "settings.security"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
 			{{.i18n.Tr "settings.applications"}}
 		</a>

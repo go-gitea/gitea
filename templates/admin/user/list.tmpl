@@ -73,7 +73,9 @@
 						<th>{{.i18n.Tr "admin.users.activated"}}</th>
 						<th>{{.i18n.Tr "admin.users.admin"}}</th>
 						<th>{{.i18n.Tr "admin.users.restricted"}}</th>
+						{{if not Disable2FA}}
 						<th>{{.i18n.Tr "admin.users.2fa"}}</th>
+						{{end}}
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
 						<th data-sortt-asc="leastupdate" data-sortt-desc="recentupdate">
@@ -92,7 +94,9 @@
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsAdmin}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .IsRestricted}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							{{if not Disable2FA}}
 							<td>{{if index $.UsersTwoFaStatus .ID}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							{{end}}
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							{{if .LastLoginUnix}}
