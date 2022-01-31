@@ -68,6 +68,17 @@ type ExternalLoginUser struct {
 	ExpiresAt         time.Time
 }
 
+type ExternalUserMigrated interface {
+	GetExternalName() string
+	GetExternalID() int64
+}
+
+type ExternalUserRemappable interface {
+	GetUserID() int64
+	RemapExternalUser(externalName string, externalID, userID int64) error
+	ExternalUserMigrated
+}
+
 func init() {
 	db.RegisterModel(new(ExternalLoginUser))
 }

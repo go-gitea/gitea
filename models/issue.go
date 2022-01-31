@@ -2323,3 +2323,20 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	return
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (issue *Issue) RemapExternalUser(externalName string, externalID, userID int64) error {
+	issue.OriginalAuthor = externalName
+	issue.OriginalAuthorID = externalID
+	issue.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (issue *Issue) GetUserID() int64 { return issue.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
