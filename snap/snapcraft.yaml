@@ -45,7 +45,7 @@ parts:
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
     build-packages: [ git, libpam0g-dev, libsqlite3-dev]
-    build-snaps: [ go, node/14/stable ]
+    build-snaps: [ go, node/16/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |
@@ -67,6 +67,7 @@ parts:
 
     override-build: |
       set -x
+      sed -i 's/os.Getuid()/1/g' modules/setting/setting.go
       TAGS="bindata sqlite sqlite_unlock_notify pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
       cp -r options "${SNAPCRAFT_PART_INSTALL}/"
