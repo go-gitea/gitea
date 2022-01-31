@@ -118,8 +118,6 @@ func TestGiteaUploadRepo(t *testing.T) {
 }
 
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
-	var err error
-
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
@@ -139,7 +137,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	// by the doer
 	//
 	target := models.Release{}
-	err = uploader.remapExternalUser(&source, &target)
+	err := uploader.remapExternalUser(&source, &target)
 	assert.NoError(t, err)
 	assert.EqualValues(t, doer.ID, target.GetUserID())
 

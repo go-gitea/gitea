@@ -481,7 +481,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%d", pr.PosterID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -885,7 +885,6 @@ func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMig
 	userid, ok := g.userMap[source.GetExternalID()]
 	tp := g.gitServiceType.Name()
 	if !ok && tp != "" {
-		var err error
 		userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", source.GetExternalID()))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
