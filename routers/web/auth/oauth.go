@@ -904,6 +904,10 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
+	case []interface{}:
+		for _, group := range rawGroup {
+			groups = append(groups, fmt.Sprintf("%s", group))
+		}
 	default:
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
