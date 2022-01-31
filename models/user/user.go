@@ -603,6 +603,7 @@ var (
 		"ssh_info",
 		"swagger.v1.json",
 		"user",
+		"v2",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
