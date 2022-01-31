@@ -947,6 +947,9 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 
 		// Ensure that every group (m[0]...m[7]) has a match
+		if len(m) < 8 {
+			return
+		}
 		for i := 0; i < 8; i++ {
 			if m[i] == -1 {
 				return
@@ -959,7 +962,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 		text2 := base.ShortSha(node.Data[m[6]:m[7]])
 
 		hash := ""
-		if m[9] > 0 {
+		if len(m) > 9 && m[9] > 0 {
 			hash = node.Data[m[8]:m[9]][1:]
 		}
 
