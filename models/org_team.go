@@ -84,9 +84,16 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	}
 
 	sess := db.GetEngine(db.DefaultContext)
+
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id").
+			And("team_user.uid=?", opts.UserID)
+	}
 
 	count, err := sess.
 		Where(cond).
