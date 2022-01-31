@@ -95,7 +95,7 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	if setting.DisableAccessTokens {
+	if !setting.DisableAccessTokens {
 		tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
 		if err != nil {
 			ctx.ServerError("ListAccessTokens", err)
