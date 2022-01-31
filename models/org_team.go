@@ -134,11 +134,13 @@ func SearchOrgTeams(opts *SearchOrgTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
 
 	count, err := sess.
+		Where(cond).
 		Count(new(Team))
 	if err != nil {
 		return nil, 0, err
 	}
 
+	sess = sess.Where(cond)
 	if opts.PageSize == -1 {
 		opts.PageSize = int(count)
 	} else {
