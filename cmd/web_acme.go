@@ -7,6 +7,7 @@ package cmd
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -18,6 +19,24 @@ import (
 
 	"github.com/caddyserver/certmagic"
 )
+
+func getCARoot(path string) (*x509.CertPool, error) {
+	r, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(r)
+	if block == nil {
+		return nil, fmt.Errorf("no PEM found in the file %s", path)
+	}
+	caRoot, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	certPool := x509.NewCertPool()
+	certPool.AddCert(caRoot)
+	return certPool, nil
+}
 
 func runACME(listenAddr string, m http.Handler) error {
 	// If HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443.
@@ -40,25 +59,17 @@ func runACME(listenAddr string, m http.Handler) error {
 	// Try to use private CA root if provided, otherwise defaults to system's trust
 	var certPool *x509.CertPool
 	if setting.AcmeCARoot != "" {
-		r, err := os.ReadFile(setting.AcmeCARoot)
+		var err error
+		certPool, err = getCARoot(setting.AcmeCARoot)
 		if err != nil {
-			log.Warn("Failed to read CA Root certificate, using default CA trust: %v", err)
-		} else {
-			block, _ := pem.Decode(r)
-			caRoot, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
-			} else {
-				certPool = x509.NewCertPool()
-				certPool.AddCert(caRoot)
-			}
+			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
 	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
 		CA:                      setting.AcmeURL,
 		TrustedRoots:            certPool,
 		Email:                   setting.AcmeEmail,
-		Agreed:                  setting.LetsEncryptTOS,
+		Agreed:                  setting.AcmeTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
 		ListenHost:              setting.HTTPAddr,

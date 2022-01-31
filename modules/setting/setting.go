@@ -110,7 +110,7 @@ var (
 	EnablePprof          bool
 	PprofDataPath        string
 	EnableAcme           bool
-	LetsEncryptTOS       bool
+	AcmeTOS              bool
 	AcmeLiveDirectory    string
 	AcmeEmail            string
 	AcmeURL              string
@@ -634,10 +634,15 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		if EnableAcme {
 			AcmeURL = sec.Key("ACME_URL").MustString("")
 			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
-			LetsEncryptTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-			// The TOS is only required when using LetsEncrypt
-			if AcmeURL == "" && !LetsEncryptTOS {
-				log.Fatal("Let's Encrypt TOS (LETSENCRYPT_ACCEPTTOS) is not accepted. Either accept it or configure a different ACME provider (ACME_URL)")
+			// FIXME: DEPRECATED to be removed in v1.18.0
+			if sec.HasKey("ACME_ACCEPTTOS") {
+				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
+			} else {
+				deprecatedSetting("server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS")
+				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+			}
+			if !AcmeTOS {
+				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
 			}
 			// FIXME: DEPRECATED to be removed in v1.18.0
 			if sec.HasKey("ACME_DIRECTORY") {
