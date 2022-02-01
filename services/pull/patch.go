@@ -399,6 +399,8 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
 						conflictMap[filepath] = true
+					} else if is3way && line == threewayFailed {
+						conflict = true
 					} else if strings.HasPrefix(line, errorPrefix) {
 						conflict = true
 						for _, suffix := range patchErrorSuffices {
