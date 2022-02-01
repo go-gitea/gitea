@@ -37,3 +37,23 @@ func TestMigrationJSON_MilestoneOK(t *testing.T) {
 	err := Load("file_format_testdata/milestones.json", &milestones, true)
 	assert.NoError(t, err)
 }
+
+func TestMigrationJSON_CommentOK(t *testing.T) {
+	comments := make([]*Comment, 0, 10)
+	err := Load("file_format_testdata/comment_a.json", &comments, true)
+	assert.NoError(t, err)
+	err = Load("file_format_testdata/comment_a.yml", &comments, true)
+	assert.NoError(t, err)
+}
+
+func TestMigrationJSON_CommentFail(t *testing.T) {
+	comments := make([]*Comment, 0, 10)
+	err := Load("file_format_testdata/comment_b.json", &comments, true)
+	if _, ok := err.(*jsonschema.ValidationError); ok {
+		errors := strings.Split(err.(*jsonschema.ValidationError).GoString(), "\n")
+		assert.Contains(t, errors[1], "missing properties")
+		assert.Contains(t, errors[1], "poster_id")
+	} else {
+		t.Fatalf("got: type %T with value %s, want: *jsonschema.ValidationError", err, err)
+	}
+}

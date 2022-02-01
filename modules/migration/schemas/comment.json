@@ -1,0 +1,61 @@
+{
+  "title": "Comment",
+  "description": "Comments received on issues associated to a repository within a forge (Gitea, GitLab, etc.).",
+
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "issue_index": {
+        "description": "Unique identifier, relative to the issue.",
+        "type": "number"
+      },
+      "poster_id": {
+        "description": "Unique identifier of the user who authored the comment.",
+        "type": "number"
+      },
+      "poster_name": {
+        "description": "Name of the user who authored the comment.",
+        "type": "string"
+      },
+      "poster_email": {
+        "description": "Email of the user who authored the comment.",
+        "type": "string"
+      },
+      "content": {
+        "description": "Long, multiline, description.",
+        "type": "string"
+      },
+      "created": {
+        "description": "Creation time.",
+        "type": "string",
+        "format": "date-time"
+      },
+      "updated": {
+        "description": "Last update time.",
+        "type": "string",
+        "format": "date-time"
+      },
+      "reactions": {
+        "description": "List of reactions.",
+        "type": "array",
+        "items": {
+          "$ref": "reaction.json"
+        }
+      }
+    },
+    "required": [
+      "issue_index",
+      "poster_id",
+      "poster_name",
+      "content",
+      "created",
+      "updated"
+    ]
+  },
+
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$id": "http://example.com/comment.json",
+  "$$target": "comment.json"
+}

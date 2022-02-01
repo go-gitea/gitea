@@ -9,12 +9,12 @@ import "time"
 
 // Comment is a standard comment information
 type Comment struct {
-	IssueIndex  int64  `yaml:"issue_index"`
-	PosterID    int64  `yaml:"poster_id"`
-	PosterName  string `yaml:"poster_name"`
-	PosterEmail string `yaml:"poster_email"`
-	Created     time.Time
-	Updated     time.Time
-	Content     string
-	Reactions   []*Reaction
+	IssueIndex  int64       `yaml:"issue_index" json:"issue_index"`
+	PosterID    int64       `yaml:"poster_id" json:"poster_id"`
+	PosterName  string      `yaml:"poster_name" json:"poster_name"`
+	PosterEmail string      `yaml:"poster_email" json:"poster_email"`
+	Created     time.Time   `json:"created"`
+	Updated     time.Time   `json:"updated"`
+	Content     string      `json:"content"`
+	Reactions   []*Reaction `json:"reactions"`
 }

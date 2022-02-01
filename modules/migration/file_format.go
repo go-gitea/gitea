@@ -66,6 +66,8 @@ func validate(bs []byte, datatype interface{}, isJSON bool) error {
 		schemaFilename = "issue.json"
 	case *[]*Milestone:
 		schemaFilename = "milestone.json"
+	case *[]*Comment:
+		schemaFilename = "comment.json"
 	default:
 		return fmt.Errorf("file_format:validate: %T has not a validation implemented", datatype)
 	}
