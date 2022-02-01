@@ -77,6 +77,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := models.GetOrganizationCount(db.DefaultContext, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	var uid int64
 	if ctxUser != nil {

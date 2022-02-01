@@ -1061,7 +1061,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 ## Mirror (`mirror`)
 
-- `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors.
+- `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors (pre-existing mirrors remain valid but won't be updated; may be converted to regular repo).
 - `DISABLE_NEW_PULL`: **false**: Disable the creation of **new** pull mirrors. Pre-existing mirrors remain valid. Will be ignored if `mirror.ENABLED` is `false`.
 - `DISABLE_NEW_PUSH`: **false**: Disable the creation of **new** push mirrors. Pre-existing mirrors remain valid. Will be ignored if `mirror.ENABLED` is `false`.
 - `DEFAULT_INTERVAL`: **8h**: Default interval between each check

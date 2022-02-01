@@ -141,7 +141,9 @@ func registerCleanupHookTaskTable() {
 }
 
 func initBasicTasks() {
-	registerUpdateMirrorTask()
+	if setting.Mirror.Enabled {
+		registerUpdateMirrorTask()
+	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()
