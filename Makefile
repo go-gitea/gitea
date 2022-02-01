@@ -518,43 +518,43 @@ test-e2e\#%: test-e2e-sqlite\#%
 test-e2e-sqlite: GOFLAGS+=sqlite sqlite_unlock_notify
 test-e2e-sqlite: build generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/sqlite.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-sqlite\#%
 test-e2e-sqlite\#%: GOFLAGS+=sqlite sqlite_unlock_notify
 test-e2e-sqlite\#%: build generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE)GITEA_CONF=integrations/sqlite.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mysql8
 test-e2e-mysql8: build generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mysql8\#%
 test-e2e-mysql8\#%: build generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: build generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-pgsql\#%
 test-e2e-pgsql\#%: build generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mssql
 test-e2e-mssql: build generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mssql\#%
 test-e2e-mssql\#%: build generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
