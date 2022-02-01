@@ -343,8 +343,10 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
 	}
+	is3way := false
 	if git.CheckGitVersionAtLeast("2.32.0") == nil {
 		args = append(args, "--3way")
+		is3way = true
 	}
 	args = append(args, patchPath)
 	pr.ConflictedFiles = make([]string, 0, 5)
@@ -383,6 +385,9 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 				const prefix = "error: patch failed:"
 				const errorPrefix = "error: "
+				const threewayFailed = "Failed to perform three-way merge..."
+				const appliedPatchPrefix = "Applied patch to '"
+				const withConflicts = "' with conflicts."
 
 				conflictMap := map[string]bool{}
 
@@ -404,6 +409,12 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 								}
 								break
 							}
+						}
+					} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
+						conflict = true
+						filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
+						if filepath != "" {
+							conflictMap[filepath] = true
 						}
 					}
 					// only list 10 conflicted files
