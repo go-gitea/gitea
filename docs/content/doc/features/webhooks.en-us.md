@@ -28,6 +28,7 @@ All event pushes are POST requests. The methods currently supported are:
 - Microsoft Teams
 - Feishu
 - Wechatwork
+- Packagist
 
 ### Event information
 

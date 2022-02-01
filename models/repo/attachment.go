@@ -241,7 +241,7 @@ func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...str
 
 // UpdateAttachmentCtx updates the given attachment in database
 func UpdateAttachmentCtx(ctx context.Context, atta *Attachment) error {
-	var sess = db.GetEngine(ctx).Cols("name", "issue_id", "release_id", "comment_id", "download_count")
+	sess := db.GetEngine(ctx).Cols("name", "issue_id", "release_id", "comment_id", "download_count")
 	if atta.ID != 0 && atta.UUID == "" {
 		sess = sess.ID(atta.ID)
 	} else {

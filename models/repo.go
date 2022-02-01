@@ -718,7 +718,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
-	var needRewriteKeysFile = len(deployKeys) > 0
+	needRewriteKeysFile := len(deployKeys) > 0
 	for _, dKey := range deployKeys {
 		if err := DeleteDeployKey(ctx, doer, dKey.ID); err != nil {
 			return fmt.Errorf("deleteDeployKeys: %v", err)
@@ -844,7 +844,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
-	var lfsPaths = make([]string, 0, len(lfsObjects))
+	lfsPaths := make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
@@ -867,7 +867,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
-	var archivePaths = make([]string, 0, len(archives))
+	archivePaths := make([]string, 0, len(archives))
 	for _, v := range archives {
 		p, _ := v.RelativePath()
 		archivePaths = append(archivePaths, p)
@@ -893,7 +893,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
-	var newAttachmentPaths = make([]string, 0, len(newAttachments))
+	newAttachmentPaths := make([]string, 0, len(newAttachments))
 	for _, attach := range newAttachments {
 		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
 	}

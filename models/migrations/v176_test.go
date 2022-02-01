@@ -124,5 +124,4 @@ func Test_removeInvalidLabels(t *testing.T) {
 			t.Errorf("IssueLabel[%d] was deleted but should have remained", id)
 		}
 	}
-
 }

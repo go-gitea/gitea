@@ -80,22 +80,23 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		Body: "body1",
 		// Event: "" # will result in PENDING
-		Comments: []api.CreatePullReviewComment{{
-			Path:       "README.md",
-			Body:       "first new line",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		}, {
-			Path:       "README.md",
-			Body:       "first old line",
-			OldLineNum: 1,
-			NewLineNum: 0,
-		}, {
-			Path:       "iso-8859-1.txt",
-			Body:       "this line contains a non-utf-8 character",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		},
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "first new line",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			}, {
+				Path:       "README.md",
+				Body:       "first old line",
+				OldLineNum: 1,
+				NewLineNum: 0,
+			}, {
+				Path:       "iso-8859-1.txt",
+				Body:       "this line contains a non-utf-8 character",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			},
 		},
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -147,17 +148,18 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		// Body:  "",
 		Event: "COMMENT",
-		Comments: []api.CreatePullReviewComment{{
-			Path:       "README.md",
-			Body:       "first new line",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		}, {
-			Path:       "README.md",
-			Body:       "first old line",
-			OldLineNum: 1,
-			NewLineNum: 0,
-		},
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "first new line",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			}, {
+				Path:       "README.md",
+				Body:       "first old line",
+				OldLineNum: 1,
+				NewLineNum: 0,
+			},
 		},
 	})
 	var commentReview api.PullReview
