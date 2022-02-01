@@ -506,13 +506,36 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
 .PHONY: test-e2e
-test-e2e: test-e2e-pgsql
+test-e2e: test-e2e-sqlite
 
 .PHONY: test-e2e\#%
-test-e2e\#%: test-e2e-pgsql\#%
+test-e2e\#%: test-e2e-sqlite\#%
+# Kind of a hack to get makefile to accept passing arguement
 	true
 
 # Can I share the database with integration tests? Is it cleaned up between tests?
+.PHONY: test-e2e-sqlite
+test-e2e-sqlite: GOFLAGS+=sqlite sqlite_unlock_notify
+test-e2e-sqlite: build generate-ini-sqlite
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+
+.PHONY: test-e2e-sqlite\#%
+test-e2e-sqlite\#%: GOFLAGS+=sqlite sqlite_unlock_notify
+test-e2e-sqlite\#%: build generate-ini-sqlite
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+
+.PHONY: test-e2e-mysql8
+test-e2e-mysql8: build generate-ini-mysql8
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+
+.PHONY: test-e2e-mysql8\#%
+test-e2e-mysql8\#%: build generate-ini-mysql8
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: build generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
@@ -520,6 +543,16 @@ test-e2e-pgsql: build generate-ini-pgsql
 
 .PHONY: test-e2e-pgsql\#%
 test-e2e-pgsql\#%: build generate-ini-pgsql
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+
+.PHONY: test-e2e-mssql
+test-e2e-mssql: build generate-ini-mssql
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) ./tools/e2e/run_e2e.sh
+
+.PHONY: test-e2e-mssql\#%
+test-e2e-mssql\#%: build generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
