@@ -18,3 +18,9 @@ type Comment struct {
 	Content     string
 	Reactions   []*Reaction
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (c *Comment) GetExternalName() string { return c.PosterName }
+
+// ExternalID ExternalUserMigrated interface
+func (c *Comment) GetExternalID() int64 { return c.PosterID }

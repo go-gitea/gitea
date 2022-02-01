@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -114,4 +115,51 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, pulls[0].LoadIssue())
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
 	assert.Len(t, pulls[0].Issue.Comments, 2)
+}
+
+func TestGiteaUploadRemapExternalUser(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+
+	repoName := "migrated"
+	uploader := NewGiteaLocalUploader(context.Background(), doer, doer.Name, repoName)
+	uploader.gitServiceType = structs.GiteaService
+
+	externalID := int64(1234567)
+	externalName := "url.or.something"
+	source := base.Release{
+		PublisherID:   externalID,
+		PublisherName: externalName,
+	}
+
+	//
+	// When there is no user linked to the external ID, the migrated data is authored
+	// by the doer
+	//
+	target := models.Release{}
+	err := uploader.remapExternalUser(&source, &target)
+	assert.NoError(t, err)
+	assert.EqualValues(t, doer.ID, target.GetUserID())
+
+	//
+	// Link the external ID to an existing user
+	//
+	linkedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	externalLoginUser := &user_model.ExternalLoginUser{
+		ExternalID:    strconv.FormatInt(externalID, 10),
+		UserID:        linkedUser.ID,
+		LoginSourceID: 0,
+		Provider:      structs.GiteaService.Name(),
+	}
+	err = user_model.LinkExternalToUser(linkedUser, externalLoginUser)
+	assert.NoError(t, err)
+
+	//
+	// When a user is linked to the external ID, it becomes the author of
+	// the migrated data
+	//
+	target = models.Release{}
+	err = uploader.remapExternalUser(&source, &target)
+	assert.NoError(t, err)
+	assert.EqualValues(t, target.GetUserID(), linkedUser.ID)
 }
