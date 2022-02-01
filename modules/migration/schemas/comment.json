@@ -8,7 +8,7 @@
     "additionalProperties": false,
     "properties": {
       "issue_index": {
-        "description": "Unique identifier, relative to the issue.",
+        "description": "Unique identifier, relative to the repository.",
         "type": "number"
       },
       "poster_id": {
@@ -24,7 +24,7 @@
         "type": "string"
       },
       "content": {
-        "description": "Long, multiline, description.",
+        "description": "Multiline comment.",
         "type": "string"
       },
       "created": {
