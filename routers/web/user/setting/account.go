@@ -76,7 +76,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, false, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

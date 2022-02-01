@@ -206,13 +206,13 @@ func (u *User) SetLastLogin() {
 // UpdateUserDiffViewStyle updates the users diff view style
 func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(db.DefaultContext, u, false, "diff_view_style")
+	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
 }
 
 // UpdateUserTheme updates a users' theme irrespective of the site wide theme
 func UpdateUserTheme(u *User, themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(db.DefaultContext, u, false, "theme")
+	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his
@@ -502,7 +502,7 @@ func (u *User) EmailNotifications() string {
 // SetEmailNotifications sets the user's email notification preference
 func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(db.DefaultContext, u, false, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -908,13 +908,18 @@ func UpdateUser(u *User, emailChanged bool) error {
 }
 
 // UpdateUserCols update user according special columns
-func UpdateUserCols(ctx context.Context, u *User, force bool, cols ...string) error {
-	return updateUserCols(db.GetEngine(ctx), u, force, cols...)
+func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, false, cols...)
+}
+
+// UpdateForceUserCols force update user according special columns.
+func UpdateForceUserCols(ctx context.Context, u *User, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, true, cols...)
 }
 
 // UpdateUserColsEngine update user according special columns
-func UpdateUserColsEngine(e db.Engine, u *User, force bool, cols ...string) error {
-	return updateUserCols(e, u, force, cols...)
+func UpdateUserColsEngine(e db.Engine, u *User, cols ...string) error {
+	return updateUserCols(e, u, false, cols...)
 }
 
 func updateUserCols(e db.Engine, u *User, force bool, cols ...string) error {

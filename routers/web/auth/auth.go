@@ -107,7 +107,7 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, false, "language"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
 			return err
 		}
 	}
@@ -333,7 +333,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, o
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, false, "language"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
 			ctx.ServerError("UpdateUserCols Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
@@ -350,7 +350,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, o
 
 	// Register last login
 	u.SetLastLogin()
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, false, "last_login_unix"); err != nil {
+	if err := user_model.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
 		ctx.ServerError("UpdateUserCols", err)
 		return setting.AppSubURL + "/"
 	}
@@ -603,7 +603,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, false, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -724,7 +724,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if err := user_model.UpdateUserCols(db.DefaultContext, user, false, "is_active", "rands"); err != nil {
+	if err := user_model.UpdateUserCols(db.DefaultContext, user, "is_active", "rands"); err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound("UpdateUserCols", err)
 		} else {

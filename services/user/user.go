@@ -139,7 +139,7 @@ func UploadAvatar(u *user_model.User, data []byte) error {
 	// Otherwise, if any of the users delete his avatar
 	// Other users will lose their avatars too.
 	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = user_model.UpdateUserCols(ctx, u, false, "use_custom_avatar", "avatar"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
