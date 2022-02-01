@@ -231,10 +231,13 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@hash xgogofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+	@echo "Running gitea-fmt(with gofmt)..."
+	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
+	@echo "Running gofumpt"
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install mvdan.cc/gofumpt@latest; \
 	fi
-	gofumpt -w -l -extra -lang 1.16 .
+	@gofumpt -w -l -extra -lang 1.16 .
 
 .PHONY: vet
 vet:
