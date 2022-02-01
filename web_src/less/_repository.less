@@ -4,6 +4,12 @@
     // otherwise some part of the popup will be hidden by viewport boundary
     max-height: 45vh;
     max-width: 60vw;
+
+    & .ui.right {
+      // Override the .ui.attached.header .right:not(.dropdown) height: 30px;
+      height: auto;
+    }
+
     overflow: auto;
     padding: 0;
 
