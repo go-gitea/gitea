@@ -32,7 +32,7 @@ for i in "$@"; do
 done
 
 if [ -z "$APP_INI_SET" ]; then
-	CONF_ARG="-c \"$APP_INI\""
+	CONF_ARG="-c \"${GITEA_APP_INI:-$APP_INI}\""
 fi
 
 
