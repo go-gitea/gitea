@@ -165,10 +165,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		"GIT_TERMINAL_PROMPT=0",
 	)
 
-	// TODO: verify if this is still needed in golang 1.15
-	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
 	cmd.Dir = rc.Dir
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr

@@ -56,7 +56,7 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="{{if .PageIsOrgTeamsNew}}read{{else}}{{.Team.AccessMode}}{{end}}" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
+										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
 										<label>{{.i18n.Tr "org.teams.general_access"}}</label>
 										<span class="help">{{.i18n.Tr "org.teams.general_access_helper"}}</span>
 									</div>
