@@ -45,7 +45,7 @@ parts:
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
     build-packages: [ git, libpam0g-dev, libsqlite3-dev]
-    build-snaps: [ go, node/16/stable ]
+    build-snaps: [ go, node/14/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |
