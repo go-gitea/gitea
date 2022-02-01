@@ -504,7 +504,9 @@ export function initRepoPullRequestReview() {
             <td class="lines-type-marker"></td>
             <td class="add-comment-right"></td>
           ` : `
-            <td colspan="3" class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="add-comment-left add-comment-right" colspan="2"></td>
           `}
         </tr>`);
