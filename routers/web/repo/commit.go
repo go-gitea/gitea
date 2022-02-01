@@ -288,15 +288,6 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	isCommitInBranchOrTag, err := gitRepo.IsCommitInBranchOrTag(commitID)
-	if err != nil {
-		ctx.ServerError("Repo.gitRepo.IsCommitInBranchOrTag", err)
-		return
-	}
-	if !isCommitInBranchOrTag {
-		ctx.Flash.Warning(ctx.Tr("warn.no_branch_or_tag"), true)
-	}
-
 	fileOnly := ctx.FormBool("file-only")
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
@@ -374,11 +365,16 @@ func Diff(ctx *context.Context) {
 		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(note.Commit)
 	}
 
-	ctx.Data["BranchName"], err = commit.GetBranchName()
+	branchName, err := commit.GetBranchName()
 	if err != nil {
 		ctx.ServerError("commit.GetBranchName", err)
 		return
 	}
+	if strings.HasPrefix(branchName, "pull/") || strings.HasPrefix(branchName, "for/") {
+		ctx.Flash.Warning(ctx.Tr("warn.no_branch_or_tag"), true)
+	}
+
+	ctx.Data["BranchName"] = branchName
 
 	ctx.Data["TagName"], err = commit.GetTagName()
 	if err != nil {
