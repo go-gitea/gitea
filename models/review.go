@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -58,10 +59,10 @@ func (rt ReviewType) Icon() string {
 type Review struct {
 	ID               int64 `xorm:"pk autoincr"`
 	Type             ReviewType
-	Reviewer         *user_model.User `xorm:"-"`
-	ReviewerID       int64            `xorm:"index"`
-	ReviewerTeamID   int64            `xorm:"NOT NULL DEFAULT 0"`
-	ReviewerTeam     *Team            `xorm:"-"`
+	Reviewer         *user_model.User   `xorm:"-"`
+	ReviewerID       int64              `xorm:"index"`
+	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
 	Issue            *Issue `xorm:"-"`
@@ -114,12 +115,12 @@ func (r *Review) loadReviewer(e db.Engine) (err error) {
 	return
 }
 
-func (r *Review) loadReviewerTeam(e db.Engine) (err error) {
+func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {
 		return
 	}
 
-	r.ReviewerTeam, err = getTeamByID(e, r.ReviewerTeamID)
+	r.ReviewerTeam, err = organization.GetTeamByIDCtx(ctx, r.ReviewerTeamID)
 	return
 }
 
@@ -130,7 +131,7 @@ func (r *Review) LoadReviewer() error {
 
 // LoadReviewerTeam loads reviewer team
 func (r *Review) LoadReviewerTeam() error {
-	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
+	return r.loadReviewerTeam(db.DefaultContext)
 }
 
 // LoadAttributes loads all attributes except CodeComments
@@ -145,7 +146,7 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	if err = r.loadReviewer(e); err != nil {
 		return
 	}
-	if err = r.loadReviewerTeam(e); err != nil {
+	if err = r.loadReviewerTeam(ctx); err != nil {
 		return
 	}
 	return
@@ -221,7 +222,7 @@ type CreateReviewOptions struct {
 	Type         ReviewType
 	Issue        *Issue
 	Reviewer     *user_model.User
-	ReviewerTeam *Team
+	ReviewerTeam *organization.Team
 	Official     bool
 	CommitID     string
 	Stale        bool
@@ -255,11 +256,11 @@ func isOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 }
 
 // IsOfficialReviewerTeam check if reviewer in this team can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewerTeam(issue *Issue, team *Team) (bool, error) {
+func IsOfficialReviewerTeam(issue *Issue, team *organization.Team) (bool, error) {
 	return isOfficialReviewerTeam(db.DefaultContext, issue, team)
 }
 
-func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *Team) (bool, error) {
+func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organization.Team) (bool, error) {
 	pr, err := getPullRequestByIssueID(db.GetEngine(ctx), issue.ID)
 	if err != nil {
 		return false, err
@@ -272,7 +273,7 @@ func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *Team) (bool
 	}
 
 	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.UnitAccessMode(unit.TypeCode) >= perm.AccessModeWrite, nil
+		return team.UnitAccessMode(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
 	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
@@ -447,7 +448,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 
 		for _, teamReviewRequest := range teamReviewRequests {
-			ok, err := isTeamMember(sess, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
+			ok, err := organization.IsTeamMember(ctx, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
 			if err != nil {
 				return nil, nil, err
 			} else if !ok {
@@ -732,7 +733,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 }
 
 // AddTeamReviewRequest add a review request from one team
-func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *user_model.User) (*Comment, error) {
+func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
@@ -792,7 +793,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *user_model.User) (
 }
 
 // RemoveTeamReviewRequest remove a review request from one team
-func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *user_model.User) (*Comment, error) {
+func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err

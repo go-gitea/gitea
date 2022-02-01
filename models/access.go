@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -149,7 +150,7 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	teams, err := OrgFromUser(repo.Owner).loadTeams(e)
+	teams, err := organization.FindOrgTeams(ctx, repo.Owner.ID)
 	if err != nil {
 		return err
 	}
@@ -163,11 +164,11 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		// have relations with repository.
 		if t.IsOwnerTeam() {
 			t.AccessMode = perm.AccessModeOwner
-		} else if !t.hasRepository(e, repo.ID) {
+		} else if !hasRepository(ctx, t, repo.ID) {
 			continue
 		}
 
-		if err = t.getMembers(e); err != nil {
+		if err = t.GetMembersCtx(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
 		}
 		for _, m := range t.Members {
@@ -198,7 +199,7 @@ func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 	if err = repo.GetOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
-		var teams []Team
+		var teams []organization.Team
 		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
 			Where("team.org_id = ?", repo.OwnerID).

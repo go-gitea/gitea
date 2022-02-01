@@ -58,19 +58,6 @@ func (err ErrUserHasOrgs) Error() string {
 	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
-// ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
-type ErrUserNotAllowedCreateOrg struct{}
-
-// IsErrUserNotAllowedCreateOrg checks if an error is an ErrUserNotAllowedCreateOrg.
-func IsErrUserNotAllowedCreateOrg(err error) bool {
-	_, ok := err.(ErrUserNotAllowedCreateOrg)
-	return ok
-}
-
-func (err ErrUserNotAllowedCreateOrg) Error() string {
-	return "user is not allowed to create organizations"
-}
-
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |
@@ -156,44 +143,6 @@ func IsErrAccessTokenEmpty(err error) bool {
 
 func (err ErrAccessTokenEmpty) Error() string {
 	return "access token is empty"
-}
-
-// ________                            .__                __  .__
-// \_____  \_______  _________    ____ |__|____________ _/  |_|__| ____   ____
-//  /   |   \_  __ \/ ___\__  \  /    \|  \___   /\__  \\   __\  |/  _ \ /    \
-// /    |    \  | \/ /_/  > __ \|   |  \  |/    /  / __ \|  | |  (  <_> )   |  \
-// \_______  /__|  \___  (____  /___|  /__/_____ \(____  /__| |__|\____/|___|  /
-//         \/     /_____/     \/     \/         \/     \/                    \/
-
-// ErrOrgNotExist represents a "OrgNotExist" kind of error.
-type ErrOrgNotExist struct {
-	ID   int64
-	Name string
-}
-
-// IsErrOrgNotExist checks if an error is a ErrOrgNotExist.
-func IsErrOrgNotExist(err error) bool {
-	_, ok := err.(ErrOrgNotExist)
-	return ok
-}
-
-func (err ErrOrgNotExist) Error() string {
-	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
-}
-
-// ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
-type ErrLastOrgOwner struct {
-	UID int64
-}
-
-// IsErrLastOrgOwner checks if an error is a ErrLastOrgOwner.
-func IsErrLastOrgOwner(err error) bool {
-	_, ok := err.(ErrLastOrgOwner)
-	return ok
-}
-
-func (err ErrLastOrgOwner) Error() string {
-	return fmt.Sprintf("user is the last member of owner team [uid: %d]", err.UID)
 }
 
 //.____   ____________________
@@ -1193,46 +1142,6 @@ func (err ErrMilestoneNotExist) Error() string {
 		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
 	}
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
-}
-
-// ___________
-// \__    ___/___ _____    _____
-//   |    |_/ __ \\__  \  /     \
-//   |    |\  ___/ / __ \|  Y Y  \
-//   |____| \___  >____  /__|_|  /
-//              \/     \/      \/
-
-// ErrTeamAlreadyExist represents a "TeamAlreadyExist" kind of error.
-type ErrTeamAlreadyExist struct {
-	OrgID int64
-	Name  string
-}
-
-// IsErrTeamAlreadyExist checks if an error is a ErrTeamAlreadyExist.
-func IsErrTeamAlreadyExist(err error) bool {
-	_, ok := err.(ErrTeamAlreadyExist)
-	return ok
-}
-
-func (err ErrTeamAlreadyExist) Error() string {
-	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
-}
-
-// ErrTeamNotExist represents a "TeamNotExist" error
-type ErrTeamNotExist struct {
-	OrgID  int64
-	TeamID int64
-	Name   string
-}
-
-// IsErrTeamNotExist checks if an error is a ErrTeamNotExist.
-func IsErrTeamNotExist(err error) bool {
-	_, ok := err.(ErrTeamNotExist)
-	return ok
-}
-
-func (err ErrTeamNotExist) Error() string {
-	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
 }
 
 //  ____ ___        .__                    .___

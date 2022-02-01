@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -77,7 +78,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		org, err := models.GetOrgByName(ctx.Repo.Owner.LowerName)
+		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
 		if err != nil {
 			ctx.ServerError("GetOrgByName", err)
 			return

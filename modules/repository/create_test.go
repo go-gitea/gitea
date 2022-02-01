@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,8 +23,8 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
-		assert.NoError(t, team.GetRepositories(&models.SearchOrgTeamOptions{}), "%s: GetRepositories", team.Name)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
+		assert.NoError(t, team.GetRepositories(&organization.SearchTeamOptions{}), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
@@ -38,13 +39,13 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
-	org := &models.Organization{
+	org := &organization.Organization{
 		Name:       "All_repo",
 		IsActive:   true,
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, models.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam()
@@ -65,7 +66,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
-	teams := []*models.Team{
+	teams := []*organization.Team{
 		ownerTeam,
 		{
 			OrgID:                   org.ID,

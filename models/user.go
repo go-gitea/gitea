@@ -14,6 +14,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,7 +28,7 @@ import (
 func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error) {
 	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
-		Count(new(OrgUser))
+		Count(new(organization.OrgUser))
 }
 
 // DeleteUser deletes models associated to an user.
@@ -86,7 +87,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
-		&TeamUser{UID: u.ID},
+		&organization.TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
@@ -286,7 +287,7 @@ func isUserVisibleToViewer(e db.Engine, u, viewer *user_model.User) bool {
 							builder.Select("org_id").
 								From("team_user", "t2").
 								Where(builder.Eq{"uid": u.ID}))))).
-			Count(new(TeamUser))
+			Count(new(organization.TeamUser))
 		if err != nil {
 			return false
 		}
