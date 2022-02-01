@@ -277,15 +277,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
 		})
-		m.Group("/link_account", func() {
-			m.Get("", auth.LinkAccount)
-		}, openIDSignInEnabled)
-		m.Group("/link_account_signin", func() {
-			m.Post("", bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
-		}, openIDSignInEnabled)
-		m.Group("/link_account_signup", func() {
-			m.Post("", bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
-		}, openIDSignUpEnabled)
+		m.Get("/link_account", openIDSignInEnabled, auth.LinkAccount)
+		m.Post("/link_account_signin", openIDSignInEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
+		m.Post("/link_account_signup", openIDSignUpEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
 			m.Post("", bindIgnErr(forms.TwoFactorAuthForm{}), auth.TwoFactorPost)
@@ -348,9 +342,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/delete", security.DeleteOpenID)
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Group("/account_link", func() {
-				m.Post("", security.DeleteAccountLink)
-			}, openIDSignInEnabled)
+			m.Post("/account_link", openIDSignInEnabled, security.DeleteAccountLink)
 		})
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
