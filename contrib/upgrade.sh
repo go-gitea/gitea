@@ -61,7 +61,7 @@ curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.
 # validate checksum & gpg signature (exit script if error)
 sha256sum --check "${binname}.xz.sha256"
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
-gpg --verify "${binname}.xz.asc" "${binname}.xz"
+gpg --verify "${binname}.xz.asc" "${binname}.xz" || { echo 'Signature does not match'; exit 1; }
 rm "${binname}".xz.{sha256,asc}
 
 # unpack binary + make executable
