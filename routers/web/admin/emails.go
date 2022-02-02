@@ -108,9 +108,7 @@ func Emails(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplEmails)
 }
 
-var (
-	nullByte = []byte{0x00}
-)
+var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)

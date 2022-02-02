@@ -14,7 +14,6 @@ import (
 )
 
 func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
-
 	maxLoops := 1000
 
 	// 'git --version' does not block so it must be finished before the timeout triggered.
@@ -27,7 +26,6 @@ func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
 }
 
 func TestRunInDirTimeoutPipelineAlwaysTimeout(t *testing.T) {
-
 	maxLoops := 1000
 
 	// 'git hash-object --stdin' blocks on stdin so we can have the timeout triggered.

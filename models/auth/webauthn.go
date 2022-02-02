@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/xorm"
 
 	"github.com/duo-labs/webauthn/webauthn"
+	"xorm.io/xorm"
 )
 
 // ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
@@ -30,14 +30,14 @@ func (err ErrWebAuthnCredentialNotExist) Error() string {
 	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %s]", err.CredentialID)
 }
 
-//IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
+// IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
 func IsErrWebAuthnCredentialNotExist(err error) bool {
 	_, ok := err.(ErrWebAuthnCredentialNotExist)
 	return ok
 }
 
-//WebAuthnCredential represents the WebAuthn credential data for a public-key
-//credential conformant to WebAuthn Level 1
+// WebAuthnCredential represents the WebAuthn credential data for a public-key
+// credential conformant to WebAuthn Level 1
 type WebAuthnCredential struct {
 	ID              int64 `xorm:"pk autoincr"`
 	Name            string
@@ -109,7 +109,7 @@ func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 	return creds
 }
 
-//GetWebAuthnCredentialsByUID returns all WebAuthn credentials of the given user
+// GetWebAuthnCredentialsByUID returns all WebAuthn credentials of the given user
 func GetWebAuthnCredentialsByUID(uid int64) (WebAuthnCredentialList, error) {
 	return getWebAuthnCredentialsByUID(db.DefaultContext, uid)
 }
@@ -119,7 +119,7 @@ func getWebAuthnCredentialsByUID(ctx context.Context, uid int64) (WebAuthnCreden
 	return creds, db.GetEngine(ctx).Where("user_id = ?", uid).Find(&creds)
 }
 
-//ExistsWebAuthnCredentialsForUID returns if the given user has credentials
+// ExistsWebAuthnCredentialsForUID returns if the given user has credentials
 func ExistsWebAuthnCredentialsForUID(uid int64) (bool, error) {
 	return existsWebAuthnCredentialsByUID(db.DefaultContext, uid)
 }
@@ -211,7 +211,7 @@ func deleteCredential(ctx context.Context, id, userID int64) (bool, error) {
 	return had > 0, err
 }
 
-//WebAuthnCredentials implementns the webauthn.User interface
+// WebAuthnCredentials implementns the webauthn.User interface
 func WebAuthnCredentials(userID int64) ([]webauthn.Credential, error) {
 	dbCreds, err := GetWebAuthnCredentialsByUID(userID)
 	if err != nil {

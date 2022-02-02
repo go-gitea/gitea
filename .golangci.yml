@@ -17,6 +17,7 @@ linters:
     - bidichk
     - ineffassign
     - revive
+    - gofumpt
   enable-all: false
   disable-all: true
   fast: false
@@ -57,6 +58,9 @@ linters-settings:
       - name: errorf
       - name: duplicated-imports
       - name: modifies-value-receiver
+  gofumpt:
+    extra-rules: true
+    lang-version: 1.16
 
 issues:
   exclude-rules:
