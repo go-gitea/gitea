@@ -60,7 +60,7 @@ type ExternalLoginUser struct {
 	LastName          string
 	NickName          string
 	Description       string
-	AvatarURL         string
+	AvatarURL         string `xorm:"TEXT"`
 	Location          string
 	AccessToken       string `xorm:"TEXT"`
 	AccessTokenSecret string `xorm:"TEXT"`
