@@ -21,9 +21,7 @@ type mailNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &mailNotifier{}
-)
+var _ base.Notifier = &mailNotifier{}
 
 // NewNotifier create a new mailNotifier notifier
 func NewNotifier() base.Notifier {
@@ -44,7 +42,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *rep
 		act = models.ActionCommentIssue
 	} else if comment.Type == models.CommentTypeCode {
 		act = models.ActionCommentIssue
-	} else if comment.Type == models.CommentTypePullPush {
+	} else if comment.Type == models.CommentTypePullRequestPush {
 		act = 0
 	}
 

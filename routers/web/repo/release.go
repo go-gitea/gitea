@@ -481,7 +481,7 @@ func EditReleasePost(ctx *context.Context) {
 	const delPrefix = "attachment-del-"
 	const editPrefix = "attachment-edit-"
 	var addAttachmentUUIDs, delAttachmentUUIDs []string
-	var editAttachments = make(map[string]string) // uuid -> new name
+	editAttachments := make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
 		for k, v := range ctx.Req.Form {

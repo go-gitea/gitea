@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -30,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -104,7 +102,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	}
 
 	isWiki := false
-	var unitType = unit.TypeCode
+	unitType := unit.TypeCode
 	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
@@ -457,7 +455,6 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 		if err := h.r.Body.Close(); err != nil {
 			log.Error("serviceRPC: Close: %v", err)
 		}
-
 	}()
 
 	if !hasAccess(ctx, service, h, true) {
@@ -468,7 +465,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	h.w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
 	var err error
-	var reqBody = h.r.Body
+	reqBody := h.r.Body
 
 	// Handle GZIP.
 	if h.r.Header.Get("Content-Encoding") == "gzip" {
@@ -487,18 +484,17 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	ctx, _, finished := process.GetManager().AddContext(h.r.Context(), fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
-	defer finished()
-
 	var stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
-	cmd.Dir = h.dir
-	cmd.Env = append(os.Environ(), h.environ...)
-	cmd.Stdout = h.w
-	cmd.Stdin = reqBody
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
+	cmd := git.NewCommandContext(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
+	if err := cmd.RunWithContext(&git.RunContext{
+		Timeout: -1,
+		Dir:     h.dir,
+		Env:     append(os.Environ(), h.environ...),
+		Stdout:  h.w,
+		Stdin:   reqBody,
+		Stderr:  &stderr,
+	}); err != nil {
 		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
 		return
 	}

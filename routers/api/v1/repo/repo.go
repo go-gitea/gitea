@@ -160,7 +160,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = util.OptionalBoolFalse
 	}
 
-	var mode = ctx.FormString("mode")
+	mode := ctx.FormString("mode")
 	switch mode {
 	case "source":
 		opts.Fork = util.OptionalBoolFalse
@@ -186,9 +186,9 @@ func Search(ctx *context.APIContext) {
 		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
 	}
 
-	var sortMode = ctx.FormString("sort")
+	sortMode := ctx.FormString("sort")
 	if len(sortMode) > 0 {
-		var sortOrder = ctx.FormString("order")
+		sortOrder := ctx.FormString("order")
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
@@ -532,6 +532,11 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+
+	if err := ctx.Repo.Repository.LoadAttributes(ctx); err != nil {
+		ctx.Error(http.StatusInternalServerError, "Repository.LoadAttributes", err)
+		return
+	}
 
 	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
 }

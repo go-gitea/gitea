@@ -28,7 +28,7 @@ const AssetsURLPathPrefix = "/assets/"
 
 // AssetsHandlerFunc implements the static handler for serving custom or original assets.
 func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
-	var custPath = filepath.Join(setting.CustomPath, "public")
+	custPath := filepath.Join(setting.CustomPath, "public")
 	if !filepath.IsAbs(custPath) {
 		custPath = filepath.Join(setting.AppWorkPath, custPath)
 	}
@@ -85,11 +85,20 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 // parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
 func parseAcceptEncoding(val string) map[string]bool {
 	parts := strings.Split(val, ";")
-	var types = make(map[string]bool)
+	types := make(map[string]bool)
 	for _, v := range strings.Split(parts[0], ",") {
 		types[strings.TrimSpace(v)] = true
 	}
 	return types
+}
+
+// setWellKnownContentType will set the Content-Type if the file is a well-known type.
+// See the comments of detectWellKnownMimeType
+func setWellKnownContentType(w http.ResponseWriter, file string) {
+	mimeType := detectWellKnownMimeType(filepath.Ext(file))
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
 }
 
 func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
@@ -121,6 +130,8 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 	if httpcache.HandleFileETagCache(req, w, fi) {
 		return true
 	}
+
+	setWellKnownContentType(w, file)
 
 	serveContent(w, req, fi, fi.ModTime(), f)
 	return true

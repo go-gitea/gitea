@@ -71,8 +71,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, "HTTP Redirector", handler)
-
+	err := runHTTP("tcp", source, "HTTP Redirector", handler)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}

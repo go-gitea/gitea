@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -303,23 +304,23 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 
 func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	total, ids, err := SearchIssueIDsByKeyword("issue2", []int64{1}, 10, 0)
+	total, ids, err := SearchIssueIDsByKeyword(context.TODO(), "issue2", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	total, ids, err = SearchIssueIDsByKeyword("first", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "first", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	total, ids, err = SearchIssueIDsByKeyword("for", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "for", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, total)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	// issue1's comment id 2
-	total, ids, err = SearchIssueIDsByKeyword("good", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "good", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
@@ -394,7 +395,6 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
-
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
@@ -465,7 +465,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
-	total, ids, err := SearchIssueIDsByKeyword("Bugs are nasty", []int64{1}, issueAmount, 0)
+	total, ids, err := SearchIssueIDsByKeyword(context.TODO(), "Bugs are nasty", []int64{1}, issueAmount, 0)
 
 	// Just to be sure.
 	assert.NoError(t, err)

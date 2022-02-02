@@ -87,12 +87,15 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 		}
 	case func(http.Handler) http.Handler:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
-			var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
+			next := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 			if len(others) > 0 {
 				next = wrapInternal(others)
 			}
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
 			t(next).ServeHTTP(resp, req)
+			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
+				done = true
+			}
 			return
 		}
 	default:

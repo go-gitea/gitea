@@ -38,8 +38,10 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-const unicodeNormalizeName = "unicodeNormalize"
-const maxBatchSize = 16
+const (
+	unicodeNormalizeName = "unicodeNormalize"
+	maxBatchSize         = 16
+)
 
 // numericEqualityQuery a numeric equality query for the given value and field
 func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
@@ -158,9 +160,7 @@ func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	return indexer, nil
 }
 
-var (
-	_ Indexer = &BleveIndexer{}
-)
+var _ Indexer = &BleveIndexer{}
 
 // BleveIndexer represents a bleve indexer implementation
 type BleveIndexer struct {
@@ -271,6 +271,15 @@ func (b *BleveIndexer) Close() {
 	log.Info("PID: %d Repository Indexer closed", os.Getpid())
 }
 
+// SetAvailabilityChangeCallback does nothing
+func (b *BleveIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+}
+
+// Ping does nothing
+func (b *BleveIndexer) Ping() bool {
+	return true
+}
+
 // Index indexes the data
 func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
@@ -319,7 +328,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
@@ -337,7 +346,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 	}
 
 	if len(repoIDs) > 0 {
-		var repoQueries = make([]query.Query, 0, len(repoIDs))
+		repoQueries := make([]query.Query, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoQueries = append(repoQueries, numericEqualityQuery(repoID, "RepoID"))
 		}
@@ -372,7 +381,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 	}
 
-	result, err := b.indexer.Search(searchRequest)
+	result, err := b.indexer.SearchInContext(ctx, searchRequest)
 	if err != nil {
 		return 0, nil, nil, err
 	}

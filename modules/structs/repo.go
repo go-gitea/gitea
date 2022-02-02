@@ -59,6 +59,8 @@ type Repository struct {
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
+	Language      string      `json:"language"`
+	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -326,19 +328,17 @@ func (gt GitServiceType) TokenAuth() bool {
 	return false
 }
 
-var (
-	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
-	// TODO: add to this list after new git service added
-	SupportedFullGitService = []GitServiceType{
-		GithubService,
-		GitlabService,
-		GiteaService,
-		GogsService,
-		OneDevService,
-		GitBucketService,
-		CodebaseService,
-	}
-)
+// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+// TODO: add to this list after new git service added
+var SupportedFullGitService = []GitServiceType{
+	GithubService,
+	GitlabService,
+	GiteaService,
+	GogsService,
+	OneDevService,
+	GitBucketService,
+	CodebaseService,
+}
 
 // RepoTransfer represents a pending repo transfer
 type RepoTransfer struct {

@@ -232,7 +232,7 @@ func (ctx *Context) NotFound(logMsg string, logErr error) {
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -248,7 +248,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		ctx.PlainText(http.StatusNotFound, "Not found.\n")
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
 		return
 	}
 
@@ -286,20 +286,27 @@ func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bo
 }
 
 // PlainTextBytes renders bytes as plain text
-func (ctx *Context) PlainTextBytes(status int, bs []byte) {
-	if (status/100 == 4) || (status/100 == 5) {
-		log.Error("PlainTextBytes: %s", string(bs))
+func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
+	statusPrefix := status / 100
+	if statusPrefix == 4 || statusPrefix == 5 {
+		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
+	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		log.Error("Write bytes failed: %v", err)
+		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
+}
+
+// PlainTextBytes renders bytes as plain text
+func (ctx *Context) PlainTextBytes(status int, bs []byte) {
+	ctx.plainTextInternal(2, status, bs)
 }
 
 // PlainText renders content as plain text
 func (ctx *Context) PlainText(status int, text string) {
-	ctx.PlainTextBytes(status, []byte(text))
+	ctx.plainTextInternal(2, status, []byte(text))
 }
 
 // RespHeader returns the response header
@@ -362,7 +369,7 @@ func (ctx *Context) ServeStream(rd io.Reader, name string) {
 
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
-	var v = http.StatusText(status)
+	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]
 	}
@@ -606,16 +613,16 @@ func Auth(authMethod auth.Method) func(*Context) {
 
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
-	var csrfOpts = getCsrfOpts()
+	rnd := templates.HTMLRenderer()
+	csrfOpts := getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			var locale = middleware.Locale(resp, req)
-			var startTime = time.Now()
-			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			link := setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 
-			var ctx = Context{
+			ctx := Context{
 				Resp:    NewResponse(resp),
 				Cache:   mc.GetCache(),
 				Locale:  locale,

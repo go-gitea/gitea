@@ -286,6 +286,10 @@
 							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
 							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
 						</div>
+					</div>
+					<div class="oauth2_use_custom_url inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.oauth2_use_custom_url"}}</strong></label>
 							<input id="oauth2_use_custom_url" name="oauth2_use_custom_url" type="checkbox" {{if $cfg.CustomURLMapping}}checked{{end}}>
 						</div>
 					</div>

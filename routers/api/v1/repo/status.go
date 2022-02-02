@@ -176,7 +176,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 		return
 	}
 
-	getCommitStatuses(ctx, filter) //By default filter is maybe the raw SHA
+	getCommitStatuses(ctx, filter) // By default filter is maybe the raw SHA
 }
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {

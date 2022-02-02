@@ -136,7 +136,7 @@ func (fc *fileCollector) collectFiles() (res [][]string, err error) {
 }
 
 // substArgFiles expands the {file-list} to a real file list for commands
-func substArgFiles(args []string, files []string) []string {
+func substArgFiles(args, files []string) []string {
 	for i, s := range args {
 		if s == "{file-list}" {
 			newArgs := append(args[:i], files...)

@@ -27,7 +27,7 @@ COMMA := ,
 XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
-MIN_GOLANGCI_LINT_VERSION := 001043000
+MIN_GOLANGCI_LINT_VERSION := 001044000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -233,6 +233,11 @@ clean:
 fmt:
 	@echo "Running gitea-fmt(with gofmt)..."
 	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
+	@echo "Running gofumpt"
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
+	@gofumpt -w -l -extra -lang 1.16 .
 
 .PHONY: vet
 vet:

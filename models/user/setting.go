@@ -31,8 +31,8 @@ func init() {
 	db.RegisterModel(new(Setting))
 }
 
-// GetSettings returns specific settings from user
-func GetSettings(uid int64, keys []string) (map[string]*Setting, error) {
+// GetUserSettings returns specific settings from user
+func GetUserSettings(uid int64, keys []string) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
@@ -62,21 +62,53 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 	return settingsMap, nil
 }
 
-// DeleteSetting deletes a specific setting for a user
-func DeleteSetting(setting *Setting) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
+func validateUserSettingKey(key string) error {
+	if len(key) == 0 {
+		return fmt.Errorf("setting key must be set")
+	}
+	if strings.ToLower(key) != key {
+		return fmt.Errorf("setting key should be lowercase")
+	}
+	return nil
+}
+
+// GetUserSetting gets a specific setting for a user
+func GetUserSetting(userID int64, key string, def ...string) (string, error) {
+	if err := validateUserSettingKey(key); err != nil {
+		return "", err
+	}
+	setting := &Setting{UserID: userID, SettingKey: key}
+	has, err := db.GetEngine(db.DefaultContext).Get(setting)
+	if err != nil {
+		return "", err
+	}
+	if !has {
+		if len(def) == 1 {
+			return def[0], nil
+		}
+		return "", nil
+	}
+	return setting.SettingValue, nil
+}
+
+// DeleteUserSetting deletes a specific setting for a user
+func DeleteUserSetting(userID int64, key string) error {
+	if err := validateUserSettingKey(key); err != nil {
+		return err
+	}
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Setting{UserID: userID, SettingKey: key})
 	return err
 }
 
-// SetSetting updates a users' setting for a specific key
-func SetSetting(setting *Setting) error {
-	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
-		return fmt.Errorf("setting key should be lowercase")
+// SetUserSetting updates a users' setting for a specific key
+func SetUserSetting(userID int64, key, value string) error {
+	if err := validateUserSettingKey(key); err != nil {
+		return err
 	}
-	return upsertSettingValue(setting.UserID, setting.SettingKey, setting.SettingValue)
+	return upsertUserSettingValue(userID, key, value)
 }
 
-func upsertSettingValue(userID int64, key, value string) error {
+func upsertUserSettingValue(userID int64, key, value string) error {
 	return db.WithTx(func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 

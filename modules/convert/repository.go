@@ -40,7 +40,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		}
 	}
 
-	//check enabled/disabled units
+	// check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -125,6 +125,13 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		}
 	}
 
+	var language string
+	if repo.PrimaryLanguage != nil {
+		language = repo.PrimaryLanguage.Language
+	}
+
+	repoAPIURL := repo.APIURL()
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     ToUserWithAccessMode(repo.Owner, mode),
@@ -144,6 +151,8 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		CloneURL:                  cloneLink.HTTPS,
 		OriginalURL:               repo.SanitizedOriginalURL(),
 		Website:                   repo.Website,
+		Language:                  language,
+		LanguagesURL:              repoAPIURL + "/languages",
 		Stars:                     repo.NumStars,
 		Forks:                     repo.NumForks,
 		Watchers:                  repo.NumWatches,

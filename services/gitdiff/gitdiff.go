@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
@@ -30,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -190,9 +188,11 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-var unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
-var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
-var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
+var (
+	unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
+	trailingSpanRegex  = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
+	entityRegex        = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
+)
 
 // shouldWriteInline represents combinations where we manually write inline changes
 func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
@@ -206,7 +206,6 @@ func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
 }
 
 func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
-
 	// Create a new array to store our fixed up blocks
 	fixedup := make([]diffmatchpatch.Diff, 0, len(diffs))
 
@@ -658,10 +657,10 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 			LastRightIdx: lastLine.RightIdx,
 			LeftIdx:      leftLineCount,
 			RightIdx:     rightLineCount,
-		}}
+		},
+	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
 	return tailSection
-
 }
 
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
@@ -942,8 +941,8 @@ parsingLoop:
 	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
-	var diffLineTypeBuffers = make(map[DiffLineType]*bytes.Buffer, 3)
-	var diffLineTypeDecoders = make(map[DiffLineType]*encoding.Decoder, 3)
+	diffLineTypeBuffers := make(map[DiffLineType]*bytes.Buffer, 3)
+	diffLineTypeDecoders := make(map[DiffLineType]*encoding.Decoder, 3)
 	diffLineTypeBuffers[DiffLinePlain] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
@@ -1321,10 +1320,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		return nil, err
 	}
 
-	timeout := time.Duration(setting.Git.Timeout.Default) * time.Second
-	ctx, _, finished := process.GetManager().AddContextTimeout(gitRepo.Ctx, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
-	defer finished()
-
 	argsLength := 6
 	if len(opts.WhitespaceBehavior) > 0 {
 		argsLength++
@@ -1374,21 +1369,28 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		diffArgs = append(diffArgs, files...)
 	}
 
-	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
+	reader, writer := io.Pipe()
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
 
-	cmd.Dir = repoPath
-	cmd.Stderr = os.Stderr
+	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
+		cmd := git.NewCommandContext(ctx, diffArgs...)
+		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+		if err := cmd.RunWithContext(&git.RunContext{
+			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
+			Dir:     repoPath,
+			Stderr:  os.Stderr,
+			Stdout:  writer,
+		}); err != nil {
+			log.Error("error during RunWithContext: %w", err)
+		}
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, fmt.Errorf("error creating StdoutPipe: %w", err)
-	}
+		_ = writer.Close()
+	}(gitRepo.Ctx, diffArgs, repoPath, writer)
 
-	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("error during Start: %w", err)
-	}
-
-	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, stdout, parsePatchSkipToFile)
+	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
 	if err != nil {
 		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
@@ -1407,7 +1409,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				IndexFile:  indexFilename,
 				WorkTree:   worktree,
 			}
-			ctx, cancel := context.WithCancel(ctx)
+			ctx, cancel := context.WithCancel(gitRepo.Ctx)
 			if err := checker.Init(ctx); err != nil {
 				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 			} else {
@@ -1471,10 +1473,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		}
 	}
 
-	if err = cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("error during cmd.Wait: %w", err)
-	}
-
 	separator := "..."
 	if opts.DirectComparison {
 		separator = ".."
@@ -1484,12 +1482,12 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
 		shortstatArgs = []string{git.EmptyTreeSHA, opts.AfterCommitID}
 	}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(ctx, repoPath, shortstatArgs...)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
 		shortstatArgs = []string{opts.BeforeCommitID, opts.AfterCommitID}
-		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(ctx, repoPath, shortstatArgs...)
+		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(gitRepo.Ctx, repoPath, shortstatArgs...)
 	}
 	if err != nil {
 		return nil, err
@@ -1539,7 +1537,8 @@ func GetWhitespaceFlag(whiteSpaceBehavior string) string {
 		"ignore-all":    "-w",
 		"ignore-change": "-b",
 		"ignore-eol":    "--ignore-space-at-eol",
-		"":              ""}
+		"":              "",
+	}
 
 	return whitespaceFlags[whiteSpaceBehavior]
 }

@@ -99,7 +99,7 @@ const (
 	// 28 merge pull request
 	CommentTypeMergePull
 	// 29 push to PR head branch
-	CommentTypePullPush
+	CommentTypePullRequestPush
 	// 30 Project changed
 	CommentTypeProject
 	// 31 Project board changed
@@ -725,7 +725,7 @@ func (c *Comment) CodeCommentURL() string {
 
 // LoadPushCommits Load push commits
 func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
 		return nil
 	}
 
@@ -1325,7 +1325,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 	}
 
 	ops := &CreateCommentOptions{
-		Type: CommentTypePullPush,
+		Type: CommentTypePullRequestPush,
 		Doer: pusher,
 		Repo: pr.BaseRepo,
 	}
@@ -1464,3 +1464,20 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	}
 	return nil
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
+	c.OriginalAuthor = externalName
+	c.OriginalAuthorID = externalID
+	c.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (c *Comment) GetUserID() int64 { return c.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }

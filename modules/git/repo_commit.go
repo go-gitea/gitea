@@ -88,7 +88,6 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
 	stdout, err := NewCommandContext(repo.Ctx, "log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
 		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
-
 	if err != nil {
 		return nil, err
 	}

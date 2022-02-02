@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -358,6 +359,18 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
+	var hiddenCommentTypes *big.Int
+	val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
+	if err != nil {
+		ctx.ServerError("GetUserSetting", err)
+		return
+	}
+	hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
+
+	ctx.Data["IsCommentTypeGroupChecked"] = func(commentTypeGroup string) bool {
+		return forms.IsUserHiddenCommentTypeGroupChecked(commentTypeGroup, hiddenCommentTypes)
+	}
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 
@@ -415,5 +428,17 @@ func UpdateUserLang(ctx *context.Context) {
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+}
 
+// UpdateUserHiddenComments update a user's shown comment types
+func UpdateUserHiddenComments(ctx *context.Context) {
+	err := user_model.SetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
+	if err != nil {
+		ctx.ServerError("SetUserSetting", err)
+		return
+	}
+
+	log.Trace("User settings updated: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }

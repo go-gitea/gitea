@@ -79,16 +79,22 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf strings.Builder
-	if err := NewCommandContext(repo.Ctx, "log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
-		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
-			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
-			return true, nil
-		}
+	var errbuf, output strings.Builder
+	if err := NewCommandContext(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  &output,
+			Stderr:  &errbuf,
+		}); err != nil {
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	return false, nil
+	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
+	if err != nil {
+		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
+	}
+	return c == 0, nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -101,12 +107,13 @@ type CloneRepoOptions struct {
 	Shared     bool
 	NoCheckout bool
 	Depth      int
+	Filter     string
 }
 
 // Clone clones original repository to target path.
 func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)
 }
 
@@ -136,7 +143,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	if opts.Depth > 0 {
 		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
 	}
-
+	if opts.Filter != "" {
+		cmd.AddArguments("--filter", opts.Filter)
+	}
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
@@ -146,7 +155,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	var envs = os.Environ()
+	envs := os.Environ()
 	u, err := url.Parse(from)
 	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
 		if proxy.Match(u.Host) {
@@ -154,7 +163,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		}
 	}
 
-	var stderr = new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 	if err = cmd.RunWithContext(&RunContext{
 		Timeout: opts.Timeout,
 		Env:     envs,

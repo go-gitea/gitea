@@ -172,7 +172,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		w.Close()
 		rd.Close()
 	}()
-	var done = make(chan error)
+	done := make(chan error)
 	repo, err := repo_model.GetRepositoryByID(archiver.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
@@ -246,7 +246,7 @@ var archiverQueue queue.UniqueQueue
 
 // Init initlize archive
 func Init() error {
-	handler := func(data ...queue.Data) {
+	handler := func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
 			archiveReq, ok := datum.(*ArchiveRequest)
 			if !ok {
@@ -258,6 +258,7 @@ func Init() error {
 				log.Error("Archive %v failed: %v", datum, err)
 			}
 		}
+		return nil
 	}
 
 	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))

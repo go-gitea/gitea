@@ -18,7 +18,7 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 
 	// don't use the default gothic begin handler to prevent issues when some error occurs
 	// normally the gothic library will write some custom stuff to the response instead of our own nice error page
-	//gothic.BeginAuthHandler(response, request)
+	// gothic.BeginAuthHandler(response, request)
 
 	gothRWMutex.RLock()
 	defer gothRWMutex.RUnlock()

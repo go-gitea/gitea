@@ -42,7 +42,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
-	var toc = []Header{}
+	toc := []Header{}
 	rc := &RenderConfig{
 		Meta: "table",
 		Icon: "table",
