@@ -73,6 +73,7 @@ async function main() {
   await Promise.all([
     generate(svg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
     generate(svg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
+    generate(svg, resolve(__dirname, '../public/img/favicon.svg'), {size: 32}),
     generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
     generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
     generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
