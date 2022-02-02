@@ -22,7 +22,7 @@ func validType(t string) (Type, error) {
 			return typ, nil
 		}
 	}
-	return PersistableChannelQueueType, fmt.Errorf("Unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
+	return PersistableChannelQueueType, fmt.Errorf("unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
 }
 
 func getQueueSettings(name string) (setting.QueueSettings, []byte) {
@@ -65,6 +65,16 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 		log.Error("Unable to create queue for %s: %v", name, err)
 		return nil
 	}
+
+	// Sanity check configuration
+	if q.Workers == 0 && (q.BoostTimeout == 0 || q.BoostWorkers == 0 || q.MaxWorkers == 0) {
+		log.Warn("Queue: %s is configured to be non-scaling and have no workers\n - this configuration is likely incorrect and could cause Gitea to block", q.Name)
+		if pausable, ok := returnable.(Pausable); ok {
+			log.Warn("Queue: %s is being paused to prevent data-loss, add workers manually and unpause.", q.Name)
+			pausable.Pause()
+		}
+	}
+
 	return returnable
 }
 
@@ -103,5 +113,15 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 		log.Error("Unable to create unique queue for %s: %v", name, err)
 		return nil
 	}
+
+	// Sanity check configuration
+	if q.Workers == 0 && (q.BoostTimeout == 0 || q.BoostWorkers == 0 || q.MaxWorkers == 0) {
+		log.Warn("Queue: %s is configured to be non-scaling and have no workers\n - this configuration is likely incorrect and could cause Gitea to block", q.Name)
+		if pausable, ok := returnable.(Pausable); ok {
+			log.Warn("Queue: %s is being paused to prevent data-loss, add workers manually and unpause.", q.Name)
+			pausable.Pause()
+		}
+	}
+
 	return returnable.(UniqueQueue)
 }

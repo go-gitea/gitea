@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initRepoBranchButton() {
   $('.show-create-branch-modal').on('click', function () {
     let modalFormName = $(this).data('modal-form');

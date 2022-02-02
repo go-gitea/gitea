@@ -4,13 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.16.0-rc1) - 2022-01-19
+## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-30
 
 * BREAKING
   * Remove golang vendored directory (#18277)
   * Paginate releases page & set default page size to 10 (#16857)
+  * Use shadowing script for docker (#17846)
   * Only allow webhook to send requests to allowed hosts (#17482)
 * SECURITY
+  * Disable content sniffing on `PlainTextBytes` (#18359) (#18365)
+  * Only view milestones from current repo (#18414) (#18417)
   * Sanitize user-input on file name (#17666)
   * Use `hostmatcher` to replace `matchlist` to improve blocking of bad hosts in Webhooks (#17605)
 * FEATURES
@@ -228,6 +231,16 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add left padding for chunk header of split diff view (#13397)
   * Allow U2F 2FA without TOTP (#11573)
 * BUGFIXES
+  * GitLab reviews may not have the updated_at field set (#18450) (#18461)
+  * Fix detection of no commits when the default branch is not master (#18422) (#18423)
+  * Fix broken oauth2 authentication source edit page (#18412) (#18419)
+  * Place inline diff comment dialogs on split diff in 4th and 8th columns (#18403) (#18404)
+  * Fix restore without topic failure (#18387) (#18400)
+  * Fix commit's time (#18375) (#18392)
+  * Fix partial cloning a repo (#18373) (#18377)
+  * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
+  * Prevent showing webauthn error for every time visiting `/user/settings/security` (#18386)
+  * Fix mime-type detection for HTTP server (#18370) (#18371)
   * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
   * Restore propagation of ErrDependenciesLeft (#18325)
   * Fix PR comments UI (#18323)
@@ -295,9 +308,21 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUILD
   * Add lockfile-check (#18285)
   * Don't store assets modified time into generated files (#18193)
-  * Use shadowing script for docker (#17846)
 * MISC
   * Update JS dependencies (#17611)
+
+## [1.15.11](https://github.com/go-gitea/gitea/releases/tag/v1.15.11) - 2022-01-29
+
+* SECURITY
+  * Only view milestones from current repo (#18414) (#18418)
+* BUGFIXES
+  * Fix broken when no commits and default branch is not master (#18422) (#18424)
+  * Fix commit's time (#18375) (#18409)
+  * Fix restore without topic failure (#18387) (#18401)
+  * Fix mermaid import in 1.15 (it uses ESModule now) (#18382)
+  * Update to go/text 0.3.7 (#18336)
+* MISC
+  * Upgrade EasyMDE to 2.16.1 (#18278) (#18279)
 
 ## [1.15.10](https://github.com/go-gitea/gitea/releases/tag/v1.15.10) - 2022-01-14
 
