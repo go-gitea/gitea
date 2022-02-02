@@ -274,15 +274,15 @@ func GetRepoTeams(repo *repo_model.Repository) ([]*Team, error) {
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	if repo.OwnerID == user.ID {
+func IsOwnerMemberCollaborator(repo *repo_model.Repository, userID int64) (bool, error) {
+	if repo.OwnerID == userID {
 		return true, nil
 	}
 	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
 		And("team_unit.`type` = ?", unit.TypeCode).
-		And("team_user.uid = ?", user.ID).Table("team_user").Exist(&TeamUser{})
+		And("team_user.uid = ?", userID).Table("team_user").Exist(&TeamUser{})
 	if err != nil {
 		return false, err
 	}
@@ -290,5 +290,5 @@ func IsOwnerMemberCollaborator(repo *repo_model.Repository, user *user_model.Use
 		return true, nil
 	}
 
-	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: user.ID})
+	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }
