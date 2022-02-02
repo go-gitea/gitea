@@ -830,7 +830,7 @@ func validateUser(u *User) error {
 // updateUserAllowed is used to block updating selected user fields when local user managemement is disabled.
 func updateUserAllowed(u *User) error {
 	// Don't allow changes of selected user fields if local user management is disabled.
-	if setting.Service.DisableLocalUserManagement && (u.Type == UserTypeIndividual) {
+	if setting.Service.DisableLocalUserManagement && u.Type == UserTypeIndividual {
 		if currUser, err := GetUserByID(u.ID); err == nil {
 			if currUser.Name != u.Name {
 				return fmt.Errorf("cannot change user %s username; local user management disabled", u.Name)

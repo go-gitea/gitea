@@ -118,7 +118,6 @@ func isKeywordValid(keyword string) bool {
 
 // ActivateEmail serves a POST request for activating/deactivating a user's email
 func ActivateEmail(ctx *context.Context) {
-
 	// Don't allow to activate/deactivate emails if local user management is disabled.
 	if setting.Service.DisableLocalUserManagement {
 		ctx.ServerError("ActivateEmail", fmt.Errorf("cannot activate email; local user management disabled"))
