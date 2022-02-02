@@ -319,7 +319,7 @@ func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamRepos"] = true
-	if err := ctx.Org.Team.GetRepositories(&models.SearchTeamOptions{}); err != nil {
+	if err := ctx.Org.Team.GetRepositories(&models.SearchOrgTeamOptions{}); err != nil {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}

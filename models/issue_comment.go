@@ -1464,3 +1464,20 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	}
 	return nil
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
+	c.OriginalAuthor = externalName
+	c.OriginalAuthorID = externalID
+	c.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (c *Comment) GetUserID() int64 { return c.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }
