@@ -6,7 +6,8 @@
     max-width: 60vw;
 
     & .ui.right {
-      // Override the .ui.attached.header .right:not(.dropdown) height: 30px;
+      // Override `.ui.attached.header .right:not(.dropdown) height: 30px;` which would otherwise lead to
+      // the status popup box having its height fixed at 30px. See https://github.com/go-gitea/gitea/issues/18498
       height: auto;
     }
 
