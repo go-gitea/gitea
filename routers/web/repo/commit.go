@@ -351,7 +351,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+		return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
