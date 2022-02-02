@@ -52,12 +52,10 @@
 								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 						{{end}}
-						{{if not DisableGitHooks}}
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
 							<td><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
-						{{end}}
 						<tr>
 							<td>{{.i18n.Tr "admin.dashboard.reinit_missing_repos"}}</td>
 							<td><button type="submit" class="ui green button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>

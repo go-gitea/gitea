@@ -160,9 +160,7 @@ func initExtendedTasks() {
 	registerGarbageCollectRepositories()
 	registerRewriteAllPublicKeys()
 	registerRewriteAllPrincipalKeys()
-	if !setting.DisableGitHooks {
-		registerRepositoryUpdateHook()
-	}
+	registerRepositoryUpdateHook()
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
