@@ -134,7 +134,7 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 		// Init repository in dstPath
 		assert.NoError(t, git.InitRepository(git.DefaultContext, dstPath, false))
 		// forcibly set default branch to master
-		_, err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(dstPath)
 		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0o644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
@@ -153,28 +153,28 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 
 func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("remote", "add", remoteName, u.String()).RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, "remote", "add", remoteName, u.String()).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
 
 func doGitPushTestRepository(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand(append([]string{"push", "-u"}, args...)...).RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, append([]string{"push", "-u"}, args...)...).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
 
 func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand(append([]string{"push"}, args...)...).RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, append([]string{"push"}, args...)...).RunInDir(dstPath)
 		assert.Error(t, err)
 	}
 }
 
 func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("checkout", "-b", branch).RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, "checkout", "-b", branch).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
@@ -188,7 +188,7 @@ func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
 
 func doGitMerge(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand(append([]string{"merge"}, args...)...).RunInDir(dstPath)
+		_, err := git.NewCommandContext(git.DefaultContext, append([]string{"merge"}, args...)...).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
