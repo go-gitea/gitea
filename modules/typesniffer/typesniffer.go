@@ -34,38 +34,43 @@ type SniffedType struct {
 
 // IsText etects if content format is plain text.
 func (ct SniffedType) IsText() bool {
-	return strings.Contains(ct.contentType, "text/")
+	return strings.HasPrefix(ct.contentType, "text/")
 }
 
 // IsImage detects if data is an image format
 func (ct SniffedType) IsImage() bool {
-	return strings.Contains(ct.contentType, "image/")
+	return strings.HasPrefix(ct.contentType, "image/")
 }
 
 // IsSvgImage detects if data is an SVG image format
 func (ct SniffedType) IsSvgImage() bool {
-	return strings.Contains(ct.contentType, SvgMimeType)
+	return strings.HasPrefix(ct.contentType, SvgMimeType)
 }
 
 // IsPDF detects if data is a PDF format
 func (ct SniffedType) IsPDF() bool {
-	return strings.Contains(ct.contentType, "application/pdf")
+	return strings.HasPrefix(ct.contentType, "application/pdf")
 }
 
 // IsVideo detects if data is an video format
 func (ct SniffedType) IsVideo() bool {
-	return strings.Contains(ct.contentType, "video/")
+	return strings.HasPrefix(ct.contentType, "video/")
 }
 
 // IsAudio detects if data is an video format
 func (ct SniffedType) IsAudio() bool {
-	return strings.Contains(ct.contentType, "audio/")
+	return strings.HasPrefix(ct.contentType, "audio/")
 }
 
 // IsRepresentableAsText returns true if file content can be represented as
 // plain text or is empty.
 func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
+}
+
+// Mime return the mime
+func (ct SniffedType) Mime() string {
+	return strings.Split(ct.contentType, ";")[0]
 }
 
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
@@ -80,8 +85,8 @@ func DetectContentType(data []byte) SniffedType {
 		data = data[:sniffLen]
 	}
 
-	if (strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
-		strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
+	if (strings.HasPrefix(ct, "text/plain") || strings.HasPrefix(ct, "text/html")) && svgTagRegex.Match(data) ||
+		strings.HasPrefix(ct, "text/xml") && svgTagInXMLRegex.Match(data) {
 		// SVG is unsupported. https://github.com/golang/go/issues/15888
 		ct = SvgMimeType
 	}
@@ -89,24 +94,22 @@ func DetectContentType(data []byte) SniffedType {
 	return SniffedType{ct}
 }
 
-func DetectContentTypeExtFirst(name string, readSeekerOrBytes interface{}) (SniffedType, error) {
-	// we can merge `setting.MimeTypeMap` by mime.AddExtensionType()
+// DetectContentTypeExtFirst
+// detect content type by `name` first, if not found, detect by `reader`
+// Note: you may need `reader.Seek(0, io.SeekStart)` to reset the offset
+func DetectContentTypeExtFirst(name string, bytesOrReader interface{}) (SniffedType, error) {
 	ct := mime.TypeByExtension(filepath.Ext(name))
-	if ct != "" && !strings.Contains(ct, "text/") {
+	if ct != "" && !strings.HasPrefix(ct, "text/") {
 		return SniffedType{ct}, nil
 	}
-	if r, ok := readSeekerOrBytes.(io.ReadSeeker); ok {
+	if r, ok := bytesOrReader.(io.Reader); ok {
 		st, err := DetectContentTypeFromReader(r)
-		if nil != err {
-			return SniffedType{}, err
-		}
-		_, err = r.Seek(0, io.SeekStart)
 		if nil != err {
 			return SniffedType{}, err
 		}
 		return st, nil
 	}
-	return DetectContentType(readSeekerOrBytes.([]byte)), nil
+	return DetectContentType(bytesOrReader.([]byte)), nil
 }
 
 // DetectContentTypeFromReader guesses the content type contained in the reader.
