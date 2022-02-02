@@ -23,9 +23,6 @@ env:
 
 globals:
   __webpack_public_path__: true
-  CodeMirror: false
-  Dropzone: false
-  SimpleMDE: false
 
 settings:
   html/html-extensions: [".tmpl"]
@@ -34,7 +31,6 @@ overrides:
   - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl"]
     env:
       browser: true
-      jquery: true
       node: false
   - files: ["templates/**/*.tmpl"]
     rules:

@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {stripTags} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;

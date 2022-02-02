@@ -57,14 +57,12 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	ctx, cancel := context.WithCancel(context.Background())
 
 	dataChan := make(chan Data, config.QueueLength)
-	resumed := make(chan struct{})
-	close(resumed)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
-		resumed:            resumed,
+		resumed:            closedChan,
 		paused:             make(chan struct{}),
 		handle:             handle,
 		blockTimeout:       config.BlockTimeout,
@@ -120,7 +118,7 @@ func (p *WorkerPool) zeroBoost() {
 		boost = p.maxNumberOfWorkers - p.numberOfWorkers
 	}
 	if mq != nil {
-		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
+		log.Debug("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
 
 		start := time.Now()
 		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
@@ -128,7 +126,7 @@ func (p *WorkerPool) zeroBoost() {
 			mq.RemoveWorkers(pid)
 		}
 	} else {
-		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+		log.Debug("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
 	}
 	p.lock.Unlock()
 	p.addWorkers(ctx, cancel, boost)
@@ -165,7 +163,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				boost = p.maxNumberOfWorkers - p.numberOfWorkers
 			}
 			if mq != nil {
-				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
 				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), boostCtxCancel, false)
@@ -175,7 +173,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 					boostCtxCancel()
 				}()
 			} else {
-				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)
@@ -303,9 +301,14 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				cancel()
 			}
 			if p.hasNoWorkerScaling() {
-				log.Warn(
-					"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
-						"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				select {
+				case <-p.baseCtx.Done():
+					// Don't warn if the baseCtx is shutdown
+				default:
+					log.Warn(
+						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
+							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+				}
 				p.pause()
 			}
 			p.lock.Unlock()

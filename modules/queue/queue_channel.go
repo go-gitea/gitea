@@ -93,7 +93,7 @@ func (q *ChannelQueue) Run(atShutdown, atTerminate func(func())) {
 // Push will push data into the queue
 func (q *ChannelQueue) Push(data Data) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
 	}
 	q.WorkerPool.Push(data)
 	return nil
@@ -117,7 +117,10 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 		select {
 		case <-paused:
 			return nil
-		case data := <-q.dataChan:
+		case data, ok := <-q.dataChan:
+			if !ok {
+				return nil
+			}
 			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}

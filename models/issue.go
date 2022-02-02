@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1859,10 +1860,15 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 }
 
 // SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
+func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	kw = strings.ToUpper(kw)
+	// SQLite's UPPER function only transforms ASCII letters.
+	if setting.Database.UseSQLite3 {
+		kw = util.ToUpperASCII(kw)
+	} else {
+		kw = strings.ToUpper(kw)
+	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
@@ -1884,7 +1890,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ID          int64
 		UpdatedUnix int64
 	}, 0, limit)
-	err := db.GetEngine(db.DefaultContext).Distinct("id", "updated_unix").Table("issue").Where(cond).
+	err := db.GetEngine(ctx).Distinct("id", "updated_unix").Table("issue").Where(cond).
 		OrderBy("`updated_unix` DESC").Limit(limit, start).
 		Find(&res)
 	if err != nil {
@@ -1894,7 +1900,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ids = append(ids, r.ID)
 	}
 
-	total, err := db.GetEngine(db.DefaultContext).Distinct("id").Table("issue").Where(cond).Count()
+	total, err := db.GetEngine(ctx).Distinct("id").Table("issue").Where(cond).Count()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -2323,3 +2329,20 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	return
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (issue *Issue) RemapExternalUser(externalName string, externalID, userID int64) error {
+	issue.OriginalAuthor = externalName
+	issue.OriginalAuthorID = externalID
+	issue.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (issue *Issue) GetUserID() int64 { return issue.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
