@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Remove golang vendored directory (#18277)
   * Paginate releases page & set default page size to 10 (#16857)
+  * Use shadowing script for docker (#17846)
   * Only allow webhook to send requests to allowed hosts (#17482)
 * SECURITY
   * Disable content sniffing on `PlainTextBytes` (#18359) (#18365)
@@ -307,7 +308,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUILD
   * Add lockfile-check (#18285)
   * Don't store assets modified time into generated files (#18193)
-  * Use shadowing script for docker (#17846)
 * MISC
   * Update JS dependencies (#17611)
 
