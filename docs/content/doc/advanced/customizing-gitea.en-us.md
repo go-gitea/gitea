@@ -61,7 +61,7 @@ the url `http://gitea.domain.tld/assets/image.png`.
 ## Changing the logo
 
 To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
-`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+`make generate-images`. `assets/favicon.svg` is a separate copy of `assets/logo.svg` and used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
 - `public/img/logo.svg` - Used for site icon, app icon
 - `public/img/logo.png` - Used for Open Graph
