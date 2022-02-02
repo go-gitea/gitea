@@ -45,8 +45,8 @@ func (c *Command) String() string {
 	return fmt.Sprintf("%s %s", c.name, strings.Join(c.args, " "))
 }
 
-// NewCommandContext creates and returns a new Git Command based on given command and arguments.
-func NewCommandContext(ctx context.Context, args ...string) *Command {
+// NewCommand creates and returns a new Git Command based on given command and arguments.
+func NewCommand(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)

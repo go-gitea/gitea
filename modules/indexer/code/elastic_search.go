@@ -222,7 +222,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
+		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {
 			return nil, err

@@ -54,7 +54,7 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, err := NewCommandContext(context.Background(), "version").Run()
+	stdout, err := NewCommand(context.Background(), "version").Run()
 	if err != nil {
 		return err
 	}
@@ -299,6 +299,6 @@ func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...s
 	if timeout <= 0 {
 		timeout = -1
 	}
-	_, err := NewCommandContext(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	_, err := NewCommand(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }

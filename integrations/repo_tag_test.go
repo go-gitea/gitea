@@ -66,10 +66,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, err = git.NewCommandContext(git.DefaultContext, "tag", "v-2").RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "tag", "v-2").RunInDir(dstPath)
 			assert.NoError(t, err)
 
-			_, err = git.NewCommandContext(git.DefaultContext, "push", "--tags").RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunInDir(dstPath)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
