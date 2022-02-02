@@ -47,12 +47,26 @@ func Kitspace(ctx *context.Context) {
 	req, _ := http.NewRequest("GET", url.String(), bytes.NewBuffer(b))
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	// a http client that doesn't follow redirects, since we want the user's
+	// browser to get the redirect status codes instead
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	resp, err := client.Do(req)
+
 	if err != nil {
 		panic(err)
 	}
 
 	ctx.Resp.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+
+	location := resp.Header.Get("Location")
+	if location != "" {
+		ctx.Resp.Header().Set("Location", location)
+	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
