@@ -625,7 +625,7 @@ func Str2html(raw string) template.HTML {
 }
 
 // RenderMarkup render markdown/markup specified in type to sanitized HTML
-func RenderMarkup(markupType string, raw string) template.HTML {
+func RenderMarkup(markupType, raw string) template.HTML {
 	var err error
 	var renderedContent string
 
