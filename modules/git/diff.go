@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // RawDiffType type of a raw diff.
@@ -37,15 +38,14 @@ func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("GetReverseRawDiff: [repo_path: %s]", repoPath))
 	defer finished()
 
-	cmd := exec.CommandContext(ctx, GitExecutable, "show", "--pretty=format:revert %H%n", "-R", commitID)
-
 	stderr := new(bytes.Buffer)
-
-	cmd.Dir = repoPath
-	cmd.Stdout = writer
-	cmd.Stderr = stderr
-
-	if err := cmd.Run(); err != nil {
+	cmd := NewCommandContext(ctx, "show", "--pretty=format:revert %H%n", "-R", commitID)
+	if err := cmd.RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repoPath,
+		Stdout:  writer,
+		Stderr:  stderr,
+	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
 	return nil
