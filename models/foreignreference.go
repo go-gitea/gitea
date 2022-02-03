@@ -11,7 +11,7 @@ import (
 // ForeignReference represents external references
 type ForeignReference struct {
 	LocalID   int64  `xorm:"INDEX"`
-	ForeignID int64  `xorm:"INDEX UNIQUE(external_reference_index)"`
+	ForeignID string `xorm:"INDEX UNIQUE(external_reference_index)"`
 	RepoID    int64  `xorm:"INDEX UNIQUE(external_reference_index)"`
 	Type      string `xorm:"INDEX UNIQUE(external_reference_index)"`
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -550,7 +551,7 @@ func TestIssueForeignReference(t *testing.T) {
 
 	_, err = db.GetEngine(db.DefaultContext).Insert(&ForeignReference{
 		LocalID:   issue.ID,
-		ForeignID: foreignID,
+		ForeignID: strconv.FormatInt(foreignID, 10),
 		RepoID:    issue.RepoID,
 		Type:      "issue",
 	})
@@ -559,7 +560,7 @@ func TestIssueForeignReference(t *testing.T) {
 	err = issue.LoadAttributes()
 	assert.NoError(t, err)
 
-	assert.EqualValues(t, issue.ForeignReference.ForeignID, foreignID)
+	assert.EqualValues(t, issue.ForeignReference.ForeignID, strconv.FormatInt(foreignID, 10))
 
 	found, err := GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
 	assert.NoError(t, err)

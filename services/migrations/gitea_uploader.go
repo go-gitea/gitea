@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2019-2022 The Gitea Authors. All rights reserved.
 // Copyright 2018 Jonas Franz. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -375,7 +376,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 			ForeignReference: &models.ForeignReference{
 				LocalID:   issue.GetLocalID(),
-				ForeignID: issue.GetForeignID(),
+				ForeignID: strconv.FormatInt(issue.GetForeignID(), 10),
 				RepoID:    g.repo.ID,
 				Type:      "issue",
 			},

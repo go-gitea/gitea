@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strconv"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -60,7 +61,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		Labels:      []*Label{label},
 		Reactions:   []*Reaction{reaction},
 		ForeignReference: &ForeignReference{
-			ForeignID: foreignID,
+			ForeignID: strconv.FormatInt(foreignID, 10),
 			RepoID:    repo.ID,
 			Type:      "issue",
 		},
@@ -72,7 +73,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	assert.Nil(t, i.ForeignReference)
 	err = i.LoadAttributes()
 	assert.NoError(t, err)
-	assert.EqualValues(t, foreignID, i.ForeignReference.ForeignID)
+	assert.EqualValues(t, strconv.FormatInt(foreignID, 10), i.ForeignReference.ForeignID)
 	unittest.AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 

@@ -1138,7 +1138,7 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 func GetIssueByForeignID(ctx context.Context, repoID, foreignID int64) (*Issue, error) {
 	reference := &ForeignReference{
 		RepoID:    repoID,
-		ForeignID: foreignID,
+		ForeignID: strconv.FormatInt(foreignID, 10),
 		Type:      "issue",
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
