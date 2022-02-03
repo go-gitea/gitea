@@ -883,7 +883,7 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: false
-      tags: ${DRONE_COMMIT_REF##refs/heads/release/v}${${DRONE_COMMIT_REF##refs/heads/release/v}:+-}dev-linux-amd64
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.cn
@@ -901,7 +901,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_COMMIT_REF##refs/heads/release/v}${${DRONE_COMMIT_REF##refs/heads/release/v}:+-}dev-linux-amd64-rootless
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.cn
@@ -1107,7 +1107,7 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: false
-      tags: ${DRONE_COMMIT_REF##refs/heads/release/v}${${DRONE_COMMIT_REF##refs/heads/release/v}:+-}dev-linux-arm64
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.cn
@@ -1125,7 +1125,7 @@ steps:
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: false
-      tags: ${DRONE_COMMIT_REF##refs/heads/release/v}${${DRONE_COMMIT_REF##refs/heads/release/v}:+-}dev-linux-arm64-rootless
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.cn
