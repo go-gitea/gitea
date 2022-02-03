@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -42,9 +41,9 @@ type GiteaLocalUploader struct {
 	repoOwner      string
 	repoName       string
 	repo           *repo_model.Repository
-	labels         sync.Map
-	milestones     sync.Map
-	issues         sync.Map
+	labels         map[string]*models.Label
+	milestones     map[string]int64
+	issues         map[int64]*models.Issue
 	gitRepo        *git.Repository
 	prHeadCache    map[string]struct{}
 	userMap        map[int64]int64 // external user id mapping to user id
@@ -59,6 +58,8 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
+		milestones:  make(map[string]int64),
+		issues:      make(map[int64]*models.Issue),
 		prHeadCache: make(map[string]struct{}),
 		userMap:     make(map[int64]int64),
 		prCache:     make(map[int64]*models.PullRequest),
@@ -201,7 +202,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 	}
 
 	for _, ms := range mss {
-		g.milestones.Store(ms.Name, ms.ID)
+		g.milestones[ms.Name] = ms.ID
 	}
 	return nil
 }
@@ -223,7 +224,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 		return err
 	}
 	for _, lb := range lbs {
-		g.labels.Store(lb.Name, lb)
+		g.labels[lb.Name] = lb
 	}
 	return nil
 }
@@ -333,19 +334,13 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	for _, issue := range issues {
 		var labels []*models.Label
 		for _, label := range issue.Labels {
-			lb, ok := g.labels.Load(label.Name)
+			lb, ok := g.labels[label.Name]
 			if ok {
-				labels = append(labels, lb.(*models.Label))
+				labels = append(labels, lb)
 			}
 		}
 
-		var milestoneID int64
-		if issue.Milestone != "" {
-			milestone, ok := g.milestones.Load(issue.Milestone)
-			if ok {
-				milestoneID = milestone.(int64)
-			}
-		}
+		milestoneID := g.milestones[issue.Milestone]
 
 		if issue.Created.IsZero() {
 			if issue.Closed != nil {
@@ -404,7 +399,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		for _, is := range iss {
-			g.issues.Store(is.Index, is)
+			g.issues[is.Index] = is
 		}
 	}
 
@@ -416,16 +411,14 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	cms := make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issue *models.Issue
-		issueInter, ok := g.issues.Load(comment.IssueIndex)
+		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
 			var err error
 			issue, err = models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
 			if err != nil {
 				return err
 			}
-			g.issues.Store(comment.IssueIndex, issue)
-		} else {
-			issue = issueInter.(*models.Issue)
+			g.issues[comment.IssueIndex] = issue
 		}
 
 		if comment.Created.IsZero() {
@@ -487,7 +480,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		return err
 	}
 	for _, pr := range gprs {
-		g.issues.Store(pr.Issue.Index, pr.Issue)
+		g.issues[pr.Issue.Index] = pr.Issue
 		pull.AddToTaskQueue(pr)
 	}
 	return nil
@@ -496,19 +489,13 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
 	var labels []*models.Label
 	for _, label := range pr.Labels {
-		lb, ok := g.labels.Load(label.Name)
+		lb, ok := g.labels[label.Name]
 		if ok {
-			labels = append(labels, lb.(*models.Label))
+			labels = append(labels, lb)
 		}
 	}
 
-	var milestoneID int64
-	if pr.Milestone != "" {
-		milestone, ok := g.milestones.Load(pr.Milestone)
-		if ok {
-			milestoneID = milestone.(int64)
-		}
-	}
+	milestoneID := g.milestones[pr.Milestone]
 
 	// download patch file
 	err := func() error {
@@ -700,18 +687,15 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	cms := make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *models.Issue
-		issueInter, ok := g.issues.Load(review.IssueIndex)
+		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
 			var err error
 			issue, err = models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
 			if err != nil {
 				return err
 			}
-			g.issues.Store(review.IssueIndex, issue)
-		} else {
-			issue = issueInter.(*models.Issue)
+			g.issues[review.IssueIndex] = issue
 		}
-
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
 		}
