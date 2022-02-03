@@ -58,6 +58,7 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
+		labels:      make(map[string]*models.Label),
 		milestones:  make(map[string]int64),
 		issues:      make(map[int64]*models.Issue),
 		prHeadCache: make(map[string]struct{}),
