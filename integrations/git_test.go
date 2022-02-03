@@ -69,6 +69,12 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
+		dstPath2, err := os.MkdirTemp("", httpContext.Reponame)
+		assert.NoError(t, err)
+		defer util.RemoveAll(dstPath2)
+
+		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
+
 		little, big := standardCommitAndPushTest(t, dstPath)
 		littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
 		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
@@ -161,7 +167,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
-		err = git.CommitChangesWithArgs(dstPath, allowLFSFilters(), git.CommitChangesOptions{
+		err = git.CommitChangesWithArgs(dstPath, git.AllowLFSFiltersArgs(), git.CommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -340,7 +346,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 	// Commit
 	// Now here we should explicitly allow lfs filters to run
-	globalArgs := allowLFSFilters()
+	globalArgs := git.AllowLFSFiltersArgs()
 	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err

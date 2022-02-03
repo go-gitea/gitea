@@ -32,6 +32,11 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
+	if err := repos.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		return
+	}
+
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
 		access, err := models.AccessLevel(ctx.User, repos[i])

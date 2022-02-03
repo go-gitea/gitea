@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoMigrationStatusChecker() {

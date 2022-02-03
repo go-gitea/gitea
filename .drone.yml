@@ -305,7 +305,7 @@ steps:
 
   - name: coverage-codecov
     pull: always
-    image: plugins/codecov
+    image: woodpeckerci/plugin-codecov:next-alpine
     settings:
       files:
         - coverage.all
@@ -567,7 +567,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -588,7 +588,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -641,6 +641,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on: [fetch-tags]
 
   - name: gpg-sign
     pull: always
@@ -656,6 +657,7 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
+    depends_on: [static]
 
   - name: release-tag
     pull: always
@@ -663,7 +665,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -673,6 +675,7 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
+    depends_on: [gpg-sign]
 
   - name: github
     pull: always
@@ -683,6 +686,7 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
+    depends_on: [gpg-sign]
 
 ---
 kind: pipeline
@@ -1086,6 +1090,7 @@ steps:
 trigger:
   ref:
   - refs/heads/main
+  - "refs/heads/release/v*"
   event:
     exclude:
     - cron

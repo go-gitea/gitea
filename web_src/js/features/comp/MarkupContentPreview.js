@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {initMarkupContent} from '../../markup/content.js';
 
 const {csrfToken} = window.config;
