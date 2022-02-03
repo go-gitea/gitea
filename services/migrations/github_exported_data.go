@@ -1023,7 +1023,7 @@ func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([
 				Updated:     c.CreatedAt, // FIXME:
 				Content:     r.replaceGithubLinks(c.Body),
 				Reactions:   r.getReactions(c.Reactions),
-				Assets:      r.convertAttachments(r.issueAttachments[c.URL]),
+				Assets:      r.convertAttachments(r.commentAttachments[c.URL]),
 			})
 		}
 		return nil
