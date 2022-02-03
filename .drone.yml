@@ -1090,6 +1090,7 @@ steps:
 trigger:
   ref:
   - refs/heads/main
+  - "refs/heads/release/v*"
   event:
     exclude:
     - cron
