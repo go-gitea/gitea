@@ -94,6 +94,12 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
+
+	// Existing tokens are invalid if access tokens feature is disabled.
+	if setting.DisableAccessTokens {
+		return nil, ErrAccessTokenNotExist{token}
+	}
+
 	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
 	if len(token) != 40 {
 		return nil, ErrAccessTokenNotExist{token}
