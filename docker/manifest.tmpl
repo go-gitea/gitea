@@ -1,4 +1,4 @@
-image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#equal build.ref "refs/heads/main"}}dev{{else}}{{trimPrefix "refs/heads/release/v" build.ref}}-dev{{/equal}}{{/if}}{{/if}}
+image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#equal build.ref "refs/heads/main"}}dev{{else}}{{trimPrefix "refs/heads/release/v" build.ref}}-dev{{/equal}}{{/if}}
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
