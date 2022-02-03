@@ -238,11 +238,19 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 }
 
 func (g *GiteaLocalUploader) uploadAttachment(asset *base.Asset) (*repo_model.Attachment, error) {
+	var downloadCnt, size int64
+	if asset.DownloadCount != nil {
+		downloadCnt = int64(*asset.DownloadCount)
+	}
+	if asset.Size != nil {
+		size = int64(*asset.Size)
+	}
+
 	attach := repo_model.Attachment{
 		UUID:          gouuid.New().String(),
 		Name:          asset.Name,
-		DownloadCount: int64(*asset.DownloadCount),
-		Size:          int64(*asset.Size),
+		DownloadCount: downloadCnt,
+		Size:          size,
 		CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 	}
 

@@ -163,7 +163,8 @@ func (g *githubAttachment) IssueID() int64 {
 func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) []*base.Asset {
 	res := make([]*base.Asset, 0, len(ls))
 	for _, l := range ls {
-		fPath := strings.TrimPrefix(l.AssetURL, "tarball://root")
+		fPath := strings.TrimPrefix(l.AssetURL, "tarball://root/")
+		fPath = filepath.Join(r.tmpDir, fPath)
 		info, err := os.Stat(fPath)
 		var size int
 		if err == nil {
@@ -216,7 +217,7 @@ func (l githubLabel) GetName() string {
 type GithubExportedDataRestorer struct {
 	base.NullDownloader
 	ctx                context.Context
-	tmpDir             string
+	tmpDir             string // work directory, tar files will be decompress into there
 	githubDataFilePath string
 	repoOwner          string
 	repoName           string
