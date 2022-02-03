@@ -37,6 +37,7 @@ type PullRequest struct {
 	Reactions      []*Reaction
 	ForeignIndex   int64
 	Context        DownloaderContext `yaml:"-"`
+	Assets         []*Asset
 }
 
 func (p *PullRequest) GetLocalIndex() int64          { return p.Number }

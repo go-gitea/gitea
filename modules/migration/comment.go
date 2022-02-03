@@ -63,6 +63,7 @@ type Comment struct {
 	Updated     time.Time
 	Content     string
 	Reactions   []*Reaction
+	Assets      []*Asset
 }
 
 // GetExternalName ExternalUserMigrated interface

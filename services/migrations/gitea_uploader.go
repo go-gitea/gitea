@@ -237,6 +237,40 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 	return nil
 }
 
+func (g *GiteaLocalUploader) uploadAttachment(asset *base.Asset) (*repo_model.Attachment, error) {
+	attach := repo_model.Attachment{
+		UUID:          gouuid.New().String(),
+		Name:          asset.Name,
+		DownloadCount: int64(*asset.DownloadCount),
+		Size:          int64(*asset.Size),
+		CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
+	}
+
+	// asset.DownloadURL maybe a local file
+	var rc io.ReadCloser
+	var err error
+	if asset.DownloadFunc != nil {
+		rc, err = asset.DownloadFunc()
+		if err != nil {
+			return nil, err
+		}
+	} else if asset.DownloadURL != nil {
+		rc, err = uri.Open(*asset.DownloadURL)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if rc == nil {
+		return nil, nil
+	}
+	defer rc.Close()
+	_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+	if err != nil {
+		return nil, err
+	}
+	return &attach, nil
+}
+
 // CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	rels := make([]*models.Release, 0, len(releases))
@@ -289,42 +323,13 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					asset.Created = release.Created
 				}
 			}
-			attach := repo_model.Attachment{
-				UUID:          gouuid.New().String(),
-				Name:          asset.Name,
-				DownloadCount: int64(*asset.DownloadCount),
-				Size:          int64(*asset.Size),
-				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
-			}
-
-			// download attachment
-			err := func() error {
-				// asset.DownloadURL maybe a local file
-				var rc io.ReadCloser
-				var err error
-				if asset.DownloadFunc != nil {
-					rc, err = asset.DownloadFunc()
-					if err != nil {
-						return err
-					}
-				} else if asset.DownloadURL != nil {
-					rc, err = uri.Open(*asset.DownloadURL)
-					if err != nil {
-						return err
-					}
-				}
-				if rc == nil {
-					return nil
-				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
-				rc.Close()
-				return err
-			}()
+			attach, err := g.uploadAttachment(asset)
 			if err != nil {
 				return err
 			}
-
-			rel.Attachments = append(rel.Attachments, &attach)
+			if attach != nil {
+				rel.Attachments = append(rel.Attachments, attach)
+			}
 		}
 
 		rels = append(rels, &rel)
@@ -406,6 +411,27 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
+
+		for _, asset := range issue.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = issue.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				is.Attachments = append(is.Attachments, attach)
+				if asset.OriginalURL != "" {
+					is.Content = strings.ReplaceAll(is.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
+		}
+
 		iss = append(iss, &is)
 	}
 
@@ -544,6 +570,26 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			cm.Reactions = append(cm.Reactions, &res)
 		}
 
+		for _, asset := range comment.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = comment.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				cm.Attachments = append(cm.Attachments, attach)
+				if asset.OriginalURL != "" {
+					cm.Content = strings.ReplaceAll(cm.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
+		}
+
 		cms = append(cms, &cm)
 	}
 
@@ -564,6 +610,26 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 
 		if err := g.remapUser(pr, gpr.Issue); err != nil {
 			return err
+		}
+
+		for _, asset := range pr.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = pr.Updated
+				}
+			}
+			attach, err := g.uploadAttachment(asset)
+			if err != nil {
+				return err
+			}
+			if attach != nil {
+				gpr.Issue.Attachments = append(gpr.Issue.Attachments, attach)
+				if asset.OriginalURL != "" {
+					gpr.Issue.Content = strings.ReplaceAll(gpr.Issue.Content, asset.OriginalURL, fmt.Sprintf("/attachments/%s", attach.UUID))
+				}
+			}
 		}
 
 		gprs = append(gprs, gpr)

@@ -131,6 +131,7 @@ func (g *githubUser) Email() string {
   },
 */
 type githubAttachment struct {
+	URL              string `json:"url"`
 	Issue            string
 	IssueComment     string `json:"issue_comment"`
 	User             string
@@ -146,6 +147,10 @@ func (g *githubAttachment) GetUserID() int64 {
 
 func (g *githubAttachment) IsIssue() bool {
 	return len(g.Issue) > 0
+}
+
+func (g *githubAttachment) IsComment() bool {
+	return len(g.IssueComment) > 0
 }
 
 func (g *githubAttachment) IssueID() int64 {
@@ -170,7 +175,9 @@ func (r *GithubExportedDataRestorer) convertAttachments(ls []githubAttachment) [
 			ContentType: &l.AssetContentType,
 			Size:        &size,
 			Created:     l.CreatedAt,
+			Updated:     l.CreatedAt,
 			DownloadURL: &assetURL,
+			OriginalURL: l.URL,
 		})
 	}
 	return res
@@ -309,11 +316,16 @@ func (r *GithubExportedDataRestorer) CleanUp() {
 	}
 }
 
-// replaceComment replace #id to new form
+var (
+	regMatchAttachment = regexp.MustCompile("https://user-images.githubusercontent.com/([0-9]+)/(.*)")
+)
+
+// replaceGithubLinks replace #id to new form
 // i.e.
 // 1) https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 -> b70d545a1cbb5c92ca20f442f59de5d955600408
 // 2) https://github.com/go-gitea/gitea/issue/1 -> #1
 // 3) https://github.com/go-gitea/gitea/pull/2 -> #2
+// 4) https://user-images.githubusercontent.com/1824502/146297011-8c01ea20-276e-421b-98a9-e39fe76ac046.png -> attachment link
 func (r *GithubExportedDataRestorer) replaceGithubLinks(content string) string {
 	c := r.regMatchIssue.ReplaceAllString(content, "#$2")
 	c = r.regMatchCommit.ReplaceAllString(c, "$1")
@@ -759,6 +771,7 @@ func (r *GithubExportedDataRestorer) GetIssues(page, perPage int) ([]*base.Issue
 }
 
 type githubComment struct {
+	URL         string `json:"url"`
 	Issue       string
 	PullRequest string `json:"pull_request"`
 	User        string
@@ -1014,6 +1027,7 @@ func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([
 				Updated:     c.CreatedAt, // FIXME:
 				Content:     r.replaceGithubLinks(c.Body),
 				Reactions:   r.getReactions(c.Reactions),
+				Assets:      r.convertAttachments(r.issueAttachments[c.URL]),
 			})
 		}
 		return nil
@@ -1152,6 +1166,7 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				PosterEmail: email,
 				Context:     base.BasicIssueContext(pr.Index()),
 				Reactions:   r.getReactions(pr.Reactions),
+				Assets:      r.convertAttachments(r.issueAttachments[pr.URL]),
 				Created:     pr.CreatedAt,
 				Closed:      pr.ClosedAt,
 				Labels:      r.getLabels(pr.Labels),
