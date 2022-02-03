@@ -465,7 +465,7 @@ func TestGitlabGetReviews(t *testing.T) {
 		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
 
 		id := int64(testCase.prID)
-		rvs, err := downloader.GetReviews(&base.Issue{Number: id, ForeignIndex: id})
+		rvs, _, err := downloader.GetReviews(&base.Issue{Number: id, ForeignIndex: id})
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}
