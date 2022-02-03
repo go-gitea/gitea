@@ -317,16 +317,11 @@ func (r *GithubExportedDataRestorer) CleanUp() {
 	}
 }
 
-var (
-	regMatchAttachment = regexp.MustCompile("https://user-images.githubusercontent.com/([0-9]+)/(.*)")
-)
-
 // replaceGithubLinks replace #id to new form
 // i.e.
 // 1) https://github.com/userstyles-world/userstyles.world/commit/b70d545a1cbb5c92ca20f442f59de5d955600408 -> b70d545a1cbb5c92ca20f442f59de5d955600408
 // 2) https://github.com/go-gitea/gitea/issue/1 -> #1
 // 3) https://github.com/go-gitea/gitea/pull/2 -> #2
-// 4) https://user-images.githubusercontent.com/1824502/146297011-8c01ea20-276e-421b-98a9-e39fe76ac046.png -> attachment link
 func (r *GithubExportedDataRestorer) replaceGithubLinks(content string) string {
 	c := r.regMatchIssue.ReplaceAllString(content, "#$2")
 	c = r.regMatchCommit.ReplaceAllString(c, "$1")
