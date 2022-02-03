@@ -851,6 +851,24 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 		return map[string]interface{}{}
 	case "moved_columns_in_project":
 		return map[string]interface{}{}
+	case "connected":
+		fields := strings.Split(g.Subject, "/")
+		if len(fields) > 2 {
+			if fields[len(fields)-2] == "issue" {
+				return map[string]interface{}{
+					"type":    "issue_ref",
+					"subject": fields[len(fields)-1],
+				}
+			} else if fields[len(fields)-2] == "pull" {
+				return map[string]interface{}{
+					"type":    "pull_ref",
+					"subject": fields[len(fields)-1],
+				}
+			}
+		}
+		return map[string]interface{}{}
+	case "disconnected":
+		return map[string]interface{}{}
 	case "referenced":
 		tp := "commit_ref"
 		if g.Issue != "" {
@@ -964,6 +982,18 @@ func (g *githubIssueEvent) CommentStr() string {
 		return "pinned"
 	case "unpinned":
 		return "unpinned"
+	case "connected":
+		fields := strings.Split(g.Subject, "/")
+		if len(fields) > 2 {
+			if fields[len(fields)-2] == "issue" {
+				return "issue_ref"
+			} else if fields[len(fields)-2] == "pull" {
+				return "pull_ref"
+			}
+		}
+		return "unknown"
+	case "disconnected":
+		return "unknown"
 	default:
 		return "comment"
 	}
