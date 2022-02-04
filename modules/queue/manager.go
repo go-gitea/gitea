@@ -84,6 +84,8 @@ type ManagedPool interface {
 	BoostWorkers() int
 	// SetPoolSettings sets the user updatable settings for the pool
 	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
+	// Done returns a channel that will be closed when this Pool's baseCtx is closed
+	Done() <-chan struct{}
 }
 
 // ManagedQueueList implements the sort.Interface
@@ -209,6 +211,15 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 				if pausable.IsPaused() {
 					wg.Done()
 					continue
+				}
+			}
+			if pool, ok := mq.Managed.(ManagedPool); ok {
+				// no point flushing pools were their base ctx is already done
+				select {
+				case <-pool.Done():
+					wg.Done()
+					continue
+				default:
 				}
 			}
 
