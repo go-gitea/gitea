@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
-	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -41,7 +40,7 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx.User)
+	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.User)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
@@ -242,7 +241,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
+	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -367,7 +366,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	diff, err := files_service.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetDiffPreview: "+err.Error())
 		return
@@ -448,7 +447,7 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
+	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -610,7 +609,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if oldBranchName != branchName {
-		if _, err := repo_service.GetBranch(ctx.Repo.Repository, branchName); err == nil {
+		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
@@ -654,7 +653,7 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := files_service.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
+	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -728,7 +727,7 @@ func UploadFilePost(ctx *context.Context) {
 
 func cleanUploadFileName(name string) string {
 	// Rebase the filename
-	name = strings.Trim(path.Clean("/"+name), " /")
+	name = strings.Trim(path.Clean("/"+name), "/")
 	// Git disallows any filenames to have a .git directory in them.
 	for _, part := range strings.Split(name, "/") {
 		if strings.ToLower(part) == ".git" {
@@ -802,7 +801,7 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 	prefix := ctx.User.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
-		if _, err := repo_service.GetBranch(ctx.Repo.Repository, branchName); err != nil {
+		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
 			}

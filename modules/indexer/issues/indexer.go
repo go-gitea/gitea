@@ -47,9 +47,11 @@ type SearchResult struct {
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Init() (bool, error)
+	Ping() bool
+	SetAvailabilityChangeCallback(callback func(bool))
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
-	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+	Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 	Close()
 }
 
@@ -103,14 +105,15 @@ func InitIssueIndexer(syncReindex bool) {
 	// Create the Queue
 	switch setting.Indexer.IssueType {
 	case "bleve", "elasticsearch":
-		handler := func(data ...queue.Data) {
+		handler := func(data ...queue.Data) []queue.Data {
 			indexer := holder.get()
 			if indexer == nil {
 				log.Error("Issue indexer handler: unable to get indexer!")
-				return
+				return data
 			}
 
-			iData := make([]*IndexerData, 0, setting.Indexer.IssueQueueBatchNumber)
+			iData := make([]*IndexerData, 0, len(data))
+			unhandled := make([]queue.Data, 0, len(data))
 			for _, datum := range data {
 				indexerData, ok := datum.(*IndexerData)
 				if !ok {
@@ -119,14 +122,36 @@ func InitIssueIndexer(syncReindex bool) {
 				}
 				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
 				if indexerData.IsDelete {
-					_ = indexer.Delete(indexerData.IDs...)
+					if err := indexer.Delete(indexerData.IDs...); err != nil {
+						log.Error("Error whilst deleting from index: %v Error: %v", indexerData.IDs, err)
+						if indexer.Ping() {
+							continue
+						}
+						// Add back to queue
+						unhandled = append(unhandled, datum)
+					}
 					continue
 				}
 				iData = append(iData, indexerData)
 			}
+			if len(unhandled) > 0 {
+				for _, indexerData := range iData {
+					unhandled = append(unhandled, indexerData)
+				}
+				return unhandled
+			}
 			if err := indexer.Index(iData); err != nil {
 				log.Error("Error whilst indexing: %v Error: %v", iData, err)
+				if indexer.Ping() {
+					return nil
+				}
+				// Add back to queue
+				for _, indexerData := range iData {
+					unhandled = append(unhandled, indexerData)
+				}
+				return unhandled
 			}
+			return nil
 		}
 
 		issueIndexerQueue = queue.CreateQueue("issue_indexer", handler, &IndexerData{})
@@ -190,6 +215,18 @@ func InitIssueIndexer(syncReindex bool) {
 		default:
 			holder.cancel()
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
+		}
+
+		if queue, ok := issueIndexerQueue.(queue.Pausable); ok {
+			holder.get().SetAvailabilityChangeCallback(func(available bool) {
+				if !available {
+					log.Info("Issue index queue paused")
+					queue.Pause()
+				} else {
+					log.Info("Issue index queue resumed")
+					queue.Resume()
+				}
+			})
 		}
 
 		// Start processing the queue
@@ -333,7 +370,7 @@ func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 // WARNNING: You have to ensure user have permission to visit repoIDs' issues
-func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(ctx context.Context, repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
 
@@ -341,7 +378,7 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
 		return nil, fmt.Errorf("unable to get issue indexer")
 	}
-	res, err := indexer.Search(keyword, repoIDs, 50, 0)
+	res, err := indexer.Search(ctx, keyword, repoIDs, 50, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -349,4 +386,15 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 		issueIDs = append(issueIDs, r.ID)
 	}
 	return issueIDs, nil
+}
+
+// IsAvailable checks if issue indexer is available
+func IsAvailable() bool {
+	indexer := holder.get()
+	if indexer == nil {
+		log.Error("IsAvailable(): unable to get indexer!")
+		return false
+	}
+
+	return indexer.Ping()
 }

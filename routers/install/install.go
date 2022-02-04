@@ -54,7 +54,7 @@ func getDbTypeNames() []map[string]string {
 
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
+	rnd := templates.HTMLRenderer()
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
@@ -62,9 +62,9 @@ func Init(next http.Handler) http.Handler {
 			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
 			return
 		}
-		var locale = middleware.Locale(resp, req)
-		var startTime = time.Now()
-		var ctx = context.Context{
+		locale := middleware.Locale(resp, req)
+		startTime := time.Now()
+		ctx := context.Context{
 			Resp:    context.NewResponse(resp),
 			Flash:   &middleware.Flash{},
 			Locale:  locale,
@@ -418,7 +418,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
-		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
+		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
 		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
@@ -463,6 +463,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
+
+	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 

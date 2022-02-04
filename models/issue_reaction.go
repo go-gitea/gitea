@@ -343,3 +343,20 @@ func (list ReactionList) GetMoreUserCount() int {
 	}
 	return len(list) - setting.UI.ReactionMaxUserNum
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Reaction) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.UserID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (r *Reaction) GetUserID() int64 { return r.UserID }
+
+// GetExternalName ExternalUserRemappable interface
+func (r *Reaction) GetExternalName() string { return r.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (r *Reaction) GetExternalID() int64 { return r.OriginalAuthorID }

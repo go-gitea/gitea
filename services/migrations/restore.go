@@ -19,23 +19,25 @@ import (
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
 	base.NullDownloader
-	ctx       context.Context
-	baseDir   string
-	repoOwner string
-	repoName  string
+	ctx        context.Context
+	baseDir    string
+	repoOwner  string
+	repoName   string
+	validation bool
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
-func NewRepositoryRestorer(ctx context.Context, baseDir, owner, repoName string) (*RepositoryRestorer, error) {
+func NewRepositoryRestorer(ctx context.Context, baseDir, owner, repoName string, validation bool) (*RepositoryRestorer, error) {
 	baseDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		return nil, err
 	}
 	return &RepositoryRestorer{
-		ctx:       ctx,
-		baseDir:   baseDir,
-		repoOwner: owner,
-		repoName:  repoName,
+		ctx:        ctx,
+		baseDir:    baseDir,
+		repoOwner:  owner,
+		repoName:   repoName,
+		validation: validation,
 	}, nil
 }
 
@@ -59,7 +61,7 @@ func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 		return nil, err
 	}
 
-	var opts = make(map[string]string)
+	opts := make(map[string]string)
 	err = yaml.Unmarshal(bs, &opts)
 	if err != nil {
 		return nil, err
@@ -91,12 +93,15 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 	p := filepath.Join(r.baseDir, "topic.yml")
 
-	var topics = struct {
+	topics := struct {
 		Topics []string `yaml:"topics"`
 	}{}
 
 	bs, err := os.ReadFile(p)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -109,9 +114,9 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
-	var milestones = make([]*base.Milestone, 0, 10)
+	milestones := make([]*base.Milestone, 0, 10)
 	p := filepath.Join(r.baseDir, "milestone.yml")
-	_, err := os.Stat(p)
+	err := base.Load(p, &milestones, r.validation)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -119,21 +124,12 @@ func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	bs, err := os.ReadFile(p)
-	if err != nil {
-		return nil, err
-	}
-
-	err = yaml.Unmarshal(bs, &milestones)
-	if err != nil {
-		return nil, err
-	}
 	return milestones, nil
 }
 
 // GetReleases returns releases
 func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
-	var releases = make([]*base.Release, 0, 10)
+	releases := make([]*base.Release, 0, 10)
 	p := filepath.Join(r.baseDir, "release.yml")
 	_, err := os.Stat(p)
 	if err != nil {
@@ -164,7 +160,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 
 // GetLabels returns labels
 func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
-	var labels = make([]*base.Label, 0, 10)
+	labels := make([]*base.Label, 0, 10)
 	p := filepath.Join(r.baseDir, "label.yml")
 	_, err := os.Stat(p)
 	if err != nil {
@@ -188,9 +184,9 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 
 // GetIssues returns issues according start and limit
 func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-	var issues = make([]*base.Issue, 0, 10)
+	issues := make([]*base.Issue, 0, 10)
 	p := filepath.Join(r.baseDir, "issue.yml")
-	_, err := os.Stat(p)
+	err := base.Load(p, &issues, r.validation)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, true, nil
@@ -198,15 +194,6 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 
-	bs, err := os.ReadFile(p)
-	if err != nil {
-		return nil, false, err
-	}
-
-	err = yaml.Unmarshal(bs, &issues)
-	if err != nil {
-		return nil, false, err
-	}
 	for _, issue := range issues {
 		issue.Context = base.BasicIssueContext(issue.Number)
 	}
@@ -215,7 +202,7 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 
 // GetComments returns comments according issueNumber
 func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var comments = make([]*base.Comment, 0, 10)
+	comments := make([]*base.Comment, 0, 10)
 	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", opts.Context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {
@@ -239,7 +226,7 @@ func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.C
 
 // GetPullRequests returns pull requests according page and perPage
 func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
-	var pulls = make([]*base.PullRequest, 0, 10)
+	pulls := make([]*base.PullRequest, 0, 10)
 	p := filepath.Join(r.baseDir, "pull_request.yml")
 	_, err := os.Stat(p)
 	if err != nil {
@@ -267,7 +254,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 
 // GetReviews returns pull requests review
 func (r *RepositoryRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
-	var reviews = make([]*base.Review, 0, 10)
+	reviews := make([]*base.Review, 0, 10)
 	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {

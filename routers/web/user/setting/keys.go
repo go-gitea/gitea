@@ -211,7 +211,6 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-
 }
 
 // DeleteKey response for delete user's SSH/GPG key

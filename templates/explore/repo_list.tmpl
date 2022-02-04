@@ -40,7 +40,9 @@
 				</div>
 				<div class="metas df ac">
 					{{if .PrimaryLanguage }}
-					<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+						<a href="{{$.Link}}?tab={{$.TabName}}&q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+							<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+						</a>
 					{{end}}
 					{{if not $.DisableStars}}
 						<span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
@@ -49,7 +51,8 @@
 				</div>
 			</div>
 			<div class="description">
-				{{if .DescriptionHTML}}<p>{{.DescriptionHTML}}</p>{{end}}
+				{{ $description := .DescriptionHTML $.Context}}
+				{{if $description}}<p>{{$description}}</p>{{end}}
 				{{if .Topics }}
 					<div class="ui tags">
 					{{range .Topics}}

@@ -27,7 +27,7 @@ COMMA := ,
 XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
-MIN_GOLANGCI_LINT_VERSION := 001043000
+MIN_GOLANGCI_LINT_VERSION := 001044000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -233,6 +233,11 @@ clean:
 fmt:
 	@echo "Running gitea-fmt(with gofmt)..."
 	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
+	@echo "Running gofumpt"
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
+	@gofumpt -w -l -extra -lang 1.16 .
 
 .PHONY: vet
 vet:
@@ -295,7 +300,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: swagger-check swagger-validate
+checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -369,11 +374,12 @@ unit-test-coverage:
 vendor:
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff vendor/); \
+.PHONY: gomod-check
+gomod-check:
+	@$(GO) mod tidy
+	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
+		echo "Please run '$(GO) mod tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi

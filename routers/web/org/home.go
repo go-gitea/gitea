@@ -40,6 +40,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
 		desc, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,
@@ -82,6 +83,9 @@ func Home(ctx *context.Context) {
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -102,6 +106,7 @@ func Home(ctx *context.Context) {
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
 		Actor:              ctx.User,
+		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
@@ -109,7 +114,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var opts = &models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
@@ -147,6 +152,7 @@ func Home(ctx *context.Context) {
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)

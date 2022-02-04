@@ -13517,7 +13517,8 @@
             "slack",
             "telegram",
             "feishu",
-            "wechatwork"
+            "wechatwork",
+            "packagist"
           ],
           "x-go-name": "Type"
         }
@@ -17187,6 +17188,14 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "languages_url": {
+          "type": "string",
+          "x-go-name": "LanguagesURL"
+        },
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
@@ -17194,6 +17203,11 @@
         "mirror_interval": {
           "type": "string",
           "x-go-name": "MirrorInterval"
+        },
+        "mirror_updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "MirrorUpdated"
         },
         "name": {
           "type": "string",

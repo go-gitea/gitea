@@ -436,7 +436,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
 	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
 	if err != nil {
 		return fmt.Errorf("generate pull request index failed: %v", err)
@@ -449,6 +449,7 @@ func NewPullRequest(repo *repo_model.Repository, issue *Issue, labelIDs []int64,
 		return err
 	}
 	defer committer.Close()
+	ctx.WithContext(outerCtx)
 
 	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,

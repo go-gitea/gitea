@@ -232,6 +232,10 @@ func Profile(ctx *context.Context) {
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
+
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	switch tab {
 	case "followers":
 		items, err := user_model.GetUserFollowers(ctxUser, db.ListOptions{
@@ -258,7 +262,8 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+			RequestedUser:   ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -282,6 +287,7 @@ func Profile(ctx *context.Context) {
 			StarredByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -313,6 +319,7 @@ func Profile(ctx *context.Context) {
 			WatchedByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -334,6 +341,7 @@ func Profile(ctx *context.Context) {
 			Private:            ctx.IsSigned,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -348,6 +356,9 @@ func Profile(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
+		pager.AddParam(ctx, "language", "Language")
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)

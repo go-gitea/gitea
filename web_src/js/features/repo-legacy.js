@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';

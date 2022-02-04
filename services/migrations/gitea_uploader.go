@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -33,9 +32,7 @@ import (
 	gouuid "github.com/google/uuid"
 )
 
-var (
-	_ base.Uploader = &GiteaLocalUploader{}
-)
+var _ base.Uploader = &GiteaLocalUploader{}
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
@@ -44,9 +41,9 @@ type GiteaLocalUploader struct {
 	repoOwner      string
 	repoName       string
 	repo           *repo_model.Repository
-	labels         sync.Map
-	milestones     sync.Map
-	issues         sync.Map
+	labels         map[string]*models.Label
+	milestones     map[string]int64
+	issues         map[int64]*models.Issue
 	gitRepo        *git.Repository
 	prHeadCache    map[string]struct{}
 	userMap        map[int64]int64 // external user id mapping to user id
@@ -61,6 +58,9 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
+		labels:      make(map[string]*models.Label),
+		milestones:  make(map[string]int64),
+		issues:      make(map[int64]*models.Issue),
 		prHeadCache: make(map[string]struct{}),
 		userMap:     make(map[int64]int64),
 		prCache:     make(map[int64]*models.PullRequest),
@@ -132,7 +132,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(r.RepoPath())
+	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, r.RepoPath())
 	return err
 }
 
@@ -159,7 +159,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
-	var mss = make([]*models.Milestone, 0, len(milestones))
+	mss := make([]*models.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
@@ -182,7 +182,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			milestone.Updated = &milestone.Created
 		}
 
-		var ms = models.Milestone{
+		ms := models.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
@@ -203,14 +203,14 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 	}
 
 	for _, ms := range mss {
-		g.milestones.Store(ms.Name, ms.ID)
+		g.milestones[ms.Name] = ms.ID
 	}
 	return nil
 }
 
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
-	var lbs = make([]*models.Label, 0, len(labels))
+	lbs := make([]*models.Label, 0, len(labels))
 	for _, label := range labels {
 		lbs = append(lbs, &models.Label{
 			RepoID:      g.repo.ID,
@@ -225,14 +225,14 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 		return err
 	}
 	for _, lb := range lbs {
-		g.labels.Store(lb.Name, lb)
+		g.labels[lb.Name] = lb
 	}
 	return nil
 }
 
 // CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
-	var rels = make([]*models.Release, 0, len(releases))
+	rels := make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
 			if !release.Published.IsZero() {
@@ -242,7 +242,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 		}
 
-		var rel = models.Release{
+		rel := models.Release{
 			RepoID:       g.repo.ID,
 			TagName:      release.TagName,
 			LowerTagName: strings.ToLower(release.TagName),
@@ -256,25 +256,8 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
 		}
 
-		userid, ok := g.userMap[release.PublisherID]
-		tp := g.gitServiceType.Name()
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", release.PublisherID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[release.PublisherID] = userid
-			}
-		}
-
-		if userid > 0 {
-			rel.PublisherID = userid
-		} else {
-			rel.PublisherID = g.doer.ID
-			rel.OriginalAuthor = release.PublisherName
-			rel.OriginalAuthorID = release.PublisherID
+		if err := g.remapExternalUser(release, &rel); err != nil {
+			return err
 		}
 
 		// calc NumCommits if no draft
@@ -297,7 +280,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					asset.Created = release.Created
 				}
 			}
-			var attach = repo_model.Attachment{
+			attach := repo_model.Attachment{
 				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
@@ -348,23 +331,17 @@ func (g *GiteaLocalUploader) SyncTags() error {
 
 // CreateIssues creates issues
 func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
-	var iss = make([]*models.Issue, 0, len(issues))
+	iss := make([]*models.Issue, 0, len(issues))
 	for _, issue := range issues {
 		var labels []*models.Label
 		for _, label := range issue.Labels {
-			lb, ok := g.labels.Load(label.Name)
+			lb, ok := g.labels[label.Name]
 			if ok {
-				labels = append(labels, lb.(*models.Label))
+				labels = append(labels, lb)
 			}
 		}
 
-		var milestoneID int64
-		if issue.Milestone != "" {
-			milestone, ok := g.milestones.Load(issue.Milestone)
-			if ok {
-				milestoneID = milestone.(int64)
-			}
-		}
+		milestoneID := g.milestones[issue.Milestone]
 
 		if issue.Created.IsZero() {
 			if issue.Closed != nil {
@@ -381,7 +358,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 		}
 
-		var is = models.Issue{
+		is := models.Issue{
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
@@ -396,25 +373,8 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 		}
 
-		userid, ok := g.userMap[issue.PosterID]
-		tp := g.gitServiceType.Name()
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", issue.PosterID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[issue.PosterID] = userid
-			}
-		}
-
-		if userid > 0 {
-			is.PosterID = userid
-		} else {
-			is.PosterID = g.doer.ID
-			is.OriginalAuthor = issue.PosterName
-			is.OriginalAuthorID = issue.PosterID
+		if err := g.remapExternalUser(issue, &is); err != nil {
+			return err
 		}
 
 		if issue.Closed != nil {
@@ -422,27 +382,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 		// add reactions
 		for _, reaction := range issue.Reactions {
-			userid, ok := g.userMap[reaction.UserID]
-			if !ok && tp != "" {
-				var err error
-				userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
-				if err != nil {
-					log.Error("GetUserIDByExternalUserID: %v", err)
-				}
-				if userid > 0 {
-					g.userMap[reaction.UserID] = userid
-				}
-			}
-			var res = models.Reaction{
+			res := models.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
-			if userid > 0 {
-				res.UserID = userid
-			} else {
-				res.UserID = g.doer.ID
-				res.OriginalAuthorID = reaction.UserID
-				res.OriginalAuthor = reaction.UserName
+			if err := g.remapExternalUser(reaction, &res); err != nil {
+				return err
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
@@ -455,7 +400,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		for _, is := range iss {
-			g.issues.Store(is.Index, is)
+			g.issues[is.Index] = is
 		}
 	}
 
@@ -464,32 +409,17 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 // CreateComments creates comments of issues
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
-	var cms = make([]*models.Comment, 0, len(comments))
+	cms := make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issue *models.Issue
-		issueInter, ok := g.issues.Load(comment.IssueIndex)
+		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
 			var err error
 			issue, err = models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
 			if err != nil {
 				return err
 			}
-			g.issues.Store(comment.IssueIndex, issue)
-		} else {
-			issue = issueInter.(*models.Issue)
-		}
-
-		userid, ok := g.userMap[comment.PosterID]
-		tp := g.gitServiceType.Name()
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", comment.PosterID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[comment.PosterID] = userid
-			}
+			g.issues[comment.IssueIndex] = issue
 		}
 
 		if comment.Created.IsZero() {
@@ -507,37 +437,18 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
 		}
 
-		if userid > 0 {
-			cm.PosterID = userid
-		} else {
-			cm.PosterID = g.doer.ID
-			cm.OriginalAuthor = comment.PosterName
-			cm.OriginalAuthorID = comment.PosterID
+		if err := g.remapExternalUser(comment, &cm); err != nil {
+			return err
 		}
 
 		// add reactions
 		for _, reaction := range comment.Reactions {
-			userid, ok := g.userMap[reaction.UserID]
-			if !ok && tp != "" {
-				var err error
-				userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
-				if err != nil {
-					log.Error("GetUserIDByExternalUserID: %v", err)
-				}
-				if userid > 0 {
-					g.userMap[reaction.UserID] = userid
-				}
-			}
-			var res = models.Reaction{
+			res := models.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
-			if userid > 0 {
-				res.UserID = userid
-			} else {
-				res.UserID = g.doer.ID
-				res.OriginalAuthorID = reaction.UserID
-				res.OriginalAuthor = reaction.UserName
+			if err := g.remapExternalUser(reaction, &res); err != nil {
+				return err
 			}
 			cm.Reactions = append(cm.Reactions, &res)
 		}
@@ -553,32 +464,15 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
-	var gprs = make([]*models.PullRequest, 0, len(prs))
+	gprs := make([]*models.PullRequest, 0, len(prs))
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
 			return err
 		}
 
-		userid, ok := g.userMap[pr.PosterID]
-		tp := g.gitServiceType.Name()
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[pr.PosterID] = userid
-			}
-		}
-
-		if userid > 0 {
-			gpr.Issue.PosterID = userid
-		} else {
-			gpr.Issue.PosterID = g.doer.ID
-			gpr.Issue.OriginalAuthor = pr.PosterName
-			gpr.Issue.OriginalAuthorID = pr.PosterID
+		if err := g.remapExternalUser(pr, gpr.Issue); err != nil {
+			return err
 		}
 
 		gprs = append(gprs, gpr)
@@ -587,7 +481,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		return err
 	}
 	for _, pr := range gprs {
-		g.issues.Store(pr.Issue.Index, pr.Issue)
+		g.issues[pr.Issue.Index] = pr.Issue
 		pull.AddToTaskQueue(pr)
 	}
 	return nil
@@ -596,19 +490,13 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
 	var labels []*models.Label
 	for _, label := range pr.Labels {
-		lb, ok := g.labels.Load(label.Name)
+		lb, ok := g.labels[label.Name]
 		if ok {
-			labels = append(labels, lb.(*models.Label))
+			labels = append(labels, lb)
 		}
 	}
 
-	var milestoneID int64
-	if pr.Milestone != "" {
-		milestone, ok := g.milestones.Load(pr.Milestone)
-		if ok {
-			milestoneID = milestone.(int64)
-		}
-	}
+	milestoneID := g.milestones[pr.Milestone]
 
 	// download patch file
 	err := func() error {
@@ -652,7 +540,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		return nil, err
 	}
 
-	var head = "unknown repository"
+	head := "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
@@ -669,7 +557,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			}
 
 			if ok {
-				_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
+				_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
@@ -693,7 +581,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	} else {
 		head = pr.Head.Ref
 		// Ensure the closed PR SHA still points to an existing ref
-		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		_, err = git.NewCommandContext(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
 		if err != nil {
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
@@ -723,7 +611,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		pr.Updated = pr.Created
 	}
 
-	var issue = models.Issue{
+	issue := models.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,
 		Title:       pr.Title,
@@ -738,56 +626,23 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		UpdatedUnix: timeutil.TimeStamp(pr.Updated.Unix()),
 	}
 
-	tp := g.gitServiceType.Name()
-
-	userid, ok := g.userMap[pr.PosterID]
-	if !ok && tp != "" {
-		var err error
-		userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
-		if err != nil {
-			log.Error("GetUserIDByExternalUserID: %v", err)
-		}
-		if userid > 0 {
-			g.userMap[pr.PosterID] = userid
-		}
-	}
-
-	if userid > 0 {
-		issue.PosterID = userid
-	} else {
-		issue.PosterID = g.doer.ID
-		issue.OriginalAuthor = pr.PosterName
-		issue.OriginalAuthorID = pr.PosterID
+	if err := g.remapExternalUser(pr, &issue); err != nil {
+		return nil, err
 	}
 
 	// add reactions
 	for _, reaction := range pr.Reactions {
-		userid, ok := g.userMap[reaction.UserID]
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[reaction.UserID] = userid
-			}
-		}
-		var res = models.Reaction{
+		res := models.Reaction{
 			Type:        reaction.Content,
 			CreatedUnix: timeutil.TimeStampNow(),
 		}
-		if userid > 0 {
-			res.UserID = userid
-		} else {
-			res.UserID = g.doer.ID
-			res.OriginalAuthorID = reaction.UserID
-			res.OriginalAuthor = reaction.UserName
+		if err := g.remapExternalUser(reaction, &res); err != nil {
+			return nil, err
 		}
 		issue.Reactions = append(issue.Reactions, &res)
 	}
 
-	var pullRequest = models.PullRequest{
+	pullRequest := models.PullRequest{
 		HeadRepoID: g.repo.ID,
 		HeadBranch: head,
 		BaseRepoID: g.repo.ID,
@@ -830,39 +685,23 @@ func convertReviewState(state string) models.ReviewType {
 
 // CreateReviews create pull request reviews
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
-	var cms = make([]*models.Review, 0, len(reviews))
+	cms := make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *models.Issue
-		issueInter, ok := g.issues.Load(review.IssueIndex)
+		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
 			var err error
 			issue, err = models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
 			if err != nil {
 				return err
 			}
-			g.issues.Store(review.IssueIndex, issue)
-		} else {
-			issue = issueInter.(*models.Issue)
+			g.issues[review.IssueIndex] = issue
 		}
-
-		userid, ok := g.userMap[review.ReviewerID]
-		tp := g.gitServiceType.Name()
-		if !ok && tp != "" {
-			var err error
-			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", review.ReviewerID))
-			if err != nil {
-				log.Error("GetUserIDByExternalUserID: %v", err)
-			}
-			if userid > 0 {
-				g.userMap[review.ReviewerID] = userid
-			}
-		}
-
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
 		}
 
-		var cm = models.Review{
+		cm := models.Review{
 			Type:        convertReviewState(review.State),
 			IssueID:     issue.ID,
 			Content:     review.Content,
@@ -871,12 +710,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
 
-		if userid > 0 {
-			cm.ReviewerID = userid
-		} else {
-			cm.ReviewerID = g.doer.ID
-			cm.OriginalAuthor = review.ReviewerName
-			cm.OriginalAuthorID = review.ReviewerID
+		if err := g.remapExternalUser(review, &cm); err != nil {
+			return err
 		}
 
 		// get pr
@@ -926,9 +761,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			var c = models.Comment{
+			c := models.Comment{
 				Type:        models.CommentTypeCode,
-				PosterID:    comment.PosterID,
 				IssueID:     issue.ID,
 				Content:     comment.Content,
 				Line:        int64(line + comment.Position - 1),
@@ -939,12 +773,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
 			}
 
-			if userid > 0 {
-				c.PosterID = userid
-			} else {
-				c.PosterID = g.doer.ID
-				c.OriginalAuthor = review.ReviewerName
-				c.OriginalAuthorID = review.ReviewerID
+			if err := g.remapExternalUser(review, &c); err != nil {
+				return err
 			}
 
 			cm.Comments = append(cm.Comments, &c)
@@ -978,6 +808,31 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
+	if err := models.UpdateRepoStats(db.DefaultContext, g.repo.ID); err != nil {
+		return err
+	}
+
 	g.repo.Status = repo_model.RepositoryReady
 	return repo_model.UpdateRepositoryCols(g.repo, "status")
+}
+
+func (g *GiteaLocalUploader) remapExternalUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) (err error) {
+	userid, ok := g.userMap[source.GetExternalID()]
+	tp := g.gitServiceType.Name()
+	if !ok && tp != "" {
+		userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%d", source.GetExternalID()))
+		if err != nil {
+			log.Error("GetUserIDByExternalUserID: %v", err)
+		}
+		if userid > 0 {
+			g.userMap[source.GetExternalID()] = userid
+		}
+	}
+
+	if userid > 0 {
+		err = target.RemapExternalUser("", 0, userid)
+	} else {
+		err = target.RemapExternalUser(source.GetExternalName(), source.GetExternalID(), g.doer.ID)
+	}
+	return
 }

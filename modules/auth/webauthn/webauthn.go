@@ -17,10 +17,10 @@ import (
 	"github.com/duo-labs/webauthn/webauthn"
 )
 
-//WebAuthn represents the global WebAuthn instance
+// WebAuthn represents the global WebAuthn instance
 var WebAuthn *webauthn.WebAuthn
 
-//Init initializes the WebAuthn instance from the config.
+// Init initializes the WebAuthn instance from the config.
 func Init() {
 	gob.Register(&webauthn.SessionData{})
 
@@ -42,14 +42,14 @@ func Init() {
 // User represents an implementation of webauthn.User based on User model
 type User user_model.User
 
-//WebAuthnID implements the webauthn.User interface
+// WebAuthnID implements the webauthn.User interface
 func (u *User) WebAuthnID() []byte {
 	id := make([]byte, 8)
 	binary.PutVarint(id, u.ID)
 	return id
 }
 
-//WebAuthnName implements the webauthn.User interface
+// WebAuthnName implements the webauthn.User interface
 func (u *User) WebAuthnName() string {
 	if u.LoginName == "" {
 		return u.Name
@@ -57,17 +57,17 @@ func (u *User) WebAuthnName() string {
 	return u.LoginName
 }
 
-//WebAuthnDisplayName implements the webauthn.User interface
+// WebAuthnDisplayName implements the webauthn.User interface
 func (u *User) WebAuthnDisplayName() string {
 	return (*user_model.User)(u).DisplayName()
 }
 
-//WebAuthnIcon implements the webauthn.User interface
+// WebAuthnIcon implements the webauthn.User interface
 func (u *User) WebAuthnIcon() string {
 	return (*user_model.User)(u).AvatarLink()
 }
 
-//WebAuthnCredentials implementns the webauthn.User interface
+// WebAuthnCredentials implementns the webauthn.User interface
 func (u *User) WebAuthnCredentials() []webauthn.Credential {
 	dbCreds, err := auth.GetWebAuthnCredentialsByUID(u.ID)
 	if err != nil {

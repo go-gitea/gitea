@@ -203,7 +203,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 			continue
 		}
 
-		var branch = loadOneBranch(ctx, rawBranches[i], defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
+		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
 			return nil, nil, 0
 		}
@@ -256,7 +256,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		Behind: -1,
 	}
 	if defaultBranch != nil {
-		divergence, err = files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+		divergence, err = files_service.CountDivergingCommits(ctx, ctx.Repo.Repository, git.BranchPrefix+branchName)
 		if err != nil {
 			log.Error("CountDivergingCommits", err)
 		}
@@ -289,7 +289,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+				baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
 				if err != nil {
 					ctx.ServerError("OpenRepository", err)
 					return nil
@@ -363,11 +363,11 @@ func CreateBranch(ctx *context.Context) {
 		if ctx.Repo.IsViewBranch {
 			target = ctx.Repo.BranchName
 		}
-		err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, target, form.NewBranchName, "")
+		err = release_service.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {

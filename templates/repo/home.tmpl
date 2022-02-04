@@ -5,16 +5,20 @@
 		{{template "base/alert" .}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
-				{{if .Repository.DescriptionHTML}}<span class="description">{{.Repository.DescriptionHTML}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
+				{{ $description := .Repository.DescriptionHTML $.Context}}
+				{{if $description}}<span class="description">{{$description}}</span>{{else if .IsRepositoryAdmin}}<span class="no-description text-italic">{{.i18n.Tr "repo.no_desc"}}</span>{{end}}
 				<a class="link" href="{{.Repository.Website}}">{{.Repository.Website}}</a>
 			</div>
 			{{if .RepoSearchEnabled}}
 				<div class="ui repo-search">
 					<form class="ui form ignore-dirty" action="{{.RepoLink}}/search" method="get">
 						<div class="field">
-							<div class="ui action input">
-								<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
-								<button class="ui icon button" type="submit">
+							<div class="ui action input{{if .CodeIndexerUnavailable }} disabled left icon tooltip{{end}}"{{if .CodeIndexerUnavailable }} data-content="{{.i18n.Tr "repo.search.code_search_unavailable"}}"{{end}}>
+								<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+								{{if .CodeIndexerUnavailable }}
+									<i class="icon df ac jc">{{svg "octicon-alert"}}</i>
+								{{end}}
+								<button class="ui icon button"{{if .CodeIndexerUnavailable }} disabled{{end}} type="submit">
 									{{svg "octicon-search"}}
 								</button>
 							</div>

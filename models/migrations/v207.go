@@ -16,7 +16,6 @@ import (
 )
 
 func addWebAuthnCred(x *xorm.Engine) error {
-
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`

@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {initCompColorPicker} from './ColorPicker.js';
 
 export function initCompLabelEdit(selector) {

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -595,8 +596,8 @@ func (issue *Issue) ReadBy(userID int64) error {
 	return setIssueNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, issue.ID)
 }
 
-func updateIssueCols(e db.Engine, issue *Issue, cols ...string) error {
-	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
+func updateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
+	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
 	return nil
@@ -646,7 +647,7 @@ func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, i
 		issue.ClosedUnix = 0
 	}
 
-	if err := updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err := updateIssueCols(ctx, issue, "is_closed", "closed_unix"); err != nil {
 		return nil, err
 	}
 
@@ -662,12 +663,12 @@ func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, i
 
 	// Update issue count of milestone
 	if issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := issue.updateClosedNum(e); err != nil {
+	if err := issue.updateClosedNum(ctx); err != nil {
 		return nil, err
 	}
 
@@ -722,7 +723,7 @@ func (issue *Issue) ChangeTitle(doer *user_model.User, oldTitle string) (err err
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "name"); err != nil {
+	if err = updateIssueCols(ctx, issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
@@ -756,7 +757,7 @@ func (issue *Issue) ChangeRef(doer *user_model.User, oldRef string) (err error) 
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "ref"); err != nil {
+	if err = updateIssueCols(ctx, issue, "ref"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
@@ -847,7 +848,7 @@ func (issue *Issue) ChangeContent(doer *user_model.User, content string) (err er
 
 	issue.Content = content
 
-	if err = updateIssueCols(db.GetEngine(ctx), issue, "content"); err != nil {
+	if err = updateIssueCols(ctx, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
@@ -956,7 +957,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(e, opts.Issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -1859,10 +1860,15 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 }
 
 // SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
+func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	kw = strings.ToUpper(kw)
+	// SQLite's UPPER function only transforms ASCII letters.
+	if setting.Database.UseSQLite3 {
+		kw = util.ToUpperASCII(kw)
+	} else {
+		kw = strings.ToUpper(kw)
+	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
@@ -1884,7 +1890,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ID          int64
 		UpdatedUnix int64
 	}, 0, limit)
-	err := db.GetEngine(db.DefaultContext).Distinct("id", "updated_unix").Table("issue").Where(cond).
+	err := db.GetEngine(ctx).Distinct("id", "updated_unix").Table("issue").Where(cond).
 		OrderBy("`updated_unix` DESC").Limit(limit, start).
 		Find(&res)
 	if err != nil {
@@ -1894,7 +1900,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ids = append(ids, r.ID)
 	}
 
-	total, err := db.GetEngine(db.DefaultContext).Distinct("id").Table("issue").Where(cond).Count()
+	total, err := db.GetEngine(ctx).Distinct("id").Table("issue").Where(cond).Count()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1970,10 +1976,9 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Update the deadline
-	if err = updateIssueCols(sess, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
+	if err = updateIssueCols(ctx, &Issue{ID: issue.ID, DeadlineUnix: deadlineUnix}, "deadline_unix"); err != nil {
 		return err
 	}
 
@@ -2059,21 +2064,11 @@ func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockingDependencies(db.GetEngine(db.DefaultContext))
 }
 
-func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
+func (issue *Issue) updateClosedNum(ctx context.Context) (err error) {
 	if issue.IsPull {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			true,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			false,
-			true,
-			issue.RepoID,
-		)
+		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
 	}
 	return
 }
@@ -2334,3 +2329,20 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	return
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (issue *Issue) RemapExternalUser(externalName string, externalID, userID int64) error {
+	issue.OriginalAuthor = externalName
+	issue.OriginalAuthorID = externalID
+	issue.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (issue *Issue) GetUserID() int64 { return issue.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
