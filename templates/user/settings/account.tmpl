@@ -72,8 +72,8 @@
 					</form>
 				</div>
 				{{range .Emails}}
+				{{if not DisableLocalUserManagement}}
 					<div class="item">
-{{if not DisableLocalUserManagement}}
 						{{if not .IsPrimary}}
 							<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
@@ -105,10 +105,8 @@
 								</form>
 							</div>
 						{{end}}
-{{end}}
 						<div class="content">
 							<strong>{{.Email}}</strong>
-{{if not DisableLocalUserManagement}}
 							{{if .IsPrimary}}
 								<div class="ui blue label">{{$.i18n.Tr "settings.primary"}}</div>
 							{{end}}
@@ -117,9 +115,9 @@
 							{{else}}
 								<div class="ui label">{{$.i18n.Tr "settings.requires_activation"}}</div>
 							{{end}}
-{{end}}
 						</div>
 					</div>
+				{{end}}
 				{{end}}
 			</div>
 		</div>

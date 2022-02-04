@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -37,7 +38,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				return nil, err
 			}
 		}
-		if user != nil && !user.ProhibitLogin {
+		if user != nil && (!user.ProhibitLogin || setting.Service.DisableLocalUserManagement) {
 			cols := make([]string, 0)
 			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
@@ -48,6 +49,11 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				// Change existing restricted flag only if RestrictedFilter option is set
 				user.IsRestricted = sr.IsRestricted
 				cols = append(cols, "is_restricted")
+			}
+			if user.ProhibitLogin && setting.Service.DisableLocalUserManagement {
+				// When local user management is disabled, active user is allowed to login.
+				user.ProhibitLogin = false
+				cols = append(cols, "prohibit_login")
 			}
 			if len(cols) > 0 {
 				err = user_model.UpdateForceUserCols(db.DefaultContext, user, cols...)
