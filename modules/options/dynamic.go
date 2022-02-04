@@ -17,9 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	directories = make(directorySet)
-)
+var directories = make(directorySet)
 
 // Dir returns all files from static or custom directory.
 func Dir(name string) ([]string, error) {
@@ -27,9 +25,7 @@ func Dir(name string) ([]string, error) {
 		return directories.Get(name), nil
 	}
 
-	var (
-		result []string
-	)
+	var result []string
 
 	customDir := path.Join(setting.CustomPath, "options", name)
 
@@ -39,7 +35,6 @@ func Dir(name string) ([]string, error) {
 	}
 	if isDir {
 		files, err := util.StatDir(customDir, true)
-
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
 		}
@@ -55,7 +50,6 @@ func Dir(name string) ([]string, error) {
 	}
 	if isDir {
 		files, err := util.StatDir(staticDir, true)
-
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read static directory. %v", err)
 		}

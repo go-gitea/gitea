@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -13,7 +14,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -31,7 +31,7 @@ type DeleteRepoFileOptions struct {
 }
 
 // DeleteRepoFile deletes a file in the given repository
-func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
+func DeleteRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
 	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -40,8 +40,14 @@ func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *De
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +55,7 @@ func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *De
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		newBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
@@ -58,7 +64,7 @@ func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *De
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, opts.TreePath); err != nil {
 		return nil, err
 	}
 
@@ -74,7 +80,7 @@ func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *De
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +197,7 @@ func DeleteRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *De
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	file, err := GetFileResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}

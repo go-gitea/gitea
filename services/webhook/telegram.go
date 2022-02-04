@@ -40,9 +40,7 @@ func GetTelegramHook(w *webhook_model.Webhook) *TelegramMeta {
 	return s
 }
 
-var (
-	_ PayloadConvertor = &TelegramPayload{}
-)
+var _ PayloadConvertor = &TelegramPayload{}
 
 // JSONPayload Marshals the TelegramPayload to json
 func (t *TelegramPayload) JSONPayload() ([]byte, error) {

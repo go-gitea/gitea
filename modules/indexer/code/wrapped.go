@@ -5,15 +5,14 @@
 package code
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
-var (
-	indexer = newWrappedIndexer()
-)
+var indexer = newWrappedIndexer()
 
 // ErrWrappedIndexerClosed is the error returned if the indexer was closed before it was ready
 var ErrWrappedIndexerClosed = fmt.Errorf("Indexer closed before ready")
@@ -57,12 +56,12 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 	return w.internal, nil
 }
 
-func (w *wrappedIndexer) Index(repo *repo_model.Repository, sha string, changes *repoChanges) error {
+func (w *wrappedIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	indexer, err := w.get()
 	if err != nil {
 		return err
 	}
-	return indexer.Index(repo, sha, changes)
+	return indexer.Index(ctx, repo, sha, changes)
 }
 
 func (w *wrappedIndexer) Delete(repoID int64) error {
@@ -79,7 +78,6 @@ func (w *wrappedIndexer) Search(repoIDs []int64, language, keyword string, page,
 		return 0, nil, nil, err
 	}
 	return indexer.Search(repoIDs, language, keyword, page, pageSize, isMatch)
-
 }
 
 func (w *wrappedIndexer) Close() {
