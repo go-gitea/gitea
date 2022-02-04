@@ -231,6 +231,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: ctx.Issue.Repo.HTMLURL(),
 		Metas:     ctx.Issue.Repo.ComposeMetas(),
 	}, ctx.Content)
@@ -448,7 +449,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
-		case models.CommentTypePullPush:
+		case models.CommentTypePullRequestPush:
 			name = "push"
 		default:
 			name = "default"

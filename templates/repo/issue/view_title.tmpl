@@ -6,7 +6,7 @@
 			</div>
 		{{end}}
 		<h1>
-			<span id="issue-title">{{RenderIssueTitle .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
+			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
