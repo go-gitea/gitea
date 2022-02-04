@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initUserAuthOauth2() {
   const $oauth2LoginNav = $('#oauth2-login-navigator');
   if ($oauth2LoginNav.length === 0) return;

@@ -207,7 +207,6 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 				log.Info("pausing")
 				pausable.Pause()
 			}
-			pushBack = false
 			lock.Unlock()
 			return data
 		}
@@ -248,6 +247,25 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
+	// Shutdown and Terminate in defer
+	defer func() {
+		lock.Lock()
+		callbacks := make([]func(), len(queueShutdown))
+		copy(callbacks, queueShutdown)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+		lock.Lock()
+		log.Info("Finally terminating")
+		callbacks = make([]func(), len(queueTerminate))
+		copy(callbacks, queueTerminate)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+	}()
+
 	test1 := testData{"A", 1}
 	test2 := testData{"B", 2}
 
@@ -263,14 +281,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Equal(t, test1.TestInt, result1.TestInt)
 
 	pausable.Pause()
-	paused, resumed := pausable.IsPausedIsResumed()
+	paused, _ := pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
@@ -287,11 +302,13 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Nil(t, result2)
 
 	pausable.Resume()
+	_, resumed := pausable.IsPausedIsResumed()
 
 	select {
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
+		return
 	}
 
 	select {
@@ -303,23 +320,26 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Equal(t, test2.TestString, result2.TestString)
 	assert.Equal(t, test2.TestInt, result2.TestInt)
 
+	// Set pushBack to so that the next handle will result in a Pause
 	lock.Lock()
 	pushBack = true
 	lock.Unlock()
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	// Ensure that we're still resumed
+	_, resumed = pausable.IsPausedIsResumed()
 
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should not be paused")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not resumed")
 		return
 	}
 
+	// push test1
 	queue.Push(&test1)
+
+	// Now as this is handled it should pause
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
@@ -331,30 +351,25 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		return
 	}
 
-	paused, resumed = pausable.IsPausedIsResumed()
-
-	select {
-	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
-		assert.Fail(t, "Queue is not paused")
-		return
-	}
+	lock.Lock()
+	pushBack = false
+	lock.Unlock()
 
 	pausable.Resume()
 
+	_, resumed = pausable.IsPausedIsResumed()
 	select {
 	case <-resumed:
-	default:
+	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
+		return
 	}
 
 	select {
 	case result1 = <-handleChan:
 	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "handler chan should contain test1")
+		return
 	}
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
@@ -362,6 +377,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	lock.Lock()
 	callbacks := make([]func(), len(queueShutdown))
 	copy(callbacks, queueShutdown)
+	queueShutdown = queueShutdown[:0]
 	lock.Unlock()
 	// Now shutdown the queue
 	for _, callback := range callbacks {
@@ -369,7 +385,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	}
 
 	// Wait til it is closed
-	<-queue.(*PersistableChannelQueue).closed
+	select {
+	case <-queue.(*PersistableChannelQueue).closed:
+	case <-time.After(5 * time.Second):
+		assert.Fail(t, "queue should close")
+		return
+	}
 
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
@@ -378,6 +399,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
@@ -385,6 +407,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	lock.Lock()
 	callbacks = make([]func(), len(queueTerminate))
 	copy(callbacks, queueTerminate)
+	queueShutdown = queueTerminate[:0]
 	lock.Unlock()
 	for _, callback := range callbacks {
 		callback()
@@ -393,6 +416,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
@@ -431,17 +455,15 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	case <-paused:
 	}
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(500 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
@@ -449,13 +471,37 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	select {
 	case <-handleChan:
 		assert.Fail(t, "Handler processing should have stopped")
+		return
 	default:
 	}
 
-	pausable.Resume()
+	lock.Lock()
+	pushBack = false
+	lock.Unlock()
 
-	result3 := <-handleChan
-	result4 := <-handleChan
+	pausable.Resume()
+	_, resumed = pausable.IsPausedIsResumed()
+	select {
+	case <-resumed:
+	case <-time.After(500 * time.Millisecond):
+		assert.Fail(t, "Queue should be resumed")
+		return
+	}
+
+	var result3, result4 *testData
+
+	select {
+	case result3 = <-handleChan:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Handler processing should have resumed")
+		return
+	}
+	select {
+	case result4 = <-handleChan:
+	case <-time.After(1 * time.Second):
+		assert.Fail(t, "Handler processing should have resumed")
+		return
+	}
 	if result4.TestString == test1.TestString {
 		result3, result4 = result4, result3
 	}
@@ -464,18 +510,4 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	lock.Lock()
-	callbacks = make([]func(), len(queueShutdown))
-	copy(callbacks, queueShutdown)
-	lock.Unlock()
-	for _, callback := range callbacks {
-		callback()
-	}
-	lock.Lock()
-	callbacks = make([]func(), len(queueTerminate))
-	copy(callbacks, queueTerminate)
-	lock.Unlock()
-	for _, callback := range callbacks {
-		callback()
-	}
 }

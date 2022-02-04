@@ -117,7 +117,10 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 		select {
 		case <-paused:
 			return nil
-		case data := <-q.dataChan:
+		case data, ok := <-q.dataChan:
+			if !ok {
+				return nil
+			}
 			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
