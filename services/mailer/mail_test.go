@@ -6,7 +6,9 @@ package mailer
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
+	"strings"
 	"testing"
 	texttmpl "text/template"
 
@@ -15,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -234,5 +235,117 @@ func TestGenerateAdditionalHeaders(t *testing.T) {
 		if assert.Contains(t, headers, key) {
 			assert.Equal(t, value, headers[key])
 		}
+	}
+}
+
+func Test_createReference(t *testing.T) {
+	_, _, issue, comment := prepareMailerTest(t)
+	_, _, pullIssue, _ := prepareMailerTest(t)
+	pullIssue.IsPull = true
+
+	type args struct {
+		issue      *models.Issue
+		comment    *models.Comment
+		actionType models.ActionType
+	}
+	tests := []struct {
+		name   string
+		args   args
+		prefix string
+		suffix string
+	}{
+		{
+			name: "Open Issue",
+			args: args{
+				issue:      issue,
+				actionType: models.ActionCreateIssue,
+			},
+			prefix: fmt.Sprintf("%s/issues/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
+		},
+		{
+			name: "Open Pull",
+			args: args{
+				issue:      pullIssue,
+				actionType: models.ActionCreatePullRequest,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
+		},
+		{
+			name: "Comment Issue",
+			args: args{
+				issue:      issue,
+				comment:    comment,
+				actionType: models.ActionCommentIssue,
+			},
+			prefix: fmt.Sprintf("%s/issues/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+		},
+		{
+			name: "Comment Pull",
+			args: args{
+				issue:      pullIssue,
+				comment:    comment,
+				actionType: models.ActionCommentPull,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
+		},
+		{
+			name: "Close Issue",
+			args: args{
+				issue:      issue,
+				actionType: models.ActionCloseIssue,
+			},
+			prefix: fmt.Sprintf("%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
+		},
+		{
+			name: "Close Pull",
+			args: args{
+				issue:      pullIssue,
+				actionType: models.ActionClosePullRequest,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
+		},
+		{
+			name: "Reopen Issue",
+			args: args{
+				issue:      issue,
+				actionType: models.ActionReopenIssue,
+			},
+			prefix: fmt.Sprintf("%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
+		},
+		{
+			name: "Reopen Pull",
+			args: args{
+				issue:      pullIssue,
+				actionType: models.ActionReopenPullRequest,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
+		},
+		{
+			name: "Merge Pull",
+			args: args{
+				issue:      pullIssue,
+				actionType: models.ActionMergePullRequest,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
+		},
+		{
+			name: "Ready Pull",
+			args: args{
+				issue:      pullIssue,
+				actionType: models.ActionPullRequestReadyForReview,
+			},
+			prefix: fmt.Sprintf("%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := createReference(tt.args.issue, tt.args.comment, tt.args.actionType)
+			if !strings.HasPrefix(got, tt.prefix) {
+				t.Errorf("createReference() = %v, want %v", got, tt.prefix)
+			}
+			if !strings.HasSuffix(got, tt.suffix) {
+				t.Errorf("createReference() = %v, want %v", got, tt.prefix)
+			}
+		})
 	}
 }
