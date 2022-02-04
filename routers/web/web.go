@@ -225,7 +225,7 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
-	// reverseProxyAuthDisabled rquires reverse proxy authentication to be disabled by admin.
+	// reverseProxyAuthDisabled requires reverse proxy authentication to be disabled by admin.
 	reverseProxyAuthDisabled := func(ctx *context.Context) {
 		if setting.Service.EnableReverseProxyAuth {
 			ctx.Error(http.StatusForbidden)
