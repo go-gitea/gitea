@@ -12,18 +12,13 @@
   border-bottom: 0;
 }
 
-.repository.wiki .tab[data-tab="write"] .CodeMirror {
-  border-top: 0;
+.repository.wiki .tab[data-tab="write"] .CodeMirror .CodeMirror-scroll {
+  max-height: 85vh;
 }
 
 .editor-toolbar {
   opacity: 1 !important;
   border-color: var(--color-secondary);
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--color-body);
-  border-bottom: 1px solid var(--color-secondary);
 }
 
 .editor-toolbar.fullscreen {
