@@ -39,6 +39,17 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		}
 		if user != nil && !user.ProhibitLogin {
 			cols := make([]string, 0)
+			fullName := composeFullName(sr.Name, sr.Surname, sr.Username)
+			if user.FullName != fullName {
+				// Update user fullname if changed.
+				user.FullName = fullName
+				cols = append(cols, "full_name")
+			}
+			if !strings.EqualFold(user.Email, sr.Mail) {
+				// Update user e-mail if changed.
+				user.Email = sr.Mail
+				cols = append(cols, "email")
+			}
 			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
 				user.IsAdmin = sr.IsAdmin
@@ -48,6 +59,11 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 				// Change existing restricted flag only if RestrictedFilter option is set
 				user.IsRestricted = sr.IsRestricted
 				cols = append(cols, "is_restricted")
+			}
+			if !user.IsActive {
+				// User existing in LDAP should be active in application.
+				user.IsActive = true
+				cols = append(cols, "is_active")
 			}
 			if len(cols) > 0 {
 				err = user_model.UpdateUserCols(db.DefaultContext, user, cols...)
