@@ -47,7 +47,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
+	teams, count, err := models.SearchOrgTeams(&models.SearchOrgTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
@@ -90,7 +90,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
+	teams, count, err := models.GetUserTeams(&models.GetUserTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.User.ID,
 	})
@@ -533,7 +533,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	team := ctx.Org.Team
-	if err := team.GetRepositories(&models.SearchTeamOptions{
+	if err := team.GetRepositories(&models.SearchOrgTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
@@ -707,15 +707,14 @@ func SearchTeam(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	opts := &models.SearchTeamOptions{
-		UserID:      ctx.User.ID,
+	opts := &models.SearchOrgTeamOptions{
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
 	}
 
-	teams, maxResults, err := models.SearchTeam(opts)
+	teams, maxResults, err := models.SearchOrgTeams(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

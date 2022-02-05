@@ -1,7 +1,7 @@
+import $ from 'jquery';
 import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
-
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
