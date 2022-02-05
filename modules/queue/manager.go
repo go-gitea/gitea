@@ -72,7 +72,7 @@ type ManagedPool interface {
 	BoostWorkers() int
 	// SetPoolSettings sets the user updatable settings for the pool
 	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
-	// Done returns a channel that will be closed when this Pool's baseCtx is closed
+	// Done returns a channel that will be closed when the Pool's baseCtx is closed
 	Done() <-chan struct{}
 }
 
