@@ -65,6 +65,11 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	return pool
 }
 
+// Done returns when this worker pool's base context has been cancelled
+func (p *WorkerPool) Done() <-chan struct{} {
+	return p.baseCtx.Done()
+}
+
 // Push pushes the data to the internal channel
 func (p *WorkerPool) Push(data Data) {
 	atomic.AddInt64(&p.numInQueue, 1)
@@ -326,7 +331,10 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 	log.Trace("WorkerPool: %d Flush", p.qid)
 	for {
 		select {
-		case data := <-p.dataChan:
+		case data, ok := <-p.dataChan:
+			if !ok {
+				return nil
+			}
 			p.handle(data)
 			atomic.AddInt64(&p.numInQueue, -1)
 		case <-p.baseCtx.Done():
@@ -341,7 +349,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 
 func (p *WorkerPool) doWork(ctx context.Context) {
 	delay := time.Millisecond * 300
-	var data = make([]Data, 0, p.batchLength)
+	data := make([]Data, 0, p.batchLength)
 	for {
 		select {
 		case <-ctx.Done():
