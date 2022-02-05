@@ -28,7 +28,7 @@
 								{{ .OriginalAuthor }}
 							</span>
 							<span class="text grey">
-								{{$.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
+								{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
 							</span>
 							<span class="text migrate">
 								({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
