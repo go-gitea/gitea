@@ -92,7 +92,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
-GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_PACKAGES ?= $(shell ls -d ./*/ | grep -v '/\(assets\|custom\|data\|docker\|docs\|node_modules\|options\|public\|snap\|templates\|tools\|vendor\|web_src\|integrations\)/' | sed 's/.*/&.../' | xargs $(GO) list | grep -v '/models/migrations')
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
