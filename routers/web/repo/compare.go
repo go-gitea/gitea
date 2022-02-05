@@ -787,6 +787,15 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+	if ctx.FormBool("wiki") {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+	}
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
