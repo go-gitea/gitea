@@ -196,7 +196,7 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			}
 
 			if pool, ok := mq.Managed.(ManagedPool); ok {
-				// no point flushing pools were their base ctx is already done
+				// No point into flushing pools when their base's ctx is already done.
 				select {
 				case <-pool.Done():
 					wg.Done()
