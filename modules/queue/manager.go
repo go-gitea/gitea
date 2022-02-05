@@ -84,7 +84,7 @@ type ManagedPool interface {
 	BoostWorkers() int
 	// SetPoolSettings sets the user updatable settings for the pool
 	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
-	// Done returns a channel that will be closed when this Pool's baseCtx is closed
+	// Done returns a channel that will be closed when the Pool's baseCtx is closed
 	Done() <-chan struct{}
 }
 
@@ -214,7 +214,7 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 				}
 			}
 			if pool, ok := mq.Managed.(ManagedPool); ok {
-				// no point flushing pools were their base ctx is already done
+				// No point into flushing pools when their base's ctx is already done.
 				select {
 				case <-pool.Done():
 					wg.Done()
