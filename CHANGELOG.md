@@ -4,6 +4,35 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.1](https://github.com/go-gitea/gitea/releases/tag/v1.16.1) - 2022-02-06
+
+* SECURITY
+  * Update JS dependencies, fix lint (#18389) (#18540)
+* ENHANCEMENTS
+  * Add dropdown icon to label set template dropdown (#18564) (#18571)
+* BUGFIXES
+  * Comments on migrated issues/prs must link to the comment ID (#18630) (#18637)
+  * Stop logging an error when notes are not found (#18626) (#18635)
+  * Ensure that blob-excerpt links work for wiki (#18587) (#18624)
+  * Only attempt to flush queue if the underlying worker pool is not finished (#18593) (#18620)
+  * Ensure commit-statuses box is sized correctly in headers (#18538) (#18606)
+  * Prevent merge messages from being sorted to the top of email chains (#18566) (#18588)
+  * Prevent panic on prohibited user login with oauth2 (#18562) (#18563)
+  * Collaborator trust model should trust collaborators (#18539) (#18557)
+  * Detect conflicts with 3way merge (#18536) (#18537)
+  * In docker rootless use $GITEA_APP_INI if provided (#18524) (#18535)
+  * Add `GetUserTeams` (#18499) (#18531)
+  * Fix review excerpt (#18502) (#18530)
+  * Fix for AvatarURL database type (#18487) (#18529)
+  * Use `ImagedProvider` for gplus oauth2 provider (#18504) (#18505)
+  * Fix OAuth Source Edit Page (#18495) (#18503)
+  * Use "read" value for General Access (#18496) (#18500)
+  * Prevent NPE on partial match of compare URL and allow short SHA1 compare URLs (#18472) (#18473)
+* BUILD
+  * Make docker gitea/gitea:v1.16-dev etc refer to the latest build on that branch (#18551) (#18569)
+* DOCS
+  * Update 1.16.0 changelog to set #17846 as breaking (#18533) (#18534)
+
 ## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-30
 
 * BREAKING
