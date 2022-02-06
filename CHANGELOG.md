@@ -11,6 +11,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Add dropdown icon to label set template dropdown (#18564) (#18571)
 * BUGFIXES
+  * comments on migrated issues/prs must link to the comment ID (#18630) (#18637)
+  * Stop logging an error when notes are not found (#18626) (#18635)
   * Ensure that blob-excerpt links work for wiki (#18587) (#18624)
   * Only attempt to flush queue if the underlying worker pool is not finished (#18593) (#18620)
   * Ensure commit-statuses box is sized correctly in headers (#18538) (#18606)
