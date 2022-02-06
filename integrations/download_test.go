@@ -79,7 +79,7 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 
 func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
 	defer prepareTestEnv(t)()
-	// Fixme: this doesn't take effect on the server-side?
+
 	setting.MimeTypeMap.Map[".foo"] = "audio/foo"
 	setting.MimeTypeMap.Enabled = true
 	_ = mime.AddExtensionType(".foo", "audio/foo")
@@ -89,8 +89,7 @@ func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/bin.foo")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// assert.Equal(t, "audio/foo", resp.HeaderMap.Get("Content-Type"))
-	assert.Equal(t, "application/octet-stream", resp.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "audio/foo", resp.HeaderMap.Get("Content-Type"))
 
 	delete(setting.MimeTypeMap.Map, ".foo")
 	setting.MimeTypeMap.Enabled = false
