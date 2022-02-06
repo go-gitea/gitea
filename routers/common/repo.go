@@ -28,9 +28,9 @@ func setCommonHeaders(ctx *context.Context, name string, data interface{}) error
 
 	// Fixme: ctx.Repo.Repository.IsPrivate is nil
 	// if ctx.Repo.Repository.IsPrivate {
-	// 	 ctx.Resp.Header().Set("Cache-Control", "private, max-age=300")
+	// 	ctx.Resp.Header().Set("Cache-Control", "private, max-age=300")
 	// } else {
-	// 	 ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
+	// 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
 	// }
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
 
@@ -61,6 +61,7 @@ func setCommonHeaders(ctx *context.Context, name string, data interface{}) error
 		// http.ServeContent has bug on detecting GBK charset
 		ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("%s; charset=%s", st.Mime(), strings.ToLower(cs)))
 	} else if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
+		ctx.Resp.Header().Set("Content-Type", st.Mime())
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 		if st.IsSvgImage() {
@@ -69,6 +70,7 @@ func setCommonHeaders(ctx *context.Context, name string, data interface{}) error
 			ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
 		}
 	} else {
+		ctx.Resp.Header().Set("Content-Type", st.Mime())
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
