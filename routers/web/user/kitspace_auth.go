@@ -8,7 +8,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
@@ -40,7 +39,7 @@ func KitspaceSignUp(ctx *context.Context) {
 	//     "$ref": "#/response/error
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	response := make(map[string]string)
+	response := make(map[string]interface{})
 	form := web.GetForm(ctx).(*forms.RegisterForm)
 
 	if len(form.Password) < setting.MinPasswordLength {
@@ -106,12 +105,10 @@ func KitspaceSignUp(ctx *context.Context) {
 		}
 	}
 
+	handleSignInFull(ctx, u, true, false)
+
 	// Return the success response with user details
-	response["email"] = u.Email
-	response["ActiveCodeLives"] = timeutil.MinutesToFriendly(
-		setting.Service.ActiveCodeLives,
-		ctx.Locale.Language(),
-	)
+	response["user"] = convert.ToUser(u, u)
 
 	ctx.JSON(http.StatusCreated, response)
 }
