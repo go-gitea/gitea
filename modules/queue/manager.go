@@ -72,6 +72,8 @@ type ManagedPool interface {
 	BoostWorkers() int
 	// SetPoolSettings sets the user updatable settings for the pool
 	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
+	// Done returns a channel that will be closed when the Pool's baseCtx is closed
+	Done() <-chan struct{}
 }
 
 // ManagedQueueList implements the sort.Interface
@@ -141,7 +143,6 @@ func (m *Manager) Remove(qid int64) {
 	delete(m.Queues, qid)
 	m.mutex.Unlock()
 	log.Trace("Queue Manager removed: QID: %d", qid)
-
 }
 
 // GetManagedQueue by qid
@@ -193,6 +194,17 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 				wg.Done()
 				continue
 			}
+
+			if pool, ok := mq.Managed.(ManagedPool); ok {
+				// No point into flushing pools when their base's ctx is already done.
+				select {
+				case <-pool.Done():
+					wg.Done()
+					continue
+				default:
+				}
+			}
+
 			allEmpty = false
 			if flushable, ok := mq.Managed.(Flushable); ok {
 				log.Debug("Flushing (flushable) queue: %s", mq.Name)
@@ -225,7 +237,6 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 		wg.Wait()
 	}
 	return nil
-
 }
 
 // ManagedQueues returns the managed queues
