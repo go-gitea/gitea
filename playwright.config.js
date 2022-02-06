@@ -6,7 +6,8 @@ import {devices} from '@playwright/test';
  * @type {import('@playwright/test').PlaywrightTestConfig}
  */
 const config = {
-  testDir: './tools/e2e/tests',
+  testDir: './tools/e2e/tests',   // TODO: Change this to the ./web_src/ dir?
+  testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
 
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
@@ -40,6 +41,9 @@ const config = {
 
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 1000,
+
+    /* Maximum time allowed for navigation, such as `page.goto()`. */
+    navigationTimeout: 5 * 1000,
 
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://localhost:3000',
