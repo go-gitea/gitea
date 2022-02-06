@@ -940,17 +940,23 @@ func (g *githubIssueEvent) CommentContent() map[string]interface{} {
 // CommentStr returns comment type string
 func (g *githubIssueEvent) CommentStr() string {
 	switch g.Event {
+	case "assigned":
+		return "assignees"
+	case "base_ref_changed":
+		return "unknown"
 	case "closed":
 		return "close"
+	case "convert_to_draft":
+		return "unknown"
 	case "head_ref_force_pushed":
 		return "pull_push"
 	case "referenced":
 		return "commit_ref"
 	case "moved_columns_in_project":
 		return "unknown"
-	case "convert_to_draft":
-		return "unknown"
 	case "ready_for_review":
+		return "unknown"
+	case "review_requested":
 		return "unknown"
 	case "merged":
 		return "merge_pull"
@@ -976,8 +982,7 @@ func (g *githubIssueEvent) CommentStr() string {
 		return "reopen"
 	case "unlabeled":
 		return "label"
-	case "assigned":
-		return "assignees"
+
 	case "pinned":
 		return "pinned"
 	case "unpinned":
