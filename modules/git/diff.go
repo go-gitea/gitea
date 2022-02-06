@@ -81,7 +81,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := NewCommandContext(repo.Ctx, args...)
+	cmd := NewCommand(repo.Ctx, args...)
 	if err = cmd.RunWithContext(&RunContext{
 		Timeout: -1,
 		Dir:     repo.Path,
@@ -286,7 +286,7 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = NewCommandContext(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
+	err = NewCommand(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {

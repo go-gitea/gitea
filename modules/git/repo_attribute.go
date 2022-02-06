@@ -74,7 +74,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		}
 	}
 
-	cmd := NewCommandContext(repo.Ctx, cmdArgs...)
+	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
 	if err := cmd.RunInDirTimeoutEnvPipeline(env, -1, repo.Path, stdOut, stdErr); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
@@ -152,7 +152,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	cmdArgs = append(cmdArgs, "--")
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommandContext(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, cmdArgs...)
 
 	var err error
 

@@ -129,6 +129,7 @@ func TestDumpRestore(t *testing.T) {
 				assert.EqualValues(t, before[i].Created, after[i].Created)
 				assert.EqualValues(t, before[i].Updated, after[i].Updated)
 				assert.EqualValues(t, before[i].Labels, after[i].Labels)
+				assert.EqualValues(t, before[i].Reactions, after[i].Reactions)
 			}
 		}
 	})
