@@ -6,17 +6,17 @@
 				{{if eq .GetType 4}}
 					<td colspan="2" class="lines-num">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</a>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=&wiki={{$.root.PageIsWiki}}" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
 							</a>
 						{{end}}
