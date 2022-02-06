@@ -28,8 +28,8 @@ func TestAPIGitTags(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Set up git config for the tagger
-	git.NewCommand("config", "user.name", user.Name).RunInDir(repo.RepoPath())
-	git.NewCommand("config", "user.email", user.Email).RunInDir(repo.RepoPath())
+	git.NewCommand(git.DefaultContext, "config", "user.name", user.Name).RunInDir(repo.RepoPath())
+	git.NewCommand(git.DefaultContext, "config", "user.email", user.Email).RunInDir(repo.RepoPath())
 
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
 	defer gitRepo.Close()
