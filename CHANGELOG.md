@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Add dropdown icon to label set template dropdown (#18564) (#18571)
 * BUGFIXES
+  * Ensure that blob-excerpt links work for wiki (#18587) (#18624)
   * Ensure commit-statuses box is sized correctly in headers (#18538) (#18606)
   * Prevent merge messages from being sorted to the top of email chains (#18566) (#18588)
   * Prevent panic on prohibited user login with oauth2 (#18562) (#18563)
