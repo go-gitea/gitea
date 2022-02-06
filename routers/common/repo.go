@@ -32,7 +32,7 @@ func setCommonHeaders(ctx *context.Context, name string, data interface{}) error
 	// } else {
 	// 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
 	// }
-	ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
+	ctx.Resp.Header().Set("Cache-Control", "public, max-age=300")
 
 	st, err := typesniffer.DetectContentTypeExtFirst(name, data)
 	if nil != err {
