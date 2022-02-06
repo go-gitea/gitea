@@ -163,7 +163,7 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 }
 
 // FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string, changedFiles, writeFile, outputDiff bool) error {
+func FormatGoImports(file string, doChangedFiles, doWriteFile, doOutputDiff bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -187,11 +187,11 @@ func FormatGoImports(file string, changedFiles, writeFile, outputDiff bool) erro
 		return nil
 	}
 
-	if changedFiles {
+	if doChangedFiles {
 		fmt.Println(file)
 	}
 
-	if writeFile {
+	if doWriteFile {
 		f, err = os.OpenFile(file, os.O_TRUNC|os.O_WRONLY, 0o644)
 		if err != nil {
 			return err
@@ -201,7 +201,7 @@ func FormatGoImports(file string, changedFiles, writeFile, outputDiff bool) erro
 		return err
 	}
 
-	if outputDiff {
+	if doOutputDiff {
 		edits := myers.ComputeEdits(span.URIFromPath("a/"+file), string(contentBytes), string(formattedBytes))
 		diff := fmt.Sprint(gotextdiff.ToUnified("a/"+file, "b/"+file, string(contentBytes), edits))
 
