@@ -229,9 +229,9 @@ func containsString(a []string, s string) bool {
 	return false
 }
 
-func giteaFormatGoImports(files []string, hasChangedFiles, doWriteFile, doOutputDiff bool) error {
+func giteaFormatGoImports(files []string, hasChangedFiles, doWriteFile bool) error {
 	for _, file := range files {
-		if err := codeformat.FormatGoImports(file, hasChangedFiles, doWriteFile, doOutputDiff); err != nil {
+		if err := codeformat.FormatGoImports(file, hasChangedFiles, doWriteFile); err != nil {
 			log.Printf("failed to format go imports: %s, err=%v", file, err)
 			return err
 		}
@@ -267,7 +267,10 @@ func main() {
 		logVerbose("batch cmd: %s %v", subCmd, substArgs)
 		switch subCmd {
 		case "gitea-fmt":
-			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-l"), containsString(subArgs, "-w"), containsString(subArgs, "-d")))
+			if containsString(subArgs, "-d") {
+				log.Print("the -d option is not supported by gitea-fmt")
+			}
+			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-l"), containsString(subArgs, "-w")))
 			cmdErrors = append(cmdErrors, passThroughCmd("gofumpt", append([]string{"-extra", "-lang", "1.16"}, substArgs...)))
 		case "misspell":
 			cmdErrors = append(cmdErrors, passThroughCmd("misspell", substArgs))

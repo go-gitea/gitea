@@ -62,7 +62,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.1
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/hexops/gotextdiff v1.0.3
 	github.com/huandu/xstrings v1.3.2
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 	github.com/json-iterator/go v1.1.11

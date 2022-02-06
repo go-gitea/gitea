@@ -287,7 +287,7 @@ fmt-check:
 		$(GO) install mvdan.cc/gofumpt@latest; \
 	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -d '{file-list}'); \
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \

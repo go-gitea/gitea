@@ -12,10 +12,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-
-	"github.com/hexops/gotextdiff"
-	"github.com/hexops/gotextdiff/myers"
-	"github.com/hexops/gotextdiff/span"
 )
 
 var importPackageGroupOrders = map[string]int{
@@ -163,7 +159,7 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 }
 
 // FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string, doChangedFiles, doWriteFile, doOutputDiff bool) error {
+func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -199,13 +195,6 @@ func FormatGoImports(file string, doChangedFiles, doWriteFile, doOutputDiff bool
 		defer f.Close()
 		_, err = f.Write(formattedBytes)
 		return err
-	}
-
-	if doOutputDiff {
-		edits := myers.ComputeEdits(span.URIFromPath("a/"+file), string(contentBytes), string(formattedBytes))
-		diff := fmt.Sprint(gotextdiff.ToUnified("a/"+file, "b/"+file, string(contentBytes), edits))
-
-		fmt.Println(diff)
 	}
 
 	return err
