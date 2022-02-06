@@ -229,9 +229,9 @@ func containsString(a []string, s string) bool {
 	return false
 }
 
-func giteaFormatGoImports(files []string, changedFiles, writeFile, outputDiff bool) error {
+func giteaFormatGoImports(files []string, hasChangedFiles, doWriteFile, doOutputDiff bool) error {
 	for _, file := range files {
-		if err := codeformat.FormatGoImports(file, changedFiles, writeFile, outputDiff); err != nil {
+		if err := codeformat.FormatGoImports(file, hasChangedFiles, doWriteFile, doOutputDiff); err != nil {
 			log.Printf("failed to format go imports: %s, err=%v", file, err)
 			return err
 		}
