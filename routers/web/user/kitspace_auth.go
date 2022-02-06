@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/modules/convert"
 )
+
 
 // KitspaceSignUp custom sign-up compatible with Kitspace architecture
 func KitspaceSignUp(ctx *context.Context) {
@@ -143,7 +145,7 @@ func KitspaceSignIn(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SignInForm)
 	u, err := auth.UserSignIn(form.UserName, form.Password)
 
-	response := make(map[string]string)
+	response := make(map[string]interface{})
 	if err != nil {
 		switch {
 		case models.IsErrUserNotExist(err):
@@ -184,6 +186,7 @@ func KitspaceSignIn(ctx *context.Context) {
 	}
 	handleSignInFull(ctx, u, form.Remember, false)
 
-	response["LoggedInSuccessfully"] = u.Name
+	response["user"] = convert.ToUser(u, u)
+
 	ctx.JSON(http.StatusOK, response)
 }
