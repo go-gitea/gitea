@@ -69,12 +69,12 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 		}
 
 		// custom files
-		if opts.handle(resp, req, http.Dir(custPath), file) {
+		if opts.handle(resp, req, http.Dir(custPath), file, false) {
 			return
 		}
 
 		// internal files
-		if opts.handle(resp, req, fileSystem(opts.Directory), file) {
+		if opts.handle(resp, req, fileSystem(opts.Directory), file, true) {
 			return
 		}
 
@@ -101,9 +101,14 @@ func setWellKnownContentType(w http.ResponseWriter, file string) {
 	}
 }
 
-func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
+func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string, isInternal bool) bool {
+	// respect webpack assets manifest for internal files
+	if isInternal {
+		file = ResolveWithManifest(fs, path.Clean(file))
+	}
+
 	// use clean to keep the file is a valid path with no . or ..
-	f, err := fs.Open(path.Clean(file))
+	f, err := fs.Open(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false
