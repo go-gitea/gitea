@@ -40,7 +40,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, err := git.NewCommandContext(ctx, "clone", repoPath, tmpDir).
+	if stdout, err := git.NewCommand(ctx, "clone", repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunInDirWithEnv("", env); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
@@ -117,7 +117,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	if stdout, err := git.NewCommandContext(ctx, "add", "--all").
+	if stdout, err := git.NewCommand(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunInDir(tmpPath); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
@@ -154,7 +154,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		"GIT_COMMITTER_EMAIL="+committerEmail,
 	)
 
-	if stdout, err := git.NewCommandContext(ctx, args...).
+	if stdout, err := git.NewCommand(ctx, args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, env); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
@@ -165,7 +165,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, err := git.NewCommandContext(ctx, "push", "origin", "HEAD:"+defaultBranch).
+	if stdout, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
 		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
