@@ -231,13 +231,11 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running gitea-fmt(with gofmt)..."
-	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
-	@echo "Running gofumpt"
 	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install mvdan.cc/gofumpt@latest; \
 	fi
-	@gofumpt -w -l -extra -lang 1.16 .
+	@echo "Running gitea-fmt (with gofumpt)..."
+	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 
 .PHONY: vet
 vet:
@@ -284,8 +282,12 @@ errcheck:
 	@errcheck $(GO_PACKAGES)
 
 .PHONY: fmt-check
-fmt-check: fmt
-	@diff=$$(git diff $(GO_DIRS)); \
+fmt-check:
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
+	# get all go files and run gitea-fmt (with gofmt) on them
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -d '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
