@@ -92,6 +92,7 @@ func Settings(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+	ctx.Data["Mirror"] = ctx.Repo.Mirror
 
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }

@@ -6,14 +6,15 @@ package git
 
 import (
 	"context"
-	"net/url"
+
+	"code.gitea.io/gitea/modules/git/url"
 )
 
-// GetRemoteAddress returns the url of a specific remote of the repository.
-func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.URL, error) {
+// GetRemoteURL returns remote url of git repository in the repoPath with special remote name
+func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (string, error) {
 	err := LoadGitVersion()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	var cmd *Command
 	if CheckGitVersionAtLeast("2.7") == nil {
@@ -24,11 +25,20 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 
 	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if len(result) > 0 {
 		result = result[:len(result)-1]
+	}
+	return result, nil
+}
+
+// GetRemoteAddress returns the url of a specific remote of the repository.
+func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.URL, error) {
+	result, err := GetRemoteURL(ctx, repoPath, remoteName)
+	if err != nil {
+		return nil, err
 	}
 	return url.Parse(result)
 }
