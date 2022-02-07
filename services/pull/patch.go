@@ -87,7 +87,7 @@ func TestPatch(pr *models.PullRequest) error {
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflicts(pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == models.PullRequestStatusEmpty {
+	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == models.PullRequestStatusEmpty {
 		return err
 	}
 
@@ -269,11 +269,8 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	return conflict, conflictedFiles, nil
 }
 
-func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("checkConflicts: %s", description))
-	defer finished()
-
 	conflict, _, err := AttemptThreeWayMerge(ctx,
 		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
 	if err != nil {
