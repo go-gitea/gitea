@@ -20,7 +20,7 @@
 							{{svg "octicon-file"}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
 						</td>
-						{{$timeSince := TimeSinceUnix .UpdatedUnix $.Lang}}
+						{{$timeSince := TimeSinceUnix .UpdatedUnix $.i18n.Lang}}
 						<td class="text right grey">{{$.i18n.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
 					</tr>
 				{{end}}

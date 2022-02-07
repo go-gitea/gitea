@@ -1,6 +1,6 @@
 {{range .comments}}
 
-{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.Lang }}
+{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.i18n.Lang }}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor }}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>

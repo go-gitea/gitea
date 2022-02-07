@@ -25,17 +25,18 @@ type Locale interface {
 
 // LangType represents a lang type
 type LangType struct {
-	Lang, Name string
+	Lang, Name string // these fields is used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
 }
 
 var (
 	matcher       language.Matcher
-	allLangs      []LangType
+	allLangs      []*LangType
+	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
 // AllLangs returns all supported languages sorted by name
-func AllLangs() []LangType {
+func AllLangs() []*LangType {
 	return allLangs
 }
 
@@ -69,14 +70,17 @@ func InitLocales() {
 	}
 	i18n.SetDefaultLang("en-US")
 
-	allLangs = make([]LangType, 0, i18n.Count()-1)
+	allLangs = make([]*LangType, 0, i18n.Count())
+	allLangMap = map[string]*LangType{}
 	langs := i18n.ListLangs()
-	names := i18n.ListLangDescs()
+	descs := i18n.ListLangDescs()
 	for i, v := range langs {
-		allLangs = append(allLangs, LangType{v, names[i]})
+		l := &LangType{v, descs[i]}
+		allLangs = append(allLangs, l)
+		allLangMap[v] = l
 	}
 
-	// Sort languages case insensitive according to their name - needed for the user settings
+	// Sort languages case-insensitive according to their name - needed for the user settings
 	sort.Slice(allLangs, func(i, j int) bool {
 		return strings.ToLower(allLangs[i].Name) < strings.ToLower(allLangs[j].Name)
 	})
@@ -90,13 +94,18 @@ func Match(tags ...language.Tag) language.Tag {
 
 // locale represents the information of localization.
 type locale struct {
-	Lang string
+	Lang, LangName string // these fields is used directly in templates: .i18n.Lang
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	langName := "unknown"
+	if l, ok := allLangMap[lang]; ok {
+		langName = l.Name
+	}
 	return &locale{
-		Lang: lang,
+		Lang:     lang,
+		LangName: langName,
 	}
 }
 
@@ -106,7 +115,22 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	return i18n.Tr(l.Lang, format, args...)
+	s := i18n.Tr(l.Lang, format, args...)
+	if setting.IsProd {
+		return s
+	}
+
+	// in development, we should show an error if a translation key is missing
+	// the i18n library is not good enough, we have to use this hacky method to detect untranslated strings
+	idx := strings.IndexByte(format, '.')
+	defaultText := format
+	if idx > 0 {
+		defaultText = format[idx+1:]
+	}
+	if s == defaultText {
+		log.Error("untranslated i18n key: %q", format)
+	}
+	return s
 }
 
 // Language specific rules for translating plural texts

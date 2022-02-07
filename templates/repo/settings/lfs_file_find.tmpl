@@ -37,7 +37,7 @@
 								{{$.i18n.Tr "repo.diff.commit"}}
 								<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
-							<td>{{TimeSince .When $.Lang}}</td>
+							<td>{{TimeSince .When $.i18n.Lang}}</td>
 						</tr>
 					{{else}}
 						<tr>

@@ -76,9 +76,9 @@
 							{{end}}
 						</td>
 						{{if .Committer}}
-							<td class="text right aligned">{{TimeSince .Committer.When $.Lang}}</td>
+							<td class="text right aligned">{{TimeSince .Committer.When $.i18n.Lang}}</td>
 						{{else}}
-							<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+							<td class="text right aligned">{{TimeSince .Author.When $.i18n.Lang}}</td>
 						{{end}}
 					</tr>
 				{{end}}

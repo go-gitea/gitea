@@ -29,7 +29,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 		return
 	}
 
-	lang := ctx.Data["Lang"].(string)
+	lang := ctx.Locale.Language()
 	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(db.DefaultContext, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
@@ -55,17 +55,17 @@ func GetContentHistoryList(ctx *context.Context) {
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	lang := ctx.Data["Lang"].(string)
+	lang := ctx.Locale.Language()
 	var results []map[string]interface{}
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := i18n.Tr(lang, "repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.created")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.edited")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
 		results = append(results, map[string]interface{}{

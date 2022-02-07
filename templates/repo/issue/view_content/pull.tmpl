@@ -4,7 +4,7 @@
 			<div class="ui segment">
 				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
 				{{range .PullReviewers}}
-					{{ $createdStr:= TimeSinceUnix .Review.UpdatedUnix $.Lang }}
+					{{ $createdStr:= TimeSinceUnix .Review.UpdatedUnix $.i18n.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
@@ -82,7 +82,7 @@
 					</div>
 				{{end}}
 				{{range .OriginalReviews}}
-					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
+					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.i18n.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
