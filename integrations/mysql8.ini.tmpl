@@ -79,7 +79,7 @@ PROVIDER = file
 PROVIDER_CONFIG = integrations/gitea-integration-mysql8/data/sessions
 
 [log]
-MODE                 = test,file
+MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}mysql8-log
 ROUTER               = ,
 XORM                 = file

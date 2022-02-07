@@ -101,7 +101,7 @@ PROVIDER        = file
 PROVIDER_CONFIG = integrations/gitea-integration-mysql/data/sessions
 
 [log]
-MODE                 = test,file
+MODE                 = {{TEST_LOGGER}}
 ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
 ROUTER               = ,
 XORM                 = file
