@@ -119,7 +119,6 @@
 										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
-									{{$originalURL := .SanitizedOriginalURL}}
 									{{$address := MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
