@@ -40,7 +40,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommandContext(repo.Ctx, "commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree", tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p", parent)

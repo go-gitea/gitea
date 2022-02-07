@@ -117,6 +117,56 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, pulls[0].Issue.Comments, 2)
 }
 
+func TestGiteaUploadRemapLocalUser(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+
+	repoName := "migrated"
+	uploader := NewGiteaLocalUploader(context.Background(), doer, doer.Name, repoName)
+	// call remapLocalUser
+	uploader.sameApp = true
+
+	externalID := int64(1234567)
+	externalName := "username"
+	source := base.Release{
+		PublisherID:   externalID,
+		PublisherName: externalName,
+	}
+
+	//
+	// The externalID does not match any existing user, everything
+	// belongs to the doer
+	//
+	target := models.Release{}
+	uploader.userMap = make(map[int64]int64)
+	err := uploader.remapUser(&source, &target)
+	assert.NoError(t, err)
+	assert.EqualValues(t, doer.ID, target.GetUserID())
+
+	//
+	// The externalID matches a known user but the name does not match,
+	// everything belongs to the doer
+	//
+	source.PublisherID = user.ID
+	target = models.Release{}
+	uploader.userMap = make(map[int64]int64)
+	err = uploader.remapUser(&source, &target)
+	assert.NoError(t, err)
+	assert.EqualValues(t, doer.ID, target.GetUserID())
+
+	//
+	// The externalID and externalName match an existing user, everything
+	// belongs to the existing user
+	//
+	source.PublisherName = user.Name
+	target = models.Release{}
+	uploader.userMap = make(map[int64]int64)
+	err = uploader.remapUser(&source, &target)
+	assert.NoError(t, err)
+	assert.EqualValues(t, user.ID, target.GetUserID())
+}
+
 func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
@@ -124,9 +174,11 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	repoName := "migrated"
 	uploader := NewGiteaLocalUploader(context.Background(), doer, doer.Name, repoName)
 	uploader.gitServiceType = structs.GiteaService
+	// call remapExternalUser
+	uploader.sameApp = false
 
 	externalID := int64(1234567)
-	externalName := "url.or.something"
+	externalName := "username"
 	source := base.Release{
 		PublisherID:   externalID,
 		PublisherName: externalName,
@@ -136,8 +188,9 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	// When there is no user linked to the external ID, the migrated data is authored
 	// by the doer
 	//
+	uploader.userMap = make(map[int64]int64)
 	target := models.Release{}
-	err := uploader.remapExternalUser(&source, &target)
+	err := uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
 	assert.EqualValues(t, doer.ID, target.GetUserID())
 
@@ -158,8 +211,9 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	// When a user is linked to the external ID, it becomes the author of
 	// the migrated data
 	//
+	uploader.userMap = make(map[int64]int64)
 	target = models.Release{}
-	err = uploader.remapExternalUser(&source, &target)
+	err = uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
-	assert.EqualValues(t, target.GetUserID(), linkedUser.ID)
+	assert.EqualValues(t, linkedUser.ID, target.GetUserID())
 }
