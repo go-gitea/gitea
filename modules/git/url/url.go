@@ -32,7 +32,7 @@ func (u *URL) String() string {
 	}
 }
 
-var scpSyntaxRe = regexp.MustCompile(`^([a-zA-Z0-9_]+)@([a-zA-Z0-9._-]+):(.*)$`)
+var scpSyntaxRe = regexp.MustCompile(`^([a-zA-Z0-9-._~]+)@([a-zA-Z0-9._-]+):(.*)$`)
 
 // Parse parse all kinds of git remote URL
 func Parse(remote string) (*URL, error) {
