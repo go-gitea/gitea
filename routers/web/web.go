@@ -245,8 +245,6 @@ func RegisterRoutes(m *web.Route) {
 	// for health check
 	m.Get("/", Home)
 	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
-	m.Get("/__kitspace", Kitspace)
-	m.Get("/__kitspace/*", Kitspace)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
