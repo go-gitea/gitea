@@ -7,13 +7,14 @@ package url
 import (
 	"fmt"
 	"net/url"
+	stdurl "net/url"
 	"regexp"
 	"strings"
 )
 
 // URL represents a git remote URL
 type URL struct {
-	*url.URL
+	*stdurl.URL
 	extraMark int // 0 no extra 1 scp 2 file path with no prefix
 }
 
@@ -35,7 +36,7 @@ var scpSyntaxRe = regexp.MustCompile(`^([a-zA-Z0-9_]+)@([a-zA-Z0-9._-]+):(.*)$`)
 
 // Parse parse all kinds of git remote URL
 func Parse(remote string) (*URL, error) {
-	u, err := url.Parse(remote)
+	u, err := stdurl.Parse(remote)
 	if err == nil {
 		extraMark := 0
 		if u.Scheme == "" && u.Path != "" {
@@ -51,7 +52,7 @@ func Parse(remote string) (*URL, error) {
 
 	if results := scpSyntaxRe.FindStringSubmatch(remote); results != nil {
 		return &URL{
-			URL: &url.URL{
+			URL: &stdurl.URL{
 				Scheme: "ssh",
 				User:   url.User(results[1]),
 				Host:   results[2],
@@ -62,7 +63,7 @@ func Parse(remote string) (*URL, error) {
 	}
 
 	return &URL{
-		URL: &url.URL{
+		URL: &stdurl.URL{
 			Scheme: "file",
 			Path:   remote,
 		},
