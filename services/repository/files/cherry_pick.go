@@ -13,9 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/pull"
 )
@@ -80,9 +78,6 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 
 	description := fmt.Sprintf("CherryPick %s onto %s", right, opts.OldBranch)
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), description)
-	defer finished()
-
 	conflict, _, err := pull.AttemptThreeWayMerge(ctx,
 		t.basePath, t.gitRepo, base, opts.LastCommitID, right, description)
 	if err != nil {
