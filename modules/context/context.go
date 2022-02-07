@@ -9,9 +9,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"html"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -264,6 +266,12 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
 		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		if errors.Is(logErr, &net.OpError{}) {
+			// This is an error within the underlying connection
+			// and further rendering will not work so just return
+			return
+		}
+
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
