@@ -8,7 +8,6 @@ package setting
 import (
 	"encoding/base64"
 	"fmt"
-	"io"
 	"math"
 	"net"
 	"net/url"
