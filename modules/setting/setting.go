@@ -1080,7 +1080,7 @@ func loadInternalToken(sec *ini.Section) string {
 	}
 	switch tempURI.Scheme {
 	case "file":
-		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDONLY, 0o400)
+		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDONLY, 0o600)
 		if err != nil {
 			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
 		}
