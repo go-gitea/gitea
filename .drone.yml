@@ -545,6 +545,7 @@ steps:
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
       NO_DEPS_PLAYWRIGHT: 1
+      TEST_LOGGER: console,file
 
 ---
 kind: pipeline

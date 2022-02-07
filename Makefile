@@ -399,9 +399,8 @@ gomod-check: tidy
 	fi
 
 generate-ini-sqlite:
-	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
+		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			integrations/sqlite.ini.tmpl > integrations/sqlite.ini
 
 .PHONY: test-sqlite
@@ -423,13 +422,12 @@ test-sqlite-migration\#%:  migrations.sqlite.test migrations.individual.sqlite.t
 
 
 generate-ini-mysql:
-	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
+		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
 
 .PHONY: test-mysql
@@ -446,13 +444,12 @@ test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./migrations.individual.mysql.test
 
 generate-ini-mysql8:
-	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
+		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			integrations/mysql8.ini.tmpl > integrations/mysql8.ini
 
 .PHONY: test-mysql8
@@ -469,14 +466,13 @@ test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test 
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./migrations.individual.mysql8.test
 
 generate-ini-pgsql:
-	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
+		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -493,13 +489,12 @@ test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./migrations.individual.pgsql.test
 
 generate-ini-mssql:
-	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
 		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
 		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
-		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
+		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
 			integrations/mssql.ini.tmpl > integrations/mssql.ini
 
 .PHONY: test-mssql
@@ -515,8 +510,9 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
+.PHONY: test-e2e%
 # Use only file logging for end-to-end tests
-test-e2e%: TEST_LOGGER = file
+test-e2e%: TEST_LOGGER ?= file
 
 .PHONY: test-e2e
 test-e2e: test-e2e-sqlite
