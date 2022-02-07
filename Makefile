@@ -399,7 +399,9 @@ gomod-check: tidy
 	fi
 
 generate-ini-sqlite:
+	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
 			integrations/sqlite.ini.tmpl > integrations/sqlite.ini
 
 .PHONY: test-sqlite
@@ -421,11 +423,13 @@ test-sqlite-migration\#%:  migrations.sqlite.test migrations.individual.sqlite.t
 
 
 generate-ini-mysql:
+	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
 			integrations/mysql.ini.tmpl > integrations/mysql.ini
 
 .PHONY: test-mysql
@@ -442,11 +446,13 @@ test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./migrations.individual.mysql.test
 
 generate-ini-mysql8:
+	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL8_USERNAME}}|${TEST_MYSQL8_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL8_PASSWORD}}|${TEST_MYSQL8_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
 			integrations/mysql8.ini.tmpl > integrations/mysql8.ini
 
 .PHONY: test-mysql8
@@ -463,12 +469,14 @@ test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test 
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./migrations.individual.mysql8.test
 
 generate-ini-pgsql:
+	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
 		-e 's|{{TEST_PGSQL_DBNAME}}|${TEST_PGSQL_DBNAME}|g' \
 		-e 's|{{TEST_PGSQL_USERNAME}}|${TEST_PGSQL_USERNAME}|g' \
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
 			integrations/pgsql.ini.tmpl > integrations/pgsql.ini
 
 .PHONY: test-pgsql
@@ -485,11 +493,13 @@ test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./migrations.individual.pgsql.test
 
 generate-ini-mssql:
+	$(TEST_LOGGER) ?= test,file
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
 		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
 		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
 		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{TEST_LOGGER}}|${TEST_LOGGER}|g' \
 			integrations/mssql.ini.tmpl > integrations/mssql.ini
 
 .PHONY: test-mssql
@@ -505,6 +515,9 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
+# Use only file logging for end-to-end tests
+test-e2e%: TEST_LOGGER = file
+
 .PHONY: test-e2e
 test-e2e: test-e2e-sqlite
 
@@ -513,48 +526,47 @@ test-e2e\#%: test-e2e-sqlite\#%
 # Kind of a hack to get makefile to accept passing arguement
 	true
 
-# Can I share the database with integration tests? Is it cleaned up between tests?
 .PHONY: test-e2e-sqlite
-test-e2e-sqlite: GOFLAGS+=sqlite sqlite_unlock_notify
+test-e2e-sqlite: TAGS+=sqlite sqlite_unlock_notify
 test-e2e-sqlite: build generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/sqlite.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/sqlite.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: GOFLAGS+=sqlite sqlite_unlock_notify
+test-e2e-sqlite\#%: TAGS+=sqlite sqlite_unlock_notify
 test-e2e-sqlite\#%: build generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/sqlite.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/sqlite.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mysql8
 test-e2e-mysql8: build generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3004" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mysql8\#%
 test-e2e-mysql8\#%: build generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3004" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mysql8.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: build generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3002" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-pgsql\#%
 test-e2e-pgsql\#%: build generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3002" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/pgsql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mssql
 test-e2e-mssql: build generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini ./tools/e2e/run_e2e.sh
 
 .PHONY: test-e2e-mssql\#%
 test-e2e-mssql\#%: build generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=integrations/mssql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
