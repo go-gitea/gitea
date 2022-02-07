@@ -916,7 +916,7 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		return a
 	}
 
-	var remoteURL = m.OriginalURL
+	remoteURL := m.OriginalURL
 	if remoteURL == "" {
 		var err error
 		remoteURL, err = git.GetRemoteURL(ctx, m.RepoPath(), remoteName)
