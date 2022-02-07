@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.78.0 // indirect
-	code.gitea.io/gitea-vet v0.2.1
+	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
@@ -64,7 +64,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huandu/xstrings v1.3.2
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
-	github.com/json-iterator/go v1.1.11
+	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
@@ -113,7 +113,7 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.50.1
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.4.0
+	github.com/yuin/goldmark v1.4.4
 	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
 	github.com/yuin/goldmark-meta v1.0.0
 	go.etcd.io/bbolt v1.3.6 // indirect

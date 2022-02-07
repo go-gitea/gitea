@@ -1376,7 +1376,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}()
 
 	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
-		cmd := git.NewCommandContext(ctx, diffArgs...)
+		cmd := git.NewCommand(ctx, diffArgs...)
 		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 		if err := cmd.RunWithContext(&git.RunContext{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,

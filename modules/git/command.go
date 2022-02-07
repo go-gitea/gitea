@@ -46,12 +46,7 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(args ...string) *Command {
-	return NewCommandContext(DefaultContext, args...)
-}
-
-// NewCommandContext creates and returns a new Git Command based on given command and arguments.
-func NewCommandContext(ctx context.Context, args ...string) *Command {
+func NewCommand(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)
@@ -165,10 +160,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		"GIT_TERMINAL_PROMPT=0",
 	)
 
-	// TODO: verify if this is still needed in golang 1.15
-	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
 	cmd.Dir = rc.Dir
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr

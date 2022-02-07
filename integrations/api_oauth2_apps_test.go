@@ -43,7 +43,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 	DecodeJSON(t, resp, &createdApp)
 
 	assert.EqualValues(t, appBody.Name, createdApp.Name)
-	assert.Len(t, createdApp.ClientSecret, 44)
+	assert.Len(t, createdApp.ClientSecret, 56)
 	assert.Len(t, createdApp.ClientID, 36)
 	assert.NotEmpty(t, createdApp.Created)
 	assert.EqualValues(t, appBody.RedirectURIs[0], createdApp.RedirectURIs[0])

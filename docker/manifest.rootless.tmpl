@@ -1,4 +1,4 @@
-image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}dev{{/if}}-rootless
+image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}dev{{/if}}-rootless
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
@@ -8,12 +8,12 @@ tags:
 {{/if}}
 manifests:
   -
-    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}dev{{/if}}-linux-amd64-rootless
+    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}dev{{/if}}-linux-amd64-rootless
     platform:
       architecture: amd64
       os: linux
   -
-    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}dev{{/if}}-linux-arm64-rootless
+    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}{{#if (hasPrefix "refs/heads/release/v" build.ref)}}{{trimPrefix "refs/heads/release/v" build.ref}}-{{/if}}dev{{/if}}-linux-arm64-rootless
     platform:
       architecture: arm64
       os: linux

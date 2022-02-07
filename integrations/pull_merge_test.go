@@ -269,19 +269,19 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*repo_model.Repository)
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand("read-tree", "--empty").RunInDir(path)
+		_, err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunInDir(path)
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand("hash-object", "-w", "--stdin").RunInDirFullPipeline(path, &stdout, nil, stdin)
+		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunInDirFullPipeline(path, &stdout, nil, stdin)
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand("update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
+		_, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
 		assert.NoError(t, err)
 
-		treeSha, err := git.NewCommand("write-tree").RunInDir(path)
+		treeSha, err := git.NewCommand(git.DefaultContext, "write-tree").RunInDir(path)
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -301,11 +301,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = git.NewCommand("commit-tree", treeSha).RunInDirTimeoutEnvFullPipeline(env, -1, path, &stdout, nil, messageBytes)
+		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).RunInDirTimeoutEnvFullPipeline(env, -1, path, &stdout, nil, messageBytes)
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand("branch", "unrelated", commitSha).RunInDir(path)
+		_, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunInDir(path)
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
