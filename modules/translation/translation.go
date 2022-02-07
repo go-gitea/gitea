@@ -134,7 +134,7 @@ func (l *locale) Tr(format string, args ...interface{}) string {
 	// in development, we should show an error if a translation key is missing
 	s, ok := TryTr(l.Lang, format, args...)
 	if !ok {
-		log.Error("untranslated i18n translation key: %q", format)
+		log.Error("missing i18n translation key: %q", format)
 	}
 	return s
 }
