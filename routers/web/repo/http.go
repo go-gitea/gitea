@@ -328,7 +328,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, err := git.NewCommandContext(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		refs, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -412,7 +412,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, err := git.NewCommandContext(ctx, "config", option).RunInDir(dir)
+	out, err := git.NewCommand(ctx, "config", option).RunInDir(dir)
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -485,7 +485,7 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	cmd := git.NewCommandContext(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.RunWithContext(&git.RunContext{
 		Timeout: -1,
@@ -525,7 +525,7 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, err := git.NewCommandContext(ctx, "update-server-info").RunInDirBytes(dir)
+	out, err := git.NewCommand(ctx, "update-server-info").RunInDirBytes(dir)
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -555,7 +555,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, err := git.NewCommandContext(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
+		refs, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
