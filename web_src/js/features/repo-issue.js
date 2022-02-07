@@ -290,6 +290,7 @@ export function initRepoPullRequestMergeInstruction() {
 
 export function initRepoPullRequestAllowMaintainerEdit() {
   $('#allow-edits-from-maintainers input').on('change', function () {
+    $('#allow-edits-from-maintainers input').attr("disabled", true);
     const $label = $('#allow-edits-from-maintainers label');
     let url = $label.data('url');
     if (this.checked) { // allow edits
@@ -310,6 +311,10 @@ export function initRepoPullRequestAllowMaintainerEdit() {
         $labelElem.setAttribute('data-content', $label.data('failed'));
         $label.popup('show');
         $labelElem.setAttribute('data-content', oldContent || '');
+        $('#allow-edits-from-maintainers input').removeAttr("disabled");
+      },
+      success: () => {
+        $('#allow-edits-from-maintainers input').removeAttr("disabled");
       },
     });
   });

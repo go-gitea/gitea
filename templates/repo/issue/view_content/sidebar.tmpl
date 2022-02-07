@@ -653,7 +653,7 @@
 				<div class="inline field">
 					<div class="ui checkbox" id="allow-edits-from-maintainers">
 						<label id="allow-edits-from-maintainers-label" class="tooltip" data-url="{{.Issue.Link}}" data-failed="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-						<input name="allow_edits_from_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowEditsFromMaintainers}}checked{{end}}>
+						<input name="allow_edits_from_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
 					</div>
 				</div>
 			{{end}}
