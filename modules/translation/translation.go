@@ -127,20 +127,14 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	s := i18n.Tr(l.Lang, format, args...)
 	if setting.IsProd {
-		return s
+		return i18n.Tr(l.Lang, format, args...)
 	}
 
 	// in development, we should show an error if a translation key is missing
-	// the i18n library is not good enough, we have to use this hacky method to detect untranslated strings
-	idx := strings.IndexByte(format, '.')
-	defaultText := format
-	if idx > 0 {
-		defaultText = format[idx+1:]
-	}
-	if s == defaultText {
-		log.Error("untranslated i18n key: %q", format)
+	s, ok := TryTr(l.Lang, format, args...)
+	if !ok {
+		log.Error("untranslated i18n translation key: %q", format)
 	}
 	return s
 }
