@@ -1090,7 +1090,7 @@ func loadInternalToken(sec *ini.Section) string {
 			if err != nil {
 				log.Fatal("Error generate internal token: %v", err)
 			}
-			err = os.WriteFile(tempURI.RequestURI(), token, 0o600)
+			err = os.WriteFile(tempURI.RequestURI(), []byte(token), 0o600)
 			if err != nil {
 				log.Fatal("Error writing to InternalTokenURI (%s): %v", uri, err)
 			}
