@@ -822,7 +822,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
-			uplerr := err.(*user_model.ErrUserProhibitLogin)
+			uplerr := err.(user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
@@ -900,6 +900,10 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
+	case []interface{}:
+		for _, group := range rawGroup {
+			groups = append(groups, fmt.Sprintf("%s", group))
+		}
 	default:
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")

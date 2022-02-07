@@ -22,7 +22,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommandContext(repo.Ctx, "rev-parse", "--verify", idStr).RunInDir(repo.Path)
+		res, err := NewCommand(repo.Ctx, "rev-parse", "--verify", idStr).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
 		}

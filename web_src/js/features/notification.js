@@ -1,5 +1,6 @@
-const {appSubUrl, csrfToken, notificationSettings} = window.config;
+import $ from 'jquery';
 
+const {appSubUrl, csrfToken, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {

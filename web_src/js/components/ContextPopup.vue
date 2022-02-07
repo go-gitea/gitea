@@ -24,6 +24,7 @@
 </template>
 
 <script>
+import $ from 'jquery';
 import {SvgIcon} from '../svg.js';
 
 const {appSubUrl, i18n} = window.config;

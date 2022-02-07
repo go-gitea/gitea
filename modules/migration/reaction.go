@@ -10,3 +10,9 @@ type Reaction struct {
 	UserName string `yaml:"user_name" json:"user_name"`
 	Content  string `json:"content"`
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (r *Reaction) GetExternalName() string { return r.UserName }
+
+// GetExternalID ExternalUserMigrated interface
+func (r *Reaction) GetExternalID() int64 { return r.UserID }

@@ -187,7 +187,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 2. Disallow force pushes to protected branches
 	if git.EmptySHA != oldCommitID {
-		output, err := git.NewCommandContext(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
+		output, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

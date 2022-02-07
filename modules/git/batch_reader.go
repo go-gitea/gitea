@@ -32,7 +32,7 @@ type WriteCloserError interface {
 // This is needed otherwise the git cat-file will hang for invalid repositories.
 func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommandContext(ctx, "rev-parse").
+	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
 		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
 	if err != nil {
@@ -59,7 +59,7 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch-check").
+		err := NewCommand(ctx, "cat-file", "--batch-check").
 			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
 			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
@@ -98,7 +98,7 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch").
+		err := NewCommand(ctx, "cat-file", "--batch").
 			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
 			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {

@@ -5,6 +5,7 @@
 package web
 
 import (
+	gocontext "context"
 	"net/http"
 	"os"
 	"path"
@@ -957,7 +958,25 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+		}, func(ctx *context.Context) (cancel gocontext.CancelFunc) {
+			if ctx.FormBool("wiki") {
+				ctx.Data["PageIsWiki"] = true
+				repo.MustEnableWiki(ctx)
+				return
+			}
+
+			reqRepoCodeReader(ctx)
+			if ctx.Written() {
+				return
+			}
+			cancel = context.RepoRef()(ctx)
+			if ctx.Written() {
+				return
+			}
+
+			repo.MustBeNotEmpty(ctx)
+			return
+		})
 
 		m.Group("/pulls/{index}", func() {
 			m.Get(".diff", repo.DownloadPullDiff)

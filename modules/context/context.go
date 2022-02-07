@@ -9,9 +9,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"html"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -232,7 +234,7 @@ func (ctx *Context) NotFound(logMsg string, logErr error) {
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	if logErr != nil {
-		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		log.Log(2, log.DEBUG, "%s: %v", logMsg, logErr)
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -248,7 +250,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 	}
 
 	if !showHTML {
-		ctx.PlainText(http.StatusNotFound, "Not found.\n")
+		ctx.plainTextInternal(3, http.StatusNotFound, []byte("Not found.\n"))
 		return
 	}
 
@@ -265,6 +267,12 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
 		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		if errors.Is(logErr, &net.OpError{}) {
+			// This is an error within the underlying connection
+			// and further rendering will not work so just return
+			return
+		}
+
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -286,21 +294,27 @@ func (ctx *Context) NotFoundOrServerError(logMsg string, errCheck func(error) bo
 }
 
 // PlainTextBytes renders bytes as plain text
-func (ctx *Context) PlainTextBytes(status int, bs []byte) {
-	if (status/100 == 4) || (status/100 == 5) {
-		log.Error("PlainTextBytes: %s", string(bs))
+func (ctx *Context) plainTextInternal(skip, status int, bs []byte) {
+	statusPrefix := status / 100
+	if statusPrefix == 4 || statusPrefix == 5 {
+		log.Log(skip, log.TRACE, "plainTextInternal (status=%d): %s", status, string(bs))
 	}
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		log.Error("Write bytes failed: %v", err)
+		log.ErrorWithSkip(skip, "plainTextInternal (status=%d): write bytes failed: %v", status, err)
 	}
+}
+
+// PlainTextBytes renders bytes as plain text
+func (ctx *Context) PlainTextBytes(status int, bs []byte) {
+	ctx.plainTextInternal(2, status, bs)
 }
 
 // PlainText renders content as plain text
 func (ctx *Context) PlainText(status int, text string) {
-	ctx.PlainTextBytes(status, []byte(text))
+	ctx.plainTextInternal(2, status, []byte(text))
 }
 
 // RespHeader returns the response header
