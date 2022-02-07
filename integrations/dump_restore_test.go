@@ -140,15 +140,6 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	c.repoAfter = repoAfter
 	c.dirAfter = filepath.Join(c.basePath, repoAfter.OwnerName, repoAfter.Name)
 
-	for _, filename := range []string{"repo.yml", "label.yml"} {
-		beforeBytes, err := os.ReadFile(filepath.Join(c.dirBefore, filename))
-		assert.NoError(c.t, err)
-		before := c.replaceRepoName(string(beforeBytes))
-		after, err := os.ReadFile(filepath.Join(c.dirAfter, filename))
-		assert.NoError(c.t, err)
-		assert.EqualValues(c.t, before, string(after))
-	}
-
 	//
 	// base.Repository
 	//
