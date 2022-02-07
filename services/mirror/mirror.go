@@ -89,17 +89,11 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		default:
 		}
 
-		// Check if this request is already in the queue
-		has, err := mirrorQueue.Has(&item)
-		if err != nil {
-			return err
-		}
-		if has {
-			return nil
-		}
-
 		// Push to the Queue
 		if err := mirrorQueue.Push(&item); err != nil {
+			if err == queue.ErrAlreadyInQueue {
+				return nil
+			}
 			return err
 		}
 
