@@ -25,7 +25,7 @@ type Locale interface {
 
 // LangType represents a lang type
 type LangType struct {
-	Lang, Name string // these fields is used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
+	Lang, Name string // these fields are used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
 }
 
 var (
