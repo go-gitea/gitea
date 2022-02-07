@@ -1,7 +1,7 @@
 // @ts-check
 import {devices} from '@playwright/test';
 
-const BASE_URL = process.env.GITEA_URL? process.env.GITEA_URL: 'http://localhost:3000';
+const BASE_URL = process.env.GITEA_URL ? process.env.GITEA_URL : 'http://localhost:3000';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
