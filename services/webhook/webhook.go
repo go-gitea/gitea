@@ -46,6 +46,10 @@ var webhooks = map[webhook_model.HookType]*webhook{
 		name:           webhook_model.MSTEAMS,
 		payloadCreator: GetMSTeamsPayload,
 	},
+	webhook_model.TEAMCITY: {
+		name:           webhook_model.TEAMCITY,
+		payloadCreator: GetTeamCityPayload,
+	},
 	webhook_model.FEISHU: {
 		name:           webhook_model.FEISHU,
 		payloadCreator: GetFeishuPayload,
@@ -170,11 +174,19 @@ func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event
 		payloader = p
 	}
 
+	// Load any auth/bearer tokens...
+	var authToken string
+	switch w.Type {
+	case webhook_model.TEAMCITY:
+		authToken = GetTeamCityHook(w).AuthToken
+	}
+
 	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
-		RepoID:    repo.ID,
-		HookID:    w.ID,
-		Payloader: payloader,
-		EventType: event,
+		RepoID:      repo.ID,
+		HookID:      w.ID,
+		BearerToken: authToken,
+		Payloader:   payloader,
+		EventType:   event,
 	}); err != nil {
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}
