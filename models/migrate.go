@@ -52,10 +52,6 @@ func InsertIssues(issues ...*Issue) error {
 			return err
 		}
 	}
-	err = UpdateRepoStats(ctx, issues[0].RepoID)
-	if err != nil {
-		return err
-	}
 	return committer.Commit()
 }
 
@@ -146,11 +142,6 @@ func InsertPullRequests(prs ...*PullRequest) error {
 		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
 			return err
 		}
-	}
-
-	err = UpdateRepoStats(ctx, prs[0].Issue.RepoID)
-	if err != nil {
-		return err
 	}
 	return committer.Commit()
 }

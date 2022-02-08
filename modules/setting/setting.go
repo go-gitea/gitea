@@ -8,7 +8,6 @@ package setting
 import (
 	"encoding/base64"
 	"fmt"
-	"io"
 	"math"
 	"net"
 	"net/url"
@@ -131,6 +130,7 @@ var (
 		BuiltinServerUser                     string             `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain                                string             `ini:"SSH_DOMAIN"`
 		Port                                  int                `ini:"SSH_PORT"`
+		User                                  string             `ini:"SSH_USER"`
 		ListenHost                            string             `ini:"SSH_LISTEN_HOST"`
 		ListenPort                            int                `ini:"SSH_LISTEN_PORT"`
 		RootPath                              string             `ini:"SSH_ROOT_PATH"`
@@ -970,6 +970,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
+	SSH.User = Cfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
 
 	newRepository()
 
@@ -1080,15 +1081,9 @@ func loadInternalToken(sec *ini.Section) string {
 	}
 	switch tempURI.Scheme {
 	case "file":
-		fp, err := os.OpenFile(tempURI.RequestURI(), os.O_RDWR, 0o600)
-		if err != nil {
+		buf, err := os.ReadFile(tempURI.RequestURI())
+		if err != nil && !os.IsNotExist(err) {
 			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
-		}
-		defer fp.Close()
-
-		buf, err := io.ReadAll(fp)
-		if err != nil {
-			log.Fatal("Failed to read InternalTokenURI (%s): %v", uri, err)
 		}
 		// No token in the file, generate one and store it.
 		if len(buf) == 0 {
@@ -1096,12 +1091,12 @@ func loadInternalToken(sec *ini.Section) string {
 			if err != nil {
 				log.Fatal("Error generate internal token: %v", err)
 			}
-			if _, err := io.WriteString(fp, token); err != nil {
+			err = os.WriteFile(tempURI.RequestURI(), []byte(token), 0o600)
+			if err != nil {
 				log.Fatal("Error writing to InternalTokenURI (%s): %v", uri, err)
 			}
 			return token
 		}
-
 		return strings.TrimSpace(string(buf))
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
