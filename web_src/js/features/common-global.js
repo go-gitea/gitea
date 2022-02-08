@@ -314,13 +314,12 @@ export function initGlobalButtons() {
   });
 
   $('.show-modal').on('click', function () {
-    const modalDiv = $($(this).data('modal'));
-    for (let i = 0; i < this.attributes.length; i++) {
-      const attrib = this.attributes[i];
+    const modalDiv = $($(this).attr('data-modal'));
+    for (const attrib of this.attributes) {
       if (!attrib.name.startsWith('data-modal-')) {
         continue;
       }
-      const id = attrib.name.substr(11);
+      const id = attrib.name.substring(11);
       const target = modalDiv.find(`#${id}`);
       if (target.is('input')) {
         target.val(attrib.value);
@@ -329,7 +328,7 @@ export function initGlobalButtons() {
       }
     }
     modalDiv.modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
@@ -337,10 +336,10 @@ export function initGlobalButtons() {
 
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
-    $.post($this.data('request-url'), {
+    $.post($this.attr('data-request-url'), {
       _csrf: csrfToken
     }).done(() => {
-      window.location.href = $this.data('done-url');
+      window.location.href = $this.attr('data-done-url');
     });
   });
 }

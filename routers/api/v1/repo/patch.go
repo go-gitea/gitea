@@ -82,6 +82,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
+		return
 	}
 
 	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts)

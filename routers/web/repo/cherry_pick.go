@@ -73,12 +73,8 @@ func CherryPickPost(ctx *context.Context) {
 	ctx.Data["SHA"] = sha
 	if form.Revert {
 		ctx.Data["CherryPickType"] = "revert"
-		ctx.Data["commit_summary"] = "revert " + ctx.Params(":sha")
-		ctx.Data["commit_message"] = ""
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		ctx.Data["commit_summary"] = "cherry-pick " + ctx.Params(":sha")
-		ctx.Data["commit_message"] = ""
 	}
 
 	ctx.Data["RequireHighlightJS"] = true
@@ -133,67 +129,54 @@ func CherryPickPost(ctx *context.Context) {
 	opts.Content = sha
 	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.User, form.Revert, opts); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
-			// For when a user specifies a new branch that already exists
+			// User has specified a branch that already exists
+			branchErr := err.(models.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
-			} else {
-				ctx.Error(500, err.Error())
-			}
+			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
+			return
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
+			return
 		}
 		// Drop through to the apply technique
 
 		buf := &bytes.Buffer{}
 		if form.Revert {
-			if err := git.GetReverseRawDiff(
-				ctx,
-				ctx.Repo.Repository.RepoPath(),
-				sha,
-				buf,
-			); err != nil {
+			if err := git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff",
-						errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
 				return
 			}
 		} else {
-			if err := git.GetRawDiff(
-				ctx,
-				ctx.Repo.Repository.RepoPath(),
-				sha,
-				git.RawDiffType("patch"),
-				buf,
-			); err != nil {
+			if err := git.GetRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
-					ctx.NotFound("GetRawDiff",
-						errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
 					return
 				}
 				ctx.ServerError("GetRawDiff", err)
 				return
 			}
 		}
+
 		opts.Content = buf.String()
 		ctx.Data["FileContent"] = opts.Content
 
 		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
 			if models.IsErrBranchAlreadyExists(err) {
-				// For when a user specifies a new branch that already exists
+				// User has specified a branch that already exists
+				branchErr := err.(models.ErrBranchAlreadyExists)
 				ctx.Data["Err_NewBranchName"] = true
-				if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
-					ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
-				} else {
-					ctx.Error(500, err.Error())
-				}
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplCherryPick, &form)
+				return
 			} else if models.IsErrCommitIDDoesNotMatch(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
+				return
 			} else {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+				return
 			}
 		}
 	}

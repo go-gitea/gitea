@@ -56,7 +56,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 	}
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["TreePath"] = "patch"
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + ctx.Repo.BranchName
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
@@ -98,17 +98,17 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 	}); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
-			// For when a user specifies a new branch that already exists
+			// User has specified a branch that already exists
+			branchErr := err.(models.ErrBranchAlreadyExists)
 			ctx.Data["Err_NewBranchName"] = true
-			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
-			} else {
-				ctx.Error(500, err.Error())
-			}
+			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
+			return
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplPatchFile, &form)
+			return
 		} else {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_apply_patch", err), tplPatchFile, &form)
+			return
 		}
 	}
 

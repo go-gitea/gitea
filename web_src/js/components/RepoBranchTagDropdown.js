@@ -113,11 +113,7 @@ export function initRepoBranchTagDropdown(selector) {
           item.selected = true;
           const url = (item.tag) ? this.tagURLPrefix + item.url + this.tagURLSuffix : this.branchURLPrefix + item.url + this.branchURLSuffix;
           if (this.branchForm === '') {
-            if (item.tag) {
-              window.location.href = url;
-            } else {
-              window.location.href = url;
-            }
+            window.location.href = url;
           } else {
             this.isViewTree = false;
             this.isViewTag = false;
