@@ -862,6 +862,8 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
 					Post(bindIgnErr(forms.CherryPickForm{}), repo.CherryPickPost)
+				// Same as `/_upload/*` but returns JSON
+				m.Post("/upload/*", repo.MustBeAbleToUpload, bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePostJson)
 			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
