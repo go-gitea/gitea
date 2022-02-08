@@ -87,6 +87,20 @@ func (p *WorkerPool) Push(data Data) {
 	}
 }
 
+// HasNoWorkerScaling will return true if the queue has no workers, and has no worker boosting
+func (p *WorkerPool) HasNoWorkerScaling() bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.hasNoWorkerScaling()
+}
+
+func (p *WorkerPool) hasNoWorkerScaling() bool {
+	return p.numberOfWorkers == 0 && (p.boostTimeout == 0 || p.boostWorkers == 0 || p.maxNumberOfWorkers == 0)
+}
+
+// zeroBoost will add a temporary boost worker for a no worker queue
+// p.lock must be locked at the start of this function BUT it will be unlocked by the end of this function
+// (This is because addWorkers has to be called whilst unlocked)
 func (p *WorkerPool) zeroBoost() {
 	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
 	mq := GetManager().GetManagedQueue(p.qid)
@@ -276,6 +290,21 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				p.numberOfWorkers = 0
 				p.cond.Broadcast()
 				cancel()
+			}
+
+			select {
+			case <-p.baseCtx.Done():
+				// Don't warn if the baseCtx is shutdown
+			default:
+				if p.hasNoWorkerScaling() {
+					log.Warn(
+						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.", p.qid)
+				} else if p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
+					// OK there are no workers but... there's still work to be done -> Reboost
+					p.zeroBoost()
+					// p.lock will be unlocked by zeroBoost
+					return
+				}
 			}
 			p.lock.Unlock()
 		}()
