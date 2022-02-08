@@ -382,12 +382,18 @@ func (p *WorkerPool) pause() {
 // Resume resumes the WorkerPool
 func (p *WorkerPool) Resume() {
 	p.lock.Lock()
-	defer p.lock.Unlock()
 	select {
 	case <-p.resumed:
+		p.lock.Unlock()
 	default:
 		p.paused = make(chan struct{})
 		close(p.resumed)
+		if !p.hasNoWorkerScaling() && p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
+			p.zeroBoost()
+			// p.zeroBoost will unlock the lock
+		} else {
+			p.lock.Unlock()
+		}
 	}
 }
 
