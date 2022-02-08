@@ -101,13 +101,11 @@ func getLDAPServerHost() string {
 }
 
 func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...string) {
-	teamGroupMapEnabled := "off"
-	teamGroupMapRemoval := "off"
-	teamGroupMap := ""
-	if len(groupMapParams) == 3 {
-		teamGroupMapEnabled = groupMapParams[0]
-		teamGroupMapRemoval = groupMapParams[1]
-		teamGroupMap = groupMapParams[2]
+	groupTeamMapRemoval := "off"
+	groupTeamMap := ""
+	if len(groupMapParams) == 2 {
+		groupTeamMapRemoval = groupMapParams[0]
+		groupTeamMap = groupMapParams[1]
 	}
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
@@ -130,12 +128,11 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...s
 		"attribute_ssh_public_key": sshKeyAttribute,
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
-		"team_group_map_enabled":   teamGroupMapEnabled,
-		"team_group_map_removal":   teamGroupMapRemoval,
 		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
 		"group_member_uid":         "member",
+		"group_team_map":           groupTeamMap,
+		"group_team_map_removal":   groupTeamMapRemoval,
 		"user_uid":                 "DN",
-		"team_group_map":           teamGroupMap,
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 }
@@ -318,7 +315,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", "on", "{\"cn=ship_crew,ou=people,dc=planetexpress,dc=com\":{\"org26\": [\"team11\"]},\"cn=admin_staff,ou=people,dc=planetexpress,dc=com\": {\"non-existent\": [\"non-existent\"]}}")
+	addAuthSourceLDAP(t, "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
 	org, err := models.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := models.GetTeam(org.ID, "team11")
@@ -363,7 +360,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", "on", "{\"cn=dispatch,ou=people,dc=planetexpress,dc=com\": {\"org26\": [\"team11\"]}}")
+	addAuthSourceLDAP(t, "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
 	org, err := models.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := models.GetTeam(org.ID, "team11")
@@ -399,7 +396,7 @@ func TestBrokenLDAPMapUserSignin(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", "on", "{\"NOT_A_VALID_JSON\"[\"MISSING_DOUBLE_POINT\"]}")
+	addAuthSourceLDAP(t, "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
 
 	u := gitLDAPUsers[0]
 
