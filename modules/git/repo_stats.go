@@ -39,7 +39,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, err := NewCommandContext(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommandContext(repo.Ctx, args...).RunInDirTimeoutEnvFullPipelineFunc(
+	err = NewCommand(repo.Ctx, args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
 		stdoutWriter, stderr, nil,
 		func(ctx context.Context, cancel context.CancelFunc) error {

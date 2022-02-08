@@ -8,12 +8,12 @@ import "fmt"
 
 // FileBlame return the Blame object of file
 func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
-	return NewCommandContext(repo.Ctx, "blame", "--root", "--", file).RunInDirBytes(path)
+	return NewCommand(repo.Ctx, "blame", "--root", "--", file).RunInDirBytes(path)
 }
 
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
-	res, err := NewCommandContext(repo.Ctx, "blame", fmt.Sprintf("-L %d,%d", line, line), "-p", revision, "--", file).RunInDir(path)
+	res, err := NewCommand(repo.Ctx, "blame", fmt.Sprintf("-L %d,%d", line, line), "-p", revision, "--", file).RunInDir(path)
 	if err != nil {
 		return nil, err
 	}
