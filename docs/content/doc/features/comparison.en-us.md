@@ -50,8 +50,7 @@ _Symbols used in table:_
 | Repository Tokens with write rights | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
 | Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘              | ✘            |
 | External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| FIDO U2F (2FA)(Dropped by browsers) | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✘            |
-| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✘            |
+| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
 | Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Subgroups: groups within groups     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
 
