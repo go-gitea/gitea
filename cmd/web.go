@@ -222,18 +222,19 @@ func listen(m http.Handler, handleRedirector bool) error {
 		}
 		err = runHTTP("tcp", listenAddr, "Web", m)
 	case setting.HTTPS:
-		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
+		if setting.EnableAcme {
+			err = runACME(listenAddr, m)
 			break
-		}
-		if handleRedirector {
-			if setting.RedirectOtherPort {
-				go runHTTPRedirector()
-			} else {
-				NoHTTPRedirector()
+		} else {
+			if handleRedirector {
+				if setting.RedirectOtherPort {
+					go runHTTPRedirector()
+				} else {
+					NoHTTPRedirector()
+				}
 			}
+			err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()

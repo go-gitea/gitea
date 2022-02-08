@@ -115,6 +115,9 @@ func (p *WorkerPool) hasNoWorkerScaling() bool {
 	return p.numberOfWorkers == 0 && (p.boostTimeout == 0 || p.boostWorkers == 0 || p.maxNumberOfWorkers == 0)
 }
 
+// zeroBoost will add a temporary boost worker for a no worker queue
+// p.lock must be locked at the start of this function BUT it will be unlocked by the end of this function
+// (This is because addWorkers has to be called whilst unlocked)
 func (p *WorkerPool) zeroBoost() {
 	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
 	mq := GetManager().GetManagedQueue(p.qid)
@@ -305,16 +308,23 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				p.cond.Broadcast()
 				cancel()
 			}
-			if p.hasNoWorkerScaling() {
-				select {
-				case <-p.baseCtx.Done():
-					// Don't warn if the baseCtx is shutdown
-				default:
+			select {
+			case <-p.baseCtx.Done():
+				// Don't warn or check for ongoing work if the baseCtx is shutdown
+			case <-p.paused:
+				// Don't warn or check for ongoing work if the pool is paused
+			default:
+				if p.hasNoWorkerScaling() {
 					log.Warn(
 						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
 							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+					p.pause()
+				} else if p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
+					// OK there are no workers but... there's still work to be done -> Reboost
+					p.zeroBoost()
+					// p.lock will be unlocked by zeroBoost
+					return
 				}
-				p.pause()
 			}
 			p.lock.Unlock()
 		}()
@@ -371,14 +381,37 @@ func (p *WorkerPool) pause() {
 
 // Resume resumes the WorkerPool
 func (p *WorkerPool) Resume() {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.lock.Lock() // can't defer unlock because of the zeroBoost at the end
 	select {
 	case <-p.resumed:
+		// already resumed - there's nothing to do
+		p.lock.Unlock()
+		return
 	default:
-		p.paused = make(chan struct{})
-		close(p.resumed)
 	}
+
+	p.paused = make(chan struct{})
+	close(p.resumed)
+
+	// OK now we need to check if we need to add some workers...
+	if p.numberOfWorkers > 0 || p.hasNoWorkerScaling() || atomic.LoadInt64(&p.numInQueue) == 0 {
+		// We either have workers, can't scale or there's no work to be done -> so just resume
+		p.lock.Unlock()
+		return
+	}
+
+	// OK we got some work but no workers we need to think about boosting
+	select {
+	case <-p.baseCtx.Done():
+		// don't bother boosting if the baseCtx is done
+		p.lock.Unlock()
+		return
+	default:
+	}
+
+	// OK we'd better add some boost workers!
+	p.zeroBoost()
+	// p.zeroBoost will unlock the lock
 }
 
 // CleanUp will drain the remaining contents of the channel

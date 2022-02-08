@@ -9,10 +9,10 @@
 			{{end}}
 			<div class="ui language bottom floating slide up dropdown link item">
 				{{svg "octicon-globe"}}
-				<div class="text">{{.LangName}}</div>
+				<div class="text">{{.i18n.LangName}}</div>
 				<div class="menu language-menu">
 					{{range .AllLangs}}
-						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
+						<a lang="{{.Lang}}" data-url="{{AppSubUrl}}/?lang={{.Lang}}" class="item {{if eq $.i18n.Lang .Lang}}active selected{{end}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
