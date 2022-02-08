@@ -38,11 +38,15 @@ func TestNewLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels := []*Label{
 		{RepoID: 2, Name: "labelName2", Color: "#123456"},
-		{RepoID: 3, Name: "labelName3", Color: "#23456F"},
+		{RepoID: 3, Name: "labelName3", Color: "#123"},
+		{RepoID: 4, Name: "labelName4", Color: "ABCDEF"},
+		{RepoID: 5, Name: "labelName5", Color: "DEF"},
 	}
 	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: ""}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "123456"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
 	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
 	for _, label := range labels {
 		unittest.AssertNotExistsBean(t, label)
 	}
