@@ -47,7 +47,7 @@
 						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
+					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.i18n.Lang}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey mx-3">{{.i18n.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
@@ -169,7 +169,7 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.i18n.Lang}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
 				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
