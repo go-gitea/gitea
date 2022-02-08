@@ -372,6 +372,19 @@ func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+type NewTeamCityHookForm struct {
+	HostUrl   string `binding:"Required;ValidUrl"`
+	AuthToken string `binding:"Required"`
+	VcsRootId string `binding:"Required"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewTeamCityHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewFeishuHookForm form for creating feishu hook
 type NewFeishuHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
