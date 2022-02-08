@@ -1,10 +1,15 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.package webhook
+
 package webhook
 
 import (
+	"encoding/json"
+
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	"encoding/json"
 )
 
 type (
@@ -17,8 +22,8 @@ type (
 )
 
 // GetTeamCityPayload returns the payload as-is
-// TeamCity requests API doesn't take a body on POST, so no need to alter it in any way.
 func GetTeamCityPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+	// TeamCity requests API doesn't take a body on POST, so no need to alter it in any way.
 	return p, nil
 }
 
