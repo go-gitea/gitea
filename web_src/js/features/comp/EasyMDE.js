@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import attachTribute from '../tribute.js';
 
 const {appSubUrl} = window.config;
@@ -54,7 +55,7 @@ export async function importEasyMDE() {
  * @returns {null|EasyMDE}
  */
 export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
-  if (textarea instanceof jQuery) {
+  if (textarea instanceof $) {
     textarea = textarea[0];
   }
   if (!textarea) {
@@ -151,7 +152,7 @@ export function attachEasyMDEToElements(easyMDE) {
  * @returns {null|EasyMDE}
  */
 export function getAttachedEasyMDE(el) {
-  if (el instanceof jQuery) {
+  if (el instanceof $) {
     el = el[0];
   }
   if (!el) {

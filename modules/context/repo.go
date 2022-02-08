@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -522,6 +523,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 	ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
+	if setting.Indexer.RepoIndexerEnabled {
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+	}
 	ctx.Data["CloneLink"] = repo.CloneLink()
 	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 

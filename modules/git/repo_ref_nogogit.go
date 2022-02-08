@@ -23,7 +23,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommandContext(repo.Ctx, "for-each-ref").RunInDirPipeline(repo.Path, stdoutWriter, stderrBuilder)
+		err := NewCommand(repo.Ctx, "for-each-ref").RunInDirPipeline(repo.Path, stdoutWriter, stderrBuilder)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {

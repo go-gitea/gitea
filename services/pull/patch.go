@@ -76,7 +76,7 @@ func TestPatch(pr *models.PullRequest) error {
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, err = git.NewCommandContext(ctx, "merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
+	pr.MergeBase, err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
@@ -166,7 +166,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, err := git.NewCommandContext(ctx, "unpack-file", file.stage1.sha).RunInDir(tmpBasePath)
+		root, err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunInDir(tmpBasePath)
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -175,7 +175,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, err := git.NewCommandContext(ctx, "unpack-file", file.stage2.sha).RunInDir(tmpBasePath)
+		base, err := git.NewCommand(ctx, "unpack-file", file.stage2.sha).RunInDir(tmpBasePath)
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -183,7 +183,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, err := git.NewCommandContext(ctx, "unpack-file", file.stage3.sha).RunInDir(tmpBasePath)
+		head, err := git.NewCommand(ctx, "unpack-file", file.stage3.sha).RunInDir(tmpBasePath)
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -193,13 +193,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, conflictErr := git.NewCommandContext(ctx, "merge-file", base, root, head).RunInDir(tmpBasePath)
+		_, conflictErr := git.NewCommand(ctx, "merge-file", base, root, head).RunInDir(tmpBasePath)
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, err := git.NewCommandContext(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunInDir(tmpBasePath)
+		hash, err := git.NewCommand(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunInDir(tmpBasePath)
 		if err != nil {
 			return err
 		}
@@ -222,7 +222,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	defer finished()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, err := git.NewCommandContext(ctx, "read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
+	if _, err := git.NewCommand(ctx, "read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
 	}
@@ -267,7 +267,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	if !conflict {
-		treeHash, err := git.NewCommandContext(ctx, "write-tree").RunInDir(tmpBasePath)
+		treeHash, err := git.NewCommand(ctx, "write-tree").RunInDir(tmpBasePath)
 		if err != nil {
 			return false, err
 		}
@@ -326,7 +326,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	pr.Status = models.PullRequestStatusChecking
 
 	// 3. Read the base branch in to the index of the temporary repository
-	_, err = git.NewCommandContext(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
+	_, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
@@ -343,8 +343,10 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
 	}
+	is3way := false
 	if git.CheckGitVersionAtLeast("2.32.0") == nil {
 		args = append(args, "--3way")
+		is3way = true
 	}
 	args = append(args, patchPath)
 	pr.ConflictedFiles = make([]string, 0, 5)
@@ -369,7 +371,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 	// 7. Run the check command
 	conflict = false
-	err = git.NewCommandContext(gitRepo.Ctx, args...).
+	err = git.NewCommand(gitRepo.Ctx, args...).
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
@@ -383,6 +385,9 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 				const prefix = "error: patch failed:"
 				const errorPrefix = "error: "
+				const threewayFailed = "Failed to perform three-way merge..."
+				const appliedPatchPrefix = "Applied patch to '"
+				const withConflicts = "' with conflicts."
 
 				conflictMap := map[string]bool{}
 
@@ -394,6 +399,8 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
 						conflictMap[filepath] = true
+					} else if is3way && line == threewayFailed {
+						conflict = true
 					} else if strings.HasPrefix(line, errorPrefix) {
 						conflict = true
 						for _, suffix := range patchErrorSuffices {
@@ -404,6 +411,12 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 								}
 								break
 							}
+						}
+					} else if is3way && strings.HasPrefix(line, appliedPatchPrefix) && strings.HasSuffix(line, withConflicts) {
+						conflict = true
+						filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
+						if filepath != "" {
+							conflictMap[filepath] = true
 						}
 					}
 					// only list 10 conflicted files

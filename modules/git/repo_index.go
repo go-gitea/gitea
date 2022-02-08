@@ -18,7 +18,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
-		res, err := NewCommandContext(repo.Ctx, "rev-parse", "--verify", treeish).RunInDir(repo.Path)
+		res, err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunInDir(repo.Path)
 		if err != nil {
 			return err
 		}
@@ -38,7 +38,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, err := NewCommandContext(repo.Ctx, "read-tree", id.String()).RunInDirWithEnv(repo.Path, env)
+	_, err := NewCommand(repo.Ctx, "read-tree", id.String()).RunInDirWithEnv(repo.Path, env)
 	if err != nil {
 		return err
 	}
@@ -69,13 +69,13 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, err := NewCommandContext(repo.Ctx, "read-tree", "--empty").RunInDir(repo.Path)
+	_, err := NewCommand(repo.Ctx, "read-tree", "--empty").RunInDir(repo.Path)
 	return err
 }
 
 // LsFiles checks if the given filenames are in the index
 func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
-	cmd := NewCommandContext(repo.Ctx, "ls-files", "-z", "--")
+	cmd := NewCommand(repo.Ctx, "ls-files", "-z", "--")
 	for _, arg := range filenames {
 		if arg != "" {
 			cmd.AddArguments(arg)
@@ -95,7 +95,7 @@ func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
 
 // RemoveFilesFromIndex removes given filenames from the index - it does not check whether they are present.
 func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
-	cmd := NewCommandContext(repo.Ctx, "update-index", "--remove", "-z", "--index-info")
+	cmd := NewCommand(repo.Ctx, "update-index", "--remove", "-z", "--index-info")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	buffer := new(bytes.Buffer)
@@ -111,14 +111,14 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
-	cmd := NewCommandContext(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
+	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
 	_, err := cmd.RunInDir(repo.Path)
 	return err
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	res, err := NewCommandContext(repo.Ctx, "write-tree").RunInDir(repo.Path)
+	res, err := NewCommand(repo.Ctx, "write-tree").RunInDir(repo.Path)
 	if err != nil {
 		return nil, err
 	}

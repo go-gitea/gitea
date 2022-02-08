@@ -38,3 +38,9 @@ type Release struct {
 	Created         time.Time
 	Published       time.Time
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (r *Release) GetExternalName() string { return r.PublisherName }
+
+// GetExternalID ExternalUserMigrated interface
+func (r *Release) GetExternalID() int64 { return r.PublisherID }

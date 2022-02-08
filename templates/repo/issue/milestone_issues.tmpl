@@ -22,7 +22,7 @@
 		</div>
 		<div class="ui one column stackable grid">
 			<div class="column">
-				{{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
+				{{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.i18n.Lang }}
 				{{if .IsClosed}}
 					{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 				{{else}}
