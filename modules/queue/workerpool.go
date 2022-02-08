@@ -298,8 +298,7 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 			default:
 				if p.hasNoWorkerScaling() {
 					log.Warn(
-						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
-							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.", p.qid)
 				} else if p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
 					// OK there are no workers but... there's still work to be done -> Reboost
 					p.zeroBoost()
