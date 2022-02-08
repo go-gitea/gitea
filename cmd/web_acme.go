@@ -5,7 +5,11 @@
 package cmd
 
 import (
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -16,7 +20,25 @@ import (
 	"github.com/caddyserver/certmagic"
 )
 
-func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
+func getCARoot(path string) (*x509.CertPool, error) {
+	r, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(r)
+	if block == nil {
+		return nil, fmt.Errorf("no PEM found in the file %s", path)
+	}
+	caRoot, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	certPool := x509.NewCertPool()
+	certPool.AddCert(caRoot)
+	return certPool, nil
+}
+
+func runACME(listenAddr string, m http.Handler) error {
 	// If HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443.
 	// Due to docker port mapping this can't be checked programmatically
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
@@ -33,10 +55,21 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	}
 
 	magic := certmagic.NewDefault()
-	magic.Storage = &certmagic.FileStorage{Path: directory}
+	magic.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
+	// Try to use private CA root if provided, otherwise defaults to system's trust
+	var certPool *x509.CertPool
+	if setting.AcmeCARoot != "" {
+		var err error
+		certPool, err = getCARoot(setting.AcmeCARoot)
+		if err != nil {
+			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
+		}
+	}
 	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
-		Email:                   email,
-		Agreed:                  setting.LetsEncryptTOS,
+		CA:                      setting.AcmeURL,
+		TrustedRoots:            certPool,
+		Email:                   setting.AcmeEmail,
+		Agreed:                  setting.AcmeTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
 		ListenHost:              setting.HTTPAddr,
@@ -47,7 +80,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary
-	err := magic.ManageSync(graceful.GetManager().HammerContext(), []string{domain})
+	err := magic.ManageSync(graceful.GetManager().HammerContext(), []string{setting.Domain})
 	if err != nil {
 		return err
 	}

@@ -292,8 +292,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
-- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). From 1.11 paths are relative to `CUSTOM_PATH`.
-- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
@@ -347,11 +347,12 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     - Aliased names
       - "ecdhe_rsa_with_chacha20_poly1305" is an alias for "ecdhe_rsa_with_chacha20_poly1305_sha256"
       - "ecdhe_ecdsa_with_chacha20_poly1305" is alias for "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
-- `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
-   By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
-- `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
-- `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
-- `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
+- `ENABLE_ACME`: **false**: Flag to enable automatic certificate management via an ACME capable Certificate Authority (CA) server (default: Lets Encrypt). If enabled, `CERT_FILE` and `KEY_FILE` are ignored, and the CA must resolve `DOMAIN` to this gitea server. Ensure that DNS records are set and either port `80` or port `443` are accessible by the CA server (the public internet by default), and redirected to the appropriate ports `PORT_TO_REDIRECT` or `HTTP_PORT` respectively.
+- `ACME_URL`: **\<empty\>**: The CA's ACME directory URL, e.g. for a self-hosted [smallstep CA server](https://github.com/smallstep/certificates), it can look like `https://ca.example.com/acme/acme/directory`. If left empty, it defaults to using Let's Encerypt's production CA (check `LETSENCRYPT_ACCEPTTOS` as well).
+- `ACME_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service of the ACME provider. The default is Lets Encrypt [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
+- `ACME_DIRECTORY`: **https**: Directory that the certificate manager will use to cache information such as certs and private keys.
+- `ACME_EMAIL`: **\<empty\>**: Email used for the ACME registration. Usually it is to notify about problems with issued certificates.
+- `ACME_CA_ROOT`: **\<empty\>**: The CA's root certificate. If left empty, it defaults to using the system's trust chain.
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 - `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
