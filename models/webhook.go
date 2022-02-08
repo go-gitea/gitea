@@ -546,7 +546,7 @@ func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
 //  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
 //        \/                    \/              \/     \/     \/
 
-// HookTaskType is the type of an hook task
+// HookTaskType is the type of a hook task
 type HookTaskType int
 
 // Types of hook tasks
@@ -560,6 +560,7 @@ const (
 	MSTEAMS
 	FEISHU
 	MATRIX
+	TEAMCITY
 )
 
 var hookTaskTypes = map[string]HookTaskType{
@@ -570,6 +571,7 @@ var hookTaskTypes = map[string]HookTaskType{
 	"dingtalk": DINGTALK,
 	"telegram": TELEGRAM,
 	"msteams":  MSTEAMS,
+	"teamcity": TEAMCITY,
 	"feishu":   FEISHU,
 	"matrix":   MATRIX,
 }
@@ -579,7 +581,7 @@ func ToHookTaskType(name string) HookTaskType {
 	return hookTaskTypes[name]
 }
 
-// Name returns the name of an hook task type
+// Name returns the name of a hook task type
 func (t HookTaskType) Name() string {
 	switch t {
 	case GITEA:
@@ -596,6 +598,8 @@ func (t HookTaskType) Name() string {
 		return "telegram"
 	case MSTEAMS:
 		return "msteams"
+	case TEAMCITY:
+		return "teamcity"
 	case FEISHU:
 		return "feishu"
 	case MATRIX:
@@ -687,6 +691,7 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
+	BearerToken     string
 	Type            HookTaskType
 	URL             string `xorm:"TEXT"`
 	Signature       string `xorm:"TEXT"`

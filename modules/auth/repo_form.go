@@ -267,6 +267,18 @@ func (f *NewGogshookForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+type NewTeamCityhookForm struct {
+	HostUrl   string `binding:"Required;ValidUrl"`
+	AuthToken string `binding:"Required"`
+	VcsRootId string `binding:"Required"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewTeamCityhookForm) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
+	return validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // NewSlackHookForm form for creating slack hook
 type NewSlackHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
