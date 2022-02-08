@@ -535,7 +535,9 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	ctx.Redirect(orCtx.Link)
 }
 
-func TeamCityHooksNewPost(ctx *context.Context, form *forms.NewTeamCityHookForm) {
+// TeamCityHooksNewPost response for creating TeamCity hook
+func TeamCityHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewTeamCityHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingHooks"] = true
 	ctx.Data["PageIsSettingHooksNew"] = true
