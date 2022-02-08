@@ -36,18 +36,12 @@ var scpSyntaxRe = regexp.MustCompile(`^([a-zA-Z0-9-._~]+)@([a-zA-Z0-9._-]+):(.*)
 
 // Parse parse all kinds of git remote URL
 func Parse(remote string) (*URL, error) {
-	u, err := stdurl.Parse(remote)
-	if err == nil {
-		extraMark := 0
-		if u.Scheme == "" && u.Path != "" {
-			u.Scheme = "file"
-			extraMark = 2
+	if strings.Contains(remote, "://") {
+		u, err := stdurl.Parse(remote)
+		if err != nil {
+			return nil, err
 		}
-		return &URL{URL: u, extraMark: extraMark}, nil
-	}
-
-	if !strings.Contains(err.Error(), "first path segment in URL cannot contain colon") {
-		return nil, err
+		return &URL{URL: u}, nil
 	}
 
 	if results := scpSyntaxRe.FindStringSubmatch(remote); results != nil {
