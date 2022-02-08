@@ -158,6 +158,7 @@ const (
 	DINGTALK   HookType = "dingtalk"
 	TELEGRAM   HookType = "telegram"
 	MSTEAMS    HookType = "msteams"
+	TEAMCITY   HookType = "teamcity"
 	FEISHU     HookType = "feishu"
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"

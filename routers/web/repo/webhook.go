@@ -535,6 +535,64 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	ctx.Redirect(orCtx.Link)
 }
 
+func TeamCityHooksNewPost(ctx *context.Context, form *forms.NewTeamCityHookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksNew"] = true
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["HookType"] = webhook.TEAMCITY
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+	}
+	ctx.Data["BaseLink"] = orCtx.Link
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.TeamCityMeta{
+		HostUrl:   form.HostUrl,
+		AuthToken: form.AuthToken,
+		VcsRootId: form.VcsRootId,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	payloadUrl, err := buildTeamCityUrl(form)
+	if err != nil {
+		ctx.ServerError("buildTeamCityUrl", err)
+		return
+	}
+
+	w := &webhook.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             payloadUrl,
+		ContentType:     webhook.ContentTypeForm,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            webhook.TEAMCITY,
+		HTTPMethod:      http.MethodPost,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
@@ -770,6 +828,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["DiscordHook"] = webhook_service.GetDiscordHook(w)
 	case webhook.TELEGRAM:
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
+	case webhook.TEAMCITY:
+		ctx.Data["TeamCityHook"] = webhook_service.GetTeamCityHook(w)
 	case webhook.MATRIX:
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
 	case webhook.PACKAGIST:
@@ -1124,6 +1184,70 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// TeamCityHooksEditPost response for editing teamcity hook
+func TeamCityHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewTeamCityHookForm)
+
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.TeamCityMeta{
+		HostUrl:   form.HostUrl,
+		AuthToken: form.AuthToken,
+		VcsRootId: form.VcsRootId,
+	})
+
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w.URL, err = buildTeamCityUrl(form)
+	if err != nil {
+		ctx.ServerError("buildTeamCityUrl", err)
+		return
+	}
+
+	w.HTTPMethod = http.MethodPost
+	w.Meta = string(meta)
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+func buildTeamCityUrl(meta *forms.NewTeamCityHookForm) (string, error) {
+	tcUrl, err := url.Parse(meta.HostUrl)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/app/rest/vcs-root-instances/commitHookNotification?locator=vcsRoot:%s", tcUrl, meta.VcsRootId), nil
 }
 
 // FeishuHooksEditPost response for editing feishu hook
