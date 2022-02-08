@@ -381,20 +381,37 @@ func (p *WorkerPool) pause() {
 
 // Resume resumes the WorkerPool
 func (p *WorkerPool) Resume() {
-	p.lock.Lock()
+	p.lock.Lock() // can't defer unlock because of the zeroBoost at the end
 	select {
 	case <-p.resumed:
+		// already resumed - there's nothing to do
 		p.lock.Unlock()
+		return
 	default:
-		p.paused = make(chan struct{})
-		close(p.resumed)
-		if !p.hasNoWorkerScaling() && p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
-			p.zeroBoost()
-			// p.zeroBoost will unlock the lock
-		} else {
-			p.lock.Unlock()
-		}
 	}
+
+	p.paused = make(chan struct{})
+	close(p.resumed)
+
+	// OK now we need to check if we need to add some workers...
+	if p.numberOfWorkers > 0 || p.hasNoWorkerScaling() || atomic.LoadInt64(&p.numInQueue) == 0 {
+		// We either have workers, can't scale or there's no work to be done -> so just resume
+		p.lock.Unlock()
+		return
+	}
+
+	// OK we got some work but no workers we need to think about boosting
+	select {
+	case <-p.baseCtx.Done():
+		// don't bother boosting if the baseCtx is done
+		p.lock.Unlock()
+		return
+	default:
+	}
+
+	// OK we'd better add some boost workers!
+	p.zeroBoost()
+	// p.zeroBoost will unlock the lock
 }
 
 // CleanUp will drain the remaining contents of the channel
