@@ -5,8 +5,6 @@
 package repo
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,18 +16,16 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
+	"code.gitea.io/gitea/services/task"
 )
 
 // Migrate migrate remote git repository to gitea
@@ -141,6 +137,7 @@ func Migrate(ctx *context.APIContext) {
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
+		OriginalURL:    form.CloneAddr,
 		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror,
 		LFS:            form.LFS,
@@ -149,7 +146,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
-		Issues:         form.Issues,
+		Issues:         form.Issues || form.PullRequests,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
 		Comments:       true,
@@ -167,63 +164,33 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.Doer, repoOwner, models.CreateRepoOptions{
-		Name:           opts.RepoName,
-		Description:    opts.Description,
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
-		IsMirror:       opts.Mirror,
-		Status:         repo_model.RepositoryBeingMigrated,
-	})
-	if err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+	if err = repo_model.CheckCreateRepository(ctx.Doer, repoOwner, opts.RepoName, false); err != nil {
+		handleMigrateError(ctx, repoOwner, &opts, err)
 		return
 	}
 
-	opts.MigrateToRepoID = repo.ID
-
-	defer func() {
-		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
-		}
-
-		if err == nil {
-			notification.NotifyMigrateRepository(ctx.Doer, repoOwner, repo)
-			return
-		}
-
-		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.Doer, repoOwner.ID, repo.ID); errDelete != nil {
-				log.Error("DeleteRepository: %v", errDelete)
-			}
-		}
-	}()
-
-	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.Doer, repoOwner.Name, opts, nil); err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+	repo, err := task.MigrateRepository(ctx.Doer, repoOwner, opts)
+	if err == nil {
+		log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
+		ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeAdmin))
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeAdmin))
+	handleMigrateError(ctx, repoOwner, &opts, err)
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, migrationOpts *migrations.MigrateOptions, err error) {
 	switch {
-	case repo_model.IsErrRepoAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-	case repo_model.IsErrRepoFilesAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case repo_model.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
+	case repo_model.IsErrRepoAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case repo_model.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case db.IsErrNameReserved(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(db.ErrNameReserved).Name))
 	case db.IsErrNameCharsNotAllowed(err):
@@ -235,6 +202,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, rem
 	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
+		remoteAddr, _ := forms.ParseRemoteAddr(migrationOpts.CloneAddr, migrationOpts.AuthUsername, migrationOpts.AuthPassword)
 		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
@@ -268,4 +236,37 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 	} else {
 		ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
 	}
+}
+
+// GetMigratingTask returns the migrating task by repo's id
+func GetMigratingTask(ctx *context.APIContext) {
+	// swagger:operation GET /repos/migrate/status task
+	// ---
+	// summary: Get the migration status of a repository by its id
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: repo_id
+	//   in: query
+	//   description: repository id
+	//   type: int64
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/"
+	//   "404":
+	//	   "$ref": "#/response/"
+	t, err := models.GetMigratingTask(ctx.FormInt64("repo_id"))
+
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"status":  t.Status,
+		"err":     t.Message,
+		"repo-id": t.RepoID,
+		"start":   t.StartTime,
+		"end":     t.EndTime,
+	})
 }
