@@ -50,7 +50,6 @@ func Deliver(t *models.HookTask) error {
 			if err != nil {
 				return err
 			}
-
 			req.Header.Set("Content-Type", "application/json")
 		case models.ContentTypeForm:
 			var forms = url.Values{
@@ -89,6 +88,10 @@ func Deliver(t *models.HookTask) error {
 		}
 	default:
 		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+	}
+
+	if t.BearerToken != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.BearerToken))
 	}
 
 	req.Header.Add("X-Gitea-Delivery", t.UUID)

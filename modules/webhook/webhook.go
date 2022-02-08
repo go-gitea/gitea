@@ -95,6 +95,8 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	var payloader api.Payloader
 	var err error
+	var authToken string
+
 	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
 	switch w.HookTaskType {
 	case models.SLACK:
@@ -132,6 +134,10 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		if err != nil {
 			return fmt.Errorf("GetMatrixPayload: %v", err)
 		}
+	case models.TEAMCITY:
+		payloader = p              // TeamCity POST hooks don't have a body
+		hook := GetTeamCityHook(w) // Reuse the JSON marshalling
+		authToken = hook.AuthToken
 	default:
 		p.SetSecret(w.Secret)
 		payloader = p
@@ -153,6 +159,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 	if err = models.CreateHookTask(&models.HookTask{
 		RepoID:      repo.ID,
+		BearerToken: authToken,
 		HookID:      w.ID,
 		Type:        w.HookTaskType,
 		URL:         w.URL,

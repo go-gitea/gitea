@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -208,6 +210,64 @@ func GiteaHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
 		HookTaskType:    models.GITEA,
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
+func TeamCityHooksNewPost(ctx *context.Context, form auth.NewTeamCityhookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.TEAMCITY.Name()
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+	}
+	ctx.Data["BaseLink"] = orCtx.Link
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook.TeamCityMeta{
+		HostUrl:   form.HostUrl,
+		AuthToken: form.AuthToken,
+		VcsRootId: form.VcsRootId,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	payloadUrl, err := buildTeamCityUrl(form)
+	if err != nil {
+		ctx.ServerError("buildTeamCityUrl", err)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             payloadUrl, // <- lots of repeated code here...should be refactored out.
+		ContentType:     models.ContentTypeForm,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		HookTaskType:    models.TEAMCITY,
+		HTTPMethod:      http.MethodPost,
+		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
@@ -656,6 +716,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 		ctx.Data["TelegramHook"] = webhook.GetTelegramHook(w)
 	case models.MATRIX:
 		ctx.Data["MatrixHook"] = webhook.GetMatrixHook(w)
+	case models.TEAMCITY:
+		ctx.Data["TeamCityHook"] = webhook.GetTeamCityHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -757,6 +819,67 @@ func GogsHooksEditPost(ctx *context.Context, form auth.NewGogshookForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// TeamCityHooksEditPost response for editing teamcity hook
+func TeamCityHooksEditPost(ctx *context.Context, form auth.NewTeamCityhookForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook.TeamCityMeta{
+		HostUrl:   form.HostUrl,
+		AuthToken: form.AuthToken,
+		VcsRootId: form.VcsRootId,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w.URL, err = buildTeamCityUrl(form)
+	if err != nil {
+		ctx.ServerError("buildTeamCityUrl", err)
+		return
+	}
+
+	w.HTTPMethod = http.MethodPost
+	w.Meta = string(meta)
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+func buildTeamCityUrl(form auth.NewTeamCityhookForm) (string, error) {
+	tcUrl, err := url.Parse(form.HostUrl)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s/app/rest/vcs-root-instances/commitHookNotification?locator=vcsRoot:%s", tcUrl, form.VcsRootId), nil
 }
 
 // SlackHooksEditPost response for editing slack hook
