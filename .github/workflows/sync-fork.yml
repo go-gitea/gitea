@@ -1,0 +1,24 @@
+name: Sync fork
+# syncs our main branch with upstream main
+
+on:
+  # runs every monday at 6:21 UTC+0
+  schedule:
+    - cron: '21 6 * * MON'
+  # allow triggers via button click
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: tgymnich/fork-sync@v1.6.3
+        with:
+          pr_title: Fork updates from go-gitea/gitea main
+          owner: go-gitea
+          base: main
+          head: main
+          auto_approve: false
+          auto_merge: true
+          token: ${{ secrets.GITHUB_TOKEN }}
