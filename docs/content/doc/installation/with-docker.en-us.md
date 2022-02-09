@@ -317,7 +317,7 @@ To understand what needs to happen, you first need to understand what happens wi
 4. The client then makes an SSH request to the SSH server using the `git` user, e.g. `git clone git@domain:user/repo.git`.
 5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the server.
 6. For each key the client provides, the SSH server will first check its configuration for an `AuthorizedKeysCommand` to see if the public key matches, and then the `git` user's `authorized_keys` file.
-7. The first entry that matches will be selected, and asssuming this is a Gitea entry, the `command=` will now be executed.
+7. The first entry that matches will be selected, and assuming this is a Gitea entry, the `command=` will now be executed.
 8. The SSH server creates a user session for the `git` user, and using the shell for the `git` user runs the `command=`
 9. This runs `gitea serv` which takes over control of the rest of the SSH session and manages gitea authentication & authorization of the git commands.
 
@@ -325,7 +325,7 @@ Now, for SSH passthrough to work we need the host SSH to match the public keys b
 
 ### SSHing Shim (with authorized_keys)
 
-In this option, the idea here is that the host simply uses the `authorized_keys` that gitea creates but at step 9 the `gitea` command that the host runs is a shim that actually runs ssh to go into the docker and then run the real docker `gitea` itself.
+In this option, the idea is that the host simply uses the `authorized_keys` that gitea creates but at step 9 the `gitea` command that the host runs is a shim that actually runs ssh to go into the docker and then run the real docker `gitea` itself.
 
 - To make the forwarding work, the SSH port of the container (22) needs to be mapped to the host port 2222 in `docker-compose.yml` . Since this port does not need to be exposed to the outside world, it can be mapped to the `localhost` of the host machine:
 
@@ -343,7 +343,7 @@ In this option, the idea here is that the host simply uses the `authorized_keys`
     - USER_GID=1000
   ```
 
-- Mount `/home/git/.ssh` of the host into the container. This ensures that the `authorized_keys` file is shared between the host `git` user and the container `git` user. Otherwise the SSH authentication cannot work inside the container.
+- Mount `/home/git/.ssh` of the host into the container. This ensures that the `authorized_keys` file is shared between the host `git` user and the container `git` user otherwise the SSH authentication cannot work inside the container.
 
   ```yaml
   volumes:
@@ -410,7 +410,7 @@ Here is a detailed explanation what is happening when a SSH request is made:
 5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the host.
 6. For each key the client provides, the host SSH server will first check its configuration for an `AuthorizedKeysCommand` to see if the public key matches, and then the host `git` user's `authorized_keys` file.
     - Because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key they added to the Gitea web will be found
-7. The first entry that matches will be selected, and asssuming this is a Gitea entry, the `command=` will now be executed.
+7. The first entry that matches will be selected, and assuming this is a Gitea entry, the `command=` will now be executed.
 8. The host SSH server creates a user session for the `git` user, and using the shell for the host `git` user runs the `command=`
 9. This means that the host runs the host `/usr/local/bin/gitea` shim that opens an SSH from the host to container passing the rest of the command arguments directly to `/usr/local/bin/gitea` on the container.
 10. Meaning that the container `gitea serv` is run, taking over control of the rest of the SSH session and managing gitea authentication & authorization of the git commands.
@@ -425,9 +425,11 @@ SSH container passthrough using `authorized_keys` will work only if
 
 If you try to run `gitea` on the host, you will attempt to ssh to the container and thence run the `gitea` command there.
 
+Never add the `Gitea Host Key` as a SSH key to a user on the Gitea interface.
+
 ### SSHing Shell (with authorized_keys)
 
-In this option, the idea here is that the host simply uses the `authorized_keys` that gitea creates but at step 8 above we change the shell that the host runs to ssh directly into the docker and then run the shell there. This means that the `gitea` that is then run is the real docker `gitea`.
+In this option, the idea is that the host simply uses the `authorized_keys` that gitea creates but at step 8 above we change the shell that the host runs to ssh directly into the docker and then run the shell there. This means that the `gitea` that is then run is the real docker `gitea`.
 
 - In this case we setup as per SSHing Shim except instead of creating `/usr/local/bin/gitea` or `/app/gitea/gitea`
 we create a new shell for the git user. As an administrative user on the host run:
@@ -455,7 +457,7 @@ Here is a detailed explanation what is happening when a SSH request is made:
 5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the host.
 6. For each key the client provides, the host SSH server will first check its configuration for an `AuthorizedKeysCommand` to see if the public key matches, and then the host `git` user's `authorized_keys` file.
     - Because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key they added to the Gitea web will be found
-7. The first entry that matches will be selected, and asssuming this is a Gitea entry, the `command=` will now be executed.
+7. The first entry that matches will be selected, and assuming this is a Gitea entry, the `command=` will now be executed.
 8. The host SSH server creates a user session for the `git` user, and using the shell for the host `git` user runs the `command=`
 9. The shell of the host `git` user is now our `ssh-shell` which opens an SSH connection from the host to container, (which opens a shell on the container for the container `git`).
 10. The container shell now runs the `command=` option meaning that the container `gitea serv` is run, taking over control of the rest of the SSH session and managing gitea authentication & authorization of the git commands.
@@ -469,6 +471,8 @@ SSH container passthrough using `authorized_keys` will work only if
 - `LOCAL_ROOT_URL` is not changed (depending on the changes)
 
 If you try to login as the `git` user on the host in future you will ssh directly to the docker.
+
+Never add the `Gitea Host Key` as a SSH key to a user on the Gitea interface.
 
 ### Docker Shell (with authorized_keys)
 
@@ -494,12 +498,12 @@ Here is a detailed explanation what is happening when a SSH request is made:
 5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the host.
 6. For each key the client provides, the host SSH server will first check its configuration for an `AuthorizedKeysCommand` to see if the public key matches, and then the host `git` user's `authorized_keys` file.
     - Because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key they added to the Gitea web will be found
-7. The first entry that matches will be selected, and asssuming this is a Gitea entry, the `command=` will now be executed.
+7. The first entry that matches will be selected, and assuming this is a Gitea entry, the `command=` will now be executed.
 8. The host SSH server creates a user session for the `git` user, and using the shell for the host `git` user runs the `command=`
 9. The shell of the host `git` user is now our `docker-shell` which uses `docker exec` to open a shell for the `git` user on the container.
 10. The container shell now runs the `command=` option meaning that the container `gitea serv` is run, taking over control of the rest of the SSH session and managing gitea authentication & authorization of the git commands.
 
-Note that `gitea` in the docker command above is the name of the container. If you named yours differently, don't forget to change that. The host `git` user also have to have
+Note that `gitea` in the docker command above is the name of the container. If you named yours differently, don't forget to change that. The host `git` user also has to have
 permission to run `docker exec`.
 
 **Notes**
@@ -618,5 +622,7 @@ SSH container passthrough using `AuthorizedKeysCommand` will work only if
 - `opensshd` is running on the container
 
 If you try to login as the `git` user on the host in future you will `ssh` directly to the docker.
+
+Never add the `Gitea Host Key` as a SSH key to a user on the Gitea interface.
 
 SSHing shims could be created similarly to above.
