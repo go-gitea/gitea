@@ -754,6 +754,30 @@ func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) b
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// _________ .__                                 __________.__        __
+// \_   ___ \|  |__   __________________ ___.__. \______   \__| ____ |  | __
+// /    \  \/|  |  \_/ __ \_  __ \_  __ <   |  |  |     ___/  |/ ___\|  |/ /
+// \     \___|   Y  \  ___/|  | \/|  | \/\___  |  |    |   |  \  \___|    <
+//  \______  /___|  /\___  >__|   |__|   / ____|  |____|   |__|\___  >__|_ \
+//         \/     \/     \/              \/                        \/     \/
+
+// CherryPickForm form for changing repository file
+type CherryPickForm struct {
+	CommitSummary string `binding:"MaxSize(100)"`
+	CommitMessage string
+	CommitChoice  string `binding:"Required;MaxSize(50)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
+	Revert        bool
+	Signoff       bool
+}
+
+// Validate validates the fields
+func (f *CherryPickForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 //  ____ ___        .__                    .___
 // |    |   \______ |  |   _________     __| _/
 // |    |   /\____ \|  |  /  _ \__  \   / __ |
