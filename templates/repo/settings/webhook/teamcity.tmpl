@@ -1,19 +1,19 @@
 {{if eq .HookType "teamcity"}}
-	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://jetbrains.com/teamcity" (.i18n.Tr "repo.settings.web_hook_name_teamcity") | Str2html}}</p>
-	<form class="ui form" action="{{.BaseLink}}/teamcity/{{or .Webhook.ID "new"}}" method="post">
-		{{.CsrfTokenHtml}}
-		<div class="required field {{if .Err_BotToken}}error{{end}}">
-			<label for="host_url">{{.i18n.Tr "repo.settings.teamcity_host_url"}}</label>
-			<input id="host_url" name="host_url" type="url" value="{{.TeamCityHook.HostUrl}}" autofocus required>
-		</div>
-    <div class="required field {{if .Err_ChatID}}error{{end}}">
-      <label for="auth_token">{{.i18n.Tr "repo.settings.teamcity_auth_token"}}</label>
-      <input id="auth_token" name="auth_token" type="text" value="{{.TeamCityHook.AuthToken}}" required>
-    </div>
-		<div class="required field {{if .Err_ChatID}}error{{end}}">
-      <label for="vcs_root_id">{{.i18n.Tr "repo.settings.teamcity_vcs_root_id"}}</label>
-      <input id="vcs_root_id" name="vcs_root_id" type="text" value="{{.TeamCityHook.VcsRootId}}" required>
-    </div>
-		{{template "repo/settings/webhook/settings" .}}
-	</form>
+<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://jetbrains.com/teamcity" (.i18n.Tr "repo.settings.web_hook_name_teamcity") | Str2html}}</p>
+<form class="ui form" action="{{.BaseLink}}/teamcity/{{or .Webhook.ID "new"}}" method="post">
+	{{.CsrfTokenHtml}}
+	<div class="required field {{if .Err_BotToken}}error{{end}}">
+		<label for="host_url">{{.i18n.Tr "repo.settings.teamcity_host_url"}}</label>
+		<input id="host_url" name="host_url" type="url" value="{{.TeamCityHook.HostUrl}}" autofocus required>
+	</div>
+	<div class="required field {{if .Err_ChatID}}error{{end}}">
+		<label for="auth_token">{{.i18n.Tr "repo.settings.teamcity_auth_token"}}</label>
+		<input id="auth_token" name="auth_token" type="text" value="{{.TeamCityHook.AuthToken}}" required>
+	</div>
+	<div class="required field {{if .Err_ChatID}}error{{end}}">
+		<label for="vcs_root_id">{{.i18n.Tr "repo.settings.teamcity_vcs_root_id"}}</label>
+		<input id="vcs_root_id" name="vcs_root_id" type="text" value="{{.TeamCityHook.VcsRootId}}" required>
+	</div>
+	{{template "repo/settings/webhook/settings" .}}
+</form>
 {{end}}
