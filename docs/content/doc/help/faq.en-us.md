@@ -356,7 +356,7 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 ## Stdout logging on SystemD and Docker
 
-Stdout on systemd goes to the journal by default. Try using `journalctl` or `journalctl <path-to-gitea-binary>`.
+Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
 Similarly stdout on docker can be viewed using `docker logs <container>`
 
@@ -385,7 +385,7 @@ These can safely be ignored but you may able to stop these warnings by getting G
 gitea doctor recreate-table user
 ```
 
-This will cause Gitea to recreate these tables and copy the old data into the new table
+This will cause Gitea to recreate the user table and copy the old data into the new table
 with the defaults set appropriately.
 
 You can ask Gitea to recreate multiple tables using:

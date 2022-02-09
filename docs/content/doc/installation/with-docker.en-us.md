@@ -321,7 +321,7 @@ To understand what needs to happen, you first need to understand what happens wi
 8. The SSH server creates a user session for the `git` user, and using the shell for the `git` user runs the `command=`
 9. This runs `gitea serv` which takes over control of the rest of the SSH session and manages gitea authentication & authorization of the git commands.
 
-Now, for SSH passthrough to work we need the host SSH to match the public keys but then run the `gitea serv` on the docker. There are multiple ways of doing this - however, all of these require some information about the docker being passed to the host.
+Now, for the SSH passthrough to work, we need the host SSH to match the public keys and then run the `gitea serv` on the docker. There are multiple ways of doing this. However, all of these require some information about the docker being passed to the host.
 
 ### SSHing Shim (with authorized_keys)
 
