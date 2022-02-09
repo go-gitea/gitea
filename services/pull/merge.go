@@ -56,7 +56,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 	}
 
 	if mergeStyle != "" {
-		templateFilepath := fmt.Sprintf(".gitea/%s_MESSAGE_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
+		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			log.Error("GetBranchCommit: %v", err)
@@ -73,6 +73,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		}
 	}
 
+	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
 		if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 			return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
