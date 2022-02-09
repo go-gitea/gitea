@@ -448,7 +448,13 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	}
 
 	// Push back to upstream.
-	if err := pushCmd.RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := pushCmd.RunWithContext(&git.RunContext{
+		Env:     env,
+		Timeout: -1,
+		Dir:     tmpBasePath,
+		Stdout:  &outbuf,
+		Stderr:  &errbuf,
+	}); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
@@ -490,7 +496,12 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 
 func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.Command, tmpBasePath string) error {
 	var outbuf, errbuf strings.Builder
-	if err := cmd.RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := cmd.RunWithContext(&git.RunContext{
+		Timeout: -1,
+		Dir:     tmpBasePath,
+		Stdout:  &outbuf,
+		Stderr:  &errbuf,
+	}); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 			// We have a merge conflict error
