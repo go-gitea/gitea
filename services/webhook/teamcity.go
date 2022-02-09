@@ -5,9 +5,8 @@
 package webhook
 
 import (
-	"encoding/json"
-
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -15,9 +14,9 @@ import (
 type (
 	// TeamCityMeta contains metadata for the TeamCity WebHook
 	TeamCityMeta struct {
-		HostUrl   string `json:"host_url"`
+		HostURL   string `json:"host_url"`
 		AuthToken string `json:"auth_token"`
-		VcsRootId string `json:"vcs_root_id"`
+		VcsRootID string `json:"vcs_root_id"`
 	}
 )
 

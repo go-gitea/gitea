@@ -556,24 +556,24 @@ func TeamCityHooksNewPost(ctx *context.Context) {
 	}
 
 	meta, err := json.Marshal(&webhook_service.TeamCityMeta{
-		HostUrl:   form.HostUrl,
+		HostURL:   form.HostURL,
 		AuthToken: form.AuthToken,
-		VcsRootId: form.VcsRootId,
+		VcsRootID: form.VcsRootID,
 	})
 	if err != nil {
 		ctx.ServerError("Marshal", err)
 		return
 	}
 
-	payloadUrl, err := buildTeamCityUrl(form)
+	payloadURL, err := buildTeamCityURL(form)
 	if err != nil {
-		ctx.ServerError("buildTeamCityUrl", err)
+		ctx.ServerError("buildTeamCityURL", err)
 		return
 	}
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             payloadUrl,
+		URL:             payloadURL,
 		ContentType:     webhook.ContentTypeForm,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
@@ -1210,19 +1210,18 @@ func TeamCityHooksEditPost(ctx *context.Context) {
 	}
 
 	meta, err := json.Marshal(&webhook_service.TeamCityMeta{
-		HostUrl:   form.HostUrl,
+		HostURL:   form.HostURL,
 		AuthToken: form.AuthToken,
-		VcsRootId: form.VcsRootId,
+		VcsRootID: form.VcsRootID,
 	})
-
 	if err != nil {
 		ctx.ServerError("Marshal", err)
 		return
 	}
 
-	w.URL, err = buildTeamCityUrl(form)
+	w.URL, err = buildTeamCityURL(form)
 	if err != nil {
-		ctx.ServerError("buildTeamCityUrl", err)
+		ctx.ServerError("buildTeamCityURL", err)
 		return
 	}
 
@@ -1243,13 +1242,14 @@ func TeamCityHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-func buildTeamCityUrl(meta *forms.NewTeamCityHookForm) (string, error) {
-	tcUrl, err := url.Parse(meta.HostUrl)
+// buildTeamCityURL returns the correct REST API url for a TeamCity POST request.
+func buildTeamCityURL(meta *forms.NewTeamCityHookForm) (string, error) {
+	tcURL, err := url.Parse(meta.HostURL)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/app/rest/vcs-root-instances/commitHookNotification?locator=vcsRoot:%s", tcUrl, meta.VcsRootId), nil
+	return fmt.Sprintf("%s/app/rest/vcs-root-instances/commitHookNotification?locator=vcsRoot:%s", tcURL, meta.VcsRootID), nil
 }
 
 // FeishuHooksEditPost response for editing feishu hook

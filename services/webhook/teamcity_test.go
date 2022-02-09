@@ -1,3 +1,7 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.package webhook
+
 package webhook
 
 import (
@@ -27,9 +31,9 @@ func TestWebhook_GetTeamCityHook(t *testing.T) {
 
 		teamcityHook := GetTeamCityHook(w)
 		assert.Equal(t, *teamcityHook, TeamCityMeta{
-			HostUrl:   "http://localhost.com",
+			HostURL:   "http://localhost.com",
 			AuthToken: "testToken",
-			VcsRootId: "fooVCS",
+			VcsRootID: "fooVCS",
 		})
 	})
 }

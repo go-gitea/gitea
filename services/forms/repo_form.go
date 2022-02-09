@@ -373,9 +373,9 @@ func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) bi
 }
 
 type NewTeamCityHookForm struct {
-	HostUrl   string `binding:"Required;ValidUrl"`
+	HostURL   string `binding:"Required;ValidUrl"`
 	AuthToken string `binding:"Required"`
-	VcsRootId string `binding:"Required"`
+	VcsRootID string `binding:"Required"`
 	WebhookForm
 }
 
