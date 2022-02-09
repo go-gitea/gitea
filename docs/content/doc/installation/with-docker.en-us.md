@@ -315,7 +315,7 @@ To understand what needs to happen, you first need to understand what happens wi
 2. Gitea will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`.
 3. This entry has the public key, but also has a `command=` option. It is this command that Gitea uses to match this key to the client user and manages authentication.
 4. The client then makes an SSH request to the SSH server using the `git` user, e.g. `git clone git@domain:user/repo.git`.
-5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the server.
+5. The client will attempt to authenticate with the server, passing one or more public keys one at a time to the server.
 6. For each key the client provides, the SSH server will first check its configuration for an `AuthorizedKeysCommand` to see if the public key matches, and then the `git` user's `authorized_keys` file.
 7. The first entry that matches will be selected, and assuming this is a Gitea entry, the `command=` will now be executed.
 8. The SSH server creates a user session for the `git` user, and using the shell for the `git` user runs the `command=`
