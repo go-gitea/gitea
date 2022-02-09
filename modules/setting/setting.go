@@ -1061,11 +1061,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.18.0
+	U2F.AppID = strings.TrimSuffix(AppURL, "/")
 	if Cfg.Section("U2F").HasKey("APP_ID") {
 		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
+		U2F.AppID = Cfg.Section("U2F").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	} else if Cfg.Section("u2f").HasKey("APP_ID") {
+		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
+		U2F.AppID = Cfg.Section("u2f").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 	}
-	sec = Cfg.Section("U2F")
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
