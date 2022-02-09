@@ -307,7 +307,7 @@ To set required TOKEN and SECRET values, consider using Gitea's built-in [genera
 
 ## SSH Container Passthrough
 
-Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH connections from the host to the container - that is, users of Gitea ssh to the Gitea user on the host and the host forwards those connections to the docker.
+Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is for Gitea users to ssh to a Gitea user on the host which will then relay those connections to the docker.
 
 To understand what needs to happen, you first need to understand what happens without passthrough. So we will try to explain this:
 
