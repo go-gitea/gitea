@@ -203,7 +203,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
+	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
 		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
