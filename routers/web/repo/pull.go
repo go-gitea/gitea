@@ -338,7 +338,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, err = git.NewCommandContext(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
+			parentCommit, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}

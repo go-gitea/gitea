@@ -90,15 +90,15 @@ func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _ := git.NewCommandContext(ctx, "config", "--get", "commit.gpgsign").RunInDir(repoPath)
+		value, _ := git.NewCommand(ctx, "config", "--get", "commit.gpgsign").RunInDir(repoPath)
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return "", nil
 		}
 
-		signingKey, _ := git.NewCommandContext(ctx, "config", "--get", "user.signingkey").RunInDir(repoPath)
-		signingName, _ := git.NewCommandContext(ctx, "config", "--get", "user.name").RunInDir(repoPath)
-		signingEmail, _ := git.NewCommandContext(ctx, "config", "--get", "user.email").RunInDir(repoPath)
+		signingKey, _ := git.NewCommand(ctx, "config", "--get", "user.signingkey").RunInDir(repoPath)
+		signingName, _ := git.NewCommand(ctx, "config", "--get", "user.name").RunInDir(repoPath)
+		signingEmail, _ := git.NewCommand(ctx, "config", "--get", "user.email").RunInDir(repoPath)
 		return strings.TrimSpace(signingKey), &git.Signature{
 			Name:  strings.TrimSpace(signingName),
 			Email: strings.TrimSpace(signingEmail),

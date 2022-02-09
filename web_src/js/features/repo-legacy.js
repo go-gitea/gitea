@@ -436,7 +436,7 @@ export function initRepository() {
   });
 
   // File list and commits
-  if ($('.repository.file.list').length > 0 ||
+  if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
     initRepoBranchTagDropdown('.choose.reference .dropdown');
   }
