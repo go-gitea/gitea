@@ -21,12 +21,10 @@
 							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/dingtalk.ico">
 						{{else if eq .HookType "telegram"}}
 							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/telegram.png">
-						{{else if eq .HookType "teamcity"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/teamcity.svg">
 						{{else if eq .HookType "msteams"}}
 							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/msteams.png">
 						{{else if eq .HookType "teamcity"}}
-							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/teamcity.png">
+							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/teamcity.svg">
 						{{else if eq .HookType "feishu"}}
 							<img width="26" height="26" src="{{AssetUrlPrefix}}/img/feishu.png">
 						{{else if eq .HookType "matrix"}}
@@ -45,7 +43,6 @@
 					{{template "repo/settings/webhook/discord" .}}
 					{{template "repo/settings/webhook/dingtalk" .}}
 					{{template "repo/settings/webhook/telegram" .}}
-					{{template "repo/settings/webhook/teamcity" .}}
 					{{template "repo/settings/webhook/msteams" .}}
 					{{template "repo/settings/webhook/teamcity" .}}
 					{{template "repo/settings/webhook/feishu" .}}
