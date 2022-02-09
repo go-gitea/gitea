@@ -42,12 +42,12 @@ Possible file names for PR templates:
 - `.gitea/pull_request_template.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/pull_request_template.md`
-- `.gitea/MERGE_MESSAGE_TEMPLATE.md`
-- `.gitea/REBASE_MESSAGE_TEMPLATE.md`
-- `.gitea/REBASE-MERGE_MESSAGE_TEMPLATE.md`
-- `.gitea/SQUASH_MESSAGE_TEMPLATE.md`
-- `.gitea/MANUALLY-MERGED_MESSAGE_TEMPLATE.md`
-- `.gitea/REBASE-UPDATE-ONLY_MESSAGE_TEMPLATE.md`
+- `.gitea/default_merge_message/MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/SQUASH_TEMPLATE.md`
+- `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
 
 Possible file names for PR default merge message templates:
 
