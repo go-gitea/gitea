@@ -1,9 +1,18 @@
 import $ from 'jquery';
 
 export function initRepoBranchButton() {
-  $('.show-create-branch-modal.button').on('click', function () {
-    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from-urlcomponent');
-    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
-    $($(this).data('modal')).modal('show');
+  $('.show-create-branch-modal').on('click', function () {
+    let modalFormName = $(this).attr('data-modal-form');
+    if (!modalFormName) {
+      modalFormName = '#create-branch-form';
+    }
+    $(modalFormName)[0].action = $(modalFormName).attr('data-base-action') + $(this).attr('data-branch-from-urlcomponent');
+    let fromSpanName = $(this).attr('data-modal-from-span');
+    if (!fromSpanName) {
+      fromSpanName = '#modal-create-branch-from-span';
+    }
+
+    $(fromSpanName).text($(this).attr('data-branch-from'));
+    $($(this).attr('data-modal')).modal('show');
   });
 }
