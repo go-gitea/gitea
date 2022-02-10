@@ -13,12 +13,25 @@ trigger:
     - tag
     - pull_request
 
+volumes:
+  - name: deps
+    temp: {}
+
 steps:
   - name: deps-frontend
     pull: always
     image: node:16
     commands:
-      - make node_modules
+      - make deps-frontend
+
+  - name: deps-backend
+    pull: always
+    image: golang:1.17
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
 
   - name: lint-frontend
     image: node:16
@@ -27,7 +40,6 @@ steps:
     depends_on: [deps-frontend]
 
   - name: lint-backend
-    pull: always
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
@@ -35,9 +47,12 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: lint-backend-windows
-    pull: always
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
@@ -47,9 +62,12 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
       GOOS: windows
       GOARCH: amd64
+    depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: lint-backend-gogit
-    pull: always
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
@@ -57,6 +75,10 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: checks-frontend
     image: node:16
@@ -69,7 +91,10 @@ steps:
     image: golang:1.17
     commands:
       - make checks-backend
-    depends_on: [lint-backend]
+    depends_on: [deps-backend, lint-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-frontend
     image: node:16
@@ -91,7 +116,10 @@ steps:
       GOPROXY: https://goproxy.cn
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [checks-backend]
+    depends_on: [deps-backend, checks-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: build-backend-arm64
     image: golang:1.17
@@ -104,7 +132,10 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
-    depends_on: [checks-backend]
+    depends_on: [deps-backend, checks-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: build-backend-windows
     image: golang:1.17
@@ -116,7 +147,10 @@ steps:
       TAGS: bindata gogit
     commands:
       - go build -o gitea_windows
-    depends_on: [checks-backend]
+    depends_on: [deps-backend, checks-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: build-backend-386
     image: golang:1.17
@@ -127,7 +161,10 @@ steps:
       GOARCH: 386
     commands:
       - go build -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [checks-backend]
+    depends_on: [deps-backend, checks-backend]
+    volumes:
+      - name: deps
+        path: /go
 
 ---
 kind: pipeline
@@ -146,6 +183,10 @@ trigger:
     - push
     - tag
     - pull_request
+
+volumes:
+  - name: deps
+    temp: {}
 
 services:
   - name: mysql
@@ -193,6 +234,15 @@ steps:
         exclude:
           - pull_request
 
+  - name: deps-backend
+    pull: always
+    image: golang:1.17
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
+
   - name: tag-pre-condition
     pull: always
     image: drone/git
@@ -215,8 +265,10 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on:
-      - prepare-test-env
+    depends_on: [prepare-test-env]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: unit-test
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -229,6 +281,9 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+    volumes:
+      - name: deps
+        path: /go
 
   - name: unit-test-gogit
     pull: always
@@ -242,6 +297,9 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-mysql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -255,8 +313,10 @@ steps:
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
-    depends_on:
-      - build
+    depends_on: [build]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -269,8 +329,10 @@ steps:
       RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
+    depends_on: [build]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-mssql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -283,8 +345,10 @@ steps:
       RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
+    depends_on: [build]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: generate-coverage
     image: golang:1.17
@@ -293,9 +357,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn
       TAGS: bindata
-    depends_on:
-      - unit-test
-      - test-mysql
+    depends_on: [unit-test, test-mysql]
     when:
       branch:
         - main
@@ -311,8 +373,7 @@ steps:
         - coverage.all
       token:
         from_secret: codecov_token
-    depends_on:
-      - generate-coverage
+    depends_on: [generate-coverage]
     when:
       branch:
         - main
@@ -337,6 +398,10 @@ trigger:
     - tag
     - pull_request
 
+volumes:
+  - name: deps
+    temp: {}
+
 services:
   - name: pgsql
     pull: default
@@ -359,6 +424,15 @@ steps:
         exclude:
           - pull_request
 
+  - name: deps-backend
+    pull: always
+    image: golang:1.17
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
+
   - name: prepare-test-env
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
@@ -375,8 +449,10 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on:
-      - prepare-test-env
+    depends_on: [prepare-test-env]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
@@ -389,8 +465,10 @@ steps:
       RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
+    depends_on: [build]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: test-pgsql
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
@@ -404,8 +482,10 @@ steps:
       TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
+    depends_on: [build]
+    volumes:
+      - name: deps
+        path: /go
 
 ---
 kind: pipeline
@@ -529,11 +609,30 @@ depends_on:
   - testing-amd64
   - testing-arm64
 
+volumes:
+  - name: deps
+    temp: {}
+
 steps:
   - name: fetch-tags
     image: docker:git
     commands:
       - git fetch --tags --force
+
+  - name: deps-frontend
+    pull: always
+    image: node:16
+    commands:
+      - make deps-frontend
+
+  - name: deps-backend
+    pull: always
+    image: golang:1.17
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
 
   - name: static
     pull: always
@@ -545,6 +644,9 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+    volumes:
+      - name: deps
+        path: /go
 
   - name: gpg-sign
     pull: always
@@ -624,12 +726,31 @@ depends_on:
   - testing-arm64
   - testing-amd64
 
+volumes:
+  - name: deps
+    temp: {}
+
 steps:
   - name: fetch-tags
     pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
+
+  - name: deps-frontend
+    pull: always
+    image: node:16
+    commands:
+      - make deps-frontend
+
+  - name: deps-backend
+    pull: always
+    image: golang:1.17
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
 
   - name: static
     pull: always
@@ -642,6 +763,9 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [fetch-tags]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: gpg-sign
     pull: always
