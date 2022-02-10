@@ -99,6 +99,7 @@ func DetectContentType(data []byte) SniffedType {
 // Note: you may need `reader.Seek(0, io.SeekStart)` to reset the offset
 func DetectContentTypeExtFirst(name string, bytesOrReader interface{}) (SniffedType, error) {
 	ct := mime.TypeByExtension(filepath.Ext(name))
+	// FIXME: Not sure if `!strings.HasPrefix(ct, "text/")` is necessary to keep the old behavior.
 	if ct != "" && !strings.HasPrefix(ct, "text/") {
 		return SniffedType{ct}, nil
 	}
