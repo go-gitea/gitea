@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 export function initAdminCommon() {
@@ -89,29 +91,8 @@ export function initAdminCommon() {
     }
   }
 
-  function onVerifyGroupMembershipChange(event) {
-    if ($(event.target).attr('id') === 'team_group_map_removal' && $('#team_group_map_removal').is(':checked')) {
-      $('#team_group_map_enabled').prop('checked', true);
-      $('#team_group_map_enabled').prop('disabled', true);
-    } else if ($(event.target).attr('id') === 'team_group_map_removal') {
-      $('#team_group_map_enabled').prop('checked', false);
-      $('#team_group_map_enabled').prop('disabled', false);
-    }
-    if ($('#groups_enabled').is(':checked') || $('#team_group_map_enabled').is(':checked') || $('#team_group_map_removal').is(':checked')) {
-      $('#groups_enabled_change').show();
-    } else {
-      $('#groups_enabled_change').hide();
-    }
-    if ($('#groups_enabled').is(':checked')) {
-      $('#group_filter_field').show();
-    } else {
-      $('#group_filter_field').hide();
-    }
-    if ($('#team_group_map_enabled').is(':checked') || $('#team_group_map_removal').is(':checked')) {
-      $('#team_group_map_field').show();
-    } else {
-      $('#team_group_map_field').hide();
-    }
+  function onEnableLdapGroupsChange() {
+    $('#ldap-group-options').toggle($('.js-ldap-group-toggle').is(':checked'));
   }
 
   // New authentication
@@ -154,7 +135,7 @@ export function initAdminCommon() {
       }
       if (authType === '2' || authType === '5') {
         onSecurityProtocolChange();
-        onVerifyGroupMembershipChange();
+        onEnableLdapGroupsChange();
       }
       if (authType === '2') {
         onUsePagedSearchChange();
@@ -165,15 +146,15 @@ export function initAdminCommon() {
     $('#use_paged_search').on('change', onUsePagedSearchChange);
     $('#oauth2_provider').on('change', () => onOAuth2Change(true));
     $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
-    $('.ldap-group-options').on('change', onVerifyGroupMembershipChange);
+    $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
-      $('.ldap-group-options').on('change', onVerifyGroupMembershipChange);
-      onVerifyGroupMembershipChange();
+      $('.js-ldap-group-toggle').on('change', onEnableLdapGroupsChange);
+      onEnableLdapGroupsChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);
       }

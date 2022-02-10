@@ -230,7 +230,7 @@ func (ls *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
 // parse LDAP groups and return map of ldap groups to organizations teams
 func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 	ldapGroupsToTeams := make(map[string]map[string][]string)
-	err := json.Unmarshal([]byte(ls.TeamGroupMap), &ldapGroupsToTeams)
+	err := json.Unmarshal([]byte(ls.GroupTeamMap), &ldapGroupsToTeams)
 	if err != nil {
 		log.Error("Failed to unmarshall LDAP teams map: %v", err)
 		return ldapGroupsToTeams
@@ -447,7 +447,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 	teamsToAdd := make(map[string][]string)
 	teamsToRemove := make(map[string][]string)
-	if ls.TeamGroupMapEnabled || ls.TeamGroupMapRemoval {
+	if ls.GroupsEnabled && (ls.GroupTeamMap != "" || ls.GroupTeamMapRemoval) {
 		teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, uid)
 	}
 
@@ -526,7 +526,7 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 	for i, v := range sr.Entries {
 		teamsToAdd := make(map[string][]string)
 		teamsToRemove := make(map[string][]string)
-		if ls.TeamGroupMapEnabled || ls.TeamGroupMapRemoval {
+		if ls.GroupsEnabled && (ls.GroupTeamMap != "" || ls.GroupTeamMapRemoval) {
 			userAttributeListedInGroup := v.GetAttributeValue(ls.UserUID)
 			if ls.UserUID == "dn" || ls.UserUID == "DN" {
 				userAttributeListedInGroup = v.DN

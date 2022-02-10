@@ -170,7 +170,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 		}
 		// Synchronize LDAP groups with organization and team memberships
-		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
+		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
 			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
 		}
 	}

@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {svg} from '../svg.js';
 
 function changeHash(hash) {

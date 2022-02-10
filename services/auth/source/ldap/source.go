@@ -52,11 +52,10 @@ type Source struct {
 	GroupDN               string // Group Search Base
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
+	GroupTeamMap          string // Map LDAP groups to teams
+	GroupTeamMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
 	UserUID               string // User Attribute listed in Group
 	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
-	TeamGroupMap          string // Map LDAP groups to teams
-	TeamGroupMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
-	TeamGroupMapEnabled   bool   // if LDAP groups mapping to gitea organizations teams is enabled
 
 	// reference to the authSource
 	authSource *auth.Source

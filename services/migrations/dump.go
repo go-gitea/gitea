@@ -476,7 +476,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
@@ -604,13 +604,13 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
 	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName, validation)
 	if err != nil {
 		return err
 	}

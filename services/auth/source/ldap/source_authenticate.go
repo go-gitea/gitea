@@ -60,7 +60,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
-		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
+		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
 			orgCache := make(map[string]*models.Organization)
 			teamCache := make(map[string]*models.Team)
 			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
@@ -106,7 +106,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if err == nil && len(source.AttributeAvatar) > 0 {
 		_ = user_service.UploadAvatar(user, sr.Avatar)
 	}
-	if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
+	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
 		orgCache := make(map[string]*models.Organization)
 		teamCache := make(map[string]*models.Team)
 		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)

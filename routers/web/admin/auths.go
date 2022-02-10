@@ -145,13 +145,12 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		GroupDN:               form.GroupDN,
 		GroupFilter:           form.GroupFilter,
 		GroupMemberUID:        form.GroupMemberUID,
+		GroupTeamMap:          form.GroupTeamMap,
+		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
 		UserUID:               form.UserUID,
 		AdminFilter:           form.AdminFilter,
 		RestrictedFilter:      form.RestrictedFilter,
 		AllowDeactivateAll:    form.AllowDeactivateAll,
-		TeamGroupMap:          form.TeamGroupMap,
-		TeamGroupMapRemoval:   form.TeamGroupMapRemoval,
-		TeamGroupMapEnabled:   form.TeamGroupMapEnabled,
 		Enabled:               true,
 		SkipLocalTwoFA:        form.SkipLocalTwoFA,
 	}
@@ -195,6 +194,9 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
+		GroupClaimName:                form.Oauth2GroupClaimName,
+		RestrictedGroup:               form.Oauth2RestrictedGroup,
+		AdminGroup:                    form.Oauth2AdminGroup,
 	}
 }
 

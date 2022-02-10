@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import $ from 'jquery';
 import {vueDelimiters} from './VueComponentLoader.js';
 
 export function initRepoBranchTagDropdown(selector) {

@@ -305,7 +305,7 @@ steps:
 
   - name: coverage-codecov
     pull: always
-    image: plugins/codecov
+    image: woodpeckerci/plugin-codecov:next-alpine
     settings:
       files:
         - coverage.all
@@ -567,7 +567,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -588,7 +588,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -641,6 +641,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on: [fetch-tags]
 
   - name: gpg-sign
     pull: always
@@ -656,6 +657,7 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
+    depends_on: [static]
 
   - name: release-tag
     pull: always
@@ -663,7 +665,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -673,6 +675,7 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
+    depends_on: [gpg-sign]
 
   - name: github
     pull: always
@@ -683,6 +686,7 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
+    depends_on: [gpg-sign]
 
 ---
 kind: pipeline
@@ -852,6 +856,67 @@ steps:
 
 ---
 kind: pipeline
+name: docker-linux-amd64-release-branch
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - "refs/heads/release/v*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
 type: docker
 name: docker-linux-arm64-dry-run
 
@@ -1006,6 +1071,68 @@ steps:
       event:
         exclude:
         - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-release-branch
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - "refs/heads/release/v*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 type: docker
@@ -1086,6 +1213,7 @@ steps:
 trigger:
   ref:
   - refs/heads/main
+  - "refs/heads/release/v*"
   event:
     exclude:
     - cron
@@ -1093,6 +1221,8 @@ trigger:
 depends_on:
   - docker-linux-amd64-release
   - docker-linux-arm64-release
+  - docker-linux-amd64-release-branch
+  - docker-linux-arm64-release-branch
 
 ---
 kind: pipeline
@@ -1126,6 +1256,8 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-version
   - docker-linux-arm64-release-version
+  - docker-linux-amd64-release-branch
+  - docker-linux-arm64-release-branch
   - docker-manifest
   - docker-manifest-version
   - docs

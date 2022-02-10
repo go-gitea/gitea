@@ -98,14 +98,6 @@ var (
 			Name:  "avatar-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
-		cli.StringFlag{
-			Name:  "team-group-map",
-			Usage: "Map of LDAP groups to teams.",
-		},
-		cli.BoolFlag{
-			Name:  "team-group-map-removal",
-			Usage: "Force synchronization of mapped LDAP groups to teams.",
-		},
 	}
 
 	ldapBindDnCLIFlags = append(commonLdapCLIFlags,
@@ -268,14 +260,6 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("skip-local-2fa") {
 		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
-	if c.IsSet("team-group-map") {
-		config.TeamGroupMapEnabled = c.Bool("team-group-map")
-		config.TeamGroupMap = c.String("team-group-map")
-	}
-	if c.IsSet("team-group-map-removal") {
-		config.TeamGroupMapRemoval = c.Bool("team-group-map-removal")
-	}
-
 	return nil
 }
 

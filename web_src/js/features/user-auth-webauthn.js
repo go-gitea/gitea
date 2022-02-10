@@ -1,7 +1,7 @@
+import $ from 'jquery';
 import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
-
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
@@ -150,13 +150,12 @@ export function initUserAuthWebAuthnRegister() {
     return;
   }
 
-  if (!detectWebAuthnSupport()) {
-    return;
-  }
-
   $('#webauthn-error').modal({allowMultiple: false});
   $('#register-webauthn').on('click', (e) => {
     e.preventDefault();
+    if (!detectWebAuthnSupport()) {
+      return;
+    }
     webAuthnRegisterRequest();
   });
 }

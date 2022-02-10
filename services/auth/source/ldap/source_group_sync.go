@@ -13,7 +13,7 @@ import (
 // SyncLdapGroupsToTeams maps LDAP groups to organization and team memberships
 func (source *Source) SyncLdapGroupsToTeams(user *user_model.User, ldapTeamAdd, ldapTeamRemove map[string][]string, orgCache map[string]*models.Organization, teamCache map[string]*models.Team) {
 	var err error
-	if source.TeamGroupMapRemoval {
+	if source.GroupsEnabled && source.GroupTeamMapRemoval {
 		// when the user is not a member of configs LDAP group, remove mapped organizations/teams memberships
 		removeMappedMemberships(user, ldapTeamRemove, orgCache, teamCache)
 	}
