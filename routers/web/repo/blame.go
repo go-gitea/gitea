@@ -255,7 +255,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale.Language())
 
 				var avatar string
 				if commit.User != nil {
