@@ -41,6 +41,10 @@ code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b h1:uv9a8eGSdQ8Dr4Hy
 code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b/go.mod h1:zcNbT/aJEmivCAhfmkHOlT645KNOf9W2KnkLgFjGGfE=
 code.gitea.io/sdk/gitea v0.15.1 h1:WJreC7YYuxbn0UDaPuWIe/mtiNKTvLN8MLkaw71yx/M=
 code.gitea.io/sdk/gitea v0.15.1/go.mod h1:klY2LVI3s3NChzIk/MzMn7G1FHrfU7qd63iSMVoHRBA=
+codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210193945-7e8a7a7862e8 h1:FGlD3sYQ96c1teuMzOolqDsdJHo8oEt8QzYSWGa8e9k=
+codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210193945-7e8a7a7862e8/go.mod h1:DlyiQTss9qB5V60w8IRMWCMYIPX+8cT1GgzWFCTvAsY=
+codeberg.org/gusted/go-crypto v0.0.0-20220210182945-447280c7d883 h1:Eu/c8Jq8YWvLiX49ZIBaLX69XjSzDpOPiD6LT6J81TM=
+codeberg.org/gusted/go-crypto v0.0.0-20220210182945-447280c7d883/go.mod h1:AdkJbWxlZ75bsMVCqv8XJJdHi9BZw9FvrQ3ctzJa2Zc=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be h1:IzSwPVzd2hE6e67ujY8ReBCrQ5IFNd0uiBmC7Ux5IaY=
 gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be/go.mod h1:/vR0YjlusOYvosKYW7QKcSnrY0nPLe4RQ/DGi3+i/Do=
@@ -311,9 +315,6 @@ github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4
 github.com/fxamacker/cbor/v2 v2.2.0 h1:6eXqdDDe588rSYAi1HfZKbx6YYQO4mxQ9eC6xYpU/JQ=
 github.com/fxamacker/cbor/v2 v2.2.0/go.mod h1:TA1xS00nchWmaBnEIxPSE5oHLuJBAVvqrtAnWBwBCVo=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
-github.com/gliderlabs/ssh v0.2.2/go.mod h1:U7qILu1NlMHj9FlMhZLlkCdDnU1DBEAqr0aevW3Awn0=
-github.com/gliderlabs/ssh v0.3.3 h1:mBQ8NiOgDkINJrZtoizkC3nDNYgSaWtxyem6S2XHBtA=
-github.com/gliderlabs/ssh v0.3.3/go.mod h1:ZSS+CUoKHDrqVakTfTWUlKSr9MtMFkC4UvtQKD7O914=
 github.com/globalsign/mgo v0.0.0-20180905125535-1ca0a4f7cbcb/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2/go.mod h1:/20jfyN9Y5QPEAprSgKAUr+glWDY39ZiUEAYOEv5dsE=
