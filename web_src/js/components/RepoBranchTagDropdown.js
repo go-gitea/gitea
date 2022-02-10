@@ -10,11 +10,22 @@ export function initRepoBranchTagDropdown(selector) {
       items: [],
       mode: $data.data('mode'),
       searchTerm: '',
+      refName: '',
       noResults: '',
       canCreateBranch: false,
       menuVisible: false,
       createTag: false,
-      active: 0
+      isViewTag: false,
+      isViewBranch: false,
+      isViewTree: false,
+      active: 0,
+      branchForm: '',
+      branchURLPrefix: '',
+      branchURLSuffix: '',
+      tagURLPrefix: '',
+      tagURLSuffix: '',
+      setAction: false,
+      submitForm: false,
     };
     $data.find('.item').each(function () {
       data.items.push({
@@ -64,6 +75,26 @@ export function initRepoBranchTagDropdown(selector) {
       beforeMount() {
         this.noResults = this.$el.getAttribute('data-no-results');
         this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
+        this.branchForm = this.$el.getAttribute('data-branch-form');
+        switch (this.$el.getAttribute('data-view-type')) {
+          case 'tree':
+            this.isViewTree = true;
+            break;
+          case 'tag':
+            this.isViewTag = true;
+            break;
+          default:
+            this.isViewBranch = true;
+            break;
+        }
+        this.refName = this.$el.getAttribute('data-ref-name');
+        this.branchURLPrefix = this.$el.getAttribute('data-branch-url-prefix');
+        this.branchURLSuffix = this.$el.getAttribute('data-branch-url-suffix');
+        this.tagURLPrefix = this.$el.getAttribute('data-tag-url-prefix');
+        this.tagURLSuffix = this.$el.getAttribute('data-tag-url-suffix');
+        this.setAction = this.$el.getAttribute('data-set-action') === 'true';
+        this.submitForm = this.$el.getAttribute('data-submit-form') === 'true';
+
 
         document.body.addEventListener('click', (event) => {
           if (this.$el.contains(event.target)) return;
@@ -80,7 +111,32 @@ export function initRepoBranchTagDropdown(selector) {
             prev.selected = false;
           }
           item.selected = true;
-          window.location.href = item.url;
+          const url = (item.tag) ? this.tagURLPrefix + item.url + this.tagURLSuffix : this.branchURLPrefix + item.url + this.branchURLSuffix;
+          if (this.branchForm === '') {
+            window.location.href = url;
+          } else {
+            this.isViewTree = false;
+            this.isViewTag = false;
+            this.isViewBranch = false;
+            this.$refs.dropdownRefName.textContent = item.name;
+            if (this.setAction) {
+              $(`#${this.branchForm}`).attr('action', url);
+            } else {
+              $(`#${this.branchForm} input[name="refURL"]`).val(url);
+            }
+            $(`#${this.branchForm} input[name="ref"]`).val(item.name);
+            if (item.tag) {
+              this.isViewTag = true;
+              $(`#${this.branchForm} input[name="refType"]`).val('tag');
+            } else {
+              this.isViewBranch = true;
+              $(`#${this.branchForm} input[name="refType"]`).val('branch');
+            }
+            if (this.submitForm) {
+              $(`#${this.branchForm}`).trigger('submit');
+            }
+            Vue.set(this, 'menuVisible', false);
+          }
         },
         createNewBranch() {
           if (!this.showCreateNewBranch) return;
