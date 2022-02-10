@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -208,7 +208,7 @@ func AddPackageTag(ctx *context.APIContext) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Req.Body)
+	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

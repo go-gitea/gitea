@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -246,7 +245,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 			return
 		}
 
-		hash, err := ioutil.ReadAll(buf)
+		hash, err := io.ReadAll(buf)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -264,7 +263,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	pfi := &packages_service.PackageFileCreationInfo{
+	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: params.Filename,
 		},
@@ -274,7 +273,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// If it's the package pom file extract the metadata
 	if ext == ".pom" {
-		pfi.IsLead = true
+		pfci.IsLead = true
 
 		var err error
 		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
@@ -310,7 +309,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		pvci,
-		pfi,
+		pfci,
 	)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
