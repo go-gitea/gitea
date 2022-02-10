@@ -7,12 +7,12 @@ package ldap
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
@@ -28,7 +28,7 @@ type SearchResult struct {
 	SSHPublicKey   []string // SSH Public Key
 	IsAdmin        bool     // if user is administrator
 	IsRestricted   bool     // if user is restricted
-	LowerName      string   // Lowername
+	LowerName      string   // LowerName
 	Avatar         []byte
 	LdapTeamAdd    map[string][]string // organizations teams to add
 	LdapTeamRemove map[string][]string // organizations teams to remove
