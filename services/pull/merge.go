@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,14 +26,14 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/unknwon/com"
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -64,21 +65,26 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		}
 		templateContent, ok := commit.GetFileContent(templateFilepath)
 		if ok {
-			var meta api.IssueTemplate
-			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
-			if err == nil {
-				return templateBody
-			}
-			log.Error("could not extract metadata from %s [%s]: %v", templateFilepath, pr.BaseRepo.FullName(), err)
+			return com.Expand(templateContent,
+				map[string]string{
+					"BaseRepoOwner":     pr.BaseRepo.OwnerName,
+					"BaseRepoName":      pr.BaseRepo.Name,
+					"BaseBranch":        pr.BaseBranch,
+					"HeadRepoOwner":     pr.HeadRepo.OwnerName,
+					"HeadRepoName":      pr.HeadRepo.Name,
+					"HeadBranch":        pr.HeadBranch,
+					"PullRequestTitle":  pr.Issue.Title,
+					"PullRequestBody":   pr.Issue.Content,
+					"PullRequestPoster": pr.Issue.Poster.Name,
+					"PullRequestIndex":  strconv.FormatInt(pr.Index, 10),
+					"IssueReference":    issueReference,
+				})
 		}
 	}
 
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
-		if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
-			return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
-		}
-		return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
+		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index)
 	}
 
 	if pr.BaseRepoID == pr.HeadRepoID {

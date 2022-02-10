@@ -1595,6 +1595,7 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["MergeStyle"] = mergeStyle
 
 		ctx.Data["DefaultMergeMessage"] = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, mergeStyle)
+		ctx.Data["DefaultSquashMergeMessage"] = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 
 		if err = pull.LoadProtectedBranch(); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
