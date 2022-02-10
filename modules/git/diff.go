@@ -32,6 +32,21 @@ func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiff
 	return GetRawDiffForFile(ctx, repoPath, "", commitID, diffType, "", writer)
 }
 
+// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
+func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
+	stderr := new(bytes.Buffer)
+	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R", commitID)
+	if err := cmd.RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repoPath,
+		Stdout:  writer,
+		Stderr:  stderr,
+	}); err != nil {
+		return fmt.Errorf("Run: %v - %s", err, stderr)
+	}
+	return nil
+}
+
 // GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
 func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
@@ -221,8 +236,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 		}
 	}
-	err := scanner.Err()
-	if err != nil {
+	if err := scanner.Err(); err != nil {
 		return "", err
 	}
 
