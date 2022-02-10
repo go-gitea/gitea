@@ -28,6 +28,7 @@ func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, ca
 	var errbuf strings.Builder
 	cmd := git.NewCommand(ctx, "cat-file", "--batch-check")
 	if err := cmd.RunWithContext(&git.RunContext{
+		Timeout: -1,
 		Dir:     tmpBasePath,
 		Stdin:   shasToCheckReader,
 		Stdout:  catFileCheckWriter,
@@ -46,9 +47,10 @@ func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.Pip
 	var errbuf strings.Builder
 	cmd := git.NewCommand(ctx, "cat-file", "--batch-check", "--batch-all-objects")
 	if err := cmd.RunWithContext(&git.RunContext{
-		Dir:    tmpBasePath,
-		Stdout: catFileCheckWriter,
-		Stderr: stderr,
+		Timeout: -1,
+		Dir:     tmpBasePath,
+		Stdout:  catFileCheckWriter,
+		Stderr:  stderr,
 	}); err != nil {
 		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())

@@ -46,10 +46,11 @@ func (repo *Repository) hashObject(reader io.Reader) (string, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	err := cmd.RunWithContext(&RunContext{
-		Dir:    repo.Path,
-		Stdin:  reader,
-		Stdout: stdout,
-		Stderr: stderr,
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdin:   reader,
+		Stdout:  stdout,
+		Stderr:  stderr,
 	})
 	if err != nil {
 		return "", err
