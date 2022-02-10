@@ -25,10 +25,8 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-var (
-	// errInvalidTagName indicates an invalid tag name
-	errInvalidTagName = errors.New("The tag name is invalid")
-)
+// errInvalidTagName indicates an invalid tag name
+var errInvalidTagName = errors.New("The tag name is invalid")
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	package_router.LogAndProcessError(ctx, status, obj, func(message string) {

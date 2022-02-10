@@ -865,7 +865,7 @@ func (m *webhookNotifier) NotifyPackageDelete(doer *user_model.User, pd *package
 
 func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
 	if pd.Repository == nil {
-		//TODO
+		// TODO
 		return
 	}
 

@@ -19,8 +19,10 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-var packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
-var filenameRegex = packageNameRegex
+var (
+	packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
+	filenameRegex    = packageNameRegex
+)
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
