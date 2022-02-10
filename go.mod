@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.78.0 // indirect
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
-	codeberg.org/gusted/go-crypto v0.0.0-20220210182945-447280c7d883 // indirect
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -123,7 +122,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
+	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
@@ -149,7 +148,9 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
 
-replace github.com/gliderlabs/ssh => codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210193945-7e8a7a7862e8
+replace github.com/gliderlabs/ssh => codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210203306-2ecddf164a2d
+
+replace golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 => codeberg.org/gusted/go-crypto v0.0.0-20220210202945-fb39d7335985
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
