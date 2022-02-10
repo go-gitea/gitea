@@ -128,6 +128,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...s
 		"attribute_ssh_public_key": sshKeyAttribute,
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
+		"groups_enabled":           "on",
 		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
 		"group_member_uid":         "member",
 		"group_team_map":           groupTeamMap,
