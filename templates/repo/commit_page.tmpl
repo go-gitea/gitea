@@ -18,14 +18,123 @@
 			{{end}}
 		{{end}}
 		<div class="ui top attached header clearing segment pr {{$class}}">
-			{{if not $.PageIsWiki}}
-			<a class="ui blue tiny button browse-button" href="{{.SourcePath}}">
-				{{.i18n.Tr "repo.diff.browse_source"}}
-			</a>
-			{{end}}
-			<h3 class="mt-0"><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+			<div class="df mb-4">
+				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+				{{if not $.PageIsWiki}}
+					<div class="ui">
+						<a class="ui blue tiny button" href="{{.SourcePath}}">
+							{{.i18n.Tr "repo.diff.browse_source"}}
+						</a>
+						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
+							<div class="ui blue tiny floating dropdown icon button">{{.i18n.Tr "repo.commit.actions"}}
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}<span class="sr-mobile-only">{{.i18n.Tr "repo.commit.actions"}}</span>
+								<div class="menu">
+									<div class="ui header">{{.i18n.Tr "repo.commit.actions"}}</div>
+									<div class="divider"></div>
+									<div class="item show-create-branch-modal"
+										data-content="{{$.i18n.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-branch-from="{{ShortSha .CommitID}}"
+										data-branch-from-urlcomponent="{{.CommitID}}"
+										data-modal="#create-branch-modal">
+										{{.i18n.Tr "repo.branch.create_branch_operation"}}
+									</div>
+									<div class="item show-create-branch-modal"
+										data-content="{{$.i18n.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-branch-from="{{ShortSha .CommitID}}"
+										data-branch-from-urlcomponent="{{.CommitID}}"
+										data-modal="#create-tag-modal"
+										data-modal-from-span="#modal-create-tag-from-span"
+										data-modal-form="#create-tag-form">
+										{{.i18n.Tr "repo.tag.create_tag_operation"}}
+									</div>
+									<div class="item show-modal revert-button"
+										data-modal="#cherry-pick-modal"
+										data-modal-cherry-pick-type="revert"
+										data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
+										data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.revert-content"}}"
+										data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.revert"}}">{{.i18n.Tr "repo.commit.revert"}}</a></div>
+									<div class="item cherry-pick-button show-modal"
+										data-modal="#cherry-pick-modal"
+										data-modal-cherry-pick-type="cherry-pick"
+										data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
+										data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.cherry-pick-content"}}"
+										data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.cherry-pick"}}">{{.i18n.Tr "repo.commit.cherry-pick"}}</a></div>
+									<div class="ui basic modal" id="cherry-pick-modal">
+										<div class="ui icon header">
+											<span id="cherry-pick-header"></span>
+										</div>
+										<div class="content center">
+											<p id="cherry-pick-content" class="branch-dropdown"></p>
+											{{template "repo/branch_dropdown" dict "root" .
+												"noTag" "true" "canCreateBranch" "false"
+												"branchForm" "branch-dropdown-form"
+												"branchURLPrefix" (printf "%s/_cherrypick/%s/" $.RepoLink .CommitID) "branchURLSuffix" ""
+												"setAction" "true" "submitForm" "true"}}
+											<form method="GET" action="{{$.RepoLink}}/_cherrypick/{{.CommitID}}/{{if $.BranchName}}{{PathEscapeSegments $.BranchName}}{{else}}{{PathEscapeSegments $.Repository.DefaultBranch}}{{end}}" id="branch-dropdown-form">
+												<input type="hidden" name="ref" value="{{if $.BranchName}}{{$.BranchName}}{{else}}{{$.Repository.DefaultBranch}}{{end}}">
+												<input type="hidden" name="refType" value="branch">
+												<input type="hidden" id="cherry-pick-type" name="cherry-pick-type"><br/>
+												<button type="submit" id="cherry-pick-submit" class="ui green button"></button>
+											</form>
+										</div>
+									</div>
+									<div class="ui small modal" id="create-branch-modal">
+										<div class="header">
+											{{.i18n.Tr "repo.branch.new_branch"}}
+										</div>
+										<div class="content">
+											<form class="ui form" id="create-branch-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
+												{{.CsrfTokenHtml}}
+												<div class="field">
+													<label>
+														{{.i18n.Tr "repo.branch.new_branch_from" "<span class=\"text\" id=\"modal-create-branch-from-span\"></span>" | Safe }}
+													</label>
+												</div>
+												<div class="required field">
+													<label for="new_branch_name">{{.i18n.Tr "repo.branch.name"}}</label>
+													<input id="new_branch_name" name="new_branch_name" required>
+												</div>
+
+												<div class="text right actions">
+													<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+													<button class="ui green button">{{.i18n.Tr "repo.branch.confirm_create_branch"}}</button>
+												</div>
+											</form>
+										</div>
+									</div>
+									<div class="ui small modal" id="create-tag-modal">
+										<div class="header">
+											{{.i18n.Tr "repo.tag.create_tag_operation"}}
+										</div>
+										<div class="content">
+											<form class="ui form" id="create-tag-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
+												{{.CsrfTokenHtml}}
+												<input type="hidden" name="create_tag" value="true">
+												<div class="field">
+													<label>
+														{{.i18n.Tr "repo.tag.create_tag_from" "<span class=\"text\" id=\"modal-create-tag-from-span\"></span>" | Safe }}
+													</label>
+												</div>
+												<div class="required field">
+													<label for="new_branch_name">{{.i18n.Tr "repo.release.tag_name"}}</label>
+													<input id="new_branch_name" name="new_branch_name" required>
+												</div>
+
+												<div class="text right actions">
+													<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+													<button class="ui green button">{{.i18n.Tr "repo.tag.confirm_create_tag"}}</button>
+												</div>
+											</form>
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				{{end}}
+			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
 				<span class="text grey mr-3">{{svg "octicon-git-branch" 16 "mr-2"}}{{.BranchName}}</span>
