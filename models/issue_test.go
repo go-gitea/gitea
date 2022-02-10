@@ -553,7 +553,7 @@ func TestIssueForeignReference(t *testing.T) {
 		LocalID:   issue.Index,
 		ForeignID: strconv.FormatInt(foreignID, 10),
 		RepoID:    issue.RepoID,
-		Type:      "issue",
+		Type:      ForeignTypeIssue,
 	})
 	assert.NoError(t, err)
 

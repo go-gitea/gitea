@@ -279,13 +279,13 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 	reference := &ForeignReference{
 		LocalID: issue.Index,
 		RepoID:  issue.RepoID,
-		Type:    "issue",
+		Type:    ForeignTypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrForeignIDNotExist{issue.RepoID, issue.Index, "issue"}
+		return ErrForeignIDNotExist{issue.RepoID, issue.Index, ForeignTypeIssue}
 	}
 	issue.ForeignReference = reference
 	return nil
@@ -1139,7 +1139,7 @@ func GetIssueByForeignID(ctx context.Context, repoID, foreignID int64) (*Issue, 
 	reference := &ForeignReference{
 		RepoID:    repoID,
 		ForeignID: strconv.FormatInt(foreignID, 10),
-		Type:      "issue",
+		Type:      ForeignTypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {

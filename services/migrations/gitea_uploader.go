@@ -378,7 +378,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				LocalID:   issue.GetLocalID(),
 				ForeignID: strconv.FormatInt(issue.GetForeignID(), 10),
 				RepoID:    g.repo.ID,
-				Type:      "issue",
+				Type:      models.ForeignTypeIssue,
 			},
 		}
 

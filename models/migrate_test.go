@@ -63,7 +63,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		ForeignReference: &ForeignReference{
 			ForeignID: strconv.FormatInt(foreignID, 10),
 			RepoID:    repo.ID,
-			Type:      "issue",
+			Type:      ForeignTypeIssue,
 		},
 	}
 	err := InsertIssues(is)
