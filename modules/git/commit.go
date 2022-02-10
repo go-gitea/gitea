@@ -8,6 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -35,7 +36,7 @@ type Commit struct {
 // CommitGPGSignature represents a git commit signature part.
 type CommitGPGSignature struct {
 	Signature string
-	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -83,7 +84,7 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)
+	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
@@ -107,8 +108,8 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CommitChangesWithArgs(repoPath, cargs, opts)
 }
 
@@ -138,12 +139,12 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	args := []string{"--all", "--count"}
 	if hidePRRefs {
 		args = append([]string{"--exclude=" + PullPrefix + "*"}, args...)
 	}
-	cmd := NewCommand("rev-list")
+	cmd := NewCommand(ctx, "rev-list")
 	cmd.AddArguments(args...)
 	if len(files) > 0 {
 		cmd.AddArguments("--")
@@ -159,8 +160,8 @@ func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, 
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
-	cmd := NewCommand("rev-list", "--count")
+func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
+	cmd := NewCommand(ctx, "rev-list", "--count")
 	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--")
@@ -176,13 +177,13 @@ func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, erro
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath string, revision ...string) (int64, error) {
-	return CommitsCountFiles(repoPath, revision, []string{})
+func CommitsCount(ctx context.Context, repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(ctx, repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+	return CommitsCount(c.repo.Ctx, c.repo.Path, c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
@@ -205,7 +206,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 	}
 
 	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, err := NewCommand("merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		_, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
 		if err == nil {
 			return true, nil
 		}
@@ -218,7 +219,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	result, err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
 	if err != nil {
 		return false, err
 	}
@@ -380,7 +381,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	data, err := NewCommand(args...).RunInDir(c.repo.Path)
+	data, err := NewCommand(c.repo.Ctx, args...).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -406,7 +407,7 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
@@ -473,7 +474,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 }
 
 // GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
@@ -485,7 +486,7 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	stderr := new(bytes.Buffer)
 	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
 
-	err := NewCommand(args...).RunInDirPipeline(repoPath, w, stderr)
+	err := NewCommand(ctx, args...).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
 		return nil, ConcatenateError(err, stderr.String())
@@ -496,8 +497,8 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
-func GetFullCommitID(repoPath, shortID string) (string, error) {
-	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
+	commitID, err := NewCommand(ctx, "rev-parse", shortID).RunInDir(repoPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}

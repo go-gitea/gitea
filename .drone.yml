@@ -88,16 +88,16 @@ steps:
     image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
     commands:
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: arm64
       TAGS: bindata gogit
@@ -110,23 +110,23 @@ steps:
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: windows
       GOARCH: amd64
       TAGS: bindata gogit
     commands:
-      - go build -mod=vendor -o gitea_windows
+      - go build -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
     image: golang:1.17
     environment:
       GO111MODULE: on
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       GOOS: linux
       GOARCH: 386
     commands:
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+      - go build -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [checks-backend]
 
 ---
@@ -224,7 +224,7 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -237,7 +237,7 @@ steps:
     commands:
       - make unit-test-coverage test-check
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
@@ -249,7 +249,7 @@ steps:
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -264,7 +264,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -278,7 +278,7 @@ steps:
     commands:
       - make test-mssql-migration test-mssql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
       RACE_ENABLED: true
       TEST_LDAP: 1
@@ -291,7 +291,7 @@ steps:
     commands:
       - make coverage
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata
     depends_on:
       - unit-test
@@ -305,7 +305,7 @@ steps:
 
   - name: coverage-codecov
     pull: always
-    image: plugins/codecov
+    image: woodpeckerci/plugin-codecov:next-alpine
     settings:
       files:
         - coverage.all
@@ -384,7 +384,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
@@ -398,7 +398,7 @@ steps:
     commands:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
-      GOPROXY: off
+      GOPROXY: https://goproxy.cn
       TAGS: bindata gogit
       RACE_ENABLED: true
       TEST_TAGS: gogit
@@ -567,7 +567,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -588,7 +588,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -641,6 +641,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on: [fetch-tags]
 
   - name: gpg-sign
     pull: always
@@ -656,6 +657,7 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
+    depends_on: [static]
 
   - name: release-tag
     pull: always
@@ -663,7 +665,7 @@ steps:
     settings:
       acl: public-read
       bucket: gitea-artifacts
-      endpoint: https://storage.gitea.io
+      endpoint: https://ams3.digitaloceanspaces.com
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
@@ -673,6 +675,7 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
+    depends_on: [gpg-sign]
 
   - name: github
     pull: always
@@ -683,6 +686,7 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
+    depends_on: [gpg-sign]
 
 ---
 kind: pipeline
@@ -760,7 +764,7 @@ steps:
       auto_tag_suffix: linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -778,7 +782,7 @@ steps:
       auto_tag_suffix: linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -822,7 +826,7 @@ steps:
       tags: dev-linux-amd64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -840,7 +844,68 @@ steps:
       tags: dev-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-linux-amd64-release-branch
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - "refs/heads/release/v*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -875,7 +940,7 @@ steps:
       repo: gitea/gitea
       tags: linux-arm64
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
     environment:
       PLUGIN_MIRROR:
         from_secret: plugin_mirror
@@ -917,7 +982,7 @@ steps:
       auto_tag_suffix: linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -935,7 +1000,7 @@ steps:
       auto_tag_suffix: linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -979,7 +1044,7 @@ steps:
       tags: dev-linux-arm64
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -997,7 +1062,7 @@ steps:
       tags: dev-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
-        - GOPROXY=off
+        - GOPROXY=https://goproxy.cn
       password:
         from_secret: docker_password
       username:
@@ -1006,6 +1071,68 @@ steps:
       event:
         exclude:
         - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-release-branch
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - "refs/heads/release/v*"
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: ${DRONE_BRANCH##release/v}-dev-linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=https://goproxy.cn
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 type: docker
@@ -1086,6 +1213,7 @@ steps:
 trigger:
   ref:
   - refs/heads/main
+  - "refs/heads/release/v*"
   event:
     exclude:
     - cron
@@ -1093,6 +1221,8 @@ trigger:
 depends_on:
   - docker-linux-amd64-release
   - docker-linux-arm64-release
+  - docker-linux-amd64-release-branch
+  - docker-linux-arm64-release-branch
 
 ---
 kind: pipeline
@@ -1126,6 +1256,8 @@ depends_on:
   - docker-linux-arm64-release
   - docker-linux-amd64-release-version
   - docker-linux-arm64-release-version
+  - docker-linux-amd64-release-branch
+  - docker-linux-arm64-release-branch
   - docker-manifest
   - docker-manifest-version
   - docs

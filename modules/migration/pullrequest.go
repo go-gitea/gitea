@@ -61,3 +61,9 @@ type PullRequestBranch struct {
 func (p PullRequestBranch) RepoPath() string {
 	return fmt.Sprintf("%s/%s", p.OwnerName, p.RepoName)
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (p *PullRequest) GetExternalName() string { return p.PosterName }
+
+// ExternalID ExternalUserMigrated interface
+func (p *PullRequest) GetExternalID() int64 { return p.PosterID }

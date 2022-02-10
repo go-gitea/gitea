@@ -23,8 +23,7 @@ func init() {
 }
 
 // GitBucketDownloaderFactory defines a GitBucket downloader factory
-type GitBucketDownloaderFactory struct {
-}
+type GitBucketDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {

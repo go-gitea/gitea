@@ -25,42 +25,44 @@ type webhook struct {
 	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error)
 }
 
-var (
-	webhooks = map[webhook_model.HookType]*webhook{
-		webhook_model.SLACK: {
-			name:           webhook_model.SLACK,
-			payloadCreator: GetSlackPayload,
-		},
-		webhook_model.DISCORD: {
-			name:           webhook_model.DISCORD,
-			payloadCreator: GetDiscordPayload,
-		},
-		webhook_model.DINGTALK: {
-			name:           webhook_model.DINGTALK,
-			payloadCreator: GetDingtalkPayload,
-		},
-		webhook_model.TELEGRAM: {
-			name:           webhook_model.TELEGRAM,
-			payloadCreator: GetTelegramPayload,
-		},
-		webhook_model.MSTEAMS: {
-			name:           webhook_model.MSTEAMS,
-			payloadCreator: GetMSTeamsPayload,
-		},
-		webhook_model.FEISHU: {
-			name:           webhook_model.FEISHU,
-			payloadCreator: GetFeishuPayload,
-		},
-		webhook_model.MATRIX: {
-			name:           webhook_model.MATRIX,
-			payloadCreator: GetMatrixPayload,
-		},
-		webhook_model.WECHATWORK: {
-			name:           webhook_model.WECHATWORK,
-			payloadCreator: GetWechatworkPayload,
-		},
-	}
-)
+var webhooks = map[webhook_model.HookType]*webhook{
+	webhook_model.SLACK: {
+		name:           webhook_model.SLACK,
+		payloadCreator: GetSlackPayload,
+	},
+	webhook_model.DISCORD: {
+		name:           webhook_model.DISCORD,
+		payloadCreator: GetDiscordPayload,
+	},
+	webhook_model.DINGTALK: {
+		name:           webhook_model.DINGTALK,
+		payloadCreator: GetDingtalkPayload,
+	},
+	webhook_model.TELEGRAM: {
+		name:           webhook_model.TELEGRAM,
+		payloadCreator: GetTelegramPayload,
+	},
+	webhook_model.MSTEAMS: {
+		name:           webhook_model.MSTEAMS,
+		payloadCreator: GetMSTeamsPayload,
+	},
+	webhook_model.FEISHU: {
+		name:           webhook_model.FEISHU,
+		payloadCreator: GetFeishuPayload,
+	},
+	webhook_model.MATRIX: {
+		name:           webhook_model.MATRIX,
+		payloadCreator: GetMatrixPayload,
+	},
+	webhook_model.WECHATWORK: {
+		name:           webhook_model.WECHATWORK,
+		payloadCreator: GetWechatworkPayload,
+	},
+	webhook_model.PACKAGIST: {
+		name:           webhook_model.PACKAGIST,
+		payloadCreator: GetPackagistPayload,
+	},
+}
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {

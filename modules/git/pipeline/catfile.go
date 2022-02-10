@@ -7,6 +7,7 @@ package pipeline
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -18,27 +19,27 @@ import (
 )
 
 // CatFileBatchCheck runs cat-file with --batch-check
-func CatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
 	defer wg.Done()
 	defer shasToCheckReader.Close()
 	defer catFileCheckWriter.Close()
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand("cat-file", "--batch-check")
+	cmd := git.NewCommand(ctx, "cat-file", "--batch-check")
 	if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
 		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}
 }
 
 // CatFileBatchCheckAllObjects runs cat-file with --batch-check --batch-all
-func CatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
+func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
 	defer wg.Done()
 	defer catFileCheckWriter.Close()
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	cmd := git.NewCommand("cat-file", "--batch-check", "--batch-all-objects")
+	cmd := git.NewCommand(ctx, "cat-file", "--batch-check", "--batch-all-objects")
 	if err := cmd.RunInDirPipeline(tmpBasePath, catFileCheckWriter, stderr); err != nil {
 		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
@@ -48,14 +49,14 @@ func CatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.Wai
 }
 
 // CatFileBatch runs cat-file --batch
-func CatFileBatch(shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
 	defer wg.Done()
 	defer shasToBatchReader.Close()
 	defer catFileBatchWriter.Close()
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
+	if err := git.NewCommand(ctx, "cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
 		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}
 }

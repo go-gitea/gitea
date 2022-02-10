@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -503,7 +504,7 @@ index 6961180..9ba1a00 100644
 	// Test max lines
 	diffBuilder := &strings.Builder{}
 
-	var diff = `diff --git a/newfile2 b/newfile2
+	diff := `diff --git a/newfile2 b/newfile2
 new file mode 100644
 index 0000000..6bb8f39
 --- /dev/null
@@ -593,7 +594,7 @@ index 0000000..6bb8f39
 	}
 	println(result)
 
-	var diff2 = `diff --git "a/A \\ B" "b/A \\ B"
+	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
 +++ "b/A \\ B"
 @@ -1,3 +1,6 @@
@@ -610,7 +611,7 @@ index 0000000..6bb8f39
 	}
 	println(result)
 
-	var diff2a = `diff --git "a/A \\ B" b/A/B
+	diff2a := `diff --git "a/A \\ B" b/A/B
 --- "a/A \\ B"
 +++ b/A/B
 @@ -1,3 +1,6 @@
@@ -627,7 +628,7 @@ index 0000000..6bb8f39
 	}
 	println(result)
 
-	var diff3 = `diff --git a/README.md b/README.md
+	diff3 := `diff --git a/README.md b/README.md
 --- a/README.md
 +++ b/README.md
 @@ -1,3 +1,6 @@
@@ -664,13 +665,14 @@ func setupDefaultDiff() *Diff {
 		},
 	}
 }
+
 func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(issue, user))
+	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 
@@ -715,7 +717,8 @@ func TestDiffToHTML_14231(t *testing.T) {
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "", "		run()\n"), highlight.Code("main.v", "", "		run(db)\n"), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>`
+	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>
+</span></span>`
 	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
 
 	assertEqual(t, expected, output.Content)

@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -18,7 +19,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
+func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -84,7 +85,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		},
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 		return nil
@@ -110,7 +111,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 	}
 
 	if pr.Flow == models.PullRequestFlowAGit {
-		gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
 			return nil
@@ -137,7 +138,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, p.AccessMode)
 
-		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+		headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -173,7 +174,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		baseGitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 			return nil

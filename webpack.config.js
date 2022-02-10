@@ -213,6 +213,7 @@ export default {
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC)',
       ignore: [
         'font-awesome',
       ],

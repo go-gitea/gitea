@@ -68,7 +68,7 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine *= -1
 	}
 
-	comment, err := pull_service.CreateCodeComment(
+	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.User,
 		ctx.Repo.GitRepo,
 		issue,
@@ -152,7 +152,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *models.Comment) {
-	comments, err := models.FetchCodeCommentsByLine(comment.Issue, ctx.User, comment.TreePath, comment.Line)
+	comments, err := models.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.User, comment.TreePath, comment.Line)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -217,7 +217,7 @@ func SubmitReview(ctx *context.Context) {
 		attachments = form.Files
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
+	_, comm, err := pull_service.SubmitReview(ctx, ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
@@ -234,7 +234,7 @@ func SubmitReview(ctx *context.Context) {
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
-	comm, err := pull_service.DismissReview(form.ReviewID, form.Message, ctx.User, true)
+	comm, err := pull_service.DismissReview(ctx, form.ReviewID, form.Message, ctx.User, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return

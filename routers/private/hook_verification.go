@@ -44,7 +44,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	}()
 
 	// This is safe as force pushes are already forbidden
-	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
+	err = git.NewCommand(repo.Ctx, "rev-list", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {
@@ -88,7 +88,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	}()
 	hash := git.MustIDFromString(sha)
 
-	return git.NewCommand("cat-file", "commit", sha).
+	return git.NewCommand(repo.Ctx, "cat-file", "commit", sha).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
 			func(ctx context.Context, cancel context.CancelFunc) error {

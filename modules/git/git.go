@@ -35,9 +35,6 @@ var (
 
 	gitVersion *version.Version
 
-	// will be checked on Init
-	goVersionLessThan115 = true
-
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
 )
@@ -57,7 +54,7 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, err := NewCommand("version").Run()
+	stdout, err := NewCommand(context.Background(), "version").Run()
 	if err != nil {
 		return err
 	}
@@ -112,8 +109,8 @@ func SetExecutablePath(path string) error {
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	var format = "Git Version: %s"
-	var args = []interface{}{gitVersion.Original()}
+	format := "Git Version: %s"
+	args := []interface{}{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -134,35 +131,27 @@ func Init(ctx context.Context) error {
 	}
 
 	// force cleanup args
-	GlobalCommandArgs = []string{}
+	globalCommandArgs = []string{}
 
 	if CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "credential.helper=")
+		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "protocol.version=2")
+		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
 	}
 
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "uploadpack.allowfilter=true")
+		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true")
 	}
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
 	if err := LoadGitVersion(); err != nil {
 		return err
 	}
-
-	// Save if the go version used to compile gitea is greater or equal 1.15
-	runtimeVersion, err := version.NewVersion(strings.TrimPrefix(runtime.Version(), "go"))
-	if err != nil {
-		return err
-	}
-	version115, _ := version.NewVersion("1.15")
-	goVersionLessThan115 = runtimeVersion.LessThan(version115)
 
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
@@ -213,7 +202,7 @@ func Init(ctx context.Context) error {
 		if err := checkAndSetConfig("core.protectntfs", "false", true); err != nil {
 			return err
 		}
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "core.protectntfs=false")
+		globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
 	}
 	return nil
 }
@@ -310,6 +299,6 @@ func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...s
 	if timeout <= 0 {
 		timeout = -1
 	}
-	_, err := NewCommandContext(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	_, err := NewCommand(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }

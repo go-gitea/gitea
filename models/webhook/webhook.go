@@ -162,6 +162,7 @@ const (
 	FEISHU     HookType = "feishu"
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"
+	PACKAGIST  HookType = "packagist"
 )
 
 // HookStatus is the status of a web hook

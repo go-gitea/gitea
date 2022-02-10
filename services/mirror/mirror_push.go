@@ -26,15 +26,15 @@ import (
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
-func AddPushMirrorRemote(m *repo_model.PushMirror, addr string) error {
+func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		if _, err := git.NewCommand("remote", "add", "--mirror=push", m.RemoteName, addr).RunInDir(path); err != nil {
+		if _, err := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr).RunInDir(path); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand("config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
+		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand("config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
+		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
 			return err
 		}
 		return nil
@@ -45,7 +45,7 @@ func AddPushMirrorRemote(m *repo_model.PushMirror, addr string) error {
 	}
 
 	if m.Repo.HasWiki() {
-		wikiRemoteURL := repository.WikiRemoteURL(addr)
+		wikiRemoteURL := repository.WikiRemoteURL(ctx, addr)
 		if len(wikiRemoteURL) > 0 {
 			if err := addRemoteAndConfig(wikiRemoteURL, m.Repo.WikiPath()); err != nil {
 				return err
@@ -57,8 +57,8 @@ func AddPushMirrorRemote(m *repo_model.PushMirror, addr string) error {
 }
 
 // RemovePushMirrorRemote removes the push mirror remote.
-func RemovePushMirrorRemote(m *repo_model.PushMirror) error {
-	cmd := git.NewCommand("remote", "rm", m.RemoteName)
+func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
+	cmd := git.NewCommand(ctx, "remote", "rm", m.RemoteName)
 
 	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
 		return err

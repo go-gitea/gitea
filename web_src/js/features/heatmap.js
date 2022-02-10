@@ -1,5 +1,4 @@
 import Vue from 'vue';
-
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 
 export default function initHeatmap() {

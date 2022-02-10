@@ -9,8 +9,10 @@ import (
 	"strings"
 )
 
-const userPlaceholder = "sanitized-credential"
-const unparsableURL = "(unparsable url)"
+const (
+	userPlaceholder = "sanitized-credential"
+	unparsableURL   = "(unparsable url)"
+)
 
 type sanitizedError struct {
 	err      error

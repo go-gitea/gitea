@@ -6,13 +6,13 @@ package auth
 
 import (
 	"crypto/sha256"
+	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -57,12 +57,22 @@ func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
+// Base32 characters, but lowercased.
+const lowerBase32Chars = "abcdefghijklmnopqrstuvwxyz234567"
+
+// base32 encoder that uses lowered characters without padding.
+var base32Lower = base32.NewEncoding(lowerBase32Chars).WithPadding(base32.NoPadding)
+
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
 func (app *OAuth2Application) GenerateClientSecret() (string, error) {
-	clientSecret, err := secret.New()
+	rBytes, err := util.CryptoRandomBytes(32)
 	if err != nil {
 		return "", err
 	}
+	// Add a prefix to the base32, this is in order to make it easier
+	// for code scanners to grab sensitive tokens.
+	clientSecret := "gto_" + base32Lower.EncodeToString(rBytes)
+
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(clientSecret), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -394,10 +404,14 @@ func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChalleng
 }
 
 func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
-	var codeSecret string
-	if codeSecret, err = secret.New(); err != nil {
+	rBytes, err := util.CryptoRandomBytes(32)
+	if err != nil {
 		return &OAuth2AuthorizationCode{}, err
 	}
+	// Add a prefix to the base32, this is in order to make it easier
+	// for code scanners to grab sensitive tokens.
+	codeSecret := "gta_" + base32Lower.EncodeToString(rBytes)
+
 	code = &OAuth2AuthorizationCode{
 		Grant:               grant,
 		GrantID:             grant.ID,

@@ -164,7 +164,6 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				if err == nil && len(source.AttributeAvatar) > 0 {
 					_ = user_service.UploadAvatar(usr, su.Avatar)
 				}
-
 			}
 		}
 	}

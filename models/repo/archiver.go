@@ -90,7 +90,7 @@ type FindRepoArchiversOption struct {
 }
 
 func (opts FindRepoArchiversOption) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.OlderThan > 0 {
 		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-opts.OlderThan).Unix()})
 	}
@@ -99,7 +99,7 @@ func (opts FindRepoArchiversOption) toConds() builder.Cond {
 
 // FindRepoArchives find repo archivers
 func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
-	var archivers = make([]*RepoArchiver, 0, opts.PageSize)
+	archivers := make([]*RepoArchiver, 0, opts.PageSize)
 	start, limit := opts.GetSkipTake()
 	err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).
 		Asc("created_unix").

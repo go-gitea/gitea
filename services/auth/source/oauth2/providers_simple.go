@@ -70,13 +70,13 @@ func init() {
 		}))
 
 	// named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
-	RegisterGothProvider(NewSimpleProvider("gplus", "Google", []string{"email"},
+	RegisterGothProvider(NewImagedProvider("/assets/img/auth/google.png", NewSimpleProvider("gplus", "Google", []string{"email"},
 		func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
 			if setting.OAuth2Client.UpdateAvatar || setting.OAuth2Client.EnableAutoRegistration {
 				scopes = append(scopes, "profile")
 			}
 			return google.New(clientKey, secret, callbackURL, scopes...)
-		}))
+		})))
 
 	RegisterGothProvider(NewSimpleProvider("twitter", "Twitter", nil,
 		func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
@@ -107,5 +107,4 @@ func init() {
 			return microsoftonline.New(clientID, secret, callbackURL, scopes...)
 		},
 	))
-
 }

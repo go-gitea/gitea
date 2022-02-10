@@ -5,6 +5,7 @@
 package code
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -27,8 +28,8 @@ type repoChanges struct {
 	RemovedFilenames []string
 }
 
-func getDefaultBranchSha(repo *repo_model.Repository) (string, error) {
-	stdout, err := git.NewCommand("show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
+func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
+	stdout, err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
 	if err != nil {
 		return "", err
 	}
@@ -36,16 +37,16 @@ func getDefaultBranchSha(repo *repo_model.Repository) (string, error) {
 }
 
 // getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(repo *repo_model.Repository, revision string) (*repoChanges, error) {
+func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeCode)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(status.CommitSha) == 0 {
-		return genesisChanges(repo, revision)
+		return genesisChanges(ctx, repo, revision)
 	}
-	return nonGenesisChanges(repo, revision)
+	return nonGenesisChanges(ctx, repo, revision)
 }
 
 func isIndexable(entry *git.TreeEntry) bool {
@@ -72,7 +73,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 	if err != nil {
 		return nil, err
 	}
-	var idxCount = 0
+	idxCount := 0
 	updates := make([]fileUpdate, len(entries))
 	for _, entry := range entries {
 		if isIndexable(entry) {
@@ -89,9 +90,9 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(repo *repo_model.Repository, revision string) (*repoChanges, error) {
+func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
-	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-l", "-r", revision).
+	stdout, err := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r", revision).
 		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -101,8 +102,8 @@ func genesisChanges(repo *repo_model.Repository, revision string) (*repoChanges,
 }
 
 // nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(repo *repo_model.Repository, revision string) (*repoChanges, error) {
-	diffCmd := git.NewCommand("diff", "--name-status",
+func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
+	diffCmd := git.NewCommand(ctx, "diff", "--name-status",
 		repo.CodeIndexerStatus.CommitSha, revision)
 	stdout, err := diffCmd.RunInDir(repo.RepoPath())
 	if err != nil {
@@ -112,7 +113,7 @@ func nonGenesisChanges(repo *repo_model.Repository, revision string) (*repoChang
 		if err = indexer.Delete(repo.ID); err != nil {
 			return nil, err
 		}
-		return genesisChanges(repo, revision)
+		return genesisChanges(ctx, repo, revision)
 	}
 	var changes repoChanges
 	updatedFilenames := make([]string, 0, 10)
@@ -166,7 +167,7 @@ func nonGenesisChanges(repo *repo_model.Repository, revision string) (*repoChang
 		}
 	}
 
-	cmd := git.NewCommand("ls-tree", "--full-tree", "-l", revision, "--")
+	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", revision, "--")
 	cmd.AddArguments(updatedFilenames...)
 	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
 	if err != nil {

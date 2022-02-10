@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -38,7 +39,7 @@ func iterateRepositories(each func(*repo_model.Repository) error) error {
 	return err
 }
 
-func checkScriptType(logger log.Logger, autofix bool) error {
+func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
@@ -48,7 +49,7 @@ func checkScriptType(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkHooks(logger log.Logger, autofix bool) error {
+func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
@@ -73,7 +74,7 @@ func checkHooks(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkUserStarNum(logger log.Logger, autofix bool) error {
+func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := models.DoctorUserStarNum(); err != nil {
 		logger.Critical("Unable update User Stars numbers")
 		return err
@@ -81,24 +82,24 @@ func checkUserStarNum(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkEnablePushOptions(logger log.Logger, autofix bool) error {
+func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
 
 	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepository(repo.RepoPath())
+		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
 		if autofix {
-			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			_, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
 			return err
 		}
 
-		value, err := git.NewCommand("config", "receive.advertisePushOptions").RunInDir(r.Path)
+		value, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunInDir(r.Path)
 		if err != nil {
 			return err
 		}
@@ -118,13 +119,12 @@ func checkEnablePushOptions(logger log.Logger, autofix bool) error {
 		logger.Info("Enabled push options for %d repositories.", numRepos)
 	} else {
 		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
-
 	}
 
 	return nil
 }
 
-func checkDaemonExport(logger log.Logger, autofix bool) error {
+func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
 	cache, err := lru.New(512)

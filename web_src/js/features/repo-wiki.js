@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {initMarkupContent} from '../markup/content.js';
 import {attachEasyMDEToElements, importEasyMDE, validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';

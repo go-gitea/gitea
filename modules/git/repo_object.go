@@ -42,11 +42,10 @@ func (repo *Repository) HashObject(reader io.Reader) (SHA1, error) {
 }
 
 func (repo *Repository) hashObject(reader io.Reader) (string, error) {
-	cmd := NewCommandContext(repo.Ctx, "hash-object", "-w", "--stdin")
+	cmd := NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	err := cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, reader)
-
 	if err != nil {
 		return "", err
 	}

@@ -28,21 +28,27 @@ func (c BasicIssueContext) ForeignID() int64 {
 
 // Issue is a standard issue information
 type Issue struct {
-	Number      int64
-	PosterID    int64  `yaml:"poster_id"`
-	PosterName  string `yaml:"poster_name"`
-	PosterEmail string `yaml:"poster_email"`
-	Title       string
-	Content     string
-	Ref         string
-	Milestone   string
-	State       string // closed, open
-	IsLocked    bool   `yaml:"is_locked"`
-	Created     time.Time
-	Updated     time.Time
-	Closed      *time.Time
-	Labels      []*Label
-	Reactions   []*Reaction
-	Assignees   []string
+	Number      int64        `json:"number"`
+	PosterID    int64        `yaml:"poster_id" json:"poster_id"`
+	PosterName  string       `yaml:"poster_name" json:"poster_name"`
+	PosterEmail string       `yaml:"poster_email" json:"poster_email"`
+	Title       string       `json:"title"`
+	Content     string       `json:"content"`
+	Ref         string       `json:"ref"`
+	Milestone   string       `json:"milestone"`
+	State       string       `json:"state"` // closed, open
+	IsLocked    bool         `yaml:"is_locked" json:"is_locked"`
+	Created     time.Time    `json:"created"`
+	Updated     time.Time    `json:"updated"`
+	Closed      *time.Time   `json:"closed"`
+	Labels      []*Label     `json:"labels"`
+	Reactions   []*Reaction  `json:"reactions"`
+	Assignees   []string     `json:"assignees"`
 	Context     IssueContext `yaml:"-"`
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (i *Issue) GetExternalName() string { return i.PosterName }
+
+// GetExternalID ExternalUserMigrated interface
+func (i *Issue) GetExternalID() int64 { return i.PosterID }

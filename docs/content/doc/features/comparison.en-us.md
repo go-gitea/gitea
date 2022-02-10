@@ -51,7 +51,7 @@ _Symbols used in table:_
 | Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Built-in Package Registry           | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| FIDO U2F (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✘            |
+| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
 | Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Subgroups: groups within groups     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
 
@@ -67,6 +67,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki etc) | ✓                                                | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | Verified Committer                           | ⁄                                                | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
 | GPG Signed Commits                           | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SSH Signed Commits                           | ✓                                                | ✘    | ✘         | ✘         | ✘         | ?         | ?            |
 | Reject unsigned commits                      | [✓](https://github.com/go-gitea/gitea/pull/9708) | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Activity page                     | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Branch manager                               | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |

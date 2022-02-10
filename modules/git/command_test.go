@@ -14,11 +14,10 @@ import (
 )
 
 func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
-
 	maxLoops := 1000
 
 	// 'git --version' does not block so it must be finished before the timeout triggered.
-	cmd := NewCommand("--version")
+	cmd := NewCommand(context.Background(), "--version")
 	for i := 0; i < maxLoops; i++ {
 		if err := cmd.RunInDirTimeoutPipeline(-1, "", nil, nil); err != nil {
 			t.Fatal(err)
@@ -27,11 +26,10 @@ func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
 }
 
 func TestRunInDirTimeoutPipelineAlwaysTimeout(t *testing.T) {
-
 	maxLoops := 1000
 
 	// 'git hash-object --stdin' blocks on stdin so we can have the timeout triggered.
-	cmd := NewCommand("hash-object", "--stdin")
+	cmd := NewCommand(context.Background(), "hash-object", "--stdin")
 	for i := 0; i < maxLoops; i++ {
 		if err := cmd.RunInDirTimeoutPipeline(1*time.Microsecond, "", nil, nil); err != nil {
 			if err != context.DeadlineExceeded {

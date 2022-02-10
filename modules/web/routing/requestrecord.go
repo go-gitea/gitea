@@ -1,0 +1,29 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package routing
+
+import (
+	"net/http"
+	"sync"
+	"time"
+)
+
+type requestRecord struct {
+	// index of the record in the records map
+	index uint64
+
+	// immutable fields
+	startTime      time.Time
+	request        *http.Request
+	responseWriter http.ResponseWriter
+
+	// mutex
+	lock sync.RWMutex
+
+	// mutable fields
+	isLongPolling bool
+	funcInfo      *FuncInfo
+	panicError    interface{}
+}

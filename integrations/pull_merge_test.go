@@ -65,7 +65,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -87,7 +87,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -109,7 +109,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -131,7 +131,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -241,11 +241,11 @@ func TestCantMergeConflict(t *testing.T) {
 		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
+		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT")
+		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 		gitRepo.Close()
@@ -269,19 +269,19 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*repo_model.Repository)
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand("read-tree", "--empty").RunInDir(path)
+		_, err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunInDir(path)
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand("hash-object", "-w", "--stdin").RunInDirFullPipeline(path, &stdout, nil, stdin)
+		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunInDirFullPipeline(path, &stdout, nil, stdin)
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand("update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
+		_, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
 		assert.NoError(t, err)
 
-		treeSha, err := git.NewCommand("write-tree").RunInDir(path)
+		treeSha, err := git.NewCommand(git.DefaultContext, "write-tree").RunInDir(path)
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -301,11 +301,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = git.NewCommand("commit-tree", treeSha).RunInDirTimeoutEnvFullPipeline(env, -1, path, &stdout, nil, messageBytes)
+		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).RunInDirTimeoutEnvFullPipeline(env, -1, path, &stdout, nil, messageBytes)
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand("branch", "unrelated", commitSha).RunInDir(path)
+		_, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunInDir(path)
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -329,7 +329,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		err = pull.Merge(pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
+		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()

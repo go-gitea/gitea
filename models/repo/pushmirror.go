@@ -15,10 +15,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var (
-	// ErrPushMirrorNotExist mirror does not exist error
-	ErrPushMirrorNotExist = errors.New("PushMirror does not exist")
-)
+// ErrPushMirrorNotExist mirror does not exist error
+var ErrPushMirrorNotExist = errors.New("PushMirror does not exist")
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {

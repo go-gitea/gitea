@@ -5,76 +5,86 @@
 package migrations
 
 import (
+	"crypto/elliptic"
+	"encoding/base64"
+	"strings"
+
 	"code.gitea.io/gitea/modules/timeutil"
 
+	"github.com/tstranex/u2f"
 	"xorm.io/xorm"
 )
 
-func addPackageTables(x *xorm.Engine) error {
-	type Package struct {
-		ID               int64  `xorm:"pk autoincr"`
-		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		RepoID           int64  `xorm:"INDEX"`
-		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name             string
-		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		SemverCompatible bool
+func addWebAuthnCred(x *xorm.Engine) error {
+	// Create webauthnCredential table
+	type webauthnCredential struct {
+		ID              int64 `xorm:"pk autoincr"`
+		Name            string
+		LowerName       string `xorm:"unique(s)"`
+		UserID          int64  `xorm:"INDEX unique(s)"`
+		CredentialID    string `xorm:"INDEX"`
+		PublicKey       []byte
+		AttestationType string
+		AAGUID          []byte
+		SignCount       uint32 `xorm:"BIGINT"`
+		CloneWarning    bool
+		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-
-	if err := x.Sync2(new(Package)); err != nil {
+	if err := x.Sync2(&webauthnCredential{}); err != nil {
 		return err
 	}
 
-	type PackageVersion struct {
-		ID            int64 `xorm:"pk autoincr"`
-		PackageID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID     int64
-		Version       string
-		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CompositeKey  string             `xorm:"UNIQUE(s) INDEX"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
-		MetadataJSON  string             `xorm:"TEXT metadata_json"`
-		DownloadCount int64
+	// Now migrate the old u2f registrations to the new format
+	type u2fRegistration struct {
+		ID          int64 `xorm:"pk autoincr"`
+		Name        string
+		UserID      int64 `xorm:"INDEX"`
+		Raw         []byte
+		Counter     uint32             `xorm:"BIGINT"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	if err := x.Sync2(new(PackageVersion)); err != nil {
-		return err
+	var start int
+	regs := make([]*u2fRegistration, 0, 50)
+	for {
+		err := x.OrderBy("id").Limit(50, start).Find(&regs)
+		if err != nil {
+			return err
+		}
+
+		for _, reg := range regs {
+			parsed := new(u2f.Registration)
+			err = parsed.UnmarshalBinary(reg.Raw)
+			if err != nil {
+				continue
+			}
+
+			c := &webauthnCredential{
+				ID:              reg.ID,
+				Name:            reg.Name,
+				LowerName:       strings.ToLower(reg.Name),
+				UserID:          reg.UserID,
+				CredentialID:    base64.RawStdEncoding.EncodeToString(parsed.KeyHandle),
+				PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
+				AttestationType: "fido-u2f",
+				AAGUID:          []byte{},
+				SignCount:       reg.Counter,
+			}
+
+			_, err := x.Insert(c)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(regs) < 50 {
+			break
+		}
+		start += 50
+		regs = regs[:0]
 	}
 
-	type PackageProperty struct {
-		ID      int64  `xorm:"pk autoincr"`
-		RefType int64  `xorm:"INDEX NOT NULL"`
-		RefID   int64  `xorm:"INDEX NOT NULL"`
-		Name    string `xorm:"INDEX NOT NULL"`
-		Value   string `xorm:"INDEX NOT NULL"`
-	}
-
-	if err := x.Sync2(new(PackageProperty)); err != nil {
-		return err
-	}
-
-	type PackageFile struct {
-		ID           int64 `xorm:"pk autoincr"`
-		VersionID    int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		BlobID       int64 `xorm:"INDEX NOT NULL"`
-		Name         string
-		LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CompositeKey string `xorm:"UNIQUE(s) INDEX"`
-		IsLead       bool
-	}
-
-	if err := x.Sync2(new(PackageFile)); err != nil {
-		return err
-	}
-
-	type PackageBlob struct {
-		ID         int64 `xorm:"pk autoincr"`
-		Size       int64
-		HashMD5    string `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
-		HashSHA1   string `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
-		HashSHA256 string `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
-		HashSHA512 string `xorm:"hash_sha512 char(128) UNIQUE(sha512) INDEX NOT NULL"`
-	}
-
-	return x.Sync2(new(PackageBlob))
+	return nil
 }

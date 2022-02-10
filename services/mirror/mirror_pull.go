@@ -30,30 +30,30 @@ import (
 const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(m *repo_model.Mirror, addr string) error {
+func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
 	// Remove old remote
-	_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(repoPath)
+	_, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
-	_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
-		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(wikiPath)
+		_, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
 
-		_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -150,8 +150,8 @@ func pruneBrokenReferences(ctx context.Context,
 	timeout time.Duration,
 	stdoutBuilder, stderrBuilder *strings.Builder,
 	sanitizer *strings.Replacer,
-	isWiki bool) error {
-
+	isWiki bool,
+) error {
 	wiki := ""
 	if isWiki {
 		wiki = "Wiki "
@@ -159,7 +159,7 @@ func pruneBrokenReferences(ctx context.Context,
 
 	stderrBuilder.Reset()
 	stdoutBuilder.Reset()
-	pruneErr := git.NewCommandContext(ctx, "remote", "prune", m.GetRemoteName()).
+	pruneErr := git.NewCommand(ctx, "remote", "prune", m.GetRemoteName()).
 		SetDescription(fmt.Sprintf("Mirror.runSync %ssPrune references: %s ", wiki, m.Repo.FullName())).
 		RunInDirTimeoutPipeline(timeout, repoPath, stdoutBuilder, stderrBuilder)
 	if pruneErr != nil {
@@ -201,7 +201,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := git.NewCommandContext(ctx, gitArgs...).
+	if err := git.NewCommand(ctx, gitArgs...).
 		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
 		stdout := stdoutBuilder.String()
@@ -224,7 +224,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				// Successful prune - reattempt mirror
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
-				if err = git.NewCommandContext(ctx, gitArgs...).
+				if err = git.NewCommand(ctx, gitArgs...).
 					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 					RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
 					stdout := stdoutBuilder.String()
@@ -250,7 +250,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	output := stderrBuilder.String()
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
@@ -280,7 +280,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommandContext(ctx, "remote", "update", "--prune", m.GetRemoteName()).
+		if err := git.NewCommand(ctx, "remote", "update", "--prune", m.GetRemoteName()).
 			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
@@ -312,7 +312,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					stderrBuilder.Reset()
 					stdoutBuilder.Reset()
 
-					if err = git.NewCommandContext(ctx, "remote", "update", "--prune", m.GetRemoteName()).
+					if err = git.NewCommand(ctx, "remote", "update", "--prune", m.GetRemoteName()).
 						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 						RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
 						stdout := stdoutBuilder.String()
@@ -337,7 +337,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := git.GetBranchesByPath(m.Repo.RepoPath(), 0, 0)
+	branches, _, err := git.GetBranchesByPath(ctx, m.Repo.RepoPath(), 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -427,7 +427,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				OldCommitID: git.EmptySHA,
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
-			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
+			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName, commitID)
 			continue
 		}
 
@@ -438,12 +438,12 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
+		oldCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.oldCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
+		newCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.newCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
@@ -470,7 +470,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
 	// Get latest commit date and update to current repository updated time
-	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+	commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
 	if err != nil {
 		log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
 		return false

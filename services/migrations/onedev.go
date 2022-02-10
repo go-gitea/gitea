@@ -29,8 +29,7 @@ func init() {
 }
 
 // OneDevDownloaderFactory defines a downloader factory
-type OneDevDownloaderFactory struct {
-}
+type OneDevDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -90,7 +89,7 @@ func (d *OneDevDownloader) SetContext(ctx context.Context) {
 
 // NewOneDevDownloader creates a new downloader
 func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoName string) *OneDevDownloader {
-	var downloader = &OneDevDownloader{
+	downloader := &OneDevDownloader{
 		ctx:      ctx,
 		baseURL:  baseURL,
 		repoName: repoName,
@@ -195,7 +194,7 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 	endpoint := fmt.Sprintf("/api/projects/%d/milestones", d.repoID)
 
-	var milestones = make([]*base.Milestone, 0, 100)
+	milestones := make([]*base.Milestone, 0, 100)
 	offset := 0
 	for {
 		err := d.callAPI(
@@ -583,7 +582,7 @@ func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 		return nil, err
 	}
 
-	var reviews = make([]*base.Review, 0, len(rawReviews))
+	reviews := make([]*base.Review, 0, len(rawReviews))
 	for _, review := range rawReviews {
 		state := base.ReviewStatePending
 		content := ""

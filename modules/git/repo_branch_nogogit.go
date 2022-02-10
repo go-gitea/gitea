@@ -96,7 +96,7 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 		if arg != "" {
 			args = append(args, arg)
 		}
-		err := NewCommandContext(ctx, args...).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		err := NewCommand(ctx, args...).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
 				_ = stdoutWriter.Close()
