@@ -67,7 +67,13 @@ func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFile
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	if err := git.NewCommand(ctx, "cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
+	if err := git.NewCommand(ctx, "cat-file", "--batch").RunWithContext(&git.RunContext{
+		Timeout: -1,
+		Dir:     tmpBasePath,
+		Stdout:  catFileBatchWriter,
+		Stdin:   shasToBatchReader,
+		Stderr:  stderr,
+	}); err != nil {
 		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}
 }

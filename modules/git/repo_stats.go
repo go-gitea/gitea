@@ -67,12 +67,15 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(repo.Ctx, args...).RunInDirTimeoutEnvFullPipelineFunc(
-		nil, -1, repo.Path,
-		stdoutWriter, stderr, nil,
-		func(ctx context.Context, cancel context.CancelFunc) error {
+	err = NewCommand(repo.Ctx, args...).RunWithContext(&RunContext{
+		Env:     []string{},
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  stdoutWriter,
+		Stderr:  stderr,
+		Stdin:   nil,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
-
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
@@ -95,22 +98,18 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					continue
 				}
 				switch p {
-				case 1: // Separator
-				case 2: // Commit sha-1
+				case 1:
+				case 2:
 					stats.CommitCount++
-				case 3: // Author
+				case 3:
 					author = l
-				case 4: // E-mail
+				case 4:
 					email := strings.ToLower(l)
 					if _, ok := authors[email]; !ok {
-						authors[email] = &CodeActivityAuthor{
-							Name:    author,
-							Email:   email,
-							Commits: 0,
-						}
+						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
 					}
 					authors[email].Commits++
-				default: // Changed file
+				default:
 					if parts := strings.Fields(l); len(parts) >= 3 {
 						if parts[0] != "-" {
 							if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
@@ -128,23 +127,20 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					}
 				}
 			}
-
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
 				a = append(a, v)
 			}
-			// Sort authors descending depending on commit count
 			sort.Slice(a, func(i, j int) bool {
 				return a[i].Commits > a[j].Commits
 			})
-
 			stats.AuthorCount = int64(len(authors))
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
-
 			_ = stdoutReader.Close()
 			return nil
-		})
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
