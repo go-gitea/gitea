@@ -84,7 +84,7 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	if issue.ForeignReference != nil {
-		issue.ForeignReference.LocalID = issue.ID
+		issue.ForeignReference.LocalID = issue.Index
 		if _, err := sess.Insert(issue.ForeignReference); err != nil {
 			return err
 		}

@@ -277,7 +277,7 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 		return nil
 	}
 	reference := &ForeignReference{
-		LocalID: issue.ID,
+		LocalID: issue.Index,
 		RepoID:  issue.RepoID,
 		Type:    "issue",
 	}
@@ -285,7 +285,7 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrForeignIDNotExist{issue.RepoID, issue.ID, "issue"}
+		return ErrForeignIDNotExist{issue.RepoID, issue.Index, "issue"}
 	}
 	issue.ForeignReference = reference
 	return nil

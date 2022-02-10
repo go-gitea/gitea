@@ -550,7 +550,7 @@ func TestIssueForeignReference(t *testing.T) {
 	assert.True(t, IsErrLocalIDNotExist(err))
 
 	_, err = db.GetEngine(db.DefaultContext).Insert(&ForeignReference{
-		LocalID:   issue.ID,
+		LocalID:   issue.Index,
 		ForeignID: strconv.FormatInt(foreignID, 10),
 		RepoID:    issue.RepoID,
 		Type:      "issue",
@@ -564,5 +564,5 @@ func TestIssueForeignReference(t *testing.T) {
 
 	found, err := GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
 	assert.NoError(t, err)
-	assert.EqualValues(t, found.ID, issue.ID)
+	assert.EqualValues(t, found.Index, issue.Index)
 }
