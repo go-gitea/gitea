@@ -48,9 +48,6 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
 
   - name: lint-backend-windows
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -63,9 +60,6 @@ steps:
       GOOS: windows
       GOARCH: amd64
     depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
 
   - name: lint-backend-gogit
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -76,9 +70,6 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
-    volumes:
-      - name: deps
-        path: /go
 
   - name: checks-frontend
     image: node:16
