@@ -1022,8 +1022,13 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 
-	sec = Cfg.Section("U2F")
-	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	U2F.AppID = strings.TrimSuffix(AppURL, "/")
+	if Cfg.Section("U2F").HasKey("APP_ID") {
+		U2F.AppID = Cfg.Section("U2F").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	} else if Cfg.Section("u2f").HasKey("APP_ID") {
+		U2F.AppID = Cfg.Section("u2f").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	}
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
@@ -1162,7 +1167,6 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 			},
 		},
 	})
-
 	if err != nil {
 		log.Error("unable to marshal manifest JSON. Error: %v", err)
 		return make([]byte, 0)
