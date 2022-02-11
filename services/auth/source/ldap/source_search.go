@@ -382,7 +382,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	// Check group membership
-	if ls.GroupsEnabled {
+	if ls.GroupsEnabled && ls.GroupFilter != "" {
 		groupFilter, ok := ls.sanitizedGroupFilter(ls.GroupFilter)
 		if !ok {
 			return nil
