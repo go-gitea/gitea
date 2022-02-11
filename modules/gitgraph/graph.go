@@ -64,57 +64,63 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.RunInDirTimeoutEnvFullPipelineFunc(nil, -1, r.Path, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
-		_ = stdoutWriter.Close()
-		defer stdoutReader.Close()
-		parser := &Parser{}
-		parser.firstInUse = -1
-		parser.maxAllowedColors = maxAllowedColors
-		if maxAllowedColors > 0 {
-			parser.availableColors = make([]int, maxAllowedColors)
-			for i := range parser.availableColors {
-				parser.availableColors[i] = i + 1
+	if err := graphCmd.RunWithContext(&git.RunContext{
+		Timeout: -1,
+		Dir:     r.Path,
+		Stdout:  stdoutWriter,
+		Stderr:  stderr,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			defer stdoutReader.Close()
+			parser := &Parser{}
+			parser.firstInUse = -1
+			parser.maxAllowedColors = maxAllowedColors
+			if maxAllowedColors > 0 {
+				parser.availableColors = make([]int, maxAllowedColors)
+				for i := range parser.availableColors {
+					parser.availableColors[i] = i + 1
+				}
+			} else {
+				parser.availableColors = []int{1, 2}
 			}
-		} else {
-			parser.availableColors = []int{1, 2}
-		}
-		for commitsToSkip > 0 && scanner.Scan() {
-			line := scanner.Bytes()
-			dataIdx := bytes.Index(line, []byte("DATA:"))
-			if dataIdx < 0 {
-				dataIdx = len(line)
+			for commitsToSkip > 0 && scanner.Scan() {
+				line := scanner.Bytes()
+				dataIdx := bytes.Index(line, []byte("DATA:"))
+				if dataIdx < 0 {
+					dataIdx = len(line)
+				}
+				starIdx := bytes.IndexByte(line, '*')
+				if starIdx >= 0 && starIdx < dataIdx {
+					commitsToSkip--
+				}
+				parser.ParseGlyphs(line[:dataIdx])
 			}
-			starIdx := bytes.IndexByte(line, '*')
-			if starIdx >= 0 && starIdx < dataIdx {
-				commitsToSkip--
-			}
-			parser.ParseGlyphs(line[:dataIdx])
-		}
 
-		row := 0
+			row := 0
 
-		// Skip initial non-commit lines
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			if bytes.IndexByte(line, '*') >= 0 {
+			// Skip initial non-commit lines
+			for scanner.Scan() {
+				line := scanner.Bytes()
+				if bytes.IndexByte(line, '*') >= 0 {
+					if err := parser.AddLineToGraph(graph, row, line); err != nil {
+						cancel()
+						return err
+					}
+					break
+				}
+				parser.ParseGlyphs(line)
+			}
+
+			for scanner.Scan() {
+				row++
+				line := scanner.Bytes()
 				if err := parser.AddLineToGraph(graph, row, line); err != nil {
 					cancel()
 					return err
 				}
-				break
 			}
-			parser.ParseGlyphs(line)
-		}
-
-		for scanner.Scan() {
-			row++
-			line := scanner.Bytes()
-			if err := parser.AddLineToGraph(graph, row, line); err != nil {
-				cancel()
-				return err
-			}
-		}
-		return scanner.Err()
+			return scanner.Err()
+		},
 	}); err != nil {
 		return graph, err
 	}

@@ -97,7 +97,13 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		}
 	}
 
-	if err := git.NewCommand(t.ctx, cmdArgs...).RunInDirPipeline(t.basePath, stdOut, stdErr); err != nil {
+	if err := git.NewCommand(t.ctx, cmdArgs...).
+		RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     t.basePath,
+			Stdout:  stdOut,
+			Stderr:  stdErr,
+		}); err != nil {
 		log.Error("Unable to run git ls-files for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		err = fmt.Errorf("Unable to run git ls-files for temporary repo of: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 		return nil, err
@@ -124,7 +130,14 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 		}
 	}
 
-	if err := git.NewCommand(t.ctx, "update-index", "--remove", "-z", "--index-info").RunInDirFullPipeline(t.basePath, stdOut, stdErr, stdIn); err != nil {
+	if err := git.NewCommand(t.ctx, "update-index", "--remove", "-z", "--index-info").
+		RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     t.basePath,
+			Stdin:   stdIn,
+			Stdout:  stdOut,
+			Stderr:  stdErr,
+		}); err != nil {
 		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
@@ -136,7 +149,14 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	if err := git.NewCommand(t.ctx, "hash-object", "-w", "--stdin").RunInDirFullPipeline(t.basePath, stdOut, stdErr, content); err != nil {
+	if err := git.NewCommand(t.ctx, "hash-object", "-w", "--stdin").
+		RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     t.basePath,
+			Stdin:   content,
+			Stdout:  stdOut,
+			Stderr:  stdErr,
+		}); err != nil {
 		log.Error("Unable to hash-object to temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
@@ -254,7 +274,15 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := git.NewCommand(t.ctx, args...).RunInDirTimeoutEnvFullPipeline(env, -1, t.basePath, stdout, stderr, messageBytes); err != nil {
+	if err := git.NewCommand(t.ctx, args...).
+		RunWithContext(&git.RunContext{
+			Env:     env,
+			Timeout: -1,
+			Dir:     t.basePath,
+			Stdin:   messageBytes,
+			Stdout:  stdout,
+			Stderr:  stderr,
+		}); err != nil {
 		log.Error("Unable to commit-tree in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
 			t.repo.FullName(), t.basePath, err, stdout, stderr)
 		return "", fmt.Errorf("Unable to commit-tree in temporary repo: %s Error: %v\nStdout: %s\nStderr: %s",
@@ -304,15 +332,21 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	var finalErr error
 
 	if err := git.NewCommand(t.ctx, "diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
-		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
-			if finalErr != nil {
-				log.Error("ParsePatch: %v", finalErr)
-				cancel()
-			}
-			_ = stdoutReader.Close()
-			return finalErr
+		RunWithContext(&git.RunContext{
+			Timeout: 30 * time.Second,
+			Dir:     t.basePath,
+			Stdout:  stdoutWriter,
+			Stderr:  stderr,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
+				if finalErr != nil {
+					log.Error("ParsePatch: %v", finalErr)
+					cancel()
+				}
+				_ = stdoutReader.Close()
+				return finalErr
+			},
 		}); err != nil {
 		if finalErr != nil {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
