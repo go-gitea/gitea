@@ -274,7 +274,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunInDirFullPipeline(path, &stdout, nil, stdin)
+		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     path,
+			Stdin:   stdin,
+			Stdout:  &stdout,
+		})
+
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
@@ -301,7 +307,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("\n")
 
 		stdout.Reset()
-		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).RunInDirTimeoutEnvFullPipeline(env, -1, path, &stdout, nil, messageBytes)
+		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).
+			RunWithContext(&git.RunContext{
+				Env:     env,
+				Timeout: -1,
+				Dir:     path,
+				Stdin:   messageBytes,
+				Stdout:  &stdout,
+			})
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
