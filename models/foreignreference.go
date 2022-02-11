@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
+// ForeignTypeIssue is to be used for the Type field in ForeignReference
 const ForeignTypeIssue = "issue"
 
 // ForeignReference represents external references
