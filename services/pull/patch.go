@@ -287,10 +287,12 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 		if err != nil {
 			return false, err
 		}
+		pr.Status = models.PullRequestStatusMergeable
+		pr.ConflictedFiles = []string{}
+
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 			pr.Status = models.PullRequestStatusEmpty
-			pr.ConflictedFiles = []string{}
 			pr.ChangedProtectedFiles = []string{}
 		}
 
