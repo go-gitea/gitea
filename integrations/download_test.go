@@ -71,13 +71,42 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
+	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/test.xml")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	assert.Equal(t, "text/xml; charset=utf-8", resp.HeaderMap.Get("Content-Type"))
+}
+
+func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	setting.MimeTypeMap.Map[".xml"] = "text/xml"
+	setting.MimeTypeMap.Enabled = true
+	_ = mime.AddExtensionType(".xml", "text/xml")
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/test.xml")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	assert.Equal(t, "text/xml; charset=utf-8", resp.HeaderMap.Get("Content-Type"))
+
+	delete(setting.MimeTypeMap.Map, ".xml")
+	setting.MimeTypeMap.Enabled = false
+}
+
+func TestDownloadRawBinaryFileWithoutMimeTypeMapping(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
 	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/bin.foo")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Equal(t, "application/octet-stream", resp.HeaderMap.Get("Content-Type"))
 }
 
-func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
+func TestDownloadRawBinaryFileWithMimeTypeMapping(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	setting.MimeTypeMap.Map[".foo"] = "audio/foo"
