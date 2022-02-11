@@ -59,6 +59,7 @@ var CmdDoctor = cli.Command{
 	},
 	Subcommands: []cli.Command{
 		cmdRecreateTable,
+		cmdEnv,
 	},
 }
 
@@ -214,4 +215,24 @@ func runDoctor(ctx *cli.Context) error {
 	logger := log.GetLogger("doctorouter")
 	defer logger.Close()
 	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
+}
+
+var cmdEnv = cli.Command{
+	Name:        "env",
+	Usage:       "Display the evnironments of Gitea.",
+	ArgsUsage:   "",
+	Description: `Display the evnironments of Gitea.`,
+	Action:      runEnv,
+}
+
+func runEnv(ctx *cli.Context) error {
+	defer log.Close()
+
+	fmt.Printf("AppPath: %s\n", setting.AppPath)
+	fmt.Printf("AppWorkPath: %s\n", setting.AppWorkPath)
+	fmt.Printf("Custom path: %s\n", setting.CustomPath)
+	fmt.Printf("Log path: %s\n", setting.LogRootPath)
+	fmt.Printf("Configuration file: %s\n", setting.CustomConf)
+
+	return nil
 }
