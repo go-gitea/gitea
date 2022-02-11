@@ -26,12 +26,6 @@ func setCommonHeaders(ctx *context.Context, name string, data interface{}) error
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.ReplaceAll(name, ",", " ")
 
-	// Fixme: ctx.Repo.Repository.IsPrivate is nil
-	// if ctx.Repo.Repository.IsPrivate {
-	// 	ctx.Resp.Header().Set("Cache-Control", "private, max-age=300")
-	// } else {
-	// 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=86400")
-	// }
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=300")
 
 	st, err := typesniffer.DetectContentTypeExtFirst(name, data)
