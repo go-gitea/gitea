@@ -198,9 +198,9 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
 	tmplStartTime := time.Now()
 	if !setting.IsProd {
-		ctx.Data["TmpName"] = name
+		ctx.Data["TemplateName"] = name
 	}
-	ctx.Data["TmplLoadTimes"] = func() string {
+	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
