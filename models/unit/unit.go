@@ -328,7 +328,12 @@ func AllUnitKeyNames() []string {
 // MinUnitAccessMode returns the minial permission of the permission map
 func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
 	res := perm.AccessModeNone
-	for _, mode := range unitsMap {
+	for t, mode := range unitsMap {
+		// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
+		if t == TypeExternalTracker || t == TypeExternalWiki {
+			continue
+		}
+
 		// get the minial permission great than AccessModeNone except all are AccessModeNone
 		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
 			res = mode
