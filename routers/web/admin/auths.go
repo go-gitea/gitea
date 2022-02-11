@@ -145,6 +145,8 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		GroupDN:               form.GroupDN,
 		GroupFilter:           form.GroupFilter,
 		GroupMemberUID:        form.GroupMemberUID,
+		GroupTeamMap:          form.GroupTeamMap,
+		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
 		UserUID:               form.UserUID,
 		AdminFilter:           form.AdminFilter,
 		RestrictedFilter:      form.RestrictedFilter,
