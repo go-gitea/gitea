@@ -16,6 +16,9 @@ body:
       4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
       5. Please give all relevant information below for bug reports, because
          incomplete details will be handled as an invalid report.
+      6. In particular it's really important to provide pertinent logs. You must give us DEBUG level logs.
+         Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
+         In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
 - type: input
   id: gitea-ver
   attributes:
