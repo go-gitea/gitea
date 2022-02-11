@@ -82,7 +82,7 @@ steps:
     image: golang:1.17
     commands:
       - make checks-backend
-    depends_on: [deps-backend, lint-backend]
+    depends_on: [deps-backend]
     volumes:
       - name: deps
         path: /go
