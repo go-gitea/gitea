@@ -51,8 +51,9 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		return ""
 	}
 
+	isExternalTracker := pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker)
 	issueReference := "#"
-	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
+	if isExternalTracker {
 		issueReference = "!"
 	}
 
@@ -65,20 +66,33 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		}
 		templateContent, ok := commit.GetFileContent(templateFilepath)
 		if ok {
-			return com.Expand(templateContent,
-				map[string]string{
-					"BaseRepoOwner":     pr.BaseRepo.OwnerName,
-					"BaseRepoName":      pr.BaseRepo.Name,
-					"BaseBranch":        pr.BaseBranch,
-					"HeadRepoOwner":     pr.HeadRepo.OwnerName,
-					"HeadRepoName":      pr.HeadRepo.Name,
-					"HeadBranch":        pr.HeadBranch,
-					"PullRequestTitle":  pr.Issue.Title,
-					"PullRequestBody":   pr.Issue.Content,
-					"PullRequestPoster": pr.Issue.Poster.Name,
-					"PullRequestIndex":  strconv.FormatInt(pr.Index, 10),
-					"IssueReference":    issueReference,
-				})
+			vars := map[string]string{
+				"BaseRepoOwner":          pr.BaseRepo.OwnerName,
+				"BaseRepoName":           pr.BaseRepo.Name,
+				"BaseBranch":             pr.BaseBranch,
+				"HeadRepoOwner":          pr.HeadRepo.OwnerName,
+				"HeadRepoName":           pr.HeadRepo.Name,
+				"HeadBranch":             pr.HeadBranch,
+				"PullRequestTitle":       pr.Issue.Title,
+				"PullRequestDescription": pr.Issue.Content,
+				"PullRequestPoster":      pr.Issue.Poster.Name,
+				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
+				"IssueReferenceChar":     issueReference,
+			}
+			refs, err := pr.ResolveCrossReferences()
+			if err == nil {
+				closeIssueIndexes := make([]string, 0, len(refs))
+				for _, ref := range refs {
+					if ref.RefAction == references.XRefActionCloses {
+						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s%d", issueReference, ref.Issue.Index))
+					}
+				}
+				if len(closeIssueIndexes) > 0 {
+					vars["ClosedIssueIndexes"] = strings.Join(closeIssueIndexes, ", ")
+				}
+			}
+
+			return com.Expand(templateContent, vars)
 		}
 	}
 
