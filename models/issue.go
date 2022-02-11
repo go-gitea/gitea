@@ -1145,9 +1145,9 @@ func GetIssueByForeignID(ctx context.Context, repoID, foreignID int64) (*Issue, 
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrLocalIDNotExist{repoID, foreignID, "issue"}
+		return nil, ErrLocalIDNotExist{repoID, foreignID, ForeignTypeIssue}
 	}
-	return getIssueByID(db.GetEngine(ctx), reference.LocalID)
+	return GetIssueByIndex(repoID, reference.LocalID)
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.

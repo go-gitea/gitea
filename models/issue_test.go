@@ -538,7 +538,8 @@ func TestCorrectIssueStats(t *testing.T) {
 
 func TestIssueForeignReference(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue)
+	assert.NotEqualValues(t, issue.Index, issue.ID) // make sure they are different to avoid false positive
 
 	// it is fine for an issue to not have a foreign reference
 	err := issue.LoadAttributes()
