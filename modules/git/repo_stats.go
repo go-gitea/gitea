@@ -98,10 +98,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					continue
 				}
 				switch p {
-				case 1:
-				case 2:
+				case 1: // Separator
+				case 2: // Commit sha-1
 					stats.CommitCount++
-				case 3:
+				case 3: // Author
 					author = l
 				case 4:
 					email := strings.ToLower(l)
@@ -109,7 +109,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
 					}
 					authors[email].Commits++
-				default:
+				default: // Changed file
 					if parts := strings.Fields(l); len(parts) >= 3 {
 						if parts[0] != "-" {
 							if c, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64); err == nil {
@@ -131,6 +131,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			for _, v := range authors {
 				a = append(a, v)
 			}
+			// Sort authors descending depending on commit count
 			sort.Slice(a, func(i, j int) bool {
 				return a[i].Commits > a[j].Commits
 			})
