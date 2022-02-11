@@ -204,7 +204,13 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 		opts.Timeout = -1
 	}
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, opts.Timeout, repoPath, &outbuf, &errbuf)
+	err := cmd.RunWithContext(&RunContext{
+		Env:     opts.Env,
+		Timeout: opts.Timeout,
+		Dir:     repoPath,
+		Stdout:  &outbuf,
+		Stderr:  &errbuf,
+	})
 	if err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return &ErrPushOutOfDate{
