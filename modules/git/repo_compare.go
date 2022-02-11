@@ -147,13 +147,23 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 	}
 
 	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only", base+separator+head).
-		RunInDirPipeline(repo.Path, w, stderr); err != nil {
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  w,
+			Stderr:  stderr,
+		}); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
 			stderr.Reset()
-			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only", base, head).RunInDirPipeline(repo.Path, w, stderr); err == nil {
+			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only", base, head).RunWithContext(&RunContext{
+				Timeout: -1,
+				Dir:     repo.Path,
+				Stdout:  w,
+				Stderr:  stderr,
+			}); err == nil {
 				return w.numLines, nil
 			}
 		}
@@ -238,28 +248,46 @@ func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, bi
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand(repo.Ctx, "diff", "-p", base, head).
-		RunInDirPipeline(repo.Path, w, nil)
+	return NewCommand(repo.Ctx, "diff", "-p", base, head).RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  w,
+	})
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 	if CheckGitVersionAtLeast("1.7.7") == nil {
-		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).
-			RunInDirPipeline(repo.Path, w, nil)
+		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  w,
+		})
 	}
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).
-		RunInDirPipeline(repo.Path, w, nil)
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  w,
+	})
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout", base+"..."+head).
-		RunInDirPipeline(repo.Path, w, stderr)
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  w,
+			Stderr:  stderr,
+		})
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
 		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout", base, head).
-			RunInDirPipeline(repo.Path, w, nil)
+			RunWithContext(&RunContext{
+				Timeout: -1,
+				Dir:     repo.Path,
+				Stdout:  w,
+			})
 	}
 	return err
 }
@@ -268,7 +296,12 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand(repo.Ctx, "diff", "-p", "--binary", base+"..."+head).
-		RunInDirPipeline(repo.Path, w, stderr)
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  w,
+			Stderr:  stderr,
+		})
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
 		return repo.GetDiffBinary(base, head, w)
 	}
