@@ -34,7 +34,11 @@ func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
-		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repoPath,
+			Stderr:  &stderr,
+		})
 	if err != nil {
 		return ConcatenateError(err, (&stderr).String())
 	}
@@ -61,7 +65,13 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch-check").
 			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			RunWithContext(&RunContext{
+				Timeout: -1,
+				Dir:     repoPath,
+				Stdin:   batchStdinReader,
+				Stdout:  batchStdoutWriter,
+				Stderr:  &stderr,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -100,7 +110,13 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch").
 			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			RunWithContext(&RunContext{
+				Timeout: -1,
+				Dir:     repoPath,
+				Stdin:   batchStdinReader,
+				Stdout:  batchStdoutWriter,
+				Stderr:  &stderr,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
