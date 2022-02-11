@@ -42,6 +42,9 @@ Possible file names for PR templates:
 - `.gitea/pull_request_template.md`
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/pull_request_template.md`
+
+Possible file names for PR default merge message templates:
+
 - `.gitea/default_merge_message/MERGE_TEMPLATE.md`
 - `.gitea/default_merge_message/REBASE_TEMPLATE.md`
 - `.gitea/default_merge_message/REBASE-MERGE_TEMPLATE.md`
