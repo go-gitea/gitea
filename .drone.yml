@@ -256,7 +256,7 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on: [prepare-test-env]
+    depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -272,6 +272,7 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+    depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -288,6 +289,7 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+    depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -440,7 +442,7 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on: [prepare-test-env]
+    depends_on: [deps-backend, prepare-test-env]
     volumes:
       - name: deps
         path: /go
