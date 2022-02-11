@@ -28,7 +28,7 @@ func NewDiffPatch(ctx *context.Context) {
 
 	canCommit := renderCommitRights(ctx)
 
-	ctx.Data["TreePath"] = "patch"
+	ctx.Data["TreePath"] = ""
 
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
