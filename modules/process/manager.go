@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // TODO: This packages still uses a singleton for the Manager.
@@ -103,6 +105,7 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 func (pm *Manager) Add(parentPID IDType, description string, cancel context.CancelFunc) (IDType, FinishedFunc) {
 	pm.mutex.Lock()
 	start, pid := pm.nextPID()
+	log.Trace("Adding Process[%s:%s] %s", parentPID, pid, description)
 
 	parent := pm.processes[parentPID]
 	if parent == nil {
@@ -120,6 +123,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	finished := func() {
 		cancel()
 		pm.remove(process)
+		log.Trace("Finished Process[%d:%d] %s", parentPID, pid, description)
 	}
 
 	if parent != nil {

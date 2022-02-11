@@ -62,9 +62,12 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	if !has {
+		log.Trace("Updating PR[%d] in %d: Status:%d Conflicts:%s Protected:%s", pr.ID, pr.BaseRepoID, pr.Status, pr.ConflictedFiles, pr.ChangedProtectedFiles)
 		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
+	} else {
+		log.Trace("Not updating PR[%d] in %d as still in the queue", pr.ID, pr.BaseRepoID)
 	}
 }
 
@@ -234,12 +237,15 @@ func testPR(id int64) {
 		log.Error("GetPullRequestByID[%d]: %v", id, err)
 		return
 	}
+	log.Trace("Testing PR[%d] in %d", pr.ID, pr.BaseRepoID)
 
 	if pr.HasMerged {
+		log.Trace("PR[%d] in %d: already merged", pr.ID, pr.BaseRepoID)
 		return
 	}
 
 	if manuallyMerged(ctx, pr) {
+		log.Trace("PR[%d] in %d: manually merged", pr.ID, pr.BaseRepoID)
 		return
 	}
 
@@ -251,6 +257,8 @@ func testPR(id int64) {
 		}
 		return
 	}
+	log.Trace("PR[%d] in %d: patch tested new Status:%d ConflictedFiles:%s ChangedProtectedFiles:%s", pr.ID, pr.BaseRepoID, pr.Status, pr.ConflictedFiles, pr.ChangedProtectedFiles)
+
 	checkAndUpdateStatus(pr)
 }
 

@@ -484,7 +484,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 		case <-paused:
 			log.Trace("Worker for Queue %d Pausing", p.qid)
 			if len(data) > 0 {
-				log.Trace("Handling: %d data, %v", len(data), data)
+				log.Trace("Queue[%d] Handling: %d data, %v", p.qid, len(data), data)
 				if unhandled := p.handle(data...); unhandled != nil {
 					log.Error("Unhandled Data in queue %d", p.qid)
 				}
@@ -507,7 +507,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			// go back around
 		case <-ctx.Done():
 			if len(data) > 0 {
-				log.Trace("Handling: %d data, %v", len(data), data)
+				log.Trace("Queue[%d] Handling: %d data, %v", p.qid, len(data), data)
 				if unhandled := p.handle(data...); unhandled != nil {
 					log.Error("Unhandled Data in queue %d", p.qid)
 				}
@@ -519,7 +519,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			if !ok {
 				// the dataChan has been closed - we should finish up:
 				if len(data) > 0 {
-					log.Trace("Handling: %d data, %v", len(data), data)
+					log.Trace("Queue[%d] Handling: %d data, %v", p.qid, len(data), data)
 					if unhandled := p.handle(data...); unhandled != nil {
 						log.Error("Unhandled Data in queue %d", p.qid)
 					}
@@ -532,7 +532,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 			util.StopTimer(timer)
 
 			if len(data) >= p.batchLength {
-				log.Trace("Handling: %d data, %v", len(data), data)
+				log.Trace("Queue[%d] Handling: %d data, %v", p.qid, len(data), data)
 				if unhandled := p.handle(data...); unhandled != nil {
 					log.Error("Unhandled Data in queue %d", p.qid)
 				}
@@ -544,7 +544,7 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 		case <-timer.C:
 			delay = time.Millisecond * 100
 			if len(data) > 0 {
-				log.Trace("Handling: %d data, %v", len(data), data)
+				log.Trace("Queue[%d] Handling: %d data, %v", p.qid, len(data), data)
 				if unhandled := p.handle(data...); unhandled != nil {
 					log.Error("Unhandled Data in queue %d", p.qid)
 				}
