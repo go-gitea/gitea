@@ -73,7 +73,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		Dir:     repo.Path,
 		Stdout:  stdoutWriter,
 		Stderr:  stderr,
-		Stdin:   nil,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
@@ -103,7 +102,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					stats.CommitCount++
 				case 3: // Author
 					author = l
-				case 4:
+				case 4: // E-mail
 					email := strings.ToLower(l)
 					if _, ok := authors[email]; !ok {
 						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
