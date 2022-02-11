@@ -143,7 +143,16 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
-		log.Error("Copy language stat from oldRepo failed")
+		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("Open created git repository failed: %v", err)
+	} else {
+		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error("Sync releases from git tags failed: %v", err)
+		}
 	}
 
 	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
