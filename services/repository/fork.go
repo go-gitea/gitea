@@ -150,6 +150,7 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {
+		defer gitRepo.Close()
 		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
 			log.Error("Sync releases from git tags failed: %v", err)
 		}
