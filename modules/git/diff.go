@@ -301,9 +301,12 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 
 	// Run `git diff --name-only` to get the names of the changed files
 	err = NewCommand(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+		RunWithContext(&RunContext{
+			Env:     env,
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  stdoutWriter,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stdoutWriter.Close()
 				defer func() {
@@ -320,7 +323,8 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 					affectedFiles = append(affectedFiles, path)
 				}
 				return scanner.Err()
-			})
+			},
+		})
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
