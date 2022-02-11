@@ -197,6 +197,9 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
 	tmplStartTime := time.Now()
+	if !setting.IsProd {
+		ctx.Data["TmpName"] = name
+	}
 	ctx.Data["TmplLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
