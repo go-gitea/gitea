@@ -41,10 +41,10 @@ code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b h1:uv9a8eGSdQ8Dr4Hy
 code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b/go.mod h1:zcNbT/aJEmivCAhfmkHOlT645KNOf9W2KnkLgFjGGfE=
 code.gitea.io/sdk/gitea v0.15.1 h1:WJreC7YYuxbn0UDaPuWIe/mtiNKTvLN8MLkaw71yx/M=
 code.gitea.io/sdk/gitea v0.15.1/go.mod h1:klY2LVI3s3NChzIk/MzMn7G1FHrfU7qd63iSMVoHRBA=
-codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210203306-2ecddf164a2d h1:Jf8yaYX9i4ypavx73tBLNSIi3un61FKjOB9GNMgp9fo=
-codeberg.org/gusted/gliderlabs-ssh v0.0.0-20220210203306-2ecddf164a2d/go.mod h1:NVGX6tOmdlNbBQntW8+GxzJoJLC3W9WgtdYAiVCJ/pI=
 codeberg.org/gusted/go-crypto v0.0.0-20220210202945-fb39d7335985/go.mod h1:IxCIyHEi3zRg3s0A5j5BB6A9Jmi73HwBIUl50j+osU4=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
+gitea.com/gitea/gliderlabs-ssh v0.0.0-20220210203306-2ecddf164a2d h1:RXbQ1b86SRofLjZ8yTTed6USd9b8iB17mAWB6nq2las=
+gitea.com/gitea/gliderlabs-ssh v0.0.0-20220210203306-2ecddf164a2d/go.mod h1:NVGX6tOmdlNbBQntW8+GxzJoJLC3W9WgtdYAiVCJ/pI=
 gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be h1:IzSwPVzd2hE6e67ujY8ReBCrQ5IFNd0uiBmC7Ux5IaY=
 gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be/go.mod h1:/vR0YjlusOYvosKYW7QKcSnrY0nPLe4RQ/DGi3+i/Do=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
