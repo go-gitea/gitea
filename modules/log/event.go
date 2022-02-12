@@ -7,6 +7,7 @@ package log
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -152,6 +153,7 @@ type MultiChannelledLog struct {
 	stacktraceLevel Level
 	closed          chan bool
 	paused          chan bool
+	processedCount  int64
 }
 
 // NewMultiChannelledLog a new logger instance with given logger provider and config.
@@ -307,6 +309,7 @@ func (m *MultiChannelledLog) Start() {
 				m.closeLoggers()
 				return
 			}
+			atomic.AddInt64(&m.processedCount, 1)
 			m.rwmutex.RLock()
 			for _, logger := range m.loggers {
 				err := logger.LogEvent(event)
@@ -344,6 +347,10 @@ func (m *MultiChannelledLog) LogEvent(event *Event) error {
 			Provider: "MultiChannelledLog",
 		}
 	}
+}
+
+func (m *MultiChannelledLog) GetProcessedCount() int64 {
+	return atomic.LoadInt64(&m.processedCount)
 }
 
 // Close this MultiChannelledLog
@@ -396,4 +403,8 @@ func (m *MultiChannelledLog) ResetLevel() Level {
 // GetName gets the name of this MultiChannelledLog
 func (m *MultiChannelledLog) GetName() string {
 	return m.name
+}
+
+func (e *Event) GetMsg() string {
+	return e.msg
 }
