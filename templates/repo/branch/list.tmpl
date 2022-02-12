@@ -121,9 +121,9 @@
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{PathEscapeSegments .DeletedBranch.Name}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
+												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
 											{{else}}
-												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{PathEscapeSegments .Name}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
+												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
 												</a>
 											{{end}}
