@@ -166,6 +166,9 @@ help:
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
+	@echo " - deps                             install dependencies"
+	@echo " - deps-frontend                    install frontend dependencies"
+	@echo " - deps-backend                     install backend dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -661,6 +664,16 @@ docs:
 		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
 	cd docs; make trans-copy clean build-offline;
+
+.PHONY: deps
+deps: deps-frontend deps-backend
+
+.PHONY: deps-frontend
+deps-frontend: node_modules
+
+.PHONY: deps-backend
+deps-backend:
+	$(GO) mod download
 
 node_modules: package-lock.json
 	npm install --no-save

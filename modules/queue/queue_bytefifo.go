@@ -135,6 +135,13 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 	return q.byteFIFO.Len(q.terminateCtx) == 0
 }
 
+// NumberInQueue returns the number in the queue
+func (q *ByteFIFOQueue) NumberInQueue() int64 {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return q.byteFIFO.Len(q.terminateCtx) + q.WorkerPool.NumberInQueue()
+}
+
 // Flush flushes the ByteFIFOQueue
 func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 	select {
