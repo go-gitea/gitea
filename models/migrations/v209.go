@@ -7,6 +7,7 @@ package migrations
 import (
 	"encoding/base32"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
 	"github.com/tstranex/u2f"
@@ -34,45 +35,29 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 		return err
 	}
 
-	switch x.Dialect().URI().DBType {
-	case schemas.MYSQL:
-		// This column has an index on it. I could write all of the code to attempt to change the index OR
-		// I could just use recreate table.
-		sess := x.NewSession()
-		if err := sess.Begin(); err != nil {
-			_ = sess.Close()
-			return err
-		}
-		if err := recreateTable(sess, new(webauthnCredential)); err != nil {
-			_ = sess.Close()
-			return err
-		}
-		if err := sess.Commit(); err != nil {
-			_ = sess.Close()
-			return err
-		}
-		if err := sess.Close(); err != nil {
-			return err
-		}
-	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
-		if err != nil {
-			return err
-		}
-	case schemas.MSSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id VARCHAR(410)")
-		if err != nil {
-			return err
-		}
-	case schemas.POSTGRES:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(410)")
-		if err != nil {
-			return err
-		}
-	default:
+	if x.Dialect().URI().DBType == schemas.SQLITE {
 		// SQLite doesn't support ALTER COLUMN, and it seem to already makes String _TEXT_ by default so no migration needed
 		// nor is there any need to re-migrate
 		return nil
+	}
+
+	// This column has an index on it. I could write all of the code to attempt to change the index OR
+	// I could just use recreate table.
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		_ = sess.Close()
+		return err
+	}
+	if err := recreateTable(sess, new(webauthnCredential)); err != nil {
+		_ = sess.Close()
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		_ = sess.Close()
+		return err
+	}
+	if err := sess.Close(); err != nil {
+		return err
 	}
 
 	// Now migrate the old u2f registrations to the new format
@@ -109,8 +94,12 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 			if !has {
 				continue
 			}
+			remigratedCredID := base32.HexEncoding.EncodeToString(parsed.KeyHandle)
+			if cred.CredentialID == remigratedCredID || (!strings.HasPrefix(remigratedCredID, cred.CredentialID) && cred.CredentialID != "") {
+				continue
+			}
 
-			cred.CredentialID = base32.HexEncoding.EncodeToString(parsed.KeyHandle)
+			cred.CredentialID = remigratedCredID
 
 			_, err = x.Update(cred)
 			if err != nil {
