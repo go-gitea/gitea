@@ -117,11 +117,11 @@ IS_INPUT_FILE   = true
 
 [markup.sanitizer.html.1]
 ELEMENT = div
-ALLOW_ATTR = style
+ALLOW_ATTR = class
 
 [markup.sanitizer.html.2]
 ELEMENT = a
-ALLOW_ATTR = style
+ALLOW_ATTR = class
 ```
 
 ### Example: Office DOCX
