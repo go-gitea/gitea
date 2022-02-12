@@ -115,6 +115,7 @@ type PullRequestsConfig struct {
 	AllowSquash                   bool
 	AllowManualMerge              bool
 	AutodetectManualMerge         bool
+	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 }
