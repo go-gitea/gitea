@@ -8,8 +8,14 @@ package git
 import (
 	"bytes"
 	"context"
+<<<<<<< HEAD
 	"strings"
 	"unsafe"
+=======
+	"io"
+	"strings"
+	"time"
+>>>>>>> 678661cbf (Merge)
 
 	"code.gitea.io/gitea/modules/git/cmd"
 )
@@ -28,11 +34,10 @@ type CommandProxy struct {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-// NewCommand creates and returns a new Git Command based on given command and arguments.
 func NewCommand(ctx context.Context, args ...string) *CommandProxy {
-	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return &CommandProxy{
 		Command: cmdService.NewCommand(ctx, len(cargs), append(cargs, args...)...),
 	}
@@ -135,6 +140,22 @@ func (c *CommandProxy) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil
+}
+
+// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
+func AllowLFSFiltersArgs() []string {
+	// Now here we should explicitly allow lfs filters to run
+	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	j := 0
+	for _, arg := range globalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	return filteredLFSGlobalArgs[:j]
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
