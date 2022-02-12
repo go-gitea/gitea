@@ -74,7 +74,7 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo2/raw/branch/master/test.xml")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	assert.Equal(t, "text/xml; charset=utf-8", resp.HeaderMap.Get("Content-Type"))
+	assert.Equal(t, "application/xml", resp.HeaderMap.Get("Content-Type"))
 }
 
 func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
