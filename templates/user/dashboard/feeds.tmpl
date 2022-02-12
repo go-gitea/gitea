@@ -73,7 +73,7 @@
 							{{$.i18n.Tr "action.comment_pull" ((printf "%s/pulls/%s" .GetRepoLink $index) |Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 24}}
 							{{ $linkText := .Content | RenderEmoji }}
-							{{$.i18n.Tr "action.publish_release" (.GetRepoLink|Escape) ((printf "%s/release/tag/%s" .GetRepoLink .GetTag)|Escape) (.ShortRepoPath|Escape) $linkText | Str2html}}
+							{{$.i18n.Tr "action.publish_release" (.GetRepoLink|Escape) ((printf "%s/releases/tag/%s" .GetRepoLink .GetTag)|Escape) (.ShortRepoPath|Escape) $linkText | Str2html}}
 						{{else if eq .GetOpType 25}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{ $reviewer := index .GetIssueInfos 1}}
