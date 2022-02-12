@@ -243,6 +243,11 @@ func (log *FileLogger) deleteOldLog() {
 	})
 }
 
+// Content returns the content accumulated in the content provider
+func (log *FileLogger) Content() (string, error) {
+	return log.Filename, nil
+}
+
 // Flush flush file logger.
 // there are no buffering messages in file logger in memory.
 // flush file means sync file from disk.
