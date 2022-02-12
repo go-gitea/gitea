@@ -63,10 +63,12 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 
 	stderr := &strings.Builder{}
 	err = git.NewCommand(ctx, "ls-files", "-u", "-z").
-		RunInDirTimeoutEnvFullPipelineFunc(
-			nil, -1, tmpBasePath,
-			lsFilesWriter, stderr, nil,
-			func(_ context.Context, _ context.CancelFunc) error {
+		RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     tmpBasePath,
+			Stdout:  lsFilesWriter,
+			Stderr:  stderr,
+			PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
 				_ = lsFilesWriter.Close()
 				defer func() {
 					_ = lsFilesReader.Close()
@@ -102,8 +104,8 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 					toemit.path = split[2][2 : len(split[2])-1]
 					outputChan <- toemit
 				}
-			})
-
+			},
+		})
 	if err != nil {
 		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %v", git.ConcatenateError(err, stderr.String()))}
 	}
