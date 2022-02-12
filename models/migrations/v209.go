@@ -17,9 +17,18 @@ import (
 func increaseCredentialIDTo410(x *xorm.Engine) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
-		ID           int64  `xorm:"pk autoincr"`
-		UserID       int64  `xorm:"INDEX unique(s)"`
-		CredentialID string `xorm:"INDEX VARCHAR(410)"`
+		ID              int64 `xorm:"pk autoincr"`
+		Name            string
+		LowerName       string `xorm:"unique(s)"`
+		UserID          int64  `xorm:"INDEX unique(s)"`
+		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		PublicKey       []byte
+		AttestationType string
+		AAGUID          []byte
+		SignCount       uint32 `xorm:"BIGINT"`
+		CloneWarning    bool
+		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 	if err := x.Sync2(&webauthnCredential{}); err != nil {
 		return err
@@ -27,8 +36,22 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(410)")
-		if err != nil {
+		// This column has an index on it. I could write all of the code to attempt to change the index OR
+		// I could just use recreate table.
+		sess := x.NewSession()
+		if err := sess.Begin(); err != nil {
+			_ = sess.Close()
+			return err
+		}
+		if err := recreateTable(sess, new(webauthnCredential)); err != nil {
+			_ = sess.Close()
+			return err
+		}
+		if err := sess.Commit(); err != nil {
+			_ = sess.Close()
+			return err
+		}
+		if err := sess.Close(); err != nil {
 			return err
 		}
 	case schemas.ORACLE:
