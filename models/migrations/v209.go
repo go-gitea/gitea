@@ -101,7 +101,7 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 
 			cred.CredentialID = remigratedCredID
 
-			_, err = x.Update(cred)
+			_, err = x.ID(cred.ID).Update(cred)
 			if err != nil {
 				return err
 			}
