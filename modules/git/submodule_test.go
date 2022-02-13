@@ -46,11 +46,11 @@ func TestGetRefURL(t *testing.T) {
 
 func TestRepository_GetSubmoduleCommits(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_submodules")
-	clonedPath, err := cloneRepo(bareRepo1Path, testReposDir, "repo4_TestRepository_GetSubmoduleCommits")
+	clonedPath, err := cloneRepo(bareRepo1Path, "repo4_TestRepository_GetSubmoduleCommits")
 	assert.NoError(t, err)
 	defer util.RemoveAll(clonedPath)
 
-	submodules := GetSubmoduleCommits(clonedPath)
+	submodules := GetSubmoduleCommits(DefaultContext, clonedPath)
 
 	assert.EqualValues(t, len(submodules), 2)
 

@@ -7,6 +7,7 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -132,7 +133,7 @@ func (sf *SubModuleFile) RefID() string {
 }
 
 // GetSubmoduleCommits Returns a list of active submodules in the repository
-func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
+func GetSubmoduleCommits(ctx context.Context, repoPath string) []SubModuleCommit {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -141,7 +142,7 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand("config", "-f", ".gitmodules", "--list", "--name-only").RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		err := NewCommand(ctx, "config", "-f", ".gitmodules", "--list", "--name-only").RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {
@@ -154,7 +155,6 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 
 	for {
 		line, err := bufReader.ReadString('\n')
-
 		if err != nil {
 			break
 		}
@@ -174,10 +174,9 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 			continue
 		}
 
-		commit, err := NewCommand("submodule", "status", name).
-			RunInDir(repoPath)
-
 		// If no commit was found for the module skip it
+		commit, err := NewCommand(ctx, "submodule", "status", name).
+			RunInDir(repoPath)
 		if err != nil {
 			log.Debug("Submodule %s skipped because it has no commit", name)
 			continue
@@ -208,9 +207,9 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 }
 
 // AddSubmoduleIndexes Adds the given submodules to the git index. Requires the .gitmodules file to be already present.
-func AddSubmoduleIndexes(repoPath string, submodules []SubModuleCommit) error {
+func AddSubmoduleIndexes(ctx context.Context, repoPath string, submodules []SubModuleCommit) error {
 	for _, submodule := range submodules {
-		if stdout, err := NewCommand("update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
+		if stdout, err := NewCommand(ctx, "update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
 			RunInDir(repoPath); err != nil {
 			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Name, repoPath, stdout, err)
 			return err
