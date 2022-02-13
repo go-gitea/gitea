@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/cmd"
 	git_cmd "code.gitea.io/gitea/modules/git/cmd"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -140,13 +139,13 @@ func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
-		cmd.SetDefaultCommandTimout(time.Duration(setting.Git.Timeout.Default) * time.Second)
+		git_cmd.SetDefaultCommandTimout(time.Duration(setting.Git.Timeout.Default) * time.Second)
 	}
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
 	}
 
-	cmdService = cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
+	cmdService = git_cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
 
 	if err := checkGitVersion(); err != nil {
 		return err
