@@ -1363,7 +1363,7 @@ func buildCustomURL(meta *forms.NewCustomHookForm) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s", tcURL), nil
+	return tcURL.String(), nil
 }
 
 // TestWebhook test if web hook is work fine
