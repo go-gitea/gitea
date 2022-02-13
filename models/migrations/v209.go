@@ -37,28 +37,49 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 	}
 
 	if x.Dialect().URI().DBType == schemas.SQLITE {
-		// SQLite doesn't support ALTER COLUMN, and it seem to already makes String _TEXT_ by default so no migration needed
-		// nor is there any need to re-migrate
 		return nil
 	}
 
-	// This column has an index on it. I could write all of the code to attempt to change the index OR
-	// I could just use recreate table.
-	sess := x.NewSession()
-	if err := sess.Begin(); err != nil {
-		_ = sess.Close()
-		return err
-	}
-	if err := recreateTable(sess, new(webauthnCredential)); err != nil {
-		_ = sess.Close()
-		return err
-	}
-	if err := sess.Commit(); err != nil {
-		_ = sess.Close()
-		return err
-	}
-	if err := sess.Close(); err != nil {
-		return err
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN content VARCHAR(410)")
+		if err != nil {
+			return err
+		}
+	case schemas.ORACLE:
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY content VARCHAR(410)")
+		if err != nil {
+			return err
+		}
+	case schemas.MSSQL:
+		// This column has an index on it. I could write all of the code to attempt to change the index OR
+		// I could just use recreate table.
+		sess := x.NewSession()
+		if err := sess.Begin(); err != nil {
+			_ = sess.Close()
+			return err
+		}
+
+		if err := recreateTable(sess, new(webauthnCredential)); err != nil {
+			_ = sess.Close()
+			return err
+		}
+		if err := sess.Commit(); err != nil {
+			_ = sess.Close()
+			return err
+		}
+		if err := sess.Close(); err != nil {
+			return err
+		}
+	case schemas.POSTGRES:
+		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN content TYPE VARCHAR(410)")
+		if err != nil {
+			return err
+		}
+	default:
+		// SQLite doesn't support ALTER COLUMN, and it already makes String _TEXT_ by default so no migration needed
+		// nor is there any need to re-migrate
+		return nil
 	}
 
 	// Now migrate the old u2f registrations to the new format
