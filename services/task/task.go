@@ -32,16 +32,16 @@ func Run(t *models.Task) error {
 	case structs.TaskTypeMigrateRepo:
 		return runMigrateTask(t)
 	default:
-		return fmt.Errorf("Unknown task type: %d", t.Type)
+		return fmt.Errorf("unknown task type: %d", t.Type)
 	}
 }
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateQueue("task", handle, &models.Task{})
+	taskQueue = queue.CreateQueue(queue.TaskQueueName, handle, &models.Task{})
 
 	if taskQueue == nil {
-		return fmt.Errorf("Unable to create Task Queue")
+		return fmt.Errorf("unable to create Task Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(taskQueue.Run)

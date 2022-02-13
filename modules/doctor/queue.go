@@ -14,22 +14,6 @@ import (
 	"gitea.com/lunny/levelqueue"
 )
 
-var uniqueQueueNames = []string{
-	"code_indexer",
-	"repo_stats_update",
-	"mirror",
-	"pr_patch_checker",
-	"repo-archive",
-}
-
-var queueNames = []string{
-	"issue_indexer",
-	"notification-service",
-	"mail",
-	"push_update",
-	"task",
-}
-
 var levelqueueTypes = []string{
 	string(queue.PersistableChannelQueueType),
 	string(queue.PersistableChannelUniqueQueueType),
@@ -38,8 +22,8 @@ var levelqueueTypes = []string{
 }
 
 func checkUniqueQueues(ctx context.Context, logger log.Logger, autofix bool) error {
-	for _, name := range uniqueQueueNames {
-		q := setting.GetQueueSettings(name)
+	for _, name := range queue.KnownUniqueQueueNames {
+		q := setting.GetQueueSettings(string(name))
 		if q.Type == "" {
 			q.Type = string(queue.PersistableChannelQueueType)
 		}
@@ -62,7 +46,7 @@ func checkUniqueQueues(ctx context.Context, logger log.Logger, autofix bool) err
 
 		db, err := nosql.GetManager().GetLevelDB(connection)
 		if err != nil {
-			logger.Error("Queue: %s\nUnable to open DB connection %s: %v", q.Name, connection, err)
+			logger.Error("Queue: %s\nUnable to open DB connection %q: %v", q.Name, connection, err)
 			return err
 		}
 		defer db.Close()
@@ -138,8 +122,15 @@ func checkUniqueQueues(ctx context.Context, logger log.Logger, autofix bool) err
 
 func queueListDB(ctx context.Context, logger log.Logger, autofix bool) error {
 	connections := []string{}
+	queueNames := make([]string, 0, len(queue.KnownUniqueQueueNames)+len(queue.KnownQueueNames))
+	for _, name := range queue.KnownUniqueQueueNames {
+		queueNames = append(queueNames, string(name))
+	}
+	for _, name := range queue.KnownQueueNames {
+		queueNames = append(queueNames, string(name))
+	}
 
-	for _, name := range append(uniqueQueueNames, queueNames...) {
+	for _, name := range queueNames {
 		q := setting.GetQueueSettings(name)
 		if q.Type == "" {
 			q.Type = string(queue.PersistableChannelQueueType)
@@ -159,6 +150,7 @@ func queueListDB(ctx context.Context, logger log.Logger, autofix bool) error {
 			for _, connection := range connections {
 				if connection == q.ConnectionString {
 					found = true
+					break
 				}
 			}
 			if !found {
@@ -170,6 +162,7 @@ func queueListDB(ctx context.Context, logger log.Logger, autofix bool) error {
 		for _, connection := range connections {
 			if connection == q.DataDir {
 				found = true
+				break
 			}
 		}
 		if !found {
@@ -181,7 +174,7 @@ func queueListDB(ctx context.Context, logger log.Logger, autofix bool) error {
 		logger.Info("LevelDB: %s", connection)
 		db, err := nosql.GetManager().GetLevelDB(connection)
 		if err != nil {
-			logger.Error("Connection: %s Unable to open DB: %v", connection, err)
+			logger.Error("Connection: %q Unable to open DB: %v", connection, err)
 			return err
 		}
 		defer db.Close()
@@ -204,6 +197,7 @@ func init() {
 		SkipDatabaseInitialization: false,
 		Priority:                   1,
 	})
+
 	Register(&Check{
 		Title:                      "List all entries in leveldb",
 		Name:                       "queues-listdb",

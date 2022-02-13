@@ -151,7 +151,7 @@ func InitSyncMirrors() {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle, new(SyncRequest))
+	mirrorQueue = queue.CreateUniqueQueue(queue.MirrorQueueName, queueHandle, new(SyncRequest))
 
 	go graceful.GetManager().RunWithShutdownFns(mirrorQueue.Run)
 }

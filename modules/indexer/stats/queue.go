@@ -28,9 +28,9 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0))
+	statsQueue = queue.CreateUniqueQueue(queue.RepoStatsUpdateQueueName, handle, int64(0))
 	if statsQueue == nil {
-		return fmt.Errorf("Unable to create repo_stats_update Queue")
+		return fmt.Errorf("unable to create repo_stats_update Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(statsQueue.Run)

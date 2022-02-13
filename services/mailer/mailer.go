@@ -346,7 +346,7 @@ func NewContext() {
 		Sender = &dummySender{}
 	}
 
-	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) []queue.Data {
+	mailQueue = queue.CreateQueue(queue.MailerQueueName, func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
 			msg := datum.(*Message)
 			gomailMsg := msg.ToMessage()
