@@ -61,12 +61,12 @@ func Test_increaseCredentialIDTo410(t *testing.T) {
 	}
 
 	expected := []ExpectedWebauthnCredential{}
-	if err := x.Table("expected_webauthn_credential").Asc("ID").Find(&expected); !assert.NoError(t, err) {
+	if err := x.Table("expected_webauthn_credential").Asc("id").Find(&expected); !assert.NoError(t, err) {
 		return
 	}
 
 	got := []ExpectedWebauthnCredential{}
-	if err := x.Table("webauthn_credential").Select("id, credential_id").Asc("ID").Find(&got); !assert.NoError(t, err) {
+	if err := x.Table("webauthn_credential").Select("id, credential_id").Asc("id").Find(&got); !assert.NoError(t, err) {
 		return
 	}
 
