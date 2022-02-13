@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/xorm/schemas"
 )
 
 func Test_increaseCredentialIDTo410(t *testing.T) {
@@ -48,6 +49,10 @@ func Test_increaseCredentialIDTo410(t *testing.T) {
 		return
 	}
 	defer deferable()
+
+	if x.Dialect().URI().DBType == schemas.SQLITE {
+		return
+	}
 
 	// Run the migration
 	if err := increaseCredentialIDTo410(x); err != nil {
