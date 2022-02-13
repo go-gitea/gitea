@@ -31,10 +31,10 @@
 				</div>
 			</div>
 		</div> -->
-        <div class="required field {{if .Err_ChatID}}error{{end}}">
-            <label for="auth_token">{{.i18n.Tr "repo.settings.custom_auth_token"}}</label>
-            <input id="auth_token" name="auth_token" type="text" value="{{.CustomHook.AuthToken}}" required>
-        </div>
+		<div class="required field {{if .Err_ChatID}}error{{end}}">
+			<label for="auth_token">{{.i18n.Tr "repo.settings.custom_auth_token"}}</label>
+			<input id="auth_token" name="auth_token" type="text" value="{{.CustomHook.AuthToken}}" required>
+		</div>
 		{{template "repo/settings/webhook/settings" .}}
 	</form>
 {{end}}
