@@ -87,6 +87,9 @@ func (repo *Repository) IsEmpty() (bool, error) {
 			Stdout:  &output,
 			Stderr:  &errbuf,
 		}); err != nil {
+		if err.Error() == "exit status 1" && errbuf.String() == "" {
+			return true, nil
+		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
