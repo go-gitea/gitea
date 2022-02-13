@@ -8,8 +8,15 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
-// ForeignTypeIssue is to be used for the Type field in ForeignReference
-const ForeignTypeIssue = "issue"
+// ForeignType* are valid values for the Type field of ForeignReference
+const (
+	ForeignTypeIssue         = "issue"
+	ForeignTypePullRequest   = "pull_request"
+	ForeignTypeComment       = "comment"
+	ForeignTypeReview        = "review"
+	ForeignTypeReviewComment = "review_comment"
+	ForeignTypeRelease       = "release"
+)
 
 // ForeignReference represents external references
 type ForeignReference struct {
@@ -17,7 +24,7 @@ type ForeignReference struct {
 	RepoID       int64  `xorm:"UNIQUE(repo_foreign_type) INDEX(repo_local)" `
 	LocalIndex   int64  `xorm:"INDEX(repo_local)"` // the resource key inside Gitea, it can be IssueIndex, or some model ID.
 	ForeignIndex string `xorm:"INDEX UNIQUE(repo_foreign_type)"`
-	Type         string `xorm:"VARCHAR(8) INDEX UNIQUE(repo_foreign_type)"`
+	Type         string `xorm:"VARCHAR(16) INDEX UNIQUE(repo_foreign_type)"`
 }
 
 func init() {
