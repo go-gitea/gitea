@@ -106,7 +106,13 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 			buffer.WriteByte('\000')
 		}
 	}
-	return cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, bytes.NewReader(buffer.Bytes()))
+	return cmd.RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdin:   bytes.NewReader(buffer.Bytes()),
+		Stdout:  stdout,
+		Stderr:  stderr,
+	})
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename

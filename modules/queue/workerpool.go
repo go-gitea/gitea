@@ -204,6 +204,11 @@ func (p *WorkerPool) NumberOfWorkers() int {
 	return p.numberOfWorkers
 }
 
+// NumberInQueue returns the number of items in the queue
+func (p *WorkerPool) NumberInQueue() int64 {
+	return atomic.LoadInt64(&p.numInQueue)
+}
+
 // MaxNumberOfWorkers returns the maximum number of workers automatically added to the pool
 func (p *WorkerPool) MaxNumberOfWorkers() int {
 	p.lock.Lock()
