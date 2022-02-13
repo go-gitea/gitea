@@ -36,18 +36,14 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 		return err
 	}
 
-	if x.Dialect().URI().DBType == schemas.SQLITE {
-		return nil
-	}
-
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN content VARCHAR(410)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
 	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY content VARCHAR(410)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
@@ -72,7 +68,7 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 			return err
 		}
 	case schemas.POSTGRES:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN content TYPE VARCHAR(410)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(410)")
 		if err != nil {
 			return err
 		}
@@ -108,7 +104,7 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 				continue
 			}
 
-			var cred *webauthnCredential
+			cred := &webauthnCredential{}
 			has, err := x.ID(reg.ID).Where("id = ? AND user_id = ?", reg.ID, reg.UserID).Get(cred)
 			if err != nil {
 				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
