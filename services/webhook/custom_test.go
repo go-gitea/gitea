@@ -9,9 +9,10 @@ import (
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestGetCustomPayload(t *testing.T) {
