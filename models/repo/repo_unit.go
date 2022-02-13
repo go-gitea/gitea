@@ -122,6 +122,8 @@ type PullRequestsConfig struct {
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
+	// AllowRebaseUpdate = true as default for existing PullRequestConfig in DB
+	cfg.AllowRebaseUpdate = true
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
