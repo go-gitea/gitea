@@ -116,6 +116,9 @@ func Deliver(t *webhook_model.HookTask) error {
 
 	event := t.EventType.Event()
 	eventType := string(t.EventType)
+	if t.BearerToken != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", t.BearerToken))
+	}
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
 	req.Header.Add("X-Gitea-Event", event)
 	req.Header.Add("X-Gitea-Event-Type", eventType)

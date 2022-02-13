@@ -404,6 +404,12 @@ type NewPackagistHookForm struct {
 	WebhookForm
 }
 
+type NewCustomHookForm struct {
+	HostURL   string `binding:"Required;ValidUrl"`
+	AuthToken string
+	WebhookForm
+}
+
 // Validate validates the fields
 func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)

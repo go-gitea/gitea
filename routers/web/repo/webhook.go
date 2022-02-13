@@ -774,6 +774,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
 	case webhook.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
+	case webhook.CUSTOM:
+		ctx.Data["CustomHook"] = webhook_service.GetCustomHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -1234,6 +1236,75 @@ func PackagistHooksEditPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// CustomHooksEditPost response for editing custom hook
+func CustomHookEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewCustomHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksNew"] = true
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["HookType"] = webhook.CUSTOM
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+	}
+	ctx.Data["BaseLink"] = orCtx.Link
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.CustomMeta{
+		HostURL:   form.HostURL,
+		AuthToken: form.AuthToken,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	payloadURL, err := buildCustomURL(form)
+	if err != nil {
+		ctx.ServerError("buildCustomURL", err)
+		return
+	}
+
+	w := &webhook.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             payloadURL,
+		ContentType:     webhook.ContentTypeForm,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            webhook.CUSTOM,
+		HTTPMethod:      http.MethodPost,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
+// buildCustomURL returns the correct REST API url for a Custom POST request.
+func buildCustomURL(meta *forms.NewCustomHookForm) (string, error) {
+	tcURL, err := url.Parse(meta.HostURL)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s", tcURL), nil
 }
 
 // TestWebhook test if web hook is work fine
