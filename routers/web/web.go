@@ -672,7 +672,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
 				m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
-				m.Post("/custom/new", bindIgnErr(forms.NewCustomHookForm{}), repo.)
+				m.Post("/custom/new", bindIgnErr(forms.NewCustomHookForm{}), repo.CustomHooksNewPost)
 				m.Group("/{id}", func() {
 					m.Get("", repo.WebHooksEdit)
 					m.Post("/test", repo.TestWebhook)

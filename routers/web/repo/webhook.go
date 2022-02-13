@@ -735,6 +735,65 @@ func PackagistHooksNewPost(ctx *context.Context) {
 	ctx.Redirect(orCtx.Link)
 }
 
+// CustomHooksNewPost response for creating Custom hook
+func CustomHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewCustomHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
+	ctx.Data["PageIsSettingHooks"] = true
+	ctx.Data["PageIsSettingHooksNew"] = true
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["HookType"] = webhook.CUSTOM
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+	}
+	ctx.Data["BaseLink"] = orCtx.Link
+
+	if ctx.HasError() {
+		ctx.HTML(200, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.CustomMeta{
+		HostURL:   form.HostURL,
+		AuthToken: form.AuthToken,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	payloadURL, err := buildCustomURL(form)
+	if err != nil {
+		ctx.ServerError("buildCustomURL", err)
+		return
+	}
+
+	w := &webhook.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             payloadURL,
+		ContentType:     webhook.ContentTypeForm,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            webhook.CUSTOM,
+		HTTPMethod:      http.MethodPost,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 	ctx.Data["RequireHighlightJS"] = true
 
