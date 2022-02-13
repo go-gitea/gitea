@@ -199,7 +199,7 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 // GetComments returns comments according issueNumber
 func (r *RepositoryRestorer) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
 	comments := make([]*base.Comment, 0, 10)
-	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", commentable.GetForeignID()))
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", commentable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -250,7 +250,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 // GetReviews returns pull requests review
 func (r *RepositoryRestorer) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	reviews := make([]*base.Review, 0, 10)
-	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", reviewable.GetForeignID()))
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", reviewable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {

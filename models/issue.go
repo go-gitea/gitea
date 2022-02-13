@@ -277,15 +277,15 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 		return nil
 	}
 	reference := &ForeignReference{
-		LocalID: issue.Index,
-		RepoID:  issue.RepoID,
-		Type:    ForeignTypeIssue,
+		LocalIndex: issue.Index,
+		RepoID:     issue.RepoID,
+		Type:       ForeignTypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrForeignIDNotExist{issue.RepoID, issue.Index, ForeignTypeIssue}
+		return ErrForeignIndexNotExist{issue.RepoID, issue.Index, ForeignTypeIssue}
 	}
 	issue.ForeignReference = reference
 	return nil
@@ -352,7 +352,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		}
 	}
 
-	if err = issue.loadForeignReference(ctx); err != nil && !IsErrForeignIDNotExist(err) {
+	if err = issue.loadForeignReference(ctx); err != nil && !IsErrForeignIndexNotExist(err) {
 		return err
 	}
 
@@ -1134,20 +1134,20 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
-// GetIssueByForeignID returns raw issue by foreign ID
-func GetIssueByForeignID(ctx context.Context, repoID, foreignID int64) (*Issue, error) {
+// GetIssueByForeignIndex returns raw issue by foreign ID
+func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
 	reference := &ForeignReference{
-		RepoID:    repoID,
-		ForeignID: strconv.FormatInt(foreignID, 10),
-		Type:      ForeignTypeIssue,
+		RepoID:       repoID,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		Type:         ForeignTypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrLocalIDNotExist{repoID, foreignID, ForeignTypeIssue}
+		return nil, ErrLocalIndexNotExist{repoID, foreignIndex, ForeignTypeIssue}
 	}
-	return GetIssueByIndex(repoID, reference.LocalID)
+	return GetIssueByIndex(repoID, reference.LocalIndex)
 }
 
 // GetIssueWithAttrsByIndex returns issue by index in a repository.

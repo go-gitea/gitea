@@ -375,10 +375,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 			ForeignReference: &models.ForeignReference{
-				LocalID:   issue.GetLocalID(),
-				ForeignID: strconv.FormatInt(issue.GetForeignID(), 10),
-				RepoID:    g.repo.ID,
-				Type:      models.ForeignTypeIssue,
+				LocalIndex:   issue.GetLocalIndex(),
+				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
+				RepoID:       g.repo.ID,
+				Type:         models.ForeignTypeIssue,
 			},
 		}
 

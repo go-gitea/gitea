@@ -546,24 +546,24 @@ func TestIssueForeignReference(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, issue.ForeignReference)
 
-	var foreignID int64 = 12345
-	_, err = GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
-	assert.True(t, IsErrLocalIDNotExist(err))
+	var foreignIndex int64 = 12345
+	_, err = GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
+	assert.True(t, IsErrLocalIndexNotExist(err))
 
 	_, err = db.GetEngine(db.DefaultContext).Insert(&ForeignReference{
-		LocalID:   issue.Index,
-		ForeignID: strconv.FormatInt(foreignID, 10),
-		RepoID:    issue.RepoID,
-		Type:      ForeignTypeIssue,
+		LocalIndex:   issue.Index,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		RepoID:       issue.RepoID,
+		Type:         ForeignTypeIssue,
 	})
 	assert.NoError(t, err)
 
 	err = issue.LoadAttributes()
 	assert.NoError(t, err)
 
-	assert.EqualValues(t, issue.ForeignReference.ForeignID, strconv.FormatInt(foreignID, 10))
+	assert.EqualValues(t, issue.ForeignReference.ForeignIndex, strconv.FormatInt(foreignIndex, 10))
 
-	found, err := GetIssueByForeignID(context.Background(), issue.RepoID, foreignID)
+	found, err := GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
 	assert.NoError(t, err)
 	assert.EqualValues(t, found.Index, issue.Index)
 }

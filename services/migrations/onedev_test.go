@@ -74,8 +74,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 					Name: "Improvement",
 				},
 			},
-			ForeignID: 398,
-			Context:   onedevIssueContext{IsPullRequest: false},
+			ForeignIndex: 398,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		},
 		{
 			Number:     3,
@@ -91,15 +91,15 @@ func TestOneDevDownloadRepo(t *testing.T) {
 					Name: "New Feature",
 				},
 			},
-			ForeignID: 397,
-			Context:   onedevIssueContext{IsPullRequest: false},
+			ForeignIndex: 397,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		},
 	}, issues)
 
 	comments, _, err := downloader.GetComments(&base.Issue{
-		Number:    4,
-		ForeignID: 398,
-		Context:   onedevIssueContext{IsPullRequest: false},
+		Number:       4,
+		ForeignIndex: 398,
+		Context:      onedevIssueContext{IsPullRequest: false},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -133,12 +133,12 @@ func TestOneDevDownloadRepo(t *testing.T) {
 				SHA:      "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 				RepoName: "go-gitea-test_repo",
 			},
-			ForeignID: 186,
-			Context:   onedevIssueContext{IsPullRequest: true},
+			ForeignIndex: 186,
+			Context:      onedevIssueContext{IsPullRequest: true},
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignID: 186})
+	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

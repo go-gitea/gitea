@@ -392,7 +392,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Labels: []*base.Label{
 				{Name: issue.Type.Name},
 			},
-			ForeignID: issue.TicketID.Value,
+			ForeignIndex: issue.TicketID.Value,
 			Context: codebaseIssueContext{
 				Comments: comments[1:],
 			},
@@ -559,7 +559,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				SHA:      d.getHeadCommit(rawMergeRequest.TargetRef),
 				RepoName: d.repoName,
 			},
-			ForeignID: rawMergeRequest.ID.Value,
+			ForeignIndex: rawMergeRequest.ID.Value,
 			Context: codebaseIssueContext{
 				Comments: comments[1:],
 			},

@@ -411,21 +411,21 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		}
 
 		allIssues = append(allIssues, &base.Issue{
-			Title:      issue.Title,
-			Number:     int64(issue.IID),
-			PosterID:   int64(issue.Author.ID),
-			PosterName: issue.Author.Username,
-			Content:    issue.Description,
-			Milestone:  milestone,
-			State:      issue.State,
-			Created:    *issue.CreatedAt,
-			Labels:     labels,
-			Reactions:  reactions,
-			Closed:     issue.ClosedAt,
-			IsLocked:   issue.DiscussionLocked,
-			Updated:    *issue.UpdatedAt,
-			ForeignID:  int64(issue.IID),
-			Context:    gitlabIssueContext{IsMergeRequest: false},
+			Title:        issue.Title,
+			Number:       int64(issue.IID),
+			PosterID:     int64(issue.Author.ID),
+			PosterName:   issue.Author.Username,
+			Content:      issue.Description,
+			Milestone:    milestone,
+			State:        issue.State,
+			Created:      *issue.CreatedAt,
+			Labels:       labels,
+			Reactions:    reactions,
+			Closed:       issue.ClosedAt,
+			IsLocked:     issue.DiscussionLocked,
+			Updated:      *issue.UpdatedAt,
+			ForeignIndex: int64(issue.IID),
+			Context:      gitlabIssueContext{IsMergeRequest: false},
 		})
 
 		// increment issueCount, to be used in GetPullRequests()
@@ -452,12 +452,12 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		var resp *gitlab.Response
 		var err error
 		if !context.IsMergeRequest {
-			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(commentable.GetForeignID()), &gitlab.ListIssueDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
-			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(commentable.GetForeignID()), &gitlab.ListMergeRequestDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(commentable.GetForeignIndex()), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
@@ -471,7 +471,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			if !comment.IndividualNote {
 				for _, note := range comment.Notes {
 					allComments = append(allComments, &base.Comment{
-						IssueIndex:  commentable.GetLocalID(),
+						IssueIndex:  commentable.GetLocalIndex(),
 						Index:       int64(note.ID),
 						PosterID:    int64(note.Author.ID),
 						PosterName:  note.Author.Username,
@@ -483,7 +483,7 @@ func (g *GitlabDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 			} else {
 				c := comment.Notes[0]
 				allComments = append(allComments, &base.Comment{
-					IssueIndex:  commentable.GetLocalID(),
+					IssueIndex:  commentable.GetLocalIndex(),
 					Index:       int64(c.ID),
 					PosterID:    int64(c.Author.ID),
 					PosterName:  c.Author.Username,
@@ -606,9 +606,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				RepoName:  g.repoName,
 				OwnerName: pr.Author.Username,
 			},
-			PatchURL:  pr.WebURL + ".patch",
-			ForeignID: int64(pr.IID),
-			Context:   gitlabIssueContext{IsMergeRequest: true},
+			PatchURL:     pr.WebURL + ".patch",
+			ForeignIndex: int64(pr.IID),
+			Context:      gitlabIssueContext{IsMergeRequest: true},
 		})
 	}
 
@@ -617,7 +617,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
-	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignID()), gitlab.WithContext(g.ctx))
+	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
@@ -638,7 +638,7 @@ func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 	reviews := make([]*base.Review, 0, len(approvals.ApprovedBy))
 	for _, user := range approvals.ApprovedBy {
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   reviewable.GetLocalID(),
+			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   int64(user.User.ID),
 			ReviewerName: user.User.Username,
 			CreatedAt:    createdAt,

@@ -336,18 +336,18 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		}
 		poster := d.tryGetUser(issue.SubmitterID)
 		issues = append(issues, &base.Issue{
-			Title:       issue.Title,
-			Number:      issue.Number,
-			PosterName:  poster.Name,
-			PosterEmail: poster.Email,
-			Content:     issue.Description,
-			Milestone:   d.milestoneMap[milestoneID],
-			State:       state,
-			Created:     issue.SubmitDate,
-			Updated:     issue.SubmitDate,
-			Labels:      []*base.Label{label},
-			ForeignID:   issue.ID,
-			Context:     onedevIssueContext{IsPullRequest: false},
+			Title:        issue.Title,
+			Number:       issue.Number,
+			PosterName:   poster.Name,
+			PosterEmail:  poster.Email,
+			Content:      issue.Description,
+			Milestone:    d.milestoneMap[milestoneID],
+			State:        state,
+			Created:      issue.SubmitDate,
+			Updated:      issue.SubmitDate,
+			Labels:       []*base.Label{label},
+			ForeignIndex: issue.ID,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		})
 
 		if d.maxIssueIndex < issue.Number {
@@ -374,9 +374,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 
 	var endpoint string
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", commentable.GetForeignID())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/comments", commentable.GetForeignID())
+		endpoint = fmt.Sprintf("/api/issues/%d/comments", commentable.GetForeignIndex())
 	}
 
 	err := d.callAPI(
@@ -395,9 +395,9 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 	}, 0, 100)
 
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", commentable.GetForeignID())
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", commentable.GetForeignIndex())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/changes", commentable.GetForeignID())
+		endpoint = fmt.Sprintf("/api/issues/%d/changes", commentable.GetForeignIndex())
 	}
 
 	err = d.callAPI(
@@ -416,7 +416,7 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 		}
 		poster := d.tryGetUser(comment.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  commentable.GetLocalID(),
+			IssueIndex:  commentable.GetLocalIndex(),
 			Index:       comment.ID,
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
@@ -441,7 +441,7 @@ func (d *OneDevDownloader) GetComments(commentable base.Commentable) ([]*base.Co
 
 		poster := d.tryGetUser(change.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  commentable.GetLocalID(),
+			IssueIndex:  commentable.GetLocalIndex(),
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -539,8 +539,8 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				SHA:      mergePreview.TargetHeadCommitHash,
 				RepoName: d.repoName,
 			},
-			ForeignID: pr.ID,
-			Context:   onedevIssueContext{IsPullRequest: true},
+			ForeignIndex: pr.ID,
+			Context:      onedevIssueContext{IsPullRequest: true},
 		})
 	}
 
@@ -560,7 +560,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 	}, 0, 100)
 
 	err := d.callAPI(
-		fmt.Sprintf("/api/pull-requests/%d/reviews", reviewable.GetForeignID()),
+		fmt.Sprintf("/api/pull-requests/%d/reviews", reviewable.GetForeignIndex()),
 		nil,
 		&rawReviews,
 	)
@@ -584,7 +584,7 @@ func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Revie
 
 		poster := d.tryGetUser(review.UserID)
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   reviewable.GetLocalID(),
+			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   poster.ID,
 			ReviewerName: poster.Name,
 			Content:      content,

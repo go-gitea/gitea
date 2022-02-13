@@ -1395,36 +1395,36 @@ func (err ErrNotValidReviewRequest) Error() string {
 //      \/                    \/  /_____/      \/       \/     \/          \/            \/     \/     \/    \/
 //
 
-// ErrLocalIDNotExist represents a "LocalIDNotExist" kind of error.
-type ErrLocalIDNotExist struct {
-	RepoID    int64
-	ForeignID int64
-	Type      string
+// ErrLocalIndexNotExist represents a "LocalIndexNotExist" kind of error.
+type ErrLocalIndexNotExist struct {
+	RepoID       int64
+	ForeignIndex int64
+	Type         string
 }
 
-// ErrLocalIDNotExist checks if an error is a ErrLocalIDNotExist.
-func IsErrLocalIDNotExist(err error) bool {
-	_, ok := err.(ErrLocalIDNotExist)
+// ErrLocalIndexNotExist checks if an error is a ErrLocalIndexNotExist.
+func IsErrLocalIndexNotExist(err error) bool {
+	_, ok := err.(ErrLocalIndexNotExist)
 	return ok
 }
 
-func (err ErrLocalIDNotExist) Error() string {
-	return fmt.Sprintf("repository %d has no LocalID for ForeignID %d of type %s", err.RepoID, err.ForeignID, err.Type)
+func (err ErrLocalIndexNotExist) Error() string {
+	return fmt.Sprintf("repository %d has no LocalIndex for ForeignIndex %d of type %s", err.RepoID, err.ForeignIndex, err.Type)
 }
 
-// ErrForeignIDNotExist represents a "ForeignIDNotExist" kind of error.
-type ErrForeignIDNotExist struct {
-	RepoID  int64
-	LocalID int64
-	Type    string
+// ErrForeignIndexNotExist represents a "ForeignIndexNotExist" kind of error.
+type ErrForeignIndexNotExist struct {
+	RepoID     int64
+	LocalIndex int64
+	Type       string
 }
 
-// ErrForeignIDNotExist checks if an error is a ErrForeignIDNotExist.
-func IsErrForeignIDNotExist(err error) bool {
-	_, ok := err.(ErrForeignIDNotExist)
+// ErrForeignIndexNotExist checks if an error is a ErrForeignIndexNotExist.
+func IsErrForeignIndexNotExist(err error) bool {
+	_, ok := err.(ErrForeignIndexNotExist)
 	return ok
 }
 
-func (err ErrForeignIDNotExist) Error() string {
-	return fmt.Sprintf("repository %d has no ForeignID for LocalID %d of type %s", err.RepoID, err.LocalID, err.Type)
+func (err ErrForeignIndexNotExist) Error() string {
+	return fmt.Sprintf("repository %d has no ForeignIndex for LocalIndex %d of type %s", err.RepoID, err.LocalIndex, err.Type)
 }

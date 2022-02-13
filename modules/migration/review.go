@@ -8,8 +8,8 @@ import "time"
 
 // Reviewable can be reviewed
 type Reviewable interface {
-	GetLocalID() int64
-	GetForeignID() int64
+	GetLocalIndex() int64
+	GetForeignIndex() int64
 }
 
 // enumerate all review states
