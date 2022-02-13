@@ -10,12 +10,12 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // FlushQueues flushes all the Queues
@@ -41,19 +41,19 @@ func FlushQueues(ctx *context.PrivateContext) {
 			Err: fmt.Sprintf("%v", err),
 		})
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // PauseLogging pauses logging
 func PauseLogging(ctx *context.PrivateContext) {
 	log.Pause()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ResumeLogging resumes logging
 func ResumeLogging(ctx *context.PrivateContext) {
 	log.Resume()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ReleaseReopenLogging releases and reopens logging files
@@ -64,7 +64,7 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // RemoveLogger removes a logger
@@ -81,7 +81,7 @@ func RemoveLogger(ctx *context.PrivateContext) {
 	if ok {
 		setting.RemoveSubLogDescription(group, name)
 	}
-	ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("Removed %s %s", group, name)))
+	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", group, name))
 }
 
 // AddLogger adds a logger
@@ -130,7 +130,6 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	bufferLen := setting.Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
@@ -155,5 +154,5 @@ func AddLogger(ctx *context.PrivateContext) {
 		Config:   config,
 	})
 
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }

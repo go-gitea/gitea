@@ -51,7 +51,6 @@ owner/repo!123456789
 }
 
 func TestFindAllIssueReferences(t *testing.T) {
-
 	fixtures := []testFixture{
 		{
 			"Simply closes: #29 yes",
@@ -481,7 +480,7 @@ func TestParseCloseKeywords(t *testing.T) {
 		{",$!", "", ""},
 		{"1234", "", ""},
 	} {
-		// The patern only needs to match the part that precedes the reference.
+		// The pattern only needs to match the part that precedes the reference.
 		// getCrossReference() takes care of finding the reference itself.
 		pat := makeKeywordsPat([]string{test.pattern})
 		if test.expected == "" {

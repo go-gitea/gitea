@@ -1,0 +1,29 @@
+<div class="ui tabs container">
+	<div class="ui secondary stackable pointing menu">
+		<a class="{{if .PageIsViewRepositories}}active{{end}} item" href="{{$.Org.HomeLink}}">
+			{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
+		</a>
+		{{if .IsOrganizationMember}}
+			<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">
+				{{svg "octicon-organization"}}&nbsp;{{$.i18n.Tr "org.people"}}
+				{{if .NumMembers}}
+					<div class="ui primary label">{{.NumMembers}}</div>
+				{{end}}
+			</a>
+			<a class="{{if $.PageIsOrgTeams}}active{{end}} item" href="{{$.OrgLink}}/teams">
+				{{svg "octicon-people"}}&nbsp;{{$.i18n.Tr "org.teams"}}
+				{{if .NumTeams}}
+					<div class="ui black label">{{.NumTeams}}</div>
+				{{end}}
+			</a>
+		{{end}}
+
+		{{if .IsOrganizationOwner}}
+			<div class="right menu">
+				<a class="{{if .PageIsOrgSettings}}active{{end}} item" href="{{.OrgLink}}/settings">
+				{{svg "octicon-tools"}} {{.i18n.Tr "repo.settings"}}
+				</a>
+			</div>
+		{{end}}
+	</div>
+</div>

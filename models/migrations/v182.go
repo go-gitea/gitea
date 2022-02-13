@@ -10,8 +10,8 @@ import (
 
 func addIssueResourceIndexTable(x *xorm.Engine) error {
 	type ResourceIndex struct {
-		GroupID  int64 `xorm:"index unique(s)"`
-		MaxIndex int64 `xorm:"index unique(s)"`
+		GroupID  int64 `xorm:"pk"`
+		MaxIndex int64 `xorm:"index"`
 	}
 
 	sess := x.NewSession()

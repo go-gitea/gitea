@@ -31,7 +31,10 @@ func Open(uriStr string) (io.ReadCloser, error) {
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https":
 		f, err := http.Get(uriStr)
-		return f.Body, err
+		if err != nil {
+			return nil, err
+		}
+		return f.Body, nil
 	case "file":
 		return os.Open(u.Path)
 	default:

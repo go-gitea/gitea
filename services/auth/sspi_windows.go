@@ -9,12 +9,16 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/avatars"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth/source/sspi"
+	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
@@ -32,7 +36,10 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ Auth = &SSPI{}
+	_ Method        = &SSPI{}
+	_ Named         = &SSPI{}
+	_ Initializable = &SSPI{}
+	_ Freeable      = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
@@ -57,7 +64,7 @@ func (s *SSPI) Init() error {
 		Funcs:         templates.NewFuncMap(),
 		Asset:         templates.GetAsset,
 		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd(),
+		IsDevelopment: !setting.IsProd,
 	})
 	return nil
 }
@@ -73,10 +80,10 @@ func (s *SSPI) Free() error {
 }
 
 // Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
-// If authentication is successful, returs the corresponding user object.
+// If authentication is successful, returns the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	if !s.shouldAuthenticate(req) {
 		return nil
 	}
@@ -119,9 +126,9 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 	log.Info("Authenticated as %s\n", username)
 
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(username)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
 			return nil
 		}
@@ -146,8 +153,8 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 }
 
 // getConfig retrieves the SSPI configuration from login sources
-func (s *SSPI) getConfig() (*models.SSPIConfig, error) {
-	sources, err := models.ActiveLoginSources(models.LoginSSPI)
+func (s *SSPI) getConfig() (*sspi.Source, error) {
+	sources, err := auth.ActiveSources(auth.SSPI)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +164,7 @@ func (s *SSPI) getConfig() (*models.SSPIConfig, error) {
 	if len(sources) > 1 {
 		return nil, errors.New("more than one active login source of type SSPI found")
 	}
-	return sources[0].SSPI(), nil
+	return sources[0].Cfg.(*sspi.Source), nil
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
@@ -177,9 +184,9 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(username string, cfg *models.SSPIConfig) (*models.User, error) {
+func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
-	user := &models.User{
+	user := &user_model.User{
 		Name:                         username,
 		Email:                        email,
 		KeepEmailPrivate:             true,
@@ -187,12 +194,15 @@ func (s *SSPI) newUser(username string, cfg *models.SSPIConfig) (*models.User, e
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       models.DefaultAvatarLink(),
-		EmailNotificationsPreference: models.EmailNotificationsDisabled,
+		Avatar:                       avatars.DefaultAvatarLink(),
+		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return nil, err
 	}
+
+	mailer.SendRegisterNotifyMail(user)
+
 	return user, nil
 }
 
@@ -214,7 +224,7 @@ func stripDomainNames(username string) string {
 	return username
 }
 
-func replaceSeparators(username string, cfg *models.SSPIConfig) string {
+func replaceSeparators(username string, cfg *sspi.Source) string {
 	newSep := cfg.SeparatorReplacement
 	username = strings.ReplaceAll(username, "\\", newSep)
 	username = strings.ReplaceAll(username, "/", newSep)
@@ -222,7 +232,7 @@ func replaceSeparators(username string, cfg *models.SSPIConfig) string {
 	return username
 }
 
-func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
+func sanitizeUsername(username string, cfg *sspi.Source) string {
 	if len(username) == 0 {
 		return ""
 	}
@@ -240,7 +250,7 @@ func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
 func specialInit() {
-	if models.IsSSPIEnabled() {
+	if auth.IsSSPIEnabled() {
 		Register(&SSPI{})
 	}
 }

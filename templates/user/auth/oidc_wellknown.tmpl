@@ -4,6 +4,7 @@
     "token_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/access_token",
     "jwks_uri": "{{AppUrl | JSEscape | Safe}}login/oauth/keys",
     "userinfo_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/userinfo",
+    "introspection_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/introspect",
     "response_types_supported": [
         "code",
         "id_token"
@@ -17,7 +18,8 @@
     "scopes_supported": [
         "openid",
         "profile",
-        "email"
+        "email",
+        "groups"
     ],
     "claims_supported": [
         "aud",
@@ -33,7 +35,8 @@
         "locale",
         "updated_at",
         "email",
-        "email_verified"
+        "email_verified",
+        "groups"
     ],
     "code_challenge_methods_supported": [
         "plain",

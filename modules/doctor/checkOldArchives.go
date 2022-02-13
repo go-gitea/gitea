@@ -5,18 +5,19 @@
 package doctor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
-func checkOldArchives(logger log.Logger, autofix bool) error {
+func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numReposUpdated := 0
-	err := iterateRepositories(func(repo *models.Repository) error {
+	err := iterateRepositories(func(repo *repo_model.Repository) error {
 		if repo.IsEmpty {
 			return nil
 		}

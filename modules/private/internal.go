@@ -5,19 +5,26 @@
 package private
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
-func newRequest(url, method string) *httplib.Request {
-	return httplib.NewRequest(url, method).Header("Authorization",
-		fmt.Sprintf("Bearer %s", setting.InternalToken))
+func newRequest(ctx context.Context, url, method string) *httplib.Request {
+	if setting.InternalToken == "" {
+		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
+Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
+	}
+	return httplib.NewRequest(url, method).
+		SetContext(ctx).
+		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
 }
 
 // Response internal request response
@@ -27,7 +34,6 @@ type Response struct {
 
 func decodeJSONError(resp *http.Response) *Response {
 	var res Response
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		res.Err = err.Error()
@@ -35,15 +41,16 @@ func decodeJSONError(resp *http.Response) *Response {
 	return &res
 }
 
-func newInternalRequest(url, method string) *httplib.Request {
-	req := newRequest(url, method).SetTLSClientConfig(&tls.Config{
+func newInternalRequest(ctx context.Context, url, method string) *httplib.Request {
+	req := newRequest(ctx, url, method).SetTLSClientConfig(&tls.Config{
 		InsecureSkipVerify: true,
 		ServerName:         setting.Domain,
 	})
-	if setting.Protocol == setting.UnixSocket {
+	if setting.Protocol == setting.HTTPUnix {
 		req.SetTransport(&http.Transport{
-			Dial: func(_, _ string) (net.Conn, error) {
-				return net.Dial("unix", setting.HTTPAddr)
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, "unix", setting.HTTPAddr)
 			},
 		})
 	}

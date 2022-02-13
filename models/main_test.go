@@ -7,15 +7,33 @@ package models
 import (
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	setting.SetCustomPathAndConf("", "", "")
+	setting.LoadForTest()
+}
+
 // TestFixturesAreConsistent assert that test fixtures are consistent
 func TestFixturesAreConsistent(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	CheckConsistencyForAll(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	unittest.CheckConsistencyFor(t,
+		&user_model.User{},
+		&repo_model.Repository{},
+		&Issue{},
+		&PullRequest{},
+		&Milestone{},
+		&Label{},
+		&Team{},
+		&Action{})
 }
 
 func TestMain(m *testing.M) {
-	MainTest(m, "..")
+	unittest.MainTest(m, "..")
 }

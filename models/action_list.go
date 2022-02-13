@@ -4,7 +4,13 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+)
 
 // ActionList defines a list of actions
 type ActionList []*Action
@@ -19,13 +25,13 @@ func (actions ActionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (actions ActionList) loadUsers(e Engine) ([]*User, error) {
+func (actions ActionList) loadUsers(e db.Engine) ([]*user_model.User, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
 
 	userIDs := actions.getUserIDs()
-	userMaps := make(map[int64]*User, len(userIDs))
+	userMaps := make(map[int64]*user_model.User, len(userIDs))
 	err := e.
 		In("id", userIDs).
 		Find(&userMaps)
@@ -40,8 +46,8 @@ func (actions ActionList) loadUsers(e Engine) ([]*User, error) {
 }
 
 // LoadUsers loads actions' all users
-func (actions ActionList) LoadUsers() ([]*User, error) {
-	return actions.loadUsers(x)
+func (actions ActionList) LoadUsers() ([]*user_model.User, error) {
+	return actions.loadUsers(db.GetEngine(db.DefaultContext))
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
@@ -54,13 +60,13 @@ func (actions ActionList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (actions ActionList) loadRepositories(e Engine) ([]*Repository, error) {
+func (actions ActionList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
 
 	repoIDs := actions.getRepoIDs()
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	err := e.
 		In("id", repoIDs).
 		Find(&repoMaps)
@@ -75,12 +81,12 @@ func (actions ActionList) loadRepositories(e Engine) ([]*Repository, error) {
 }
 
 // LoadRepositories loads actions' all repositories
-func (actions ActionList) LoadRepositories() ([]*Repository, error) {
-	return actions.loadRepositories(x)
+func (actions ActionList) LoadRepositories() ([]*repo_model.Repository, error) {
+	return actions.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 
 // loadAttributes loads all attributes
-func (actions ActionList) loadAttributes(e Engine) (err error) {
+func (actions ActionList) loadAttributes(e db.Engine) (err error) {
 	if _, err = actions.loadUsers(e); err != nil {
 		return
 	}
@@ -94,5 +100,5 @@ func (actions ActionList) loadAttributes(e Engine) (err error) {
 
 // LoadAttributes loads attributes of the actions
 func (actions ActionList) LoadAttributes() error {
-	return actions.loadAttributes(x)
+	return actions.loadAttributes(db.GetEngine(db.DefaultContext))
 }

@@ -15,6 +15,9 @@ ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql8/indexers/issues.
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/repos.bleve
 
+[queue]
+TYPE = immediate
+
 [queue.code_indexer]
 TYPE = immediate
 
@@ -42,7 +45,6 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2204
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-mysql8/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
@@ -77,9 +79,10 @@ PROVIDER_CONFIG = integrations/gitea-integration-mysql8/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = mysql8-log
+ROOT_PATH            = {{REPO_TEST_DIR}}mysql8-log
 ROUTER               = ,
 XORM                 = file
+ENABLE_SSH_LOG       = true
 
 [log.test]
 LEVEL                = Info
@@ -93,3 +96,6 @@ DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+
+[lfs]
+PATH = integrations/gitea-integration-mysql8/data/lfs

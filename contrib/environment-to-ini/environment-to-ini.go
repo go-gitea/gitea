@@ -156,6 +156,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		destination = setting.CustomConf
 	}
 	if destination != setting.CustomConf || changed {
+		log.Info("Settings saved to: %q", destination)
 		err = cfg.SaveTo(destination)
 		if err != nil {
 			return err
@@ -224,7 +225,6 @@ func DecodeSectionKey(encoded string) (string, string) {
 	if !inKey {
 		if splitter := strings.Index(remaining, "__"); splitter > -1 {
 			section += remaining[:splitter]
-			inKey = true
 			key += remaining[splitter+2:]
 		} else {
 			section += remaining

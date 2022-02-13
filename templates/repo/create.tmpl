@@ -1,6 +1,6 @@
 {{template "base/head" .}}
 <div class="page-content repository new repo">
-	<div class="ui middle very relaxed page grid">
+	<div class="ui middle very relaxed page one column grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
@@ -11,12 +11,12 @@
 					{{template "base/alert" .}}
 
 					{{if not $.DisableMigrations}}
-						<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" (printf "%s%s" AppSubUrl "/repo/migrate") | Safe}}</p>
+						<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
 					{{end}}
 
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">
-							<p>{{.i18n.Tr (TrN .i18n.Lang .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n") .MaxCreationLimit}}</p>
+							<p>{{.i18n.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
 						</div>
 					{{end}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
@@ -83,7 +83,7 @@
 								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_content"}}</label>
 							</div>
-							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} poping up{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
 								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_hooks"}}</label>
 							</div>

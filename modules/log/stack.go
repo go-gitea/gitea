@@ -7,13 +7,11 @@ package log
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"runtime"
 )
 
-var (
-	unknown = []byte("???")
-)
+var unknown = []byte("???")
 
 // Stack will skip back the provided number of frames and return a stack trace with source code.
 // Although we could just use debug.Stack(), this routine will return the source code and
@@ -38,7 +36,7 @@ func Stack(skip int) string {
 		fmt.Fprintf(buf, "%s:%d (0x%x)\n", filename, lineNumber, programCounter)
 		// Now try to print the offending line
 		if filename != lastFilename {
-			data, err := ioutil.ReadFile(filename)
+			data, err := os.ReadFile(filename)
 			if err != nil {
 				// can't read this sourcefile
 				// likely we don't have the sourcecode available

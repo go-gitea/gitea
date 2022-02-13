@@ -21,6 +21,8 @@ const (
 	ZIP ArchiveType = iota + 1
 	// TARGZ tar gz archive type
 	TARGZ
+	// BUNDLE bundle archive type
+	BUNDLE
 )
 
 // String converts an ArchiveType to string
@@ -30,6 +32,8 @@ func (a ArchiveType) String() string {
 		return "zip"
 	case TARGZ:
 		return "tar.gz"
+	case BUNDLE:
+		return "bundle"
 	}
 	return "unknown"
 }
@@ -53,7 +57,12 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	)
 
 	var stderr strings.Builder
-	err := NewCommandContext(ctx, args...).RunInDirPipeline(repo.Path, target, &stderr)
+	err := NewCommand(ctx, args...).RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdout:  target,
+		Stderr:  &stderr,
+	})
 	if err != nil {
 		return ConcatenateError(err, stderr.String())
 	}

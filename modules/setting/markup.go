@@ -15,8 +15,9 @@ import (
 
 // ExternalMarkupRenderers represents the external markup renderers
 var (
-	ExternalMarkupRenderers []*MarkupRenderer
-	ExternalSanitizerRules  []MarkupSanitizerRule
+	ExternalMarkupRenderers    []*MarkupRenderer
+	ExternalSanitizerRules     []MarkupSanitizerRule
+	MermaidMaxSourceCharacters int
 )
 
 // MarkupRenderer defines the external parser configured in ini
@@ -40,6 +41,7 @@ type MarkupSanitizerRule struct {
 }
 
 func newMarkup() {
+	MermaidMaxSourceCharacters = Cfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 
@@ -121,7 +123,7 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	extensionReg := regexp.MustCompile(`\.\w`)
 
 	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-	var exts = make([]string, 0, len(extensions))
+	exts := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
 		if !extensionReg.MatchString(extension) {
 			log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")

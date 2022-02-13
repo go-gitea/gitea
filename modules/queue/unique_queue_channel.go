@@ -8,7 +8,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -29,7 +32,7 @@ type ChannelUniqueQueueConfiguration ChannelQueueConfiguration
 type ChannelUniqueQueue struct {
 	*WorkerPool
 	lock               sync.Mutex
-	table              map[Data]bool
+	table              map[string]bool
 	shutdownCtx        context.Context
 	shutdownCtxCancel  context.CancelFunc
 	terminateCtx       context.Context
@@ -54,7 +57,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	queue := &ChannelUniqueQueue{
-		table:              map[Data]bool{},
+		table:              map[string]bool{},
 		shutdownCtx:        shutdownCtx,
 		shutdownCtxCancel:  shutdownCtxCancel,
 		terminateCtx:       terminateCtx,
@@ -63,13 +66,29 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		workers:            config.Workers,
 		name:               config.Name,
 	}
-	queue.WorkerPool = NewWorkerPool(func(data ...Data) {
+	queue.WorkerPool = NewWorkerPool(func(data ...Data) (unhandled []Data) {
 		for _, datum := range data {
+			// No error is possible here because PushFunc ensures that this can be marshalled
+			bs, _ := json.Marshal(datum)
+
 			queue.lock.Lock()
-			delete(queue.table, datum)
+			delete(queue.table, string(bs))
 			queue.lock.Unlock()
-			handle(datum)
+
+			if u := handle(datum); u != nil {
+				if queue.IsPaused() {
+					// We can only pushback to the channel if we're paused.
+					go func() {
+						if err := queue.Push(u[0]); err != nil {
+							log.Error("Unable to push back to queue %d. Error: %v", queue.qid, err)
+						}
+					}()
+				} else {
+					unhandled = append(unhandled, u...)
+				}
+			}
 		}
+		return unhandled
 	}, config.WorkerPoolConfiguration)
 
 	queue.qid = GetManager().Add(queue, ChannelUniqueQueueType, config, exemplar)
@@ -92,7 +111,12 @@ func (q *ChannelUniqueQueue) Push(data Data) error {
 // PushFunc will push data into the queue
 func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
+	}
+
+	bs, err := json.Marshal(data)
+	if err != nil {
+		return err
 	}
 	q.lock.Lock()
 	locked := true
@@ -101,16 +125,16 @@ func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 			q.lock.Unlock()
 		}
 	}()
-	if _, ok := q.table[data]; ok {
+	if _, ok := q.table[string(bs)]; ok {
 		return ErrAlreadyInQueue
 	}
 	// FIXME: We probably need to implement some sort of limit here
 	// If the downstream queue blocks this table will grow without limit
-	q.table[data] = true
+	q.table[string(bs)] = true
 	if fn != nil {
 		err := fn()
 		if err != nil {
-			delete(q.table, data)
+			delete(q.table, string(bs))
 			return err
 		}
 	}
@@ -122,10 +146,54 @@ func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 
 // Has checks if the data is in the queue
 func (q *ChannelUniqueQueue) Has(data Data) (bool, error) {
+	bs, err := json.Marshal(data)
+	if err != nil {
+		return false, err
+	}
+
 	q.lock.Lock()
 	defer q.lock.Unlock()
-	_, has := q.table[data]
+	_, has := q.table[string(bs)]
 	return has, nil
+}
+
+// Flush flushes the channel with a timeout - the Flush worker will be registered as a flush worker with the manager
+func (q *ChannelUniqueQueue) Flush(timeout time.Duration) error {
+	if q.IsPaused() {
+		return nil
+	}
+	ctx, cancel := q.commonRegisterWorkers(1, timeout, true)
+	defer cancel()
+	return q.FlushWithContext(ctx)
+}
+
+// FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
+func (q *ChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
+	log.Trace("ChannelUniqueQueue: %d Flush", q.qid)
+	paused, _ := q.IsPausedIsResumed()
+	for {
+		select {
+		case <-paused:
+			return nil
+		default:
+		}
+		select {
+		case data, ok := <-q.dataChan:
+			if !ok {
+				return nil
+			}
+			if unhandled := q.handle(data); unhandled != nil {
+				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
+			}
+			atomic.AddInt64(&q.numInQueue, -1)
+		case <-q.baseCtx.Done():
+			return q.baseCtx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			return nil
+		}
+	}
 }
 
 // Shutdown processing from this queue

@@ -5,6 +5,8 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -16,16 +18,16 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(user, doer *User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUser(user, doer *user_model.User) ([]*UserHeatmapData, error) {
 	return getUserHeatmapData(user, nil, doer)
 }
 
 // GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
-func GetUserHeatmapDataByUserTeam(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUserTeam(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	return getUserHeatmapData(user, team, doer)
 }
 
-func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData, error) {
+func getUserHeatmapData(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !activityReadable(user, doer) {
@@ -58,7 +60,7 @@ func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData,
 		return nil, err
 	}
 
-	return hdata, x.
+	return hdata, db.GetEngine(db.DefaultContext).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).

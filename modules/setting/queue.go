@@ -5,13 +5,13 @@
 package setting
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+
+	ini "gopkg.in/ini.v1"
 )
 
 // QueueSettings represent the settings for a queue from the ini
@@ -22,12 +22,8 @@ type QueueSettings struct {
 	BatchLength      int
 	ConnectionString string
 	Type             string
-	Network          string
-	Addresses        string
-	Password         string
 	QueueName        string
 	SetName          string
-	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
 	Timeout          time.Duration
@@ -83,7 +79,6 @@ func GetQueueSettings(name string) QueueSettings {
 	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
 
-	q.Network, q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
 }
 
@@ -100,7 +95,6 @@ func NewQueueService() {
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
 	defaultType := sec.Key("TYPE").String()
 	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
-	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
@@ -113,82 +107,90 @@ func NewQueueService() {
 	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
 	// Now handle the old issue_indexer configuration
+	// FIXME: DEPRECATED to be removed in v1.18.0
 	section := Cfg.Section("queue.issue_indexer")
-	sectionMap := map[string]bool{}
-	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = true
-	}
-	if _, ok := sectionMap["TYPE"]; !ok && defaultType == "" {
-		switch Indexer.IssueQueueType {
-		case LevelQueueType:
+	directlySet := toDirectlySetKeysMap(section)
+	if !directlySet["TYPE"] && defaultType == "" {
+		switch typ := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
+		case "levelqueue":
 			_, _ = section.NewKey("TYPE", "level")
-		case ChannelQueueType:
+		case "channel":
 			_, _ = section.NewKey("TYPE", "persistable-channel")
-		case RedisQueueType:
+		case "redis":
 			_, _ = section.NewKey("TYPE", "redis")
 		case "":
 			_, _ = section.NewKey("TYPE", "level")
 		default:
-			log.Fatal("Unsupported indexer queue type: %v",
-				Indexer.IssueQueueType)
+			log.Fatal("Unsupported indexer queue type: %v", typ)
 		}
 	}
-	if _, ok := sectionMap["LENGTH"]; !ok && Indexer.UpdateQueueLength != 0 {
-		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Indexer.UpdateQueueLength))
+	if !directlySet["LENGTH"] {
+		length := Cfg.Section("indexer").Key("UPDATE_BUFFER_LEN").MustInt(0)
+		if length != 0 {
+			_, _ = section.NewKey("LENGTH", strconv.Itoa(length))
+		}
 	}
-	if _, ok := sectionMap["BATCH_LENGTH"]; !ok && Indexer.IssueQueueBatchNumber != 0 {
-		_, _ = section.NewKey("BATCH_LENGTH", fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
+	if !directlySet["BATCH_LENGTH"] {
+		fallback := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
+		if fallback != 0 {
+			_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(fallback))
+		}
 	}
-	if _, ok := sectionMap["DATADIR"]; !ok && Indexer.IssueQueueDir != "" {
-		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
+	if !directlySet["DATADIR"] {
+		queueDir := filepath.ToSlash(Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
+		if queueDir != "" {
+			_, _ = section.NewKey("DATADIR", queueDir)
+		}
 	}
-	if _, ok := sectionMap["CONN_STR"]; !ok && Indexer.IssueQueueConnStr != "" {
-		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
+	if !directlySet["CONN_STR"] {
+		connStr := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
+		if connStr != "" {
+			_, _ = section.NewKey("CONN_STR", connStr)
+		}
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	// - will need to set default for [queue.*)] LENGTH appropriately though though
+
 	// Handle the old mailer configuration
-	section = Cfg.Section("queue.mailer")
-	sectionMap = map[string]bool{}
-	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = true
-	}
-	if _, ok := sectionMap["LENGTH"]; !ok {
-		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
-	}
+	handleOldLengthConfiguration("mailer", "mailer", "SEND_BUFFER_LEN", 100)
 
 	// Handle the old test pull requests configuration
 	// Please note this will be a unique queue
-	section = Cfg.Section("queue.pr_patch_checker")
-	sectionMap = map[string]bool{}
-	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = true
+	handleOldLengthConfiguration("pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH", 1000)
+
+	// Handle the old mirror queue configuration
+	// Please note this will be a unique queue
+	handleOldLengthConfiguration("mirror", "repository", "MIRROR_QUEUE_LENGTH", 1000)
+}
+
+// handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
+// if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
+func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultValue int) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated fallback for %s queue length `[%s]` `%s` present. Use `[queue.%s]` `LENGTH`. This will be removed in v1.18.0", queueName, queueName, oldSection, oldKey)
 	}
-	if _, ok := sectionMap["LENGTH"]; !ok {
-		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
+	value := Cfg.Section(oldSection).Key(oldKey).MustInt(defaultValue)
+
+	// Don't override with 0
+	if value <= 0 {
+		return
+	}
+
+	section := Cfg.Section("queue." + queueName)
+	directlySet := toDirectlySetKeysMap(section)
+	if !directlySet["LENGTH"] {
+		_, _ = section.NewKey("LENGTH", strconv.Itoa(value))
 	}
 }
 
-// ParseQueueConnStr parses a queue connection string
-func ParseQueueConnStr(connStr string) (network, addrs, password string, dbIdx int, err error) {
-	fields := strings.Fields(connStr)
-	for _, f := range fields {
-		items := strings.SplitN(f, "=", 2)
-		if len(items) < 2 {
-			continue
-		}
-		switch strings.ToLower(items[0]) {
-		case "network":
-			network = items[1]
-		case "addrs":
-			addrs = items[1]
-		case "password":
-			password = items[1]
-		case "db":
-			dbIdx, err = strconv.Atoi(items[1])
-			if err != nil {
-				return
-			}
-		}
+// toDirectlySetKeysMap returns a bool map of keys directly set by this section
+// Note: we cannot use section.HasKey(...) as that will immediately set the Key if a parent section has the Key
+// but this section does not.
+func toDirectlySetKeysMap(section *ini.Section) map[string]bool {
+	sectionMap := map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
 	}
-	return
+	return sectionMap
 }

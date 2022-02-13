@@ -5,7 +5,8 @@
 package explore
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,10 +31,10 @@ func Organizations(ctx *context.Context) {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
-	RenderUserSearch(ctx, &models.SearchUserOptions{
+	RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor:       ctx.User,
-		Type:        models.UserTypeOrganization,
-		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		Type:        user_model.UserTypeOrganization,
+		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
 	}, tplExploreOrganizations)
 }

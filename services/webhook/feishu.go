@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -35,12 +35,8 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 	}
 }
 
-// SetSecret sets the Feishu secret
-func (f *FeishuPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the FeishuPayload to json
 func (f *FeishuPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -48,9 +44,7 @@ func (f *FeishuPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
-var (
-	_ PayloadConvertor = &FeishuPayload{}
-)
+var _ PayloadConvertor = &FeishuPayload{}
 
 // Create implements PayloadConvertor Create method
 func (f *FeishuPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
@@ -84,7 +78,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		commitDesc string
 	)
 
-	var text = fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
+	text := fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
@@ -124,7 +118,7 @@ func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 }
 
 // Review implements PayloadConvertor Review method
-func (f *FeishuPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (f *FeishuPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	action, err := parseHookPullRequestEventType(event)
 	if err != nil {
 		return nil, err
@@ -159,6 +153,6 @@ func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetFeishuPayload converts a ding talk webhook into a FeishuPayload
-func GetFeishuPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(FeishuPayload), p, event)
 }

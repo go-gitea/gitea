@@ -1,7 +1,7 @@
 <div class="inline field">
 	<label>{{.i18n.Tr "repo.migrate_options"}}</label>
 	<div class="ui checkbox">
-		{{if .DisableMirrors}}
+		{{if .DisableNewPullMirrors}}
 			<input id="mirror" name="mirror" type="checkbox" readonly>
 			<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
 		{{else}}

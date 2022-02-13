@@ -14,7 +14,7 @@
 						<label for="clone_addr">{{.i18n.Tr "repo.migrate.clone_address"}}</label>
 						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 						<span class="help">
-						{{.i18n.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate.clone_local_path"}}{{end}}
+						{{.i18n.Tr "repo.migrate.clone_address_desc"}}
 						</span>
 					</div>
 
@@ -22,23 +22,22 @@
 						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 						<a target="_blank" href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">{{svg "octicon-question"}}</a>
+						<span class="help">
+						{{.i18n.Tr "repo.migrate.github_token_desc"}}
+						</span>
 					</div>
 
 					{{template "repo/migrate/options" .}}
 
-					<span class="help">{{.i18n.Tr "repo.migrate.migrate_items_options"}}</span>
-					<div id="migrate_items">
-						<div class="inline field">
-							<label>{{.i18n.Tr "repo.migrate_items"}}</label>
-							<div class="ui checkbox">
-								<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_wiki" | Safe}}</label>
-							</div>
-							<div class="ui checkbox">
-								<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
-							</div>
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.migrate_items"}}</label>
+						<div class="ui checkbox">
+							<input name="wiki" type="checkbox" {{if .wiki}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.migrate_items_wiki" | Safe}}</label>
 						</div>
+					</div>
+					<div id="migrate_items">
+						<span class="help">{{.i18n.Tr "repo.migrate.migrate_items_options"}}</span>
 						<div class="inline field">
 							<label></label>
 							<div class="ui checkbox">
@@ -59,6 +58,13 @@
 							<div class="ui checkbox">
 								<input name="releases" type="checkbox" {{if .releases}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.migrate_items_releases" | Safe}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="milestones" type="checkbox" {{if .milestones}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
 							</div>
 						</div>
 					</div>

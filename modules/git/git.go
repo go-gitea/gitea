@@ -35,8 +35,8 @@ var (
 
 	gitVersion *version.Version
 
-	// will be checked on Init
-	goVersionLessThan115 = true
+	// SupportProcReceive version >= 2.29.0
+	SupportProcReceive bool
 )
 
 // LocalVersion returns current Git version from shell.
@@ -54,7 +54,7 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, err := NewCommand("version").Run()
+	stdout, err := NewCommand(context.Background(), "version").Run()
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ func SetExecutablePath(path string) error {
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	var format = "Git Version: %s"
-	var args = []interface{}{gitVersion.Original()}
+	format := "Git Version: %s"
+	args := []interface{}{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -131,30 +131,27 @@ func Init(ctx context.Context) error {
 	}
 
 	// force cleanup args
-	GlobalCommandArgs = []string{}
+	globalCommandArgs = []string{}
 
 	if CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "credential.helper=")
+		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
 	}
 
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "protocol.version=2")
+		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
+	}
+
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true")
 	}
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
 	if err := LoadGitVersion(); err != nil {
 		return err
 	}
-
-	// Save if the go version used to compile gitea is greater or equal 1.15
-	runtimeVersion, err := version.NewVersion(strings.TrimPrefix(runtime.Version(), "go"))
-	if err != nil {
-		return err
-	}
-	version115, _ := version.NewVersion("1.15")
-	goVersionLessThan115 = runtimeVersion.LessThan(version115)
 
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
@@ -183,10 +180,29 @@ func Init(ctx context.Context) error {
 		}
 	}
 
+	if CheckGitVersionAtLeast("2.29") == nil {
+		// set support for AGit flow
+		if err := checkAndAddConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		SupportProcReceive = true
+	} else {
+		if err := checkAndRemoveConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		SupportProcReceive = false
+	}
+
 	if runtime.GOOS == "windows" {
 		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
 			return err
 		}
+	}
+	if setting.Git.DisableCoreProtectNTFS {
+		if err := checkAndSetConfig("core.protectntfs", "false", true); err != nil {
+			return err
+		}
+		globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
 	}
 	return nil
 }
@@ -232,12 +248,57 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 	return nil
 }
 
+func checkAndAddConfig(key, value string) error {
+	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
+	if err != nil {
+		perr, ok := err.(*process.Error)
+		if !ok {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		eerr, ok := perr.Err.(*exec.ExitError)
+		if !ok || eerr.ExitCode() != 1 {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		if eerr.ExitCode() == 1 {
+			if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--add", key, value); err != nil {
+				return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+			}
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func checkAndRemoveConfig(key, value string) error {
+	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
+	if err != nil {
+		perr, ok := err.(*process.Error)
+		if !ok {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		eerr, ok := perr.Err.(*exec.ExitError)
+		if !ok || eerr.ExitCode() != 1 {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		if eerr.ExitCode() == 1 {
+			return nil
+		}
+	}
+
+	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--unset-all", key, value); err != nil {
+		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+	}
+
+	return nil
+}
+
 // Fsck verifies the connectivity and validity of the objects in the database
 func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...string) error {
 	// Make sure timeout makes sense.
 	if timeout <= 0 {
 		timeout = -1
 	}
-	_, err := NewCommandContext(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
+	_, err := NewCommand(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
 	return err
 }

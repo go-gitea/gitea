@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package lfs
@@ -50,7 +51,6 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 			return nil
 		})
 	}()
-
 	if err != nil {
 		select {
 		case <-ctx.Done():

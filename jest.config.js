@@ -1,11 +1,12 @@
 export default {
-  setupFilesAfterEnv: ['jest-extended'],
-  testTimeout: 20000,
   rootDir: 'web_src',
-  testMatch: [
-    '<rootDir>/**/*.test.js',
-  ],
-  transform: {},
+  setupFilesAfterEnv: ['jest-extended/all'],
+  testEnvironment: 'jsdom',
+  testMatch: ['<rootDir>/**/*.test.js'],
+  testTimeout: 20000,
+  transform: {
+    '\\.svg$': 'jest-raw-loader',
+  },
   verbose: false,
 };
 

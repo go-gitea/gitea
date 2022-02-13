@@ -94,6 +94,7 @@ func GetActiveStopwatch(c *context.Context) {
 	}
 
 	c.Data["ActiveStopwatch"] = StopwatchTmplInfo{
+		issue.Link(),
 		issue.Repo.FullName(),
 		issue.Index,
 		sw.Seconds() + 1, // ensure time is never zero in ui
@@ -102,6 +103,7 @@ func GetActiveStopwatch(c *context.Context) {
 
 // StopwatchTmplInfo is a view on a stopwatch specifically for template rendering
 type StopwatchTmplInfo struct {
+	IssueLink  string
 	RepoSlug   string
 	IssueIndex int64
 	Seconds    int64

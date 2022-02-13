@@ -7,11 +7,11 @@
 			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.patch" download="{{.Issue.Index}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
 			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.diff" download="{{.Issue.Index}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
 		{{else if $.PageIsWiki}}
-			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{.Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
-			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{.Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
+			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
 		{{else if .Commit.ID.String}}
-			<a class="item" href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
-			<a class="item" href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
+			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
 		{{end}}
 	</div>
 </div>

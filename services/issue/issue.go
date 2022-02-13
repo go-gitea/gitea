@@ -6,13 +6,16 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
+func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
@@ -23,7 +26,7 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), issue.Poster, issue.Content)
+	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
@@ -40,7 +43,7 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err error) {
+func ChangeTitle(issue *models.Issue, doer *user_model.User, title string) (err error) {
 	oldTitle := issue.Title
 	issue.Title = title
 
@@ -54,7 +57,7 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 }
 
 // ChangeIssueRef changes the branch of this issue, as the given user.
-func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) error {
+func ChangeIssueRef(issue *models.Issue, doer *user_model.User, ref string) error {
 	oldRef := issue.Ref
 	issue.Ref = ref
 
@@ -73,8 +76,8 @@ func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) error {
 // "assignees" (array): Logins for Users to assign to this issue.
 // Pass one or more user logins to replace the set of assignees on this Issue.
 // Send an empty array ([]) to clear all assignees from the Issue.
-func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees []string, doer *models.User) (err error) {
-	var allNewAssignees []*models.User
+func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees []string, doer *user_model.User) (err error) {
+	var allNewAssignees []*user_model.User
 
 	// Keep the old assignee thingy for compatibility reasons
 	if oneAssignee != "" {
@@ -94,7 +97,7 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 
 	// Loop through all assignees to add them
 	for _, assigneeName := range multipleAssignees {
-		assignee, err := models.GetUserByName(assigneeName)
+		assignee, err := user_model.GetUserByName(assigneeName)
 		if err != nil {
 			return err
 		}
@@ -124,8 +127,8 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID int64) (err error) {
-	assignee, err := models.GetUserByID(assigneeID)
+func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assigneeID int64) (err error) {
+	assignee, err := user_model.GetUserByID(assigneeID)
 	if err != nil {
 		return err
 	}
@@ -159,8 +162,8 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
 // and their respective URLs.
 func GetRefEndNamesAndURLs(issues []*models.Issue, repoLink string) (map[int64]string, map[int64]string) {
-	var issueRefEndNames = make(map[int64]string, len(issues))
-	var issueRefURLs = make(map[int64]string, len(issues))
+	issueRefEndNames := make(map[int64]string, len(issues))
+	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
 			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)

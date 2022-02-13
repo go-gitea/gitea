@@ -37,13 +37,15 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /git/ { # Note: Trailing slash
-        proxy_pass http://localhost:3000/; # Note: Trailing slash
+    # 注意: /git/ 最后需要有一个路径符号
+    location /git/ { 
+        # 注意: 反向代理后端 URL 的最后需要有一个路径符号
+        proxy_pass http://localhost:3000/;
     }
 }
 ```
 
-然后在您的 Gitea 配置文件中添加 `[server] ROOT_URL = http://git.example.com/git/`。
+然后您**必须**在 Gitea 的配置文件中正确的添加类似 `[server] ROOT_URL = http://git.example.com/git/` 的配置项。
 
 ## 使用 Apache HTTPD 作为反向代理服务
 
@@ -56,7 +58,6 @@ server {
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
-    ProxyPassReverse / http://localhost:3000/
 </VirtualHost>
 ```
 
@@ -74,13 +75,12 @@ server {
          Allow from all
     </Proxy>
     AllowEncodedSlashes NoDecode
-    # Note: no trailing slash after either /git or port
+    # 注意: 路径和 URL 后面都不要写路径符号 '/'
     ProxyPass /git http://localhost:3000 nocanon
-    ProxyPassReverse /git http://localhost:3000
 </VirtualHost>
 ```
 
-然后在您的 Gitea 配置文件中添加 `[server] ROOT_URL = http://git.example.com/git/`。
+然后您**必须**在 Gitea 的配置文件中正确的添加类似 `[server] ROOT_URL = http://git.example.com/git/` 的配置项。
 
 注：必须启用以下 Apache HTTPD 组件：`proxy`， `proxy_http`
 
@@ -100,8 +100,9 @@ git.example.com {
 
 ```
 git.example.com {
-    proxy /git/ http://localhost:3000 # Note: Trailing Slash after /git/
+    # 注意: 路径 /git/ 最后需要有路径符号
+    proxy /git/ http://localhost:3000
 }
 ```
 
-然后在您的 Gitea 配置文件中添加 `[server] ROOT_URL = http://git.example.com/git/`。
+然后您**必须**在 Gitea 的配置文件中正确的添加类似 `[server] ROOT_URL = http://git.example.com/git/` 的配置项。

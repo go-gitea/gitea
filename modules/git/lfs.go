@@ -16,8 +16,8 @@ var once sync.Once
 // CheckLFSVersion will check lfs version, if not satisfied, then disable it.
 func CheckLFSVersion() {
 	if setting.LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
+		// Disable LFS client hooks if installed for the current OS user
+		// Needs at least git v2.1.2
 
 		err := LoadGitVersion()
 		if err != nil {
@@ -29,7 +29,7 @@ func CheckLFSVersion() {
 			logger.Error("LFS server support needs at least Git v2.1.2")
 		} else {
 			once.Do(func() {
-				GlobalCommandArgs = append(GlobalCommandArgs, "-c", "filter.lfs.required=",
+				globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=",
 					"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 			})
 		}

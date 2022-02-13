@@ -44,7 +44,7 @@ func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
 	return doc.doc.Find(selector)
 }
 
-// GetCSRF for get CSRC token value from input
+// GetCSRF for getting CSRF token value from input
 func (doc *HTMLDoc) GetCSRF() string {
 	return doc.GetInputValueByName("_csrf")
 }

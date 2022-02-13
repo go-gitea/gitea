@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/urfave/cli"
 )
@@ -76,7 +76,10 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 }
 
 func runDumpRepository(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -84,7 +87,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
-	setting.InitDBConfig()
+	log.Info("Configuration file: %s", setting.CustomConf)
 
 	var (
 		serviceType structs.GitServiceType
@@ -104,7 +107,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	}
 	serviceType = convert.ToGitServiceType(serviceStr)
 
-	var opts = base.MigrateOptions{
+	opts := base.MigrateOptions{
 		GitServiceType: serviceType,
 		CloneAddr:      cloneAddr,
 		AuthUsername:   ctx.String("auth_username"),

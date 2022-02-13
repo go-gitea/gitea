@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -25,18 +24,18 @@ func str2url(raw string) *url.URL {
 func TestDetermineLocalEndpoint(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	root, _ := ioutil.TempDir("", "lfs_test")
+	root, _ := os.MkdirTemp("", "lfs_test")
 	defer os.RemoveAll(root)
 
-	rootdotgit, _ := ioutil.TempDir("", "lfs_test")
+	rootdotgit, _ := os.MkdirTemp("", "lfs_test")
 	defer os.RemoveAll(rootdotgit)
-	os.Mkdir(filepath.Join(rootdotgit, ".git"), 0700)
+	os.Mkdir(filepath.Join(rootdotgit, ".git"), 0o700)
 
-	lfsroot, _ := ioutil.TempDir("", "lfs_test")
+	lfsroot, _ := os.MkdirTemp("", "lfs_test")
 	defer os.RemoveAll(lfsroot)
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		cloneurl string
 		lfsurl   string
 		expected *url.URL

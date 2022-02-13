@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -32,6 +33,10 @@ type Upload struct {
 	ID   int64  `xorm:"pk autoincr"`
 	UUID string `xorm:"uuid UNIQUE"`
 	Name string
+}
+
+func init() {
+	db.RegisterModel(new(Upload))
 }
 
 // UploadLocalPath returns where uploads is stored in local file system based on given UUID.
@@ -68,7 +73,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 		return nil, fmt.Errorf("Copy: %v", err)
 	}
 
-	if _, err := x.Insert(upload); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).Insert(upload); err != nil {
 		return nil, err
 	}
 
@@ -78,7 +83,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 // GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
 	upload := &Upload{}
-	has, err := x.Where("uuid=?", uuid).Get(upload)
+	has, err := db.GetEngine(db.DefaultContext).Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -95,7 +100,7 @@ func GetUploadsByUUIDs(uuids []string) ([]*Upload, error) {
 
 	// Silently drop invalid uuids.
 	uploads := make([]*Upload, 0, len(uuids))
-	return uploads, x.In("uuid", uuids).Find(&uploads)
+	return uploads, db.GetEngine(db.DefaultContext).In("uuid", uuids).Find(&uploads)
 }
 
 // DeleteUploads deletes multiple uploads
@@ -104,23 +109,23 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	ids := make([]int64, len(uploads))
 	for i := 0; i < len(uploads); i++ {
 		ids[i] = uploads[i].ID
 	}
-	if _, err = sess.
+	if _, err = db.GetEngine(ctx).
 		In("id", ids).
 		Delete(new(Upload)); err != nil {
 		return fmt.Errorf("delete uploads: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
 

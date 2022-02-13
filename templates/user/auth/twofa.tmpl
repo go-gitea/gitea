@@ -11,7 +11,7 @@
 					{{template "base/alert" .}}
 					<div class="required inline field">
 						<label for="passcode">{{.i18n.Tr "passcode"}}</label>
-						<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
+						<input id="passcode" name="passcode" type="text" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" autofocus required>
 					</div>
 
 					<div class="inline field">

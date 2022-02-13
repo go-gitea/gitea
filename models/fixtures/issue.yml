@@ -172,3 +172,15 @@
   is_pull: false
   created_unix: 1602935696
   updated_unix: 1602935696
+
+-
+  id: 15
+  repo_id: 5
+  index: 1
+  poster_id: 2
+  name: issue in repo not linked to team1
+  content: content
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696

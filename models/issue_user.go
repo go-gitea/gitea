@@ -5,7 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
+
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 )
 
 // IssueUser represents an issue-user relation.
@@ -17,8 +21,12 @@ type IssueUser struct {
 	IsMentioned bool
 }
 
-func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
+func init() {
+	db.RegisterModel(new(IssueUser))
+}
+
+func newIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
+	assignees, err := getRepoAssignees(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)
 	}
@@ -43,35 +51,32 @@ func newIssueUsers(e Engine, repo *Repository, issue *Issue) error {
 		})
 	}
 
-	if _, err = e.Insert(issueUsers); err != nil {
-		return err
-	}
-	return nil
+	return db.Insert(ctx, issueUsers)
 }
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
 func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := x.Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
+	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
 	return err
 }
 
 // UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(ctx DBContext, issueID int64, uids []int64) error {
+func UpdateIssueUsersByMentions(ctx context.Context, issueID int64, uids []int64) error {
 	for _, uid := range uids {
 		iu := &IssueUser{
 			UID:     uid,
 			IssueID: issueID,
 		}
-		has, err := ctx.e.Get(iu)
+		has, err := db.GetEngine(ctx).Get(iu)
 		if err != nil {
 			return err
 		}
 
 		iu.IsMentioned = true
 		if has {
-			_, err = ctx.e.ID(iu.ID).Cols("is_mentioned").Update(iu)
+			_, err = db.GetEngine(ctx).ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
-			_, err = ctx.e.Insert(iu)
+			_, err = db.GetEngine(ctx).Insert(iu)
 		}
 		if err != nil {
 			return err

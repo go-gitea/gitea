@@ -10,6 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,16 +21,16 @@ import (
 func TestAPINotification(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	thread5 := models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
 
 	// -- GET /notifications --
 	// test filter
-	since := "2000-01-01T00%3A50%3A01%2B00%3A00" //946687801
+	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?since=%s&token=%s", since, token))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiNL []api.NotificationThread
@@ -37,7 +40,7 @@ func TestAPINotification(t *testing.T) {
 	assert.EqualValues(t, 5, apiNL[0].ID)
 
 	// test filter
-	before := "2000-01-01T01%3A06%3A59%2B00%3A00" //946688819
+	before := "2000-01-01T01%3A06%3A59%2B00%3A00" // 946688819
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=%s&before=%s&token=%s", "true", before, token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -62,10 +65,23 @@ func TestAPINotification(t *testing.T) {
 	assert.Len(t, apiNL, 1)
 	assert.EqualValues(t, 4, apiNL[0].ID)
 
+	// -- GET /repos/{owner}/{repo}/notifications -- multiple status-types
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&status-types=pinned&token=%s", user2.Name, repo1.Name, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 2)
+	assert.EqualValues(t, 4, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+	assert.EqualValues(t, 3, apiNL[1].ID)
+	assert.False(t, apiNL[1].Unread)
+	assert.True(t, apiNL[1].Pinned)
+
 	// -- GET /notifications/threads/{id} --
 	// get forbidden
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", 1, token))
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	// get own
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", thread5.ID, token))
@@ -97,9 +113,9 @@ func TestAPINotification(t *testing.T) {
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 2)
 
-	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" //946687801 <- only Notification 4 is in this filter ...
+	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
-	resp = session.MakeRequest(t, req, http.StatusResetContent)
+	session.MakeRequest(t, req, http.StatusResetContent)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?status-types=unread&token=%s", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -108,10 +124,10 @@ func TestAPINotification(t *testing.T) {
 
 	// -- PATCH /notifications/threads/{id} --
 	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", thread5.ID, token))
-	resp = session.MakeRequest(t, req, http.StatusResetContent)
+	session.MakeRequest(t, req, http.StatusResetContent)
 
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
-	thread5 = models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
 
 	// -- check notifications --
@@ -119,4 +135,58 @@ func TestAPINotification(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &new)
 	assert.True(t, new.New == 0)
+}
+
+func TestAPINotificationPUT(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	assert.NoError(t, thread5.LoadAttributes())
+	session := loginUser(t, user2.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	// Check notifications are as expected
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=true&token=%s", token))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiNL []api.NotificationThread
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 4)
+	assert.EqualValues(t, 5, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+	assert.EqualValues(t, 4, apiNL[1].ID)
+	assert.True(t, apiNL[1].Unread)
+	assert.False(t, apiNL[1].Pinned)
+	assert.EqualValues(t, 3, apiNL[2].ID)
+	assert.False(t, apiNL[2].Unread)
+	assert.True(t, apiNL[2].Pinned)
+	assert.EqualValues(t, 2, apiNL[3].ID)
+	assert.False(t, apiNL[3].Unread)
+	assert.False(t, apiNL[3].Pinned)
+
+	//
+	// Notification ID 2 is the only one with status-type read & pinned
+	// change it to unread.
+	//
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/notifications?status-types=read&status-type=pinned&to-status=unread&token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusResetContent)
+	DecodeJSON(t, resp, &apiNL)
+	assert.Len(t, apiNL, 1)
+	assert.EqualValues(t, 2, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+
+	//
+	// Now nofication ID 2 is the first in the list and is unread.
+	//
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=true&token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 4)
+	assert.EqualValues(t, 2, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
 }

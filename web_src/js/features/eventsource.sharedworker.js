@@ -67,7 +67,7 @@ class Source {
   }
 }
 
-self.onconnect = (e) => {
+self.addEventListener('connect', (e) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event) => {
       if (event.data.type === 'start') {
@@ -131,4 +131,4 @@ self.onconnect = (e) => {
     });
     port.start();
   }
-};
+});

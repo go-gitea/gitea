@@ -6,9 +6,10 @@ package explore
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -30,55 +31,58 @@ type RepoSearchOptions struct {
 
 // RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
 	var (
-		repos   []*models.Repository
+		repos   []*repo_model.Repository
 		count   int64
 		err     error
-		orderBy models.SearchOrderBy
+		orderBy db.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByNewest
+		orderBy = db.SearchOrderByNewest
 	case "oldest":
-		orderBy = models.SearchOrderByOldest
+		orderBy = db.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
+		orderBy = db.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = db.SearchOrderByAlphabetically
 	case "reversesize":
-		orderBy = models.SearchOrderBySizeReverse
+		orderBy = db.SearchOrderBySizeReverse
 	case "size":
-		orderBy = models.SearchOrderBySize
+		orderBy = db.SearchOrderBySize
 	case "moststars":
-		orderBy = models.SearchOrderByStarsReverse
+		orderBy = db.SearchOrderByStarsReverse
 	case "feweststars":
-		orderBy = models.SearchOrderByStars
+		orderBy = db.SearchOrderByStars
 	case "mostforks":
-		orderBy = models.SearchOrderByForksReverse
+		orderBy = db.SearchOrderByForksReverse
 	case "fewestforks":
-		orderBy = models.SearchOrderByForks
+		orderBy = db.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	topicOnly := ctx.QueryBool("topic")
+	keyword := ctx.FormTrim("q")
+	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
 		},
@@ -90,6 +94,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		AllPublic:          true,
 		AllLimited:         true,
 		TopicOnly:          topicOnly,
+		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
@@ -104,6 +109,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
+	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)

@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"html"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 
@@ -23,8 +22,7 @@ func init() {
 }
 
 // Renderer implements markup.Renderer for csv files
-type Renderer struct {
-}
+type Renderer struct{}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
@@ -84,10 +82,10 @@ func writeField(w io.Writer, element, class, field string) error {
 
 // Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	var tmpBlock = bufio.NewWriter(output)
+	tmpBlock := bufio.NewWriter(output)
 
 	// FIXME: don't read all to memory
-	rawBytes, err := ioutil.ReadAll(input)
+	rawBytes, err := io.ReadAll(input)
 	if err != nil {
 		return err
 	}
@@ -103,7 +101,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		return err
 	}
 
-	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
+	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
 	if err != nil {
 		return err
 	}

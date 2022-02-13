@@ -5,30 +5,32 @@
 package queue
 
 import (
-	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLevelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
-	handle := func(data ...Data) {
+	handle := func(data ...Data) []Data {
 		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
+		return nil
 	}
 
 	var lock sync.Mutex
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := ioutil.TempDir("", "level-queue-test-data")
+	tmpDir, err := os.MkdirTemp("", "level-queue-test-data")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 

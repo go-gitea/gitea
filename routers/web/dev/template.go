@@ -7,7 +7,7 @@ package dev
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,7 +16,7 @@ import (
 
 // TemplatePreview render for previewing the indicated template
 func TemplatePreview(ctx *context.Context) {
-	ctx.Data["User"] = models.User{Name: "Unknown"}
+	ctx.Data["User"] = user_model.User{Name: "Unknown"}
 	ctx.Data["AppName"] = setting.AppName
 	ctx.Data["AppVer"] = setting.AppVer
 	ctx.Data["AppUrl"] = setting.AppURL

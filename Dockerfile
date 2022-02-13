@@ -1,7 +1,5 @@
-
-###################################
 #Build stage
-FROM golang:1.16-alpine3.13 AS build-env
+FROM golang:1.17-alpine3.15 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -25,7 +23,7 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
 # Begin env-to-ini build
 RUN go build contrib/environment-to-ini/environment-to-ini.go
 
-FROM alpine:3.13
+FROM alpine:3.15
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
@@ -66,4 +64,5 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
-RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
+RUN chmod 755 /usr/bin/entrypoint /app/gitea/gitea /usr/local/bin/gitea /usr/local/bin/environment-to-ini
+RUN chmod 755 /etc/s6/gitea/* /etc/s6/openssh/* /etc/s6/.s6-svscan/*

@@ -208,7 +208,7 @@ Please check [Gitea's logs](https://docs.gitea.io/en-us/logging-configuration/) 
     {{end}}
     <p>
         <p>
-        <a href="{{AppURL}}/{{.Doer.LowerName}}">@{{.Doer.Name}}</a>
+        <a href="{{AppUrl}}/{{.Doer.LowerName}}">@{{.Doer.Name}}</a>
         {{if not (eq .Doer.FullName "")}}
             ({{.Doer.FullName}})
         {{end}}

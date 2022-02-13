@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ServeBlob download a git.Blob
@@ -42,8 +43,8 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, err := reader.Read(buf)
-	if err != nil && err != io.EOF {
+	n, err := util.ReadAtMost(reader, buf)
+	if err != nil {
 		return err
 	}
 	if n >= 0 {
@@ -64,16 +65,26 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 
 	st := typesniffer.DetectContentType(buf)
 
-	if st.IsText() || ctx.QueryBool("render") {
+	mappedMimeType := ""
+	if setting.MimeTypeMap.Enabled {
+		fileExtension := strings.ToLower(filepath.Ext(name))
+		mappedMimeType = setting.MimeTypeMap.Map[fileExtension]
+	}
+	if st.IsText() || ctx.FormBool("render") {
 		cs, err := charset.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
-		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
+		if mappedMimeType == "" {
+			mappedMimeType = "text/plain"
+		}
+		ctx.Resp.Header().Set("Content-Type", mappedMimeType+"; charset="+strings.ToLower(cs))
 	} else {
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-
+		if mappedMimeType != "" {
+			ctx.Resp.Header().Set("Content-Type", mappedMimeType)
+		}
 		if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 			if st.IsSvgImage() {
@@ -83,12 +94,6 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 			}
 		} else {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
-			if setting.MimeTypeMap.Enabled {
-				fileExtension := strings.ToLower(filepath.Ext(name))
-				if mimetype, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
-					ctx.Resp.Header().Set("Content-Type", mimetype)
-				}
-			}
 		}
 	}
 
