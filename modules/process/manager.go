@@ -123,7 +123,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	finished := func() {
 		cancel()
 		pm.remove(process)
-		log.Trace("Finished Process[%d:%d] %s", parentPID, pid, description)
+		log.Trace("Finished Process[%s:%s] %s", parentPID, pid, description)
 	}
 
 	if parent != nil {
