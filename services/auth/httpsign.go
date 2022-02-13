@@ -94,11 +94,10 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	}
 
 	// Check if it's really a ssh certificate
-	if _, ok := pk.(*ssh.Certificate); !ok {
+	cert, ok := pk.(*ssh.Certificate)
+	if !ok {
 		return validpk, fmt.Errorf("no certificate found")
 	}
-
-	cert := pk.(*ssh.Certificate)
 
 	for _, principal := range cert.ValidPrincipals {
 		validpk, err = asymkey_model.SearchPublicKeyByContentExact(principal)
