@@ -86,7 +86,8 @@ func init() {
 	db.RegisterModel(new(Review))
 }
 
-func (r *Review) loadCodeComments(ctx context.Context) (err error) {
+// LoadCodeComments loads CodeComments
+func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return
 	}
@@ -95,11 +96,6 @@ func (r *Review) loadCodeComments(ctx context.Context) (err error) {
 	}
 	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
 	return
-}
-
-// LoadCodeComments loads CodeComments
-func (r *Review) LoadCodeComments() error {
-	return r.loadCodeComments(db.DefaultContext)
 }
 
 func (r *Review) loadIssue(e db.Engine) (err error) {
@@ -137,12 +133,13 @@ func (r *Review) LoadReviewerTeam() error {
 	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
 }
 
-func (r *Review) loadAttributes(ctx context.Context) (err error) {
+// LoadAttributes loads all attributes except CodeComments
+func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	e := db.GetEngine(ctx)
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadCodeComments(ctx); err != nil {
+	if err = r.LoadCodeComments(ctx); err != nil {
 		return
 	}
 	if err = r.loadReviewer(e); err != nil {
@@ -152,11 +149,6 @@ func (r *Review) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 	return
-}
-
-// LoadAttributes loads all attributes except CodeComments
-func (r *Review) LoadAttributes() error {
-	return r.loadAttributes(db.DefaultContext)
 }
 
 func getReviewByID(e db.Engine, id int64) (*Review, error) {
@@ -405,7 +397,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			return nil, nil, err
 		}
 	} else {
-		if err := review.loadCodeComments(ctx); err != nil {
+		if err := review.LoadCodeComments(ctx); err != nil {
 			return nil, nil, err
 		}
 		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
@@ -995,3 +987,20 @@ func (r *Review) HTMLURL() string {
 	}
 	return comment.HTMLURL()
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Review) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.ReviewerID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (r *Review) GetUserID() int64 { return r.ReviewerID }
+
+// GetExternalName ExternalUserRemappable interface
+func (r *Review) GetExternalName() string { return r.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (r *Review) GetExternalID() int64 { return r.OriginalAuthorID }

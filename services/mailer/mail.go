@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	texttmpl "text/template"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -231,6 +232,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: ctx.Issue.Repo.HTMLURL(),
 		Metas:     ctx.Issue.Repo.ComposeMetas(),
 	}, ctx.Content)
@@ -297,13 +299,15 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
+	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
+	reference := createReference(ctx.Issue, nil, models.ActionType(0))
+
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
 		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
-		reference := createReference(ctx.Issue, nil)
+		msg.SetHeader("Message-ID", "<"+msgID+">")
 		msg.SetHeader("In-Reply-To", "<"+reference+">")
 		msg.SetHeader("References", "<"+reference+">")
 
@@ -317,7 +321,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *models.Issue, comment *models.Comment) string {
+func createReference(issue *models.Issue, comment *models.Comment, actionType models.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -328,6 +332,17 @@ func createReference(issue *models.Issue, comment *models.Comment) string {
 	var extra string
 	if comment != nil {
 		extra = fmt.Sprintf("/comment/%d", comment.ID)
+	} else {
+		switch actionType {
+		case models.ActionCloseIssue, models.ActionClosePullRequest:
+			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
+		case models.ActionReopenIssue, models.ActionReopenPullRequest:
+			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
+		case models.ActionMergePullRequest:
+			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
+		case models.ActionPullRequestReadyForReview:
+			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
+		}
 	}
 
 	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
@@ -448,7 +463,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
-		case models.CommentTypePullPush:
+		case models.CommentTypePullRequestPush:
 			name = "push"
 		default:
 			name = "default"

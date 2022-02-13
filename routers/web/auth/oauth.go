@@ -149,9 +149,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	accessToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Type:    oauth2.TypeAccessToken,
-		// FIXME: Migrate to RegisteredClaims
-		StandardClaims: jwt.StandardClaims{ //nolint
-			ExpiresAt: expirationDate.AsTime().Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 		},
 	}
 	signedAccessToken, err := accessToken.SignToken(serverKey)
@@ -163,14 +162,13 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	}
 
 	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		// FIXME: Migrate to RegisteredClaims
-		StandardClaims: jwt.StandardClaims{ // nolint
-			ExpiresAt: refreshExpirationDate,
+		RegisteredClaims: jwt.RegisteredClaims{ // nolint
+			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
 	signedRefreshToken, err := refreshToken.SignToken(serverKey)
@@ -207,11 +205,10 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		}
 
 		idToken := &oauth2.OIDCToken{
-			// FIXME: migrate to RegisteredClaims
-			StandardClaims: jwt.StandardClaims{ //nolint
-				ExpiresAt: expirationDate.AsTime().Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 				Issuer:    setting.AppURL,
-				Audience:  app.ClientID,
+				Audience:  []string{app.ClientID},
 				Subject:   fmt.Sprint(grant.UserID),
 			},
 			Nonce: grant.Nonce,
@@ -329,8 +326,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	var response struct {
 		Active bool   `json:"active"`
 		Scope  string `json:"scope,omitempty"`
-		// FIXME: Migrate to RegisteredClaims
-		jwt.StandardClaims //nolint
+		jwt.RegisteredClaims
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
@@ -344,7 +340,7 @@ func IntrospectOAuth(ctx *context.Context) {
 					response.Active = true
 					response.Scope = grant.Scope
 					response.Issuer = setting.AppURL
-					response.Audience = app.ClientID
+					response.Audience = []string{app.ClientID}
 					response.Subject = fmt.Sprint(grant.UserID)
 				}
 			}
@@ -477,7 +473,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	ctx.Data["ApplicationUserLinkHTML"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -826,7 +822,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
-			uplerr := err.(*user_model.ErrUserProhibitLogin)
+			uplerr := err.(user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
@@ -904,6 +900,10 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
+	case []interface{}:
+		for _, group := range rawGroup {
+			groups = append(groups, fmt.Sprintf("%s", group))
+		}
 	default:
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
@@ -1158,5 +1158,4 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 
 	// no user found to login
 	return nil, gothUser, nil
-
 }

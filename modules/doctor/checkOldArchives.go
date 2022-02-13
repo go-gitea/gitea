@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -13,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func checkOldArchives(logger log.Logger, autofix bool) error {
+func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numReposUpdated := 0
 	err := iterateRepositories(func(repo *repo_model.Repository) error {

@@ -20,7 +20,7 @@ import (
 	"github.com/shurcooL/vfsgen"
 )
 
-func needsUpdate(dir string, filename string) (bool, []byte) {
+func needsUpdate(dir, filename string) (bool, []byte) {
 	needRegen := false
 	_, err := os.Stat(filename)
 	if err != nil {
@@ -50,7 +50,6 @@ func needsUpdate(dir string, filename string) (bool, []byte) {
 	newHash := hasher.Sum([]byte{})
 
 	if bytes.Compare(oldHash, newHash) != 0 {
-
 		return true, newHash
 	}
 
@@ -87,5 +86,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v\n", err)
 	}
-	_ = os.WriteFile(filename+".hash", newHash, 0666)
+	_ = os.WriteFile(filename+".hash", newHash, 0o666)
 }

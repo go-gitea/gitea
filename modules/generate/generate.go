@@ -60,7 +60,7 @@ func NewJwtSecretBase64() (string, error) {
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.
 func NewSecretKey() (string, error) {
-	secretKey, err := util.RandomString(64)
+	secretKey, err := util.CryptoRandomString(64)
 	if err != nil {
 		return "", err
 	}

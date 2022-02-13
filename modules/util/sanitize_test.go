@@ -16,7 +16,7 @@ func TestNewSanitizedError(t *testing.T) {
 	err2 := NewSanitizedError(err)
 	assert.Equal(t, err.Error(), err2.Error())
 
-	var cases = []struct {
+	cases := []struct {
 		input    error
 		oldnew   []string
 		expected string
@@ -43,7 +43,7 @@ func TestNewSanitizedError(t *testing.T) {
 }
 
 func TestNewStringURLSanitizer(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		input       string
 		placeholder bool
 		expected    string
@@ -101,7 +101,7 @@ func TestNewStringURLSanitizer(t *testing.T) {
 }
 
 func TestNewStringURLSanitizedError(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		input       string
 		placeholder bool
 		expected    string

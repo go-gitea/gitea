@@ -5,6 +5,7 @@
 package web
 
 import (
+	gocontext "context"
 	"net/http"
 	"os"
 	"path"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
@@ -55,9 +57,9 @@ const (
 func CorsHandler() func(next http.Handler) http.Handler {
 	if setting.CORSConfig.Enabled {
 		return cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
 			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
@@ -73,11 +75,11 @@ func CorsHandler() func(next http.Handler) http.Handler {
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(public.AssetsHandler(&public.Options{
+	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
-		Prefix:      "/assets",
+		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),
-	}))
+	}), "AssetsHandler"))
 
 	routes.Use(sessioner)
 
@@ -188,6 +190,13 @@ func RegisterRoutes(m *web.Route) {
 	bindIgnErr := web.Bind
 	validation.AddBindingRules()
 
+	linkAccountEnabled := func(ctx *context.Context) {
+		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enable {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
 			ctx.Error(http.StatusForbidden)
@@ -277,9 +286,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{provider}", auth.SignInOAuth)
 			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
 		})
-		m.Get("/link_account", auth.LinkAccount)
-		m.Post("/link_account_signin", bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
-		m.Post("/link_account_signup", bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
+		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
+		m.Post("/link_account_signin", linkAccountEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
+		m.Post("/link_account_signup", linkAccountEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
 			m.Post("", bindIgnErr(forms.TwoFactorAuthForm{}), auth.TwoFactorPost)
@@ -293,7 +302,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", events.Events)
+	m.Any("/user/events", routing.MarkLongPolling, events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
@@ -322,6 +331,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
 			m.Post("/language", bindIgnErr(forms.UpdateLanguageForm{}), user_setting.UpdateUserLang)
+			m.Post("/hidden_comments", user_setting.UpdateUserHiddenComments)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), user_setting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
@@ -342,7 +352,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/delete", security.DeleteOpenID)
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", security.DeleteAccountLink)
+			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
 		})
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
@@ -400,6 +410,8 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/add", admin.AddWorkers)
 				m.Post("/cancel/{pid}", admin.WorkerCancel)
 				m.Post("/flush", admin.Flush)
+				m.Post("/pause", admin.Pause)
+				m.Post("/resume", admin.Resume)
 			})
 		})
 
@@ -444,6 +456,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 			m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 			m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
+			m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {
@@ -458,7 +471,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-
+			m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
 		})
 
 		m.Group("/auths", func() {
@@ -654,6 +667,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
 				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+				m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
 				m.Group("/{id}", func() {
 					m.Get("", repo.WebHooksEdit)
 					m.Post("/test", repo.TestWebhook)
@@ -669,6 +683,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 				m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
 				m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
+				m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
 			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
@@ -690,7 +705,6 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
-
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
@@ -801,6 +815,10 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
 					Get(repo.UploadFile).
 					Post(bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePost)
+				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
+					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
+				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
+					Post(bindIgnErr(forms.CherryPickForm{}), repo.CherryPickPost)
 			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
@@ -817,7 +835,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteBranchPost)
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
-
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Releases
@@ -856,7 +873,6 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	// to maintain compatibility with old attachments
@@ -952,7 +968,25 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/blob_excerpt", func() {
 			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
-		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+		}, func(ctx *context.Context) (cancel gocontext.CancelFunc) {
+			if ctx.FormBool("wiki") {
+				ctx.Data["PageIsWiki"] = true
+				repo.MustEnableWiki(ctx)
+				return
+			}
+
+			reqRepoCodeReader(ctx)
+			if ctx.Written() {
+				return
+			}
+			cancel = context.RepoRef()(ctx)
+			if ctx.Written() {
+				return
+			}
+
+			repo.MustBeNotEmpty(ctx)
+			return
+		})
 
 		m.Group("/pulls/{index}", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
@@ -1006,6 +1040,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
+			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {
@@ -1084,5 +1119,4 @@ func RegisterRoutes(m *web.Route) {
 		ctx := context.GetContext(req)
 		ctx.NotFound("", nil)
 	})
-
 }

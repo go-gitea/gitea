@@ -35,7 +35,7 @@ type Context struct {
 func WithEngine(ctx context.Context, e Engine) *Context {
 	return &Context{
 		Context: ctx,
-		e:       e,
+		e:       e.Context(ctx),
 	}
 }
 
@@ -50,6 +50,11 @@ func (ctx *Context) Value(key interface{}) interface{} {
 		return ctx
 	}
 	return ctx.Context.Value(key)
+}
+
+// WithContext returns this engine tied to this context
+func (ctx *Context) WithContext(other context.Context) *Context {
+	return WithEngine(other, ctx.e)
 }
 
 // Engined structs provide an Engine

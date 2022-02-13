@@ -33,7 +33,7 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
-	//Ensure user is in a 2FA session.
+	// Ensure user is in a 2FA session.
 	if ctx.Session.Get("twofaUid") == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
 		return
@@ -67,6 +67,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
+	// FIXME: DEPRECATED appid is deprecated and is planned to be removed in v1.18.0
 	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user), webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
 		"appid": setting.U2F.AppID,
 	}))

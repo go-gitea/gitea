@@ -183,7 +183,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 2. Disallow force pushes to protected branches
 	if git.EmptySHA != oldCommitID {
-		output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
+		output, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -228,7 +228,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	globs := protectBranch.GetProtectedFilePatterns()
 	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 1, ctx.env, gitRepo)
+		_, err := pull_service.CheckFileProtection(gitRepo, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
 			if !models.IsErrFilePathProtected(err) {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
@@ -270,7 +270,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(oldCommitID, newCommitID, globs, ctx.env, gitRepo)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, oldCommitID, newCommitID, globs, ctx.env)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -337,7 +337,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(pr, true); err != nil {
+		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
 			if models.IsErrNotAllowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{

@@ -122,7 +122,7 @@ func GetArchive(ctx *context.APIContext) {
 
 	repoPath := repo_model.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
@@ -402,7 +402,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoF
 	}
 	opts.Content = string(content)
 
-	return files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts)
+	return files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.User, opts)
 }
 
 // DeleteFile Delete a file in a repository
@@ -489,7 +489,7 @@ func DeleteFile(ctx *context.APIContext) {
 		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
 	}
 
-	if fileResponse, err := files_service.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if fileResponse, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
@@ -555,7 +555,7 @@ func GetContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.FormTrim("ref")
 
-	if fileList, err := files_service.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetContentsOrList", err)
 			return

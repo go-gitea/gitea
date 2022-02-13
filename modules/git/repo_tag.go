@@ -24,13 +24,13 @@ func IsTagExist(ctx context.Context, repoPath, name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, err := NewCommandContext(repo.Ctx, "tag", "--", name, revision).RunInDir(repo.Path)
+	_, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunInDir(repo.Path)
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, err := NewCommandContext(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
+	_, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
 	return err
 }
 
@@ -79,7 +79,7 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	data, err := NewCommandContext(repo.Ctx, "cat-file", "-p", tagID.String()).RunInDirBytes(repo.Path)
+	data, err := NewCommand(repo.Ctx, "cat-file", "-p", tagID.String()).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, err := NewCommandContext(repo.Ctx, "show-ref", "--tags", "-d").RunInDir(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}
@@ -126,7 +126,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommandContext(repo.Ctx, "show-ref", "--tags", "--", name).RunInDir(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +162,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
-	stdout, err := NewCommandContext(repo.Ctx, "tag").RunInDir(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "tag").RunInDir(repo.Path)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -174,7 +174,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 		tagNames = util.PaginateSlice(tagNames, page, pageSize).([]string)
 	}
 
-	var tags = make([]*Tag, 0, len(tagNames))
+	tags := make([]*Tag, 0, len(tagNames))
 	for _, tagName := range tagNames {
 		tagName = strings.TrimSpace(tagName)
 		if len(tagName) == 0 {
@@ -195,7 +195,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	// Get tag type
-	stdout, err := NewCommandContext(repo.Ctx, "cat-file", "-t", id.String()).RunInDir(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "cat-file", "-t", id.String()).RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}

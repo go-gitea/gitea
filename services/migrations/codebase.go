@@ -30,8 +30,7 @@ func init() {
 }
 
 // CodebaseDownloaderFactory defines a downloader factory
-type CodebaseDownloaderFactory struct {
-}
+type CodebaseDownloaderFactory struct{}
 
 // New returns a downloader related to this factory according MigrateOptions
 func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -88,7 +87,7 @@ func (d *CodebaseDownloader) SetContext(ctx context.Context) {
 func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
 
-	var downloader = &CodebaseDownloader{
+	downloader := &CodebaseDownloader{
 		ctx:        ctx,
 		baseURL:    baseURL,
 		projectURL: projectURL,
@@ -206,7 +205,7 @@ func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	var milestones = make([]*base.Milestone, 0, len(rawMilestones.TicketingMilestone))
+	milestones := make([]*base.Milestone, 0, len(rawMilestones.TicketingMilestone))
 	for _, milestone := range rawMilestones.TicketingMilestone {
 		var deadline *time.Time
 		if len(milestone.Deadline.Value) > 0 {
@@ -256,7 +255,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 		return nil, err
 	}
 
-	var labels = make([]*base.Label, 0, len(rawTypes.TicketingType))
+	labels := make([]*base.Label, 0, len(rawTypes.TicketingType))
 	for _, label := range rawTypes.TicketingType {
 		labels = append(labels, &base.Label{
 			Name:  label.Name,
@@ -400,7 +399,8 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Created:     issue.CreatedAt.Value,
 			Updated:     issue.UpdatedAt.Value,
 			Labels: []*base.Label{
-				{Name: issue.Type.Name}},
+				{Name: issue.Type.Name},
+			},
 			Context: codebaseIssueContext{
 				foreignID: issue.TicketID.Value,
 				localID:   issue.TicketID.Value,

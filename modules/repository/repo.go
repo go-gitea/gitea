@@ -36,11 +36,11 @@ var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
 // WikiRemoteURL returns accessible repository URL for wiki if exists.
 // Otherwise, it returns an empty string.
-func WikiRemoteURL(remote string) string {
+func WikiRemoteURL(ctx context.Context, remote string) string {
 	remote = strings.TrimSuffix(remote, ".git")
 	for _, suffix := range commonWikiURLSuffixes {
 		wikiURL := remote + suffix
-		if git.IsRepoURLAccessible(wikiURL) {
+		if git.IsRepoURLAccessible(ctx, wikiURL) {
 			return wikiURL
 		}
 	}
@@ -71,7 +71,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.CloneWithContext(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -81,13 +81,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	if opts.Wiki {
 		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
+		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := util.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err = git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
@@ -109,14 +109,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+	if stdout, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunInDir(repoPath); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -196,7 +196,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.IsMirror = true
 		err = models.UpdateRepository(repo, false)
 	} else {
-		repo, err = CleanUpMigrateInfo(repo)
+		repo, err = CleanUpMigrateInfo(ctx, repo)
 	}
 
 	return repo, err
@@ -217,7 +217,7 @@ func cleanUpMigrateGitConfig(configPath string) error {
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
-func CleanUpMigrateInfo(repo *repo_model.Repository) (*repo_model.Repository, error) {
+func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
 	repoPath := repo.RepoPath()
 	if err := createDelegateHooks(repoPath); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %v", err)
@@ -228,7 +228,7 @@ func CleanUpMigrateInfo(repo *repo_model.Repository) (*repo_model.Repository, er
 		}
 	}
 
-	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
+	_, err := git.NewCommand(ctx, "remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}
@@ -310,7 +310,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	}
 
 	var author *user_model.User
-	var createdAt = time.Unix(1, 0)
+	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
 		author, err = user_model.GetUserByEmail(sig.Email)
@@ -325,7 +325,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("CommitsCount: %v", err)
 	}
 
-	var rel = models.Release{
+	rel := models.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),

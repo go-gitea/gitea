@@ -5,6 +5,7 @@
 package mailer
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -21,6 +22,7 @@ func fallbackMailSubject(issue *models.Issue) string {
 }
 
 type mailCommentContext struct {
+	context.Context
 	Issue      *models.Issue
 	Doer       *user_model.User
 	ActionType models.ActionType
@@ -38,7 +40,6 @@ const (
 // 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
-
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(); err != nil {
 		return fmt.Errorf("LoadRepo(): %v", err)

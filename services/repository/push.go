@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,13 +33,14 @@ import (
 var pushQueue queue.Queue
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.([]*repo_module.PushUpdateOptions)
 		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
 	}
+	return nil
 }
 
 func initPushQueue() error {
@@ -77,15 +79,19 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return nil
 	}
 
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
+	defer finished()
+
 	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %v", err)
 	}
 
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
@@ -99,7 +105,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -139,7 +145,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -184,14 +190,14 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
 					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(opts)
+					isForce, err := repo_module.IsForcePush(ctx, opts)
 					if err != nil {
 						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
@@ -307,7 +313,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			sig = commit.Committer
 		}
 		var author *user_model.User
-		var createdAt = time.Unix(1, 0)
+		createdAt := time.Unix(1, 0)
 
 		if sig != nil {
 			var ok bool

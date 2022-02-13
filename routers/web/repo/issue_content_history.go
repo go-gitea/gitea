@@ -29,7 +29,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 		return
 	}
 
-	lang := ctx.Data["Lang"].(string)
+	lang := ctx.Locale.Language()
 	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(db.DefaultContext, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
@@ -55,17 +55,17 @@ func GetContentHistoryList(ctx *context.Context) {
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	lang := ctx.Data["Lang"].(string)
+	lang := ctx.Locale.Language()
 	var results []map[string]interface{}
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := i18n.Tr(lang, "repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.created")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.edited")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
 		results = append(results, map[string]interface{}{
@@ -83,8 +83,8 @@ func GetContentHistoryList(ctx *context.Context) {
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
 func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
-	history *issuesModel.ContentHistory) bool {
-
+	history *issuesModel.ContentHistory,
+) bool {
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
 		canSoftDelete = true
@@ -103,7 +103,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comm
 	return canSoftDelete
 }
 
-//GetContentHistoryDetail get detail
+// GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if issue == nil {
@@ -169,7 +169,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	})
 }
 
-//SoftDeleteContentHistory soft delete
+// SoftDeleteContentHistory soft delete
 func SoftDeleteContentHistory(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if issue == nil {

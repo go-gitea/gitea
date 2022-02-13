@@ -6,6 +6,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -25,7 +26,7 @@ const (
 )
 
 // MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(rel *models.Release) {
+func MailNewRelease(ctx context.Context, rel *models.Release) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -51,15 +52,16 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	for lang, tos := range langMap {
-		mailNewRelease(lang, tos, rel)
+		mailNewRelease(ctx, lang, tos, rel)
 	}
 }
 
-func mailNewRelease(lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)

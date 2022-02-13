@@ -27,7 +27,7 @@ COMMA := ,
 XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
-MIN_GOLANGCI_LINT_VERSION := 001043000
+MIN_GOLANGCI_LINT_VERSION := 001044000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -60,7 +60,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
@@ -166,6 +166,9 @@ help:
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
+	@echo " - deps                             install dependencies"
+	@echo " - deps-frontend                    install frontend dependencies"
+	@echo " - deps-backend                     install backend dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -231,8 +234,11 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running gitea-fmt(with gofmt)..."
-	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
+	@echo "Running gitea-fmt (with gofumpt)..."
+	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 
 .PHONY: vet
 vet:
@@ -280,8 +286,11 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@latest; \
+	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
@@ -292,10 +301,10 @@ fmt-check:
 checks: checks-frontend checks-backend
 
 .PHONY: checks-frontend
-checks-frontend: svg-check
+checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: swagger-check swagger-validate
+checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -369,11 +378,12 @@ unit-test-coverage:
 vendor:
 	$(GO) mod tidy && $(GO) mod vendor
 
-.PHONY: test-vendor
-test-vendor: vendor
-	@diff=$$(git diff vendor/); \
+.PHONY: gomod-check
+gomod-check:
+	@$(GO) mod tidy
+	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make vendor' and commit the result:"; \
+		echo "Please run '$(GO) mod tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -655,6 +665,16 @@ docs:
 	fi
 	cd docs; make trans-copy clean build-offline;
 
+.PHONY: deps
+deps: deps-frontend deps-backend
+
+.PHONY: deps-frontend
+deps-frontend: node_modules
+
+.PHONY: deps-backend
+deps-backend:
+	$(GO) mod download
+
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
@@ -696,6 +716,17 @@ svg-check: svg
 	@diff=$$(git diff --cached $(SVG_DEST_DIR)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "$${diff}"; \
+		exit 1; \
+	fi
+
+.PHONY: lockfile-check
+lockfile-check:
+	npm install --package-lock-only
+	@diff=$$(git diff package-lock.json); \
+	if [ -n "$$diff" ]; then \
+		echo "package-lock.json is inconsistent with package.json"; \
+		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi

@@ -63,14 +63,14 @@ func TestGetContents(t *testing.T) {
 
 	expectedContentsResponse := getExpectedReadmeContentsResponse()
 
-	t.Run("Get README.md contents with GetContents()", func(t *testing.T) {
-		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, ref, false)
+	t.Run("Get README.md contents with GetContents(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContents(ctx, ctx.Repo.Repository, treePath, ref, false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
 
-	t.Run("Get README.md contents with ref as empty string (should then use the repo's default branch) with GetContents()", func(t *testing.T) {
-		fileContentResponse, err := GetContents(ctx.Repo.Repository, treePath, "", false)
+	t.Run("Get README.md contents with ref as empty string (should then use the repo's default branch) with GetContents(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContents(ctx, ctx.Repo.Repository, treePath, "", false)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
@@ -98,14 +98,14 @@ func TestGetContentsOrListForDir(t *testing.T) {
 		readmeContentsResponse,
 	}
 
-	t.Run("Get root dir contents with GetContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
+	t.Run("Get root dir contents with GetContentsOrList(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
 
-	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
+	t.Run("Get root dir contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsListResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
@@ -126,14 +126,14 @@ func TestGetContentsOrListForFile(t *testing.T) {
 
 	expectedContentsResponse := getExpectedReadmeContentsResponse()
 
-	t.Run("Get README.md contents with GetContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, ref)
+	t.Run("Get README.md contents with GetContentsOrList(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref)
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
 
-	t.Run("Get README.md contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList()", func(t *testing.T) {
-		fileContentResponse, err := GetContentsOrList(ctx.Repo.Repository, treePath, "")
+	t.Run("Get README.md contents with ref as empty string (should then use the repo's default branch) with GetContentsOrList(ctx, )", func(t *testing.T) {
+		fileContentResponse, err := GetContentsOrList(ctx, ctx.Repo.Repository, treePath, "")
 		assert.EqualValues(t, expectedContentsResponse, fileContentResponse)
 		assert.NoError(t, err)
 	})
@@ -155,7 +155,7 @@ func TestGetContentsErrors(t *testing.T) {
 
 	t.Run("bad treePath", func(t *testing.T) {
 		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetContents(repo, badTreePath, ref, false)
+		fileContentResponse, err := GetContents(ctx, repo, badTreePath, ref, false)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
 		assert.Nil(t, fileContentResponse)
@@ -163,7 +163,7 @@ func TestGetContentsErrors(t *testing.T) {
 
 	t.Run("bad ref", func(t *testing.T) {
 		badRef := "bad_ref"
-		fileContentResponse, err := GetContents(repo, treePath, badRef, false)
+		fileContentResponse, err := GetContents(ctx, repo, treePath, badRef, false)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 		assert.Nil(t, fileContentResponse)
@@ -186,7 +186,7 @@ func TestGetContentsOrListErrors(t *testing.T) {
 
 	t.Run("bad treePath", func(t *testing.T) {
 		badTreePath := "bad/tree.md"
-		fileContentResponse, err := GetContentsOrList(repo, badTreePath, ref)
+		fileContentResponse, err := GetContentsOrList(ctx, repo, badTreePath, ref)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: , rel_path: bad]")
 		assert.Nil(t, fileContentResponse)
@@ -194,7 +194,7 @@ func TestGetContentsOrListErrors(t *testing.T) {
 
 	t.Run("bad ref", func(t *testing.T) {
 		badRef := "bad_ref"
-		fileContentResponse, err := GetContentsOrList(repo, treePath, badRef)
+		fileContentResponse, err := GetContentsOrList(ctx, repo, treePath, badRef)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "object does not exist [id: "+badRef+", rel_path: ]")
 		assert.Nil(t, fileContentResponse)
@@ -213,7 +213,7 @@ func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	repo := ctx.Repo.Repository
 
 	t.Run("empty repo", func(t *testing.T) {
-		contents, err := GetContentsOrList(repo, "", "")
+		contents, err := GetContentsOrList(ctx, repo, "", "")
 		assert.NoError(t, err)
 		assert.Empty(t, contents)
 	})
@@ -232,7 +232,7 @@ func TestGetBlobBySHA(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
-	gbr, err := GetBlobBySHA(ctx.Repo.Repository, ctx.Params(":sha"))
+	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, ctx.Params(":sha"))
 	expectedGBR := &api.GitBlobResponse{
 		Content:  "dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK",
 		Encoding: "base64",

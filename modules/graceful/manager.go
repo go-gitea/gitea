@@ -190,6 +190,7 @@ func (g *Manager) RunAtHammer(hammer func()) {
 			hammer()
 		})
 }
+
 func (g *Manager) doShutdown() {
 	if !g.setStateTransition(stateRunning, stateShuttingDown) {
 		return

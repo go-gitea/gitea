@@ -131,7 +131,7 @@
 						{{if not .IsTag}}
 							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji}}</a>
 						{{end}}
-						{{TimeSinceUnix .CreatedUnix $.Lang}}
+						{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
@@ -150,7 +150,7 @@
 					<p class="desc">
 						<span class="ui purple label">{{$.i18n.Tr "repo.activity.merged_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .MergedUnix $.Lang}}
+						{{TimeSinceUnix .MergedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
@@ -169,7 +169,7 @@
 					<p class="desc">
 						<span class="ui green label">{{$.i18n.Tr "repo.activity.opened_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .Issue.CreatedUnix $.Lang}}
+						{{TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
@@ -188,7 +188,7 @@
 					<p class="desc">
 						<span class="ui red label">{{$.i18n.Tr "repo.activity.closed_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .ClosedUnix $.Lang}}
+						{{TimeSinceUnix .ClosedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
@@ -207,7 +207,7 @@
 					<p class="desc">
 						<span class="ui green label">{{$.i18n.Tr "repo.activity.new_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .CreatedUnix $.Lang}}
+						{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
@@ -231,7 +231,7 @@
 						{{else}}
 						<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
 						{{end}}
-						{{TimeSinceUnix .UpdatedUnix $.Lang}}
+						{{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}
 					</p>
 				{{end}}
 			</div>
