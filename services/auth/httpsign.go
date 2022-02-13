@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+
 	"github.com/go-fed/httpsig"
 	"golang.org/x/crypto/ssh"
 )
@@ -102,12 +103,11 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	for _, principal := range cert.ValidPrincipals {
 		validpk, err = asymkey_model.SearchPublicKeyByContentExact(principal)
 		if err != nil {
+			if asymkey_model.IsErrKeyNotExist(err) {
+				continue
+			}
 			log.Error("SearchPublicKeyByContentExact: %v", err)
 			return validpk, err
-		}
-
-		if asymkey_model.IsErrKeyNotExist(err) {
-			continue
 		}
 
 		c := &ssh.CertChecker{
@@ -167,6 +167,7 @@ func doVerify(verifier httpsig.Verifier, publickeys []ssh.PublicKey) error {
 		err := verifier.Verify(cryptoPubkey, algo)
 		if err == nil {
 			verified = true
+			break
 		}
 	}
 
