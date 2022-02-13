@@ -35,7 +35,7 @@ var KnownUniqueQueueNames = []UniqueQueueName{
 }
 
 // QueueName represents an expected name for Queue
-type QueueName string
+type QueueName string // nolint (allow this to stutter)
 
 // list of all expected Queues
 const (
