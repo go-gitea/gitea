@@ -371,7 +371,9 @@ var migrations = []Migration{
 	// v208 -> v209
 	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive", useBase32HexForCredIDInWebAuthnCredential),
 	// v209 -> v210
-	NewMigration("Increase WebAuthentication CredentialID size to 410", increaseCredentialIDTo410),
+	NewMigration("Increase WebAuthentication CredentialID size to 410 - NOOPED", increaseCredentialIDTo410),
+	// v210 -> v211
+	NewMigration("Increase WebAuthentication CredentialID size to 500", increaseCredentialIDTo500),
 }
 
 // GetCurrentDBVersion returns the current db version

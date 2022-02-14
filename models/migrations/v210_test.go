@@ -12,14 +12,14 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func Test_increaseCredentialIDTo410(t *testing.T) {
+func Test_increaseCredentialIDTo500(t *testing.T) {
 	// Create webauthnCredential table
 	type WebauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		CredentialID    string `xorm:"INDEX VARCHAR(500)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
 		PublicKey       []byte
 		AttestationType string
 		SignCount       uint32 `xorm:"BIGINT"`
@@ -39,7 +39,7 @@ func Test_increaseCredentialIDTo410(t *testing.T) {
 
 	type ExpectedWebauthnCredential struct {
 		ID           int64  `xorm:"pk autoincr"`
-		CredentialID string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		CredentialID string `xorm:"INDEX VARCHAR(500)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
 	}
 
 	// Prepare and load the testing database
@@ -55,7 +55,7 @@ func Test_increaseCredentialIDTo410(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := increaseCredentialIDTo410(x); err != nil {
+	if err := increaseCredentialIDTo500(x); err != nil {
 		assert.NoError(t, err)
 		return
 	}
