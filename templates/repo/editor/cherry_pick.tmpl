@@ -1,0 +1,32 @@
+{{template "base/head" .}}
+<div class="page-content repository file editor edit">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<form class="ui edit form" method="post" action="{{.RepoLink}}/_cherrypick/{{.SHA}}/{{.BranchName  | PathEscapeSegments}}">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="last_commit" value="{{.last_commit}}">
+			<input type="hidden" name="page_has_posted" value="true">
+			<input type="hidden" name="revert" value="{{if eq .CherryPickType "revert"}}true{{else}}false{{end}}">
+			<div class="ui secondary menu">
+				<div class="fitted item treepath">
+					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
+						{{$shaurl := printf "%s/commit/%s" $.RepoLink (PathEscape .SHA)}}
+						{{$shalink := printf "<a class=\"ui blue sha label\" href=\"%s\">%s</a>" (Escape $shaurl) (ShortSha .SHA)}}
+						{{if eq .CherryPickType "revert"}}
+							{{.i18n.Tr "repo.editor.revert" $shalink | Str2html}}
+						{{else}}
+							{{.i18n.Tr "repo.editor.cherry_pick" $shalink | Str2html}}
+						{{end}}
+						<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
+						<div class="divider">:</div>
+						<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
+						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{$shaurl}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
+					</div>
+				</div>
+			</div>
+			{{template "repo/editor/commit_form" .}}
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

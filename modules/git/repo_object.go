@@ -45,7 +45,13 @@ func (repo *Repository) hashObject(reader io.Reader) (string, error) {
 	cmd := NewCommand(repo.Ctx, "hash-object", "-w", "--stdin")
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.RunInDirFullPipeline(repo.Path, stdout, stderr, reader)
+	err := cmd.RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdin:   reader,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	})
 	if err != nil {
 		return "", err
 	}

@@ -45,9 +45,12 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 
 	// This is safe as force pushes are already forbidden
 	err = git.NewCommand(repo.Ctx, "rev-list", oldCommitID+"..."+newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+		RunWithContext(&git.RunContext{
+			Env:     env,
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  stdoutWriter,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 				if err != nil {
@@ -56,7 +59,8 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 				}
 				_ = stdoutReader.Close()
 				return err
-			})
+			},
+		})
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
@@ -89,9 +93,12 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	hash := git.MustIDFromString(sha)
 
 	return git.NewCommand(repo.Ctx, "cat-file", "commit", sha).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+		RunWithContext(&git.RunContext{
+			Env:     env,
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  stdoutWriter,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
 				if err != nil {
@@ -105,7 +112,8 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 					}
 				}
 				return nil
-			})
+			},
+		})
 }
 
 type errUnverifiedCommit struct {

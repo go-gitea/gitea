@@ -80,21 +80,20 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
+	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
 		RunWithContext(&RunContext{
 			Timeout: -1,
 			Dir:     repo.Path,
 			Stdout:  &output,
 			Stderr:  &errbuf,
 		}); err != nil {
+		if err.Error() == "exit status 1" && errbuf.String() == "" {
+			return true, nil
+		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
-	if err != nil {
-		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
-	}
-	return c == 0, nil
+	return strings.TrimSpace(output.String()) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -204,7 +203,13 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 		opts.Timeout = -1
 	}
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, opts.Timeout, repoPath, &outbuf, &errbuf)
+	err := cmd.RunWithContext(&RunContext{
+		Env:     opts.Env,
+		Timeout: opts.Timeout,
+		Dir:     repoPath,
+		Stdout:  &outbuf,
+		Stderr:  &errbuf,
+	})
 	if err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return &ErrPushOutOfDate{
