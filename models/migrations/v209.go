@@ -78,6 +78,14 @@ func increaseCredentialIDTo410(x *xorm.Engine) error {
 		return nil
 	}
 
+	exist, err := x.IsTableExist("u2f_registration")
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return nil
+	}
+
 	// Now migrate the old u2f registrations to the new format
 	type u2fRegistration struct {
 		ID          int64 `xorm:"pk autoincr"`
