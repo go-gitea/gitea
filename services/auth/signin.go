@@ -24,7 +24,7 @@ import (
 func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
 	if strings.Contains(username, "@") {
-		emailAddress := user_model.EmailAddress{Email: strings.ToLower(strings.TrimSpace(username))}
+		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
 		has, err := db.GetEngine(db.DefaultContext).Where("is_activated=?", true).Get(&emailAddress)
 		if err != nil {
