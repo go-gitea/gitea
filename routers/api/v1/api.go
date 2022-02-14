@@ -272,8 +272,8 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 
 // reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
 func reqRepoBranchWriter(ctx *context.APIContext) {
-	options := web.GetForm(ctx).(api.FileOptionInterface)
-	if !ctx.Repo.CanWriteToBranch(options.Branch()) && !ctx.IsUserSiteAdmin() {
+	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
+	if !ok || (!ctx.Repo.CanWriteToBranch(options.Branch()) && !ctx.IsUserSiteAdmin()) {
 		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
 		return
 	}
