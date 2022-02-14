@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "NuGet"
-    weight: 50
+    weight: 60
     identifier: "nuget"
 ---
 
@@ -86,4 +86,12 @@ For example:
 
 ```shell
 dotnet add package --source gitea --version 1.0.0 test_package
+```
+
+## Supported commands
+
+```
+dotnet add
+dotnet nuget push
+dotnet nuget delete
 ```

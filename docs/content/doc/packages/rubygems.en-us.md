@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "RubyGems"
-    weight: 70
+    weight: 80
     identifier: "rubygems"
 ---
 
@@ -116,4 +116,12 @@ For example:
 
 ```shell
 gem install --host https://gitea.example.com/api/v1/packages/testuser/rubygems test_package
+```
+
+## Supported commands
+
+```
+gem install
+bundle install
+gem push
 ```

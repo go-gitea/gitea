@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "PyPI"
-    weight: 60
+    weight: 70
     identifier: "pypi"
 ---
 
@@ -75,4 +75,11 @@ For example:
 
 ```shell
 pip install --index-url https://testuser:password123@gitea.example.com/api/v1/packages/testuser/pypi/simple --no-deps test_package
+```
+
+## Supported commands
+
+```
+pip install
+twine upload
 ```

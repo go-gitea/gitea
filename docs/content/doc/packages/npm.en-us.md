@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "npm"
-    weight: 40
+    weight: 50
     identifier: "npm"
 ---
 
@@ -106,3 +106,13 @@ npm dist-tag add test_package@1.0.2 release
 ```
 
 The tag name must not be a valid version. All tag names which are parsable as a version are rejected.
+
+## Supported commands
+
+```
+npm install
+npm ci
+npm publish
+npm dist-tag
+npm view
+```

@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "Maven"
-    weight: 30
+    weight: 40
     identifier: "maven"
 ---
 
@@ -99,4 +99,12 @@ Afterwards run:
 
 ```shell
 mvn install
+```
+
+## Supported commands
+
+```
+mvn install
+mvn deploy
+mvn dependency:get:
 ```
