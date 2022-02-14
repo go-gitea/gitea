@@ -15,6 +15,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -67,12 +68,12 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment `xorm:"-"`
-	Comments         []*Comment               `xorm:"-"`
-	Reactions        ReactionList             `xorm:"-"`
-	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*user_model.User       `xorm:"-"`
-	ForeignReference *ForeignReference        `xorm:"-"`
+	Attachments      []*repo_model.Attachment           `xorm:"-"`
+	Comments         []*Comment                         `xorm:"-"`
+	Reactions        ReactionList                       `xorm:"-"`
+	TotalTrackedTime int64                              `xorm:"-"`
+	Assignees        []*user_model.User                 `xorm:"-"`
+	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -276,16 +277,20 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 	if issue.ForeignReference != nil {
 		return nil
 	}
-	reference := &ForeignReference{
-		LocalIndex: issue.Index,
+	reference := &foreignreference.ForeignReference{
 		RepoID:     issue.RepoID,
-		Type:       ForeignTypeIssue,
+		LocalIndex: issue.Index,
+		Type:       foreignreference.TypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrForeignIndexNotExist{issue.RepoID, issue.Index, ForeignTypeIssue}
+		return foreignreference.ErrForeignIndexNotExist{
+			RepoID:     issue.RepoID,
+			LocalIndex: issue.Index,
+			Type:       foreignreference.TypeIssue,
+		}
 	}
 	issue.ForeignReference = reference
 	return nil
@@ -352,7 +357,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		}
 	}
 
-	if err = issue.loadForeignReference(ctx); err != nil && !IsErrForeignIndexNotExist(err) {
+	if err = issue.loadForeignReference(ctx); err != nil && !foreignreference.IsErrForeignIndexNotExist(err) {
 		return err
 	}
 
@@ -1136,16 +1141,20 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 
 // GetIssueByForeignIndex returns raw issue by foreign ID
 func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
-	reference := &ForeignReference{
+	reference := &foreignreference.ForeignReference{
 		RepoID:       repoID,
 		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
-		Type:         ForeignTypeIssue,
+		Type:         foreignreference.TypeIssue,
 	}
 	has, err := db.GetEngine(ctx).Get(reference)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrLocalIndexNotExist{repoID, foreignIndex, ForeignTypeIssue}
+		return nil, foreignreference.ErrLocalIndexNotExist{
+			RepoID:       repoID,
+			ForeignIndex: foreignIndex,
+			Type:         foreignreference.TypeIssue,
+		}
 	}
 	return GetIssueByIndex(repoID, reference.LocalIndex)
 }

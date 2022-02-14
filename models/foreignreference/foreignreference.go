@@ -2,20 +2,20 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package foreignreference
 
 import (
 	"code.gitea.io/gitea/models/db"
 )
 
-// ForeignType* are valid values for the Type field of ForeignReference
+// Type* are valid values for the Type field of ForeignReference
 const (
-	ForeignTypeIssue         = "issue"
-	ForeignTypePullRequest   = "pull_request"
-	ForeignTypeComment       = "comment"
-	ForeignTypeReview        = "review"
-	ForeignTypeReviewComment = "review_comment"
-	ForeignTypeRelease       = "release"
+	TypeIssue         = "issue"
+	TypePullRequest   = "pull_request"
+	TypeComment       = "comment"
+	TypeReview        = "review"
+	TypeReviewComment = "review_comment"
+	TypeRelease       = "release"
 )
 
 // ForeignReference represents external references

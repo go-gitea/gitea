@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -60,10 +61,10 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		IsClosed:    true,
 		Labels:      []*Label{label},
 		Reactions:   []*Reaction{reaction},
-		ForeignReference: &ForeignReference{
+		ForeignReference: &foreignreference.ForeignReference{
 			ForeignIndex: strconv.FormatInt(foreignIndex, 10),
 			RepoID:       repo.ID,
-			Type:         ForeignTypeIssue,
+			Type:         foreignreference.TypeIssue,
 		},
 	}
 	err := InsertIssues(is)

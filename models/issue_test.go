@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -548,13 +549,13 @@ func TestIssueForeignReference(t *testing.T) {
 
 	var foreignIndex int64 = 12345
 	_, err = GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
-	assert.True(t, IsErrLocalIndexNotExist(err))
+	assert.True(t, foreignreference.IsErrLocalIndexNotExist(err))
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(&ForeignReference{
+	_, err = db.GetEngine(db.DefaultContext).Insert(&foreignreference.ForeignReference{
 		LocalIndex:   issue.Index,
 		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
 		RepoID:       issue.RepoID,
-		Type:         ForeignTypeIssue,
+		Type:         foreignreference.TypeIssue,
 	})
 	assert.NoError(t, err)
 

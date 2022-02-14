@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -374,11 +375,11 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
-			ForeignReference: &models.ForeignReference{
+			ForeignReference: &foreignreference.ForeignReference{
 				LocalIndex:   issue.GetLocalIndex(),
 				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
 				RepoID:       g.repo.ID,
-				Type:         models.ForeignTypeIssue,
+				Type:         foreignreference.TypeIssue,
 			},
 		}
 
