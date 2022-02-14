@@ -15,7 +15,7 @@ func useBase32HexForCredIDInWebAuthnCredential(x *xorm.Engine) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID           int64  `xorm:"pk autoincr"`
-		CredentialID string `xorm:"INDEX VARCHAR(410)"`
+		CredentialID string `xorm:"INDEX VARCHAR(500)"`
 	}
 	if err := x.Sync2(&webauthnCredential{}); err != nil {
 		return err
