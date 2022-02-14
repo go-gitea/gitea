@@ -116,6 +116,7 @@ require (
 	github.com/yuin/goldmark v1.4.4
 	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
 	github.com/yuin/goldmark-meta v1.0.0
+	github.com/zeripath/ansihtml v1.0.2
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3

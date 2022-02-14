@@ -52,6 +52,15 @@ func NewLogger(bufLen int64, name, provider, config string) *MultiChannelledLogg
 	return l
 }
 
+func GetNamedLoggers() map[string]*MultiChannelledLogger {
+	returnable := map[string]*MultiChannelledLogger{}
+	NamedLoggers.Range(func(key, value interface{}) bool {
+		returnable[key.(string)] = value.(*MultiChannelledLogger)
+		return true
+	})
+	return returnable
+}
+
 // NewNamedLogger creates a new named logger for a given configuration
 func NewNamedLogger(name string, bufLen int64, subname, provider, config string) error {
 	logger, ok := NamedLoggers.Load(name)

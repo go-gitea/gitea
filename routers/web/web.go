@@ -401,6 +401,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
+		m.Get("/logging", admin.Logging)
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
 			m.Post("/cancel/{pid}", admin.MonitorCancel)

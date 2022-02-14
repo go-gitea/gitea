@@ -1180,6 +1180,8 @@ github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01/go.mod 
 github.com/yuin/goldmark-meta v1.0.0 h1:ScsatUIT2gFS6azqzLGUjgOnELsBOxMXerM3ogdJhAM=
 github.com/yuin/goldmark-meta v1.0.0/go.mod h1:zsNNOrZ4nLuyHAJeLQEZcQat8dm70SmB2kHbls092Gc=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
+github.com/zeripath/ansihtml v1.0.2 h1:Do3agIFvcLgeJZbNbeq61i3TtjD03wdjwzRfjqk6CDM=
+github.com/zeripath/ansihtml v1.0.2/go.mod h1:IUbohojhYekaaXiOI9vGR088MsgWUiTpZhf8DlKS5xI=
 github.com/zeripath/goth v1.68.1-0.20220109111530-754359885dce h1:ul/k+Fu3/2h+hxIaEMrn6m96X1Wf+TQk9G7zyuvy1Ws=
 github.com/zeripath/goth v1.68.1-0.20220109111530-754359885dce/go.mod h1:uk3KIdtCKdmyNABgOSmHFNHN0AcKqkLs8j5Ak3Ioe1Q=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=

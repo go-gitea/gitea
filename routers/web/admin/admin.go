@@ -38,6 +38,7 @@ const (
 	tplDashboard base.TplName = "admin/dashboard"
 	tplConfig    base.TplName = "admin/config"
 	tplMonitor   base.TplName = "admin/monitor"
+	tplLogging   base.TplName = "admin/logging"
 	tplQueue     base.TplName = "admin/queue"
 )
 
@@ -319,6 +320,19 @@ func Config(ctx *context.Context) {
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(http.StatusOK, tplConfig)
+}
+
+// Logging show admin logging page
+func Logging(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.logging")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminLogging"] = true
+
+	logMap := log.GetNamedLoggers()
+	ctx.Data["NamedLoggers"] = logMap
+
+	ctx.Data["MessageLogs"] = log.GetMessageLogs()
+	ctx.HTML(http.StatusOK, tplLogging)
 }
 
 // Monitor show admin monitor page

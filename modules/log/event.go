@@ -138,6 +138,16 @@ func (l *ChannelledLog) GetName() string {
 	return l.name
 }
 
+// GetProvider for this ChannelledLog
+func (l *ChannelledLog) GetProvider() string {
+	return l.provider
+}
+
+// GetLoggerProvider for this ChannelledLog
+func (l *ChannelledLog) GetLoggerProvider() LoggerProvider {
+	return l.loggerProvider
+}
+
 // MultiChannelledLog represents a cached channel to a LoggerProvider
 type MultiChannelledLog struct {
 	name            string
@@ -231,6 +241,18 @@ func (m *MultiChannelledLog) GetEventLoggerNames() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// GetEventLoggers returns a map of EventLoggers
+func (m *MultiChannelledLog) GetEventLoggers() map[string]EventLogger {
+	m.rwmutex.RLock()
+	defer m.rwmutex.RUnlock()
+	returnable := map[string]EventLogger{}
+
+	for k, v := range m.loggers {
+		returnable[k] = v
+	}
+	return returnable
 }
 
 func (m *MultiChannelledLog) closeLoggers() {
