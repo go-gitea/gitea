@@ -184,6 +184,10 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
+	defer func() {
+		_ = c.stdinReader.Close()
+		_ = c.stdOut.Close()
+	}()
 	stdErr := new(bytes.Buffer)
 	err := c.cmd.RunWithContext(&RunContext{
 		Env:     c.env,
@@ -204,7 +208,6 @@ func (c *CheckAttributeReader) Run() error {
 	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
-
 	return nil
 }
 
@@ -246,8 +249,6 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 func (c *CheckAttributeReader) Close() error {
 	c.cancel()
 	err := c.stdinWriter.Close()
-	_ = c.stdinReader.Close()
-	_ = c.stdOut.Close()
 	select {
 	case <-c.running:
 	default:
