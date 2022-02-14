@@ -58,7 +58,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, err := NewCommandContext(ctx, "ls-remote", "-q", "-h", url, "HEAD").Run()
+	_, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").Run()
 	return err == nil
 }
 
@@ -69,7 +69,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 		return err
 	}
 
-	cmd := NewCommandContext(ctx, "init")
+	cmd := NewCommand(ctx, "init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
@@ -80,21 +80,20 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommandContext(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
+	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
 		RunWithContext(&RunContext{
 			Timeout: -1,
 			Dir:     repo.Path,
 			Stdout:  &output,
 			Stderr:  &errbuf,
 		}); err != nil {
+		if err.Error() == "exit status 1" && errbuf.String() == "" {
+			return true, nil
+		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
-	if err != nil {
-		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
-	}
-	return c == 0, nil
+	return strings.TrimSpace(output.String()) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -187,7 +186,7 @@ type PushOptions struct {
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	cmd := NewCommandContext(ctx, "push")
+	cmd := NewCommand(ctx, "push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
@@ -204,7 +203,13 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 		opts.Timeout = -1
 	}
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, opts.Timeout, repoPath, &outbuf, &errbuf)
+	err := cmd.RunWithContext(&RunContext{
+		Env:     opts.Env,
+		Timeout: opts.Timeout,
+		Dir:     repoPath,
+		Stdout:  &outbuf,
+		Stderr:  &errbuf,
+	})
 	if err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return &ErrPushOutOfDate{
@@ -239,7 +244,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
-	cmd := NewCommandContext(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
+	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return time.Time{}, err
@@ -256,7 +261,7 @@ type DivergeObject struct {
 
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
-	cmd := NewCommandContext(ctx, "rev-list", "--count", branches)
+	cmd := NewCommand(ctx, "rev-list", "--count", branches)
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return -1, err
@@ -294,23 +299,23 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	defer os.RemoveAll(tmp)
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, err = NewCommandContext(ctx, "init", "--bare").RunInDirWithEnv(tmp, env)
+	_, err = NewCommand(ctx, "init", "--bare").RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
 
-	_, err = NewCommandContext(ctx, "reset", "--soft", commit).RunInDirWithEnv(tmp, env)
+	_, err = NewCommand(ctx, "reset", "--soft", commit).RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
 
-	_, err = NewCommandContext(ctx, "branch", "-m", "bundle").RunInDirWithEnv(tmp, env)
+	_, err = NewCommand(ctx, "branch", "-m", "bundle").RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, err = NewCommandContext(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunInDirWithEnv(tmp, env)
+	_, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
