@@ -1,12 +1,10 @@
-// Copyright 2021 Gitea. All rights reserved.
+// Copyright 2022 Gitea. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package util
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // SecToTime converts an amount of seconds to a human-readable string (example: 66s -> 1min 6s)
 func SecToTime(duration int64) string {
@@ -17,10 +15,8 @@ func SecToTime(duration int64) string {
 
 	var hrs string
 
-	if days > 1 {
-		hrs = fmt.Sprintf("%d days", days)
-	} else {
-		hrs = fmt.Sprintf("%d day", days)
+	if days > 0 {
+		hrs = fmt.Sprintf("%dd", days)
 	}
 	if hours > 0 {
 		if days == 0 {
@@ -31,9 +27,9 @@ func SecToTime(duration int64) string {
 	}
 	if minutes > 0 {
 		if days == 0 && hours == 0 {
-			hrs = fmt.Sprintf("%dmin", minutes)
+			hrs = fmt.Sprintf("%dm", minutes)
 		} else {
-			hrs = fmt.Sprintf("%s %dmin", hrs, minutes)
+			hrs = fmt.Sprintf("%s %dm", hrs, minutes)
 		}
 	}
 	if seconds > 0 {
