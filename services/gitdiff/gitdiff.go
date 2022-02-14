@@ -1422,6 +1422,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				}()
 			}
 			defer func() {
+				_ = checker.Close()
 				cancel()
 			}()
 		}
