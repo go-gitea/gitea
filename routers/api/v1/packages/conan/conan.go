@@ -12,17 +12,17 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	package_model "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	package_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 const (
@@ -59,7 +59,7 @@ func jsonResponse(ctx *context.APIContext, status int, obj interface{}) {
 }
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
 		})
@@ -148,9 +148,9 @@ func PackageSnapshot(ctx *context.APIContext) {
 func serveSnapshot(ctx *context.APIContext, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
-	pv, err := package_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, package_model.TypeConan, rref.Name, rref.Version, package_model.EmptyVersionKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version, packages_model.EmptyVersionKey)
 	if err != nil {
-		if err == package_model.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -158,7 +158,7 @@ func serveSnapshot(ctx *context.APIContext, fileKey string) {
 		return
 	}
 
-	pfs, _, err := package_model.SearchFiles(ctx, &package_model.PackageFileSearchOptions{
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:    pv.ID,
 		CompositeKey: fileKey,
 	})
@@ -173,7 +173,7 @@ func serveSnapshot(ctx *context.APIContext, fileKey string) {
 
 	files := make(map[string]string)
 	for _, pf := range pfs {
-		pb, err := package_model.GetBlobByID(ctx, pf.BlobID)
+		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -209,9 +209,9 @@ func PackageDownloadURLs(ctx *context.APIContext) {
 func serveDownloadURLs(ctx *context.APIContext, fileKey, downloadURL string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
-	pv, err := package_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, package_model.TypeConan, rref.Name, rref.Version, package_model.EmptyVersionKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version, packages_model.EmptyVersionKey)
 	if err != nil {
-		if err == package_model.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -219,7 +219,7 @@ func serveDownloadURLs(ctx *context.APIContext, fileKey, downloadURL string) {
 		return
 	}
 
-	pfs, _, err := package_model.SearchFiles(ctx, &package_model.PackageFileSearchOptions{
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:    pv.ID,
 		CompositeKey: fileKey,
 	})
@@ -315,7 +315,7 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 		defer upload.Close()
 	}
 
-	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -330,18 +330,18 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 
 	isConanfileFile := filename == conanfileFile
 
-	pci := &package_service.PackageCreationInfo{
-		PackageInfo: package_service.PackageInfo{
+	pci := &packages_service.PackageCreationInfo{
+		PackageInfo: packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: package_model.TypeConan,
+			PackageType: packages_model.TypeConan,
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
 		SemverCompatible: true,
 		Creator:          ctx.User,
 	}
-	pfci := &package_service.PackageFileCreationInfo{
-		PackageFileInfo: package_service.PackageFileInfo{
+	pfci := &packages_service.PackageFileCreationInfo{
+		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename:     strings.ToLower(filename),
 			CompositeKey: fileKey,
 		},
@@ -368,8 +368,8 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
-			pv, err := package_model.GetVersionByNameAndVersion(ctx, pci.Owner.ID, pci.PackageType, pci.Name, pci.Version, package_model.EmptyVersionKey)
-			if err != nil && err != package_model.ErrPackageNotExist {
+			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pci.Owner.ID, pci.PackageType, pci.Name, pci.Version, packages_model.EmptyVersionKey)
+			if err != nil && err != packages_model.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -380,7 +380,7 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 					return
 				}
 				pv.MetadataJSON = string(raw)
-				if err := package_model.UpdateVersion(pv); err != nil {
+				if err := packages_model.UpdateVersion(pv); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
@@ -408,12 +408,12 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 		}
 	}
 
-	_, _, err = package_service.CreatePackageOrAddFileToExisting(
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		pci,
 		pfci,
 	)
 	if err != nil {
-		if err == package_model.ErrDuplicatePackageFile {
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -447,20 +447,20 @@ func downloadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string)
 		return
 	}
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(
-		&package_service.PackageInfo{
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: package_model.TypeConan,
+			PackageType: packages_model.TypeConan,
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		&package_service.PackageFileInfo{
+		&packages_service.PackageFileInfo{
 			Filename:     filename,
 			CompositeKey: fileKey,
 		},
 	)
 	if err != nil {
-		if err == package_model.ErrPackageNotExist || err == package_model.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -477,7 +477,7 @@ func DeleteRecipeV1(ctx *context.APIContext) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, true, nil, false); err != nil {
-		if err == package_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -492,7 +492,7 @@ func DeleteRecipeV2(ctx *context.APIContext) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, rref.Revision == "", nil, false); err != nil {
-		if err == package_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+		if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -539,7 +539,7 @@ func DeletePackageV1(ctx *context.APIContext) {
 		for _, reference := range references {
 			pref, _ := conan_module.NewPackageReference(currentRref, reference.Value, conan_module.DefaultRevision)
 			if err := deleteRecipeOrPackage(ctx, currentRref, true, pref, true); err != nil {
-				if err == package_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+				if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
 					apiError(ctx, http.StatusNotFound, err)
 				} else {
 					apiError(ctx, http.StatusInternalServerError, err)
@@ -558,7 +558,7 @@ func DeletePackageV2(ctx *context.APIContext) {
 
 	if pref != nil { // has package reference
 		if err := deleteRecipeOrPackage(ctx, rref, false, pref, pref.Revision == ""); err != nil {
-			if err == package_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+			if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
 				apiError(ctx, http.StatusNotFound, err)
 			} else {
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -583,7 +583,7 @@ func DeletePackageV2(ctx *context.APIContext) {
 		pref, _ := conan_module.NewPackageReference(rref, reference.Value, conan_module.DefaultRevision)
 
 		if err := deleteRecipeOrPackage(ctx, rref, false, pref, true); err != nil {
-			if err == package_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
+			if err == packages_model.ErrPackageNotExist || err == conan_model.ErrPackageReferenceNotExist {
 				apiError(ctx, http.StatusNotFound, err)
 			} else {
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -602,12 +602,12 @@ func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.Recipe
 	}
 	defer committer.Close()
 
-	pv, err := package_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, package_model.TypeConan, rref.Name, rref.Version, package_model.EmptyVersionKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, apictx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version, packages_model.EmptyVersionKey)
 	if err != nil {
 		return err
 	}
 
-	pd, err := package_model.GetPackageDescriptorCtx(ctx, pv)
+	pd, err := packages_model.GetPackageDescriptorCtx(ctx, pv)
 	if err != nil {
 		return err
 	}
@@ -626,7 +626,7 @@ func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.Recipe
 		}
 	}
 
-	pfs, _, err := package_model.SearchFiles(ctx, &package_model.PackageFileSearchOptions{
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:  pv.ID,
 		Properties: filter,
 	})
@@ -638,31 +638,31 @@ func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.Recipe
 	}
 
 	for _, pf := range pfs {
-		if err := package_model.DeleteAllProperties(ctx, package_model.PropertyTypeFile, pf.ID); err != nil {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
 			return err
 		}
-		if err := package_model.DeleteFileByID(ctx, pf.ID); err != nil {
+		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
 			return err
 		}
 	}
 
 	versionDeleted := false
-	has, err := package_model.HasVersionFileReferences(ctx, pv.ID)
+	has, err := packages_model.HasVersionFileReferences(ctx, pv.ID)
 	if err != nil {
 		return err
 	}
 	if !has {
 		versionDeleted = true
 
-		if err := package_model.DeleteAllProperties(ctx, package_model.PropertyTypeVersion, pv.ID); err != nil {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
 			return err
 		}
 
-		if err := package_model.DeleteVersionByID(ctx, pv.ID); err != nil {
+		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
 			return err
 		}
 
-		if err := package_model.DeletePackageByIDIfUnreferenced(ctx, pv.PackageID); err != nil {
+		if err := packages_model.DeletePackageByIDIfUnreferenced(ctx, pv.PackageID); err != nil {
 			return err
 		}
 	}
@@ -675,7 +675,7 @@ func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.Recipe
 		notification.NotifyPackageDelete(apictx.User, pd)
 	}
 
-	return package_service.DeleteUnreferencedBlobs()
+	return packages_service.DeleteUnreferencedBlobs()
 }
 
 // ListRecipeRevisions gets a list of all recipe revisions
@@ -778,9 +778,9 @@ func ListPackageRevisionFiles(ctx *context.APIContext) {
 func listRevisionFiles(ctx *context.APIContext, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
-	pv, err := package_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, package_model.TypeConan, rref.Name, rref.Version, package_model.EmptyVersionKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version, packages_model.EmptyVersionKey)
 	if err != nil {
-		if err == package_model.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -788,7 +788,7 @@ func listRevisionFiles(ctx *context.APIContext, fileKey string) {
 		return
 	}
 
-	pfs, _, err := package_model.SearchFiles(ctx, &package_model.PackageFileSearchOptions{
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		VersionID:    pv.ID,
 		CompositeKey: fileKey,
 	})

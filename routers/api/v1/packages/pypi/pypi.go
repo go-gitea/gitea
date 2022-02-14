@@ -13,12 +13,12 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	package_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -30,7 +30,7 @@ var nameMatcher = regexp.MustCompile(`\A[a-z0-9\.\-_]+\z`)
 var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
@@ -101,7 +101,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	buf, err := package_module.CreateHashedBufferFromReader(file, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(file, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

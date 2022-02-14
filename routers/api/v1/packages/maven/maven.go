@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -43,7 +43,7 @@ var (
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }

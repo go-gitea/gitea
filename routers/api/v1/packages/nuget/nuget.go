@@ -14,15 +14,15 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	package_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"Message": message,
 		})
@@ -267,7 +267,7 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 	ctx.Status(http.StatusCreated)
 }
 
-func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.PackageType) (*nuget_module.Package, *package_module.HashedBuffer, []io.Closer) {
+func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.PackageType) (*nuget_module.Package, *packages_module.HashedBuffer, []io.Closer) {
 	closables := make([]io.Closer, 0, 2)
 
 	upload, close, err := ctx.UploadStream()
@@ -280,7 +280,7 @@ func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.Pack
 		closables = append(closables, upload)
 	}
 
-	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables

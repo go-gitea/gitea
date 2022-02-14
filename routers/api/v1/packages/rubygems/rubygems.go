@@ -14,14 +14,14 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	package_module "code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
@@ -199,7 +199,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		defer upload.Close()
 	}
 
-	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

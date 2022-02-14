@@ -12,9 +12,9 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	package_module "code.gitea.io/gitea/modules/packages"
-	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
+	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
 )
@@ -25,7 +25,7 @@ var (
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
-	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
@@ -38,14 +38,14 @@ func DownloadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(
-		&package_service.PackageInfo{
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeGeneric,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
-		&package_service.PackageFileInfo{
+		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
 	)
@@ -80,7 +80,7 @@ func UploadPackage(ctx *context.APIContext) {
 		defer upload.Close()
 	}
 
-	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		log.Error("Error creating hashed buffer: %v", err)
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -88,9 +88,9 @@ func UploadPackage(ctx *context.APIContext) {
 	}
 	defer buf.Close()
 
-	_, _, err = package_service.CreatePackageAndAddFile(
-		&package_service.PackageCreationInfo{
-			PackageInfo: package_service.PackageInfo{
+	_, _, err = packages_service.CreatePackageAndAddFile(
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypeGeneric,
 				Name:        packageName,
@@ -99,8 +99,8 @@ func UploadPackage(ctx *context.APIContext) {
 			SemverCompatible: true,
 			Creator:          ctx.User,
 		},
-		&package_service.PackageFileCreationInfo{
-			PackageFileInfo: package_service.PackageFileInfo{
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: filename,
 			},
 			Data:   buf,
@@ -127,9 +127,9 @@ func DeletePackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = package_service.DeletePackageVersionByNameAndVersion(
+	err = packages_service.DeletePackageVersionByNameAndVersion(
 		ctx.User,
-		&package_service.PackageInfo{
+		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeGeneric,
 			Name:        packageName,

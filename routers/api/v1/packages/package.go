@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 // ListPackages gets all packages of an owner
@@ -132,7 +132,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := package_service.DeletePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
+	err := packages_service.DeletePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeletePackageVersion", err)
 		return
