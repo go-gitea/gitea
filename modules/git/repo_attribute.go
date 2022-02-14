@@ -184,9 +184,6 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
-	defer func() {
-		_ = c.Close()
-	}()
 	stdErr := new(bytes.Buffer)
 	err := c.cmd.RunWithContext(&RunContext{
 		Env:     c.env,
@@ -196,7 +193,11 @@ func (c *CheckAttributeReader) Run() error {
 		Stdout:  c.stdOut,
 		Stderr:  stdErr,
 		PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
-			close(c.running)
+			select {
+			case <-c.running:
+			default:
+				close(c.running)
+			}
 			return nil
 		},
 	})
@@ -243,10 +244,10 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
+	c.cancel()
 	err := c.stdinWriter.Close()
 	_ = c.stdinReader.Close()
 	_ = c.stdOut.Close()
-	c.cancel()
 	select {
 	case <-c.running:
 	default:
