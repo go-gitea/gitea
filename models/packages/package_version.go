@@ -23,9 +23,6 @@ var (
 	ErrPackageVersionNotExist = errors.New("Package version does not exist")
 )
 
-// EmptyVersionKey is a named constant for an empty version key
-const EmptyVersionKey = ""
-
 func init() {
 	db.RegisterModel(new(PackageVersion))
 }
@@ -37,7 +34,6 @@ type PackageVersion struct {
 	CreatorID     int64
 	Version       string
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	CompositeKey  string             `xorm:"UNIQUE(s) INDEX"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	MetadataJSON  string             `xorm:"TEXT metadata_json"`
 	DownloadCount int64
@@ -50,7 +46,6 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 	key := &PackageVersion{
 		PackageID:    pv.PackageID,
 		LowerVersion: pv.LowerVersion,
-		CompositeKey: pv.CompositeKey,
 	}
 
 	has, err := e.Get(key)
@@ -93,7 +88,7 @@ func GetVersionByID(ctx context.Context, versionID int64) (*PackageVersion, erro
 }
 
 // GetVersionByNameAndVersion gets a version by name and version number
-func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version, key string) (*PackageVersion, error) {
+func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id":   ownerID,
 		"package.type":       packageType,
@@ -101,7 +96,6 @@ func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 	}
 	pv := &PackageVersion{
 		LowerVersion: strings.ToLower(version),
-		CompositeKey: key,
 	}
 	has, err := db.GetEngine(ctx).
 		Join("INNER", "package", "package.id = package_version.package_id").

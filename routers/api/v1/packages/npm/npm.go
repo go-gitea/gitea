@@ -215,7 +215,7 @@ func AddPackageTag(ctx *context.APIContext) {
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
-	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version, packages.EmptyVersionKey)
+	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)

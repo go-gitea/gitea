@@ -117,7 +117,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 func servePackageFile(ctx *context.APIContext, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version, packages.EmptyVersionKey)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -221,7 +221,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, packages.EmptyVersionKey)
+		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
 			if err == packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -282,7 +282,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		}
 
 		if pvci.Metadata != nil {
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, packages.EmptyVersionKey)
+			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 			if err != nil && err != packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
