@@ -87,7 +87,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		return nil, fmt.Errorf("wrong number of fields in return from check-attr")
 	}
 
-	var name2attribute2info = make(map[string]map[string]string)
+	name2attribute2info := make(map[string]map[string]string)
 
 	for i := 0; i < (len(fields) / 3); i++ {
 		filename := string(fields[3*i])
@@ -179,17 +179,21 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
 	defer func() {
-		_ = c.Close()
+		_ = c.stdinReader.Close()
+		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
 	err := c.cmd.RunInDirTimeoutEnvFullPipelineFunc(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader, func(_ context.Context, _ context.CancelFunc) error {
-		close(c.running)
+		select {
+		case <-c.running:
+		default:
+			close(c.running)
+		}
 		return nil
 	})
 	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
-
 	return nil
 }
 
@@ -229,10 +233,8 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
-	err := c.stdinWriter.Close()
-	_ = c.stdinReader.Close()
-	_ = c.stdOut.Close()
 	c.cancel()
+	err := c.stdinWriter.Close()
 	select {
 	case <-c.running:
 	default:
