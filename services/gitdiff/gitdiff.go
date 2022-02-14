@@ -1417,7 +1417,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 					if err != nil && err != ctx.Err() {
 						log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 					}
-					_ = checker.Close()
 					cancel()
 				}()
 			}
