@@ -134,6 +134,15 @@ Some of the key points:
   if that is not related to your PR, please make *another* PR for that.
 * Split big pull requests into multiple small ones. An incremental change
   will be faster to review than a huge PR.
+* Use the first comment as a summary explainer of your PR and you should keep this up-to-date as the PR evolves.
+
+If your PR could cause a breaking change you must add a BREAKING section to this comment e.g.:
+
+```
+## :warning: BREAKING :warning:
+```
+
+To explain how this could affect users and how to mitigate these changes.
 
 ## Styleguide
 
@@ -141,8 +150,8 @@ For imports you should use the following format (_without_ the comments)
 ```go
 import (
   // stdlib
-  "encoding/json"
   "fmt"
+  "math"
 
   // local packages
   "code.gitea.io/gitea/models"
@@ -203,13 +212,74 @@ In general, HTTP methods are chosen as follows:
  * **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Objects (e.g. User) to something (e.g. Org-Team)
  * **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
 
-
 An endpoint which changes/edits an object expects all fields to be optional (except ones to identify the object, which are required).
-
 ### Endpoints returning lists should
  * support pagination (`page` & `limit` options in query)
  * set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
+## Large Character Comments
+
+Throughout the codebase there are large-text comments for sections of code, e.g.:
+
+```go
+// __________            .__               
+// \______   \ _______  _|__| ______  _  __
+//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
+//  |    |   \  ___/\   /|  \  ___/\     / 
+//  |____|_  /\___  >\_/ |__|\___  >\/\_/  
+//         \/     \/             \/        
+```
+
+These were created using the `figlet` tool with the `graffiti` font.
+
+A simple way of creating these is to use the following:
+
+```bash
+figlet -f graffiti Review | sed  -e's+^+// +' - | xclip -sel clip -in
+```
+
+## Backports and Frontports
+
+Occasionally backports of PRs are required.
+
+The backported PR title should be:
+
+```
+Title of backported PR (#ORIGINAL_PR_NUMBER)
+```
+
+The first two lines of the summary of the backporting PR should be:
+
+```
+Backport #ORIGINAL_PR_NUMBER
+
+```
+
+with the rest of the summary matching the original PR. Similarly for frontports
+
+---
+
+The below is a script that may be helpful in creating backports. YMMV.
+
+```bash
+#!/bin/sh
+PR="$1"
+SHA="$2"
+VERSION="$3"
+
+if [ -z "$SHA" ]; then
+    SHA=$(gh api /repos/go-gitea/gitea/pulls/$PR -q '.merge_commit_sha')
+fi
+
+if [ -z "$VERSION" ]; then
+    VERSION="v1.16"
+fi
+
+echo git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
+git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
+git cherry-pick $SHA && git commit --amend && git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
+
+```
 
 ## Developer Certificate of Origin (DCO)
 
@@ -351,7 +421,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 * If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
 * Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
-* If needed send PR for changelog on branch `main`.
+* If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
 * Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 
 ## Copyright
@@ -359,7 +429,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

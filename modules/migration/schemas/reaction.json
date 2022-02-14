@@ -1,0 +1,29 @@
+{
+    "title": "Reaction",
+    "description": "Reaction associated to an issue or a comment.",
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+	"user_id": {
+	    "description": "Unique identifier of the user who authored the reaction.",
+	    "type": "number"
+	},
+	"user_name": {
+	    "description": "Name of the user who authored the reaction.",
+	    "type": "string"
+	},
+	"content": {
+	    "description": "Representation of the reaction",
+	    "type": "string"
+	}
+    },
+    "required": [
+	"user_id",
+	"content"
+    ],
+
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$id": "http://example.com/reaction.json",
+    "$$target": "reaction.json"
+}

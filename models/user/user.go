@@ -533,7 +533,7 @@ const SaltByteLength = 16
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	rBytes, err := util.RandomBytes(SaltByteLength)
+	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
 	if err != nil {
 		return "", err
 	}
@@ -1023,6 +1023,19 @@ func GetUserNamesByIDs(ids []int64) ([]string, error) {
 		Cols("name").
 		Find(&unames)
 	return unames, err
+}
+
+// GetUserNameByID returns username for the id
+func GetUserNameByID(ctx context.Context, id int64) (string, error) {
+	var name string
+	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
+	if err != nil {
+		return "", err
+	}
+	if has {
+		return name, nil
+	}
+	return "", nil
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
