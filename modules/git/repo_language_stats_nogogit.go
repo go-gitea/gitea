@@ -88,7 +88,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					}
 				}()
 			}
-			defer cancel()
+			defer func() {
+				_ = checker.Close()
+				cancel()
+			}()
 		}
 	}
 
