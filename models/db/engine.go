@@ -65,6 +65,7 @@ type Engine interface {
 	Query(...interface{}) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
+	Ping() error
 }
 
 // TableInfo returns table's information via an object

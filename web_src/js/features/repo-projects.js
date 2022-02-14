@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 function moveIssue({item, from, to, oldIndex}) {

@@ -71,24 +71,15 @@ func Init(next http.Handler) http.Handler {
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
+				"i18n":          locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbTypeNames":   getDbTypeNames(),
-				"i18n":          locale,
-				"Language":      locale.Language(),
-				"Lang":          locale.Language(),
 				"AllLangs":      translation.AllLangs(),
-				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
-		}
-		for _, lang := range translation.AllLangs() {
-			if lang.Lang == locale.Language() {
-				ctx.Data["LangName"] = lang.Name
-				break
-			}
 		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
@@ -418,7 +409,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
-		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
+		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
 		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)

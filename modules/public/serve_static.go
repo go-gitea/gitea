@@ -9,15 +9,12 @@ package public
 
 import (
 	"bytes"
-	"compress/gzip"
 	"io"
-	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -66,24 +63,16 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
 	if encodings["gzip"] {
 		if cf, ok := fi.(*vfsgen۰CompressedFileInfo); ok {
-			rd := bytes.NewReader(cf.GzipBytes())
-			w.Header().Set("Content-Encoding", "gzip")
-			ctype := mime.TypeByExtension(filepath.Ext(fi.Name()))
-			if ctype == "" {
-				// read a chunk to decide between utf-8 text and binary
-				var buf [512]byte
-				grd, _ := gzip.NewReader(rd)
-				n, _ := io.ReadFull(grd, buf[:])
-				ctype = http.DetectContentType(buf[:n])
-				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
-				if err != nil {
-					log.Error("rd.Seek error: %v", err)
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
-				}
+			rdGzip := bytes.NewReader(cf.GzipBytes())
+			// all static files are managed by Gitea, so we can make sure every file has the correct ext name
+			// then we can get the correct Content-Type, we do not need to do http.DetectContentType on the decompressed data
+			mimeType := detectWellKnownMimeType(filepath.Ext(fi.Name()))
+			if mimeType == "" {
+				mimeType = "application/octet-stream"
 			}
-			w.Header().Set("Content-Type", ctype)
-			http.ServeContent(w, req, fi.Name(), modtime, rd)
+			w.Header().Set("Content-Type", mimeType)
+			w.Header().Set("Content-Encoding", "gzip")
+			http.ServeContent(w, req, fi.Name(), modtime, rdGzip)
 			return
 		}
 	}

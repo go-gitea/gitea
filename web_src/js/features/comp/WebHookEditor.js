@@ -1,3 +1,4 @@
+import $ from 'jquery';
 const {csrfToken} = window.config;
 
 export function initCompWebHookEditor() {

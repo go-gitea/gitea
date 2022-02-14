@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -30,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -330,7 +328,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, err := git.NewCommandContext(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		refs, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -414,7 +412,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, err := git.NewCommandContext(ctx, "config", option).RunInDir(dir)
+	out, err := git.NewCommand(ctx, "config", option).RunInDir(dir)
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -486,18 +484,17 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	ctx, _, finished := process.GetManager().AddContext(h.r.Context(), fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
-	defer finished()
-
 	var stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
-	cmd.Dir = h.dir
-	cmd.Env = append(os.Environ(), h.environ...)
-	cmd.Stdout = h.w
-	cmd.Stdin = reqBody
-	cmd.Stderr = &stderr
-
-	if err := cmd.Run(); err != nil {
+	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
+	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
+	if err := cmd.RunWithContext(&git.RunContext{
+		Timeout: -1,
+		Dir:     h.dir,
+		Env:     append(os.Environ(), h.environ...),
+		Stdout:  h.w,
+		Stdin:   reqBody,
+		Stderr:  &stderr,
+	}); err != nil {
 		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
 		return
 	}
@@ -528,7 +525,7 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, err := git.NewCommandContext(ctx, "update-server-info").RunInDirBytes(dir)
+	out, err := git.NewCommand(ctx, "update-server-info").RunInDirBytes(dir)
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -558,7 +555,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, err := git.NewCommandContext(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
+		refs, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

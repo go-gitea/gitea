@@ -1,5 +1,6 @@
 import './publicpath.js';
 
+import $ from 'jquery';
 import {initVueEnv} from './components/VueComponentLoader.js';
 import {initRepoActivityTopAuthorsChart} from './components/RepoActivityTopAuthors.vue';
 import {initDashboardRepoList} from './components/DashboardRepoList.js';

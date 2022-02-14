@@ -188,7 +188,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -379,7 +379,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return

@@ -438,7 +438,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Execute keyword search for issues.
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	issueIDsFromSearch, err := issueIDsFromSearch(ctxUser, keyword, opts)
+	issueIDsFromSearch, err := issueIDsFromSearch(ctx, ctxUser, keyword, opts)
 	if err != nil {
 		ctx.ServerError("issueIDsFromSearch", err)
 		return
@@ -673,7 +673,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
+func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
 	if len(keyword) == 0 {
 		return []int64{}, nil
 	}
@@ -682,7 +682,7 @@ func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.I
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
 	}
-	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
+	issueIDsFromSearch, err := issue_indexer.SearchIssuesByKeyword(ctx, searchRepoIDs, keyword)
 	if err != nil {
 		return nil, fmt.Errorf("SearchIssuesByKeyword: %v", err)
 	}

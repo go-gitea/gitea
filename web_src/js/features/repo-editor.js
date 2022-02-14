@@ -1,9 +1,9 @@
+import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 
 const {csrfToken} = window.config;
-
 let previewFileModes;
 
 function initEditPreviewTab($form) {

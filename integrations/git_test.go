@@ -69,6 +69,12 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
+		dstPath2, err := os.MkdirTemp("", httpContext.Reponame)
+		assert.NoError(t, err)
+		defer util.RemoveAll(dstPath2)
+
+		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
+
 		little, big := standardCommitAndPushTest(t, dstPath)
 		littleLFS, bigLFS := lfsCommitAndPushTest(t, dstPath)
 		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
@@ -154,14 +160,14 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			return
 		}
 		prefix := "lfs-data-file-"
-		_, err := git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
+		_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunInDir(dstPath)
 		assert.NoError(t, err)
-		_, err = git.NewCommand("lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
+		_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
-		err = git.CommitChangesWithArgs(dstPath, allowLFSFilters(), git.CommitChangesOptions{
+		err = git.CommitChangesWithArgs(dstPath, git.AllowLFSFiltersArgs(), git.CommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -286,20 +292,20 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, err := git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
+	_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("lock", filename).RunInDir(repoPath)
+	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("locks").RunInDir(repoPath)
+	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("lfs").AddArguments("unlock", filename).RunInDir(repoPath)
+	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunInDir(repoPath)
 	assert.NoError(t, err)
 }
 
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, err = git.NewCommand("push", "origin", "master").RunInDir(repoPath) // Push
+	_, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunInDir(repoPath) // Push
 	assert.NoError(t, err)
 	return name
 }
@@ -340,7 +346,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 	// Commit
 	// Now here we should explicitly allow lfs filters to run
-	globalArgs := allowLFSFilters()
+	globalArgs := git.AllowLFSFiltersArgs()
 	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
@@ -665,7 +671,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -686,7 +692,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -739,7 +745,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -751,7 +757,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
