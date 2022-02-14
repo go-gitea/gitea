@@ -7,6 +7,7 @@ package packages
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -167,6 +168,13 @@ func DeleteVersionByID(ctx context.Context, versionID int64) error {
 	return err
 }
 
+// HasVersionFileReferences checks if there are associated files
+func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
+	return db.GetEngine(ctx).Get(&PackageFile{
+		VersionID: versionID,
+	})
+}
+
 // PackageSearchOptions are options for SearchXXX methods
 type PackageSearchOptions struct {
 	OwnerID    int64
@@ -195,15 +203,23 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	}
 
 	if len(opts.Properties) != 0 {
-		propsCond := builder.NewCond()
+		var propsCond builder.Cond = builder.Eq{
+			"package_property.ref_type": PropertyTypeVersion,
+		}
+		propsCond = propsCond.And(builder.Expr("package_property.ref_id = package_version.id"))
+
+		propsCondBlock := builder.NewCond()
 		for name, value := range opts.Properties {
-			propsCond = propsCond.Or(builder.Eq{
-				"package_property.ref_type": PropertyTypeVersion,
-				"package_property.name":     name,
-				"package_property.value":    value,
+			propsCondBlock = propsCondBlock.Or(builder.Eq{
+				"package_property.name":  name,
+				"package_property.value": value,
 			})
 		}
-		cond = cond.And(builder.In("package_version.id", builder.Select("package_property.ref_id").Where(propsCond).From("package_property")))
+		propsCond = propsCond.And(propsCondBlock)
+
+		cond = cond.And(builder.Eq{
+			strconv.Itoa(len(opts.Properties)): builder.Select("COUNT(*)").Where(propsCond).From("package_property"),
+		})
 	}
 
 	return cond

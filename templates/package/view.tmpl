@@ -9,7 +9,7 @@
 						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 					</div>
 					<div>
-						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.Lang}}
+						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n.Lang}}
 						{{if .PackageDescriptor.Repository}}
 							{{.i18n.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 						{{else}}
@@ -20,6 +20,7 @@
 				</div>
 				<div class="twelve wide column">
 					{{template "package/content/composer" .}}
+					{{template "package/content/conan" .}}
 					{{template "package/content/generic" .}}
 					{{template "package/content/nuget" .}}
 					{{template "package/content/npm" .}}
@@ -38,6 +39,7 @@
 							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 							{{template "package/metadata/composer" .}}
+							{{template "package/metadata/conan" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/nuget" .}}
 							{{template "package/metadata/npm" .}}

@@ -19,7 +19,7 @@ func LogAndProcessError(ctx *context.APIContext, status int, obj interface{}, cb
 	var message string
 	if err, ok := obj.(error); ok {
 		message = err.Error()
-	} else {
+	} else if obj != nil {
 		message = fmt.Sprintf("%s", obj)
 	}
 	if status == http.StatusInternalServerError {

@@ -7,6 +7,7 @@
 				<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
 				<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
 				<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
+				<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
 				<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
 				<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
 				<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
@@ -26,7 +27,7 @@
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
 					<div class="desc issue-item-bottom-row df ac fw my-1">
-						{{ $timeStr := TimeSinceUnix .Version.CreatedUnix $.Lang }}
+						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n.Lang}}
 						{{if .Repository}}
 							{{$.i18n.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.HTMLURL (.Repository.FullName | Escape) | Safe}}
 						{{else}}

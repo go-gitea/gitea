@@ -86,6 +86,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/packages/composer"
+	"code.gitea.io/gitea/routers/api/v1/packages/conan"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
 	"code.gitea.io/gitea/routers/api/v1/packages/maven"
 	"code.gitea.io/gitea/routers/api/v1/packages/npm"
@@ -1030,6 +1031,94 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/files/{versionid}/{fileid}", composer.DownloadPackageFile)
 				m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
 			})
+			m.Group("/conan", func() {
+				m.Group("/v1", func() {
+					m.Get("/ping", conan.Ping)
+					m.Group("/users", func() {
+						m.Get("/authenticate", conan.Authenticate)
+						m.Get("/check_credentials", conan.CheckCredentials)
+					})
+					m.Group("/conans", func() {
+						m.Get("/search", conan.SearchRecipes)
+						m.Group("/{name}/{version}/{user}/{channel}", func() {
+							m.Get("", conan.RecipeSnapshot)
+							m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV1)
+							m.Get("/search", conan.SearchPackagesV1)
+							m.Get("/digest", conan.RecipeDownloadURLs)
+							m.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
+							m.Get("/download_urls", conan.RecipeDownloadURLs)
+							m.Group("/packages", func() {
+								m.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
+								m.Group("/{package_reference}", func() {
+									m.Get("", conan.PackageSnapshot)
+									m.Get("/digest", conan.PackageDownloadURLs)
+									m.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
+									m.Get("/download_urls", conan.PackageDownloadURLs)
+								})
+							})
+						}, conan.ExtractPathParameters)
+					})
+					m.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
+						m.Group("/recipe/{filename}", func() {
+							m.Get("", conan.DownloadRecipeFile)
+							m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
+						})
+						m.Group("/package/{package_reference}/{package_revision}/{filename}", func() {
+							m.Get("", conan.DownloadPackageFile)
+							m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
+						})
+					}, conan.ExtractPathParameters)
+				})
+				m.Group("/v2", func() {
+					m.Get("/ping", conan.Ping)
+					m.Group("/users", func() {
+						m.Get("/authenticate", conan.Authenticate)
+						m.Get("/check_credentials", conan.CheckCredentials)
+					})
+					m.Group("/conans", func() {
+						m.Get("/search", conan.SearchRecipes)
+						m.Group("/{name}/{version}/{user}/{channel}", func() {
+							m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
+							m.Get("/search", conan.SearchPackagesV2)
+							m.Get("/latest", conan.LatestRecipeRevision)
+							m.Group("/revisions", func() {
+								m.Get("", conan.ListRecipeRevisions)
+								m.Group("/{recipe_revision}", func() {
+									m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
+									m.Get("/search", conan.SearchPackagesV2)
+									m.Group("/files", func() {
+										m.Get("", conan.ListRecipeRevisionFiles)
+										m.Group("/{filename}", func() {
+											m.Get("", conan.DownloadRecipeFile)
+											m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
+										})
+									})
+									m.Group("/packages", func() {
+										m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+										m.Group("/{package_reference}", func() {
+											m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+											m.Get("/latest", conan.LatestPackageRevision)
+											m.Group("/revisions", func() {
+												m.Get("", conan.ListPackageRevisions)
+												m.Group("/{package_revision}", func() {
+													m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+													m.Group("/files", func() {
+														m.Get("", conan.ListPackageRevisionFiles)
+														m.Group("/{filename}", func() {
+															m.Get("", conan.DownloadPackageFile)
+															m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
+														})
+													})
+												})
+											})
+										})
+									})
+								})
+							})
+						}, conan.ExtractPathParameters)
+					})
+				})
+			})
 			m.Group("/generic", func() {
 				m.Group("/{packagename}/{packageversion}/{filename}", func() {
 					m.Get("", generic.DownloadPackageFile)
@@ -1108,7 +1197,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/files", packages.ListPackageFiles)
 			})
 			m.Get("/", packages.ListPackages)
-		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, conan.CheckAuth, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

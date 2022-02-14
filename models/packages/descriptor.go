@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/composer"
+	"code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
@@ -116,6 +117,8 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	switch p.Type {
 	case TypeComposer:
 		metadata = &composer.Metadata{}
+	case TypeConan:
+		metadata = &conan.Metadata{}
 	case TypeNuGet:
 		metadata = &nuget.Metadata{}
 	case TypeNpm:

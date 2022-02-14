@@ -61,6 +61,7 @@ func addPackageTables(x *xorm.Engine) error {
 		LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		CompositeKey string `xorm:"UNIQUE(s) INDEX"`
 		IsLead       bool
+		CreatedUnix  timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
 	if err := x.Sync2(new(PackageFile)); err != nil {
@@ -68,12 +69,13 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageBlob struct {
-		ID         int64 `xorm:"pk autoincr"`
-		Size       int64
-		HashMD5    string `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
-		HashSHA1   string `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
-		HashSHA256 string `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
-		HashSHA512 string `xorm:"hash_sha512 char(128) UNIQUE(sha512) INDEX NOT NULL"`
+		ID          int64 `xorm:"pk autoincr"`
+		Size        int64
+		HashMD5     string             `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
+		HashSHA1    string             `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
+		HashSHA256  string             `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
+		HashSHA512  string             `xorm:"hash_sha512 char(128) UNIQUE(sha512) INDEX NOT NULL"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
 	return x.Sync2(new(PackageBlob))

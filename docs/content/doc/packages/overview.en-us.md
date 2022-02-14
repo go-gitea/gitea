@@ -27,6 +27,7 @@ The following package managers are currently supported:
 | Name | Language | Package client |
 | ---- | -------- | -------------- |
 | [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
+| [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
 | [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm` |

@@ -21,11 +21,10 @@ import (
 
 // PackageInfo describes a package
 type PackageInfo struct {
-	Owner        *user_model.User
-	PackageType  packages_model.Type
-	Name         string
-	Version      string
-	CompositeKey string
+	Owner       *user_model.User
+	PackageType packages_model.Type
+	Name        string
+	Version     string
 }
 
 // PackageCreationInfo describes a package to create
@@ -46,8 +45,10 @@ type PackageFileInfo struct {
 // PackageFileCreationInfo describes a package file to create
 type PackageFileCreationInfo struct {
 	PackageFileInfo
-	Data   *packages_module.HashedBuffer
-	IsLead bool
+	Data              *packages_module.HashedBuffer
+	IsLead            bool
+	Properties        map[string]string
+	OverwriteExisting bool
 }
 
 // CreatePackageAndAddFile creates a package with a file. If the same package exists already, ErrDuplicatePackageVersion is returned
@@ -145,10 +146,12 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	for name, value := range pvci.Properties {
-		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
-			log.Error("Error setting package version property: %v", err)
-			return nil, false, err
+	if created {
+		for name, value := range pvci.Properties {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
+				log.Error("Error setting package version property: %v", err)
+				return nil, false, err
+			}
 		}
 	}
 
@@ -163,7 +166,7 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	}
 	defer committer.Close()
 
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, packages_model.EmptyVersionKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -218,6 +221,26 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 		}
 	}
 
+	if pfci.OverwriteExisting {
+		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfci.Filename, pfci.CompositeKey)
+		if err != nil && err != packages_model.ErrPackageFileNotExist {
+			return nil, pb, !exists, err
+		}
+		if pf != nil {
+			// Short circuit if blob is the same
+			if pf.BlobID == pb.ID {
+				return pf, pb, !exists, nil
+			}
+
+			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
+				return nil, pb, !exists, err
+			}
+			if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
+				return nil, pb, !exists, err
+			}
+		}
+	}
+
 	pf := &packages_model.PackageFile{
 		VersionID:    pv.ID,
 		BlobID:       pb.ID,
@@ -230,7 +253,14 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 		if err != packages_model.ErrDuplicatePackageFile {
 			log.Error("Error inserting package file: %v", err)
 		}
-		return nil, nil, !exists, err
+		return nil, pb, !exists, err
+	}
+
+	for name, value := range pfci.Properties {
+		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeFile, pf.ID, name, value); err != nil {
+			log.Error("Error setting package file property: %v", err)
+			return pf, pb, !exists, err
+		}
 	}
 
 	return pf, pb, !exists, nil
@@ -238,7 +268,7 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 
 // DeletePackageVersionByNameAndVersion deletes a package version and all associated files
 func DeletePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, packages_model.EmptyVersionKey)
 	if err != nil {
 		return err
 	}
@@ -265,8 +295,13 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 		return err
 	}
 
-	if err := packages_model.DeleteFilesByVersionID(ctx, pv.ID); err != nil {
-		return err
+	for _, file := range pd.Files {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, file.File.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeleteFileByID(ctx, file.File.ID); err != nil {
+			return err
+		}
 	}
 
 	if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
@@ -323,7 +358,7 @@ func DeleteUnreferencedBlobs() error {
 func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pvi.CompositeKey)
+	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, packages_model.EmptyVersionKey)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			return nil, nil, err

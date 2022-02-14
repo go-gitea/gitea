@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // ErrPackageBlobNotExist indicates a package blob not exist error
@@ -20,12 +21,13 @@ func init() {
 
 // PackageBlob represents a package blob
 type PackageBlob struct {
-	ID         int64 `xorm:"pk autoincr"`
-	Size       int64
-	HashMD5    string `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
-	HashSHA1   string `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
-	HashSHA256 string `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
-	HashSHA512 string `xorm:"hash_sha512 char(128) UNIQUE(sha512) INDEX NOT NULL"`
+	ID          int64 `xorm:"pk autoincr"`
+	Size        int64
+	HashMD5     string             `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
+	HashSHA1    string             `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
+	HashSHA256  string             `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
+	HashSHA512  string             `xorm:"hash_sha512 char(128) UNIQUE(sha512) INDEX NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 }
 
 // GetOrInsertBlob inserts a blob. If the blob exists already the existing blob is returned

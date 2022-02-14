@@ -30,6 +30,7 @@ type Type string
 // List of supported packages
 const (
 	TypeComposer Type = "composer"
+	TypeConan    Type = "conan"
 	TypeGeneric  Type = "generic"
 	TypeNuGet    Type = "nuget"
 	TypeNpm      Type = "npm"
@@ -43,6 +44,8 @@ func (pt Type) Name() string {
 	switch pt {
 	case TypeComposer:
 		return "Composer"
+	case TypeConan:
+		return "Conan"
 	case TypeGeneric:
 		return "Generic"
 	case TypeNuGet:
@@ -64,6 +67,8 @@ func (pt Type) SVGName() string {
 	switch pt {
 	case TypeComposer:
 		return "gitea-composer"
+	case TypeConan:
+		return "gitea-conan"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeNuGet:
