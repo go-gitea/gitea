@@ -1,6 +1,6 @@
 package util
 
-import(
+import (
 	"fmt"
 )
 
