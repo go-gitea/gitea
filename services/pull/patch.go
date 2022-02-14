@@ -383,10 +383,11 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	// 7. Run the check command
 	conflict = false
 	err = git.NewCommand(gitRepo.Ctx, args...).
-		RunInDirTimeoutEnvFullPipelineFunc(
-			nil, -1, tmpBasePath,
-			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+		RunWithContext(&git.RunContext{
+			Timeout: -1,
+			Dir:     tmpBasePath,
+			Stderr:  stderrWriter,
+			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stderrWriter.Close()
 				defer func() {
@@ -444,7 +445,8 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 				}
 
 				return nil
-			})
+			},
+		})
 
 	// 8. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
 	if err != nil {

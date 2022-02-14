@@ -16,11 +16,14 @@ function selectRange($list, $select, $from) {
   const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
 
-  if ($issue.length === 0 || $copyPermalink.length === 0) {
+  if ($copyPermalink.length === 0) {
     return;
   }
 
-  const updateIssueHref = function(anchor) {
+  const updateIssueHref = function (anchor) {
+    if ($issue.length === 0) {
+      return;
+    }
     let href = $issue.attr('href');
     href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
     $issue.attr('href', href);

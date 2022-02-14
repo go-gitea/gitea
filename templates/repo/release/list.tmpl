@@ -40,7 +40,7 @@
 										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
 										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
 										{{if (and $.CanCreateRelease $release.IsTag)}}
-											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName | PathEscapeSegments}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.i18n.Tr "repo.release.new_release"}}</a>
+											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.i18n.Tr "repo.release.new_release"}}</a>
 										{{end}}
 										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
 											<a class="ui red delete-button mr-3" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
