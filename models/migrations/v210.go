@@ -46,7 +46,7 @@ func addPackageTables(x *xorm.Engine) error {
 		RefType int64  `xorm:"INDEX NOT NULL"`
 		RefID   int64  `xorm:"INDEX NOT NULL"`
 		Name    string `xorm:"INDEX NOT NULL"`
-		Value   string `xorm:"INDEX NOT NULL"`
+		Value   string `xorm:"TEXT INDEX NOT NULL"`
 	}
 
 	if err := x.Sync2(new(PackageProperty)); err != nil {
