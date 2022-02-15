@@ -45,8 +45,8 @@ export async function renderMermaid() {
         svg.classList.add('mermaid-chart');
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');
-        // allow-same-origin is to set inline style below
-        iframe.sandbox = 'allow-scripts allow-same-origin';
+        iframe.sandbox = 'allow-scripts allow-same-origin'; // allow-same-origin is to add style below
+        iframe.scrolling = 'no';
         iframe.srcdoc = svg.outerHTML;
         iframe.addEventListener('load', () => {
           const style = document.createElement('style');
@@ -58,6 +58,7 @@ export async function renderMermaid() {
           iframe.style.height = `${iframe.contentWindow.document.body.scrollHeight}px`;
         });
         svg.closest('pre').replaceWith(iframe);
+        iframe.sandbox = 'allow-scripts'; // remove allow-same-origin again
       });
     } catch (err) {
       displayError(el, err);
