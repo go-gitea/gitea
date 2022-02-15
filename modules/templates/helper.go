@@ -256,7 +256,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -447,7 +447,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
