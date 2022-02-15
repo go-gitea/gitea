@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"crypto/elliptic"
 	"encoding/base32"
 	"fmt"
 	"strings"
@@ -113,21 +114,27 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 			}
 
 			cred := &webauthnCredential{}
-			has, err := x.ID(reg.ID).Where("id = ? AND user_id = ?", reg.ID, reg.UserID).Get(cred)
+			has, err := x.ID(reg.ID).Where("id = ?", reg.ID).Get(cred)
 			if err != nil {
 				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
 			}
 			if !has {
 				continue
 			}
-			remigratedCredID := base32.HexEncoding.EncodeToString(parsed.KeyHandle)
-			if cred.CredentialID == remigratedCredID || (!strings.HasPrefix(remigratedCredID, cred.CredentialID) && cred.CredentialID != "") {
-				continue
+
+			c := &webauthnCredential{
+				ID:              reg.ID,
+				Name:            reg.Name,
+				LowerName:       strings.ToLower(reg.Name),
+				UserID:          reg.UserID,
+				CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
+				PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
+				AttestationType: "fido-u2f",
+				AAGUID:          []byte{},
+				SignCount:       reg.Counter,
 			}
 
-			cred.CredentialID = remigratedCredID
-
-			_, err = x.ID(cred.ID).Update(cred)
+			_, err = x.ID(c.ID).Update(c)
 			if err != nil {
 				return err
 			}
