@@ -16,12 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
-	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }

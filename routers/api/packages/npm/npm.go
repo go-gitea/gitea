@@ -19,7 +19,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
-	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
@@ -29,7 +29,7 @@ import (
 var errInvalidTagName = errors.New("The tag name is invalid")
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"error": message,
 		})

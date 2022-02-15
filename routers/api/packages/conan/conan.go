@@ -21,7 +21,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
-	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -59,7 +59,7 @@ func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 }
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
 		})

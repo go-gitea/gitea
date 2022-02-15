@@ -19,7 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
+	"code.gitea.io/gitea/routers/api/packages/nuget"
 
 	"github.com/stretchr/testify/assert"
 )

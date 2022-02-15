@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
-	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -30,7 +30,7 @@ var nameMatcher = regexp.MustCompile(`\A[a-z0-9\.\-_]+\z`)
 var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }

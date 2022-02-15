@@ -19,14 +19,14 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
-	packages_router "code.gitea.io/gitea/routers/api/v1/packages"
+	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
 )
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
-	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
+	helper.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Status  int    `json:"status"`
 			Message string `json:"message"`
