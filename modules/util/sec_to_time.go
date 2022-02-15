@@ -13,32 +13,32 @@ func SecToTime(duration int64) string {
 	hours := duration / (60 * 60) % 24
 	days := duration / (60 * 60) / 24
 
-	var hrs string
+	var formattedTime string
 
 	if days > 0 {
-		hrs = fmt.Sprintf("%dd", days)
+		formattedTime = fmt.Sprintf("%dd", days)
 	}
 	if hours > 0 {
-		if days == 0 {
-			hrs = fmt.Sprintf("%dh", hours)
+		if formattedTime == "" {
+			formattedTime = fmt.Sprintf("%dh", hours)
 		} else {
-			hrs = fmt.Sprintf("%s %dh", hrs, hours)
+			formattedTime = fmt.Sprintf("%s %dh", formattedTime, hours)
 		}
 	}
 	if minutes > 0 {
-		if days == 0 && hours == 0 {
-			hrs = fmt.Sprintf("%dm", minutes)
+		if formattedTime == "" {
+			formattedTime = fmt.Sprintf("%dm", minutes)
 		} else {
-			hrs = fmt.Sprintf("%s %dm", hrs, minutes)
+			formattedTime = fmt.Sprintf("%s %dm", formattedTime, minutes)
 		}
 	}
 	if seconds > 0 {
-		if days == 0 && hours == 0 && minutes == 0 {
-			hrs = fmt.Sprintf("%ds", seconds)
+		if formattedTime == "" {
+			formattedTime = fmt.Sprintf("%ds", seconds)
 		} else {
-			hrs = fmt.Sprintf("%s %ds", hrs, seconds)
+			formattedTime = fmt.Sprintf("%s %ds", formattedTime, seconds)
 		}
 	}
 
-	return hrs
+	return formattedTime
 }
