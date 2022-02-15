@@ -615,6 +615,15 @@ func EditPullRequest(ctx *context.APIContext) {
 		notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, form.Base)
 	}
 
+	// update allow edits
+	if pr.Issue.IsPoster(ctx.User.ID) && form.AllowMaintainerEdit != nil {
+		err = models.UpdateAllowEdits(pr, *form.AllowMaintainerEdit)
+		if err != nil {
+			ctx.ServerError("UpdateAllowEdits", err)
+			return
+		}
+	}
+
 	// Refetch from database
 	pr, err = models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pr.Index)
 	if err != nil {

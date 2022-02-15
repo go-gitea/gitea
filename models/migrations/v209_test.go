@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm/schemas"
 )

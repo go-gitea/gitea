@@ -659,7 +659,7 @@ type DismissReviewForm struct {
 
 // UpdateAllowEditsForm form for changing if PR allows edits from maintainers
 type UpdateAllowEditsForm struct {
-  AllowMaintainerEdit bool
+	AllowMaintainerEdit bool
 }
 
 // __________       .__
