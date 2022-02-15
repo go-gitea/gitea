@@ -29,14 +29,14 @@ var nameMatcher = regexp.MustCompile(`\A[a-z0-9\.\-_]+\z`)
 // https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
 var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
 
 // PackageMetadata returns the metadata for a single package
-func PackageMetadata(ctx *context.APIContext) {
+func PackageMetadata(ctx *context.Context) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
 	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypePyPI, packageName)
@@ -55,7 +55,7 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Data["RegistryURL"] = setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/pypi"
+	ctx.Data["RegistryURL"] = setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Render = templates.HTMLRenderer()
@@ -63,7 +63,7 @@ func PackageMetadata(ctx *context.APIContext) {
 }
 
 // DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
@@ -93,7 +93,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
-func UploadPackageFile(ctx *context.APIContext) {
+func UploadPackageFile(ctx *context.Context) {
 	file, fileHeader, err := ctx.Req.FormFile("content")
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)

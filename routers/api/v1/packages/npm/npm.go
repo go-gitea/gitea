@@ -28,7 +28,7 @@ import (
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"error": message,
@@ -38,7 +38,7 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 
 // packageNameFromParams gets the package name from the url parameters
 // Variations: /name/, /@scope/name/, /@scope%2Fname/
-func packageNameFromParams(ctx *context.APIContext) (string, error) {
+func packageNameFromParams(ctx *context.Context) (string, error) {
 	scope := ctx.Params("scope")
 	id := ctx.Params("id")
 	if scope != "" {
@@ -48,7 +48,7 @@ func packageNameFromParams(ctx *context.APIContext) (string, error) {
 }
 
 // PackageMetadata returns the metadata for a single package
-func PackageMetadata(ctx *context.APIContext) {
+func PackageMetadata(ctx *context.Context) {
 	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -72,7 +72,7 @@ func PackageMetadata(ctx *context.APIContext) {
 	}
 
 	resp := createPackageMetadataResponse(
-		setting.AppURL+"api/v1/packages/"+ctx.Package.Owner.Name+"/npm",
+		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
 		pds,
 	)
 
@@ -80,7 +80,7 @@ func PackageMetadata(ctx *context.APIContext) {
 }
 
 // DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -114,7 +114,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 }
 
 // UploadPackage creates a new package
-func UploadPackage(ctx *context.APIContext) {
+func UploadPackage(ctx *context.Context) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -172,7 +172,7 @@ func UploadPackage(ctx *context.APIContext) {
 }
 
 // ListPackageTags returns all tags for a package
-func ListPackageTags(ctx *context.APIContext) {
+func ListPackageTags(ctx *context.Context) {
 	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -201,7 +201,7 @@ func ListPackageTags(ctx *context.APIContext) {
 }
 
 // AddPackageTag adds a tag to the package
-func AddPackageTag(ctx *context.APIContext) {
+func AddPackageTag(ctx *context.Context) {
 	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -215,7 +215,7 @@ func AddPackageTag(ctx *context.APIContext) {
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
-	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version)
+	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages.TypeNpm, packageName, version)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -236,14 +236,14 @@ func AddPackageTag(ctx *context.APIContext) {
 }
 
 // DeletePackageTag deletes a package tag
-func DeletePackageTag(ctx *context.APIContext) {
+func DeletePackageTag(ctx *context.Context) {
 	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.ContextUser.ID, packages.TypeNpm, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

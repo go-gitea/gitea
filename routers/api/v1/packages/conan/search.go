@@ -21,7 +21,7 @@ type SearchResult struct {
 }
 
 // SearchRecipes searches all recipes matching the query
-func SearchRecipes(ctx *context.APIContext) {
+func SearchRecipes(ctx *context.Context) {
 	q := ctx.FormTrim("q")
 
 	opts := parseQuery(ctx.Package.Owner, q)
@@ -62,16 +62,16 @@ func parseQuery(owner *user_model.User, query string) *conan_model.RecipeSearchO
 }
 
 // SearchPackagesV1 searches all packages of a recipe (Conan v1 endpoint)
-func SearchPackagesV1(ctx *context.APIContext) {
+func SearchPackagesV1(ctx *context.Context) {
 	searchPackages(ctx, true)
 }
 
 // SearchPackagesV2 searches all packages of a recipe (Conan v2 endpoint)
-func SearchPackagesV2(ctx *context.APIContext) {
+func SearchPackagesV2(ctx *context.Context) {
 	searchPackages(ctx, false)
 }
 
-func searchPackages(ctx *context.APIContext, searchAllRevisions bool) {
+func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if !searchAllRevisions && rref.Revision == "" {

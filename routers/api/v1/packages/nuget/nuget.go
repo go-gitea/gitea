@@ -21,7 +21,7 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.JSON(status, map[string]string{
 			"Message": message,
@@ -30,14 +30,14 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 }
 
 // ServiceIndex https://docs.microsoft.com/en-us/nuget/api/service-index
-func ServiceIndex(ctx *context.APIContext) {
-	resp := createServiceIndexResponse(setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget")
+func ServiceIndex(ctx *context.Context) {
+	resp := createServiceIndexResponse(setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget")
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
-func SearchService(ctx *context.APIContext) {
+func SearchService(ctx *context.Context) {
 	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    string(packages.TypeNuGet),
@@ -59,7 +59,7 @@ func SearchService(ctx *context.APIContext) {
 	}
 
 	resp := createSearchResultResponse(
-		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		count,
 		pds,
 	)
@@ -68,7 +68,7 @@ func SearchService(ctx *context.APIContext) {
 }
 
 // RegistrationIndex https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-index
-func RegistrationIndex(ctx *context.APIContext) {
+func RegistrationIndex(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
 	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
@@ -88,7 +88,7 @@ func RegistrationIndex(ctx *context.APIContext) {
 	}
 
 	resp := createRegistrationIndexResponse(
-		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pds,
 	)
 
@@ -96,7 +96,7 @@ func RegistrationIndex(ctx *context.APIContext) {
 }
 
 // RegistrationLeaf https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
-func RegistrationLeaf(ctx *context.APIContext) {
+func RegistrationLeaf(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
@@ -117,7 +117,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	}
 
 	resp := createRegistrationLeafResponse(
-		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
+		&linkBuilder{setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pd,
 	)
 
@@ -125,7 +125,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 }
 
 // EnumeratePackageVersions https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#enumerate-package-versions
-func EnumeratePackageVersions(ctx *context.APIContext) {
+func EnumeratePackageVersions(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
 	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
@@ -150,7 +150,7 @@ func EnumeratePackageVersions(ctx *context.APIContext) {
 }
 
 // DownloadPackageFile https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
@@ -181,7 +181,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
-func UploadPackage(ctx *context.APIContext) {
+func UploadPackage(ctx *context.Context) {
 	np, buf, closables := processUploadedFile(ctx, nuget_module.DependencyPackage)
 	defer func() {
 		for _, c := range closables {
@@ -226,7 +226,7 @@ func UploadPackage(ctx *context.APIContext) {
 
 // UploadSymbolPackage adds a symbol package to an existing package
 // https://docs.microsoft.com/en-us/nuget/api/symbol-package-publish-resource
-func UploadSymbolPackage(ctx *context.APIContext) {
+func UploadSymbolPackage(ctx *context.Context) {
 	np, buf, closables := processUploadedFile(ctx, nuget_module.SymbolsPackage)
 	defer func() {
 		for _, c := range closables {
@@ -267,7 +267,7 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 	ctx.Status(http.StatusCreated)
 }
 
-func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.PackageType) (*nuget_module.Package, *packages_module.HashedBuffer, []io.Closer) {
+func processUploadedFile(ctx *context.Context, expectedType nuget_module.PackageType) (*nuget_module.Package, *packages_module.HashedBuffer, []io.Closer) {
 	closables := make([]io.Closer, 0, 2)
 
 	upload, close, err := ctx.UploadStream()
@@ -309,7 +309,7 @@ func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.Pack
 
 // DeletePackage hard deletes the package
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#delete-a-package
-func DeletePackage(ctx *context.APIContext) {
+func DeletePackage(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 

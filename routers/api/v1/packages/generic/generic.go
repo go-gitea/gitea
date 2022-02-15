@@ -24,14 +24,14 @@ var (
 	filenameRegex    = packageNameRegex
 )
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
 
 // DownloadPackageFile serves the specific generic package.
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -64,7 +64,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 
 // UploadPackage uploads the specific generic package.
 // Duplicated packages get rejected.
-func UploadPackage(ctx *context.APIContext) {
+func UploadPackage(ctx *context.Context) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -120,7 +120,7 @@ func UploadPackage(ctx *context.APIContext) {
 }
 
 // DeletePackage deletes the specific generic package.
-func DeletePackage(ctx *context.APIContext) {
+func DeletePackage(ctx *context.Context) {
 	packageName, packageVersion, _, err := sanitizeParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -146,7 +146,7 @@ func DeletePackage(ctx *context.APIContext) {
 	}
 }
 
-func sanitizeParameters(ctx *context.APIContext) (string, string, string, error) {
+func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 	packageName := ctx.Params("packagename")
 	filename := ctx.Params("filename")
 

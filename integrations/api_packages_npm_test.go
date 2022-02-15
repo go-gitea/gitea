@@ -62,8 +62,8 @@ func TestPackageNpm(t *testing.T) {
 		}
 	  }`
 
-	root := fmt.Sprintf("/api/v1/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
-	tagsRoot := fmt.Sprintf("/api/v1/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
+	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
+	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {

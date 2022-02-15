@@ -42,14 +42,14 @@ var (
 	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
 )
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
 
 // DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -63,7 +63,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	}
 }
 
-func serveMavenMetadata(ctx *context.APIContext, params parameters) {
+func serveMavenMetadata(ctx *context.Context, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
@@ -114,7 +114,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 	ctx.PlainTextBytes(http.StatusOK, xmlMetadataWithHeader)
 }
 
-func servePackageFile(ctx *context.APIContext, params parameters) {
+func servePackageFile(ctx *context.Context, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
 	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version)
@@ -182,7 +182,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
-func UploadPackageFile(ctx *context.APIContext) {
+func UploadPackageFile(ctx *context.Context) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -335,7 +335,7 @@ type parameters struct {
 	IsMeta     bool
 }
 
-func extractPathParameters(ctx *context.APIContext) (parameters, error) {
+func extractPathParameters(ctx *context.Context) (parameters, error) {
 	parts := strings.Split(ctx.Params("*"), "/")
 
 	p := parameters{

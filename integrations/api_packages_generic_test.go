@@ -29,7 +29,7 @@ func TestPackageGeneric(t *testing.T) {
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
-	url := fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

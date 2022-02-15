@@ -20,14 +20,14 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		ctx.PlainText(status, message)
 	})
 }
 
 // EnumeratePackages serves the package list
-func EnumeratePackages(ctx *context.APIContext) {
+func EnumeratePackages(ctx *context.Context) {
 	packages, err := packages.GetVersionsByPackageType(ctx.Package.Owner.ID, packages.TypeRubyGems)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -38,7 +38,7 @@ func EnumeratePackages(ctx *context.APIContext) {
 }
 
 // EnumeratePackagesLatest serves the list of the lastest version of every package
-func EnumeratePackagesLatest(ctx *context.APIContext) {
+func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    string(packages.TypeRubyGems),
@@ -52,11 +52,11 @@ func EnumeratePackagesLatest(ctx *context.APIContext) {
 }
 
 // EnumeratePackagesPreRelease is not supported and serves an empty list
-func EnumeratePackagesPreRelease(ctx *context.APIContext) {
+func EnumeratePackagesPreRelease(ctx *context.Context) {
 	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages.PackageVersion{})
 }
 
-func enumeratePackages(ctx *context.APIContext, filename string, pvs []*packages.PackageVersion) {
+func enumeratePackages(ctx *context.Context, filename string, pvs []*packages.PackageVersion) {
 	pds, err := packages.GetPackageDescriptors(pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -88,7 +88,7 @@ func enumeratePackages(ctx *context.APIContext, filename string, pvs []*packages
 }
 
 // ServePackageSpecification serves the compressed Gemspec file of a package
-func ServePackageSpecification(ctx *context.APIContext) {
+func ServePackageSpecification(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
@@ -155,7 +155,7 @@ func ServePackageSpecification(ctx *context.APIContext) {
 }
 
 // DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	pvs, err := packages.GetVersionsByFilename(ctx.Package.Owner.ID, packages.TypeRubyGems, filename)
@@ -189,7 +189,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
-func UploadPackageFile(ctx *context.APIContext) {
+func UploadPackageFile(ctx *context.Context) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
@@ -256,7 +256,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 }
 
 // DeletePackage deletes a package
-func DeletePackage(ctx *context.APIContext) {
+func DeletePackage(ctx *context.Context) {
 	// Go populates the form only for POST, PUT and PATCH requests
 	if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

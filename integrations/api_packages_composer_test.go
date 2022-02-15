@@ -52,7 +52,7 @@ func TestPackageComposer(t *testing.T) {
 	archive.Close()
 	content := buf.Bytes()
 
-	url := fmt.Sprintf("%sapi/v1/packages/%s/composer", setting.AppURL, user.Name)
+	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

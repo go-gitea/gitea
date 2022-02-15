@@ -51,7 +51,7 @@ func TestPackageNuGet(t *testing.T) {
 	archive.Close()
 	content := buf.Bytes()
 
-	url := fmt.Sprintf("/api/v1/packages/%s/nuget", user.Name)
+	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

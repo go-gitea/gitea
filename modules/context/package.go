@@ -51,7 +51,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		Owner: ctx.ContextUser,
 	}
 
-	if ctx.IsSigned && ctx.User.ID == ctx.ContextUser.ID {
+	if ctx.User != nil && ctx.User.ID == ctx.ContextUser.ID {
 		ctx.Package.AccessMode = perm.AccessModeOwner
 	} else {
 		if ctx.Package.Owner.IsOrganization() {
@@ -96,5 +96,21 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			errCb(http.StatusNotFound, "Package owner does not match", "Package owner does not match")
 			return
 		}
+	}
+}
+
+// PackageContexter initializes a package context for a request.
+func PackageContexter() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := Context{
+				Resp: NewResponse(resp),
+				Data: map[string]interface{}{},
+			}
+
+			ctx.Req = WithContext(req, &ctx)
+
+			next.ServeHTTP(ctx.Resp, ctx.Req)
+		})
 	}
 }

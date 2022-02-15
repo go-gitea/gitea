@@ -85,14 +85,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages"
-	"code.gitea.io/gitea/routers/api/v1/packages/composer"
-	"code.gitea.io/gitea/routers/api/v1/packages/conan"
-	"code.gitea.io/gitea/routers/api/v1/packages/generic"
-	"code.gitea.io/gitea/routers/api/v1/packages/maven"
-	"code.gitea.io/gitea/routers/api/v1/packages/npm"
-	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
-	"code.gitea.io/gitea/routers/api/v1/packages/pypi"
-	"code.gitea.io/gitea/routers/api/v1/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -1022,182 +1014,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		})
 
 		m.Group("/packages/{username}", func() {
-			m.Group("/composer", func() {
-				m.Get("/packages.json", composer.ServiceIndex)
-				m.Get("/search.json", composer.SearchPackages)
-				m.Get("/list.json", composer.EnumeratePackages)
-				m.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
-				m.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
-				m.Get("/files/{versionid}/{fileid}", composer.DownloadPackageFile)
-				m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-			})
-			m.Group("/conan", func() {
-				m.Group("/v1", func() {
-					m.Get("/ping", conan.Ping)
-					m.Group("/users", func() {
-						m.Get("/authenticate", conan.Authenticate)
-						m.Get("/check_credentials", conan.CheckCredentials)
-					})
-					m.Group("/conans", func() {
-						m.Get("/search", conan.SearchRecipes)
-						m.Group("/{name}/{version}/{user}/{channel}", func() {
-							m.Get("", conan.RecipeSnapshot)
-							m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV1)
-							m.Get("/search", conan.SearchPackagesV1)
-							m.Get("/digest", conan.RecipeDownloadURLs)
-							m.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
-							m.Get("/download_urls", conan.RecipeDownloadURLs)
-							m.Group("/packages", func() {
-								m.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
-								m.Group("/{package_reference}", func() {
-									m.Get("", conan.PackageSnapshot)
-									m.Get("/digest", conan.PackageDownloadURLs)
-									m.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
-									m.Get("/download_urls", conan.PackageDownloadURLs)
-								})
-							})
-						}, conan.ExtractPathParameters)
-					})
-					m.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
-						m.Group("/recipe/{filename}", func() {
-							m.Get("", conan.DownloadRecipeFile)
-							m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
-						})
-						m.Group("/package/{package_reference}/{package_revision}/{filename}", func() {
-							m.Get("", conan.DownloadPackageFile)
-							m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
-						})
-					}, conan.ExtractPathParameters)
-				})
-				m.Group("/v2", func() {
-					m.Get("/ping", conan.Ping)
-					m.Group("/users", func() {
-						m.Get("/authenticate", conan.Authenticate)
-						m.Get("/check_credentials", conan.CheckCredentials)
-					})
-					m.Group("/conans", func() {
-						m.Get("/search", conan.SearchRecipes)
-						m.Group("/{name}/{version}/{user}/{channel}", func() {
-							m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
-							m.Get("/search", conan.SearchPackagesV2)
-							m.Get("/latest", conan.LatestRecipeRevision)
-							m.Group("/revisions", func() {
-								m.Get("", conan.ListRecipeRevisions)
-								m.Group("/{recipe_revision}", func() {
-									m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeleteRecipeV2)
-									m.Get("/search", conan.SearchPackagesV2)
-									m.Group("/files", func() {
-										m.Get("", conan.ListRecipeRevisionFiles)
-										m.Group("/{filename}", func() {
-											m.Get("", conan.DownloadRecipeFile)
-											m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
-										})
-									})
-									m.Group("/packages", func() {
-										m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-										m.Group("/{package_reference}", func() {
-											m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-											m.Get("/latest", conan.LatestPackageRevision)
-											m.Group("/revisions", func() {
-												m.Get("", conan.ListPackageRevisions)
-												m.Group("/{package_revision}", func() {
-													m.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-													m.Group("/files", func() {
-														m.Get("", conan.ListPackageRevisionFiles)
-														m.Group("/{filename}", func() {
-															m.Get("", conan.DownloadPackageFile)
-															m.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
-														})
-													})
-												})
-											})
-										})
-									})
-								})
-							})
-						}, conan.ExtractPathParameters)
-					})
-				})
-			})
-			m.Group("/generic", func() {
-				m.Group("/{packagename}/{packageversion}/{filename}", func() {
-					m.Get("", generic.DownloadPackageFile)
-					m.Group("", func() {
-						m.Put("", generic.UploadPackage)
-						m.Delete("", generic.DeletePackage)
-					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
-				})
-			})
-			m.Group("/maven", func() {
-				m.Put("/*", reqToken(), reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
-				m.Get("/*", maven.DownloadPackageFile)
-			})
-			m.Group("/nuget", func() {
-				m.Get("/index.json", nuget.ServiceIndex)
-				m.Get("/query", nuget.SearchService)
-				m.Group("/registration/{id}", func() {
-					m.Get("/index.json", nuget.RegistrationIndex)
-					m.Get("/{version}", nuget.RegistrationLeaf)
-				})
-				m.Group("/package/{id}", func() {
-					m.Get("/index.json", nuget.EnumeratePackageVersions)
-					m.Get("/{version}/{filename}", nuget.DownloadPackageFile)
-				})
-				m.Group("", func() {
-					m.Put("/", nuget.UploadPackage)
-					m.Put("/symbolpackage", nuget.UploadSymbolPackage)
-					m.Delete("/{id}/{version}", nuget.DeletePackage)
-				}, reqBasicOrRevProxyAuth(), reqPackageAccess(perm.AccessModeWrite))
-			})
-			m.Group("/npm", func() {
-				m.Group("/@{scope}/{id}", func() {
-					m.Get("", npm.PackageMetadata)
-					m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
-				})
-				m.Group("/{id}", func() {
-					m.Get("", npm.PackageMetadata)
-					m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
-				})
-				m.Group("/-/package/@{scope}/{id}/dist-tags", func() {
-					m.Get("", npm.ListPackageTags)
-					m.Group("/{tag}", func() {
-						m.Put("", npm.AddPackageTag)
-						m.Delete("", npm.DeletePackageTag)
-					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
-				})
-				m.Group("/-/package/{id}/dist-tags", func() {
-					m.Get("", npm.ListPackageTags)
-					m.Group("/{tag}", func() {
-						m.Put("", npm.AddPackageTag)
-						m.Delete("", npm.DeletePackageTag)
-					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
-				})
-			})
-			m.Group("/pypi", func() {
-				m.Post("/", reqBasicOrRevProxyAuth(), reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
-				m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
-				m.Get("/simple/{id}", pypi.PackageMetadata)
-			})
-			m.Group("/rubygems", func() {
-				m.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
-				m.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
-				m.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
-				m.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
-				m.Get("/gems/{filename}", rubygems.DownloadPackageFile)
-				m.Group("/api/v1/gems", func() {
-					m.Post("/", rubygems.UploadPackageFile)
-					m.Delete("/yank", rubygems.DeletePackage)
-				}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
-			})
 			m.Group("/{versionid}", func() {
 				m.Get("", packages.GetPackage)
 				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 				m.Get("/files", packages.ListPackageFiles)
 			})
 			m.Get("/", packages.ListPackages)
-		}, conan.CheckAuth, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

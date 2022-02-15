@@ -6,6 +6,7 @@ package conan
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -13,37 +14,39 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/auth"
 
 	"github.com/golang-jwt/jwt/v4"
 )
+
+type Auth struct{}
+
+func (a *Auth) Name() string {
+	return "conan"
+}
+
+func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) *user_model.User {
+	token, err := parseAuthorizationToken(req)
+	if err != nil {
+		log.Trace("parseAuthorizationToken: %v", err)
+		return nil
+	}
+
+	u, err := user_model.GetUserByID(token.UserID)
+	if err != nil {
+		log.Error("GetUserByID:  %v", err)
+		return nil
+	}
+
+	return u
+}
 
 type conanClaims struct {
 	jwt.RegisteredClaims
 	UserID int64
 }
 
-// CheckAuth is a middleware which handles the custom Conan authorization token
-func CheckAuth(ctx *context.APIContext) {
-	if ctx.User == nil {
-		token, err := parseAuthorizationToken(ctx)
-		if err != nil {
-			log.Trace("parseAuthorizationToken: %v", err)
-			return
-		}
-
-		ctx.User, err = user_model.GetUserByIDCtx(ctx, token.UserID)
-		if err != nil {
-			if !user_model.IsErrUserNotExist(err) {
-				log.Error("GetUserByID: %v", err)
-			}
-			return
-		}
-
-		ctx.IsSigned = ctx.User != nil
-	}
-}
-
-func createAuthorizationToken(ctx *context.APIContext) (string, error) {
+func createAuthorizationToken(ctx *context.Context) (string, error) {
 	now := time.Now()
 	claims := conanClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -62,8 +65,8 @@ func createAuthorizationToken(ctx *context.APIContext) (string, error) {
 	return tokenString, nil
 }
 
-func parseAuthorizationToken(ctx *context.APIContext) (*conanClaims, error) {
-	parts := strings.SplitN(ctx.Req.Header.Get("Authorization"), " ", 2)
+func parseAuthorizationToken(req *http.Request) (*conanClaims, error) {
+	parts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("no token")
 	}

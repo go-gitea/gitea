@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		type Error struct {
 			Status  int    `json:"status"`
@@ -42,15 +42,15 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 }
 
 // ServiceIndex displays registry endpoints
-func ServiceIndex(ctx *context.APIContext) {
-	resp := createServiceIndexResponse(setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/composer")
+func ServiceIndex(ctx *context.Context) {
+	resp := createServiceIndexResponse(setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/composer")
 
 	ctx.JSON(http.StatusOK, resp)
 }
 
 // SearchPackages searches packages, only "q" is supported
 // https://packagist.org/apidoc#search-packages
-func SearchPackages(ctx *context.APIContext) {
+func SearchPackages(ctx *context.Context) {
 	page := ctx.FormInt("page")
 	if page < 1 {
 		page = 1
@@ -81,7 +81,7 @@ func SearchPackages(ctx *context.APIContext) {
 
 	nextLink := ""
 	if len(pvs) == paginator.PageSize {
-		u, err := url.Parse(setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/composer/search.json")
+		u, err := url.Parse(setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/composer/search.json")
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -111,7 +111,7 @@ func SearchPackages(ctx *context.APIContext) {
 
 // EnumeratePackages lists all package names
 // https://packagist.org/apidoc#list-packages
-func EnumeratePackages(ctx *context.APIContext) {
+func EnumeratePackages(ctx *context.Context) {
 	ps, err := packages.GetPackagesByType(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeComposer)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -130,7 +130,7 @@ func EnumeratePackages(ctx *context.APIContext) {
 
 // PackageMetadata returns the metadata for a single package
 // https://packagist.org/apidoc#get-package-data
-func PackageMetadata(ctx *context.APIContext) {
+func PackageMetadata(ctx *context.Context) {
 	vendorName := ctx.Params("vendorname")
 	projectName := ctx.Params("projectname")
 
@@ -151,7 +151,7 @@ func PackageMetadata(ctx *context.APIContext) {
 	}
 
 	resp := createPackageMetadataResponse(
-		setting.AppURL+"api/v1/packages/"+ctx.Package.Owner.Name+"/composer",
+		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/composer",
 		pds,
 	)
 
@@ -159,7 +159,7 @@ func PackageMetadata(ctx *context.APIContext) {
 }
 
 // DownloadPackageFile serves the content of a package
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	versionID := ctx.ParamsInt64("versionid")
 	fileID := ctx.ParamsInt64("fileid")
 
@@ -182,7 +182,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 }
 
 // UploadPackage creates a new package
-func UploadPackage(ctx *context.APIContext) {
+func UploadPackage(ctx *context.Context) {
 	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

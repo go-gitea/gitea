@@ -29,7 +29,7 @@ func TestPackageMaven(t *testing.T) {
 	packageVersion := "1.0.1"
 	packageDescription := "Test Description"
 
-	root := fmt.Sprintf("/api/v1/packages/%s/maven/%s/%s", user.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
+	root := fmt.Sprintf("/api/packages/%s/maven/%s/%s", user.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
 	filename := fmt.Sprintf("%s-%s.jar", packageName, packageVersion)
 
 	putFile := func(t *testing.T, path, content string, expectedStatus int) {

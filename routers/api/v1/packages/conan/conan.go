@@ -49,7 +49,7 @@ var (
 	}
 )
 
-func jsonResponse(ctx *context.APIContext, status int, obj interface{}) {
+func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	// https://github.com/conan-io/conan/issues/6613
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	ctx.Status(status)
@@ -58,7 +58,7 @@ func jsonResponse(ctx *context.APIContext, status int, obj interface{}) {
 	}
 }
 
-func apiError(ctx *context.APIContext, status int, obj interface{}) {
+func apiError(ctx *context.Context, status int, obj interface{}) {
 	packages_router.LogAndProcessError(ctx, status, obj, func(message string) {
 		jsonResponse(ctx, status, map[string]string{
 			"message": message,
@@ -66,12 +66,12 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	})
 }
 
-func baseURL(ctx *context.APIContext) string {
-	return setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/conan"
+func baseURL(ctx *context.Context) string {
+	return setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/conan"
 }
 
 // ExtractPathParameters is a middleware to extract common parameters from path
-func ExtractPathParameters(ctx *context.APIContext) {
+func ExtractPathParameters(ctx *context.Context) {
 	rref, err := conan_module.NewRecipeReference(
 		ctx.Params("name"),
 		ctx.Params("version"),
@@ -105,17 +105,17 @@ func ExtractPathParameters(ctx *context.APIContext) {
 }
 
 // Ping reports the server capabilities
-func Ping(ctx *context.APIContext) {
+func Ping(ctx *context.Context) {
 	ctx.RespHeader().Add("X-Conan-Server-Capabilities", "revisions") // complex_search,checksum_deploy,matrix_params
 
 	ctx.Status(http.StatusOK)
 }
 
 // Authenticate creates an authentication token for the user
-func Authenticate(ctx *context.APIContext) {
+func Authenticate(ctx *context.Context) {
 	token, err := createAuthorizationToken(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func Authenticate(ctx *context.APIContext) {
 }
 
 // CheckCredentials tests if the provided authentication token is valid
-func CheckCredentials(ctx *context.APIContext) {
+func CheckCredentials(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.Status(http.StatusUnauthorized)
 	} else {
@@ -132,20 +132,20 @@ func CheckCredentials(ctx *context.APIContext) {
 }
 
 // RecipeSnapshot displays the recipe files with their md5 hash
-func RecipeSnapshot(ctx *context.APIContext) {
+func RecipeSnapshot(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	serveSnapshot(ctx, rref.AsKey())
 }
 
 // RecipeSnapshot displays the package files with their md5 hash
-func PackageSnapshot(ctx *context.APIContext) {
+func PackageSnapshot(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	serveSnapshot(ctx, pref.AsKey())
 }
 
-func serveSnapshot(ctx *context.APIContext, fileKey string) {
+func serveSnapshot(ctx *context.Context, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
@@ -185,7 +185,7 @@ func serveSnapshot(ctx *context.APIContext, fileKey string) {
 }
 
 // RecipeDownloadURLs displays the recipe files with their download url
-func RecipeDownloadURLs(ctx *context.APIContext) {
+func RecipeDownloadURLs(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	serveDownloadURLs(
@@ -196,7 +196,7 @@ func RecipeDownloadURLs(ctx *context.APIContext) {
 }
 
 // PackageDownloadURLs displays the package files with their download url
-func PackageDownloadURLs(ctx *context.APIContext) {
+func PackageDownloadURLs(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	serveDownloadURLs(
@@ -206,7 +206,7 @@ func PackageDownloadURLs(ctx *context.APIContext) {
 	)
 }
 
-func serveDownloadURLs(ctx *context.APIContext, fileKey, downloadURL string) {
+func serveDownloadURLs(ctx *context.Context, fileKey, downloadURL string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
@@ -242,7 +242,7 @@ func serveDownloadURLs(ctx *context.APIContext, fileKey, downloadURL string) {
 }
 
 // RecipeUploadURLs displays the upload urls for the provided recipe files
-func RecipeUploadURLs(ctx *context.APIContext) {
+func RecipeUploadURLs(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	serveUploadURLs(
@@ -253,7 +253,7 @@ func RecipeUploadURLs(ctx *context.APIContext) {
 }
 
 // PackageUploadURLs displays the upload urls for the provided package files
-func PackageUploadURLs(ctx *context.APIContext) {
+func PackageUploadURLs(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	serveUploadURLs(
@@ -263,12 +263,12 @@ func PackageUploadURLs(ctx *context.APIContext) {
 	)
 }
 
-func serveUploadURLs(ctx *context.APIContext, fileFilter stringSet, uploadURL string) {
+func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL string) {
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&files); err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -283,20 +283,20 @@ func serveUploadURLs(ctx *context.APIContext, fileFilter stringSet, uploadURL st
 }
 
 // UploadRecipeFile handles the upload of a recipe file
-func UploadRecipeFile(ctx *context.APIContext) {
+func UploadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	uploadFile(ctx, recipeFileList, rref.AsKey())
 }
 
 // UploadPackageFile handles the upload of a package file
-func UploadPackageFile(ctx *context.APIContext) {
+func UploadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	uploadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
+func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
@@ -425,20 +425,20 @@ func uploadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
 }
 
 // DownloadRecipeFile serves the conent of the requested recipe file
-func DownloadRecipeFile(ctx *context.APIContext) {
+func DownloadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	downloadFile(ctx, recipeFileList, rref.AsKey())
 }
 
 // DownloadPackageFile serves the conent of the requested package file
-func DownloadPackageFile(ctx *context.APIContext) {
+func DownloadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	downloadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func downloadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string) {
+func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	filename := ctx.Params("filename")
@@ -473,7 +473,7 @@ func downloadFile(ctx *context.APIContext, fileFilter stringSet, fileKey string)
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
-func DeleteRecipeV1(ctx *context.APIContext) {
+func DeleteRecipeV1(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, true, nil, false); err != nil {
@@ -488,7 +488,7 @@ func DeleteRecipeV1(ctx *context.APIContext) {
 }
 
 // DeleteRecipeV2 deletes the requested recipe(s) respecting its revisions
-func DeleteRecipeV2(ctx *context.APIContext) {
+func DeleteRecipeV2(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	if err := deleteRecipeOrPackage(ctx, rref, rref.Revision == "", nil, false); err != nil {
@@ -503,7 +503,7 @@ func DeleteRecipeV2(ctx *context.APIContext) {
 }
 
 // DeletePackageV1 deletes the requested package(s)
-func DeletePackageV1(ctx *context.APIContext) {
+func DeletePackageV1(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	type PackageReferences struct {
@@ -552,7 +552,7 @@ func DeletePackageV1(ctx *context.APIContext) {
 }
 
 // DeletePackageV2 deletes the requested package(s) respecting its revisions
-func DeletePackageV2(ctx *context.APIContext) {
+func DeletePackageV2(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
@@ -595,7 +595,7 @@ func DeletePackageV2(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
+func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeReference, ignoreRecipeRevision bool, pref *conan_module.PackageReference, ignorePackageRevision bool) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -679,7 +679,7 @@ func deleteRecipeOrPackage(apictx *context.APIContext, rref *conan_module.Recipe
 }
 
 // ListRecipeRevisions gets a list of all recipe revisions
-func ListRecipeRevisions(ctx *context.APIContext) {
+func ListRecipeRevisions(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	revisions, err := conan_model.GetRecipeRevisions(ctx, ctx.Package.Owner.ID, rref)
@@ -692,7 +692,7 @@ func ListRecipeRevisions(ctx *context.APIContext) {
 }
 
 // ListPackageRevisions gets a list of all package revisions
-func ListPackageRevisions(ctx *context.APIContext) {
+func ListPackageRevisions(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	revisions, err := conan_model.GetPackageRevisions(ctx, ctx.Package.Owner.ID, pref)
@@ -709,7 +709,7 @@ type revisionInfo struct {
 	Time     time.Time `json:"time"`
 }
 
-func listRevisions(ctx *context.APIContext, revisions []*conan_model.PropertyValue) {
+func listRevisions(ctx *context.Context, revisions []*conan_model.PropertyValue) {
 	if len(revisions) == 0 {
 		apiError(ctx, http.StatusNotFound, conan_model.ErrRecipeReferenceNotExist)
 		return
@@ -728,7 +728,7 @@ func listRevisions(ctx *context.APIContext, revisions []*conan_model.PropertyVal
 }
 
 // LatestRecipeRevision gets the latest recipe revision
-func LatestRecipeRevision(ctx *context.APIContext) {
+func LatestRecipeRevision(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	revision, err := conan_model.GetLastRecipeRevision(ctx, ctx.Package.Owner.ID, rref)
@@ -745,7 +745,7 @@ func LatestRecipeRevision(ctx *context.APIContext) {
 }
 
 // LatestPackageRevision gets the latest package revision
-func LatestPackageRevision(ctx *context.APIContext) {
+func LatestPackageRevision(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	revision, err := conan_model.GetLastPackageRevision(ctx, ctx.Package.Owner.ID, pref)
@@ -762,20 +762,20 @@ func LatestPackageRevision(ctx *context.APIContext) {
 }
 
 // ListRecipeRevisionFiles gets a list of all recipe revision files
-func ListRecipeRevisionFiles(ctx *context.APIContext) {
+func ListRecipeRevisionFiles(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	listRevisionFiles(ctx, rref.AsKey())
 }
 
 // ListPackageRevisionFiles gets a list of all package revision files
-func ListPackageRevisionFiles(ctx *context.APIContext) {
+func ListPackageRevisionFiles(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	listRevisionFiles(ctx, pref.AsKey())
 }
 
-func listRevisionFiles(ctx *context.APIContext, fileKey string) {
+func listRevisionFiles(ctx *context.Context, fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name, rref.Version)
