@@ -1,3 +1,4 @@
+import {isDarkTheme} from '../utils.js';
 const {mermaidMaxSourceCharacters} = window.config;
 
 function displayError(el, err) {
@@ -15,14 +16,8 @@ export async function renderMermaid() {
   const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
   mermaid.initialize({
-    mermaid: {
-      startOnLoad: false,
-    },
-    flowchart: {
-      useMaxWidth: true,
-      htmlLabels: false,
-    },
-    theme: 'neutral',
+    startOnLoad: false,
+    theme: isDarkTheme() ? 'dark' : 'neutral',
     securityLevel: 'strict',
   });
 
@@ -48,7 +43,21 @@ export async function renderMermaid() {
       mermaid.init(undefined, el, (id) => {
         const svg = document.getElementById(id);
         svg.classList.add('mermaid-chart');
-        svg.closest('pre').replaceWith(svg);
+        const iframe = document.createElement('iframe');
+        iframe.classList.add('markup-render');
+        // allow-same-origin is to set inline style below
+        iframe.sandbox = 'allow-scripts allow-same-origin';
+        iframe.srcdoc = svg.outerHTML;
+        iframe.addEventListener('load', () => {
+          const style = document.createElement('style');
+          style.appendChild(document.createTextNode(`
+            body {margin: 0; padding: 0; overflow: hidden}
+            .mermaid-chart {display: block; margin: 0 auto}
+          `));
+          iframe.contentWindow.document.head.appendChild(style);
+          iframe.style.height = `${iframe.contentWindow.document.body.scrollHeight}px`;
+        });
+        svg.closest('pre').replaceWith(iframe);
       });
     } catch (err) {
       displayError(el, err);
