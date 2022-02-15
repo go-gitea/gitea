@@ -10,7 +10,7 @@ import (
 
 func increaseCredentialIDTo410(x *xorm.Engine) error {
 	// no-op
-	// MariaDB asserts that 408 characters is too long for a VARCHAR(410) so this migration is clearly wrong.
+	// v208 was completely wrong
 	// So now we have to no-op again.
 
 	return nil
