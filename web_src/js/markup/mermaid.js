@@ -1,7 +1,7 @@
 import {isDarkTheme} from '../utils.js';
 const {mermaidMaxSourceCharacters} = window.config;
 
-const iframeStyle = `
+const iframeCss = `
   body {margin: 0; padding: 0}
   .mermaid-chart {display: block; margin: 0 auto}
 `;
@@ -53,7 +53,7 @@ export async function renderMermaid() {
         iframe.sandbox = 'allow-scripts';
         iframe.scrolling = 'no';
         iframe.style.height = `${Math.ceil(svg.getAttribute('height'))}px`;
-        iframe.srcdoc = `<html><head><style>${iframeStyle}</style></head><body>${svg.outerHTML}</body></html>`;
+        iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg.outerHTML}</body></html>`;
         svg.closest('pre').replaceWith(iframe);
       });
     } catch (err) {
