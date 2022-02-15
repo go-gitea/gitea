@@ -25,7 +25,7 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX VARCHAR(500)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
 		PublicKey       []byte
 		AttestationType string
 		AAGUID          []byte
@@ -40,12 +40,12 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(500)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
 	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(500)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 			return err
 		}
 	case schemas.POSTGRES:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(500)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(410)")
 		if err != nil {
 			return err
 		}
@@ -112,17 +112,7 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 			if err != nil {
 				continue
 			}
-
-			cred := &webauthnCredential{}
-			has, err := x.ID(reg.ID).Where("id = ?", reg.ID).Get(cred)
-			if err != nil {
-				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
-			}
-			if !has {
-				continue
-			}
-
-			c := &webauthnCredential{
+			remigrated := &webauthnCredential{
 				ID:              reg.ID,
 				Name:            reg.Name,
 				LowerName:       strings.ToLower(reg.Name),
@@ -132,9 +122,23 @@ func increaseCredentialIDTo500(x *xorm.Engine) error {
 				AttestationType: "fido-u2f",
 				AAGUID:          []byte{},
 				SignCount:       reg.Counter,
+				UpdatedUnix:     reg.UpdatedUnix,
+				CreatedUnix:     reg.CreatedUnix,
 			}
 
-			_, err = x.ID(c.ID).Update(c)
+			has, err := x.ID(reg.ID).Where("id = ?", reg.ID).Get(new(webauthnCredential))
+			if err != nil {
+				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
+			}
+			if has {
+				_, err = x.ID(remigrated.ID).AllCols().Insert(remigrated)
+				if err != nil {
+					return err
+				}
+				continue
+			}
+
+			_, err = x.ID(remigrated.ID).AllCols().Update(remigrated)
 			if err != nil {
 				return err
 			}
