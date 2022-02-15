@@ -84,7 +84,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-pgsql/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = pgsql-log
+ROOT_PATH            = {{REPO_TEST_DIR}}pgsql-log
 ROUTER               = ,
 XORM                 = file
 ENABLE_SSH_LOG       = true

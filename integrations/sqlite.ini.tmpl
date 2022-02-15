@@ -79,7 +79,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-sqlite/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = {{REPO_TEST_DIR}}sqlite-log
 ROUTER               = ,
 XORM                 = file
 ENABLE_SSH_LOG       = true
