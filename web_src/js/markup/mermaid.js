@@ -1,6 +1,11 @@
 import {isDarkTheme} from '../utils.js';
 const {mermaidMaxSourceCharacters} = window.config;
 
+const iframeStyle = `
+  body {margin: 0; padding: 0}
+  .mermaid-chart {display: block; margin: 0 auto}
+`;
+
 function displayError(el, err) {
   el.closest('pre').classList.remove('is-loading');
   const errorNode = document.createElement('div');
@@ -45,20 +50,12 @@ export async function renderMermaid() {
         svg.classList.add('mermaid-chart');
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');
-        iframe.sandbox = 'allow-scripts allow-same-origin'; // allow-same-origin is to add style below
+        iframe.sandbox = 'allow-scripts';
         iframe.scrolling = 'no';
-        iframe.srcdoc = svg.outerHTML;
-        iframe.addEventListener('load', () => {
-          const style = document.createElement('style');
-          style.appendChild(document.createTextNode(`
-            body {margin: 0; padding: 0}
-            .mermaid-chart {display: block; margin: 0 auto}
-          `));
-          iframe.contentWindow.document.head.appendChild(style);
-          iframe.style.height = `${iframe.contentWindow.document.body.scrollHeight}px`;
-        });
+        iframe.loading = 'lazy';
+        iframe.style.height = `${Math.ceil(svg.getAttribute('height'))}px`;
+        iframe.srcdoc = `<html><head><style>${iframeStyle}</style></head><body>${svg.outerHTML}</body></html>`;
         svg.closest('pre').replaceWith(iframe);
-        iframe.sandbox = 'allow-scripts'; // remove allow-same-origin again
       });
     } catch (err) {
       displayError(el, err);
