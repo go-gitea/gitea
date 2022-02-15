@@ -17,8 +17,8 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-// MariaDB asserts that 408 is too long for a VARCHAR(410) so now we need 500
-func increaseCredentialIDTo500(x *xorm.Engine) error {
+// v208 migration was completely broken
+func remigrateU2FCredentials(x *xorm.Engine) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
