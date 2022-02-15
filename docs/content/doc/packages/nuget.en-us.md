@@ -31,7 +31,7 @@ The following examples use the `dotnet nuget` tool.
 To register the package registry you need to configure a new NuGet feed source:
 
 ```shell
-dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/v1/packages/{owner}/nuget/index.json
+dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/packages/{owner}/nuget/index.json
 ```
 
 | Parameter     | Description |
@@ -44,7 +44,7 @@ dotnet nuget add source --name {source_name} --username {username} --password {p
 For example:
 
 ```shell
-dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/v1/packages/testuser/nuget/index.json
+dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/packages/testuser/nuget/index.json
 ```
 
 ## Publish a package

@@ -29,7 +29,7 @@ To work with the Conan package registry, you need to use the [conan](https://con
 To register the package registry you need to configure a new Conan remote:
 
 ```shell
-conan remote add {remote} https://gitea.example.com/api/v1/packages/{owner}/conan
+conan remote add {remote} https://gitea.example.com/api/packages/{owner}/conan
 conan user --remote {remote} --password {password} {username}
 ```
 
@@ -43,7 +43,7 @@ conan user --remote {remote} --password {password} {username}
 For example:
 
 ```shell
-conan remote add gitea https://gitea.example.com/api/v1/packages/testuser/conan
+conan remote add gitea https://gitea.example.com/api/packages/testuser/conan
 conan user --remote gitea --password password123 testuser
 ```
 

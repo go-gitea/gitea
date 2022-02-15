@@ -33,7 +33,7 @@ To register the package registry you need to edit your local `~/.pypirc` file. A
 index-servers = gitea
 
 [gitea]
-repository = https://gitea.example.com/api/v1/packages/{owner}/pypi
+repository = https://gitea.example.com/api/packages/{owner}/pypi
 username = {username}
 password = {password}
 ```
@@ -61,7 +61,7 @@ You cannot publish a package if a package of the same name and version already e
 To install a PyPI package from the package registry, execute the following command:
 
 ```shell
-pip install --index-url https://{username}:{password}@gitea.example.com/api/v1/packages/{owner}/pypi/simple --no-deps {package_name}
+pip install --index-url https://{username}:{password}@gitea.example.com/api/packages/{owner}/pypi/simple --no-deps {package_name}
 ```
 
 | Parameter         | Description |
@@ -74,7 +74,7 @@ pip install --index-url https://{username}:{password}@gitea.example.com/api/v1/p
 For example:
 
 ```shell
-pip install --index-url https://testuser:password123@gitea.example.com/api/v1/packages/testuser/pypi/simple --no-deps test_package
+pip install --index-url https://testuser:password123@gitea.example.com/api/packages/testuser/pypi/simple --no-deps test_package
 ```
 
 ## Supported commands

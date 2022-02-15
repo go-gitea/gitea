@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label for="registry-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.registry"}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="conan remote add gitea {{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/conan">
+				<input id="registry-input" type="text" readonly="readonly" value="conan remote add gitea {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conan">
 			</div>
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.install"}}</label>

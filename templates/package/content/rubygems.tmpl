@@ -4,11 +4,11 @@
 		<div class="ui form">
 			<div class="field">
 				<label for="use1-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.rubygems.install" | Safe}}:</label>
-				<input id="use1-input" type="text" readonly="readonly" value="gem install {{.PackageDescriptor.Package.Name}} --version &quot;{{.PackageDescriptor.Version.Version}}&quot; --source &quot;{{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/rubygems&quot;">
+				<input id="use1-input" type="text" readonly="readonly" value="gem install {{.PackageDescriptor.Package.Name}} --version &quot;{{.PackageDescriptor.Version.Version}}&quot; --source &quot;{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/rubygems&quot;">
 			</div>
 			<div class="field">
 				<label for="use2-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.rubygems.install2"}}:</label>
-				<textarea id="use2-input" readonly="readonly" rows="3">source "{{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/rubygems" do
+				<textarea id="use2-input" readonly="readonly" rows="3">source "{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/rubygems" do
 	gem "{{.PackageDescriptor.Package.Name}}", "{{.PackageDescriptor.Version.Version}}"
 end</textarea>
 			</div>

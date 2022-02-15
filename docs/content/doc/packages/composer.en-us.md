@@ -31,7 +31,7 @@ The package content must be the zipped PHP project with the `composer.json` file
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
 ```
-PUT https://gitea.example.com/api/v1/packages/{owner}/composer
+PUT https://gitea.example.com/api/packages/{owner}/composer
 ```
 
 | Parameter  | Description |
@@ -41,7 +41,7 @@ PUT https://gitea.example.com/api/v1/packages/{owner}/composer
 If the `composer.json` file does not contain a `version` property, you must provide it as a query parameter:
 
 ```
-PUT https://gitea.example.com/api/v1/packages/{owner}/composer?version={x.y.z}
+PUT https://gitea.example.com/api/packages/{owner}/composer?version={x.y.z}
 ```
 
 Example request using HTTP Basic authentication:
@@ -49,7 +49,7 @@ Example request using HTTP Basic authentication:
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/project.zip \
-     https://gitea.example.com/api/v1/packages/testuser/composer
+     https://gitea.example.com/api/packages/testuser/composer
 ```
 
 Or specify the package version as query parameter:
@@ -57,7 +57,7 @@ Or specify the package version as query parameter:
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/project.zip \
-     https://gitea.example.com/api/v1/packages/testuser/composer?version=1.0.3
+     https://gitea.example.com/api/packages/testuser/composer?version=1.0.3
 ```
 
 The server reponds with the following HTTP Status codes.
@@ -75,7 +75,7 @@ To register the package registry you need to add it to the Composer `config.json
 {
   "repositories": [{
       "type": "composer",
-      "url": "https://gitea.example.com/api/v1/packages/{owner}/composer"
+      "url": "https://gitea.example.com/api/packages/{owner}/composer"
    }
   ]
 }

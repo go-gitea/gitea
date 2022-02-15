@@ -53,17 +53,17 @@ Afterwards add the following sections to your project `pom.xml` file:
 <repositories>
   <repository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
+    <url>https://gitea.example.com/api/packages/{owner}/maven</url>
   </repository>
 </repositories>
 <distributionManagement>
   <repository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
+    <url>https://gitea.example.com/api/packages/{owner}/maven</url>
   </repository>
   <snapshotRepository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
+    <url>https://gitea.example.com/api/packages/{owner}/maven</url>
   </snapshotRepository>
 </distributionManagement>
 ```
