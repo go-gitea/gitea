@@ -51,7 +51,7 @@ export async function renderMermaid() {
         iframe.addEventListener('load', () => {
           const style = document.createElement('style');
           style.appendChild(document.createTextNode(`
-            body {margin: 0; padding: 0; overflow: hidden}
+            body {margin: 0; padding: 0}
             .mermaid-chart {display: block; margin: 0 auto}
           `));
           iframe.contentWindow.document.head.appendChild(style);
