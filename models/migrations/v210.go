@@ -131,7 +131,7 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
 			}
 			if !has {
-				_, err = x.ID(remigrated.ID).AllCols().Insert(remigrated)
+				_, err = x.Insert(remigrated)
 				if err != nil {
 					return err
 				}
