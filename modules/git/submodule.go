@@ -141,8 +141,14 @@ func GetSubmoduleCommits(ctx context.Context, repoPath string) []SubModuleCommit
 	}()
 
 	go func() {
-		stderrBuilder := &strings.Builder{}
-		err := NewCommand(ctx, "config", "-f", ".gitmodules", "--list", "--name-only").RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		stderrBuilder := strings.Builder{}
+		err := NewCommand(ctx, "config", "-f", ".gitmodules", "--list", "--name-only").RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repoPath,
+			Stdout:  stdoutWriter,
+			Stderr:  &stderrBuilder,
+		})
+
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {
