@@ -289,34 +289,35 @@ export function initRepoPullRequestMergeInstruction() {
 }
 
 export function initRepoPullRequestAllowMaintainerEdit() {
-  $('#allow-edits-from-maintainers input').on('change', function () {
-    $('#allow-edits-from-maintainers input').attr('disabled', true);
-    const $label = $('#allow-edits-from-maintainers label');
-    let url = $label.data('url');
-    if (this.checked) { // allow edits
-      url = `${url}/allow_edits`;
-    } else { // disallow edits
-      url = `${url}/disallow_edits`;
-    }
-    $.ajax({
-      url,
-      type: 'POST',
-      data: {
-        _csrf: csrfToken
-      },
-      error: () => {
-        const $labelElem = document.getElementById('allow-edits-from-maintainers-label');
-        $label.popup('destroy');
-        const oldContent = $labelElem.getAttribute('data-content');
-        $labelElem.setAttribute('data-content', $label.data('failed'));
-        $label.popup('show');
-        $labelElem.setAttribute('data-content', oldContent || '');
-        $('#allow-edits-from-maintainers input').removeAttr('disabled');
-      },
-      success: () => {
-        $('#allow-edits-from-maintainers input').removeAttr('disabled');
-      },
-    });
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+  $checkbox.popup({content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allowMaintainerEdit: checked},
+        error: () => {
+          $checkbox.popup({
+            content: promptError,
+            onHidden: () => {
+              // the error popup should be shown only once, then we restore the popup to the default message
+              $checkbox.popup({content: promptTip});
+            },
+          });
+          $checkbox.popup('show');
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
   });
 }
 

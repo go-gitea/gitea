@@ -657,6 +657,11 @@ type DismissReviewForm struct {
 	Message  string
 }
 
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+  AllowMaintainerEdit bool
+}
+
 // __________       .__
 // \______   \ ____ |  |   ____ _____    ______ ____
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \

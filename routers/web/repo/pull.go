@@ -1456,17 +1456,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	})
 }
 
-// AllowEdits allow edits from maintainers to PRs
-func AllowEdits(ctx *context.Context) {
-	updateAllowEditsStatus(ctx, true)
-}
-
-// DisallowEdits disallow edits from maintainers to PRs
-func DisallowEdits(ctx *context.Context) {
-	updateAllowEditsStatus(ctx, false)
-}
-
-func updateAllowEditsStatus(ctx *context.Context, allow bool) {
+// SetAllowEdits allow edits from maintainers to PRs
+func SetAllowEdits(ctx *context.Context) {
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -1493,7 +1484,8 @@ func updateAllowEditsStatus(ctx *context.Context, allow bool) {
 		return
 	}
 
-	err = models.UpdateAllowEdits(pr, allow)
+	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
+	err = models.UpdateAllowEdits(pr, form.AllowMaintainerEdit)
 	if err != nil {
 		ctx.ServerError("UpdateAllowEdits", err)
 		return
