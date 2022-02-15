@@ -680,7 +680,7 @@ func convertReviewState(state string) models.ReviewType {
 	}
 }
 
-// CreateReviews create pull request reviews
+// CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	cms := make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
