@@ -50,7 +50,7 @@ func CherryPick(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 
 	canCommit := renderCommitRights(ctx)
-	ctx.Data["TreePath"] = "patch"
+	ctx.Data["TreePath"] = ""
 
 	if canCommit {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect

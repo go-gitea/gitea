@@ -84,6 +84,8 @@ type ManagedPool interface {
 	BoostWorkers() int
 	// SetPoolSettings sets the user updatable settings for the pool
 	SetPoolSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
+	// NumberInQueue returns the total number of items in the pool
+	NumberInQueue() int64
 	// Done returns a channel that will be closed when the Pool's baseCtx is closed
 	Done() <-chan struct{}
 }
@@ -425,6 +427,14 @@ func (q *ManagedQueue) SetPoolSettings(maxNumberOfWorkers, boostWorkers int, tim
 	if pool, ok := q.Managed.(ManagedPool); ok {
 		pool.SetPoolSettings(maxNumberOfWorkers, boostWorkers, timeout)
 	}
+}
+
+// NumberInQueue returns the number of items in the queue
+func (q *ManagedQueue) NumberInQueue() int64 {
+	if pool, ok := q.Managed.(ManagedPool); ok {
+		return pool.NumberInQueue()
+	}
+	return -1
 }
 
 func (l ManagedQueueList) Len() int {
