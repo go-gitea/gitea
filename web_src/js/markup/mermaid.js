@@ -47,8 +47,8 @@ export async function renderMermaid() {
     }
 
     try {
-      // can't use bindFunctions here because we cross the iframe boundary. This means
-      // js-based interactions won't work but they aren't intended to work either
+      // can't use bindFunctions here because we can't cross the iframe boundary. This
+      // means js-based interactions won't work but they aren't intended to work either
       mermaid.mermaidAPI.render('mermaid', source, (svgStr) => {
         const heightStr = (svgStr.match(/height="(.+?)"/) || [])[1];
         if (!heightStr) return displayError(el, new Error('Could not determine chart height'));
