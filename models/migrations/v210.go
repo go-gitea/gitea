@@ -106,52 +106,59 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 			return err
 		}
 
-		for _, reg := range regs {
-			parsed := new(u2f.Registration)
-			err = parsed.UnmarshalBinary(reg.Raw)
-			if err != nil {
-				continue
+		err = func() error {
+			sess := x.NewSession()
+			defer sess.Close()
+			if err := sess.Begin(); err != nil {
+				return fmt.Errorf("unable to allow start session. Error: %w", err)
 			}
-			remigrated := &webauthnCredential{
-				ID:              reg.ID,
-				Name:            reg.Name,
-				LowerName:       strings.ToLower(reg.Name),
-				UserID:          reg.UserID,
-				CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
-				PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
-				AttestationType: "fido-u2f",
-				AAGUID:          []byte{},
-				SignCount:       reg.Counter,
-				UpdatedUnix:     reg.UpdatedUnix,
-				CreatedUnix:     reg.CreatedUnix,
-			}
-
-			has, err := x.ID(reg.ID).Where("id = ?", reg.ID).Get(new(webauthnCredential))
-			if err != nil {
-				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %w", reg.ID, err)
-			}
-			if !has {
-				if x.Dialect().URI().DBType == schemas.MSSQL {
-					if _, err := x.Exec("SET IDENTITY_INSERT `webauthn_credential` ON"); err != nil {
-						return fmt.Errorf("unable to allow identity insert on webauthn_credential[%d]. Error: %w", reg.ID, err)
-					}
+			if x.Dialect().URI().DBType == schemas.MSSQL {
+				if _, err := sess.Exec("SET IDENTITY_INSERT `webauthn_credential` ON"); err != nil {
+					return fmt.Errorf("unable to allow identity insert on webauthn_credential. Error: %w", err)
 				}
-				_, err = x.Insert(remigrated)
+			}
+			for _, reg := range regs {
+				parsed := new(u2f.Registration)
+				err = parsed.UnmarshalBinary(reg.Raw)
 				if err != nil {
-					return fmt.Errorf("unable to (re)insert webauthn_credential[%d]. Error: %w", reg.ID, err)
+					continue
 				}
-				if x.Dialect().URI().DBType == schemas.MSSQL {
-					if _, err := x.Exec("SET IDENTITY_INSERT `webauthn_credential` OFF"); err != nil {
-						return fmt.Errorf("unable to turn off identity insert on webauthn_credential[%d]. Error: %w", reg.ID, err)
-					}
+				remigrated := &webauthnCredential{
+					ID:              reg.ID,
+					Name:            reg.Name,
+					LowerName:       strings.ToLower(reg.Name),
+					UserID:          reg.UserID,
+					CredentialID:    base32.HexEncoding.EncodeToString(parsed.KeyHandle),
+					PublicKey:       elliptic.Marshal(elliptic.P256(), parsed.PubKey.X, parsed.PubKey.Y),
+					AttestationType: "fido-u2f",
+					AAGUID:          []byte{},
+					SignCount:       reg.Counter,
+					UpdatedUnix:     reg.UpdatedUnix,
+					CreatedUnix:     reg.CreatedUnix,
 				}
-				continue
-			}
 
-			_, err = x.ID(remigrated.ID).AllCols().Update(remigrated)
-			if err != nil {
-				return fmt.Errorf("unable to update webauthn_credential[%d]. Error: %w", reg.ID, err)
+				has, err := sess.ID(reg.ID).Where("id = ?", reg.ID).Get(new(webauthnCredential))
+				if err != nil {
+					return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %w", reg.ID, err)
+				}
+				if !has {
+					_, err = sess.Insert(remigrated)
+					if err != nil {
+						return fmt.Errorf("unable to (re)insert webauthn_credential[%d]. Error: %w", reg.ID, err)
+					}
+
+					continue
+				}
+
+				_, err = sess.ID(remigrated.ID).AllCols().Update(remigrated)
+				if err != nil {
+					return fmt.Errorf("unable to update webauthn_credential[%d]. Error: %w", reg.ID, err)
+				}
 			}
+			return sess.Commit()
+		}()
+		if err != nil {
+			return err
 		}
 
 		if len(regs) < 50 {
