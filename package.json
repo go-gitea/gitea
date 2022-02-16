@@ -23,7 +23,7 @@
     "less": "4.1.2",
     "less-loader": "10.2.0",
     "license-checker-webpack-plugin": "0.2.1",
-    "mermaid": "8.13.10",
+    "mermaid": "8.14.0",
     "mini-css-extract-plugin": "2.5.2",
     "monaco-editor": "0.31.1",
     "monaco-editor-webpack-plugin": "7.0.1",
