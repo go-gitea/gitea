@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"github.com/stretchr/testify/assert"
 )
@@ -61,8 +60,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
 	}
-	baseRepo := &repo_model.Repository{Name: "testRepo", ID: 1}
-	baseRepo.Owner = &user_model.User{Name: "testOwner"}
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2, BaseRepo: baseRepo}).(*models.PullRequest)
@@ -76,5 +74,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
+	pr.BaseRepo = nil
+	pr.HeadRepo = nil
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
 }
