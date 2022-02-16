@@ -6,11 +6,9 @@ package markup_test
 
 import (
 	"io"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	. "code.gitea.io/gitea/modules/markup"
@@ -25,10 +23,6 @@ var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
 	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
-}
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestRender_Commits(t *testing.T) {

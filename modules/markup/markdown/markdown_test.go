@@ -5,11 +5,9 @@
 package markdown_test
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -19,10 +17,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
-}
 
 const (
 	AppURL    = "http://localhost:3000/"

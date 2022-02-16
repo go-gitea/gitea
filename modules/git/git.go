@@ -310,13 +310,11 @@ func checkAndAddConfig(key, value string) error {
 }
 
 func checkAndRemoveConfig(key, value string) error {
-	stdout := strings.Builder{}
 	stderr := strings.Builder{}
-	if err := NewCommand(DefaultContext, "config", "--get", key).
+	if err := NewCommand(DefaultContext, "config", "--get", key, value).
 		SetDescription("git.Init(get setting)").
 		Run(&git_cmd.Context{
 			Timeout: -1,
-			Stdout:  &stdout,
 			Stderr:  &stderr,
 		}); err != nil {
 		perr, ok := err.(*process.Error)
