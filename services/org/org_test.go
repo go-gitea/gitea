@@ -25,7 +25,7 @@ func TestDeleteOrganization(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6}).(*organization.Organization)
 	assert.NoError(t, DeleteOrganization(org))
 	unittest.AssertNotExistsBean(t, &organization.Organization{ID: 6})
-	unittest.AssertNotExistsBean(t, &models.OrgUser{OrgID: 6})
+	unittest.AssertNotExistsBean(t, &organization.OrgUser{OrgID: 6})
 	unittest.AssertNotExistsBean(t, &organization.Team{OrgID: 6})
 
 	org = unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).(*organization.Organization)

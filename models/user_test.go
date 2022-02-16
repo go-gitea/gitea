@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -66,7 +68,7 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := user_model.GetUserByID(uid)
 	assert.NoError(t, err)
-	is, err := IsPublicMembership(orgID, user.ID)
+	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -94,7 +96,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := user_model.GetUserByID(uid)
 	assert.NoError(t, err)
-	is, err := IsOrganizationOwner(orgID, user.ID)
+	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }

@@ -49,7 +49,7 @@ func ListTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, count, err := organization.SearchOrgTeams(&organization.SearchOrgTeamOptions{
+	teams, count, err := organization.SearchTeam(&organization.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		OrgID:       ctx.Org.Organization.ID,
 	})
