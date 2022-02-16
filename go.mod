@@ -148,9 +148,9 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
 
-replace github.com/gliderlabs/ssh => gitea.com/gitea/gliderlabs-ssh v0.0.0-20220216214906-1599515ea783
-
 replace golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 => gitea.com/gitea/go-crypto v0.0.0-20220216221207-31cfbd2326cb
+
+replace golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 => gitea.com/gitea/go-crypto v0.0.0-20220216221207-31cfbd2326cb
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 
