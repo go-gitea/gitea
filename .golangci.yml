@@ -24,6 +24,10 @@ linters:
 
 run:
   timeout: 3m
+  skip-dirs:
+    - node_modules
+    - public
+    - web_src
 
 linters-settings:
   gocritic:

@@ -40,7 +40,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommandContext(repo.Ctx, "commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree", tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p", parent)
@@ -60,7 +60,14 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
+	err = cmd.RunWithContext(&RunContext{
+		Env:     env,
+		Timeout: -1,
+		Dir:     repo.Path,
+		Stdin:   messageBytes,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	})
 
 	if err != nil {
 		return SHA1{}, ConcatenateError(err, stderr.String())

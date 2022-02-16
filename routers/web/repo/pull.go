@@ -338,7 +338,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, err = git.NewCommandContext(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
+			parentCommit, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
@@ -390,6 +390,8 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 
 // PrepareViewPullInfo show meta information for a pull request preview page
 func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.CompareInfo {
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
@@ -578,8 +580,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	if compareInfo.HeadCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
 	}
-
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	if pull.IsWorkInProgress() {
 		ctx.Data["IsPullWorkInProgress"] = true

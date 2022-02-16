@@ -22,7 +22,7 @@ import (
 )
 
 // LabelColorPattern is a regexp witch can validate LabelColor
-var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+var LabelColorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents a label of repository for issues.
 type Label struct {
@@ -258,6 +258,23 @@ func NewLabel(label *Label) error {
 	if !LabelColorPattern.MatchString(label.Color) {
 		return fmt.Errorf("bad color code: %s", label.Color)
 	}
+
+	// normalize case
+	label.Color = strings.ToLower(label.Color)
+
+	// add leading hash
+	if label.Color[0] != '#' {
+		label.Color = "#" + label.Color
+	}
+
+	// convert 3-character shorthand into 6-character version
+	if len(label.Color) == 4 {
+		r := label.Color[1]
+		g := label.Color[2]
+		b := label.Color[3]
+		label.Color = fmt.Sprintf("#%c%c%c%c%c%c", r, r, g, g, b, b)
+	}
+
 	return newLabel(db.GetEngine(db.DefaultContext), label)
 }
 

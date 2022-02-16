@@ -464,6 +464,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			return
 		}
 		ctx.Data["LFSLockOwner"] = u.DisplayName()
+		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 
@@ -799,7 +800,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+			return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil

@@ -22,7 +22,7 @@ func addWebAuthnCred(x *xorm.Engine) error {
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX"`
+		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
 		PublicKey       []byte
 		AttestationType string
 		AAGUID          []byte
