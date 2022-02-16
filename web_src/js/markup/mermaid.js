@@ -52,12 +52,12 @@ export async function renderMermaid() {
       // disabled in "strict" securityLevel anyways.
       mermaid.mermaidAPI.render('mermaid', source, (svgStr) => {
         const heightStr = (svgStr.match(/height="(.+?)"/) || [])[1];
-        const height = heightStr ? Math.ceil(parseFloat(heightStr)) : 600; // best-effort fallback
+        if (!heightStr) return displayError(el, new Error('Could not determine chart height'));
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');
         iframe.sandbox = 'allow-scripts';
         iframe.scrolling = 'no';
-        iframe.style.height = `${height}px`;
+        iframe.style.height = `${Math.ceil(parseFloat(heightStr))}px`;
         iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svgStr}</body></html>`;
         el.closest('pre').replaceWith(iframe);
       });
