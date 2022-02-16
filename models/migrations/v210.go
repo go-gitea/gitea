@@ -128,19 +128,29 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 
 			has, err := x.ID(reg.ID).Where("id = ?", reg.ID).Get(new(webauthnCredential))
 			if err != nil {
-				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %v", reg.ID, err)
+				return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %w", reg.ID, err)
 			}
 			if !has {
+				if x.Dialect().URI().DBType == schemas.MSSQL {
+					if _, err := x.Exec("SET IDENTITY_INSERT `%s` ON", "webauthn_credential"); err != nil {
+						return fmt.Errorf("unable to allow identity insert on webauthn_credential[%d]. Error: %w", reg.ID, err)
+					}
+				}
 				_, err = x.Insert(remigrated)
 				if err != nil {
-					return err
+					return fmt.Errorf("unable to (re)insert webauthn_credential[%d]. Error: %w", reg.ID, err)
+				}
+				if x.Dialect().URI().DBType == schemas.MSSQL {
+					if _, err := x.Exec("SET IDENTITY_INSERT `%s` OFF", "webauthn_credential"); err != nil {
+						return fmt.Errorf("unable to turn off identity insert on webauthn_credential[%d]. Error: %w", reg.ID, err)
+					}
 				}
 				continue
 			}
 
 			_, err = x.ID(remigrated.ID).AllCols().Update(remigrated)
 			if err != nil {
-				return err
+				return fmt.Errorf("unable to update webauthn_credential[%d]. Error: %w", reg.ID, err)
 			}
 		}
 
