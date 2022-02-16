@@ -55,7 +55,6 @@ export async function renderMermaid() {
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');
         iframe.sandbox = 'allow-scripts';
-        iframe.scrolling = 'no';
         iframe.style.height = `${Math.ceil(parseFloat(heightStr))}px`;
         iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svgStr}</body></html>`;
         el.closest('pre').replaceWith(iframe);
