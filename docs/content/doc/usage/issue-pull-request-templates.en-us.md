@@ -65,7 +65,7 @@ You can use some variables in these template with `{}`
 - PullRequestPoster: Pull request's poster name
 - PullRequestIndex: Pull request's index number
 - IssueReferenceChar: return # if it's internal tracker or ! for external tracker
-- ClosedIssueIndexes: return a string contains all issues which will be closed by this pull request i.e. `#1, #2`
+- ClosedIssueIndexes: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 

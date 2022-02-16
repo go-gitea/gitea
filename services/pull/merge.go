@@ -84,7 +84,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				closeIssueIndexes := make([]string, 0, len(refs))
 				for _, ref := range refs {
 					if ref.RefAction == references.XRefActionCloses {
-						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s%d", issueReference, ref.Issue.Index))
+						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("close %s%d", issueReference, ref.Issue.Index))
 					}
 				}
 				if len(closeIssueIndexes) > 0 {
