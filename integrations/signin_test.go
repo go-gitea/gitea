@@ -51,8 +51,6 @@ func TestSignin(t *testing.T) {
 		{username: "wrongUsername", password: "password", message: i18n.Tr("en", "form.username_password_incorrect")},
 		{username: "user15", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
 		{username: "user1@example.com", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
-		// test for normal email
-		{username: "user2@example.com", password: "password", message: ""},
 	}
 
 	for _, s := range samples {
