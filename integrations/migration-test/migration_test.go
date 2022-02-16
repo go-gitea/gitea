@@ -82,7 +82,6 @@ func initMigrationTest(t *testing.T) func() {
 		}
 	}
 
-	git.Init(context.Background())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
