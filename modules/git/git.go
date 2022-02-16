@@ -145,8 +145,6 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	cmdService = git_cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
-
 	if err := checkGitVersion(); err != nil {
 		return err
 	}

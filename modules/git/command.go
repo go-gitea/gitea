@@ -8,16 +8,12 @@ package git
 import (
 	"bytes"
 	"context"
-<<<<<<< HEAD
 	"strings"
+	"sync"
 	"unsafe"
-=======
-	"io"
-	"strings"
-	"time"
->>>>>>> 678661cbf (Merge)
 
 	"code.gitea.io/gitea/modules/git/cmd"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -25,8 +21,16 @@ var (
 	globalCommandArgs []string
 
 	// cmdService represents a command service
-	cmdService cmd.Service
+	cmdService     cmd.Service
+	cmdServiceOnce sync.Once
 )
+
+func getCmdService() cmd.Service {
+	cmdServiceOnce.Do(func() {
+		cmdService = cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
+	})
+	return cmdService
+}
 
 // CommandProxy represents a command proxy with its subcommands or arguments.
 type CommandProxy struct {
@@ -39,7 +43,7 @@ func NewCommand(ctx context.Context, args ...string) *CommandProxy {
 	cargs := make([]string, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)
 	return &CommandProxy{
-		Command: cmdService.NewCommand(ctx, len(cargs), append(cargs, args...)...),
+		Command: getCmdService().NewCommand(ctx, len(cargs), append(cargs, args...)...),
 	}
 }
 
@@ -51,7 +55,7 @@ func NewCommandNoGlobals(args ...string) *CommandProxy {
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
 func NewCommandContextNoGlobals(ctx context.Context, args ...string) *CommandProxy {
 	return &CommandProxy{
-		Command: cmdService.NewCommand(ctx, 0, args...),
+		Command: getCmdService().NewCommand(ctx, 0, args...),
 	}
 }
 
@@ -140,22 +144,6 @@ func (c *CommandProxy) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil
-}
-
-// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
-func AllowLFSFiltersArgs() []string {
-	// Now here we should explicitly allow lfs filters to run
-	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
-	j := 0
-	for _, arg := range globalCommandArgs {
-		if strings.Contains(arg, "lfs") {
-			j--
-		} else {
-			filteredLFSGlobalArgs[j] = arg
-			j++
-		}
-	}
-	return filteredLFSGlobalArgs[:j]
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
