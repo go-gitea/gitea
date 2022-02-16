@@ -43,7 +43,7 @@ type WebAuthnCredential struct {
 	Name            string
 	LowerName       string `xorm:"unique(s)"`
 	UserID          int64  `xorm:"INDEX unique(s)"`
-	CredentialID    string `xorm:"INDEX"`
+	CredentialID    string `xorm:"INDEX VARCHAR(410)"`
 	PublicKey       []byte
 	AttestationType string
 	AAGUID          []byte
