@@ -3,7 +3,7 @@ const {mermaidMaxSourceCharacters} = window.config;
 
 const iframeCss = `
   body {margin: 0; padding: 0}
-  .mermaid-chart {display: block; margin: 0 auto}
+  #mermaid {display: block; margin: 0 auto}
 `;
 
 function displayError(el, err) {
@@ -27,14 +27,16 @@ export async function renderMermaid() {
   });
 
   for (const el of els) {
-    if (mermaidMaxSourceCharacters >= 0 && el.textContent.length > mermaidMaxSourceCharacters) {
-      displayError(el, new Error(`Mermaid source of ${el.textContent.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
+    const source = el.textContent;
+
+    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+      displayError(el, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       continue;
     }
 
     let valid;
     try {
-      valid = mermaid.parse(el.textContent);
+      valid = mermaid.parse(source);
     } catch (err) {
       displayError(el, err);
     }
@@ -45,16 +47,19 @@ export async function renderMermaid() {
     }
 
     try {
-      mermaid.init(undefined, el, (id) => {
-        const svg = document.getElementById(id);
-        svg.classList.add('mermaid-chart');
+      // Can't use bindFunctions here because we can't pass functions to the iframe, which
+      // means js-based interaction in charts will not work, but it seems this feature is
+      // disabled in "strict" securityLevel anyways.
+      mermaid.mermaidAPI.render('mermaid', source, (svgStr) => {
+        const heightStr = (svgStr.match(/height="(.+?)"/) || [])[1];
+        const height = heightStr ? Math.ceil(parseFloat(heightStr)) : 600; // best-effort fallback
         const iframe = document.createElement('iframe');
         iframe.classList.add('markup-render');
         iframe.sandbox = 'allow-scripts';
         iframe.scrolling = 'no';
-        iframe.style.height = `${Math.ceil(svg.getAttribute('height'))}px`;
-        iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg.outerHTML}</body></html>`;
-        svg.closest('pre').replaceWith(iframe);
+        iframe.style.height = `${height}px`;
+        iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svgStr}</body></html>`;
+        el.closest('pre').replaceWith(iframe);
       });
     } catch (err) {
       displayError(el, err);
