@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
@@ -10,6 +11,7 @@ import {
   initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
+import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
@@ -63,10 +65,13 @@ export function initRepoCommentForm() {
     });
   }
 
-  createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+  (async () => {
+    await createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+    initCompImagePaste($('.comment.form'));
+  })();
+
   initBranchSelector();
   initCompMarkupContentPreviewTab($('.comment.form'));
-  initCompImagePaste($('.comment.form'));
 
   // List submits
   function initListSubmits(selector, outerSelector) {
@@ -431,7 +436,7 @@ export function initRepository() {
   });
 
   // File list and commits
-  if ($('.repository.file.list').length > 0 ||
+  if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
     initRepoBranchTagDropdown('.choose.reference .dropdown');
   }
@@ -533,6 +538,8 @@ export function initRepository() {
       easyMDE.codemirror.refresh();
     });
   }
+
+  initUnicodeEscapeButton();
 }
 
 function initRepoIssueCommentEdit() {

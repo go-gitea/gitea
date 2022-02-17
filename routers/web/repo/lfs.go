@@ -115,7 +115,7 @@ func LFSLocks(ctx *context.Context) {
 		}
 	}()
 
-	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
@@ -124,7 +124,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
@@ -300,11 +300,12 @@ func LFSFileGet(ctx *context.Context) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(rd)
+		escapedContent := &bytes.Buffer{}
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent)
 
 		var output bytes.Buffer
-		lines := strings.Split(string(fileContent), "\n")
-		//Remove blank line at the end of file
+		lines := strings.Split(escapedContent.String(), "\n")
+		// Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]
 		}
@@ -535,7 +536,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 			return
 		}
 		metas[i].Oid = oid[:idx]
-		//metas[i].RepositoryID = ctx.Repo.Repository.ID
+		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
 	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)

@@ -56,7 +56,7 @@ func Migrate(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.MigrateRepoOptions)
 
-	//get repoOwner
+	// get repoOwner
 	var (
 		repoOwner *user_model.User
 		err       error
@@ -137,7 +137,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
-	var opts = migrations.MigrateOptions{
+	opts := migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -203,7 +203,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
+	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
 		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}

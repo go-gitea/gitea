@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import attachTribute from '../tribute.js';
 
 const {appSubUrl} = window.config;
@@ -25,10 +26,10 @@ export async function importEasyMDE() {
   // https://github.com/codemirror/CodeMirror/issues/5484
   // https://github.com/codemirror/CodeMirror/issues/4838
 
+  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
   const [{default: EasyMDE}, {default: CodeMirror}] = await Promise.all([
     import(/* webpackChunkName: "easymde" */'easymde'),
     import(/* webpackChunkName: "codemirror" */'codemirror'),
-    import(/* webpackChunkName: "easymde" */'easymde/dist/easymde.min.css'),
   ]);
 
   // CodeMirror plugins must be loaded by a "Plain browser env"
@@ -50,10 +51,11 @@ export async function importEasyMDE() {
 /**
  * create an EasyMDE editor for comment
  * @param textarea jQuery or HTMLElement
+ * @param easyMDEOptions the options for EasyMDE
  * @returns {null|EasyMDE}
  */
-export async function createCommentEasyMDE(textarea) {
-  if (textarea instanceof jQuery) {
+export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
+  if (textarea instanceof $) {
     textarea = textarea[0];
   }
   if (!textarea) {
@@ -61,6 +63,7 @@ export async function createCommentEasyMDE(textarea) {
   }
 
   const EasyMDE = await importEasyMDE();
+
   const easyMDE = new EasyMDE({
     autoDownloadFontAwesome: false,
     element: textarea,
@@ -104,8 +107,7 @@ export async function createCommentEasyMDE(textarea) {
         className: 'fa fa-file',
         title: 'Revert to simple textarea',
       },
-    ],
-  });
+    ], ...easyMDEOptions});
   const inputField = easyMDE.codemirror.getInputField();
   inputField.classList.add('js-quick-submit');
   easyMDE.codemirror.setOption('extraKeys', {
@@ -150,7 +152,7 @@ export function attachEasyMDEToElements(easyMDE) {
  * @returns {null|EasyMDE}
  */
 export function getAttachedEasyMDE(el) {
-  if (el instanceof jQuery) {
+  if (el instanceof $) {
     el = el[0];
   }
   if (!el) {

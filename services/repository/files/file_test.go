@@ -109,12 +109,12 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
 	treePath := "README.md"
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	gitRepo, _ := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedFileResponse := getExpectedFileResponse()
 
-	fileResponse, err := GetFileResponseFromCommit(repo, commit, branch, treePath)
+	fileResponse, err := GetFileResponseFromCommit(ctx, repo, commit, branch, treePath)
 	assert.NoError(t, err)
 	assert.EqualValues(t, expectedFileResponse, fileResponse)
 }

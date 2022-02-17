@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -49,7 +50,7 @@ func TestFetchCodeComments(t *testing.T) {
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	res, err := FetchCodeComments(issue, user)
+	res, err := FetchCodeComments(db.DefaultContext, issue, user)
 	assert.NoError(t, err)
 	assert.Contains(t, res, "README.md")
 	assert.Contains(t, res["README.md"], int64(4))
@@ -57,7 +58,7 @@ func TestFetchCodeComments(t *testing.T) {
 	assert.Equal(t, int64(4), res["README.md"][4][0].ID)
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	res, err = FetchCodeComments(issue, user2)
+	res, err = FetchCodeComments(db.DefaultContext, issue, user2)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
 }

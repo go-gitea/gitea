@@ -31,7 +31,7 @@ func decodeSlashes(t *testing.T, s string) string {
 }
 
 func TestCreateReaderAndDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedRows      [][]string
 		expectedDelimiter rune
@@ -135,7 +135,7 @@ func TestDetermineDelimiterReadAllError(t *testing.T) {
 }
 
 func TestDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		filename          string
 		expectedDelimiter rune
@@ -223,7 +223,7 @@ c;d;#`,
 		// case 13 - tab delimited with commas in values
 		{
 			csv: `name	email	note
-John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
+John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 			filename:          "",
 			expectedDelimiter: '\t',
 		},
@@ -236,11 +236,11 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 }
 
 func TestRemoveQuotedString(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		text         string
 		expectedText string
 	}{
-		// case 0 - quoted text with escpaed quotes in 1st column
+		// case 0 - quoted text with escaped quotes in 1st column
 		{
 			text: `col1,col2,col3
 "quoted ""text"" with
@@ -249,7 +249,7 @@ in first column",b,c`,
 			expectedText: `col1,col2,col3
 ,b,c`,
 		},
-		// case 1 - quoted text with escpaed quotes in 2nd column
+		// case 1 - quoted text with escaped quotes in 2nd column
 		{
 			text: `col1,col2,col3
 a,"quoted ""text"" with
@@ -258,7 +258,7 @@ in second column",c`,
 			expectedText: `col1,col2,col3
 a,,c`,
 		},
-		// case 2 - quoted text with escpaed quotes in last column
+		// case 2 - quoted text with escaped quotes in last column
 		{
 			text: `col1,col2,col3
 a,b,"quoted ""text"" with
@@ -301,7 +301,7 @@ abc   | |123
 }
 
 func TestGuessDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -351,7 +351,7 @@ c;d`,
 		// case 8 - tab delimited with commas in value
 		{
 			csv: `name	email	note
-John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
+John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 			expectedDelimiter: '\t',
 		},
 		// case 9 - tab delimited with new lines in values, commas in values
@@ -431,7 +431,7 @@ skxg,t,vay,d,wug,d,xg,sexc	rt	g,ag,mjq,fjnyji,iwa,m,ml,b,ua,b,qjxeoc	be,s,sh,n,j
 			csv:               "col1@col2@col3\na@b@" + strings.Repeat("c", 6000) + "\nd,e," + strings.Repeat("f", 4000),
 			expectedDelimiter: '@',
 		},
-		// case 16 - has all delimters so should return comma
+		// case 16 - has all delimiters so should return comma
 		{
 			csv: `col1,col2;col3@col4|col5	col6
 a	b|c@d;e,f`,
@@ -456,7 +456,7 @@ jkl`,
 }
 
 func TestGuessFromBeforeAfterQuotes(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -562,7 +562,7 @@ func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface
 }
 
 func TestFormatError(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		err             error
 		expectedMessage string
 		expectsError    bool

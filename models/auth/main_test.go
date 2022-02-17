@@ -17,6 +17,6 @@ func TestMain(m *testing.M) {
 		"oauth2_application.yml",
 		"oauth2_authorization_code.yml",
 		"oauth2_grant.yml",
-		"u2f_registration.yml",
+		"webauthn_credential.yml",
 	)
 }

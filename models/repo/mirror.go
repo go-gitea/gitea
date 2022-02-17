@@ -17,10 +17,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var (
-	// ErrMirrorNotExist mirror does not exist error
-	ErrMirrorNotExist = errors.New("Mirror does not exist")
-)
+// ErrMirrorNotExist mirror does not exist error
+var ErrMirrorNotExist = errors.New("Mirror does not exist")
 
 // RemoteMirrorer defines base methods for pull/push mirrors.
 type RemoteMirrorer interface {

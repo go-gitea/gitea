@@ -209,7 +209,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	var start int
 	const batchSize = 100
-	var e = db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(db.DefaultContext)
 	for {
 		mos := make([]*LFSMetaObject, 0, batchSize)
 		if err := e.Limit(batchSize, start).Find(&mos); err != nil {

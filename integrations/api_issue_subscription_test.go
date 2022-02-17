@@ -33,7 +33,6 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	testSubscription := func(issue *models.Issue, isWatching bool) {
-
 		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/check?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, token)

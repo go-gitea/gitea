@@ -19,7 +19,6 @@ import (
 )
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
-
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 

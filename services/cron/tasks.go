@@ -17,12 +17,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 )
 
-var lock = sync.Mutex{}
-var started = false
-var tasks = []*Task{}
-var tasksMap = map[string]*Task{}
+var (
+	lock     = sync.Mutex{}
+	started  = false
+	tasks    = []*Task{}
+	tasksMap = map[string]*Task{}
+)
 
 // Task represents a Cron task
 type Task struct {
@@ -119,6 +122,12 @@ func GetTask(name string) *Task {
 // RegisterTask allows a task to be registered with the cron service
 func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
 	log.Debug("Registering task: %s", name)
+
+	i18nKey := "admin.dashboard." + name
+	if _, ok := translation.TryTr("en-US", i18nKey); !ok {
+		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
+	}
+
 	_, err := setting.GetCronSettings(name, config)
 	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", name, err)

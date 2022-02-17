@@ -69,7 +69,7 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	username := "user2"
 	unadoptedList := []string{path.Join(username, "unadopted1"), path.Join(username, "unadopted2")}
 	for _, unadopted := range unadoptedList {
-		_ = os.Mkdir(path.Join(setting.RepoRootPath, unadopted+".git"), 0755)
+		_ = os.Mkdir(path.Join(setting.RepoRootPath, unadopted+".git"), 0o755)
 	}
 
 	opts := db.ListOptions{Page: 1, PageSize: 1}

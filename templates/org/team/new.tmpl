@@ -56,7 +56,7 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="{{if .PageIsOrgTeamsNew}}read{{else}}{{.Team.AccessMode}}{{end}}" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
+										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
 										<label>{{.i18n.Tr "org.teams.general_access"}}</label>
 										<span class="help">{{.i18n.Tr "org.teams.general_access_helper"}}</span>
 									</div>
@@ -89,10 +89,10 @@
 									</thead>
 									<tbody>
 										{{range $t, $unit := $.Units}}
-											{{if ge $unit.MaxPerms 2}}
+											{{if ge $unit.MaxPerm 2}}
 												<tr>
 													<td>
-														<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">{{- else -}}class="field"{{end}}>
+														<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}"{{- else -}}class="field"{{end}}>
 															<div class="ui">
 																<label>{{$.i18n.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.i18n.Tr "org.team_unit_disabled"}}{{end}}</label>
 																<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
@@ -120,7 +120,7 @@
 									</tbody>
 								</table>
 								{{range $t, $unit := $.Units}}
-									{{if lt $unit.MaxPerms 2}}
+									{{if lt $unit.MaxPerm 2}}
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
 												<input type="checkbox" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>

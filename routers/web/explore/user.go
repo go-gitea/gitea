@@ -25,9 +25,7 @@ const (
 // UserSearchDefaultSortType is the default sort type for user search
 const UserSearchDefaultSortType = "alphabetically"
 
-var (
-	nullByte = []byte{0x00}
-)
+var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)

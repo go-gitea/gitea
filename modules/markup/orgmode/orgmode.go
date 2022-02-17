@@ -27,8 +27,7 @@ func init() {
 }
 
 // Renderer implements markup.Renderer for orgmode
-type Renderer struct {
-}
+type Renderer struct{}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {

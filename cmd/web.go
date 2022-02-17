@@ -71,8 +71,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, "HTTP Redirector", handler)
-
+	err := runHTTP("tcp", source, "HTTP Redirector", handler)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
@@ -88,7 +87,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
+			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
 		}
 	}()
 
@@ -223,18 +222,19 @@ func listen(m http.Handler, handleRedirector bool) error {
 		}
 		err = runHTTP("tcp", listenAddr, "Web", m)
 	case setting.HTTPS:
-		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
+		if setting.EnableAcme {
+			err = runACME(listenAddr, m)
 			break
-		}
-		if handleRedirector {
-			if setting.RedirectOtherPort {
-				go runHTTPRedirector()
-			} else {
-				NoHTTPRedirector()
+		} else {
+			if handleRedirector {
+				if setting.RedirectOtherPort {
+					go runHTTPRedirector()
+				} else {
+					NoHTTPRedirector()
+				}
 			}
+			err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()

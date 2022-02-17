@@ -5,6 +5,9 @@
 package translation
 
 import (
+	"sort"
+	"strings"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,18 +25,31 @@ type Locale interface {
 
 // LangType represents a lang type
 type LangType struct {
-	Lang, Name string
+	Lang, Name string // these fields are used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
 }
 
 var (
 	matcher       language.Matcher
-	allLangs      []LangType
+	allLangs      []*LangType
+	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
-// AllLangs returns all supported langauages
-func AllLangs() []LangType {
+// AllLangs returns all supported languages sorted by name
+func AllLangs() []*LangType {
 	return allLangs
+}
+
+// TryTr tries to do the translation, if no translation, it returns (format, false)
+func TryTr(lang, format string, args ...interface{}) (string, bool) {
+	s := i18n.Tr(lang, format, args...)
+	// now the i18n library is not good enough and we can only use this hacky method to detect whether the transaction exists
+	idx := strings.IndexByte(format, '.')
+	defaultText := format
+	if idx > 0 {
+		defaultText = format[idx+1:]
+	}
+	return s, s != defaultText
 }
 
 // InitLocales loads the locales
@@ -66,12 +82,20 @@ func InitLocales() {
 	}
 	i18n.SetDefaultLang("en-US")
 
-	allLangs = make([]LangType, 0, i18n.Count()-1)
+	allLangs = make([]*LangType, 0, i18n.Count())
+	allLangMap = map[string]*LangType{}
 	langs := i18n.ListLangs()
-	names := i18n.ListLangDescs()
+	descs := i18n.ListLangDescs()
 	for i, v := range langs {
-		allLangs = append(allLangs, LangType{v, names[i]})
+		l := &LangType{v, descs[i]}
+		allLangs = append(allLangs, l)
+		allLangMap[v] = l
 	}
+
+	// Sort languages case-insensitive according to their name - needed for the user settings
+	sort.Slice(allLangs, func(i, j int) bool {
+		return strings.ToLower(allLangs[i].Name) < strings.ToLower(allLangs[j].Name)
+	})
 }
 
 // Match matches accept languages
@@ -82,13 +106,18 @@ func Match(tags ...language.Tag) language.Tag {
 
 // locale represents the information of localization.
 type locale struct {
-	Lang string
+	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	langName := "unknown"
+	if l, ok := allLangMap[lang]; ok {
+		langName = l.Name
+	}
 	return &locale{
-		Lang: lang,
+		Lang:     lang,
+		LangName: langName,
 	}
 }
 
@@ -98,7 +127,16 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	return i18n.Tr(l.Lang, format, args...)
+	if setting.IsProd {
+		return i18n.Tr(l.Lang, format, args...)
+	}
+
+	// in development, we should show an error if a translation key is missing
+	s, ok := TryTr(l.Lang, format, args...)
+	if !ok {
+		log.Error("missing i18n translation key: %q", format)
+	}
+	return s
 }
 
 // Language specific rules for translating plural texts

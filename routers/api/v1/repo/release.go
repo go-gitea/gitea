@@ -356,7 +356,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if err := releaseservice.DeleteReleaseByID(id, ctx.User, false); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, id, ctx.User, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 		return
 	}

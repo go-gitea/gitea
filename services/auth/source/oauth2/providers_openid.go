@@ -13,8 +13,7 @@ import (
 )
 
 // OpenIDProvider is a GothProvider for OpenID
-type OpenIDProvider struct {
-}
+type OpenIDProvider struct{}
 
 // Name provides the technical name for this provider
 func (o *OpenIDProvider) Name() string {

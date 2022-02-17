@@ -63,7 +63,7 @@ func Deliver(t *webhook_model.HookTask) error {
 
 			req.Header.Set("Content-Type", "application/json")
 		case webhook_model.ContentTypeForm:
-			var forms = url.Values{
+			forms := url.Values{
 				"payload": []string{t.PayloadContent},
 			}
 
@@ -248,7 +248,6 @@ func DeliverHooks(ctx context.Context) {
 			}
 		}
 	}
-
 }
 
 var (

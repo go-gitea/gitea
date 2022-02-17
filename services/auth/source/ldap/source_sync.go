@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -61,6 +62,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	})
 
 	userPos := 0
+	orgCache := make(map[string]*models.Organization)
+	teamCache := make(map[string]*models.Team)
 
 	for _, su := range sr {
 		select {
@@ -164,8 +167,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				if err == nil && len(source.AttributeAvatar) > 0 {
 					_ = user_service.UploadAvatar(usr, su.Avatar)
 				}
-
 			}
+		}
+		// Synchronize LDAP groups with organization and team memberships
+		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
+			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
 		}
 	}
 

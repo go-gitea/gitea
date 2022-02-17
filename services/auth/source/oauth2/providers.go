@@ -139,10 +139,8 @@ func ClearProviders() {
 	goth.ClearProviders()
 }
 
-var (
-	// ErrAuthSourceNotActived login source is not actived error
-	ErrAuthSourceNotActived = errors.New("auth source is not actived")
-)
+// ErrAuthSourceNotActived login source is not actived error
+var ErrAuthSourceNotActived = errors.New("auth source is not actived")
 
 // used to create different types of goth providers
 func createProvider(providerName string, source *Source) (goth.Provider, error) {

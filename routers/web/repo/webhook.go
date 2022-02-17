@@ -682,6 +682,59 @@ func WechatworkHooksNewPost(ctx *context.Context) {
 	ctx.Redirect(orCtx.Link)
 }
 
+// PackagistHooksNewPost response for creating packagist hook
+func PackagistHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["HookType"] = webhook.PACKAGIST
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.PackagistMeta{
+		Username:   form.Username,
+		APIToken:   form.APIToken,
+		PackageURL: form.PackageURL,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w := &webhook.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
+		ContentType:     webhook.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            webhook.PACKAGIST,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 	ctx.Data["RequireHighlightJS"] = true
 
@@ -719,6 +772,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
 	case webhook.MATRIX:
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
+	case webhook.PACKAGIST:
+		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -1123,6 +1178,50 @@ func WechatworkHooksEditPost(ctx *context.Context) {
 	}
 
 	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// PackagistHooksEditPost response for editing packagist hook
+func PackagistHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.PackagistMeta{
+		Username:   form.Username,
+		APIToken:   form.APIToken,
+		PackageURL: form.PackageURL,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w.Meta = string(meta)
+	w.URL = fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken))
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
