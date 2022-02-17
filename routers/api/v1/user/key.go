@@ -151,11 +151,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listPublicKeys(ctx, user)
+	listPublicKeys(ctx, ctx.ContextUser)
 }
 
 // GetPublicKey get a public key

@@ -8,7 +8,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -24,76 +23,18 @@ import (
 	"code.gitea.io/gitea/routers/web/org"
 )
 
-// GetUserByName get user by name
-func GetUserByName(ctx *context.Context, name string) *user_model.User {
-	user, err := user_model.GetUserByName(name)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			if redirectUserID, err := user_model.LookupUserRedirect(name); err == nil {
-				context.RedirectToUser(ctx, name, redirectUserID)
-			} else {
-				ctx.NotFound("GetUserByName", err)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return nil
-	}
-	return user
-}
-
-// GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.Context) *user_model.User {
-	return GetUserByName(ctx, ctx.Params(":username"))
-}
-
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
-	uname := ctx.Params(":username")
-
-	// Special handle for FireFox requests favicon.ico.
-	if uname == "favicon.ico" {
-		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
+	if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
+		feed.ShowUserFeedRSS(ctx)
+		return
+	}
+	if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
+		feed.ShowUserFeedAtom(ctx)
 		return
 	}
 
-	if strings.HasSuffix(uname, ".png") {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
-
-	isShowKeys := false
-	if strings.HasSuffix(uname, ".keys") {
-		isShowKeys = true
-		uname = strings.TrimSuffix(uname, ".keys")
-	}
-
-	isShowGPG := false
-	if strings.HasSuffix(uname, ".gpg") {
-		isShowGPG = true
-		uname = strings.TrimSuffix(uname, ".gpg")
-	}
-
-	showFeedType := ""
-	if strings.HasSuffix(uname, ".rss") {
-		showFeedType = "rss"
-		uname = strings.TrimSuffix(uname, ".rss")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
-		showFeedType = "rss"
-	}
-	if strings.HasSuffix(uname, ".atom") {
-		showFeedType = "atom"
-		uname = strings.TrimSuffix(uname, ".atom")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
-		showFeedType = "atom"
-	}
-
-	ctxUser := GetUserByName(ctx, uname)
-	if ctx.Written() {
-		return
-	}
-
-	if ctxUser.IsOrganization() {
+	if ctx.ContextUser.IsOrganization() {
 		/*
 			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
 			// Show Org RSS feed
@@ -108,49 +49,31 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !models.IsUserVisibleToViewer(ctxUser, ctx.User) {
-		ctx.NotFound("user", fmt.Errorf(uname))
-		return
-	}
-
-	// Show SSH keys.
-	if isShowKeys {
-		ShowSSHKeys(ctx, ctxUser.ID)
-		return
-	}
-
-	// Show GPG keys.
-	if isShowGPG {
-		ShowGPGKeys(ctx, ctxUser.ID)
-		return
-	}
-
-	// Show User RSS feed
-	if len(showFeedType) != 0 {
-		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
+	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.User) {
+		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
 
 	// Show OpenID URIs
-	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
+	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
 	}
 
 	var isFollowing bool
-	if ctx.User != nil && ctxUser != nil {
-		isFollowing = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
+	if ctx.User != nil {
+		isFollowing = user_model.IsFollowing(ctx.User.ID, ctx.ContextUser.ID)
 	}
 
-	ctx.Data["Title"] = ctxUser.DisplayName()
+	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
-	ctx.Data["Owner"] = ctxUser
+	ctx.Data["Owner"] = ctx.ContextUser
 	ctx.Data["OpenIDs"] = openIDs
 	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
+		data, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -158,13 +81,13 @@ func Profile(ctx *context.Context) {
 		ctx.Data["HeatmapData"] = data
 	}
 
-	if len(ctxUser.Description) != 0 {
+	if len(ctx.ContextUser.Description) != 0 {
 		content, err := markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,
 			Ctx:       ctx,
-		}, ctxUser.Description)
+		}, ctx.ContextUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
 			return
@@ -172,10 +95,10 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
+	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctx.ContextUser.ID)
 
 	orgs, err := models.FindOrgs(models.FindOrgOptions{
-		UserID:         ctxUser.ID,
+		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
 	if err != nil {
@@ -238,7 +161,7 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctxUser, db.ListOptions{
+		items, err := user_model.GetUserFollowers(ctx.ContextUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -248,9 +171,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctxUser.NumFollowers
+		total = ctx.ContextUser.NumFollowers
 	case "following":
-		items, err := user_model.GetUserFollowing(ctxUser, db.ListOptions{
+		items, err := user_model.GetUserFollowing(ctx.ContextUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -260,10 +183,10 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctxUser.NumFollowing
+		total = ctx.ContextUser.NumFollowing
 	case "activity":
 		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
-			RequestedUser:   ctxUser,
+			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -284,7 +207,7 @@ func Profile(ctx *context.Context) {
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			StarredByID:        ctxUser.ID,
+			StarredByID:        ctx.ContextUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
 			Language:           language,
@@ -316,7 +239,7 @@ func Profile(ctx *context.Context) {
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
-			WatchedByID:        ctxUser.ID,
+			WatchedByID:        ctx.ContextUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
 			Language:           language,
@@ -336,7 +259,7 @@ func Profile(ctx *context.Context) {
 			},
 			Actor:              ctx.User,
 			Keyword:            keyword,
-			OwnerID:            ctxUser.ID,
+			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
 			Collaborate:        util.OptionalBoolFalse,
@@ -361,24 +284,19 @@ func Profile(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 
-	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
+	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.User.ID)
 
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
 // Action response for follow/unfollow user request
 func Action(ctx *context.Context) {
-	u := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.User.ID, u.ID)
+		err = user_model.FollowUser(ctx.User.ID, ctx.ContextUser.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.User.ID, u.ID)
+		err = user_model.UnfollowUser(ctx.User.ID, ctx.ContextUser.ID)
 	}
 
 	if err != nil {
@@ -386,5 +304,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
-	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
+	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.ContextUser.HomeLink())
 }

@@ -51,10 +51,20 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 	return actions
 }
 
-// ShowUserFeed show user activity as RSS / Atom feed
-func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
+// ShowUserFeedRSS show user activity as RSS feed
+func ShowUserFeedRSS(ctx *context.Context) {
+	showUserFeed(ctx, "rss")
+}
+
+// ShowUserFeedAtom show user activity as Atom feed
+func ShowUserFeedAtom(ctx *context.Context) {
+	showUserFeed(ctx, "atom")
+}
+
+// showUserFeed show user activity as RSS / Atom feed
+func showUserFeed(ctx *context.Context, formatType string) {
 	actions := RetrieveFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctxUser,
+		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
 		OnlyPerformedBy: true,
@@ -66,9 +76,9 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 	}
 
 	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.feed_of", ctxUser.DisplayName()),
-		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
-		Description: ctxUser.Description,
+		Title:       ctx.Tr("home.feed_of", ctx.ContextUser.DisplayName()),
+		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
+		Description: ctx.ContextUser.Description,
 		Created:     time.Now(),
 	}
 

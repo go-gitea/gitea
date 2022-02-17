@@ -714,8 +714,8 @@ func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, u
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid
-func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := asymkey_model.ListPublicKeys(uid, db.ListOptions{})
+func ShowSSHKeys(ctx *context.Context) {
+	keys, err := asymkey_model.ListPublicKeys(ctx.ContextUser.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -730,8 +730,8 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 }
 
 // ShowGPGKeys output all the public GPG keys of user by uid
-func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, db.ListOptions{})
+func ShowGPGKeys(ctx *context.Context) {
+	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, ctx.ContextUser.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
