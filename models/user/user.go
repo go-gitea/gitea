@@ -862,19 +862,18 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 			return err
 		}
 	} else { // check if primary email in email_address table
-		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(EmailAddress{})
+		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
 		if err != nil {
 			return err
 		}
 
 		if !primaryEmailExist {
-			var emailAddress = EmailAddress{
+			_, err = e.Insert(&EmailAddress{
 				Email:       u.Email,
 				UID:         u.ID,
 				IsActivated: true,
 				IsPrimary:   true,
-			}
-			_, err = e.Insert(&emailAddress)
+			})
 			return err
 		}
 	}
