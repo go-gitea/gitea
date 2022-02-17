@@ -45,7 +45,6 @@
     "wrap-ansi": "8.0.1"
   },
   "devDependencies": {
-    "editorconfig-checker": "4.0.2",
     "eslint": "8.8.0",
     "eslint-plugin-html": "6.2.0",
     "eslint-plugin-import": "2.25.4",
