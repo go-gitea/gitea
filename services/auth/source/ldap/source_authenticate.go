@@ -20,7 +20,7 @@ import (
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
-    loginName := userName
+	loginName := userName
 	if user != nil {
 		loginName = user.LoginName
 	}
