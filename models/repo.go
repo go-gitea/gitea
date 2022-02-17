@@ -765,7 +765,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
-	if err := deleteBeans(sess,
+	if err := db.DeleteBeans(ctx,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&Collaboration{RepoID: repoID},

@@ -148,6 +148,17 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
+// DeleteBeans deletes all given beans, beans should contain delete conditions.
+func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CountByBean counts the number of database records according non-empty fields of the bean as conditions.
 func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Count(bean)
