@@ -1025,6 +1025,19 @@ func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	return unames, err
 }
 
+// GetUserNameByID returns username for the id
+func GetUserNameByID(ctx context.Context, id int64) (string, error) {
+	var name string
+	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
+	if err != nil {
+		return "", err
+	}
+	if has {
+		return name, nil
+	}
+	return "", nil
+}
+
 // GetUserIDsByNames returns a slice of ids corresponds to names.
 func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))

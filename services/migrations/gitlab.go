@@ -640,13 +640,22 @@ func (g *GitlabDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 		return nil, err
 	}
 
+	var createdAt time.Time
+	if approvals.CreatedAt != nil {
+		createdAt = *approvals.CreatedAt
+	} else if approvals.UpdatedAt != nil {
+		createdAt = *approvals.UpdatedAt
+	} else {
+		createdAt = time.Now()
+	}
+
 	reviews := make([]*base.Review, 0, len(approvals.ApprovedBy))
 	for _, user := range approvals.ApprovedBy {
 		reviews = append(reviews, &base.Review{
 			IssueIndex:   context.LocalID(),
 			ReviewerID:   int64(user.User.ID),
 			ReviewerName: user.User.Username,
-			CreatedAt:    *approvals.UpdatedAt,
+			CreatedAt:    createdAt,
 			// All we get are approvals
 			State: base.ReviewStateApproved,
 		})

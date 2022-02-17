@@ -1,12 +1,6 @@
 <div class="ui centered grid">
 	<div class="twelve wide computer column">
 		<div class="ui attached left aligned segment">
-			<!-- <h4 class="ui header">
-				{{.i18n.Tr "repo.issues.label_templates.title"}}
-				<a target="_blank" rel="noopener noreferrer" href="https://discuss.gogs.io/t/how-to-use-predefined-label-templates/599">
-					<span class="octicon octicon-question"></span>
-				</a>
-			</h4> -->
 			<p>{{.i18n.Tr "repo.issues.label_templates.info"}}</p>
 			<br/>
 			<form class="ui form center" action="{{.Link}}/initialize" method="post">
@@ -20,6 +14,7 @@
 								<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
 							{{end}}
 						</div>
+						{{svg "octicon-triangle-down" 18 "dropdown icon"}}
 					</div>
 				</div>
 				<button type="submit" class="ui blue button">{{.i18n.Tr "repo.issues.label_templates.use"}}</button>

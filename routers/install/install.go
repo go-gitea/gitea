@@ -71,24 +71,15 @@ func Init(next http.Handler) http.Handler {
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
+				"i18n":          locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbTypeNames":   getDbTypeNames(),
-				"i18n":          locale,
-				"Language":      locale.Language(),
-				"Lang":          locale.Language(),
 				"AllLangs":      translation.AllLangs(),
-				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
-		}
-		for _, lang := range translation.AllLangs() {
-			if lang.Lang == locale.Language() {
-				ctx.Data["LangName"] = lang.Name
-				break
-			}
 		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)

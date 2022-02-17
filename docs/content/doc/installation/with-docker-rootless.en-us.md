@@ -32,7 +32,7 @@ image as a service. Since there is no database available, one can be initialized
 Create a directory for `data` and `config` then paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command: `sudo chown 1000:1000 config/ data/`
 If you don't give the volume correct permissions, the container may not start.
-For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag.
+For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev-rootless`)
 
 ```yaml
 version: "2"

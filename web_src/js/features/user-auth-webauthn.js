@@ -1,7 +1,7 @@
+import $ from 'jquery';
 import {encode, decode} from 'uint8-to-base64';
 
 const {appSubUrl, csrfToken} = window.config;
-
 
 export function initUserAuthWebAuthn() {
   if ($('.user.signin.webauthn-prompt').length === 0) {
@@ -24,6 +24,19 @@ export function initUserAuthWebAuthn() {
         .then((credential) => {
           verifyAssertion(credential);
         }).catch((err) => {
+          // Try again... without the appid
+          if (makeAssertionOptions.publicKey.extensions && makeAssertionOptions.publicKey.extensions.appid) {
+            delete makeAssertionOptions.publicKey.extensions['appid'];
+            navigator.credentials.get({
+              publicKey: makeAssertionOptions.publicKey
+            })
+              .then((credential) => {
+                verifyAssertion(credential);
+              }).catch((err) => {
+                webAuthnError('general', err.message);
+              });
+            return;
+          }
           webAuthnError('general', err.message);
         });
     }).fail(() => {

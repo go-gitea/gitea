@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,7 +113,6 @@ func TestChannelQueue_Pause(t *testing.T) {
 			if pausable, ok := queue.(Pausable); ok {
 				pausable.Pause()
 			}
-			pushBack = false
 			lock.Unlock()
 			return data
 		}
@@ -123,7 +124,9 @@ func TestChannelQueue_Pause(t *testing.T) {
 		}
 		return nil
 	}
-	nilFn := func(_ func()) {}
+
+	queueShutdown := []func(){}
+	queueTerminate := []func(){}
 
 	queue, err = NewChannelQueue(handle,
 		ChannelQueueConfiguration{
@@ -139,7 +142,34 @@ func TestChannelQueue_Pause(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(nilFn, nilFn)
+	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
+		queueShutdown = append(queueShutdown, shutdown)
+	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
+		queueTerminate = append(queueTerminate, terminate)
+	})
+
+	// Shutdown and Terminate in defer
+	defer func() {
+		lock.Lock()
+		callbacks := make([]func(), len(queueShutdown))
+		copy(callbacks, queueShutdown)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+		lock.Lock()
+		log.Info("Finally terminating")
+		callbacks = make([]func(), len(queueTerminate))
+		copy(callbacks, queueTerminate)
+		lock.Unlock()
+		for _, callback := range callbacks {
+			callback()
+		}
+	}()
 
 	test1 := testData{"A", 1}
 	test2 := testData{"B", 2}
@@ -155,14 +185,11 @@ func TestChannelQueue_Pause(t *testing.T) {
 
 	pausable.Pause()
 
-	paused, resumed := pausable.IsPausedIsResumed()
+	paused, _ := pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
@@ -179,10 +206,11 @@ func TestChannelQueue_Pause(t *testing.T) {
 	assert.Nil(t, result2)
 
 	pausable.Resume()
+	_, resumed := pausable.IsPausedIsResumed()
 
 	select {
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
 	}
 
@@ -199,47 +227,47 @@ func TestChannelQueue_Pause(t *testing.T) {
 	pushBack = true
 	lock.Unlock()
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	_, resumed = pausable.IsPausedIsResumed()
 
 	select {
-	case <-paused:
-		assert.Fail(t, "Queue should not be paused")
-		return
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not resumed")
 		return
 	}
 
 	queue.Push(&test1)
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
 	case <-handleChan:
 		assert.Fail(t, "handler chan should not contain test1")
 		return
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "queue should be paused")
 		return
 	}
 
-	paused, resumed = pausable.IsPausedIsResumed()
+	lock.Lock()
+	pushBack = false
+	lock.Unlock()
+
+	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
-	case <-resumed:
-		assert.Fail(t, "Queue should not be resumed")
-		return
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue is not paused")
 		return
 	}
 
 	pausable.Resume()
+	_, resumed = pausable.IsPausedIsResumed()
 
 	select {
 	case <-resumed:
-	default:
+	case <-time.After(100 * time.Millisecond):
 		assert.Fail(t, "Queue should be resumed")
 	}
 

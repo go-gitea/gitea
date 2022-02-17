@@ -135,6 +135,13 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 	return q.byteFIFO.Len(q.terminateCtx) == 0
 }
 
+// NumberInQueue returns the number in the queue
+func (q *ByteFIFOQueue) NumberInQueue() int64 {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return q.byteFIFO.Len(q.terminateCtx) + q.WorkerPool.NumberInQueue()
+}
+
 // Flush flushes the ByteFIFOQueue
 func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 	select {
@@ -205,7 +212,10 @@ loop:
 				// tell the pool to shutdown.
 				q.baseCtxCancel()
 				return
-			case data := <-q.dataChan:
+			case data, ok := <-q.dataChan:
+				if !ok {
+					return
+				}
 				if err := q.PushBack(data); err != nil {
 					log.Error("Unable to push back data into queue %s", q.name)
 				}

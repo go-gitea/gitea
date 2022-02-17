@@ -73,7 +73,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			default:
 			}
 			log.Trace("Running git gc on %v", repo)
-			command := git.NewCommandContext(ctx, args...).
+			command := git.NewCommand(ctx, args...).
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 			var stdout string
 			var err error

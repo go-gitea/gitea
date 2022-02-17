@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 
 export function initCommonOrganization() {

@@ -161,10 +161,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
 		if err != nil {
-			ctx.ServerError("issueIndexer.Search", err)
-			return
+			if issue_indexer.IsAvailable() {
+				ctx.ServerError("issueIndexer.Search", err)
+				return
+			}
+			ctx.Data["IssueIndexerUnavailable"] = true
 		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true
@@ -799,7 +802,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.FormInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -886,7 +889,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0

@@ -987,3 +987,20 @@ func (r *Review) HTMLURL() string {
 	}
 	return comment.HTMLURL()
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Review) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.ReviewerID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (r *Review) GetUserID() int64 { return r.ReviewerID }
+
+// GetExternalName ExternalUserRemappable interface
+func (r *Review) GetExternalName() string { return r.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (r *Review) GetExternalID() int64 { return r.OriginalAuthorID }

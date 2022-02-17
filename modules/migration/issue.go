@@ -46,3 +46,9 @@ type Issue struct {
 	Assignees   []string     `json:"assignees"`
 	Context     IssueContext `yaml:"-"`
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (i *Issue) GetExternalName() string { return i.PosterName }
+
+// GetExternalID ExternalUserMigrated interface
+func (i *Issue) GetExternalID() int64 { return i.PosterID }
