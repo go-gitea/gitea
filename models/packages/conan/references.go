@@ -69,12 +69,12 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 		Where(cond)
 
 	query := builder.
-		Select("package_property.value, MAX(package_file.created_unix)").
+		Select("package_property.value, MAX(package_file.created_unix) AS created_unix").
 		From("package_property").
 		Join("INNER", "package_file", "package_file.id = package_property.ref_id").
 		Where(builder.Eq{"package_property.name": propertyName}.And(builder.In("package_property.ref_id", in2))).
 		GroupBy("package_property.value").
-		OrderBy("package_file.created_unix DESC")
+		OrderBy("created_unix DESC")
 
 	var values []*PropertyValue
 	return values, db.GetEngine(ctx).SQL(query).Find(&values)

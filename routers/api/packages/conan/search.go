@@ -85,24 +85,25 @@ func searchPackages(ctx *context.Context, searchAllRevisions bool) {
 			return
 		}
 		rref = rref.WithRevision(lastRevision.Value)
-	}
-
-	has, err := conan_model.RecipeExists(ctx, ctx.Package.Owner.ID, rref)
-	if err != nil {
-		if err == conan_model.ErrRecipeReferenceNotExist {
-			apiError(ctx, http.StatusNotFound, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
+	} else {
+		has, err := conan_model.RecipeExists(ctx, ctx.Package.Owner.ID, rref)
+		if err != nil {
+			if err == conan_model.ErrRecipeReferenceNotExist {
+				apiError(ctx, http.StatusNotFound, err)
+			} else {
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
+			return
 		}
-		return
-	}
-	if !has {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
+		if !has {
+			apiError(ctx, http.StatusNotFound, nil)
+			return
+		}
 	}
 
 	recipeRevisions := []*conan_model.PropertyValue{{Value: rref.Revision}}
 	if searchAllRevisions {
+		var err error
 		recipeRevisions, err = conan_model.GetRecipeRevisions(ctx, ctx.Package.Owner.ID, rref)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
