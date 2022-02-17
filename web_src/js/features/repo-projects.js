@@ -171,9 +171,9 @@ export default function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const red = getRelativeColor(parseInt(color.substr(1, 2), 16));
-  const green = getRelativeColor(parseInt(color.substr(3, 2), 16));
-  const blue = getRelativeColor(parseInt(color.substr(5, 2), 16));
+  const red = getRelativeColor(parseInt(color.slice(1, 3), 16));
+  const green = getRelativeColor(parseInt(color.slice(3, 5), 16));
+  const blue = getRelativeColor(parseInt(color.slice(5, 7), 16));
   const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 
   if (luminance > 0.179) {
