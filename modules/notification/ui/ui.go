@@ -203,7 +203,7 @@ func (ns *notificationService) NotifyPullRevieweDismiss(doer *user_model.User, r
 }
 
 func (ns *notificationService) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
-	if !removed {
+	if !removed && doer.ID != assignee.ID {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
