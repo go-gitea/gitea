@@ -398,7 +398,7 @@ func Generate(ctx *context.APIContext) {
 			return
 		}
 
-		if !ctx.User.IsAdmin {
+		if !ctx.Doer.IsAdmin {
 			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)

@@ -17,28 +17,6 @@ import (
 	"xorm.io/builder"
 )
 
-// DeleteOrganization deletes models associated to an organization.
-func DeleteOrganization(ctx context.Context, org *organization.Organization) error {
-	if org.Type != user_model.UserTypeOrganization {
-		return fmt.Errorf("%s is a user not an organization", org.Name)
-	}
-
-	if err := db.DeleteBeans(ctx,
-		&organization.Team{OrgID: org.ID},
-		&organization.OrgUser{OrgID: org.ID},
-		&organization.TeamUser{OrgID: org.ID},
-		&organization.TeamUnit{OrgID: org.ID},
-	); err != nil {
-		return fmt.Errorf("deleteBeans: %v", err)
-	}
-
-	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
-	}
-
-	return nil
-}
-
 // MinimalOrg represents a simple orgnization with only needed columns
 type MinimalOrg = organization.Organization
 

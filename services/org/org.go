@@ -32,7 +32,7 @@ func DeleteOrganization(org *organization.Organization) error {
 		return models.ErrUserOwnRepos{UID: org.ID}
 	}
 
-	if err := models.DeleteOrganization(ctx, org); err != nil {
+	if err := organization.DeleteOrganization(ctx, org); err != nil {
 		return fmt.Errorf("DeleteOrganization: %v", err)
 	}
 

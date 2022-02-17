@@ -358,6 +358,28 @@ func CountOrganizations() int64 {
 	return count
 }
 
+// DeleteOrganization deletes models associated to an organization.
+func DeleteOrganization(ctx context.Context, org *Organization) error {
+	if org.Type != user_model.UserTypeOrganization {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
+	if err := db.DeleteBeans(ctx,
+		&Team{OrgID: org.ID},
+		&OrgUser{OrgID: org.ID},
+		&TeamUser{OrgID: org.ID},
+		&TeamUnit{OrgID: org.ID},
+	); err != nil {
+		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
+		return fmt.Errorf("Delete: %v", err)
+	}
+
+	return nil
+}
+
 // GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
 func (org *Organization) GetOrgUserMaxAuthorizeLevel(uid int64) (perm.AccessMode, error) {
 	var authorize perm.AccessMode

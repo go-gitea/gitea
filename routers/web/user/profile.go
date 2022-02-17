@@ -41,7 +41,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}

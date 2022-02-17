@@ -16,12 +16,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-<<<<<<< HEAD
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-=======
->>>>>>> 8c7c319a9 (Move organization related structs into sub package)
 )
 
 func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
@@ -415,7 +412,6 @@ func DeleteTeam(t *organization.Team) error {
 		return err
 	}
 
-<<<<<<< HEAD
 	// update branch protections
 	{
 		protections := make([]*ProtectedBranch, 0, 10)
@@ -452,13 +448,9 @@ func DeleteTeam(t *organization.Team) error {
 	}
 
 	if !t.IncludesAllRepositories {
-		if err := t.removeAllRepositories(ctx); err != nil {
+		if err := removeAllRepositories(ctx, t); err != nil {
 			return err
 		}
-=======
-	if err := removeAllRepositories(ctx, t); err != nil {
-		return err
->>>>>>> 8c7c319a9 (Move organization related structs into sub package)
 	}
 
 	// Delete team-user.

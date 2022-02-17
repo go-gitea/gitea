@@ -710,7 +710,7 @@ func SearchTeam(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &organization.SearchTeamOptions{
-		UserID:      ctx.User.ID,
+		UserID:      ctx.Doer.ID,
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),

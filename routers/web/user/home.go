@@ -75,7 +75,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	cnt, _ := models.GetOrganizationCount(ctx, ctxUser)
+	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 
 	var uid int64

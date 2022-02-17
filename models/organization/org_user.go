@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/builder"
@@ -30,6 +31,13 @@ type OrgUser struct {
 
 func init() {
 	db.RegisterModel(new(OrgUser))
+}
+
+// GetOrganizationCount returns count of membership of organization of the user.
+func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error) {
+	return db.GetEngine(ctx).
+		Where("uid=?", u.ID).
+		Count(new(OrgUser))
 }
 
 // IsOrganizationOwner returns true if given user is in the owner team.
