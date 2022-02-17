@@ -315,7 +315,7 @@ lint-frontend: node_modules
 	npx stylelint --color --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
-lint-backend: node_modules golangci-lint vet editorconfig-checker
+lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
