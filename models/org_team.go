@@ -273,7 +273,7 @@ func NewTeam(t *organization.Team) (err error) {
 		return err
 	}
 	if !has {
-		return organization.ErrOrgNotExist{t.OrgID, ""}
+		return organization.ErrOrgNotExist{ID: t.OrgID}
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
@@ -285,7 +285,7 @@ func NewTeam(t *organization.Team) (err error) {
 		return err
 	}
 	if has {
-		return organization.ErrTeamAlreadyExist{t.OrgID, t.LowerName}
+		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
 	ctx, committer, err := db.TxContext()
@@ -349,7 +349,7 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 	if err != nil {
 		return err
 	} else if has {
-		return organization.ErrTeamAlreadyExist{t.OrgID, t.LowerName}
+		return organization.ErrTeamAlreadyExist{OrgID: t.OrgID, Name: t.LowerName}
 	}
 
 	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",

@@ -10,7 +10,6 @@ import (
 	"sort"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -24,7 +23,7 @@ import (
 func TestAPITeam(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	teamUser := unittest.AssertExistsAndLoadBean(t, &models.TeamUser{}).(*models.TeamUser)
+	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{}).(*organization.TeamUser)
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID}).(*organization.Team)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID}).(*user_model.User)
 
@@ -39,7 +38,7 @@ func TestAPITeam(t *testing.T) {
 	assert.Equal(t, team.Name, apiTeam.Name)
 
 	// non team member user will not access the teams details
-	teamUser2 := unittest.AssertExistsAndLoadBean(t, &models.TeamUser{ID: 3}).(*models.TeamUser)
+	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3}).(*organization.TeamUser)
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID}).(*user_model.User)
 
 	session = loginUser(t, user2.Name)
