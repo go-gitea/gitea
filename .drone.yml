@@ -33,12 +33,6 @@ steps:
       - name: deps
         path: /go
 
-  - name: lint-frontend
-    image: node:16
-    commands:
-      - make lint-frontend
-    depends_on: [deps-frontend]
-
   - name: lint-backend
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     pull: always
@@ -49,6 +43,12 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
+
+  - name: lint-frontend
+    image: node:16
+    commands:
+      - make lint-frontend
+    depends_on: [deps-frontend]
 
   - name: lint-backend-windows
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
