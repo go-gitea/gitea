@@ -28,6 +28,7 @@ run:
     - node_modules
     - public
     - web_src
+  skip-dirs-use-default: false
 
 linters-settings:
   gocritic:
