@@ -772,7 +772,7 @@ pr\#%: clean-all
 
 .PHONY: golangci-lint
 golangci-lint: golangci-lint-check
-	go list -f '{{.Dir}}' ./... | tail -n +2 | xargs realpath --relative-to=. | xargs golangci-lint run --timeout 10m
+	golangci-lint run --timeout 10m $$(go list -f '{{.Dir}}' ./... | tail -n +2 | xargs realpath --relative-to=. | xargs)
 
 .PHONY: golangci-lint-check
 golangci-lint-check:
