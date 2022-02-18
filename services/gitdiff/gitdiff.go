@@ -1307,6 +1307,7 @@ type DiffOptions struct {
 	MaxFiles           int
 	WhitespaceBehavior string
 	DirectComparison   bool
+	IgnoredFiles       []string
 }
 
 // GetDiff builds a Diff between two commits of a repository.
@@ -1327,33 +1328,44 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	if len(opts.SkipTo) > 0 {
 		argsLength++
 	}
-	if len(files) > 0 {
-		argsLength += len(files) + 1
+	argsLength += len(files)
+
+	// git 1.9.0 added pathspec exclusion of files
+	gitVersionGreater190 := git.CheckGitVersionAtLeast("1.9.0") == nil
+	if gitVersionGreater190 {
+		argsLength += len(opts.IgnoredFiles)
+	}
+
+	// If either included files or ignored files are present, we have to insert "--"
+	needsOptionEscaping := len(files) > 0 || (gitVersionGreater190 && len(opts.IgnoredFiles) > 0)
+	if needsOptionEscaping {
+		argsLength++
+	}
+
+	// If we only have ignored files, then we have to explicitly query everything ('.'), otherwise simply nothing will be queried
+	if needsOptionEscaping && len(files) == 0 {
+		argsLength++
 	}
 
 	diffArgs := make([]string, 0, argsLength)
+	diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
+	if len(opts.WhitespaceBehavior) != 0 {
+		diffArgs = append(diffArgs, opts.WhitespaceBehavior)
+	}
+
 	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(opts.WhitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
-		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
-		diffArgs = append(diffArgs, opts.AfterCommitID)
 	} else {
 		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(opts.WhitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
-		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
-		diffArgs = append(diffArgs, opts.AfterCommitID)
 		opts.BeforeCommitID = actualBeforeCommitID
 	}
+	diffArgs = append(diffArgs, opts.AfterCommitID)
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
@@ -1364,9 +1376,24 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		parsePatchSkipToFile = ""
 	}
 
-	if len(files) > 0 {
+	if needsOptionEscaping {
 		diffArgs = append(diffArgs, "--")
 		diffArgs = append(diffArgs, files...)
+
+		// Exclude all files where requested - see git pathspecs for the syntax
+		if gitVersionGreater190 {
+			for _, ignoredFile := range opts.IgnoredFiles {
+				if ignoredFile == "" {
+					continue
+				}
+				diffArgs = append(diffArgs, fmt.Sprintf("':(exclude,literal)%s'", ignoredFile)) // TODO: Will this break on Windows because of no single quote escaping in command prompt?
+			}
+		}
+	}
+
+	// If we only have ignored files, then we have to explicitly query everything, otherwise simply nothing will be queried
+	if needsOptionEscaping && len(files) == 0 {
+		diffArgs = append(diffArgs, ".")
 	}
 
 	reader, writer := io.Pipe()
