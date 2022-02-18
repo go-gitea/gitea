@@ -93,6 +93,7 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_PACKAGES_RELATIVE := $(filter-out code.gitea.io/gitea,$(subst code.gitea.io/gitea/,,$(GO_PACKAGES)))
 
 FOMANTIC_WORK_DIR := web_src/fomantic
 
@@ -772,7 +773,7 @@ pr\#%: clean-all
 
 .PHONY: golangci-lint
 golangci-lint: golangci-lint-check
-	golangci-lint run --timeout 10m $$(go list -f '{{.Dir}}' ./... | tail -n +2 | xargs realpath --relative-to=. | xargs)
+	golangci-lint run --timeout 10m $(GO_PACKAGES_RELATIVE) -v
 
 .PHONY: golangci-lint-check
 golangci-lint-check:
