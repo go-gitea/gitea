@@ -313,10 +313,9 @@ lint: lint-frontend lint-backend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
-	npx editorconfig-checker templates
 
 .PHONY: lint-backend
-lint-backend: golangci-lint vet
+lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
@@ -788,6 +787,13 @@ golangci-lint-check:
 		export BINARY="golangci-lint"; \
 		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
 	fi
+
+.PHONY: editorconfig-checker
+editorconfig-checker:
+	@hash editorconfig-checker > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@50adf46752da119dfef66e57be3ce2693ea4aa9c; \
+	fi
+	editorconfig-checker templates
 
 .PHONY: docker
 docker:
