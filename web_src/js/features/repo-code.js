@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
-import {invertFileFolding} from './fold-file.js';
+import {invertFileFolding} from './file-fold.js';
 
 function changeHash(hash) {
   if (window.history.pushState) {
