@@ -1,0 +1,17 @@
+id: http
+http: "http://localhost:4665"
+form:
+  - id: username        # Required
+    label: Username     # Required, the label for the input
+    type: text          # Required, the type of input (text, number, bool, secret)
+    required: true      # Optional, defaults to false
+  - id: favorite-number
+    label: Favorite Number
+    type: number
+    default: 12        # Optional, a default value
+  - id: pineapple
+    label: Pineapple on Pizza
+    type: bool
+  - id: secret
+    label: Passphrase
+    type: secret
