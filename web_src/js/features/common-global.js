@@ -211,7 +211,7 @@ export function initGlobalLinkActions() {
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
