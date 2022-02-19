@@ -74,6 +74,7 @@ readingloop:
 	for err == nil {
 		n, err = text.Read(buf[readStart:])
 		bs := buf[:n+readStart]
+		n = len(bs)
 		i := 0
 
 		for i < len(bs) {
