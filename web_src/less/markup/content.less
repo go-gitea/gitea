@@ -536,13 +536,21 @@
   }
 }
 
+.markup-render {
+  display: block;
+  border: none;
+  width: 100%;
+  height: var(--height-loading); // actual height is set in JS after loading
+  overflow: hidden;
+}
+
 .markup-block-error {
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
   box-shadow: none !important;
   font-size: 85% !important;
-  white-space: pre !important;
+  white-space: pre-wrap !important;
   padding: .5rem 1rem !important;
   text-align: left !important;
 }
