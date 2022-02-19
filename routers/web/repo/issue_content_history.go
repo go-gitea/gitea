@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -68,9 +69,15 @@ func GetContentHistoryList(ctx *context.Context) {
 			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
+
+		username := item.UserName
+		if setting.UI.DefaultShowFullName {
+			username = item.UserFullName
+		}
+
 		results = append(results, map[string]interface{}{
 			"name": fmt.Sprintf("<img class='ui avatar image' src='%s'><strong>%s</strong> %s %s",
-				html.EscapeString(item.UserAvatarLink), html.EscapeString(item.UserName), actionText, timeSinceText),
+				html.EscapeString(item.UserAvatarLink), html.EscapeString(username), actionText, timeSinceText),
 			"value": item.HistoryID,
 		})
 	}
