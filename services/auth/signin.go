@@ -24,17 +24,18 @@ import (
 func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
 	if strings.Contains(username, "@") {
-		user = &user_model.User{Email: strings.ToLower(strings.TrimSpace(username))}
+		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := db.Count(user)
+		has, err := db.GetEngine(db.DefaultContext).Where("is_activated=?", true).Get(&emailAddress)
 		if err != nil {
 			return nil, nil, err
 		}
-		if cnt > 1 {
-			return nil, nil, user_model.ErrEmailAlreadyUsed{
+		if !has {
+			return nil, nil, user_model.ErrEmailAddressNotExist{
 				Email: user.Email,
 			}
 		}
+		user = &user_model.User{ID: emailAddress.UID}
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
 		if len(trimmedUsername) == 0 {
