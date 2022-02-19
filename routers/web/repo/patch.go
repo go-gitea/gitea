@@ -28,7 +28,7 @@ func NewDiffPatch(ctx *context.Context) {
 
 	canCommit := renderCommitRights(ctx)
 
-	ctx.Data["TreePath"] = "patch"
+	ctx.Data["TreePath"] = ""
 
 	ctx.Data["commit_summary"] = ""
 	ctx.Data["commit_message"] = ""
@@ -55,7 +55,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		branchName = form.NewBranchName
 	}
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["TreePath"] = "patch"
+	ctx.Data["TreePath"] = ""
 	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
