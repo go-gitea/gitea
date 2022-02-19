@@ -29,6 +29,15 @@
 			</div>
 
 			<div class="ui five wide column">
+				{{if .CanCreateOrgRepo}}
+					<div class="center aligned">
+						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
+						{{if not .DisableNewPullMirrors}}
+							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
+						{{end}}
+					</div>
+					<div class="ui divider"></div>
+				{{end}}
 				<h4 class="ui top attached header df">
 					<strong class="f1">{{.i18n.Tr "org.people"}}</strong>
 					{{if .IsOrganizationMember}}
