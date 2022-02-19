@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {createMonaco} from './codeeditor.js';
 import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 

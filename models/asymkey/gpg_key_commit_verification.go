@@ -71,7 +71,7 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -81,7 +81,7 @@ func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustMod
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
-		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isCodeReader, &keyMap)
+		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
 
 		newCommits = append(newCommits, signCommit)
 	}
@@ -455,7 +455,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
 // There are several trust models in Gitea
-func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
+func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
 	if !verification.Verified {
 		return
 	}
@@ -500,11 +500,11 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 			var has bool
 			isMember, has = (*keyMap)[verification.SigningKey.KeyID]
 			if !has {
-				isMember, err = isCodeReader(verification.SigningUser)
+				isMember, err = isOwnerMemberCollaborator(verification.SigningUser)
 				(*keyMap)[verification.SigningKey.KeyID] = isMember
 			}
 		} else {
-			isMember, err = isCodeReader(verification.SigningUser)
+			isMember, err = isOwnerMemberCollaborator(verification.SigningUser)
 		}
 
 		if !isMember {

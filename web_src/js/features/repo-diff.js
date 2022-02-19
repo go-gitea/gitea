@@ -1,6 +1,8 @@
+import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
+
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
@@ -45,7 +47,7 @@ export function initRepoDiffConversationForm() {
   });
 
 
-  $('.resolve-conversation').on('click', async function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
     const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');

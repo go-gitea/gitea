@@ -76,7 +76,7 @@ func Code(ctx *context.Context) {
 			return
 		}
 
-		var rightRepoMap = make(map[int64]*repo_model.Repository, len(repoMaps))
+		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
 			if models.CheckRepoUnitUser(repo, ctx.User, unit.TypeCode) {
@@ -87,20 +87,30 @@ func Code(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
+			if code_indexer.IsAvailable() {
+				ctx.ServerError("SearchResults", err)
+				return
+			}
+			ctx.Data["CodeIndexerUnavailable"] = true
+		} else {
+			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
+			if code_indexer.IsAvailable() {
+				ctx.ServerError("SearchResults", err)
+				return
+			}
+			ctx.Data["CodeIndexerUnavailable"] = true
+		} else {
+			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 		}
 
-		var loadRepoIDs = make([]int64, 0, len(searchResults))
+		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
 			var find bool
 			for _, id := range loadRepoIDs {

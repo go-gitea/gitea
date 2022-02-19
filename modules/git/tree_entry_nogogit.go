@@ -7,10 +7,7 @@
 
 package git
 
-import (
-	"strconv"
-	"strings"
-)
+import "code.gitea.io/gitea/modules/log"
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
@@ -47,13 +44,20 @@ func (te *TreeEntry) Size() int64 {
 		return te.size
 	}
 
-	stdout, err := NewCommand("cat-file", "-s", te.ID.String()).RunInDir(te.ptree.repo.Path)
+	wr, rd, cancel := te.ptree.repo.CatFileBatchCheck(te.ptree.repo.Ctx)
+	defer cancel()
+	_, err := wr.Write([]byte(te.ID.String() + "\n"))
 	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
+		return 0
+	}
+	_, _, te.size, err = ReadBatchLine(rd)
+	if err != nil {
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
 		return 0
 	}
 
 	te.sized = true
-	te.size, _ = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	return te.size
 }
 

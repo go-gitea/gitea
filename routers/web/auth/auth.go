@@ -236,14 +236,14 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// Check if the user has u2f registration
-	hasU2Ftwofa, err := auth.HasU2FRegistrationsByUID(u.ID)
+	// Check if the user has webauthn registration
+	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if !hasTOTPtwofa && !hasU2Ftwofa {
+	if !hasTOTPtwofa && !hasWebAuthnTwofa {
 		// No two factor auth configured we can sign in the user
 		handleSignIn(ctx, u, form.Remember)
 		return
@@ -254,7 +254,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// User will need to use 2FA TOTP or U2F, save data
+	// User will need to use 2FA TOTP or WebAuthn, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
@@ -268,7 +268,7 @@ func SignInPost(ctx *context.Context) {
 	if hasTOTPtwofa {
 		// User will need to use U2F, save data
 		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
-			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
+			ctx.ServerError("UserSignIn: Unable to set WebAuthn Enrolled in session", err)
 			return
 		}
 	}
@@ -279,8 +279,8 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	// If we have U2F redirect there first
-	if hasU2Ftwofa {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+	if hasWebAuthnTwofa {
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 
@@ -297,7 +297,7 @@ func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
 	ctx.Redirect(redirect)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool, obeyRedirect bool) string {
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
 		ctx.SetCookie(setting.CookieUserName, u.Name, days)
@@ -417,7 +417,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
 	ctx.HTML(http.StatusOK, tplSignUp)
@@ -438,7 +438,7 @@ func SignUpPost(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
 		ctx.Error(http.StatusForbidden)
 		return

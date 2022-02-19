@@ -51,7 +51,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
 					{{if .OriginalAuthor }}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
@@ -138,6 +138,11 @@
 				</div>
 			</div>
 		</li>
+	{{end}}
+	{{if .IssueIndexerUnavailable}}
+		<div class="ui error message">
+			<p>{{$.i18n.Tr "repo.issues.keyword_search_unavailable"}}</p>
+		</div>
 	{{end}}
 </div>
 {{template "base/paginate" .}}

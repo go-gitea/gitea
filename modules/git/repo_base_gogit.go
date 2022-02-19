@@ -73,13 +73,14 @@ func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() (err error) {
 	if repo == nil || repo.gogitStorage == nil {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	return
 }
 
 // GoGitRepo gets the go-git repo representation

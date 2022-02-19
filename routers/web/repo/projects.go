@@ -531,7 +531,6 @@ func EditProjectBoard(ctx *context.Context) {
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
 func SetDefaultProjectBoard(ctx *context.Context) {
-
 	project, board := checkProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return

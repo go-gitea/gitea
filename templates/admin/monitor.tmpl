@@ -48,6 +48,7 @@
 						<th>{{.i18n.Tr "admin.monitor.queue.type"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.exemplar"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberinqueue"}}</th>
 						<th></th>
 					</tr>
 				</thead>
@@ -58,6 +59,7 @@
 							<td>{{.Type}}</td>
 							<td>{{.ExemplarType}}</td>
 							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
+							<td>{{$sum := .NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.i18n.Tr "admin.monitor.queue.review"}}{{else}}{{$.i18n.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
 						</tr>
 					{{end}}

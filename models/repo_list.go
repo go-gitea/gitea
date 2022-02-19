@@ -136,6 +136,8 @@ type SearchRepoOptions struct {
 	Archived util.OptionalBool
 	// only search topic name
 	TopicOnly bool
+	// only search repositories with specified primary language
+	Language string
 	// include description in keyword search
 	IncludeDescription bool
 	// None -> include has milestones AND has no milestone
@@ -244,9 +246,9 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 				builder.In(
 					"team_id", builder.Select("team_id").From("team_unit").Where(
 						builder.Eq{
-							"org_id": orgID,
+							"`team_unit`.org_id": orgID,
 						}.And(
-							builder.In("type", units),
+							builder.In("`team_unit`.type", units),
 						),
 					),
 				),
@@ -259,8 +261,8 @@ func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
 		Where(builder.And(
-			builder.Eq{"user_id": userID},
-			builder.Gt{"mode": int(perm.AccessModeNone)},
+			builder.Eq{"`access`.user_id": userID},
+			builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
 		)),
 	)
 }
@@ -289,7 +291,7 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Build
 func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"org_id": orgID}),
+			And(builder.Eq{"`team_unit`.org_id": orgID}),
 	)
 }
 
@@ -437,6 +439,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			keywordCond = keywordCond.Or(likes)
 		}
 		cond = cond.And(keywordCond)
+	}
+
+	if opts.Language != "" {
+		cond = cond.And(builder.In("id", builder.
+			Select("repo_id").
+			From("language_stat").
+			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
 	if opts.Fork != util.OptionalBoolNone {
@@ -623,7 +632,7 @@ func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int64, error) {
+func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -646,6 +655,6 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int
 	}
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
-	repos := make([]*repo_model.Repository, 0, opts.PageSize)
+	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }

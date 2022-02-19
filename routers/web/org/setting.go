@@ -74,10 +74,14 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
 		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			if db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) {
+			switch {
+			case db.IsErrNameReserved(err):
 				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
-			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Data["OrgName"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			default:
 				ctx.ServerError("ChangeUserName", err)
 			}
 			return
@@ -113,7 +117,8 @@ func SettingsPost(ctx *context.Context) {
 	// update forks visibility
 	if visibilityChanged {
 		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos}})
+			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
+		})
 		if err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return

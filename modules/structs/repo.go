@@ -59,6 +59,8 @@ type Repository struct {
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
+	Language      string      `json:"language"`
+	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -93,7 +95,9 @@ type Repository struct {
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
 	MirrorInterval            string           `json:"mirror_interval"`
-	RepoTransfer              *RepoTransfer    `json:"repo_transfer"`
+	// swagger:strfmt date-time
+	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
+	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
 }
 
 // CreateRepoOption options when creating repository
@@ -110,7 +114,7 @@ type CreateRepoOption struct {
 	Private bool `json:"private"`
 	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
-	// Whether the repository should be auto-intialized?
+	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
 	Template bool `json:"template"`
@@ -324,19 +328,17 @@ func (gt GitServiceType) TokenAuth() bool {
 	return false
 }
 
-var (
-	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
-	// TODO: add to this list after new git service added
-	SupportedFullGitService = []GitServiceType{
-		GithubService,
-		GitlabService,
-		GiteaService,
-		GogsService,
-		OneDevService,
-		GitBucketService,
-		CodebaseService,
-	}
-)
+// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+// TODO: add to this list after new git service added
+var SupportedFullGitService = []GitServiceType{
+	GithubService,
+	GitlabService,
+	GiteaService,
+	GogsService,
+	OneDevService,
+	GitBucketService,
+	CodebaseService,
+}
 
 // RepoTransfer represents a pending repo transfer
 type RepoTransfer struct {

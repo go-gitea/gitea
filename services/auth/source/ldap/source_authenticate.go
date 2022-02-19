@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -19,10 +20,14 @@ import (
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
 func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
-	sr := source.SearchEntry(userName, password, source.authSource.Type == auth.DLDAP)
+	loginName := userName
+	if user != nil {
+		loginName = user.LoginName
+	}
+	sr := source.SearchEntry(loginName, password, source.authSource.Type == auth.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
-		return nil, user_model.ErrUserNotExist{Name: userName}
+		return nil, user_model.ErrUserNotExist{Name: loginName}
 	}
 
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
@@ -59,10 +64,14 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
+		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
+			orgCache := make(map[string]*models.Organization)
+			teamCache := make(map[string]*models.Team)
+			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
+		}
 		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.authSource, sr.SSHPublicKey) {
 			return user, asymkey_model.RewriteAllPublicKeys()
 		}
-
 		return user, nil
 	}
 
@@ -98,9 +107,13 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
 		err = asymkey_model.RewriteAllPublicKeys()
 	}
-
 	if err == nil && len(source.AttributeAvatar) > 0 {
 		_ = user_service.UploadAvatar(user, sr.Avatar)
+	}
+	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
+		orgCache := make(map[string]*models.Organization)
+		teamCache := make(map[string]*models.Team)
+		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
 	}
 
 	return user, err

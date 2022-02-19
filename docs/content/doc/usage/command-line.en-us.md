@@ -129,8 +129,8 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
-        - `--scopes`: Addtional scopes to request for this OAuth2 source. (Optional)
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Additional scopes to request for this OAuth2 source. (Optional)
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
         - `--group-claim-name`: Claim name providing group names for this source. (Optional)
@@ -152,8 +152,8 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
-        - `--scopes`: Addtional scopes to request for this OAuth2 source.
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--scopes`: Additional scopes to request for this OAuth2 source.
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
         - `--group-claim-name`: Claim name providing group names for this source. (Optional)
@@ -161,6 +161,33 @@ Admin operations:
         - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
+    - `add-smtp`:
+      - Options:
+        - `--name`: Application Name. Required.
+        - `--auth-type`: SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5). Default to PLAIN.
+        - `--host`: SMTP host. Required.
+        - `--port`: SMTP port. Required.
+        - `--force-smtps`: SMTPS is always used on port 465. Set this to force SMTPS on other ports.
+        - `--skip-verify`: Skip TLS verify.
+        - `--helo-hostname`: Hostname sent with HELO. Leave blank to send current hostname.
+        - `--disable-helo`: Disable SMTP helo.
+        - `--allowed-domains`: Leave empty to allow all domains. Separate multiple domains with a comma (',').
+        - `--skip-local-2fa`: Skip 2FA to log on.
+        - `--active`: This Authentication Source is Activated.
+        Remarks:
+        `--force-smtps`, `--skip-verify`, `--disable-helo`, `--skip-loca-2fs` and `--active` options can be used in form:
+        - `--option`, `--option=true` to enable
+        - `--option=false` to disable
+        If those options are not specified value would not be changed in `update-smtp` or would use default `false` value in `add-smtp`
+      - Examples:
+        - `gitea admin auth add-smtp --name ldap --host smtp.mydomain.org --port 587 --skip-verify --active`
+    - `update-smtp`:
+      - Options:
+        - `--id`: ID of source to be updated. Required.
+        - other options are shared with `add-smtp`
+      - Examples:
+        - `gitea admin auth update-smtp --id 1 --host smtp.mydomain.org --port 587 --skip-verify=false`
+        - `gitea admin auth update-smtp --id 1 --active=false`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
       - Options:
         - `--name value`: Authentication name. Required.

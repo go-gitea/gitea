@@ -34,7 +34,7 @@ import (
 // |____|__ \___  > ____|  |____|    (____  /__|  /____  >\___  >__|
 //         \/   \/\/                      \/           \/     \/
 //
-// This file contains functiosn for parsing ssh-keys
+// This file contains functions for parsing ssh-keys
 //
 // TODO: Consider if these functions belong in models - no other models function call them or are called by them
 // They may belong in a service or a module
