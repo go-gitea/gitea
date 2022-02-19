@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -177,7 +178,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: SecToTime(amount),
+		Content: util.SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
 	}); err != nil {
@@ -226,7 +227,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = SecToTime(total)
+		totalTimes[user] = util.SecToTime(total)
 	}
 	return totalTimes, nil
 }
@@ -260,7 +261,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: "- " + SecToTime(removedTime),
+		Content: "- " + util.SecToTime(removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -289,7 +290,7 @@ func DeleteTime(t *TrackedTime) error {
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,
-		Content: "- " + SecToTime(t.Time),
+		Content: "- " + util.SecToTime(t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
