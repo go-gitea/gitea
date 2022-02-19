@@ -1468,17 +1468,6 @@ func SetAllowEdits(ctx *context.Context) {
 		return
 	}
 
-	err = pr.LoadIssue()
-	if err != nil {
-		ctx.ServerError("LoadIssue", err)
-		return
-	}
-
-	if !pr.Issue.IsPull {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
-
 	if !ctx.IsSigned || !pr.Issue.IsPoster(ctx.User.ID) {
 		ctx.Error(http.StatusForbidden)
 		return
