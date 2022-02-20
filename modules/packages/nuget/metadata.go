@@ -37,6 +37,8 @@ const (
 	DependencyPackage PackageType = iota + 1
 	// SymbolsPackage represents a symbol package (*.snupkg)
 	SymbolsPackage
+
+	PropertySymbolID = "nuget.symbol.id"
 )
 
 var idmatch = regexp.MustCompile(`\A\w+(?:[.-]\w+)*\z`)

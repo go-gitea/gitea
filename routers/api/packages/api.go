@@ -24,6 +24,7 @@ import (
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}
@@ -167,6 +168,7 @@ func Routes() *web.Route {
 				r.Put("/symbolpackage", nuget.UploadSymbolPackage)
 				r.Delete("/{id}/{version}", nuget.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
+			r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
 		})
 		r.Group("/npm", func() {
 			r.Group("/@{scope}/{id}", func() {

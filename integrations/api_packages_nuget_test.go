@@ -7,10 +7,10 @@ package integrations
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -32,6 +32,8 @@ func TestPackageNuGet(t *testing.T) {
 	packageVersion := "1.0.3"
 	packageAuthors := "KN4CK3R"
 	packageDescription := "Gitea Test Package"
+	symbolFilename := "test.pdb"
+	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
 	var buf bytes.Buffer
 	archive := zip.NewWriter(&buf)
@@ -129,6 +131,7 @@ func TestPackageNuGet(t *testing.T) {
 			createPackage := func(id, packageType string) io.Reader {
 				var buf bytes.Buffer
 				archive := zip.NewWriter(&buf)
+
 				w, _ := archive.Create("package.nuspec")
 				w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
 				<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
@@ -140,6 +143,13 @@ func TestPackageNuGet(t *testing.T) {
 					<packageTypes><packageType name="` + packageType + `" /></packageTypes>
 				</metadata>
 				</package>`))
+
+				w, _ = archive.Create(symbolFilename)
+				b, _ := base64.StdEncoding.DecodeString(`QlNKQgEAAQAAAAAADAAAAFBEQiB2MS4wAAAAAAAABgB8AAAAWAAAACNQZGIAAAAA1AAAAAgBAAAj
+fgAA3AEAAAQAAAAjU3RyaW5ncwAAAADgAQAABAAAACNVUwDkAQAAMAAAACNHVUlEAAAAFAIAACgB
+AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
+				w.Write(b)
+
 				archive.Close()
 				return &buf
 			}
@@ -169,17 +179,32 @@ func TestPackageNuGet(t *testing.T) {
 
 			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 			assert.NoError(t, err)
-			assert.Len(t, pfs, 2)
-			i := 0
-			if strings.HasSuffix(pfs[1].Name, ".snupkg") {
-				i = 1
-			}
-			assert.Equal(t, fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion), pfs[i].Name)
-			assert.False(t, pfs[i].IsLead)
+			assert.Len(t, pfs, 3)
+			for _, pf := range pfs {
+				switch pf.Name {
+				case fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion):
+				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
+					assert.False(t, pf.IsLead)
 
-			pb, err := packages.GetBlobByID(db.DefaultContext, pfs[i].BlobID)
-			assert.NoError(t, err)
-			assert.Equal(t, int64(368), pb.Size)
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(616), pb.Size)
+				case symbolFilename:
+					assert.False(t, pf.IsLead)
+
+					pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+					assert.NoError(t, err)
+					assert.Equal(t, int64(160), pb.Size)
+
+					pps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+					assert.NoError(t, err)
+					assert.Len(t, pps, 1)
+					assert.Equal(t, nuget_module.PropertySymbolID, pps[0].Name)
+					assert.Equal(t, symbolID, pps[0].Value)
+				default:
+					assert.Fail(t, "unexpected file: %v", pf.Name)
+				}
+			}
 
 			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -190,25 +215,38 @@ func TestPackageNuGet(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
+		checkDownloadCount := func(count int64) {
+			pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+			assert.Equal(t, count, pvs[0].DownloadCount)
+		}
+
+		checkDownloadCount(0)
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+		checkDownloadCount(1)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err = packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+		checkDownloadCount(1)
+
+		t.Run("Symbol", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, symbolID, symbolFilename))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusOK)
+
+			checkDownloadCount(1)
+		})
 	})
 
 	t.Run("SearchService", func(t *testing.T) {

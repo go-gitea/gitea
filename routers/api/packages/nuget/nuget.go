@@ -237,13 +237,27 @@ func UploadSymbolPackage(ctx *context.Context) {
 		return
 	}
 
-	_, _, err := packages_service.AddFileToExistingPackage(
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeNuGet,
-			Name:        np.ID,
-			Version:     np.Version,
-		},
+	pdbs, err := nuget_module.ExtractPortablePdb(buf, buf.Size())
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+	defer pdbs.Close()
+
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pi := &packages_service.PackageInfo{
+		Owner:       ctx.Package.Owner,
+		PackageType: packages.TypeNuGet,
+		Name:        np.ID,
+		Version:     np.Version,
+	}
+
+	_, _, err = packages_service.AddFileToExistingPackage(
+		pi,
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
@@ -262,6 +276,32 @@ func UploadSymbolPackage(ctx *context.Context) {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
+	}
+
+	for _, pdb := range pdbs {
+		_, _, err := packages_service.AddFileToExistingPackage(
+			pi,
+			&packages_service.PackageFileCreationInfo{
+				PackageFileInfo: packages_service.PackageFileInfo{
+					Filename:     strings.ToLower(pdb.Name),
+					CompositeKey: strings.ToLower(pdb.ID),
+				},
+				Data:   pdb.Content,
+				IsLead: false,
+				Properties: map[string]string{
+					nuget_module.PropertySymbolID: strings.ToLower(pdb.ID),
+				},
+			},
+		)
+		if err != nil {
+			switch err {
+			case packages.ErrDuplicatePackageFile:
+				apiError(ctx, http.StatusBadRequest, err)
+			default:
+				apiError(ctx, http.StatusInternalServerError, err)
+			}
+			return
+		}
 	}
 
 	ctx.Status(http.StatusCreated)
@@ -305,6 +345,54 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 		return nil, nil, closables
 	}
 	return np, buf, closables
+}
+
+// DownloadSymbolFile https://github.com/dotnet/symstore/blob/main/docs/specs/Simple_Symbol_Query_Protocol.md#request
+func DownloadSymbolFile(ctx *context.Context) {
+	filename := ctx.Params("filename")
+	guid := ctx.Params("guid")
+	filename2 := ctx.Params("filename2")
+
+	if filename != filename2 {
+		apiError(ctx, http.StatusBadRequest, nil)
+		return
+	}
+
+	pfs, _, err := packages.SearchFiles(ctx, &packages.PackageFileSearchOptions{
+		OwnerID:     ctx.Package.Owner.ID,
+		PackageType: string(packages.TypeNuGet),
+		Query:       filename,
+		Properties: map[string]string{
+			nuget_module.PropertySymbolID: strings.ToLower(guid),
+		},
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pfs) != 1 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+
+	pv, err := packages.GetVersionByID(ctx, pfs[0].VersionID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	s, _, err := packages_service.GetPackageFileStream(pv, pfs[0])
+	if err != nil {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer s.Close()
+
+	ctx.ServeStream(s, pfs[0].Name)
 }
 
 // DeletePackage hard deletes the package

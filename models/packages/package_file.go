@@ -117,6 +117,8 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
+	OwnerID      int64
+	PackageType  string
 	VersionID    int64
 	Query        string
 	CompositeKey string
@@ -129,6 +131,17 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 
 	if opts.VersionID != 0 {
 		cond = cond.And(builder.Eq{"package_file.version_id": opts.VersionID})
+	} else if opts.OwnerID != 0 && opts.PackageType != "" && opts.PackageType != "all" {
+		in := builder.
+			Select("package_version.id").
+			From("package_version").
+			Join("INNER", "package", "package.id = package_version.package_id").
+			Where(builder.Eq{
+				"package.owner_id": opts.OwnerID,
+				"package.type":     opts.PackageType,
+			})
+
+		cond = cond.And(builder.In("package_file.version_id", in))
 	}
 	if opts.CompositeKey != "" {
 		cond = cond.And(builder.Eq{"package_file.composite_key": opts.CompositeKey})

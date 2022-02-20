@@ -14,7 +14,7 @@ menu:
 
 # NuGet Packages Repository
 
-Publish [NuGet](https://www.nuget.org/) packages for your user or organization.
+Publish [NuGet](https://www.nuget.org/) packages for your user or organization. The package registry supports [NuGet Symbol Packages](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) too.
 
 **Table of Contents**
 
@@ -67,6 +67,25 @@ dotnet nuget push --source gitea test_package.1.0.0.nupkg
 ```
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+
+### Symbol Packages
+
+The NuGet package registry has build support for a symbol server. The PDB files embedded in a symbol package (`.snupkg`) can get requested by clients.
+To do so, register the NuGet package registry as symbol source:
+
+```
+https://gitea.example.com/api/packages/{owner}/nuget/symbols
+```
+
+| Parameter | Description |
+| --------- | ----------- |
+| `owner`   | The owner of the package registry. |
+
+For example:
+
+```shell
+https://gitea.example.com/api/packages/testuser/nuget/symbols
+```
 
 ## Install a package
 
