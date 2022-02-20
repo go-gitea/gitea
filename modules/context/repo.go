@@ -440,6 +440,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Repo.Owner = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
+	// redirect link to wiki
+	if strings.HasSuffix(repoName, ".wiki") {
+		ctx.Redirect(strings.Replace(ctx.Req.RequestURI, ".wiki", "/wiki", 1))
+		return
+	}
+
 	// Get repository.
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 	if err != nil {
