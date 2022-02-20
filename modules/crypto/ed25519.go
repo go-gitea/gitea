@@ -113,7 +113,7 @@ func marshalPrivateKey(priv ed25519.PrivateKey) (*pem.Block, error) {
 }
 
 // generateOpenSSHPaddins converts the block to
-// acomplish a block size of 8 bytes.
+// accomplish a block size of 8 bytes.
 func generateOpenSSHPadding(block []byte) []byte {
 	for i, len := 0, len(block); (len+i)%8 != 0; i++ {
 		block = append(block, byte(i+1))
