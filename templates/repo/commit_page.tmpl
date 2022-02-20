@@ -202,12 +202,12 @@
 								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
 							{{avatar .Verification.SigningUser 28}}
-							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong></a>
+							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
 							<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
 							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 							{{avatarByEmail .Verification.SigningEmail "" 28}}
-							<strong>{{.Verification.SigningUser.Name}}</strong>
+							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}
 						{{svg "gitea-unlock" 16 "mr-3"}}
