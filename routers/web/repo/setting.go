@@ -330,7 +330,7 @@ func SettingsPost(ctx *context.Context) {
 
 		if form.PushMirrorUsePublicKey && (form.PushMirrorUsername != "" || form.PushMirrorPassword != "") {
 			ctx.Data["Err_PushMirrorUsePublicKey"] = true
-			ctx.RenderWithErr("Cannot use public key and use password based authentication in combination", tplSettingsOptions, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_denied_combination"), tplSettingsOptions, &form)
 			return
 		}
 

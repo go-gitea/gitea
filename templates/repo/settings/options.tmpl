@@ -84,7 +84,7 @@
 							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
 							<th>{{$.i18n.Tr "repo.settings.mirror_settings.direction"}}</th>
 							<th>{{$.i18n.Tr "repo.settings.mirror_settings.last_update"}}</th>
-							<th>Public SSH Key</td>
+							<th>{{$.i18n.Tr "repo.mirror_public_key"}}</td>
 							<th></th>
 						</tr>
 					</thead>
@@ -221,7 +221,7 @@
 														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 													</div>
 													<div class="inline field {{if .Err_PushMirrorUsePublicKey}}error{{end}}">
-														<label for="push_mirror_use_public_key">Use public key authentication</label>
+														<label for="push_mirror_use_public_key">{{.i18n.Tr "repo.mirror_use_public_key"}}</label>
 														<input name="push_mirror_use_public_key" type="checkbox" {{.push_mirror_use_public_key}}>
 													</div>
 												</div>
