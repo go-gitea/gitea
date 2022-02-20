@@ -62,7 +62,6 @@ import {
   initRepoSettingGitHook,
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
-  initRepoSettingsSSHAuthorization,
 } from './features/repo-settings.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
@@ -158,7 +157,6 @@ $(document).ready(() => {
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
-  initRepoSettingsSSHAuthorization();
   initRepoTemplateSearch();
   initRepoTopicBar();
   initRepoWikiForm();
