@@ -621,8 +621,6 @@ func RegisterRoutes(m *web.Route) {
 				Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
 			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo.SettingsAvatar)
 			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
-			m.Get("/generate_ssh", repo.SettingsGenerateSSH)
-			m.Get("/delete_ssh", repo.SettingsDeleteSSH)
 
 			m.Group("/collaboration", func() {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
