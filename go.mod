@@ -85,7 +85,7 @@ require (
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/msteinert/pam v0.0.0-20201130170657-e61372126161
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/niklasfasching/go-org v1.5.0
+	github.com/niklasfasching/go-org v1.6.0
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.25
@@ -123,9 +123,9 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
-	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	golang.org/x/tools v0.1.0
