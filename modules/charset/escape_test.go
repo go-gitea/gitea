@@ -200,3 +200,12 @@ func TestEscapeControlReader(t *testing.T) {
 		})
 	}
 }
+
+func TestEscapeControlReader_panic(t *testing.T) {
+	bs := make([]byte, 0, 20479)
+	bs = append(bs, 'A')
+	for i := 0; i < 6826; i++ {
+		bs = append(bs, []byte("—")...)
+	}
+	_, _ = EscapeControlBytes(bs)
+}
