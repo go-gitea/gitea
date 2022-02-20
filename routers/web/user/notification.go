@@ -277,7 +277,7 @@ func NotificationSubscriptions(c *context.Context) {
 	c.Data["IssueRefEndNames"], c.Data["IssueRefURLs"] =
 		issue_service.GetRefEndNamesAndURLs(issues, "")
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(c, issues)
 	if err != nil {
 		c.ServerError("GetIssuesLastCommitStatus", err)
 		return
