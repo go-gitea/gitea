@@ -1,3 +1,7 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package crypto
 
 import (
@@ -10,7 +14,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func GenerateEd25519Keypair() (publicKey []byte, privateKey []byte, err error) {
+// GenerateEd25519Keypair generates a new public and private key from the 25519 curve.
+func GenerateEd25519Keypair() (publicKey, privateKey []byte, err error) {
 	// Generate the  private key from ed25519.
 	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
