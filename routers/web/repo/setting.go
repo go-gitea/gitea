@@ -23,6 +23,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/crypto"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/indexer/stats"
@@ -92,6 +93,10 @@ func Settings(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	ctx.Data["PageData"] = map[string]interface{}{
+		"GenerateSSHKey": setting.AppURL + strings.TrimPrefix(ctx.Repo.RepoLink, "/") + "/settings/generate_ssh",
+	}
 
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
@@ -1213,4 +1218,44 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 	}
 
 	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
+}
+
+func SettingsGenerateSSH(ctx *context.Context) {
+	publicKey, privateKey, err := crypto.GenerateEd25519Keypair()
+	if err != nil {
+		log.Warn("crypto.GenerateEd25519PrivateKey: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": "Server internal error",
+		})
+		return
+	}
+
+	ctx.Repo.Repository.PrivateSSHKey = string(privateKey)
+	ctx.Repo.Repository.PublicSSHKey = string(publicKey)
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, ctx.Repo.Repository, "public_ssh_key", "private_ssh_key"); err != nil {
+		log.Warn("repo_model.UpdateRepositoryColsCtx: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": "Server internal error",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"public_ssh_key": string(publicKey),
+	})
+}
+
+func SettingsDeleteSSH(ctx *context.Context) {
+	ctx.Repo.Repository.PrivateSSHKey = ""
+	ctx.Repo.Repository.PublicSSHKey = ""
+
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, ctx.Repo.Repository, "public_ssh_key", "private_ssh_key"); err != nil {
+		log.Warn("repo_model.UpdateRepositoryColsCtx: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": "Server internal error",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{})
 }

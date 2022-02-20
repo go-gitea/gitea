@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {createMonaco} from './codeeditor.js';
 import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl, csrfToken, pageData} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
@@ -71,18 +71,44 @@ export function initRepoSettingsSSHAuthorization() {
   if (!generateButton) {
     return;
   }
+  const deleteSSHButton = document.querySelector('#delete-ssh-key');
+  const generateButtonForm = generateButton.closest('form');
 
-  generateButton.addEventListener('click', () => {
-    // stub.
+  generateButton.addEventListener('click', async () => {
+    const resp = await fetch(pageData.GenerateSSHKey, {
+      'method': 'GET',
+      'cache': 'no-cache',
+      'headers': {'X-Csrf-Token': csrfToken},
+    });
+    const bodyJson = await resp.json();
+    if (bodyJson['error']) {
+      return;
+    }
+    document.querySelector('.password-auth').setAttribute('hidden', '');
+    document.querySelector('.ssh-auth').removeAttribute('hidden');
+    deleteSSHButton.style.display = '';
+
+    document.querySelector('#public-ssh-key-content').textContent = bodyJson['public_ssh_key'];
   });
 
-  const generateButtonForm = generateButton.closest('form');
-  if (!generateButtonForm) {
-    return;
-  }
+  deleteSSHButton.addEventListener('click', async () => {
+    const resp = await fetch(pageData.GenerateSSHKey.replace('generate_ssh', 'delete_ssh'), {
+      'method': 'GET',
+      'cache': 'no-cache',
+      'headers': {'X-Csrf-Token': csrfToken},
+    });
+    const bodyJson = await resp.json();
+    if (bodyJson['error']) {
+      return;
+    }
+    document.querySelector('.password-auth').removeAttribute('hidden');
+    document.querySelector('.ssh-auth').setAttribute('hidden', '');
+    deleteSSHButton.style.display = 'none';
+  });
 
+  // Avoid that the SSH buttons causes the form to submit.
   generateButtonForm.addEventListener('submit', (ev) => {
-    if (ev.submitter.id === 'generate-ssh-key') {
+    if (ev.submitter.id === 'generate-ssh-key' || ev.submitter.id === 'delete-ssh-key') {
       ev.preventDefault();
       return false;
     }

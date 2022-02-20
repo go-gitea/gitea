@@ -10,20 +10,25 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func GenerateEd25519PrivateKey() (privateKey []byte, err error) {
+func GenerateEd25519Keypair() (publicKey []byte, privateKey []byte, err error) {
 	// Generate the  private key from ed25519.
-	_, private, err := ed25519.GenerateKey(nil)
+	public, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, fmt.Errorf("ed25519.GenerateKey: %v", err)
+		return nil, nil, fmt.Errorf("ed25519.GenerateKey: %v", err)
 	}
 
 	// Marshal the privateKey into the OpenSSH format.
 	privPEM, err := marshalPrivateKey(private)
 	if err != nil {
-		return nil, fmt.Errorf("not able to marshal private key into OpenSSH format: %v", err)
+		return nil, nil, fmt.Errorf("not able to marshal private key into OpenSSH format: %v", err)
 	}
 
-	return pem.EncodeToMemory(privPEM), nil
+	sshPublicKey, err := ssh.NewPublicKey(public)
+	if err != nil {
+		return nil, nil, fmt.Errorf("not able to create new SSH public key: %v", err)
+	}
+
+	return ssh.MarshalAuthorizedKey(sshPublicKey), pem.EncodeToMemory(privPEM), nil
 }
 
 // openSSHMagic contains the magic bytes, which is used to indicate it's a v1

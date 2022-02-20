@@ -209,16 +209,27 @@
 												{{.i18n.Tr "repo.need_auth"}}
 											</summary>
 											<div class="p-2">
-												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
-													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+												<div class="field password-auth" {{if $.Repository.PublicSSHKey}}hidden{{end}}>
+													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+														<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
+														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+													</div>
+													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+														<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
+														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+													</div>
 												</div>
-												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-													<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
-													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+												<div class="field ssh-auth" {{if not $.Repository.PublicSSHKey}}hidden{{end}}>
+													<div class="inline field">
+														<label>Public SSH key</label>
+														<textarea id="public-ssh-key-content" rows="0" readonly>
+														{{- $.Repository.PublicSSHKey -}}
+														</textarea>
+													</div>
 												</div>
 												<div class="field">
-													<button formnovalidate id="generate-ssh-key" class="ui green button">Generate Private SSH key</button>
+													<button formnovalidate id="generate-ssh-key" class="ui green button">Generate deploy keypair</button>
+													<button {{if not $.Repository.PublicSSHKey}}style="display: none"{{end}} formnovalidate id="delete-ssh-key" class="ui red button">Delete deploy keypair</button>
 												</div>
 											</div>
 										</details>

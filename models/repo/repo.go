@@ -144,6 +144,8 @@ type Repository struct {
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
+	PrivateSSHKey                   string             `xorm:"TEXT"`
+	PublicSSHKey                    string             `xorm:"TEXT"`
 
 	TrustModel TrustModelType
 
