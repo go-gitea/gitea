@@ -241,7 +241,14 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		t.Run("Symbol", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, symbolID, symbolFilename))
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/gitea.pdb", url, symbolFilename, symbolID))
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, "00000000000000000000000000000000", symbolFilename))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, symbolID, symbolFilename))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
