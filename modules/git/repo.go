@@ -211,7 +211,6 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 		opts.Timeout = -1
 	}
 
-	fmt.Println(cmd.String(), repoPath)
 	err := cmd.RunWithContext(&RunContext{
 		Env:     opts.Env,
 		Timeout: opts.Timeout,
