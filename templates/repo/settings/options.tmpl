@@ -217,6 +217,9 @@
 													<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
 													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 												</div>
+												<div class="field">
+													<button formnovalidate id="generate-ssh-key" class="ui green button">Generate Private SSH key</button>
+												</div>
 											</div>
 										</details>
 										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">

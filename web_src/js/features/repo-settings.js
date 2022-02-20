@@ -65,3 +65,26 @@ export function initRepoSettingBranches() {
     });
   }
 }
+
+export function initRepoSettingsSSHAuthorization() {
+  const generateButton = document.querySelector('#generate-ssh-key');
+  if (!generateButton) {
+    return;
+  }
+
+  generateButton.addEventListener('click', () => {
+    // stub.
+  });
+
+  const generateButtonForm = generateButton.closest('form');
+  if (!generateButtonForm) {
+    return;
+  }
+
+  generateButtonForm.addEventListener('submit', (ev) => {
+    if (ev.submitter.id === 'generate-ssh-key') {
+      ev.preventDefault();
+      return false;
+    }
+  });
+}
