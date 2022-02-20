@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
