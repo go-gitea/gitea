@@ -176,17 +176,24 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote  string
-	Branch  string
-	Force   bool
-	Mirror  bool
-	Env     []string
-	Timeout time.Duration
+	Remote   string
+	Branch   string
+	Force    bool
+	Mirror   bool
+	Env      []string
+	InitArgs []string
+	Timeout  time.Duration
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	cmd := NewCommand(ctx, "push")
+	initArgs := []string{}
+	if len(opts.InitArgs) > 0 {
+		initArgs = append(initArgs, opts.InitArgs...)
+	}
+	initArgs = append(initArgs, "push")
+
+	cmd := NewCommand(ctx, initArgs...)
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
@@ -197,12 +204,14 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
 	}
+
 	var outbuf, errbuf strings.Builder
 
 	if opts.Timeout == 0 {
 		opts.Timeout = -1
 	}
 
+	fmt.Println(cmd.String(), repoPath)
 	err := cmd.RunWithContext(&RunContext{
 		Env:     opts.Env,
 		Timeout: opts.Timeout,

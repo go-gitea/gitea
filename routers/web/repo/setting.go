@@ -94,10 +94,6 @@ func Settings(ctx *context.Context) {
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
 
-	ctx.Data["PageData"] = map[string]interface{}{
-		"GenerateSSHKey": setting.AppURL + strings.TrimPrefix(ctx.Repo.RepoLink, "/") + "/settings/generate_ssh",
-	}
-
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -332,6 +328,12 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		if form.PushMirrorUsePublicKey && (form.PushMirrorUsername != "" || form.PushMirrorPassword != "") {
+			ctx.Data["Err_PushMirrorUsePublicKey"] = true
+			ctx.RenderWithErr("Cannot use public key and use password based authentication in combination", tplSettingsOptions, &form)
+			return
+		}
+
 		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
@@ -354,6 +356,16 @@ func SettingsPost(ctx *context.Context) {
 			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
 			Interval:   interval,
 		}
+		if form.PushMirrorUsePublicKey {
+			publicKey, privateKey, err := crypto.GenerateEd25519Keypair()
+			if err != nil {
+				ctx.ServerError("GenerateEd25519Keypair", err)
+				return
+			}
+			m.PrivateKey = string(privateKey)
+			m.PublicKey = string(publicKey)
+		}
+
 		if err := repo_model.InsertPushMirror(m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
@@ -1218,44 +1230,4 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 	}
 
 	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
-}
-
-func SettingsGenerateSSH(ctx *context.Context) {
-	publicKey, privateKey, err := crypto.GenerateEd25519Keypair()
-	if err != nil {
-		log.Warn("crypto.GenerateEd25519PrivateKey: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Server internal error",
-		})
-		return
-	}
-
-	ctx.Repo.Repository.PrivateSSHKey = string(privateKey)
-	ctx.Repo.Repository.PublicSSHKey = string(publicKey)
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, ctx.Repo.Repository, "public_ssh_key", "private_ssh_key"); err != nil {
-		log.Warn("repo_model.UpdateRepositoryColsCtx: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Server internal error",
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"public_ssh_key": string(publicKey),
-	})
-}
-
-func SettingsDeleteSSH(ctx *context.Context) {
-	ctx.Repo.Repository.PrivateSSHKey = ""
-	ctx.Repo.Repository.PublicSSHKey = ""
-
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, ctx.Repo.Repository, "public_ssh_key", "private_ssh_key"); err != nil {
-		log.Warn("repo_model.UpdateRepositoryColsCtx: %v", err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Server internal error",
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{})
 }

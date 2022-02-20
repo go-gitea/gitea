@@ -84,6 +84,7 @@
 							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
 							<th>{{$.i18n.Tr "repo.settings.mirror_settings.direction"}}</th>
 							<th>{{$.i18n.Tr "repo.settings.mirror_settings.last_update"}}</th>
+							<th>Public SSH Key</td>
 							<th></th>
 						</tr>
 					</thead>
@@ -172,6 +173,7 @@
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
+							<td><span readonly style="white-space: nowrap; overflow-x: scroll">{{- .PublicKey -}}</span></td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
@@ -209,7 +211,7 @@
 												{{.i18n.Tr "repo.need_auth"}}
 											</summary>
 											<div class="p-2">
-												<div class="field password-auth" {{if $.Repository.PublicSSHKey}}hidden{{end}}>
+												<div>
 													<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 														<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
 														<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
@@ -218,18 +220,10 @@
 														<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
 														<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 													</div>
-												</div>
-												<div class="field ssh-auth" {{if not $.Repository.PublicSSHKey}}hidden{{end}}>
-													<div class="inline field">
-														<label>Public SSH key</label>
-														<textarea id="public-ssh-key-content" rows="0" readonly>
-														{{- $.Repository.PublicSSHKey -}}
-														</textarea>
+													<div class="inline field {{if .Err_PushMirrorUsePublicKey}}error{{end}}">
+														<label for="push_mirror_use_public_key">Use public key authentication</label>
+														<input name="push_mirror_use_public_key" type="checkbox" {{.push_mirror_use_public_key}}>
 													</div>
-												</div>
-												<div class="field">
-													<button formnovalidate id="generate-ssh-key" class="ui green button">Generate deploy keypair</button>
-													<button {{if not $.Repository.PublicSSHKey}}style="display: none"{{end}} formnovalidate id="delete-ssh-key" class="ui red button">Delete deploy keypair</button>
 												</div>
 											</div>
 										</details>

@@ -33,12 +33,12 @@ func GenerateEd25519Keypair() (publicKey []byte, privateKey []byte, err error) {
 
 // openSSHMagic contains the magic bytes, which is used to indicate it's a v1
 // OpenSSH key format. "openssh-key-v1\x00" in bytes.
-var openSSHMagic = []byte{111, 112, 101, 110, 115, 115, 104, 45, 107, 101, 121, 45, 118, 49, 0}
+const openSSHMagic = "openssh-key-v1\x00"
 
 // MarshalPrivateKey returns a PEM block with the private key serialized in the
 // OpenSSH format.
 // Adopted from: https://go-review.googlesource.com/c/crypto/+/218620/
-func marshalPrivateKey(priv ed25519.PrivateKey) (*pem.Block, error) {
+func marshalPrivateKey(key ed25519.PrivateKey) (*pem.Block, error) {
 	// Head struct of the OpenSSH format.
 	var w struct {
 		CipherName   string
@@ -72,7 +72,10 @@ func marshalPrivateKey(priv ed25519.PrivateKey) (*pem.Block, error) {
 	w.NumKeys = 1
 
 	// Get the public key from the private key.
-	pub := priv[ed25519.PublicKeySize:]
+	pub := make([]byte, ed25519.PublicKeySize)
+	priv := make([]byte, ed25519.PrivateKeySize)
+	copy(pub, key[ed25519.PublicKeySize:])
+	copy(key, key)
 
 	// Marshal public key.
 	pubKey := struct {
@@ -85,10 +88,11 @@ func marshalPrivateKey(priv ed25519.PrivateKey) (*pem.Block, error) {
 
 	// Marshal keypair.
 	privKey := struct {
-		Pub  []byte
-		Priv []byte
+		Pub     []byte
+		Priv    []byte
+		Comment string
 	}{
-		pub, priv,
+		pub, priv, "",
 	}
 	keyPair.Keytype = ssh.KeyAlgoED25519
 	keyPair.Rest = ssh.Marshal(privKey)
@@ -106,7 +110,7 @@ func marshalPrivateKey(priv ed25519.PrivateKey) (*pem.Block, error) {
 	b := ssh.Marshal(w)
 	block := &pem.Block{
 		Type:  "OPENSSH PRIVATE KEY",
-		Bytes: append(openSSHMagic, b...),
+		Bytes: append([]byte(openSSHMagic), b...),
 	}
 
 	return block, nil

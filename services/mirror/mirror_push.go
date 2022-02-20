@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"time"
 
@@ -146,11 +147,33 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
+		var initArgs []string
+		if m.PublicKey != "" {
+			f, err := os.CreateTemp(os.TempDir(), m.RemoteName)
+			if err != nil {
+				log.Error("CreateTemp: %v", err)
+				return errors.New("unexpected error")
+			}
+			defer func() {
+				f.Close()
+				//if err := os.Remove(f.Name()); err != nil {
+				//	log.Error("os.Remove: %v", err)
+				//}
+			}()
+
+			if _, err := f.Write([]byte(m.PrivateKey)); err != nil {
+				log.Error("f.Write: %v", err)
+				return errors.New("unexpected error")
+			}
+
+			initArgs = append(initArgs, "-c", fmt.Sprintf("core.sshcommand=\"ssh -i %s -o IdentitiesOnly=yes\"", f.Name()))
+		}
 		if err := git.Push(ctx, path, git.PushOptions{
-			Remote:  m.RemoteName,
-			Force:   true,
-			Mirror:  true,
-			Timeout: timeout,
+			Remote:   m.RemoteName,
+			Force:    true,
+			Mirror:   true,
+			Timeout:  timeout,
+			InitArgs: initArgs,
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 

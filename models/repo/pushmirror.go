@@ -25,6 +25,10 @@ type PushMirror struct {
 	Repo       *Repository `xorm:"-"`
 	RemoteName string
 
+	// A keypair formatted in OpenSSH format.
+	PublicKey  string
+	PrivateKey string
+
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
