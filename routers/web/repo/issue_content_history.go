@@ -71,8 +71,8 @@ func GetContentHistoryList(ctx *context.Context) {
 		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
 
 		username := item.UserName
-		if setting.UI.DefaultShowFullName {
-			username = item.UserFullName
+		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
+			username = strings.TrimSpace(item.UserFullName)
 		}
 
 		results = append(results, map[string]interface{}{
