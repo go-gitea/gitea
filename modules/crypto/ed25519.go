@@ -75,7 +75,7 @@ func marshalPrivateKey(key ed25519.PrivateKey) (*pem.Block, error) {
 	pub := make([]byte, ed25519.PublicKeySize)
 	priv := make([]byte, ed25519.PrivateKeySize)
 	copy(pub, key[ed25519.PublicKeySize:])
-	copy(key, key)
+	copy(priv, key)
 
 	// Marshal public key.
 	pubKey := struct {
