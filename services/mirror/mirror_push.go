@@ -166,7 +166,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 				return errors.New("unexpected error")
 			}
 
-			initArgs = append(initArgs, "-c", fmt.Sprintf("core.sshcommand=\"ssh -i %s -o IdentitiesOnly=yes\"", f.Name()))
+			initArgs = append(initArgs, "-c", fmt.Sprintf("core.sshcommand=ssh -i %s -o IdentitiesOnly=yes", f.Name()))
 		}
 		if err := git.Push(ctx, path, git.PushOptions{
 			Remote:   m.RemoteName,
