@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/timeutil"
-	"github.com/tstranex/u2f"
 
+	"github.com/tstranex/u2f"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )

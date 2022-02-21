@@ -445,7 +445,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 		expectedStatus int
 	}{
 		// Disclaimer for test story: "user1" is an admin, "user2" is normal user and part of in owner team of org "user3"
-
 		// Transfer to a user with teams in another org should fail
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
 		// Transfer to a user with non-existent team IDs should fail
