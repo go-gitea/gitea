@@ -168,8 +168,12 @@ func (g *Manager) DoGracefulRestart() {
 	if setting.GracefulRestartable {
 		log.Info("PID: %d. Forking...", os.Getpid())
 		err := g.doFork()
-		if err != nil && err.Error() != "another process already forked. Ignoring this one" {
-			log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+		if err != nil {
+			if err.Error() == "another process already forked. Ignoring this one" {
+				g.DoImmediateHammer()
+			} else {
+				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+			}
 		}
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())
