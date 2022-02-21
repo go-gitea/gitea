@@ -199,7 +199,7 @@ func NotificationPurgePost(c *context.Context) {
 
 // NotificationSubscriptions returns the list of subscribed issues
 func NotificationSubscriptions(c *context.Context) {
-	var page = c.FormInt("page")
+	page := c.FormInt("page")
 	if page < 1 {
 		page = 1
 	}
@@ -274,8 +274,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 	c.Data["Issues"] = issues
 
-	c.Data["IssueRefEndNames"], c.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, "")
+	c.Data["IssueRefEndNames"], c.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, "")
 
 	commitStatus, err := pull_service.GetIssuesLastCommitStatus(c, issues)
 	if err != nil {
@@ -284,7 +283,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 	c.Data["CommitStatus"] = commitStatus
 
-	var issueList = models.IssueList(issues)
+	issueList := models.IssueList(issues)
 	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		c.ServerError("ApprovalCounts", err)
