@@ -103,7 +103,7 @@ There is also no support fot a recovery command in a docker based gitea instance
 Example:
 
 ```sh
-# open bash session in contianer
+# open bash session in container
 docker exec --user git -it <container-id | service-id> bash
 # unzip your backup file within the container
 unzip gitea-dump-1610949662.zip
