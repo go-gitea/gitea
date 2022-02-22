@@ -1104,19 +1104,9 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	email = strings.ToLower(email)
-	// First try to find the user by primary email
-	user := &User{Email: email}
-	has, err := db.GetEngine(ctx).Get(user)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return user, nil
-	}
-
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = db.GetEngine(ctx).Get(emailAddress)
+	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
+	has, err := db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
