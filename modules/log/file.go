@@ -245,7 +245,11 @@ func (log *FileLogger) deleteOldLog() {
 
 // Content returns the content accumulated in the content provider
 func (log *FileLogger) Content() (string, error) {
-	return log.Filename, nil
+	b, err := os.ReadFile(log.Filename)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Flush flush file logger.
