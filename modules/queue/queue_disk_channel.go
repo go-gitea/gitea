@@ -251,8 +251,8 @@ func (q *PersistableChannelQueue) Shutdown() {
 	q.channelQueue.Wait()
 	q.internal.(*LevelQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
-	close(q.channelQueue.dataChan)
 	log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
+	close(q.channelQueue.dataChan)
 	for data := range q.channelQueue.dataChan {
 		_ = q.internal.Push(data)
 		atomic.AddInt64(&q.channelQueue.numInQueue, -1)
