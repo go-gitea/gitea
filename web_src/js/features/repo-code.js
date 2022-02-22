@@ -36,8 +36,8 @@ function selectRange($list, $select, $from) {
   };
 
   if ($from) {
-    let a = parseInt($select.attr('rel').substr(1));
-    let b = parseInt($from.attr('rel').substr(1));
+    let a = parseInt($select.attr('rel').slice(1));
+    let b = parseInt($from.attr('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {
