@@ -65,7 +65,7 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 			return nil, nil, smtp.ErrUnsupportedLoginType
 		}
 
-		user, err := authenticator.Authenticate(user, username, password)
+		user, err := authenticator.Authenticate(user, user.LoginName, password)
 		if err != nil {
 			return nil, nil, err
 		}
