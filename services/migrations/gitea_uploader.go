@@ -416,12 +416,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		var issue *models.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
-			var err error
-			issue, err = models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
-			if err != nil {
-				return err
-			}
-			g.issues[comment.IssueIndex] = issue
+			return fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
 		}
 
 		if comment.Created.IsZero() {
@@ -685,19 +680,14 @@ func convertReviewState(state string) models.ReviewType {
 	}
 }
 
-// CreateReviews create pull request reviews
+// CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	cms := make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *models.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
-			var err error
-			issue, err = models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
-			if err != nil {
-				return err
-			}
-			g.issues[review.IssueIndex] = issue
+			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
 		}
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
