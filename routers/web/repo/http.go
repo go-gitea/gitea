@@ -495,7 +495,9 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 		Stdin:   reqBody,
 		Stderr:  &stderr,
 	}); err != nil {
-		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
+		if err.Error() != "signal: killed" {
+			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
+		}
 		return
 	}
 }
