@@ -38,25 +38,25 @@ type Issue struct {
 	RepoID           int64                  `xorm:"INDEX UNIQUE(repo_index)"`
 	Repo             *repo_model.Repository `xorm:"-"`
 	Index            int64                  `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID         int64                  `xorm:"INDEX"`
+	PosterID         int64                  `xorm:"INDEX NOT NULL DEFAULT 0"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64      `xorm:"index"`
+	OriginalAuthorID int64      `xorm:"INDEX  NOT NULL DEFAULT 0"`
 	Title            string     `xorm:"name"`
 	Content          string     `xorm:"LONGTEXT"`
 	RenderedContent  string     `xorm:"-"`
 	Labels           []*Label   `xorm:"-"`
-	MilestoneID      int64      `xorm:"INDEX"`
+	MilestoneID      int64      `xorm:"INDEX NOT NULL DEFAULT 0"`
 	Milestone        *Milestone `xorm:"-"`
 	Project          *Project   `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
-	IsClosed         bool             `xorm:"INDEX"`
+	IsClosed         bool             `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsRead           bool             `xorm:"-"`
-	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	IsPull           bool             `xorm:"INDEX NOT NULL DEFAULT false"` // Indicates whether is a pull request or not.
 	PullRequest      *PullRequest     `xorm:"-"`
-	NumComments      int
+	NumComments      int              `xorm:"NOT NULL DEFAULT 0"`
 	Ref              string
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`

@@ -105,14 +105,14 @@ type Repository struct {
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
 
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
+	NumWatches          int `xorm:"NOT NULL DEFAULT 0"`
+	NumStars            int `xorm:"NOT NULL DEFAULT 0"`
+	NumForks            int `xorm:"NOT NULL DEFAULT 0"`
+	NumIssues           int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedIssues     int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
+	NumPulls            int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedPulls      int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenPulls        int `xorm:"-"`
 	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
@@ -121,10 +121,10 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
+	IsPrivate  bool `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsEmpty    bool `xorm:"INDEX NOT NULL DEFAULT true"`
+	IsArchived bool `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsMirror   bool `xorm:"INDEX NOT NULL DEFAULT false"`
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
@@ -134,10 +134,10 @@ type Repository struct {
 	PrimaryLanguage        *LanguageStat     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID                          int64              `xorm:"INDEX"`
+	ForkID                          int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
 	BaseRepo                        *Repository        `xorm:"-"`
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	TemplateID                      int64              `xorm:"INDEX"`
+	TemplateID                      int64              `xorm:"INDEX NOT NULL DEFAULT 0"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`

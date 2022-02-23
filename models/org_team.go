@@ -28,18 +28,18 @@ const ownerTeamName = "Owners"
 // Team represents a organization team.
 type Team struct {
 	ID                      int64 `xorm:"pk autoincr"`
-	OrgID                   int64 `xorm:"INDEX"`
+	OrgID                   int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 	LowerName               string
 	Name                    string
 	Description             string
 	AccessMode              perm.AccessMode          `xorm:"'authorize'"`
 	Repos                   []*repo_model.Repository `xorm:"-"`
 	Members                 []*user_model.User       `xorm:"-"`
-	NumRepos                int
-	NumMembers              int
-	Units                   []*TeamUnit `xorm:"-"`
-	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
-	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	NumRepos                int                      `xorm:"NOT NULL DEFAULT 0"`
+	NumMembers              int                      `xorm:"NOT NULL DEFAULT 0"`
+	Units                   []*TeamUnit              `xorm:"-"`
+	IncludesAllRepositories bool                     `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool                     `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {

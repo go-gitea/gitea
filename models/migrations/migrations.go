@@ -374,6 +374,8 @@ var migrations = []Migration{
 	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", increaseCredentialIDTo410),
 	// v210 -> v211
 	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
+	// v211 -> v212
+	NewMigration("Convert columns from NULL to NOT NULL DEFAULT", convertFromNullToDefault),
 }
 
 // GetCurrentDBVersion returns the current db version

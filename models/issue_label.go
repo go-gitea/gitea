@@ -31,9 +31,9 @@ type Label struct {
 	OrgID           int64 `xorm:"INDEX"`
 	Name            string
 	Description     string
-	Color           string `xorm:"VARCHAR(7)"`
-	NumIssues       int
-	NumClosedIssues int
+	Color           string             `xorm:"VARCHAR(7)"`
+	NumIssues       int                `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedIssues int                `xorm:"NOT NULL DEFAULT 0"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 

@@ -28,12 +28,12 @@ type Milestone struct {
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
-	IsClosed        bool
-	NumIssues       int
-	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	Completeness    int  // Percentage(1-100).
-	IsOverdue       bool `xorm:"-"`
+	IsClosed        bool   `xorm:"NOT NULL DEFAULT false"`
+	NumIssues       int    `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedIssues int    `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenIssues   int    `xorm:"-"`
+	Completeness    int    `xorm:"NOT NULL DEFAULT 0"` // Percentage(1-100).
+	IsOverdue       bool   `xorm:"-"`
 
 	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
