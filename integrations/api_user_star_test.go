@@ -1,0 +1,77 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package integrations
+
+import (
+	"fmt"
+	"net/http"
+	"testing"
+
+	api "code.gitea.io/gitea/modules/structs"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestAPIStar(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user := "user1"
+	repo := "user2/repo1"
+
+	session := loginUser(t, user)
+	token := getTokenForLoggedInUser(t, session)
+
+	t.Run("Star", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
+		MakeRequest(t, req, http.StatusOK)
+	})
+
+	t.Run("GetStarredRepos", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/users/%s/starred?token=%s", user, token))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
+
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		assert.Len(t, repos, 1)
+		assert.Equal(t, repo, repos[0].FullName)
+	})
+
+	t.Run("GetMyStarredRepos", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred?token=%s", token))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "1", resp.Header().Get("X-Total-Count"))
+
+		var repos []api.Repository
+		DecodeJSON(t, resp, &repos)
+		assert.Len(t, repos, 1)
+		assert.Equal(t, repo, repos[0].FullName)
+	})
+
+	t.Run("IsStarring", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo+"notexisting", token))
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("Unstar", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
+		MakeRequest(t, req, http.StatusNoContent)
+	})
+}
