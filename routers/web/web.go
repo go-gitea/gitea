@@ -151,8 +151,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		rw.WriteHeader(200)
 	})
 
-	hc := &healthcheck.HealthChecker{}
-	routes.Get("/api/healthz", hc.Check)
+	routes.Get("/api/healthz", healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())

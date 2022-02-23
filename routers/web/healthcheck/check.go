@@ -63,11 +63,8 @@ type componentStatus struct {
 	Output string `json:"output,omitempty"` // this field SHOULD be omitted for "pass" state.
 }
 
-// HealthChecker implements health check
-type HealthChecker struct{}
-
 // Check is the health check API handler
-func (h *HealthChecker) Check(w http.ResponseWriter, r *http.Request) {
+func Check(w http.ResponseWriter, r *http.Request) {
 	rsp := response{
 		Status:      pass,
 		Description: "Gitea: Git with a cup of tea",
@@ -75,8 +72,8 @@ func (h *HealthChecker) Check(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statuses := make([]status, 0)
-	statuses = append(statuses, h.database(rsp.Checks))
-	statuses = append(statuses, h.cache(rsp.Checks))
+	statuses = append(statuses, checkDatabase(rsp.Checks))
+	statuses = append(statuses, checkCache(rsp.Checks))
 
 	for _, s := range statuses {
 		if s != pass {
@@ -92,7 +89,7 @@ func (h *HealthChecker) Check(w http.ResponseWriter, r *http.Request) {
 }
 
 // database checks gitea database status
-func (h *HealthChecker) database(checks checks) status {
+func checkDatabase(checks checks) status {
 	st := componentStatus{}
 	if err := db.GetEngine(db.DefaultContext).Ping(); err != nil {
 		st.Status = fail
@@ -122,7 +119,7 @@ func (h *HealthChecker) database(checks checks) status {
 }
 
 // cache checks gitea cache status
-func (h *HealthChecker) cache(checks checks) status {
+func checkCache(checks checks) status {
 	if !setting.CacheService.Enabled {
 		return pass
 	}
