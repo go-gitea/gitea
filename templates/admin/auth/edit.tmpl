@@ -27,7 +27,7 @@
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{.i18n.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
-							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol}}">
+							<input type="hidden" id="security_protocol" name="security_protocol" value="{{$cfg.SecurityProtocol.Int}}">
 							<div class="text">{{$cfg.SecurityProtocolName}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
