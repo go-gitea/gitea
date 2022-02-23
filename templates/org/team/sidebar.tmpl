@@ -58,20 +58,6 @@
 						</thead>
 						<tbody>
 							{{range $t, $unit := $.Units}}
-								{{if and (ge $unit.MaxPerm 2) (not $unit.Type.UnitGlobalDisabled)}}
-									<tr>
-										<td><strong>{{$.i18n.Tr $unit.NameKey}}</strong></td>
-										<td>{{if eq ($.Team.UnitAccessMode $unit.Type) 0 -}}
-										{{$.i18n.Tr "org.teams.none_access"}}
-										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1) -}}
-										{{$.i18n.Tr "org.teams.read_access"}}
-										{{- else if eq ($.Team.UnitAccessMode $unit.Type) 2 -}}
-										{{$.i18n.Tr "org.teams.write_access"}}
-										{{- end}}</td>
-									</tr>
-								{{end}}
-							{{end}}
-							{{range $t, $unit := $.Units}}
 								{{if and (lt $unit.MaxPerm 2) (not $unit.Type.UnitGlobalDisabled)}}
 									<tr>
 										<td><strong>{{$.i18n.Tr $unit.NameKey}}</strong></td>
