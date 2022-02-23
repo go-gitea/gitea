@@ -19,7 +19,7 @@ import (
 func SecToTime(duration int64) string {
 	formattedTime := ""
 	years := duration / (3600 * 24 * 7 * 4 * 12)
-	months := (duration / (3600 * 24 * 7 * 4)) % 12
+	months := (duration / (3600 * 24 * 30)) % 12
 	weeks := (duration / (3600 * 24 * 7)) % 4
 	days := (duration / (3600 * 24)) % 7
 	hours := (duration / 3600) % 24

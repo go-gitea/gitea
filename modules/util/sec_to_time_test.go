@@ -16,5 +16,5 @@ func TestSecToTime(t *testing.T) {
 	assert.Equal(t, SecToTime(563418), "6 days 12 hours")
 	assert.Equal(t, SecToTime(1563418), "2 weeks 4 days")
 	assert.Equal(t, SecToTime(3937125), "1 month 2 weeks")
-	assert.Equal(t, SecToTime(45677465), "1 year 6 months")
+	assert.Equal(t, SecToTime(45677465), "1 year 5 months")
 }
