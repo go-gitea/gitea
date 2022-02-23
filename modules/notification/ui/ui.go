@@ -53,7 +53,8 @@ func (ns *notificationService) Run() {
 }
 
 func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	opts := issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,

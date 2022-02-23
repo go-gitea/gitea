@@ -29,7 +29,8 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyCreateIssueComment Issue[%d] #%d in [%d]", issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 
