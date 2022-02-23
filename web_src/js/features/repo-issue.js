@@ -461,7 +461,7 @@ export function initRepoPullRequestReview() {
     (async () => {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
       // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
-      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
+      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px', maxHeight: 'calc(100vh - 360px)'});
       initCompImagePaste($reviewBox);
     })();
   }
