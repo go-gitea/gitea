@@ -23,7 +23,7 @@ linters:
   fast: false
 
 run:
-  timeout: 3m
+  timeout: 10m
   skip-dirs:
     - node_modules
     - public
@@ -64,7 +64,7 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.16
+    lang-version: 1.17
 
 issues:
   exclude-rules:
