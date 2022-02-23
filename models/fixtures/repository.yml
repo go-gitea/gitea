@@ -40,6 +40,7 @@
   owner_name: user3
   lower_name: repo3
   name: repo3
+  is_archived: false
   is_private: true
   num_issues: 1
   num_closed_issues: 0

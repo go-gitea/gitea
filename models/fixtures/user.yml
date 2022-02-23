@@ -470,6 +470,7 @@
   avatar: avatar27
   avatar_email: user27@example.com
   num_repos: 3
+  is_active: true
 
 -
   id: 28
