@@ -7,8 +7,8 @@ package user
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 )
 
 // UserList is a list of user.
@@ -40,13 +40,13 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	return results
 }
 
-func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*login.TwoFactor, error) {
+func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*auth.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 
 	userIDs := users.GetUserIDs()
-	tokenMaps := make(map[int64]*login.TwoFactor, len(userIDs))
+	tokenMaps := make(map[int64]*auth.TwoFactor, len(userIDs))
 	err := e.
 		In("uid", userIDs).
 		Find(&tokenMaps)

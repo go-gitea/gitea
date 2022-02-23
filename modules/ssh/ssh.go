@@ -342,7 +342,6 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv.HostSigners = signers
 
 	go listen(&srv)
-
 }
 
 // wrapSigner wraps a signer and overrides its public key type with the provided algorithm
@@ -387,7 +386,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -408,7 +407,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	public := gossh.MarshalAuthorizedKey(pub)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

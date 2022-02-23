@@ -162,7 +162,7 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
-	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr))
+	assert.NoError(t, NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
 	pr.Issue = i
 	return pr
 }

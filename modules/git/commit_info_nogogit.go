@@ -104,7 +104,7 @@ func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string
 	defer cancel()
 
 	var unHitEntryPaths []string
-	var results = make(map[string]*Commit)
+	results := make(map[string]*Commit)
 	for _, p := range paths {
 		lastCommit, err := cache.Get(commitID, path.Join(treePath, p), wr, rd)
 		if err != nil {

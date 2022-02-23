@@ -55,7 +55,7 @@ var (
 	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(\.\.\.?)([0-9a-f]{40})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,40})(\.\.\.?)([0-9a-f]{7,40})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -202,7 +202,7 @@ func RenderCommitMessage(
 	ctx *RenderContext,
 	content string,
 ) (string, error) {
-	var procs = commitMessageProcessors
+	procs := commitMessageProcessors
 	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageProcessors of fixed len and cap, every time we append
@@ -238,7 +238,7 @@ func RenderCommitMessageSubject(
 	ctx *RenderContext,
 	content string,
 ) (string, error) {
-	var procs = commitMessageSubjectProcessors
+	procs := commitMessageSubjectProcessors
 	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageSubjectProcessors of fixed len and cap, every time we
@@ -291,8 +291,10 @@ func RenderEmoji(
 	return renderProcessString(&RenderContext{}, emojiProcessors, content)
 }
 
-var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
-var nulCleaner = strings.NewReplacer("\000", "")
+var (
+	tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+	nulCleaner = strings.NewReplacer("\000", "")
+)
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
@@ -944,6 +946,13 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
+		// Ensure that every group (m[0]...m[7]) has a match
+		for i := 0; i < 8; i++ {
+			if m[i] == -1 {
+				return
+			}
+		}
+
 		urlFull := node.Data[m[0]:m[1]]
 		text1 := base.ShortSha(node.Data[m[2]:m[3]])
 		textDots := base.ShortSha(node.Data[m[4]:m[5]])
@@ -1070,7 +1079,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
-				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				ctx.GitRepo, err = git.OpenRepositoryCtx(ctx.Ctx, ctx.Metas["repoPath"])
 				if err != nil {
 					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
 					return

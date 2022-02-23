@@ -64,6 +64,8 @@ type Engine interface {
 	Distinct(...string) *xorm.Session
 	Query(...interface{}) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
+	Context(ctx context.Context) *xorm.Session
+	Ping() error
 }
 
 // TableInfo returns table's information via an object
@@ -120,7 +122,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-//SyncAllTables sync the schemas of all tables, is required by unit test code
+// SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }

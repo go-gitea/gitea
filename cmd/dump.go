@@ -370,7 +370,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to save %s: %v", fileName, err)
 		}
 
-		if err := os.Chmod(fileName, 0600); err != nil {
+		if err := os.Chmod(fileName, 0o600); err != nil {
 			log.Info("Can't change file access permissions mask to 0600: %v", err)
 		}
 	}

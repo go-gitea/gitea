@@ -127,3 +127,105 @@ func Transfer(ctx *context.APIContext) {
 	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
 	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 }
+
+// AcceptTransfer accept a repo transfer
+func AcceptTransfer(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/transfer/accept repository acceptRepoTransfer
+	// ---
+	// summary: Accept a repo transfer
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to transfer
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to transfer
+	//   type: string
+	//   required: true
+	// responses:
+	//   "202":
+	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	err := acceptOrRejectRepoTransfer(ctx, true)
+	if ctx.Written() {
+		return
+	}
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		return
+	}
+
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+}
+
+// RejectTransfer reject a repo transfer
+func RejectTransfer(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/transfer/reject repository rejectRepoTransfer
+	// ---
+	// summary: Reject a repo transfer
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo to transfer
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to transfer
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	err := acceptOrRejectRepoTransfer(ctx, false)
+	if ctx.Written() {
+		return
+	}
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "acceptOrRejectRepoTransfer", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+}
+
+func acceptOrRejectRepoTransfer(ctx *context.APIContext, accept bool) error {
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	if err != nil {
+		if models.IsErrNoPendingTransfer(err) {
+			ctx.NotFound()
+			return nil
+		}
+		return err
+	}
+
+	if err := repoTransfer.LoadAttributes(); err != nil {
+		return err
+	}
+
+	if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+		ctx.Error(http.StatusForbidden, "CanUserAcceptTransfer", nil)
+		return fmt.Errorf("user does not have permissions to do this")
+	}
+
+	if accept {
+		return repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams)
+	}
+
+	return models.CancelRepositoryTransfer(ctx.Repo.Repository)
+}

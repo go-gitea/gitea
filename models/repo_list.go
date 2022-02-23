@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -135,6 +136,8 @@ type SearchRepoOptions struct {
 	Archived util.OptionalBool
 	// only search topic name
 	TopicOnly bool
+	// only search repositories with specified primary language
+	Language string
 	// include description in keyword search
 	IncludeDescription bool
 	// None -> include has milestones AND has no milestone
@@ -143,6 +146,188 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+}
+
+// SearchOrderBy is used to sort the result
+type SearchOrderBy string
+
+func (s SearchOrderBy) String() string {
+	return string(s)
+}
+
+// Strings for sorting result
+const (
+	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
+	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
+	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
+	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
+	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
+	SearchOrderByNewest                SearchOrderBy = "created_unix DESC"
+	SearchOrderBySize                  SearchOrderBy = "size ASC"
+	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
+	SearchOrderByID                    SearchOrderBy = "id ASC"
+	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
+	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
+	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
+	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
+	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
+)
+
+// userOwnedRepoCond returns user ownered repositories
+func userOwnedRepoCond(userID int64) builder.Cond {
+	return builder.Eq{
+		"repository.owner_id": userID,
+	}
+}
+
+// userAssignedRepoCond return user as assignee repositories list
+func userAssignedRepoCond(id string, userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue_assignees").
+				InnerJoin("issue", "issue.id = issue_assignees.issue_id").
+				Where(builder.Eq{
+					"issue_assignees.assignee_id": userID,
+				}),
+		),
+	)
+}
+
+// userCreateIssueRepoCond return user created issues repositories list
+func userCreateIssueRepoCond(id string, userID int64, isPull bool) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue").
+				Where(builder.Eq{
+					"issue.poster_id": userID,
+					"issue.is_pull":   isPull,
+				}),
+		),
+	)
+}
+
+// userMentionedRepoCond return user metinoed repositories list
+func userMentionedRepoCond(id string, userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue_user").
+				InnerJoin("issue", "issue.id = issue_user.issue_id").
+				Where(builder.Eq{
+					"issue_user.is_mentioned": true,
+					"issue_user.uid":          userID,
+				}),
+		),
+	)
+}
+
+// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
+func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("team_repo").Where(
+			builder.Eq{
+				"team_id": teamID,
+			}.And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_user").Where(
+						builder.Eq{
+							"uid": userID,
+						},
+					),
+				)).And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_unit").Where(
+						builder.Eq{
+							"`team_unit`.org_id": orgID,
+						}.And(
+							builder.In("`team_unit`.type", units),
+						),
+					),
+				),
+			),
+		))
+}
+
+// userCollaborationRepoCond returns user as collabrators repositories list
+func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, builder.Select("repo_id").
+		From("`access`").
+		Where(builder.And(
+			builder.Eq{"`access`.user_id": userID},
+			builder.Gt{"`access`.mode": int(perm.AccessModeNone)},
+		)),
+	)
+}
+
+// userOrgTeamRepoCond selects repos that the given user has access to through team membership
+func userOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
+}
+
+// userOrgTeamRepoBuilder returns repo ids where user's teams can access.
+func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
+	return builder.Select("`team_repo`.repo_id").
+		From("team_repo").
+		Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID})
+}
+
+// userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
+func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
+	return userOrgTeamRepoBuilder(userID).
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_unit`.`type`": unitType})
+}
+
+// userOrgUnitRepoCond selects repos that the given user has access to through org and the special unit
+func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
+	return builder.In(idStr,
+		userOrgTeamUnitRepoBuilder(userID, unitType).
+			And(builder.Eq{"`team_unit`.org_id": orgID}),
+	)
+}
+
+// userOrgPublicRepoCond returns the condition that one user could access all public repositories in organizations
+func userOrgPublicRepoCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id",
+			builder.Select("`org_user`.org_id").
+				From("org_user").
+				Where(builder.Eq{"`org_user`.uid": userID}),
+		),
+	)
+}
+
+// userOrgPublicRepoCondPrivate returns the condition that one user could access all public repositories in private organizations
+func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id",
+			builder.Select("`org_user`.org_id").
+				From("org_user").
+				Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
+				Where(builder.Eq{
+					"`org_user`.uid":    userID,
+					"`user`.`type`":     user_model.UserTypeOrganization,
+					"`user`.visibility": structs.VisibleTypePrivate,
+				}),
+		),
+	)
+}
+
+// userOrgPublicUnitRepoCond returns the condition that one user could access all public repositories in the special organization
+func userOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
+	return userOrgPublicRepoCond(userID).
+		And(builder.Eq{"`repository`.owner_id": orgID})
 }
 
 // SearchRepositoryCondition creates a query condition according search repository options
@@ -198,27 +383,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				// 2. But we can see because of:
 				builder.Or(
 					// A. We have access
-					builder.In("`repository`.id",
-						builder.Select("`access`.repo_id").
-							From("access").
-							Where(builder.Eq{"`access`.user_id": opts.OwnerID})),
+					userCollaborationRepoCond("`repository`.id", opts.OwnerID),
 					// B. We are in a team for
-					builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-						From("team_repo").
-						Where(builder.Eq{"`team_user`.uid": opts.OwnerID}).
-						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
-					// C. Public repositories in private organizations that we are member of
-					builder.And(
-						builder.Eq{"`repository`.is_private": false},
-						builder.In("`repository`.owner_id",
-							builder.Select("`org_user`.org_id").
-								From("org_user").
-								Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
-								Where(builder.Eq{
-									"`org_user`.uid":    opts.OwnerID,
-									"`user`.type":       user_model.UserTypeOrganization,
-									"`user`.visibility": structs.VisibleTypePrivate,
-								})))),
+					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
+					// C. Public repositories in organizations that we are member of
+					userOrgPublicRepoCondPrivate(opts.OwnerID),
+				),
 			)
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
@@ -269,6 +439,13 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			keywordCond = keywordCond.Or(likes)
 		}
 		cond = cond.And(keywordCond)
+	}
+
+	if opts.Language != "" {
+		cond = cond.And(builder.In("id", builder.
+			Select("repo_id").
+			From("language_stat").
+			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
 	if opts.Fork != util.OptionalBoolNone {
@@ -389,24 +566,14 @@ func accessibleRepositoryCondition(user *user_model.User) builder.Cond {
 	if user != nil {
 		cond = cond.Or(
 			// 2. Be able to see all repositories that we have access to
-			builder.In("`repository`.id", builder.Select("repo_id").
-				From("`access`").
-				Where(builder.And(
-					builder.Eq{"user_id": user.ID},
-					builder.Gt{"mode": int(perm.AccessModeNone)}))),
+			userCollaborationRepoCond("`repository`.id", user.ID),
 			// 3. Repositories that we directly own
 			builder.Eq{"`repository`.owner_id": user.ID},
 			// 4. Be able to see all repositories that we are in a team
-			builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-				From("team_repo").
-				Where(builder.Eq{"`team_user`.uid": user.ID}).
-				Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
+			userOrgTeamRepoCond("`repository`.id", user.ID),
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			builder.And(builder.Eq{"`repository`.is_private": false},
-				builder.In("`repository`.owner_id",
-					builder.Select("`org_user`.org_id").
-						From("org_user").
-						Where(builder.Eq{"`org_user`.uid": user.ID}))))
+			userOrgPublicRepoCond(user.ID),
+		)
 	}
 
 	return cond
@@ -465,7 +632,7 @@ func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int64, error) {
+func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = "updated_unix DESC"
 	}
@@ -488,6 +655,6 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int
 	}
 
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
-	repos := make([]*repo_model.Repository, 0, opts.PageSize)
+	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }

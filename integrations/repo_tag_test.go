@@ -29,7 +29,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 	t.Run("API", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(owner, repo, "master", "v-1", "first tag")
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
 		err = models.InsertProtectedTag(&models.ProtectedTag{
@@ -44,11 +44,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		err = release.CreateNewTag(owner, repo, "master", "v-2", "second tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
 		assert.True(t, models.IsErrProtectedTagName(err))
 
-		err = release.CreateNewTag(owner, repo, "master", "v-1.1", "third tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
 	})
 
@@ -66,10 +66,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, err = git.NewCommand("tag", "v-2").RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "tag", "v-2").RunInDir(dstPath)
 			assert.NoError(t, err)
 
-			_, err = git.NewCommand("push", "--tags").RunInDir(dstPath)
+			_, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunInDir(dstPath)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})

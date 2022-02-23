@@ -25,7 +25,7 @@ import (
 // This file contains functions related to principals
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
-func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
+func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*PublicKey, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		Content:       content,
 		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypePrincipal,
-		LoginSourceID: loginSourceID,
+		LoginSourceID: authSourceID,
 	}
 	if err = addPrincipalKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)

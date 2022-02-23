@@ -222,6 +222,30 @@ func (repo *Repository) MustOwner() *user_model.User {
 	return repo.mustOwner(db.DefaultContext)
 }
 
+// LoadAttributes loads attributes of the repository.
+func (repo *Repository) LoadAttributes(ctx context.Context) error {
+	// Load owner
+	if err := repo.GetOwner(ctx); err != nil {
+		return fmt.Errorf("load owner: %w", err)
+	}
+
+	// Load primary language
+	stats := make(LanguageStatList, 0, 1)
+	if err := db.GetEngine(ctx).
+		Where("`repo_id` = ? AND `is_primary` = ? AND `language` != ?", repo.ID, true, "other").
+		Find(&stats); err != nil {
+		return fmt.Errorf("find primary languages: %w", err)
+	}
+	stats.LoadAttributes()
+	for _, st := range stats {
+		if st.RepoID == repo.ID {
+			repo.PrimaryLanguage = st
+			break
+		}
+	}
+	return nil
+}
+
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.OwnerName + "/" + repo.Name
@@ -485,8 +509,9 @@ func (repo *Repository) CanEnableEditor() bool {
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
-func (repo *Repository) DescriptionHTML() template.HTML {
+func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: repo.HTMLURL(),
 		Metas:     repo.ComposeMetas(),
 	}, repo.Description)
@@ -515,10 +540,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		repoName += ".wiki"
 	}
 
-	sshUser := setting.RunUser
-	if setting.SSH.StartBuiltinServer {
-		sshUser = setting.SSH.BuiltinServerUser
-	}
+	sshUser := setting.SSH.User
 
 	cl := new(CloneLink)
 
@@ -731,15 +753,6 @@ func CountUserRepositories(userID int64, private bool) int64 {
 	return countRepositories(userID, private)
 }
 
-// GetUserMirrorRepositories returns a list of mirror repositories of given user.
-func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ?", userID).
-		And("is_mirror = ?", true).
-		Find(&repos)
-}
-
 func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
 	return e.Count(&Repository{OwnerID: ownerID})
 }
@@ -765,26 +778,4 @@ func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	for {
-		repos := make([]*Repository, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
 }

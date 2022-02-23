@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {svg} from '../svg.js';
 
 function changeHash(hash) {
@@ -15,11 +16,14 @@ function selectRange($list, $select, $from) {
   const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
 
-  if ($issue.length === 0 || $copyPermalink.length === 0) {
+  if ($copyPermalink.length === 0) {
     return;
   }
 
-  const updateIssueHref = function(anchor) {
+  const updateIssueHref = function (anchor) {
+    if ($issue.length === 0) {
+      return;
+    }
     let href = $issue.attr('href');
     href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
     $issue.attr('href', href);
@@ -32,8 +36,8 @@ function selectRange($list, $select, $from) {
   };
 
   if ($from) {
-    let a = parseInt($select.attr('rel').substr(1));
-    let b = parseInt($from.attr('rel').substr(1));
+    let a = parseInt($select.attr('rel').slice(1));
+    let b = parseInt($from.attr('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {

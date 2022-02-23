@@ -265,6 +265,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `BUILTIN_SSH_SERVER_USER`: **%(RUN_USER)s**: Username to use for the built-in SSH Server.
+- `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
@@ -278,9 +279,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true if `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}**: Set the template for the command to passed on authorized keys. Possible keys are: AppPath, AppWorkPath, CustomConf, CustomPath, Key - where Key is a `models/asymkey.PublicKey` and the others are strings which are shellquoted.
-- `SSH_SERVER_CIPHERS`: **aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
-- `SSH_SERVER_KEY_EXCHANGES`: **diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
-- `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
+- `SSH_SERVER_CIPHERS`: **chacha20-poly1305@openssh.com, aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, aes256-gcm@openssh.com**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
+- `SSH_SERVER_KEY_EXCHANGES`: **curve25519-sha256@libssh.org, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, diffie-hellman-group14-sha1**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
+- `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
 - `SSH_SERVER_HOST_KEYS`: **ssh/gitea.rsa, ssh/gogs.rsa**: For the built-in SSH server, choose the keypairs to offer as the host key. The private key should be at `SSH_SERVER_HOST_KEY` and the public `SSH_SERVER_HOST_KEY.pub`. Relative paths are made absolute relative to the `APP_DATA_PATH`. If no key exists a 4096 bit RSA key will be created for you.
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
@@ -291,9 +292,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
-- `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
-- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). From 1.11 paths are relative to `CUSTOM_PATH`.
-- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
@@ -302,7 +302,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `PPROF_DATA_PATH`: **data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
-- `LFS_START_SERVER`: **false**: Enables git-lfs support.
+- `LFS_START_SERVER`: **false**: Enables Git LFS support.
 - `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
@@ -313,7 +313,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
 - `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
-- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the prefered curves,
+- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the preferred curves,
 - `SSL_CIPHER_SUITES`: **ecdhe_ecdsa_with_aes_256_gcm_sha384,ecdhe_rsa_with_aes_256_gcm_sha384,ecdhe_ecdsa_with_aes_128_gcm_sha256,ecdhe_rsa_with_aes_128_gcm_sha256,ecdhe_ecdsa_with_chacha20_poly1305,ecdhe_rsa_with_chacha20_poly1305**: Set the preferred cipher suites.
   - If there is not hardware support for AES suites by default the cha cha suites will be preferred over the AES suites
   - supported suites as of go 1.17 are:
@@ -347,11 +347,12 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     - Aliased names
       - "ecdhe_rsa_with_chacha20_poly1305" is an alias for "ecdhe_rsa_with_chacha20_poly1305_sha256"
       - "ecdhe_ecdsa_with_chacha20_poly1305" is alias for "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
-- `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
-   By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
-- `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
-- `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
-- `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
+- `ENABLE_ACME`: **false**: Flag to enable automatic certificate management via an ACME capable Certificate Authority (CA) server (default: Lets Encrypt). If enabled, `CERT_FILE` and `KEY_FILE` are ignored, and the CA must resolve `DOMAIN` to this gitea server. Ensure that DNS records are set and either port `80` or port `443` are accessible by the CA server (the public internet by default), and redirected to the appropriate ports `PORT_TO_REDIRECT` or `HTTP_PORT` respectively.
+- `ACME_URL`: **\<empty\>**: The CA's ACME directory URL, e.g. for a self-hosted [smallstep CA server](https://github.com/smallstep/certificates), it can look like `https://ca.example.com/acme/acme/directory`. If left empty, it defaults to using Let's Encerypt's production CA (check `LETSENCRYPT_ACCEPTTOS` as well).
+- `ACME_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service of the ACME provider. The default is Lets Encrypt [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
+- `ACME_DIRECTORY`: **https**: Directory that the certificate manager will use to cache information such as certs and private keys.
+- `ACME_EMAIL`: **\<empty\>**: Email used for the ACME registration. Usually it is to notify about problems with issued certificates.
+- `ACME_CA_ROOT`: **\<empty\>**: The CA's root certificate. If left empty, it defaults to using the system's trust chain.
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 - `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
@@ -378,7 +379,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
      - `require`: Enable TLS without any verifications.
      - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
      - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
-- `SQLITE_TIMEOUT`: **500**: Query timeout for sqlite3 only.
+- `SQLITE_TIMEOUT`: **500**: Query timeout for SQLite3 only.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
 - `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
@@ -477,7 +478,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 
 ## Security (`security`)
 
-- `INSTALL_LOCK`: **false**: Disallow access to the install page.
+- `INSTALL_LOCK`: **false**: Controls access to the installation page. When set to "true", the installation page is not accessible.
 - `SECRET_KEY`: **\<random at every install\>**: Global secret key. This should be changed.
 - `LOGIN_REMEMBER_DAYS`: **7**: Cookie lifetime, in days.
 - `COOKIE_USERNAME`: **gitea\_awesome**: Name of the cookie used to store the current username.
@@ -490,8 +491,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
    Number of trusted proxy count. Set to zero to not use these headers.
 - `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.0/8,::1/128**: List of IP addresses and networks separated by comma of trusted proxy servers. Use `*` to trust all.
-- `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with git hook privilege to create custom git hooks.
-   WARNING: Custom git hooks can be used to perform arbitrary code execution on the host operating system.
+- `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with Git Hook privilege to create custom Git Hooks.
+   WARNING: Custom Git Hooks can be used to perform arbitrary code execution on the host operating system.
    This enables the users to access and modify this config file and the Gitea database and interrupt the Gitea service.
    By modifying the Gitea database, users can gain Gitea administrator privileges.
    It also enables them to access other resources available to the user on the operating system that is running the
@@ -595,7 +596,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via Gitea.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
-- `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
+- `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the Git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 - `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
@@ -658,7 +659,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
    - **smtp** Use SMTP to send mail
    - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
-   This is common on linux systems.
+   This is common on Linux systems.
    - **dummy** Send email messages to the log as a testing phase.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
@@ -667,6 +668,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
    command or full path).
 - `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments.
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
+- `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 
 ## Cache (`cache`)
@@ -731,7 +733,7 @@ Default templates for project boards:
 ## Issue and pull request attachments (`attachment`)
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.
-- `ALLOWED_TYPES`: **.docx,.gif,.gz,.jpeg,.jpg,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+- `ALLOWED_TYPES`: **.docx,.gif,.gz,.jpeg,.jpg,mp4,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
@@ -751,11 +753,16 @@ Default templates for project boards:
 - `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
 - `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
-- `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
-- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
-NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
-- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ENABLE_SSH_LOG`: **false**: save ssh log to log file
+- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
+ 
+### Router Log (`log`)
+- `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
+- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
+  NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
+
+### Access Log (`log`)
+- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default Gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
@@ -764,7 +771,6 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
   - `Start`: the start time of the request.
   - `ResponseWriter`: the responseWriter from the request.
   - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
-- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
 ### Log subsections (`log.name`, `log.name.*`)
 
@@ -918,7 +924,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 ## Git (`git`)
 
-- `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
+- `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
@@ -926,12 +932,14 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `COMMITS_RANGE_SIZE`: **50**: Set the default commits range size
 - `BRANCHES_RANGE_SIZE`: **20**: Set the default branches range size
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
-- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use Git wire protocol version 2 when Git version >= 2.18, default is true, set to false when you always want Git wire protocol version 1
 - `PULL_REQUEST_PUSH_MESSAGE`: **true**: Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 - `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
 - `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
+- `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
+
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
@@ -952,7 +960,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
-- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees API.
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for Git trees API.
 - `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
 
 ## OAuth2 (`oauth2`)
@@ -971,9 +979,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**: List of locales shown in language selector
 - `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어,ελληνικά,فارسی,magyar nyelv,bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
-## U2F (`U2F`)
-- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
-- `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
+## U2F (`U2F`) **DEPRECATED**
+- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application which is used for authentication of previously registered U2F keys. Requires HTTPS.
 
 ## Markup (`markup`)
 

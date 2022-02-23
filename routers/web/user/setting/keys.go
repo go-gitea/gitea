@@ -211,12 +211,10 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-
 }
 
 // DeleteKey response for delete user's SSH/GPG key
 func DeleteKey(ctx *context.Context) {
-
 	switch ctx.FormString("type") {
 	case "gpg":
 		if err := asymkey_model.DeleteGPGKey(ctx.User, ctx.FormInt64("id")); err != nil {

@@ -28,6 +28,12 @@ type Review struct {
 	Comments     []*ReviewComment
 }
 
+// GetExternalName ExternalUserMigrated interface
+func (r *Review) GetExternalName() string { return r.ReviewerName }
+
+// ExternalID ExternalUserMigrated interface
+func (r *Review) GetExternalID() int64 { return r.ReviewerID }
+
 // ReviewComment represents a review comment
 type ReviewComment struct {
 	ID        int64

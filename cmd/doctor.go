@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	golog "log"
 	"os"
@@ -116,13 +115,12 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
 		}
 		return recreateTables(x)
 	})
-
 }
 
 func runDoctor(ctx *cli.Context) error {

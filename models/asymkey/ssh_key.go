@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -92,7 +92,7 @@ func addKey(e db.Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -128,7 +128,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		Content:       content,
 		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypeUser,
-		LoginSourceID: loginSourceID,
+		LoginSourceID: authSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -223,10 +223,10 @@ func CountPublicKeys(userID int64) (int64, error) {
 }
 
 // ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
-func ListPublicKeysBySource(uid, loginSourceID int64) ([]*PublicKey, error) {
+func ListPublicKeysBySource(uid, authSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
+		Where("owner_id = ? AND login_source_id = ?", uid, authSourceID).
 		Find(&keys)
 }
 
@@ -261,7 +261,7 @@ func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
-	sources := make([]*login.Source, 0, 5)
+	sources := make([]*auth.Source, 0, 5)
 	externals := make([]bool, len(keys))
 keyloop:
 	for i, key := range keys {
@@ -270,7 +270,7 @@ keyloop:
 			continue keyloop
 		}
 
-		var source *login.Source
+		var source *auth.Source
 
 	sourceloop:
 		for _, s := range sources {
@@ -282,11 +282,11 @@ keyloop:
 
 		if source == nil {
 			var err error
-			source, err = login.GetSourceByID(key.LoginSourceID)
+			source, err = auth.GetSourceByID(key.LoginSourceID)
 			if err != nil {
-				if login.IsErrSourceNotExist(err) {
+				if auth.IsErrSourceNotExist(err) {
 					externals[i] = false
-					sources[i] = &login.Source{
+					sources[i] = &auth.Source{
 						ID: key.LoginSourceID,
 					}
 					continue keyloop
@@ -295,7 +295,7 @@ keyloop:
 			}
 		}
 
-		if sshKeyProvider, ok := source.Cfg.(login.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
+		if sshKeyProvider, ok := source.Cfg.(auth.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 			// Disable setting SSH keys for this user
 			externals[i] = true
 		}
@@ -313,14 +313,14 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 	if key.LoginSourceID == 0 {
 		return false, nil
 	}
-	source, err := login.GetSourceByID(key.LoginSourceID)
+	source, err := auth.GetSourceByID(key.LoginSourceID)
 	if err != nil {
-		if login.IsErrSourceNotExist(err) {
+		if auth.IsErrSourceNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	if sshKeyProvider, ok := source.Cfg.(login.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
+	if sshKeyProvider, ok := source.Cfg.(auth.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 		// Disable setting SSH keys for this user
 		return true, nil
 	}
@@ -360,7 +360,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -398,7 +398,7 @@ func AddPublicKeysBySource(usr *user_model.User, s *login.Source, sshPublicKeys 
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)

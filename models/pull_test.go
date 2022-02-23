@@ -107,6 +107,18 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
+func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	exist, err := HasUnmergedPullRequestsByHeadInfo(1, "branch2")
+	assert.NoError(t, err)
+	assert.Equal(t, true, exist)
+
+	exist, err = HasUnmergedPullRequestsByHeadInfo(1, "not_exist_branch")
+	assert.NoError(t, err)
+	assert.Equal(t, false, exist)
+}
+
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, err := GetUnmergedPullRequestsByHeadInfo(1, "branch2")

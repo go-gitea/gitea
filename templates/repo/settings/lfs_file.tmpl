@@ -8,10 +8,15 @@
 			<h4 class="ui top attached header">
 				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
+					{{if .EscapeStatus.Escaped}}
+						<a class="ui mini basic button unescape-button" style="display: none;">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui mini basic button escape-button">{{.i18n.Tr "repo.escape_control_characters"}}</a>
+					{{end}}
 					<a class="ui blue show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
 			<div class="ui attached table unstackable segment">
+				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextFile}} code-view{{end}}">
 					{{if .IsMarkup}}
 						{{if .FileContent}}{{.FileContent | Safe}}{{end}}

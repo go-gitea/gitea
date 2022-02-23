@@ -108,7 +108,7 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 		needsRollback = true
 
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, err := git.NewCommandContext(ctx,
+		if stdout, err := git.NewCommand(ctx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
@@ -120,7 +120,7 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		if stdout, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
@@ -143,7 +143,17 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
-		log.Error("Copy language stat from oldRepo failed")
+		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+
+	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+	if err != nil {
+		log.Error("Open created git repository failed: %v", err)
+	} else {
+		defer gitRepo.Close()
+		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error("Sync releases from git tags failed: %v", err)
+		}
 	}
 
 	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)

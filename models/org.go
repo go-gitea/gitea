@@ -265,7 +265,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		OrgID:                   org.ID,
 		LowerName:               strings.ToLower(ownerTeamName),
 		Name:                    ownerTeamName,
-		Authorize:               perm.AccessModeOwner,
+		AccessMode:              perm.AccessModeOwner,
 		NumMembers:              1,
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
@@ -331,9 +331,7 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		return fmt.Errorf("%s is a user not an organization", org.Name)
 	}
 
-	e := db.GetEngine(ctx)
-
-	if err := deleteBeans(e,
+	if err := db.DeleteBeans(ctx,
 		&Team{OrgID: org.ID},
 		&OrgUser{OrgID: org.ID},
 		&TeamUser{OrgID: org.ID},
@@ -342,7 +340,7 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err := e.ID(org.ID).Delete(new(user_model.User)); err != nil {
+	if _, err := db.GetEngine(ctx).ID(org.ID).Delete(new(user_model.User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
@@ -523,7 +521,7 @@ type FindOrgOptions struct {
 }
 
 func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
-	var cond = builder.Eq{"uid": userID}
+	cond := builder.Eq{"uid": userID}
 	if !includePrivate {
 		cond["is_public"] = true
 	}
@@ -531,7 +529,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
