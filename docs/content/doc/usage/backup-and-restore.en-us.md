@@ -104,7 +104,7 @@ Example:
 
 ```sh
 # open bash session in container
-docker exec --user git -it <container-id | service-id> bash
+docker exec --user git -it 2a83b293548e bash
 # unzip your backup file within the container
 unzip gitea-dump-1610949662.zip
 cd gitea-dump-1610949662
@@ -118,7 +118,7 @@ chown -R git:git /data
 /app/gitea/gitea -c '/data/gitea/conf/app.ini' admin regenerate hooks
 ```
 
-The default user in the gitea container is `git` (1000:1000).
+The default user in the gitea container is `git` (1000:1000). Please replace `2a83b293548e` with your gitea container id or name.
 
 These are the default paths used in the container:
 
