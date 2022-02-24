@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Immediately Hammer if second kill is sent (#18823) (#18826)
   * Allow mermaid render error to wrap (#18791)
 * BUGFIXES
+  * Fix ldap user sync missed email in email_address table (#18786) (#18876) 
   * Update assignees check to include any writing team and change org sidebar (#18680) (#18873)
   * Don't report signal: killed errors in serviceRPC (#18850) (#18865)
   * Fix bug where certain LDAP settings were reverted (#18859)
