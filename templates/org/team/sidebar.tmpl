@@ -25,31 +25,55 @@
 				<span class="text grey italic">{{.i18n.Tr "org.teams.no_desc"}}</span>
 			{{end}}
 		</div>
-
-		<div class="item">
-			{{if eq .Team.LowerName "owners"}}
+		{{if eq .Team.LowerName "owners"}}
+			<div class="item">
 				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
-			{{else if (eq .Team.AccessMode 1)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
+			</div>
+		{{else}}
+			<div class="item">
+				<h3>{{.i18n.Tr "org.team_access_desc"}}</h3>
+				<ul>
+					{{if .Team.IncludesAllRepositories}}
+						<li>{{.i18n.Tr "org.teams.all_repositories" | Str2html}}
+					{{else}}
+						<li>{{.i18n.Tr "org.teams.specific_repositories" | Str2html}}
+					{{end}}
+					{{if .Team.CanCreateOrgRepo}}
+						<li>{{.i18n.Tr "org.teams.can_create_org_repo"}}
+					{{end}}
+				</ul>
+				{{if (eq .Team.AccessMode 2)}}
+					<h3>{{.i18n.Tr "org.settings.permission"}}</h3>
+					{{.i18n.Tr "org.teams.write_permission_desc"}}
+				{{else if (eq .Team.AccessMode 3)}}
+					<h3>{{.i18n.Tr "org.settings.permission"}}</h3>
+					{{.i18n.Tr "org.teams.admin_permission_desc"}}
 				{{else}}
-					{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+					<table class="ui table">
+						<thead>
+							<tr>
+								<th>{{.i18n.Tr "units.unit"}}</th>
+								<th>{{.i18n.Tr "org.team_permission_desc"}}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{{range $t, $unit := $.Units}}
+								{{if and (lt $unit.MaxPerm 2) (not $unit.Type.UnitGlobalDisabled)}}
+									<tr>
+										<td><strong>{{$.i18n.Tr $unit.NameKey}}</strong></td>
+										<td>{{if eq ($.Team.UnitAccessMode $unit.Type) 0 -}}
+										{{$.i18n.Tr "org.teams.none_access"}}
+										{{- else if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1) -}}
+										{{$.i18n.Tr "org.teams.read_access"}}
+										{{- else if eq ($.Team.UnitAccessMode $unit.Type) 2 -}}
+										{{$.i18n.Tr "org.teams.write_access"}}
+										{{- end}}</td>
+									</tr>
+								{{end}}
+							{{end}}
+						</tbody>
+					</table>
 				{{end}}
-			{{else if (eq .Team.AccessMode 2)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
-				{{else}}
-					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
-				{{end}}
-			{{else if (eq .Team.AccessMode 3)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
-				{{else}}
-					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
-				{{end}}
-			{{end}}
-			{{if .Team.CanCreateOrgRepo}}
-				<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
 			{{end}}
 		</div>
 	</div>
