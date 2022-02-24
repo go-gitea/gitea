@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -354,6 +356,83 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	}
 	issue.IsRead = issueUser.IsRead
 	return nil
+}
+
+func (issue *Issue) AfterDelete() {
+	e := db.GetEngine(db.DefaultContext)
+	// Delete content histories
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&issues.ContentHistory{}); err != nil {
+		log.Info("Could not delete content history for issue %d: %s", issue.ID, err)
+	}
+
+	// Delete comments and attachments
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&Comment{}); err != nil {
+		log.Info("Could not delete comments for issue %d: %s", issue.ID, err)
+	}
+
+	// Dependencies for issues in this repository
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&IssueDependency{}); err != nil {
+		log.Info("Could not delete internal issue dependencies for issue %d: %s", issue.ID, err)
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err := e.In("dependency_id", issue.ID).
+		Delete(&IssueDependency{}); err != nil {
+		log.Info("Could not delete external issue dependencies for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&IssueUser{}); err != nil {
+		log.Info("Could not delete IssueUser for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&Reaction{}); err != nil {
+		log.Info("Could not delete Reaction for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&IssueWatch{}); err != nil {
+		log.Info("Could not delete IssueWatch for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&Stopwatch{}); err != nil {
+		log.Info("Could not delete StopWatch for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&TrackedTime{}); err != nil {
+		log.Info("Could not delete TrackedTime for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&ProjectIssue{}); err != nil {
+		log.Info("Could not delete ProjektIssue for issue %d: %s", issue.ID, err)
+	}
+
+	if _, err := e.In("dependent_issue_id", issue.ID).
+		Delete(&Comment{}); err != nil {
+		log.Info("Could not delete dependend issue for issue %d: %s", issue.ID, err)
+	}
+
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).
+		Find(&attachments); err != nil {
+		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&repo_model.Attachment{}); err != nil {
+		log.Info("Could not delete attachment for issue %d: %s", issue.ID, err)
+	}
 }
 
 // APIURL returns the absolute APIURL to this issue.
@@ -1988,6 +2067,51 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	}
 
 	return committer.Commit()
+}
+
+// DeleteIssue deletes the issue
+func DeleteIssue(issue *Issue) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteIssue(db.GetEngine(ctx), issue); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func deleteIssue(e db.Engine, issue *Issue) error {
+	if _, err := e.Delete(&Issue{
+		ID: issue.ID,
+	}); err != nil {
+		return err
+	}
+
+	if issue.IsPull {
+		if _, err := e.Exec("UPDATE `repository` SET num_pulls = num_pulls - 1 WHERE id = ?", issue.RepoID); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.Exec("UPDATE `repository` SET num_closed_pulls = num_closed_pulls -1 WHERE id = ?", issue.RepoID); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := e.Exec("UPDATE `repository` SET num_issues = num_issues - 1 WHERE id = ?", issue.RepoID); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.Exec("UPDATE `repository` SET num_closed_issues = num_closed_issues -1 WHERE id = ?", issue.RepoID); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.

@@ -125,6 +125,17 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 	return
 }
 
+// DeleteIssue deletes an issue
+func DeleteIssue(doer *user_model.User, issue *models.Issue) error {
+	if err := models.DeleteIssue(issue); err != nil {
+		return err
+	}
+
+	// notification.NotifyDeleteIssue(doer, issue)
+
+	return nil
+}
+
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assigneeID int64) (err error) {
