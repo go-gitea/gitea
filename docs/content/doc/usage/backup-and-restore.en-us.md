@@ -98,7 +98,7 @@ This ensures that application and configuration file paths in repository Git Hoo
 
 ### Using Docker (`restore`)
 
-There is also no support fot a recovery command in a docker based gitea instance. The restore process contains the same steps like described in re previous section but with different paths.
+There is also no support for a recovery command in a Docker-based gitea instance. The restore process contains the same steps as described in the previous section but with different paths.
 
 Example:
 
