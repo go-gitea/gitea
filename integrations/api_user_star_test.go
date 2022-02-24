@@ -27,7 +27,7 @@ func TestAPIStar(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/user/starred/%s?token=%s", repo, token))
-		MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusNoContent)
 	})
 
 	t.Run("GetStarredRepos", func(t *testing.T) {
