@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm/schemas"
 )
 
-func Test_increaseCredentialIDTo410(t *testing.T) {
+func Test_remigrateU2FCredentials(t *testing.T) {
 	// Create webauthnCredential table
 	type WebauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
@@ -55,7 +56,7 @@ func Test_increaseCredentialIDTo410(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := increaseCredentialIDTo410(x); err != nil {
+	if err := remigrateU2FCredentials(x); err != nil {
 		assert.NoError(t, err)
 		return
 	}
