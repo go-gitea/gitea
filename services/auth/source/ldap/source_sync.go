@@ -146,6 +146,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.authSource.Name, usr.Name)
 
 				usr.FullName = fullName
+				emailChanged := usr.Email != su.Mail
 				usr.Email = su.Mail
 				// Change existing admin flag only if AdminFilter option is set
 				if len(source.AdminFilter) > 0 {
@@ -157,7 +158,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = user_model.UpdateUserCols(db.DefaultContext, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = user_model.UpdateUser(usr, emailChanged, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
