@@ -372,6 +372,12 @@ func (issue *Issue) AfterDelete() {
 		log.Info("Could not delete comments for issue %d: %s", issue.ID, err)
 	}
 
+	// References to this issue in other issues
+	if _, err := e.In("ref_issue_id", issue.ID).
+		Delete(&Comment{}); err != nil {
+		log.Info("Could not delete referring comments for issue %d: %s", issue.ID, err)
+	}
+
 	// Dependencies for issues in this repository
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&IssueDependency{}); err != nil {
