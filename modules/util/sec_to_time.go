@@ -57,7 +57,7 @@ func SecToTime(duration int64) string {
 // formattedTime = "1 year"
 // input: value = 3, name = "month"
 // output will be "1 year 3 months"
-func FormatTime(value int64, name string, formattedTime string) string {
+func FormatTime(value int64, name, formattedTime string) string {
 	if value == 1 {
 		formattedTime = fmt.Sprintf("%s1 %s ", formattedTime, name)
 	} else if value > 1 {
