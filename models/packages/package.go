@@ -87,13 +87,13 @@ func (pt Type) SVGName() string {
 
 // Package represents a package
 type Package struct {
-	ID               int64 `xorm:"pk autoincr"`
-	OwnerID          int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	RepoID           int64 `xorm:"INDEX"`
-	Type             Type  `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name             string
+	ID               int64  `xorm:"pk autoincr"`
+	OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	RepoID           int64  `xorm:"INDEX"`
+	Type             Type   `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name             string `xorm:"NOT NULL"`
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	SemverCompatible bool
+	SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
 // TryInsertPackage inserts a package. If a package exists already, ErrDuplicatePackage is returned

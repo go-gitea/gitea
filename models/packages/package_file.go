@@ -32,13 +32,13 @@ const EmptyFileKey = ""
 
 // PackageFile represents a package file
 type PackageFile struct {
-	ID           int64 `xorm:"pk autoincr"`
-	VersionID    int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	BlobID       int64 `xorm:"INDEX NOT NULL"`
-	Name         string
-	LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	CompositeKey string `xorm:"UNIQUE(s) INDEX"`
-	IsLead       bool
+	ID           int64              `xorm:"pk autoincr"`
+	VersionID    int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	BlobID       int64              `xorm:"INDEX NOT NULL"`
+	Name         string             `xorm:"NOT NULL"`
+	LowerName    string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	CompositeKey string             `xorm:"UNIQUE(s) INDEX"`
+	IsLead       bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 }
 

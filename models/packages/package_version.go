@@ -29,14 +29,14 @@ func init() {
 
 // PackageVersion represents a package version
 type PackageVersion struct {
-	ID            int64 `xorm:"pk autoincr"`
-	PackageID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	CreatorID     int64
-	Version       string
+	ID            int64              `xorm:"pk autoincr"`
+	PackageID     int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	CreatorID     int64              `xorm:"NOT NULL DEFAULT 0"`
+	Version       string             `xorm:"NOT NULL"`
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	MetadataJSON  string             `xorm:"TEXT metadata_json"`
-	DownloadCount int64
+	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
 
 // GetOrInsertVersion inserts a version. If the same version exist already ErrDuplicatePackageVersion is returned

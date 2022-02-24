@@ -21,8 +21,8 @@ func init() {
 
 // PackageBlob represents a package blob
 type PackageBlob struct {
-	ID          int64 `xorm:"pk autoincr"`
-	Size        int64
+	ID          int64              `xorm:"pk autoincr"`
+	Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 	HashMD5     string             `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
 	HashSHA1    string             `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
 	HashSHA256  string             `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`

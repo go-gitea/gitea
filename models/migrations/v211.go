@@ -16,9 +16,9 @@ func addPackageTables(x *xorm.Engine) error {
 		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		RepoID           int64  `xorm:"INDEX"`
 		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name             string
+		Name             string `xorm:"NOT NULL"`
 		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		SemverCompatible bool
+		SemverCompatible bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	if err := x.Sync2(new(Package)); err != nil {
@@ -26,14 +26,14 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageVersion struct {
-		ID            int64 `xorm:"pk autoincr"`
-		PackageID     int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID     int64
-		Version       string
+		ID            int64              `xorm:"pk autoincr"`
+		PackageID     int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CreatorID     int64              `xorm:"NOT NULL DEFAULT 0"`
+		Version       string             `xorm:"NOT NULL"`
 		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 		MetadataJSON  string             `xorm:"TEXT metadata_json"`
-		DownloadCount int64
+		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	if err := x.Sync2(new(PackageVersion)); err != nil {
@@ -53,13 +53,13 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageFile struct {
-		ID           int64 `xorm:"pk autoincr"`
-		VersionID    int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		BlobID       int64 `xorm:"INDEX NOT NULL"`
-		Name         string
-		LowerName    string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CompositeKey string `xorm:"UNIQUE(s) INDEX"`
-		IsLead       bool
+		ID           int64              `xorm:"pk autoincr"`
+		VersionID    int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		BlobID       int64              `xorm:"INDEX NOT NULL"`
+		Name         string             `xorm:"NOT NULL"`
+		LowerName    string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CompositeKey string             `xorm:"UNIQUE(s) INDEX"`
+		IsLead       bool               `xorm:"NOT NULL DEFAULT false"`
 		CreatedUnix  timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
@@ -68,8 +68,8 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageBlob struct {
-		ID          int64 `xorm:"pk autoincr"`
-		Size        int64
+		ID          int64              `xorm:"pk autoincr"`
+		Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 		HashMD5     string             `xorm:"hash_md5 char(32) UNIQUE(md5) INDEX NOT NULL"`
 		HashSHA1    string             `xorm:"hash_sha1 char(40) UNIQUE(sha1) INDEX NOT NULL"`
 		HashSHA256  string             `xorm:"hash_sha256 char(64) UNIQUE(sha256) INDEX NOT NULL"`
