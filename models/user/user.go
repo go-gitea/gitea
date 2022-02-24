@@ -868,13 +868,14 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		}
 
 		if !primaryEmailExist {
-			_, err = e.Insert(&EmailAddress{
+			if _, err := e.Insert(&EmailAddress{
 				Email:       u.Email,
 				UID:         u.ID,
 				IsActivated: true,
 				IsPrimary:   true,
-			})
-			return err
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
