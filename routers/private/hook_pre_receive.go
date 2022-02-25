@@ -62,7 +62,7 @@ func (ctx *preReceiveContext) Perm() *models.Permission {
 // CanWriteCode returns true if can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
 	if !ctx.checkedCanWriteCode {
-		ctx.canWriteCode = ctx.Perm().CanWriteToBranch(ctx.branchName)
+		ctx.canWriteCode = ctx.Perm().CanWriteToBranch(ctx.user, ctx.branchName)
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode

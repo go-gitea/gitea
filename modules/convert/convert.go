@@ -51,7 +51,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 			if err != nil {
 				return nil, err
 			}
-			canPush = perms.CanWriteToBranch(b.Name)
+			canPush = perms.CanWriteToBranch(user, b.Name)
 		}
 
 		return &api.Branch{
