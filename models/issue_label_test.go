@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,11 +38,15 @@ func TestNewLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels := []*Label{
 		{RepoID: 2, Name: "labelName2", Color: "#123456"},
-		{RepoID: 3, Name: "labelName3", Color: "#23456F"},
+		{RepoID: 3, Name: "labelName3", Color: "#123"},
+		{RepoID: 4, Name: "labelName4", Color: "ABCDEF"},
+		{RepoID: 5, Name: "labelName5", Color: "DEF"},
 	}
 	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: ""}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "123456"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
 	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
+	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
 	for _, label := range labels {
 		unittest.AssertNotExistsBean(t, label)
 	}
@@ -48,7 +54,7 @@ func TestNewLabels(t *testing.T) {
 	for _, label := range labels {
 		unittest.AssertExistsAndLoadBean(t, label, unittest.Cond("id = ?", label.ID))
 	}
-	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &repo_model.Repository{})
 }
 
 func TestGetLabelByID(t *testing.T) {
@@ -269,7 +275,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.EqualValues(t, label.Color, newLabel.Color)
 	assert.EqualValues(t, label.Name, newLabel.Name)
 	assert.EqualValues(t, label.Description, newLabel.Description)
-	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &repo_model.Repository{})
 }
 
 func TestDeleteLabel(t *testing.T) {
@@ -282,7 +288,7 @@ func TestDeleteLabel(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &Label{ID: label.ID})
 
 	assert.NoError(t, DeleteLabel(unittest.NonexistentID, unittest.NonexistentID))
-	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &repo_model.Repository{})
 }
 
 func TestHasIssueLabel(t *testing.T) {
@@ -296,7 +302,7 @@ func TestNewIssueLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// add new IssueLabel
 	prevNumIssues := label.NumIssues
@@ -322,7 +328,7 @@ func TestNewIssueLabels(t *testing.T) {
 	label1 := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	label2 := unittest.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 5}).(*Issue)
-	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	assert.NoError(t, NewIssueLabels(issue, []*Label{label1, label2}, doer))
 	unittest.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issue.ID, LabelID: label1.ID})
@@ -352,7 +358,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 	testSuccess := func(labelID, issueID, doerID int64) {
 		label := unittest.AssertExistsAndLoadBean(t, &Label{ID: labelID}).(*Label)
 		issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		doer := unittest.AssertExistsAndLoadBean(t, &User{ID: doerID}).(*User)
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doerID}).(*user_model.User)
 
 		expectedNumIssues := label.NumIssues
 		expectedNumClosedIssues := label.NumClosedIssues

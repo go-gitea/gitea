@@ -7,17 +7,16 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 )
 
 // GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
+func GetUserByParamsName(ctx *context.APIContext, name string) *user_model.User {
 	username := ctx.Params(name)
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err2 := user_model.LookupUserRedirect(username); err2 == nil {
 				context.RedirectToUser(ctx.Context, username, redirectUserID)
 			} else {
@@ -32,6 +31,6 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 }
 
 // GetUserByParams returns user whose name is presented in URL (":username").
-func GetUserByParams(ctx *context.APIContext) *models.User {
+func GetUserByParams(ctx *context.APIContext) *user_model.User {
 	return GetUserByParamsName(ctx, ":username")
 }

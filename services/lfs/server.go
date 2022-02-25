@@ -19,7 +19,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -27,7 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // requestContext contain variables from the HTTP request.
@@ -42,7 +45,7 @@ type Claims struct {
 	RepoID int64
 	Op     string
 	UserID int64
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // DownloadLink builds a URL to download the object.
@@ -193,7 +196,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+		meta, err := models.GetLFSMetaObjectByOid(repository.ID, p.Oid)
 		if err != nil && err != models.ErrLFSObjectNotExist {
 			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
@@ -331,7 +334,7 @@ func UploadHandler(ctx *context.Context) {
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
-		if _, err = repository.RemoveLFSMetaObjectByOid(p.Oid); err != nil {
+		if _, err = models.RemoveLFSMetaObjectByOid(repository.ID, p.Oid); err != nil {
 			log.Error("Error whilst removing metaobject for LFS OID[%s]: %v", p.Oid, err)
 		}
 		return
@@ -394,7 +397,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 		return nil
 	}
 
-	meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+	meta, err := models.GetLFSMetaObjectByOid(repository.ID, p.Oid)
 	if err != nil {
 		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
 		writeStatus(ctx, http.StatusNotFound)
@@ -404,8 +407,8 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 	return meta
 }
 
-func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *models.Repository {
-	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
+func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
+	repository, err := repo_model.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)
@@ -436,7 +439,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		if download {
 			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
 			if setting.LFS.ServeDirect {
-				//If we have a signed url (S3, object storage), redirect to this directly.
+				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
 					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
@@ -478,10 +481,10 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := models.AccessModeRead
+func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
+	accessMode := perm.AccessModeRead
 	if requireWrite {
-		accessMode = models.AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -506,7 +509,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func handleLFSToken(tokenSHA string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -529,11 +532,11 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	if mode == models.AccessModeWrite && claims.Op != "upload" {
+	if mode == perm.AccessModeWrite && claims.Op != "upload" {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := models.GetUserByID(claims.UserID)
+	u, err := user_model.GetUserByID(claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
@@ -541,7 +544,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 	return u, nil
 }
 
-func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func parseToken(authorization string, target *repo_model.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}

@@ -12,8 +12,7 @@ import (
 )
 
 // DBStore can be used to store app state items in local filesystem
-type DBStore struct {
-}
+type DBStore struct{}
 
 // Get reads the state item
 func (f *DBStore) Get(item StateItem) error {

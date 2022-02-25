@@ -10,12 +10,9 @@ import (
 )
 
 // NullDownloader implements a blank downloader
-type NullDownloader struct {
-}
+type NullDownloader struct{}
 
-var (
-	_ Downloader = &NullDownloader{}
-)
+var _ Downloader = &NullDownloader{}
 
 // SetContext set context
 func (n NullDownloader) SetContext(_ context.Context) {}
@@ -65,7 +62,7 @@ func (n NullDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, 
 	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 
-// FormatCloneURL add authentification into remote URLs
+// FormatCloneURL add authentication into remote URLs
 func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)

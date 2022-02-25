@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
 
-type languageResponse []*models.LanguageStat
+type languageResponse []*repo_model.LanguageStat
 
 func (l languageResponse) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
@@ -68,7 +68,7 @@ func GetLanguages(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LanguageStatistics"
 
-	langs, err := ctx.Repo.Repository.GetLanguageStats()
+	langs, err := repo_model.GetLanguageStats(ctx.Repo.Repository)
 	if err != nil {
 		log.Error("GetLanguageStats failed: %v", err)
 		ctx.InternalServerError(err)

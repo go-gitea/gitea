@@ -65,11 +65,13 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -102,9 +104,9 @@ func sudo() func(ctx *context.APIContext) {
 
 		if len(sudo) > 0 {
 			if ctx.IsSigned && ctx.User.IsAdmin {
-				user, err := models.GetUserByName(sudo)
+				user, err := user_model.GetUserByName(sudo)
 				if err != nil {
-					if models.IsErrUserNotExist(err) {
+					if user_model.IsErrUserNotExist(err) {
 						ctx.NotFound()
 					} else {
 						ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -129,7 +131,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repoName := ctx.Params("reponame")
 
 		var (
-			owner *models.User
+			owner *user_model.User
 			err   error
 		)
 
@@ -137,9 +139,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
 			owner = ctx.User
 		} else {
-			owner, err = models.GetUserByName(userName)
+			owner, err = user_model.GetUserByName(userName)
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
 						context.RedirectToUser(ctx.Context, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
@@ -156,13 +158,13 @@ func repoAssignment() func(ctx *context.APIContext) {
 		ctx.Repo.Owner = owner
 
 		// Get repository.
-		repo, err := models.GetRepositoryByName(owner.ID, repoName)
+		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
-				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+			if repo_model.IsErrRepoNotExist(err) {
+				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
-				} else if models.IsErrRepoRedirectNotExist(err) {
+				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
 					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
@@ -215,10 +217,13 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuth && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+			return
+		}
 		if !ctx.Context.IsBasicAuth {
-			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
+			ctx.Error(http.StatusUnauthorized, "reqBasicOrRevProxyAuth", "auth required")
 			return
 		}
 		ctx.CheckForOTP()
@@ -328,7 +333,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		var orgID = ctx.Org.Team.OrgID
+		orgID := ctx.Org.Team.OrgID
 		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
@@ -540,15 +545,15 @@ func mustNotBeArchived(ctx *context.APIContext) {
 
 // bind binding an obj to a func(ctx *context.APIContext)
 func bind(obj interface{}) http.HandlerFunc {
-	var tp = reflect.TypeOf(obj)
+	tp := reflect.TypeOf(obj)
 	for tp.Kind() == reflect.Ptr {
 		tp = tp.Elem()
 	}
 	return web.Wrap(func(ctx *context.APIContext) {
-		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
+		theObj := reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.Error(http.StatusUnprocessableEntity, "validationError", errs[0].Error())
+			ctx.Error(http.StatusUnprocessableEntity, "validationError", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 			return
 		}
 		web.SetForm(ctx, theObj)
@@ -557,16 +562,16 @@ func bind(obj interface{}) http.HandlerFunc {
 
 // Routes registers all v1 APIs routes to web application.
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
-	var m = web.NewRoute()
+	m := web.NewRoute()
 
 	m.Use(sessioner)
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			// Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
 			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
@@ -630,7 +635,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
-				}, reqBasicAuth())
+				}, reqBasicOrRevProxyAuth())
 			})
 		})
 
@@ -731,6 +736,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
+				m.Post("/transfer/accept", reqToken(), repo.AcceptTransfer)
+				m.Post("/transfer/reject", reqToken(), repo.RejectTransfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
@@ -771,10 +778,10 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
-					m.Get("", repo.ListBranches)
-					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Get("", context.ReferencesGitRepo(false), repo.ListBranches)
+					m.Get("/*", context.ReferencesGitRepo(false), repo.GetBranch)
+					m.Delete("/*", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
@@ -835,6 +842,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 							m.Combo("/{id}", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
 								Delete(repo.DeleteIssueCommentDeprecated)
 						})
+						m.Get("/timeline", repo.ListIssueCommentsAndTimeline)
 						m.Group("/labels", func() {
 							m.Combo("").Get(repo.ListIssueLabels).
 								Post(reqToken(), bind(api.IssueLabelsOption{}), repo.AddIssueLabels).
@@ -949,7 +957,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
-					m.Get("", repo.GetAllCommits)
+					m.Get("", context.ReferencesGitRepo(false), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
@@ -957,7 +965,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/{sha}", repo.GetSingleCommit)
+						m.Get("/{sha}", context.ReferencesGitRepo(false), repo.GetSingleCommit)
 						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
@@ -967,6 +975,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, reqRepoReader(unit.TypeCode))
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)

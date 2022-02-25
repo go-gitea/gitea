@@ -6,11 +6,12 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *models.Issue, doer *models.User, oldMilestoneID int64) (err error) {
+func ChangeMilestoneAssign(issue *models.Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
 	if err = models.ChangeMilestoneAssign(issue, doer, oldMilestoneID); err != nil {
 		return
 	}

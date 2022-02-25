@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -47,17 +49,18 @@ func Init() error {
 	return nil
 }
 
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		task := datum.(*models.Task)
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
 	}
+	return nil
 }
 
 // MigrateRepository add migration repository to task
-func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
+func MigrateRepository(doer, u *user_model.User, opts base.MigrateOptions) error {
 	task, err := CreateMigrateTask(doer, u, opts)
 	if err != nil {
 		return err
@@ -67,7 +70,7 @@ func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
 }
 
 // CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.Task, error) {
+func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*models.Task, error) {
 	// encrypt credentials for persistence
 	var err error
 	opts.CloneAddrEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.CloneAddr)
@@ -90,7 +93,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	var task = &models.Task{
+	task := &models.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
@@ -109,7 +112,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		GitServiceType: opts.GitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

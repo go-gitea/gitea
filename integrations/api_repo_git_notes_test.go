@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ import (
 
 func TestAPIReposGitNotes(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 		// Login as User2.
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)

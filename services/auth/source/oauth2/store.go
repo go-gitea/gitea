@@ -55,6 +55,7 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 		}
 	}
 
+	session.IsNew = override
 	session.ID = chiStore.ID() // Simply copy the session id from the chi store
 
 	return session, chiStore.Set(name, session)
@@ -63,6 +64,11 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 // Save should persist session to the underlying store implementation.
 func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	chiStore := chiSession.GetSession(r)
+
+	if session.IsNew {
+		_, _ = chiSession.RegenerateSession(w, r)
+		session.IsNew = false
+	}
 
 	if err := chiStore.Set(session.Name(), session); err != nil {
 		return err

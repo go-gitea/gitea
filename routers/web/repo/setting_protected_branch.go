@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -28,7 +30,7 @@ func ProtectedBranch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsBranches"] = true
 
-	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return
@@ -81,7 +83,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 					return
 				}
 			}
-			if err := repo.UpdateDefaultBranch(); err != nil {
+			if err := repo_model.UpdateDefaultBranch(repo); err != nil {
 				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}
@@ -122,7 +124,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 	}
 
-	users, err := c.Repo.Repository.GetReaders()
+	users, err := models.GetRepoReaders(c.Repo.Repository)
 	if err != nil {
 		c.ServerError("Repo.Repository.GetReaders", err)
 		return
@@ -156,7 +158,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
+		teams, err := models.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -278,7 +280,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, util.PathEscapeSegments(branch)))
 	} else {
 		if protectBranch != nil {
-			if err := ctx.Repo.Repository.DeleteProtectedBranch(protectBranch.ID); err != nil {
+			if err := models.DeleteProtectedBranch(ctx.Repo.Repository.ID, protectBranch.ID); err != nil {
 				ctx.ServerError("DeleteProtectedBranch", err)
 				return
 			}

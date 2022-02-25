@@ -8,7 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,8 +20,8 @@ func TestCreateComment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	now := time.Now().Unix()
 	comment, err := CreateComment(&CreateCommentOptions{
@@ -46,16 +49,16 @@ func TestFetchCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	res, err := FetchCodeComments(issue, user)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	res, err := FetchCodeComments(db.DefaultContext, issue, user)
 	assert.NoError(t, err)
 	assert.Contains(t, res, "README.md")
 	assert.Contains(t, res["README.md"], int64(4))
 	assert.Len(t, res["README.md"][4], 1)
 	assert.Equal(t, int64(4), res["README.md"][4][0].ID)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	res, err = FetchCodeComments(issue, user2)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	res, err = FetchCodeComments(db.DefaultContext, issue, user2)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)
 }

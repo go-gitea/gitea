@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
@@ -34,7 +34,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 func TestSignin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// add new user with user2's email
 	user.Name = "testuser"
@@ -51,8 +51,6 @@ func TestSignin(t *testing.T) {
 		{username: "wrongUsername", password: "password", message: i18n.Tr("en", "form.username_password_incorrect")},
 		{username: "user15", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
 		{username: "user1@example.com", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
-		// test for duplicate email
-		{username: "user2@example.com", password: "password", message: i18n.Tr("en", "form.email_been_used")},
 	}
 
 	for _, s := range samples {

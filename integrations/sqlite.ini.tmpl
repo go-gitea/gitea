@@ -41,7 +41,6 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2203
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-sqlite/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-sqlite/data
@@ -79,7 +78,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-sqlite/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = {{REPO_TEST_DIR}}sqlite-log
 ROUTER               = ,
 XORM                 = file
 ENABLE_SSH_LOG       = true
@@ -99,3 +98,6 @@ INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.O
 
 [oauth2]
 JWT_SECRET = KZb_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko
+
+[lfs]
+PATH = integrations/gitea-integration-sqlite/data/lfs

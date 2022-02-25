@@ -92,7 +92,7 @@ shouldn't be touched without fully understanding these components.
 
 Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/main/templates/home.tmpl) for your version of Gitea from `templates` to `$GITEA_CUSTOM/templates`.
 Edit as you wish.
-Dont forget to restart your gitea to apply the changes.
+Dont forget to restart your Gitea to apply the changes.
 
 ### Adding links and tabs
 
@@ -248,7 +248,7 @@ $GITEA_CUSTOM/public
            `-- three.min.js
 ```
 
-Then restart gitea and open a STL file on your gitea instance.
+Then restart Gitea and open a STL file on your Gitea instance.
 
 ## Customizing Gitea mails
 
@@ -287,7 +287,7 @@ To add a custom license, add a file with the license text to `$GITEA_CUSTOM/opti
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea).
+Locales are managed via our [Crowdin](https://crowdin.com/project/gitea).
 You can override a locale by placing an altered locale file in `$GITEA_CUSTOM/options/locale`.
 Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/main/options/locale) source folder and these should be used as examples for your changes.
 
@@ -336,6 +336,9 @@ To make a custom theme available to all users:
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
 The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
+
+If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
+This allows Gitea to adjust the Monaco code editor's theme accordingly.
 
 ## Customizing fonts
 

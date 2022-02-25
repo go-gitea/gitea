@@ -5,9 +5,11 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -114,9 +116,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := models.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx.Params(":user"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -125,9 +127,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	//only admin and user for itself can change subscription
+	// only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", nil)
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.User.Name, user.Name))
 		return
 	}
 
@@ -267,20 +269,27 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	var userIDs = make([]int64, 0, len(iwl))
+	userIDs := make([]int64, 0, len(iwl))
 	for _, iw := range iwl {
 		userIDs = append(userIDs, iw.UserID)
 	}
 
-	users, err := models.GetUsersByIDs(userIDs)
+	users, err := user_model.GetUsersByIDs(userIDs)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
 	apiUsers := make([]*api.User, 0, len(users))
-	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.User)
+	for _, v := range users {
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
 	}
 
+	count, err := models.CountIssueWatchers(issue.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiUsers)
 }

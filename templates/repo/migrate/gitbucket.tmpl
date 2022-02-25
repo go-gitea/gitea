@@ -3,6 +3,7 @@
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{.i18n.Tr "repo.migrate.migrate" .service.Title}}

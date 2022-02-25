@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"context"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	_ "code.gitea.io/gitea/models"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -32,12 +35,12 @@ func TestBleveSearchIssues(t *testing.T) {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return
 	}
-	oldQueueDir := setting.Indexer.IssueQueueDir
+
+	setting.Cfg.Section("queue.issue_indexer").Key("DATADIR").MustString(path.Join(tmpIndexerDir, "issues.queue"))
+
 	oldIssuePath := setting.Indexer.IssuePath
-	setting.Indexer.IssueQueueDir = path.Join(tmpIndexerDir, "issues.queue")
 	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
 	defer func() {
-		setting.Indexer.IssueQueueDir = oldQueueDir
 		setting.Indexer.IssuePath = oldIssuePath
 		util.RemoveAll(tmpIndexerDir)
 	}()
@@ -54,22 +57,21 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	ids, err := SearchIssuesByKeyword([]int64{1}, "issue2")
+	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "first")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
-
 }
 
 func TestDBSearchIssues(t *testing.T) {
@@ -78,19 +80,19 @@ func TestDBSearchIssues(t *testing.T) {
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)
 
-	ids, err := SearchIssuesByKeyword([]int64{1}, "issue2")
+	ids, err := SearchIssuesByKeyword(context.TODO(), []int64{1}, "issue2")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "first")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "first")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "for")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
-	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
+	ids, err = SearchIssuesByKeyword(context.TODO(), []int64{1}, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }

@@ -75,7 +75,7 @@ func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
 	hook, ok := addHook(ctx, form, org.ID, 0)
 	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(org.HomeLink(), hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(org.AsUser().HomeLink(), hook))
 	}
 }
 
@@ -185,7 +185,7 @@ func EditOrgHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(org.HomeLink(), updated))
+	ctx.JSON(http.StatusOK, convert.ToHook(org.AsUser().HomeLink(), updated))
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly

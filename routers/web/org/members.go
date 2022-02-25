@@ -31,7 +31,7 @@ func Members(ctx *context.Context) {
 		page = 1
 	}
 
-	var opts = &models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
@@ -62,7 +62,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = models.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(http.StatusOK, tplMembers)

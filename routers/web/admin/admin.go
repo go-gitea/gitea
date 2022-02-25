@@ -209,7 +209,7 @@ func shadowPassword(provider, cfgItem string) string {
 	case "redis":
 		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
-		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		// root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
 		if atIdx > 0 {
 			colonIdx := strings.Index(cfgItem[:atIdx], ":")
@@ -326,7 +326,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes()
+	ctx.Data["Processes"] = process.GetManager().Processes(true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(http.StatusOK, tplMonitor)
@@ -334,8 +334,8 @@ func Monitor(ctx *context.Context) {
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
-	pid := ctx.ParamsInt64("pid")
-	process.GetManager().Cancel(pid)
+	pid := ctx.Params("pid")
+	process.GetManager().Cancel(process.IDType(pid))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
@@ -391,6 +391,30 @@ func Flush(ctx *context.Context) {
 			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
 		}
 	}()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
+// Pause pauses a queue
+func Pause(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Pause()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
+// Resume resumes a queue
+func Resume(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Resume()
 	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 

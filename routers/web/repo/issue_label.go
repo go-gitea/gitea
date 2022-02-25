@@ -88,7 +88,7 @@ func RetrieveLabels(ctx *context.Context) {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
 			}
-			ctx.Org.OrgLink = org.OrganisationLink()
+			ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 			ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 			ctx.Data["OrganizationLink"] = ctx.Org.OrgLink
 		}

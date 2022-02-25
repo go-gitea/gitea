@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
@@ -35,7 +37,7 @@ function getArchive($target, url, first) {
 export function initRepoArchiveLinks() {
   $('.archive-link').on('click', function (event) {
     event.preventDefault();
-    const url = $(this).data('url');
+    const url = $(this).attr('href');
     if (!url) return;
     getArchive($(event.target), url, true);
   });

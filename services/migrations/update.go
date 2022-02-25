@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -45,7 +46,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		default:
 		}
 
-		users, err := models.FindExternalUsersByProvider(models.FindExternalUserOptions{
+		users, err := user_model.FindExternalUsersByProvider(user_model.FindExternalUserOptions{
 			Provider: provider,
 			Start:    start,
 			Limit:    batchSize,

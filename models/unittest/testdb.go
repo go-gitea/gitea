@@ -5,6 +5,7 @@
 package unittest
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -63,17 +64,21 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 
 	setting.AppURL = "https://try.gitea.io/"
 	setting.RunUser = "runuser"
+	setting.SSH.User = "sshuser"
+	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
-	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
+	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
+	setting.RepoRootPath = repoRootPath
+	appDataPath, err := os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
+	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = pathToGiteaRoot
 	setting.StaticRootPath = pathToGiteaRoot
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
@@ -94,18 +99,38 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		fatalTestError("storage.Init: %v\n", err)
 	}
 
-	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	if err = util.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		fatalTestError("unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			fatalTestError("unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
+
 	exitStatus := m.Run()
-	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
+	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = util.RemoveAll(setting.AppDataPath); err != nil {
+	if err = util.RemoveAll(appDataPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
@@ -124,12 +149,12 @@ func CreateTestEngine(opts FixturesOptions) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	db.SetEngine(x)
+	db.SetDefaultEngine(context.Background(), x)
 
 	if err = db.SyncAllTables(); err != nil {
 		return err
 	}
-	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
+	switch os.Getenv("GITEA_UNIT_TESTS_LOG_SQL") {
 	case "true", "1":
 		x.ShowSQL(true)
 	}
@@ -149,5 +174,22 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, util.CopyDir(metaPath, setting.RepoRootPath))
+
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	assert.NoError(t, err)
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		assert.NoError(t, err)
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
+
 	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }

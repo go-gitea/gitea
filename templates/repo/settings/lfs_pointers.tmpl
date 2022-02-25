@@ -11,7 +11,7 @@
 					<form class="ui form" method="post" action="{{$.Link}}/associate">
 						{{.CsrfTokenHtml}}
 						{{range .Pointers}}
-							{{if and (not .InRepo) .Exists .Accessible}}
+							{{if .Associatable}}
 								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}"/>
 							{{end}}
 						{{end}}

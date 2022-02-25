@@ -50,7 +50,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color/palette"
+	"image/color"
 
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images
@@ -76,7 +76,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color/palette"
+	"image/color"
 
 	_ "image/gif"  // for processing gif images
 	_ "image/jpeg" // for processing jpeg images

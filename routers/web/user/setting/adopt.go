@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,10 +29,10 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	action := ctx.FormString("action")
 
 	ctxUser := ctx.User
-	root := models.UserPath(ctxUser.LowerName)
+	root := user_model.UserPath(ctxUser.LowerName)
 
 	// check not a repo
-	has, err := models.IsRepositoryExist(ctxUser, dir)
+	has, err := repo_model.IsRepositoryExist(ctxUser, dir)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return

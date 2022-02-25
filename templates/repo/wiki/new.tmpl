@@ -16,6 +16,9 @@
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
 			</div>
+			<div class="help">
+				{{.i18n.Tr "repo.wiki.page_name_desc"}}
+			</div>
 			<div class="ui top attached tabular menu previewtabs" data-write="write" data-preview="preview">
 				<a class="active item" data-tab="write">{{.i18n.Tr "write"}}</a>
 				<a class="item" data-tab="preview" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>

@@ -10,13 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
 func TestAPICreateAndDeleteToken(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
 		"name": "test-key-1",
@@ -56,7 +57,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 // TestAPIDeleteMissingToken ensures that error is thrown when token not found
 func TestAPIDeleteMissingToken(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", unittest.NonexistentID)
 	req = AddBasicAuthHeader(req, user.Name)
