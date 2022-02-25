@@ -95,6 +95,15 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
