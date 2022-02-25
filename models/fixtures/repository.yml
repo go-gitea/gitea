@@ -223,6 +223,7 @@
   lower_name: repo15
   name: repo15
   is_empty: false
+  is_private: true
   status: 0
 
 -
@@ -466,6 +467,7 @@
   lower_name: repo20
   name: repo20
   is_empty: false
+  is_private: true
   num_stars: 0
   num_forks: 0
   num_issues: 0
