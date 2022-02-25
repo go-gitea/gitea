@@ -181,3 +181,20 @@ func ToUpperASCII(s string) string {
 	}
 	return string(b)
 }
+
+func NumberIntoInt64(number interface{}) int64 {
+	var value int64
+	switch v := number.(type) {
+	case int:
+		value = int64(v)
+	case int8:
+		value = int64(v)
+	case int16:
+		value = int64(v)
+	case int32:
+		value = int64(v)
+	case int64:
+		value = v
+	}
+	return value
+}

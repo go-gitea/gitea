@@ -18,8 +18,8 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"strings"
 	"strconv"
+	"strings"
 	texttmpl "text/template"
 	"time"
 	"unicode"
@@ -923,19 +923,7 @@ func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remot
 // JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
 // JS will replace the number with locale-specific separators, based on the user's selected language
 func JsPrettyNumber(i interface{}) template.HTML {
-	var num int64
-	switch v := i.(type) {
-	case int:
-		num = int64(v)
-	case int8:
-		num = int64(v)
-	case int16:
-		num = int64(v)
-	case int32:
-		num = int64(v)
-	case int64:
-		num = v
-	}
+	num := util.NumberIntoInt64(i)
 
 	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
 }
