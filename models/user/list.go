@@ -30,10 +30,16 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext))
-	if err == nil {
+
+	if tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext)); err == nil {
 		for _, token := range tokenMaps {
 			results[token.UID] = true
+		}
+	}
+
+	if credentialMaps, err := users.loadWebAuthnStatus(db.GetEngine(db.DefaultContext)); err == nil {
+		for _, cred := range credentialMaps {
+			results[cred.UserID] = true
 		}
 	}
 
@@ -47,13 +53,23 @@ func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*auth.TwoFacto
 
 	userIDs := users.GetUserIDs()
 	tokenMaps := make(map[int64]*auth.TwoFactor, len(userIDs))
-	err := e.
-		In("uid", userIDs).
-		Find(&tokenMaps)
-	if err != nil {
+	if err := e.In("uid", userIDs).Find(&tokenMaps); err != nil {
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return tokenMaps, nil
+}
+
+func (users UserList) loadWebAuthnStatus(e db.Engine) (map[int64]*auth.WebAuthnCredential, error) {
+	if len(users) == 0 {
+		return nil, nil
+	}
+
+	userIDs := users.GetUserIDs()
+	credentialMaps := make(map[int64]*auth.WebAuthnCredential, len(userIDs))
+	if err := e.In("user_id", userIDs).Find(&credentialMaps); err != nil {
+		return nil, fmt.Errorf("find two factor: %v", err)
+	}
+	return credentialMaps, nil
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.
