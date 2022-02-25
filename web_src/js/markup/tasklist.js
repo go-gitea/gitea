@@ -1,3 +1,7 @@
+import $ from 'jquery';
+
+const preventListener = (e) => e.preventDefault();
+
 /**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
  *
@@ -5,9 +9,6 @@
  * is set accordingly and sent to the server. On success it updates the raw-content on
  * error it resets the checkbox to its original value.
  */
-
-const preventListener = (e) => e.preventDefault();
-
 export function initMarkupTasklist() {
   for (const el of document.querySelectorAll(`.markup[data-can-edit=true]`) || []) {
     const container = el.parentNode;

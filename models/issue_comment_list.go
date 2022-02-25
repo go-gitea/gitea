@@ -5,6 +5,8 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -343,11 +345,12 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadDependentIssues(e db.Engine) error {
+func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
+	e := db.GetEngine(ctx)
 	issueIDs := comments.getDependentIssueIDs()
 	issues := make(map[int64]*Issue, len(issueIDs))
 	left := len(issueIDs)
@@ -383,7 +386,7 @@ func (comments CommentList) loadDependentIssues(e db.Engine) error {
 		if comment.DependentIssue == nil {
 			comment.DependentIssue = issues[comment.DependentIssueID]
 			if comment.DependentIssue != nil {
-				if err := comment.DependentIssue.loadRepo(e); err != nil {
+				if err := comment.DependentIssue.loadRepo(ctx); err != nil {
 					return err
 				}
 			}
@@ -487,7 +490,8 @@ func (comments CommentList) loadReviews(e db.Engine) error {
 }
 
 // loadAttributes loads all attributes
-func (comments CommentList) loadAttributes(e db.Engine) (err error) {
+func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if err = comments.loadPosters(e); err != nil {
 		return
 	}
@@ -520,7 +524,7 @@ func (comments CommentList) loadAttributes(e db.Engine) (err error) {
 		return
 	}
 
-	if err = comments.loadDependentIssues(e); err != nil {
+	if err = comments.loadDependentIssues(ctx); err != nil {
 		return
 	}
 
@@ -530,7 +534,7 @@ func (comments CommentList) loadAttributes(e db.Engine) (err error) {
 // LoadAttributes loads attributes of the comments, except for attachments and
 // comments
 func (comments CommentList) LoadAttributes() error {
-	return comments.loadAttributes(db.GetEngine(db.DefaultContext))
+	return comments.loadAttributes(db.DefaultContext)
 }
 
 // LoadAttachments loads attachments

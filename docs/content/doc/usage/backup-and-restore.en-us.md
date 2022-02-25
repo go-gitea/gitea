@@ -15,7 +15,7 @@ menu:
 
 # Backup and Restore
 
-Gitea currently has a `dump` command that will save the installation to a zip file. This
+Gitea currently has a `dump` command that will save the installation to a ZIP file. This
 file can be unpacked and used to restore an instance.
 
 **Table of Contents**
@@ -40,7 +40,7 @@ Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
 - `app.ini` - Optional copy of configuration file if originally stored outside of the default `custom/` directory
 - `custom` - All config or customization files in `custom/`.
-- `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, sqlite file if you are using sqlite.
+- `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, SQLite file if you are using SQLite.
 - `gitea-db.sql` - SQL dump of database
 - `gitea-repo.zip` - Complete copy of the repository directory.
 - `log/` - Various logs. They are not needed for a recovery or migration.
@@ -90,8 +90,8 @@ psql -U $USER -d $DATABASE < gitea-db.sql
 service gitea restart
 ```
 
-Repository git-hooks should be regenerated if installation method is changed (eg. binary -> Docker), or if Gitea is installed to a different directory than the previous installation.
+Repository Git Hooks should be regenerated if installation method is changed (eg. binary -> Docker), or if Gitea is installed to a different directory than the previous installation.
 
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
 
-This ensures that application and configuration file paths in repository git-hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
+This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.

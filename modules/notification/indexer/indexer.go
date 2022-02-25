@@ -6,6 +6,7 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -21,17 +22,16 @@ type indexerNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &indexerNotifier{}
-)
+var _ base.Notifier = &indexerNotifier{}
 
 // NewNotifier create a new indexerNotifier notifier
 func NewNotifier() base.Notifier {
 	return &indexerNotifier{}
 }
 
-func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {
@@ -107,14 +107,14 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
+func (r *indexerNotifier) NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 }
 
-func (r *indexerNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (r *indexerNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 	issue_indexer.UpdateRepoIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
@@ -124,7 +124,7 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *user_model.User, u *user
 	}
 }
 
-func (r *indexerNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -133,7 +133,7 @@ func (r *indexerNotifier) NotifyPushCommits(pusher *user_model.User, repo *model
 	}
 }
 
-func (r *indexerNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}

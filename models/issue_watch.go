@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -80,11 +81,11 @@ func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := getWatch(db.GetEngine(db.DefaultContext), user.ID, issue.RepoID)
+	w, err := repo_model.GetWatch(db.DefaultContext, user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
-	return isWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
+	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
@@ -123,6 +124,20 @@ func getIssueWatchers(e db.Engine, issueID int64, listOptions db.ListOptions) (I
 	}
 	watches := make([]*IssueWatch, 0, 8)
 	return watches, sess.Find(&watches)
+}
+
+// CountIssueWatchers count watchers/unwatchers of a given issue
+func CountIssueWatchers(issueID int64) (int64, error) {
+	return countIssueWatchers(db.GetEngine(db.DefaultContext), issueID)
+}
+
+func countIssueWatchers(e db.Engine, issueID int64) (int64, error) {
+	return e.
+		Where("`issue_watch`.issue_id = ?", issueID).
+		And("`issue_watch`.is_watching = ?", true).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
 }
 
 func removeIssueWatchersByRepoID(e db.Engine, userID, repoID int64) error {

@@ -5,11 +5,13 @@
 package models
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -41,16 +43,17 @@ func (t *TrackedTime) AfterLoad() {
 
 // LoadAttributes load Issue, User
 func (t *TrackedTime) LoadAttributes() (err error) {
-	return t.loadAttributes(db.GetEngine(db.DefaultContext))
+	return t.loadAttributes(db.DefaultContext)
 }
 
-func (t *TrackedTime) loadAttributes(e db.Engine) (err error) {
+func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if t.Issue == nil {
 		t.Issue, err = getIssueByID(e, t.IssueID)
 		if err != nil {
 			return
 		}
-		err = t.Issue.loadRepo(e)
+		err = t.Issue.loadRepo(ctx)
 		if err != nil {
 			return
 		}
@@ -167,7 +170,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if err := issue.loadRepo(sess); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +178,7 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: SecToTime(amount),
+		Content: util.SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
 	}); err != nil {
@@ -224,7 +227,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = SecToTime(total)
+		totalTimes[user] = util.SecToTime(total)
 	}
 	return totalTimes, nil
 }
@@ -251,14 +254,14 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return ErrNotExist{}
 	}
 
-	if err := issue.loadRepo(sess); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 	if _, err := createComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: "- " + SecToTime(removedTime),
+		Content: "- " + util.SecToTime(removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -274,13 +277,12 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	if err := t.loadAttributes(sess); err != nil {
+	if err := t.loadAttributes(ctx); err != nil {
 		return err
 	}
 
-	if err := deleteTime(sess, t); err != nil {
+	if err := deleteTime(db.GetEngine(ctx), t); err != nil {
 		return err
 	}
 
@@ -288,7 +290,7 @@ func DeleteTime(t *TrackedTime) error {
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,
-		Content: "- " + SecToTime(t.Time),
+		Content: "- " + util.SecToTime(t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err

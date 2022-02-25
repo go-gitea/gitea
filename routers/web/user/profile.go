@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -196,7 +197,7 @@ func Profile(ctx *context.Context) {
 	topicOnly := ctx.FormBool("topic")
 
 	var (
-		repos   []*models.Repository
+		repos   []*repo_model.Repository
 		count   int64
 		total   int
 		orderBy db.SearchOrderBy
@@ -231,6 +232,10 @@ func Profile(ctx *context.Context) {
 
 	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
+
+	language := ctx.FormTrim("language")
+	ctx.Data["Language"] = language
+
 	switch tab {
 	case "followers":
 		items, err := user_model.GetUserFollowers(ctxUser, db.ListOptions{
@@ -257,7 +262,8 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+			RequestedUser:   ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -281,6 +287,7 @@ func Profile(ctx *context.Context) {
 			StarredByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -312,6 +319,7 @@ func Profile(ctx *context.Context) {
 			WatchedByID:        ctxUser.ID,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -333,6 +341,7 @@ func Profile(ctx *context.Context) {
 			Private:            ctx.IsSigned,
 			Collaborate:        util.OptionalBoolFalse,
 			TopicOnly:          topicOnly,
+			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
@@ -347,6 +356,9 @@ func Profile(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
+		pager.AddParam(ctx, "language", "Language")
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
@@ -362,7 +374,7 @@ func Action(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	switch ctx.FormString("action") {
 	case "follow":
 		err = user_model.FollowUser(ctx.User.ID, u.ID)
 	case "unfollow":
@@ -370,7 +382,7 @@ func Action(ctx *context.Context) {
 	}
 
 	if err != nil {
-		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
+		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.FormString("action")), err)
 		return
 	}
 	// FIXME: We should check this URL and make sure that it's a valid Gitea URL

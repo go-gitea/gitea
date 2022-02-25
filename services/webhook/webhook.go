@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -25,42 +25,44 @@ type webhook struct {
 	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error)
 }
 
-var (
-	webhooks = map[webhook_model.HookType]*webhook{
-		webhook_model.SLACK: {
-			name:           webhook_model.SLACK,
-			payloadCreator: GetSlackPayload,
-		},
-		webhook_model.DISCORD: {
-			name:           webhook_model.DISCORD,
-			payloadCreator: GetDiscordPayload,
-		},
-		webhook_model.DINGTALK: {
-			name:           webhook_model.DINGTALK,
-			payloadCreator: GetDingtalkPayload,
-		},
-		webhook_model.TELEGRAM: {
-			name:           webhook_model.TELEGRAM,
-			payloadCreator: GetTelegramPayload,
-		},
-		webhook_model.MSTEAMS: {
-			name:           webhook_model.MSTEAMS,
-			payloadCreator: GetMSTeamsPayload,
-		},
-		webhook_model.FEISHU: {
-			name:           webhook_model.FEISHU,
-			payloadCreator: GetFeishuPayload,
-		},
-		webhook_model.MATRIX: {
-			name:           webhook_model.MATRIX,
-			payloadCreator: GetMatrixPayload,
-		},
-		webhook_model.WECHATWORK: {
-			name:           webhook_model.WECHATWORK,
-			payloadCreator: GetWechatworkPayload,
-		},
-	}
-)
+var webhooks = map[webhook_model.HookType]*webhook{
+	webhook_model.SLACK: {
+		name:           webhook_model.SLACK,
+		payloadCreator: GetSlackPayload,
+	},
+	webhook_model.DISCORD: {
+		name:           webhook_model.DISCORD,
+		payloadCreator: GetDiscordPayload,
+	},
+	webhook_model.DINGTALK: {
+		name:           webhook_model.DINGTALK,
+		payloadCreator: GetDingtalkPayload,
+	},
+	webhook_model.TELEGRAM: {
+		name:           webhook_model.TELEGRAM,
+		payloadCreator: GetTelegramPayload,
+	},
+	webhook_model.MSTEAMS: {
+		name:           webhook_model.MSTEAMS,
+		payloadCreator: GetMSTeamsPayload,
+	},
+	webhook_model.FEISHU: {
+		name:           webhook_model.FEISHU,
+		payloadCreator: GetFeishuPayload,
+	},
+	webhook_model.MATRIX: {
+		name:           webhook_model.MATRIX,
+		payloadCreator: GetMatrixPayload,
+	},
+	webhook_model.WECHATWORK: {
+		name:           webhook_model.WECHATWORK,
+		payloadCreator: GetWechatworkPayload,
+	},
+	webhook_model.PACKAGIST: {
+		name:           webhook_model.PACKAGIST,
+		payloadCreator: GetPackagistPayload,
+	},
+}
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {
@@ -99,7 +101,7 @@ func getPayloadBranch(p api.Payloader) string {
 }
 
 // PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhook(w, repo, event, p); err != nil {
 		return err
 	}
@@ -123,7 +125,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -180,7 +182,7 @@ func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event web
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhooks(repo, event, p); err != nil {
 		return err
 	}
@@ -189,7 +191,7 @@ func PrepareWebhooks(repo *models.Repository, event webhook_model.HookEventType,
 	return nil
 }
 
-func prepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	ws, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
 		RepoID:   repo.ID,
 		IsActive: util.OptionalBoolTrue,
@@ -227,5 +229,17 @@ func prepareWebhooks(repo *models.Repository, event webhook_model.HookEventType,
 			return err
 		}
 	}
+	return nil
+}
+
+// ReplayHookTask replays a webhook task
+func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
+	t, err := webhook_model.ReplayHookTask(w.ID, uuid)
+	if err != nil {
+		return err
+	}
+
+	go hookQueue.Add(t.RepoID)
+
 	return nil
 }

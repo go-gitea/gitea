@@ -8,19 +8,19 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
 func TestAPIReposGitTrees(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)       // owner of neither repos
-	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-	repo16 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)               // owner of the repo1 & repo16
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)               // owner of the repo3
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)               // owner of neither repos
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)   // public repo
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)   // public repo
+	repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository) // private repo
 	repo1TreeSHA := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo3TreeSHA := "2a47ca4b614a9f5a43abbd5ad851a54a616ffee6"
 	repo16TreeSHA := "69554a64c1e6030f051e5c3f94bfbd773cd6a324"

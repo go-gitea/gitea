@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,7 +22,7 @@ import (
 func TestAPIModifyLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -52,21 +53,21 @@ func TestAPIModifyLabels(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	//ListLabels
+	// ListLabels
 	req = NewRequest(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, 2)
 
-	//GetLabel
+	// GetLabel
 	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%d?token=%s", owner.Name, repo.Name, dbLabel.ID, token)
 	req = NewRequest(t, "GET", singleURLStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
-	//EditLabel
+	// EditLabel
 	newName := "LabelNewName"
 	newColor := "09876a"
 	newColorWrong := "09g76a"
@@ -82,16 +83,15 @@ func TestAPIModifyLabels(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	//DeleteLabel
+	// DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
 	session.MakeRequest(t, req, http.StatusNoContent)
-
 }
 
 func TestAPIAddIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
 	_ = unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID, ID: 2}).(*models.Label)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -114,7 +114,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 func TestAPIReplaceIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
 	label := unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID}).(*models.Label)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -140,7 +140,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 func TestAPIModifyOrgLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	user := "user1"
 	session := loginUser(t, user)
@@ -172,21 +172,21 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	//ListLabels
+	// ListLabels
 	req = NewRequest(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
 	assert.Len(t, apiLabels, 4)
 
-	//GetLabel
+	// GetLabel
 	singleURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%d?token=%s", owner.Name, dbLabel.ID, token)
 	req = NewRequest(t, "GET", singleURLStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiLabel)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
-	//EditLabel
+	// EditLabel
 	newName := "LabelNewName"
 	newColor := "09876a"
 	newColorWrong := "09g76a"
@@ -202,8 +202,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
-	//DeleteLabel
+	// DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
 	session.MakeRequest(t, req, http.StatusNoContent)
-
 }

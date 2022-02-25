@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -22,7 +23,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
-		assert.NoError(t, team.GetRepositories(&models.SearchTeamOptions{}), "%s: GetRepositories", team.Name)
+		assert.NoError(t, team.GetRepositories(&models.SearchOrgTeamOptions{}), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
@@ -69,25 +70,25 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		{
 			OrgID:                   org.ID,
 			Name:                    "team one",
-			Authorize:               models.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 2",
-			Authorize:               models.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: false,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team three",
-			Authorize:               models.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 4",
-			Authorize:               models.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: false,
 		},
 	}

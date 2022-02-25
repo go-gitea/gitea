@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -24,7 +25,7 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
 
-	var opts = models.FindOrgOptions{
+	opts := models.FindOrgOptions{
 		ListOptions:    listOptions,
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
@@ -155,16 +156,16 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	if authorizeLevel > models.AccessModeNone {
+	if authorizeLevel > perm.AccessModeNone {
 		op.CanRead = true
 	}
-	if authorizeLevel > models.AccessModeRead {
+	if authorizeLevel > perm.AccessModeRead {
 		op.CanWrite = true
 	}
-	if authorizeLevel > models.AccessModeWrite {
+	if authorizeLevel > perm.AccessModeWrite {
 		op.IsAdmin = true
 	}
-	if authorizeLevel > models.AccessModeAdmin {
+	if authorizeLevel > perm.AccessModeAdmin {
 		op.IsOwner = true
 	}
 
@@ -356,7 +357,7 @@ func Edit(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToOrganization(org))
 }
 
-//Delete an organization
+// Delete an organization
 func Delete(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org} organization orgDelete
 	// ---

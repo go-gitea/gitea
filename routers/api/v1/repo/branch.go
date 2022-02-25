@@ -53,7 +53,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, branchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -69,7 +69,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branchName)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -176,29 +176,24 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
-
+	err := repo_service.CreateNewBranch(ctx, ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
 		}
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same tag already exists.")
-
 		} else if models.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "", "The branch already exists.")
-
 		} else if models.IsErrBranchNameConflict(err) {
 			ctx.Error(http.StatusConflict, "", "The branch with the same name already exists.")
-
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepoBranch", err)
-
 		}
 		return
 	}
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, opt.BranchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
@@ -210,7 +205,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branch.Name)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -257,7 +252,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
+	branches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, listOptions.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
@@ -270,7 +265,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
@@ -354,7 +349,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	//     "$ref": "#/responses/BranchProtectionList"
 
 	repo := ctx.Repo.Repository
-	bps, err := repo.GetProtectedBranches()
+	bps, err := models.GetProtectedBranches(repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranches", err)
 		return
@@ -405,7 +400,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 
 	// Currently protection must match an actual branch
-	if !git.IsBranchExist(ctx.Repo.Repository.RepoPath(), form.BranchName) {
+	if !git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.BranchName) {
 		ctx.NotFound()
 		return
 	}
@@ -532,7 +527,6 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusCreated, convert.ToBranchProtection(bp))
-
 }
 
 // EditBranchProtection edits a branch protection for a repo
@@ -811,7 +805,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.DeleteProtectedBranch(bp.ID); err != nil {
+	if err := models.DeleteProtectedBranch(ctx.Repo.Repository.ID, bp.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProtectedBranch", err)
 		return
 	}

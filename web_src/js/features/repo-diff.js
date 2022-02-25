@@ -1,4 +1,7 @@
+import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
+import {initRepoIssueContentHistory} from './repo-issue-content.js';
+import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 
 const {csrfToken} = window.config;
 
@@ -23,7 +26,13 @@ export function initRepoDiffFileViewToggle() {
 export function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
+
     const form = $(e.target);
+    const $textArea = form.find('textarea');
+    if (!validateTextareaNonEmpty($textArea)) {
+      return;
+    }
+
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
     const {path, side, idx} = newConversationHolder.data();
 
@@ -38,7 +47,7 @@ export function initRepoDiffConversationForm() {
   });
 
 
-  $('.resolve-conversation').on('click', async function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
     const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');
@@ -101,6 +110,7 @@ export function initRepoDiffShowMore() {
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+      initRepoIssueContentHistory();
     }).fail(() => {
       $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
@@ -126,6 +136,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      initRepoIssueContentHistory();
     }).fail(() => {
       $target.removeClass('disabled');
     });

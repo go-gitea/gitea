@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -59,13 +60,13 @@ func (actions ActionList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (actions ActionList) loadRepositories(e db.Engine) ([]*Repository, error) {
+func (actions ActionList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
 
 	repoIDs := actions.getRepoIDs()
-	repoMaps := make(map[int64]*Repository, len(repoIDs))
+	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	err := e.
 		In("id", repoIDs).
 		Find(&repoMaps)
@@ -80,7 +81,7 @@ func (actions ActionList) loadRepositories(e db.Engine) ([]*Repository, error) {
 }
 
 // LoadRepositories loads actions' all repositories
-func (actions ActionList) LoadRepositories() ([]*Repository, error) {
+func (actions ActionList) LoadRepositories() ([]*repo_model.Repository, error) {
 	return actions.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 

@@ -86,5 +86,5 @@ func sendEmail(ctx *context.PrivateContext, subject, message string, to []string
 
 	wasSent := strconv.Itoa(len(to))
 
-	ctx.PlainText(http.StatusOK, []byte(wasSent))
+	ctx.PlainText(http.StatusOK, wasSent)
 }

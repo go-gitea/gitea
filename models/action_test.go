@@ -8,6 +8,7 @@ import (
 	"path"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,7 +18,7 @@ import (
 
 func TestAction_GetRepoPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	action := &Action{RepoID: repo.ID}
 	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
@@ -25,7 +26,7 @@ func TestAction_GetRepoPath(t *testing.T) {
 
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	action := &Action{RepoID: repo.ID}
 	setting.AppSubURL = "/suburl"
@@ -90,4 +91,41 @@ func TestGetFeeds2(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
+}
+
+func TestNotifyWatchers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	action := &Action{
+		ActUserID: 8,
+		RepoID:    1,
+		OpType:    ActionStarRepo,
+	}
+	assert.NoError(t, NotifyWatchers(action))
+
+	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ActUserID: action.ActUserID,
+		UserID:    8,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ActUserID: action.ActUserID,
+		UserID:    1,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ActUserID: action.ActUserID,
+		UserID:    4,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ActUserID: action.ActUserID,
+		UserID:    11,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
 }

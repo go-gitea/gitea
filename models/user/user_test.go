@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -21,7 +21,7 @@ import (
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: 1}).(*login.OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1}).(*auth.OAuth2Application)
 	user, err := GetUserByID(app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
@@ -233,6 +233,20 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 	err := CreateUser(user)
 	assert.Error(t, err)
 	assert.True(t, IsErrEmailInvalid(err))
+}
+
+func TestCreateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	// add new user with user2's email
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	err := CreateUser(user)
+	assert.Error(t, err)
+	assert.True(t, IsErrEmailAlreadyUsed(err))
 }
 
 func TestGetUserIDsByNames(t *testing.T) {

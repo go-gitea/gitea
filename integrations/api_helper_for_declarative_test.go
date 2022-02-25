@@ -8,12 +8,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
@@ -89,13 +91,13 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 	}
 }
 
-func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessMode) func(*testing.T) {
 	return func(t *testing.T) {
 		permission := "read"
 
-		if mode == models.AccessModeAdmin {
+		if mode == perm.AccessModeAdmin {
 			permission = "admin"
-		} else if mode > models.AccessModeRead {
+		} else if mode > perm.AccessModeRead {
 			permission = "write"
 		}
 		addCollaboratorOption := &api.AddCollaboratorOption{
@@ -261,23 +263,26 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-			MergeMessageField: "doAPIMergePullRequest Merge",
-			Do:                string(models.MergeStyleMerge),
-		})
 
-		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+		var req *http.Request
+		var resp *httptest.ResponseRecorder
 
-		if resp.Code == http.StatusMethodNotAllowed {
+		for i := 0; i < 6; i++ {
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+				MergeMessageField: "doAPIMergePullRequest Merge",
+				Do:                string(repo_model.MergeStyleMerge),
+			})
+
+			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+
+			if resp.Code != http.StatusMethodNotAllowed {
+				break
+			}
 			err := api.APIError{}
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
-			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-				MergeMessageField: "doAPIMergePullRequest Merge",
-				Do:                string(models.MergeStyleMerge),
-			})
-			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+			<-time.After(1 * time.Second)
 		}
 
 		expected := ctx.ExpectedCode
@@ -297,7 +302,7 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-			Do:            string(models.MergeStyleManuallyMerged),
+			Do:            string(repo_model.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
 		})
 

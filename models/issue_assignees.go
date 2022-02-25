@@ -120,7 +120,7 @@ func (issue *Issue) toggleAssignee(ctx context.Context, doer *user_model.User, a
 	}
 
 	// Repo infos
-	if err = issue.loadRepo(sess); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 

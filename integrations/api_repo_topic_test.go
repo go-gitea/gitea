@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -55,8 +55,8 @@ func TestAPIRepoTopic(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of repo2
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User) // owner of repo3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // write access to repo 3
-	repo2 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
@@ -155,5 +155,4 @@ func TestAPIRepoTopic(t *testing.T) {
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
 	session.MakeRequest(t, req, http.StatusForbidden)
-
 }

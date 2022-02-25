@@ -32,19 +32,19 @@ So it's very important to manage these packages. Please take the below guideline
 To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The Gitea backend is divided into the following parts:
 
 - `build`: Scripts to help build Gitea.
-- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
+- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by Git or OpenSSH. Other sub commands could help to maintain Gitea.
 - `integrations`: Integration tests
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
   - `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
-- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
+- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`, in particular those that depend on models because they rely on the database.
   - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
 - `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
-  - `routers/api` Conatins routers for `/api/v1` aims to handle RESTful API requests. 
-  - `routers/install` Could only reponse when system is INSTALL mode. 
+  - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests. 
+  - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false). 
   - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
   - `routers/web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
@@ -103,8 +103,8 @@ i.e. `servcies/user`, `models/repository`.
 
 ### Import Alias
 
-Since there are many package levels and sub packages, so you will find `modules/user`, `models/user`, `services/user`. When these packages are import into one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So we recommand to always use import alias. To differ from package variables which are commonly use camelCase, just use **snake_case** as import package alias.
-i.e. `import user_service "code.Gitea.io/Gitea/services/user"`
+Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
+i.e. `import user_service "code.gitea.io/gitea/services/user"`
 
 ### Future Tasks
 

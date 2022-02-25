@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrIssueStopwatchNotExist represents an error that stopwatch is not exist
@@ -53,7 +54,7 @@ func (s Stopwatch) Seconds() int64 {
 
 // Duration returns a human-readable duration string based on local server time
 func (s Stopwatch) Duration() string {
-	return SecToTime(s.Seconds())
+	return util.SecToTime(s.Seconds())
 }
 
 func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
@@ -156,7 +157,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -164,7 +165,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
-		Content: SecToTime(timediff),
+		Content: util.SecToTime(timediff),
 		Type:    CommentTypeStopTracking,
 		TimeID:  tt.ID,
 	}); err != nil {
@@ -177,7 +178,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -207,7 +208,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -248,11 +249,7 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if err := issue.loadRepo(e); err != nil {
-			return err
-		}
-
-		if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		if err := issue.loadRepo(ctx); err != nil {
 			return err
 		}
 
@@ -266,33 +263,4 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 		}
 	}
 	return nil
-}
-
-// SecToTime converts an amount of seconds to a human-readable string (example: 66s -> 1min 6s)
-func SecToTime(duration int64) string {
-	seconds := duration % 60
-	minutes := (duration / (60)) % 60
-	hours := duration / (60 * 60)
-
-	var hrs string
-
-	if hours > 0 {
-		hrs = fmt.Sprintf("%dh", hours)
-	}
-	if minutes > 0 {
-		if hours == 0 {
-			hrs = fmt.Sprintf("%dmin", minutes)
-		} else {
-			hrs = fmt.Sprintf("%s %dmin", hrs, minutes)
-		}
-	}
-	if seconds > 0 {
-		if hours == 0 && minutes == 0 {
-			hrs = fmt.Sprintf("%ds", seconds)
-		} else {
-			hrs = fmt.Sprintf("%s %ds", hrs, seconds)
-		}
-	}
-
-	return hrs
 }

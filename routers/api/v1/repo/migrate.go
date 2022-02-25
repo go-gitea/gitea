@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -54,7 +56,7 @@ func Migrate(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.MigrateRepoOptions)
 
-	//get repoOwner
+	// get repoOwner
 	var (
 		repoOwner *user_model.User
 		err       error
@@ -135,7 +137,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
-	var opts = migrations.MigrateOptions{
+	opts := migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -172,7 +174,7 @@ func Migrate(ctx *context.APIContext) {
 		GitServiceType: gitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, remoteAddr, err)
@@ -201,26 +203,26 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
+	if repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
 		handleMigrateError(ctx, repoOwner, remoteAddr, err)
 		return
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {
 	switch {
-	case models.IsErrRepoAlreadyExist(err):
+	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-	case models.IsErrRepoFilesAlreadyExist(err):
+	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
-	case models.IsErrReachLimitOfRepo(err):
+	case repo_model.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case db.IsErrNameReserved(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(db.ErrNameReserved).Name))

@@ -29,3 +29,16 @@ func ErrCancelledf(format string, args ...interface{}) error {
 		fmt.Sprintf(format, args...),
 	}
 }
+
+// ErrSSHDisabled represents an "SSH disabled" error.
+type ErrSSHDisabled struct{}
+
+// IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
+func IsErrSSHDisabled(err error) bool {
+	_, ok := err.(ErrSSHDisabled)
+	return ok
+}
+
+func (err ErrSSHDisabled) Error() string {
+	return "SSH is disabled"
+}

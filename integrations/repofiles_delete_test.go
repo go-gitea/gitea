@@ -8,8 +8,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -17,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getDeleteRepoFileOptions(repo *models.Repository) *files_service.DeleteRepoFileOptions {
+func getDeleteRepoFileOptions(repo *repo_model.Repository) *files_service.DeleteRepoFileOptions {
 	return &files_service.DeleteRepoFileOptions{
 		LastCommitID: "",
 		OldBranch:    repo.DefaultBranch,
@@ -80,7 +81,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	opts := getDeleteRepoFileOptions(repo)
 
 	t.Run("Delete README.md file", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
@@ -92,7 +93,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
 		assert.EqualError(t, err, expectedError)
@@ -122,7 +123,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	opts.NewBranch = ""
 
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
@@ -151,7 +152,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("Bad branch", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.OldBranch = "bad_branch"
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Error(t, err)
 		assert.Nil(t, fileResponse)
 		expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
@@ -162,7 +163,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		origSHA := opts.SHA
 		opts.SHA = "bad_sha"
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
@@ -172,7 +173,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("New branch already exists", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.NewBranch = "develop"
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "branch already exists [name: " + opts.NewBranch + "]"
@@ -182,7 +183,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("TreePath is empty:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.TreePath = ""
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "path contains a malformed path component [path: ]"
@@ -192,7 +193,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("TreePath is a git directory:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.TreePath = ".git"
-		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"

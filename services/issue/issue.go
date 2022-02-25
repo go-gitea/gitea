@@ -7,6 +7,7 @@ package issue
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
@@ -14,7 +15,7 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
+func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
@@ -161,8 +162,8 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
 // and their respective URLs.
 func GetRefEndNamesAndURLs(issues []*models.Issue, repoLink string) (map[int64]string, map[int64]string) {
-	var issueRefEndNames = make(map[int64]string, len(issues))
-	var issueRefURLs = make(map[int64]string, len(issues))
+	issueRefEndNames := make(map[int64]string, len(issues))
+	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
 			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)

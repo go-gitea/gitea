@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -30,6 +32,11 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
+	if err := repos.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		return
+	}
+
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
 		access, err := models.AccessLevel(ctx.User, repos[i])
@@ -37,7 +44,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
+		if ctx.IsSigned && ctx.User.IsAdmin || access >= perm.AccessModeRead {
 			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
@@ -117,7 +124,7 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
+		if err = repo.GetOwner(db.DefaultContext); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}

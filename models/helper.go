@@ -5,10 +5,8 @@
 package models
 
 import (
-	"encoding/binary"
-
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
 )
 
 func keysInt64(m map[int64]struct{}) []int64 {
@@ -19,8 +17,8 @@ func keysInt64(m map[int64]struct{}) []int64 {
 	return keys
 }
 
-func valuesRepository(m map[int64]*Repository) []*Repository {
-	values := make([]*Repository, 0, len(m))
+func valuesRepository(m map[int64]*repo_model.Repository) []*repo_model.Repository {
+	values := make([]*repo_model.Repository, 0, len(m))
 	for _, v := range m {
 		values = append(values, v)
 	}
@@ -33,33 +31,4 @@ func valuesUser(m map[int64]*user_model.User) []*user_model.User {
 		values = append(values, v)
 	}
 	return values
-}
-
-// JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
-// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
-func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
-	err := json.Unmarshal(bs, v)
-	if err != nil {
-		ok := true
-		rs := []byte{}
-		temp := make([]byte, 2)
-		for _, rn := range string(bs) {
-			if rn > 0xffff {
-				ok = false
-				break
-			}
-			binary.LittleEndian.PutUint16(temp, uint16(rn))
-			rs = append(rs, temp...)
-		}
-		if ok {
-			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
-				rs = rs[2:]
-			}
-			err = json.Unmarshal(rs, v)
-		}
-	}
-	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], v)
-	}
-	return err
 }

@@ -22,7 +22,7 @@ import (
 )
 
 // LabelColorPattern is a regexp witch can validate LabelColor
-var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+var LabelColorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents a label of repository for issues.
 type Label struct {
@@ -258,6 +258,23 @@ func NewLabel(label *Label) error {
 	if !LabelColorPattern.MatchString(label.Color) {
 		return fmt.Errorf("bad color code: %s", label.Color)
 	}
+
+	// normalize case
+	label.Color = strings.ToLower(label.Color)
+
+	// add leading hash
+	if label.Color[0] != '#' {
+		label.Color = "#" + label.Color
+	}
+
+	// convert 3-character shorthand into 6-character version
+	if len(label.Color) == 4 {
+		r := label.Color[1]
+		g := label.Color[2]
+		b := label.Color[3]
+		label.Color = fmt.Sprintf("#%c%c%c%c%c%c", r, r, g, g, b, b)
+	}
+
 	return newLabel(db.GetEngine(db.DefaultContext), label)
 }
 
@@ -675,7 +692,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		return err
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return
 	}
 
@@ -707,7 +724,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	if err = issue.loadRepo(sess); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -731,7 +748,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
 func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return err
 	}
 	for _, label := range labels {
@@ -780,7 +797,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 		return nil
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return
 	}
 

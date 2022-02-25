@@ -18,7 +18,7 @@
 				</div>
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.repo_size"}}</label>
-					<span>{{SizeFmt .Repository.Size}}</span>
+					<span>{{FileSize .Repository.Size}}</span>
 				</div>
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.template"}}</label>
@@ -78,7 +78,7 @@
 			<div class="ui attached segment">
 				{{$.i18n.Tr "repo.settings.mirror_settings.docs" | Safe}}
 				<table class="ui table">
-					{{if or .Repository.IsMirror .Repository.PushMirrors}}
+					{{if or .Repository.IsMirror .PushMirrors}}
 					<thead>
 						<tr>
 							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -91,7 +91,7 @@
 					{{if .Repository.IsMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress .Mirror).Address}}</td>
+							<td>{{(MirrorRemoteAddress $.Context .Mirror).Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
 							<td class="right aligned">
@@ -119,7 +119,7 @@
 										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
-									{{$address := MirrorRemoteAddress .Mirror}}
+									{{$address := MirrorRemoteAddress $.Context .Mirror}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
@@ -166,9 +166,9 @@
 					<thead><tr><th colspan="4"></th></tr></thead>
 					{{end}}
 					<tbody>
-						{{range .Repository.PushMirrors}}
+						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress .}}
+							{{$address := MirrorRemoteAddress $.Context .}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
@@ -558,9 +558,48 @@
 					</div>
 				</div>
 
-				<div class="ui divider"></div>
 				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+
+			<div class="ui divider"></div>
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="admin_index">
+				{{if .CodeIndexerEnabled}}
+					<h4 class="ui header">{{.i18n.Tr "repo.settings.admin_code_indexer"}}</h4>
+					<div class="inline fields">
+						<label>{{.i18n.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+						<span class="field">
+							{{if .CodeIndexerStatus}}
+								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
+									<span class="shortsha">{{ShortSha .CodeIndexerStatus.CommitSha}}</span>
+								</a>
+							{{else}}
+									<span>{{.i18n.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+							{{end}}
+						</span>
+						<div class="field">
+							<button class="ui green button" name="request_reindex_type" value="code">{{$.i18n.Tr "repo.settings.reindex_button"}}</button>
+						</div>
+					</div>
+				{{end}}
+				<h4 class="ui header">{{.i18n.Tr "repo.settings.admin_stats_indexer"}}</h4>
+				<div class="inline fields">
+					<label>{{.i18n.Tr "repo.settings.admin_indexer_commit_sha"}}</label>
+					<span class="field">
+						{{if .StatsIndexerStatus}}
+							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
+								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
+							</a>
+						{{else}}
+							<span>{{.i18n.Tr "repo.settings.admin_indexer_unindexed"}}</span>
+						{{end}}
+					</span>
+					<div class="field">
+						<button class="ui green button" name="request_reindex_type" value="stats">{{$.i18n.Tr "repo.settings.reindex_button"}}</button>
+					</div>
 				</div>
 			</form>
 		</div>

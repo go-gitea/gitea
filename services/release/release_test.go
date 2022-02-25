@@ -28,8 +28,8 @@ func TestRelease_Create(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
@@ -112,7 +112,7 @@ func TestRelease_Create(t *testing.T) {
 	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
-	var release = models.Release{
+	release := models.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -132,8 +132,8 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
@@ -274,8 +274,8 @@ func TestRelease_createTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repoPath := models.RepoPath(user.Name, repo.Name)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
@@ -356,8 +356,8 @@ func TestRelease_createTag(t *testing.T) {
 func TestCreateNewTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
-	assert.NoError(t, CreateNewTag(user, repo, "master", "v2.0",
+	assert.NoError(t, CreateNewTag(git.DefaultContext, user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
 }

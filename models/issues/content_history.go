@@ -137,6 +137,7 @@ func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64
 type IssueContentListItem struct {
 	UserID         int64
 	UserName       string
+	UserFullName   string
 	UserAvatarLink string
 
 	HistoryID      int64
@@ -146,16 +147,15 @@ type IssueContentListItem struct {
 }
 
 // FetchIssueContentHistoryList fetch list
-func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
+func FetchIssueContentHistoryList(dbCtx context.Context, issueID, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
-	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name,"+
+	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name, u.full_name as user_full_name,"+
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
 		Table([]string{"issue_content_history", "h"}).
 		Join("LEFT", []string{"user", "u"}, "h.poster_id = u.id").
 		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
 		OrderBy("edited_unix DESC").
 		Find(&res)
-
 	if err != nil {
 		log.Error("can not fetch issue content history list. err=%v", err)
 		return nil, err
@@ -168,7 +168,7 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentI
 }
 
 // HasIssueContentHistory check if a ContentHistory entry exists
-func HasIssueContentHistory(dbCtx context.Context, issueID int64, commentID int64) (bool, error) {
+func HasIssueContentHistory(dbCtx context.Context, issueID, commentID int64) (bool, error) {
 	exists, err := db.GetEngine(dbCtx).Cols("id").Exist(&ContentHistory{
 		IssueID:   issueID,
 		CommentID: commentID,

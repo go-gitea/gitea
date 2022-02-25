@@ -141,7 +141,7 @@ func TestCreateBranchInvalidCSRF(t *testing.T) {
 	resp = session.MakeRequest(t, NewRequest(t, "GET", loc), http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	assert.Equal(t,
-		"Bad Request: Invalid CSRF token",
+		"Bad Request: invalid CSRF token",
 		strings.TrimSpace(htmlDoc.doc.Find(".ui.message").Text()),
 	)
 }

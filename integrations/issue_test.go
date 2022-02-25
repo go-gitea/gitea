@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/indexer/issues"
@@ -63,7 +64,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	session := loginUser(t, user.Name)
 	req := NewRequest(t, "GET", repo.Link()+"/issues?type=created_by")
@@ -90,7 +91,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{
 		RepoID: repo.ID,
 		Index:  1,
@@ -120,7 +121,6 @@ func TestNoLoginViewIssue(t *testing.T) {
 }
 
 func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content string) string {
-
 	req := NewRequest(t, "GET", path.Join(user, repo, "issues", "new"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -148,7 +148,6 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 }
 
 func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, status string) int64 {
-
 	req := NewRequest(t, "GET", issueURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -243,7 +242,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNone})
+		RefAction:    references.XRefActionNone,
+	})
 
 	// Edit title, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "title", "Title no ref")
@@ -253,7 +253,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNeutered})
+		RefAction:    references.XRefActionNeutered,
+	})
 
 	// Ref from issue content
 	issueRefURL, issueRef = testIssueWithBean(t, "user2", 1, "TitleXRef", fmt.Sprintf("Description ref #%d", issueBase.Index))
@@ -263,7 +264,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNone})
+		RefAction:    references.XRefActionNone,
+	})
 
 	// Edit content, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "content", "Description no ref")
@@ -273,7 +275,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNeutered})
+		RefAction:    references.XRefActionNeutered,
+	})
 
 	// Ref from a comment
 	session := loginUser(t, "user2")
@@ -284,7 +287,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: commentID,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNone}
+		RefAction:    references.XRefActionNone,
+	}
 	unittest.AssertExistsAndLoadBean(t, comment)
 
 	// Ref from a different repository
@@ -295,7 +299,8 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    references.XRefActionNone})
+		RefAction:    references.XRefActionNone,
+	})
 }
 
 func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *models.Issue) {
@@ -309,7 +314,7 @@ func testIssueWithBean(t *testing.T, user string, repoID int64, title, content s
 	return issueURL, issue
 }
 
-func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string) {
+func testIssueChangeInfo(t *testing.T, user, issueURL, info, value string) {
 	session := loginUser(t, user)
 
 	req := NewRequest(t, "GET", issueURL)

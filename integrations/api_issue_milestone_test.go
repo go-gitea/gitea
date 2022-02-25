@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -21,7 +22,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	milestone := unittest.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: milestone.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: milestone.RepoID}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	assert.Equal(t, int64(1), int64(milestone.NumIssues))
 	assert.Equal(t, structs.StateOpen, milestone.State())

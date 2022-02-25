@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -44,7 +46,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetRepositories(&SearchTeamOptions{}))
+		assert.NoError(t, team.GetRepositories(&SearchOrgTeamOptions{}))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			unittest.AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -123,18 +125,18 @@ func TestTeam_AddRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		assert.NoError(t, team.AddRepository(repo))
 		unittest.AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repoID})
-		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
 
 	team := unittest.AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	assert.Error(t, team.AddRepository(repo))
-	unittest.CheckConsistencyFor(t, &Team{ID: 1}, &Repository{ID: 1})
+	unittest.CheckConsistencyFor(t, &Team{ID: 1}, &repo_model.Repository{ID: 1})
 }
 
 func TestTeam_RemoveRepository(t *testing.T) {
@@ -144,7 +146,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, team.RemoveRepository(repoID))
 		unittest.AssertNotExistsBean(t, &TeamRepo{TeamID: teamID, RepoID: repoID})
-		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
@@ -209,14 +211,14 @@ func TestUpdateTeam(t *testing.T) {
 	team.LowerName = "newname"
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
-	team.Authorize = AccessModeAdmin
+	team.AccessMode = perm.AccessModeAdmin
 	assert.NoError(t, UpdateTeam(team, true, false))
 
 	team = unittest.AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
 
 	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: 3}).(*Access)
-	assert.EqualValues(t, AccessModeAdmin, access.Mode)
+	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
 	unittest.CheckConsistencyFor(t, &Team{ID: team.ID})
 }
@@ -246,10 +248,10 @@ func TestDeleteTeam(t *testing.T) {
 
 	// check that team members don't have "leftover" access to repos
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	accessMode, err := AccessLevel(user, repo)
 	assert.NoError(t, err)
-	assert.True(t, accessMode < AccessModeWrite)
+	assert.True(t, accessMode < perm.AccessModeWrite)
 }
 
 func TestIsTeamMember(t *testing.T) {
@@ -290,7 +292,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, _, err := SearchTeam(&SearchTeamOptions{UserID: userID})
+		teams, _, err := GetUserTeams(&GetUserTeamOptions{UserID: userID})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			unittest.AssertExistsAndLoadBean(t, &TeamUser{TeamID: team.ID, UID: userID})

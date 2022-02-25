@@ -59,6 +59,16 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
+// HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
+// by given head information (repo and branch)
+func HasUnmergedPullRequestsByHeadInfo(repoID int64, branch string) (bool, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
+			repoID, branch, false, false, PullRequestFlowGithub).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Exist(&PullRequest{})
+}
+
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {

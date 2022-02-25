@@ -94,7 +94,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Make emailaddress primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := models.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := user_model.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
