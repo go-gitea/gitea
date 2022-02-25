@@ -78,6 +78,8 @@ import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
+// Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
+$.fn.checkbox.settings.enableEnterKey = false;
 
 initVueEnv();
 
