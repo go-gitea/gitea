@@ -53,7 +53,8 @@ func (ns *notificationService) Run() {
 }
 
 func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	opts := issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
@@ -203,7 +204,7 @@ func (ns *notificationService) NotifyPullRevieweDismiss(doer *user_model.User, r
 }
 
 func (ns *notificationService) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
-	if !removed {
+	if !removed && doer.ID != assignee.ID {
 		opts := issueNotificationOpts{
 			IssueID:              issue.ID,
 			NotificationAuthorID: doer.ID,
