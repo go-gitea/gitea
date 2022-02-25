@@ -442,6 +442,7 @@ rules:
   unicorn/require-post-message-target-origin: [0]
   unicorn/string-content: [0]
   unicorn/template-indent: [2]
+  unicorn/text-encoding-identifier-case: [0]
   unicorn/throw-new-error: [2]
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
