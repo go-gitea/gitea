@@ -372,6 +372,12 @@ func (issue *Issue) AfterDelete() {
 		log.Info("Could not delete comments for issue %d: %s", issue.ID, err)
 	}
 
+	// Delete label assignment
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&IssueLabel{}); err != nil {
+		log.Info("Could not delete issue labels for issue %d: %s", issue.ID, err)
+	}
+
 	// References to this issue in other issues
 	if _, err := e.In("ref_issue_id", issue.ID).
 		Delete(&Comment{}); err != nil {
@@ -390,39 +396,52 @@ func (issue *Issue) AfterDelete() {
 		log.Info("Could not delete external issue dependencies for issue %d: %s", issue.ID, err)
 	}
 
+	// delete from dependent issues
+	if _, err := e.In("dependent_issue_id", issue.ID).
+		Delete(&Comment{}); err != nil {
+		log.Info("Could not delete dependend issue for issue %d: %s", issue.ID, err)
+	}
+
+	// delete issue assignment
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&IssueAssignees{}); err != nil {
+		log.Info("Could not delete issue assignees for issue %d: %s", issue.ID, err)
+	}
+
+	// delete issue user state
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&IssueUser{}); err != nil {
 		log.Info("Could not delete IssueUser for issue %d: %s", issue.ID, err)
 	}
 
+	// delete reactions
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&Reaction{}); err != nil {
 		log.Info("Could not delete Reaction for issue %d: %s", issue.ID, err)
 	}
 
+	// delete user watches
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&IssueWatch{}); err != nil {
 		log.Info("Could not delete IssueWatch for issue %d: %s", issue.ID, err)
 	}
 
+	// delete stopwatches
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&Stopwatch{}); err != nil {
 		log.Info("Could not delete StopWatch for issue %d: %s", issue.ID, err)
 	}
 
+	// delete tracked time
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&TrackedTime{}); err != nil {
 		log.Info("Could not delete TrackedTime for issue %d: %s", issue.ID, err)
 	}
 
+	// delete from projects
 	if _, err := e.In("issue_id", issue.ID).
 		Delete(&ProjectIssue{}); err != nil {
 		log.Info("Could not delete ProjektIssue for issue %d: %s", issue.ID, err)
-	}
-
-	if _, err := e.In("dependent_issue_id", issue.ID).
-		Delete(&Comment{}); err != nil {
-		log.Info("Could not delete dependend issue for issue %d: %s", issue.ID, err)
 	}
 
 	var attachments []*repo_model.Attachment
