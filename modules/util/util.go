@@ -182,6 +182,7 @@ func ToUpperASCII(s string) string {
 	return string(b)
 }
 
+// NumberIntoInt64 transform a given int into int64.
 func NumberIntoInt64(number interface{}) int64 {
 	var value int64
 	switch v := number.(type) {
