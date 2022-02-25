@@ -37,6 +37,9 @@ func (db *DBIndexer) Index(id int64) error {
 
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
+		if err.Error() == "no such file or directory" {
+			return nil
+		}
 		return err
 	}
 	defer gitRepo.Close()
