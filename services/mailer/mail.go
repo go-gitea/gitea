@@ -427,7 +427,8 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
 func actionToTemplate(issue *models.Issue, actionType models.ActionType,
-	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
+	commentType models.CommentType, reviewType models.ReviewType,
+) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
 	} else {
