@@ -137,17 +137,23 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 					CreatedUnix:     reg.CreatedUnix,
 				}
 
-				has, err := sess.ID(reg.ID).Where("id = ?", reg.ID).Get(new(webauthnCredential))
+				has, err := sess.ID(reg.ID).Get(new(webauthnCredential))
 				if err != nil {
 					return fmt.Errorf("unable to get webauthn_credential[%d]. Error: %w", reg.ID, err)
 				}
 				if !has {
-					_, err = sess.Insert(remigrated)
+					has, err := sess.Where("`lower_name`=?", remigrated.LowerName).And("`user_id`=?", remigrated.UserID).Exist(new(webauthnCredential))
 					if err != nil {
-						return fmt.Errorf("unable to (re)insert webauthn_credential[%d]. Error: %w", reg.ID, err)
+						return fmt.Errorf("unable to check webauthn_credential[lower_name: %s, user_id:%v]. Error: %w", remigrated.LowerName, remigrated.UserID, err)
 					}
+					if !has {
+						_, err = sess.Insert(remigrated)
+						if err != nil {
+							return fmt.Errorf("unable to (re)insert webauthn_credential[%d]. Error: %w", reg.ID, err)
+						}
 
-					continue
+						continue
+					}
 				}
 
 				_, err = sess.ID(remigrated.ID).AllCols().Update(remigrated)
