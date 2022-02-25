@@ -78,8 +78,8 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
 	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
-		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, head)
-		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, head)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, base)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, base)
 	}
 }
 
