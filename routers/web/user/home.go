@@ -363,7 +363,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var (
 		viewType   string
 		sortType   = ctx.FormString("sort")
-		filterMode = models.FilterModeAll
+		filterMode int
 	)
 
 	// --------------------------------------------------------------------------------
