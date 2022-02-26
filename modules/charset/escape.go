@@ -69,6 +69,7 @@ func EscapeControlReader(text io.Reader, output io.Writer) (escaped EscapeStatus
 	lineHasBIDI := false
 	lineHasRTLScript := false
 	lineHasLTRScript := false
+
 readingloop:
 	for err == nil {
 		n, err = text.Read(buf[readStart:])
@@ -78,7 +79,6 @@ readingloop:
 
 		for i < len(bs) {
 			r, size := utf8.DecodeRune(bs[i:])
-
 			// Now handle the codepoints
 			switch {
 			case r == utf8.RuneError:
