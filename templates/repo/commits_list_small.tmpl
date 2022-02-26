@@ -6,7 +6,7 @@
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
-			<a href="{.User.HomeLink}}">
+			<a href="{{.User.HomeLink}}">
 				{{avatar .User}}
 			</a>
 		{{else}}

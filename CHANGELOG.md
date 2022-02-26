@@ -4,6 +4,54 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.2](https://github.com/go-gitea/gitea/releases/tag/v1.16.2) - 2022-02-24
+
+* ENHANCEMENTS
+  * Show fullname on issue edits and gpg/ssh signing info (#18828)
+  * Immediately Hammer if second kill is sent (#18823) (#18826)
+  * Allow mermaid render error to wrap (#18791)
+* BUGFIXES
+  * Fix ldap user sync missed email in email_address table (#18786) (#18876) 
+  * Update assignees check to include any writing team and change org sidebar (#18680) (#18873)
+  * Don't report signal: killed errors in serviceRPC (#18850) (#18865)
+  * Fix bug where certain LDAP settings were reverted (#18859)
+  * Update go-org to 1.6.0 (#18824) (#18839)
+  * Fix login with email for ldap users (#18800) (#18836)
+  * Fix bug for get user by email (#18834)
+  * Fix panic in EscapeReader (#18820) (#18821)
+  * Fix ldap loginname (#18789) (#18804)
+  * Remove redundant call to UpdateRepoStats during migration (#18591) (#18794)
+  * In disk_channel queues synchronously push to disk on shutdown (#18415) (#18788)
+  * Fix template bug of LFS lock (#18784) (#18787)
+  * Attempt to fix the webauthn migration again - part 3 (#18770) (#18771)
+  * Send mail to issue/pr assignee/reviewer also when OnMention is set (#18707) (#18765)
+  * Fix a broken link in commits_list_small.tmpl (#18763) (#18764)
+  * Increase the size of the webauthn_credential credential_id field (#18739) (#18756)
+  * Prevent dangling GetAttribute calls (#18754) (#18755)
+  * Fix isempty detection of git repository (#18746) (#18750)
+  * Fix source code line highlighting on external tracker (#18729) (#18740)
+  * Prevent double encoding of branch names in delete branch (#18714) (#18738)
+  * Always set PullRequestWorkInProgressPrefixes in PrepareViewPullInfo (#18713) (#18737)
+  * Fix forked repositories missed tags (#18719) (#18735)
+  * Fix release typo (#18728) (#18731)
+  * Separate the details links of commit-statuses in headers (#18661) (#18730)
+  * Update object repo with the migrated repository (#18684) (#18726)
+  * Fix bug for version update hint (#18701) (#18705)
+  * Fix issue with docker-rootless shimming script (#18690) (#18699)
+  * Let `MinUnitAccessMode` return correct perm (#18675) (#18689)
+  * Prevent security failure due to bad APP_ID (#18678) (#18682)
+  * Restart zero worker if there is still work to do (#18658) (#18672)
+  * If rendering has failed due to a net.OpError stop rendering (#18642) (#18645)
+* TESTING
+  * Ensure git tag tests and others create test repos in tmpdir (#18447) (#18767)
+* BUILD
+  * Reduce CI go module downloads, add make targets (#18708, #18475, #18443) (#18741)
+* MISC
+  * Put buttons back in org dashboard (#18817) (#18825)
+  * Various Mermaid improvements (#18776) (#18780)
+  * C preprocessor colors improvement (#18671) (#18696)
+  * Fix the missing i18n key for update checker (#18646) (#18665)
+
 ## [1.16.1](https://github.com/go-gitea/gitea/releases/tag/v1.16.1) - 2022-02-06
 
 * SECURITY

@@ -827,8 +827,9 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
-func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
-	if err := validateUser(u); err != nil {
+func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
+	err := validateUser(u)
+	if err != nil {
 		return err
 	}
 
@@ -860,15 +861,35 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 		}); err != nil {
 			return err
 		}
+	} else { // check if primary email in email_address table
+		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
+		if err != nil {
+			return err
+		}
+
+		if !primaryEmailExist {
+			if _, err = e.Insert(&EmailAddress{
+				Email:       u.Email,
+				UID:         u.ID,
+				IsActivated: true,
+				IsPrimary:   true,
+			}); err != nil {
+				return err
+			}
+		}
 	}
 
-	_, err := e.ID(u.ID).AllCols().Update(u)
+	if len(cols) == 0 {
+		_, err = e.ID(u.ID).AllCols().Update(u)
+	} else {
+		_, err = e.ID(u.ID).Cols(cols...).Update(u)
+	}
 	return err
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(u *User, emailChanged bool) error {
-	return updateUser(db.DefaultContext, u, emailChanged)
+func UpdateUser(u *User, emailChanged bool, cols ...string) error {
+	return updateUser(db.DefaultContext, u, emailChanged, cols...)
 }
 
 // UpdateUserCols update user according special columns
@@ -1104,19 +1125,9 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	email = strings.ToLower(email)
-	// First try to find the user by primary email
-	user := &User{Email: email}
-	has, err := db.GetEngine(ctx).Get(user)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return user, nil
-	}
-
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = db.GetEngine(ctx).Get(emailAddress)
+	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
+	has, err := db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
