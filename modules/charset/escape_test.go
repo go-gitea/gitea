@@ -135,6 +135,14 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		result: string([]byte{'\xef', '\xbb', '\xbf'}),
 		status: EscapeStatus{},
 	},
+	{
+		name:   "BOM encoding UTF-16",
+		text:   string([]byte{239, 187, 191, 228, 189, 160, 229, 165, 189, 239, 188, 140, 228, 184, 150, 231, 149, 140, 10, 104, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100, 10}),
+		result: string([]byte{239, 187, 191, 228, 189, 160, 229, 165, 189, 239, 188, 140, 228, 184, 150, 231, 149, 140, 10, 104, 101, 108, 108, 111, 44, 32, 119, 111, 114, 108, 100, 10}),
+		status: EscapeStatus{
+			HasLTRScript: true,
+		},
+	},
 }
 
 func TestEscapeControlString(t *testing.T) {
