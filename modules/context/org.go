@@ -129,7 +129,11 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Team.
 	if ctx.Org.IsMember {
-		if ctx.Org.IsOwner {
+		maxPerm, err := org.GetOrgUserMaxAuthorizeLevel(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("GetOrgUserMaxAuthorizeLevel", err)
+		}
+		if ctx.Org.IsOwner || maxPerm >= perm.AccessModeAdmin {
 			ctx.Org.Teams, err = org.LoadTeams()
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
