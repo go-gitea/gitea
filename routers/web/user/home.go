@@ -422,8 +422,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		User:       ctx.User,
 	}
 
-	// Search all repositories which the given user or team
-	// has write permissions.
+	// Search all repositories which
+	//
+	// As user:
+	// - Owns the repository.
+	// - Have collaborator permissions in repository.
+	//
+	// As org:
+	// - Owns the repository.
+	//
+	// As team:
+	// - Team org's owns the repository.
+	// - Team has read permission to repository.
 	repoOpts := &models.SearchRepoOptions{
 		Actor:      ctx.User,
 		OwnerID:    ctx.User.ID,
