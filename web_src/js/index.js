@@ -75,7 +75,6 @@ import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
-import {resetFileFolding} from './features/file-fold.js';
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -168,5 +167,4 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-  resetFileFolding();
 });

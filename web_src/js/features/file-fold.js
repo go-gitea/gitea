@@ -16,19 +16,3 @@ export function invertFileFolding(fileContentBox, foldArrow) {
   setFileFolding(fileContentBox, foldArrow, fileContentBox.getAttribute('data-folded') !== 'true');
 }
 
-// Folds every file stored in `window.config.pageData.viewedFiles` according to the value that is persisted there.
-//
-// All other files not present there are simply ignored.
-export function resetFileFolding() {
-  const viewedFiles = window.config.pageData.viewedFiles;
-  if (!viewedFiles) return;
-
-  const filenameAttribute = 'data-new-filename';
-  for (const file of document.querySelectorAll('.file-content')) {
-    if (file.hasAttribute(filenameAttribute)) {
-      const filename = file.getAttribute(filenameAttribute);
-      setFileFolding(file, file.querySelector('.fold-file'), filename in viewedFiles || viewedFiles.includes(filename)); // because of this OR, arrays as well as objects are supported
-    }
-  }
-}
-
