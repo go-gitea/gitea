@@ -679,10 +679,12 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End                             string
-	NumFiles, TotalAddition, TotalDeletion int
-	Files                                  []*DiffFile
-	IsIncomplete                           bool
+	Start, End                   string
+	NumFiles                     int
+	TotalAddition, TotalDeletion int
+	Files                        []*DiffFile
+	IsIncomplete                 bool
+	NumViewedFiles               int // user-specific
 }
 
 // LoadComments loads comments into each line

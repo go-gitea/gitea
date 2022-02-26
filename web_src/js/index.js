@@ -63,6 +63,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
+import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
@@ -167,4 +168,5 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
+  initViewedCheckboxListenerFor(document);
 });

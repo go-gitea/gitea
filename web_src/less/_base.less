@@ -764,6 +764,15 @@ a.ui.card:hover,
   }
 }
 
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 .right.stackable.menu {
   // responsive fix: this makes sure that the right menu when the page
   // is on mobile view will have elements stacked on top of each other.
@@ -1621,10 +1630,6 @@ a.ui.label:hover {
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-user-select: none;
-  user-select: none;
 
   .blame-info {
     width: 350px;

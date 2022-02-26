@@ -18,6 +18,9 @@
 				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+					{{template "repo/pulls/viewed_files_summary" .}}
+				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
@@ -105,8 +108,8 @@
 									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
-							{{if and $.IsSigned $.PageIsPullFiles}}
-								<div class="viewed-file-checkbox">
+							{{if and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
+								<div class="unselectable viewed-file-checkbox{{if $file.IsViewed}} viewed-file-checked-checkbox{{end}}">
 									{{if $file.HasChangedSinceLastReview}}
 										<span class="changed-since-last-review">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 									{{end}}
