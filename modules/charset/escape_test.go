@@ -173,7 +173,7 @@ func TestEscapeControlReader(t *testing.T) {
 	copy(tests, escapeControlTests)
 
 	// if there is a BOM, we should keep the BOM
-	addPrefix := func(prefix string, s string) string {
+	addPrefix := func(prefix, s string) string {
 		if strings.HasPrefix(s, "\xef\xbb\xbf") {
 			return s[:3] + prefix + s[3:]
 		}
