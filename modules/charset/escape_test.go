@@ -129,6 +129,14 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 			"\n" + `if access_level != "user<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" data-escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {` + "\n",
 		status: EscapeStatus{Escaped: true, HasBIDI: true, BadBIDI: true, HasLTRScript: true, HasRTLScript: true},
 	},
+	{
+		// UTF-8/16/32 all use the same codepoint for BOM
+		// Gitea could read UTF-16/32 content and convert into UTF-8 internally then render it, so we only process UTF-8 internally
+		name:   "UTF BOM",
+		text:   "\xef\xbb\xbftest",
+		result: "\xef\xbb\xbftest",
+		status: EscapeStatus{HasLTRScript: true},
+	},
 }
 
 func TestEscapeControlString(t *testing.T) {
@@ -163,10 +171,18 @@ func TestEscapeControlReader(t *testing.T) {
 	// lets add some control characters to the tests
 	tests := make([]escapeControlTest, 0, len(escapeControlTests)*3)
 	copy(tests, escapeControlTests)
+
+	// if there is a BOM, we should keep the BOM
+	addPrefix := func(prefix, s string) string {
+		if strings.HasPrefix(s, "\xef\xbb\xbf") {
+			return s[:3] + prefix + s[3:]
+		}
+		return prefix + s
+	}
 	for _, test := range escapeControlTests {
 		test.name += " (+Control)"
-		test.text = "\u001E" + test.text
-		test.result = `<span class="escaped-code-point" data-escaped="[U+001E]"><span class="char">` + "\u001e" + `</span></span>` + test.result
+		test.text = addPrefix("\u001E", test.text)
+		test.result = addPrefix(`<span class="escaped-code-point" data-escaped="[U+001E]"><span class="char">`+"\u001e"+`</span></span>`, test.result)
 		test.status.Escaped = true
 		test.status.HasControls = true
 		tests = append(tests, test)
@@ -174,8 +190,8 @@ func TestEscapeControlReader(t *testing.T) {
 
 	for _, test := range escapeControlTests {
 		test.name += " (+Mark)"
-		test.text = "\u0300" + test.text
-		test.result = `<span class="escaped-code-point" data-escaped="[U+0300]"><span class="char">` + "\u0300" + `</span></span>` + test.result
+		test.text = addPrefix("\u0300", test.text)
+		test.result = addPrefix(`<span class="escaped-code-point" data-escaped="[U+0300]"><span class="char">`+"\u0300"+`</span></span>`, test.result)
 		test.status.Escaped = true
 		test.status.HasMarks = true
 		tests = append(tests, test)
