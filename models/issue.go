@@ -1552,6 +1552,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeYourRepositories
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1735,6 +1736,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	switch opts.FilterMode {
 	case FilterModeAll:
+	case FilterModeYourRepositories:
 		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))

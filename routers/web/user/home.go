@@ -389,8 +389,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = models.FilterModeMention
 	case "review_requested":
 		filterMode = models.FilterModeReviewRequested
-	case "your_repositories": // filterMode already set to All
+	case "your_repositories":
+		fallthrough
 	default:
+		filterMode = models.FilterModeYourRepositories
 		viewType = "your_repositories"
 	}
 
@@ -420,6 +422,26 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		User:       ctx.User,
 	}
 
+	// Search all repositories which the given user or team
+	// has write permissions.
+	repoOpts := &models.SearchRepoOptions{
+		Actor:      ctx.User,
+		OwnerID:    ctx.User.ID,
+		Private:    true,
+		AllPublic:  false,
+		AllLimited: false,
+	}
+
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+		repoOpts.TeamID = ctx.Org.Team.ID
+	}
+
+	userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
+	if err != nil {
+		ctx.ServerError("models.SearchRepositoryIDs: %v", err)
+		return
+	}
+
 	switch filterMode {
 	case models.FilterModeAll:
 	case models.FilterModeAssign:
@@ -430,6 +452,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.User.ID
+	case models.FilterModeYourRepositories:
+		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+			// Fixes a issue whereby the user's ID would be used
+			// to check if it's in the team(which possible isn't the case).
+			opts.User = nil
+		}
+		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -553,6 +582,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		statsOpts := models.UserIssueStatsOptions{
 			UserID:     ctx.User.ID,
 			FilterMode: filterMode,
+			RepoIDs:    userRepoIDs,
 			IsPull:     isPullList,
 			IsClosed:   isShowClosed,
 			IssueIDs:   issueIDsFromSearch,
@@ -563,6 +593,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
+		}
+		// Detect when we only should search by team.
+		if opts.User == nil {
+			statsOpts.UserID = 0
 		}
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
