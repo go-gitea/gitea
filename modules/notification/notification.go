@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
@@ -57,6 +58,13 @@ func NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
 func NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeStatus(doer, issue, actionComment, closeOrReopen)
+	}
+}
+
+// NotifyDeleteIssue notify when some issue deleted
+func NotifyDeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteIssue(doer, gitRepo, issue)
 	}
 }
 

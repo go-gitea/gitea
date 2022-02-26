@@ -5,6 +5,8 @@
 package issue
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -126,12 +128,22 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 }
 
 // DeleteIssue deletes an issue
-func DeleteIssue(doer *user_model.User, issue *models.Issue) error {
+func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue) error {
 	if err := models.DeleteIssue(issue); err != nil {
 		return err
 	}
 
-	// notification.NotifyDeleteIssue(doer, issue)
+	// delete pull request related git data
+	if issue.IsPull {
+		if err := issue.LoadPullRequest(); err != nil {
+			return err
+		}
+		if err := gitRepo.RemoveReference(fmt.Sprintf(git.PullPrefix+"%d", issue.PullRequest.Index)); err != nil {
+			return err
+		}
+	}
+
+	notification.NotifyDeleteIssue(doer, gitRepo, issue)
 
 	return nil
 }

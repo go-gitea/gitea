@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -873,15 +872,7 @@ func deleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Params(":username"), ctx.Params(":reponame"))
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetRepoByOwnerAndName", err)
-		}
-	}
-	issue, err := models.GetIssueByIndex(repo.ID, ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
@@ -891,7 +882,7 @@ func deleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx.User, issue); err != nil {
+	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
 		return
 	}

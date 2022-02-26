@@ -358,108 +358,6 @@ func (issue *Issue) GetIsRead(userID int64) error {
 	return nil
 }
 
-func (issue *Issue) AfterDelete() {
-	e := db.GetEngine(db.DefaultContext)
-	// Delete content histories
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&issues.ContentHistory{}); err != nil {
-		log.Info("Could not delete content history for issue %d: %s", issue.ID, err)
-	}
-
-	// Delete comments and attachments
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&Comment{}); err != nil {
-		log.Info("Could not delete comments for issue %d: %s", issue.ID, err)
-	}
-
-	// Delete label assignment
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&IssueLabel{}); err != nil {
-		log.Info("Could not delete issue labels for issue %d: %s", issue.ID, err)
-	}
-
-	// References to this issue in other issues
-	if _, err := e.In("ref_issue_id", issue.ID).
-		Delete(&Comment{}); err != nil {
-		log.Info("Could not delete referring comments for issue %d: %s", issue.ID, err)
-	}
-
-	// Dependencies for issues in this repository
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&IssueDependency{}); err != nil {
-		log.Info("Could not delete internal issue dependencies for issue %d: %s", issue.ID, err)
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err := e.In("dependency_id", issue.ID).
-		Delete(&IssueDependency{}); err != nil {
-		log.Info("Could not delete external issue dependencies for issue %d: %s", issue.ID, err)
-	}
-
-	// delete from dependent issues
-	if _, err := e.In("dependent_issue_id", issue.ID).
-		Delete(&Comment{}); err != nil {
-		log.Info("Could not delete dependend issue for issue %d: %s", issue.ID, err)
-	}
-
-	// delete issue assignment
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&IssueAssignees{}); err != nil {
-		log.Info("Could not delete issue assignees for issue %d: %s", issue.ID, err)
-	}
-
-	// delete issue user state
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&IssueUser{}); err != nil {
-		log.Info("Could not delete IssueUser for issue %d: %s", issue.ID, err)
-	}
-
-	// delete reactions
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&Reaction{}); err != nil {
-		log.Info("Could not delete Reaction for issue %d: %s", issue.ID, err)
-	}
-
-	// delete user watches
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&IssueWatch{}); err != nil {
-		log.Info("Could not delete IssueWatch for issue %d: %s", issue.ID, err)
-	}
-
-	// delete stopwatches
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&Stopwatch{}); err != nil {
-		log.Info("Could not delete StopWatch for issue %d: %s", issue.ID, err)
-	}
-
-	// delete tracked time
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&TrackedTime{}); err != nil {
-		log.Info("Could not delete TrackedTime for issue %d: %s", issue.ID, err)
-	}
-
-	// delete from projects
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&ProjectIssue{}); err != nil {
-		log.Info("Could not delete ProjektIssue for issue %d: %s", issue.ID, err)
-	}
-
-	var attachments []*repo_model.Attachment
-	if err := e.In("issue_id", issue.ID).
-		Find(&attachments); err != nil {
-		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
-	}
-
-	for i := range attachments {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
-	}
-
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&repo_model.Attachment{}); err != nil {
-		log.Info("Could not delete attachment for issue %d: %s", issue.ID, err)
-	}
-}
-
 // APIURL returns the absolute APIURL to this issue.
 func (issue *Issue) APIURL() string {
 	if issue.Repo == nil {
@@ -2102,17 +2000,25 @@ func DeleteIssue(issue *Issue) error {
 	}
 	defer committer.Close()
 
-	if err := deleteIssue(db.GetEngine(ctx), issue); err != nil {
+	if err := deleteIssue(ctx, issue); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func deleteIssue(e db.Engine, issue *Issue) error {
-	if _, err := e.Delete(&Issue{
-		ID: issue.ID,
-	}); err != nil {
+func deleteIn(e db.Engine, issueID int64, beans ...interface{}) error {
+	for _, bean := range beans {
+		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteIssue(ctx context.Context, issue *Issue) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
 		return err
 	}
 
@@ -2134,6 +2040,52 @@ func deleteIssue(e db.Engine, issue *Issue) error {
 				return err
 			}
 		}
+	}
+
+	if err := deleteIn(e, issue.ID,
+		&issues.ContentHistory{},
+		&Comment{},
+		&IssueLabel{},
+		&IssueDependency{},
+		&IssueAssignees{},
+		&IssueUser{},
+		&Reaction{},
+		&IssueWatch{},
+		&Stopwatch{},
+		&TrackedTime{},
+		&ProjectIssue{},
+	); err != nil {
+		return err
+	}
+
+	// References to this issue in other issues
+	if _, err := e.In("ref_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err := e.In("dependency_id", issue.ID).Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// delete from dependent issues
+	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).
+		Find(&attachments); err != nil {
+		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	if _, err := e.In("issue_id", issue.ID).
+		Delete(&repo_model.Attachment{}); err != nil {
+		return err
 	}
 
 	return nil
