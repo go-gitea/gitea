@@ -144,7 +144,8 @@ readingloop:
 					return
 				}
 				writePos = i + size
-			case unicode.Is(unicode.C, r):
+			// 65279 == BOM rune.
+			case unicode.Is(unicode.C, r) && r != rune(65279):
 				escaped.Escaped = true
 				escaped.HasControls = true
 				if writePos < i {
