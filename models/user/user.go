@@ -861,7 +861,7 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		}); err != nil {
 			return err
 		}
-	} else { // check if primary email in email_address table
+	} else if !u.IsOrganization() { // check if primary email in email_address table
 		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
 		if err != nil {
 			return err
