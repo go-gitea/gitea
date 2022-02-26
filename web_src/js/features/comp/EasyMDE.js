@@ -7,12 +7,7 @@ import attachTribute from '../tribute.js';
 export async function importEasyMDE() {
   // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can
   // not overwrite the default styles.
-  const [
-    {default: EasyMDE},
-  ] = await Promise.all([
-    import(/* webpackChunkName: "easymde" */'easymde'),
-  ]);
-
+  const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
   return EasyMDE;
 }
 
