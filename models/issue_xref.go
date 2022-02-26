@@ -195,7 +195,8 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 
 // verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
 func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossReferencesContext, repo *repo_model.Repository,
-	ref references.IssueReference) (*Issue, references.XRefAction, error) {
+	ref references.IssueReference,
+) (*Issue, references.XRefAction, error) {
 	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
 	e := db.GetEngine(stdCtx)

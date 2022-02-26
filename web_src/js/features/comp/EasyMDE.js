@@ -1,50 +1,13 @@
 import $ from 'jquery';
 import attachTribute from '../tribute.js';
 
-const {appSubUrl} = window.config;
-
-function loadScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.async = true;
-    script.addEventListener('load', () => {
-      resolve();
-    });
-    script.addEventListener('error', (e) => {
-      reject(e.error);
-    });
-    script.src = url;
-    document.body.appendChild(script);
-  });
-}
-
 /**
  * @returns {EasyMDE}
  */
 export async function importEasyMDE() {
-  // for CodeMirror: the plugins should be loaded dynamically
-  // https://github.com/codemirror/CodeMirror/issues/5484
-  // https://github.com/codemirror/CodeMirror/issues/4838
-
-  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-  const [{default: EasyMDE}, {default: CodeMirror}] = await Promise.all([
-    import(/* webpackChunkName: "easymde" */'easymde'),
-    import(/* webpackChunkName: "codemirror" */'codemirror'),
-  ]);
-
-  // CodeMirror plugins must be loaded by a "Plain browser env"
-  window.CodeMirror = CodeMirror;
-  await Promise.all([
-    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/addon/mode/loadmode.js`),
-    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/mode/meta.js`),
-  ]);
-
-  // the loadmode.js/meta.js would set the modeURL/modeInfo properties, so we check it to make sure our loading works
-  if (!CodeMirror.modeURL || !CodeMirror.modeInfo) {
-    throw new Error('failed to load plugins for CodeMirror');
-  }
-
-  CodeMirror.modeURL = `${appSubUrl}/assets/vendor/plugins/codemirror/mode/%N/%N.js`;
+  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can
+  // not overwrite the default styles.
+  const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
   return EasyMDE;
 }
 

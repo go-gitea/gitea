@@ -39,7 +39,8 @@ func NewContext() {
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
 func NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	for _, notifier := range notifiers {
 		notifier.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 	}
@@ -201,7 +202,8 @@ func NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef str
 
 // NotifyIssueChangeLabels notifies change labels to notifiers
 func NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label,
+) {
 	for _, notifier := range notifiers {
 		notifier.NotifyIssueChangeLabels(doer, issue, addedLabels, removedLabels)
 	}
