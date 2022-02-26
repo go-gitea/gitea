@@ -602,25 +602,27 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 
 // DiffFile represents a file diff.
 type DiffFile struct {
-	Name                    string
-	OldName                 string
-	Index                   int
-	Addition, Deletion      int
-	Type                    DiffFileType
-	IsCreated               bool
-	IsDeleted               bool
-	IsBin                   bool
-	IsLFSFile               bool
-	IsRenamed               bool
-	IsAmbiguous             bool
-	IsSubmodule             bool
-	Sections                []*DiffSection
-	IsIncomplete            bool
-	IsIncompleteLineTooLong bool
-	IsProtected             bool
-	IsGenerated             bool
-	IsVendored              bool
-	Language                string
+	Name                      string
+	OldName                   string
+	Index                     int
+	Addition, Deletion        int
+	Type                      DiffFileType
+	IsCreated                 bool
+	IsDeleted                 bool
+	IsBin                     bool
+	IsLFSFile                 bool
+	IsRenamed                 bool
+	IsAmbiguous               bool
+	IsSubmodule               bool
+	Sections                  []*DiffSection
+	IsIncomplete              bool
+	IsIncompleteLineTooLong   bool
+	IsProtected               bool
+	IsGenerated               bool
+	IsVendored                bool
+	IsViewed                  bool // User specific
+	HasChangedSinceLastReview bool // User specific
+	Language                  string
 }
 
 // GetType returns type of diff file.

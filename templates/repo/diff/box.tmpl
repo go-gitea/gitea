@@ -61,7 +61,7 @@
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							<a role="button" class="fold-file muted mr-2">
-								{{if $file.IsGenerated}}
+								{{if or $file.IsGenerated $file.IsViewed}}
 									{{svg "octicon-chevron-right" 18}}
 								{{else}}
 									{{svg "octicon-chevron-down" 18}}
@@ -105,9 +105,17 @@
 									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
+							{{if and $.IsSigned $.PageIsPullFiles}}
+								<div class="viewed-file-checkbox">
+									{{if $file.HasChangedSinceLastReview}}
+										<span class="changed-since-last-review">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
+									{{end}}
+									<input type="checkbox" id="viewed-file-checkbox-{{$i}}" {{if $file.IsViewed}}checked{{end}}></input>
+									<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
+							{{end}}
 						</div>
 					</h4>
-					<div class="diff-file-body ui attached unstackable table segment">
+					<div class="diff-file-body ui attached unstackable table segment" {{if $file.IsViewed}}data-folded="true"{{end}}>
 						<div id="diff-source-{{$i}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
 							{{if or $file.IsIncomplete $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">
