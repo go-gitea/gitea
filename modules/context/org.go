@@ -135,7 +135,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		} else {
 			teams, err := org.GetUserTeams(ctx.User.ID)
 			if err != nil {
-				ctx.ServerError("GetOrgUserMaxAuthorizeLevel", err)
+				ctx.ServerError("GetUserTeams", err)
 				return
 			}
 			for _, team := range teams {
