@@ -129,6 +129,12 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 			"\n" + `if access_level != "user<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" data-escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {` + "\n",
 		status: EscapeStatus{Escaped: true, HasBIDI: true, BadBIDI: true, HasLTRScript: true, HasRTLScript: true},
 	},
+	{
+		name:   "BOM encoding UTF-8",
+		text:   string([]byte{'\xef', '\xbb', '\xbf'}),
+		result: string([]byte{'\xef', '\xbb', '\xbf'}),
+		status: EscapeStatus{},
+	},
 }
 
 func TestEscapeControlString(t *testing.T) {
