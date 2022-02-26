@@ -35,6 +35,10 @@ type SyncRequest struct {
 
 // doMirrorSync causes this request to mirror itself
 func doMirrorSync(ctx context.Context, req *SyncRequest) {
+	if req.MirrorID == 0 {
+		log.Warn("Skipping mirror sync request, no mirror ID was specified")
+		return
+	}
 	switch req.Type {
 	case PushMirrorType:
 		_ = SyncPushMirror(ctx, req.MirrorID)
