@@ -40,6 +40,10 @@ type RepoUnit struct { //revive:disable-line:exported
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
+func (repoUnit RepoUnit) String() string {
+	return repoUnit.Type.String()
+}
+
 func init() {
 	db.RegisterModel(new(RepoUnit))
 }
