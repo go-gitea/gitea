@@ -290,14 +290,17 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	}
 
 	repo.Units, err = getUnitsByRepoID(db.GetEngine(ctx), repo.ID)
-	unitsStr := "["
-	for _, unit := range repo.Units {
-		unitsStr += unit.Type.String()
-		unitsStr += ", "
+	if log.GetLevel() >= log.TRACE {
+		unitsStr := "["
+		for _, unit := range repo.Units {
+			unitsStr += unit.Type.String()
+			unitsStr += ", "
+		}
+		unitsStr = strings.TrimSuffix(unitsStr, ", ")
+		unitsStr += "]"
+		log.Trace("repo.Units: %s", unitsStr)
 	}
-	unitsStr = strings.TrimSuffix(unitsStr, ", ")
-	unitsStr += "]"
-	log.Trace("repo.Units: %s", unitsStr)
+
 	return err
 }
 
