@@ -22,8 +22,16 @@ func (m *Manager) CloseLevelDB(connection string) error {
 	defer m.mutex.Unlock()
 	db, ok := m.LevelDBConnections[connection]
 	if !ok {
-		connection = ToLevelDBURI(connection).String()
-		db, ok = m.LevelDBConnections[connection]
+		// Try the full URI
+		uri := ToLevelDBURI(connection)
+		db, ok = m.LevelDBConnections[uri.String()]
+
+		if !ok {
+			// Try the datadir directly
+			dataDir := path.Join(uri.Host, uri.Path)
+
+			db, ok = m.LevelDBConnections[dataDir]
+		}
 	}
 	if !ok {
 		return nil
