@@ -44,10 +44,10 @@
 				</ul>
 				{{if (eq .Team.AccessMode 2)}}
 					<h3>{{.i18n.Tr "org.settings.permission"}}</h3>
-					{{.i18n.Tr "org.teams.write_permission_desc"}}
+					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
 				{{else if (eq .Team.AccessMode 3)}}
 					<h3>{{.i18n.Tr "org.settings.permission"}}</h3>
-					{{.i18n.Tr "org.teams.admin_permission_desc"}}
+					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
 				{{else}}
 					<table class="ui table">
 						<thead>
