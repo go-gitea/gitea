@@ -127,7 +127,10 @@ function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
-    clearInterval(updateTimeInterval);
+      if (updateTimeInterval) {
+        clearInterval(updateTimeInterval);
+        updateTimeInterval = null;
+      }
     btnEl.addClass('hidden');
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
