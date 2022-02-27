@@ -25,7 +25,7 @@ body:
   attributes:
     label: Description
     description: |
-      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see above)
+      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see below)
       If you are using a proxy or a CDN (e.g. Cloudflare) in front of Gitea, please disable the proxy/CDN fully and access Gitea directly to confirm the issue still persists without those services.
 - type: input
   id: gitea-ver
