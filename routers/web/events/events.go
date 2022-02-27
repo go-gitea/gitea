@@ -72,6 +72,7 @@ func Events(ctx *context.Context) {
 	timer := time.NewTicker(30 * time.Second)
 
 	stopwatchTimer := time.NewTicker(setting.UI.Notification.MinTimeout)
+	prevStopwatchEmpty := false
 
 loop:
 	for {
@@ -98,6 +99,14 @@ loop:
 			if err != nil {
 				log.Error("Unable to GetUserStopwatches: %v", err)
 				continue
+			}
+			if len(sws) == 0 {
+				if prevStopwatchEmpty {
+					continue
+				}
+				prevStopwatchEmpty = true
+			} else {
+				prevStopwatchEmpty = false
 			}
 			apiSWs, err := convert.ToStopWatches(sws)
 			if err != nil {
