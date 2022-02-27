@@ -39,9 +39,9 @@ type RepoUnit struct { //revive:disable-line:exported
 	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
-
-func (repoUnit RepoUnit) String() string {
-	return repoUnit.Type.String()
+// String returns repoUnit's type.
+func (r RepoUnit) String() string {
+	return r.Type.String()
 }
 
 func init() {
