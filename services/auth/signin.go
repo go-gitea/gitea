@@ -32,7 +32,7 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		}
 		if !has {
 			return nil, nil, user_model.ErrEmailAddressNotExist{
-				Email: user.Email,
+				Email: username,
 			}
 		}
 		user = &user_model.User{ID: emailAddress.UID}

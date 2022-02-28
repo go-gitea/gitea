@@ -5,10 +5,12 @@
 package nosql
 
 import (
+	"fmt"
 	"path"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -20,8 +22,16 @@ func (m *Manager) CloseLevelDB(connection string) error {
 	defer m.mutex.Unlock()
 	db, ok := m.LevelDBConnections[connection]
 	if !ok {
-		connection = ToLevelDBURI(connection).String()
-		db, ok = m.LevelDBConnections[connection]
+		// Try the full URI
+		uri := ToLevelDBURI(connection)
+		db, ok = m.LevelDBConnections[uri.String()]
+
+		if !ok {
+			// Try the datadir directly
+			dataDir := path.Join(uri.Host, uri.Path)
+
+			db, ok = m.LevelDBConnections[dataDir]
+		}
 	}
 	if !ok {
 		return nil
@@ -40,6 +50,12 @@ func (m *Manager) CloseLevelDB(connection string) error {
 
 // GetLevelDB gets a levelDB for a particular connection
 func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
+	// Convert the provided connection description to the common format
+	uri := ToLevelDBURI(connection)
+
+	// Get the datadir
+	dataDir := path.Join(uri.Host, uri.Path)
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	db, ok := m.LevelDBConnections[connection]
@@ -48,12 +64,28 @@ func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
 
 		return db.db, nil
 	}
-	uri := ToLevelDBURI(connection)
-	db = &levelDBHolder{
-		name: []string{connection, uri.String()},
+
+	db, ok = m.LevelDBConnections[uri.String()]
+	if ok {
+		db.count++
+
+		return db.db, nil
 	}
 
-	dataDir := path.Join(uri.Host, uri.Path)
+	// if there is already a connection to this leveldb reuse that
+	// NOTE: if there differing options then only the first leveldb connection will be used
+	db, ok = m.LevelDBConnections[dataDir]
+	if ok {
+		db.count++
+		log.Warn("Duplicate connnection to level db: %s with different connection strings. Initial connection: %s. This connection: %s", dataDir, db.name[0], connection)
+		db.name = append(db.name, connection)
+		m.LevelDBConnections[connection] = db
+		return db.db, nil
+	}
+	db = &levelDBHolder{
+		name: []string{connection, uri.String(), dataDir},
+	}
+
 	opts := &opt.Options{}
 	for k, v := range uri.Query() {
 		switch replacer.Replace(strings.ToLower(k)) {
@@ -134,7 +166,11 @@ func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
 	db.db, err = leveldb.OpenFile(dataDir, opts)
 	if err != nil {
 		if !errors.IsCorrupted(err) {
-			return nil, err
+			if strings.Contains(err.Error(), "resource temporarily unavailable") {
+				return nil, fmt.Errorf("unable to lock level db at %s: %w", dataDir, err)
+			}
+
+			return nil, fmt.Errorf("unable to open level db at %s: %w", dataDir, err)
 		}
 		db.db, err = leveldb.RecoverFile(dataDir, opts)
 		if err != nil {
