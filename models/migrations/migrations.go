@@ -61,7 +61,6 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
-
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
