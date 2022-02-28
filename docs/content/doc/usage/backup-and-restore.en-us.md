@@ -1,16 +1,16 @@
 ---
-date: "2017-01-01T16:00:00+02:00"
-title: "Usage: Backup and Restore"
-slug: "backup-and-restore"
+date: '2017-01-01T16:00:00+02:00'
+title: 'Usage: Backup and Restore'
+slug: 'backup-and-restore'
 weight: 11
 toc: false
 draft: false
 menu:
   sidebar:
-    parent: "usage"
-    name: "Backup and Restore"
+    parent: 'usage'
+    name: 'Backup and Restore'
     weight: 11
-    identifier: "backup-and-restore"
+    identifier: 'backup-and-restore'
 ---
 
 # Backup and Restore
@@ -115,7 +115,7 @@ mv repos/* /data/git/repositories/
 # adjust file permissions
 chown -R git:git /data
 # Regenerate Git Hooks
-/app/gitea/gitea -c '/data/gitea/conf/app.ini' admin regenerate hooks
+/usr/local/bin/gitea -c '/data/gitea/conf/app.ini' admin regenerate hooks
 ```
 
 The default user in the gitea container is `git` (1000:1000). Please replace `2a83b293548e` with your gitea container id or name.
@@ -128,4 +128,26 @@ DEFAULT CONFIGURATION:
      CustomConf:  /data/gitea/conf/app.ini
      AppPath:     /usr/local/bin/gitea
      AppWorkPath: /usr/local/bin
+```
+
+### Using Docker-rootless (`restore`)
+
+The restore workflow in Docker-rootless containers differs only in the directories to be used:
+
+```sh
+# open bash session in container
+docker exec --user git -it 2a83b293548e bash
+# unzip your backup file within the container
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+# restore the app.ini
+mv data/conf/app.ini /etc/gitea/app.ini
+# restore the gitea data
+mv data/* /var/lib/gitea
+# restore the repositories itself
+mv repos/* /var/lib/gitea/git/repositories
+# adjust file permissions
+chown -R git:git /etc/gitea/app.ini /var/lib/gitea
+# Regenerate Git Hooks
+/usr/local/bin/gitea -c '/etc/gitea/app.ini' admin regenerate hooks
 ```
