@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -61,6 +63,29 @@ loop:
 					}
 					continue
 				}
+			}
+
+			usersStopwatches, err := models.GetUIDsAndStopwatch()
+			if err != nil {
+				log.Error("Unable to get GetUIDsAndStopwatch: %v", err)
+				return
+			}
+
+			for _, userStopwatches := range usersStopwatches {
+				apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
+				if err != nil {
+					log.Error("Unable to APIFormat stopwatches: %v", err)
+					continue
+				}
+				dataBs, err := json.Marshal(apiSWs)
+				if err != nil {
+					log.Error("Unable to marshal stopwatches: %v", err)
+					continue
+				}
+				m.SendMessage(userStopwatches.UserID, &Event{
+					Name: "stopwatches",
+					Data: string(dataBs),
+				})
 			}
 
 			now := timeutil.TimeStampNow().Add(-2)
