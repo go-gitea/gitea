@@ -11,10 +11,10 @@ import (
 )
 
 func TestSecToTime(t *testing.T) {
-	assert.Equal(t, SecToTime(10), "10s")
-	assert.Equal(t, SecToTime(100), "1m 40s")
-	assert.Equal(t, SecToTime(1000), "16m 40s")
-	assert.Equal(t, SecToTime(10000), "2h 46m 40s")
-	assert.Equal(t, SecToTime(100000), "1d 3h 46m 40s")
-	assert.Equal(t, SecToTime(1000000), "11d 13h 46m 40s")
+	assert.Equal(t, SecToTime(66), "1 minute 6 seconds")
+	assert.Equal(t, SecToTime(52410), "14 hours 33 minutes")
+	assert.Equal(t, SecToTime(563418), "6 days 12 hours")
+	assert.Equal(t, SecToTime(1563418), "2 weeks 4 days")
+	assert.Equal(t, SecToTime(3937125), "1 month 2 weeks")
+	assert.Equal(t, SecToTime(45677465), "1 year 5 months")
 }
