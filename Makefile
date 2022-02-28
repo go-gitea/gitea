@@ -235,7 +235,7 @@ clean:
 .PHONY: fmt
 fmt:
 	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@latest; \
+		$(GO) install mvdan.cc/gofumpt@v0.3.0; \
 	fi
 	@echo "Running gitea-fmt (with gofumpt)..."
 	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
@@ -287,7 +287,7 @@ errcheck:
 .PHONY: fmt-check
 fmt-check:
 	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@latest; \
+		$(GO) install mvdan.cc/gofumpt@0.3.0; \
 	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \

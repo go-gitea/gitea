@@ -150,27 +150,56 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 	}
 
 	e := db.GetEngine(ctx)
-	accesses := make([]*Access, 0, 10)
-	if err = e.
+	userIDs := make([]int64, 0, 10)
+	if err = e.Table("access").
 		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
-		Find(&accesses); err != nil {
+		Select("id").
+		Find(&userIDs); err != nil {
 		return nil, err
 	}
 
+	additionalUserIDs := make([]int64, 0, 10)
+	if err = e.Table("team_user").
+		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
+		Where("`team_repo`.repo_id = ? AND `team_unit`.access_mode >= ?", repo.ID, perm.AccessModeWrite).
+		Distinct("`team_user`.uid").
+		Select("`team_user`.uid").
+		Find(&additionalUserIDs); err != nil {
+		return nil, err
+	}
+
+	uidMap := map[int64]bool{}
+	i := 0
+	for _, uid := range userIDs {
+		if uidMap[uid] {
+			continue
+		}
+		uidMap[uid] = true
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+	userIDs = append(userIDs, additionalUserIDs...)
+
+	for _, uid := range additionalUserIDs {
+		if uidMap[uid] {
+			continue
+		}
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(accesses)+1)
-	if len(accesses) > 0 {
-		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
-			userIDs[i] = accesses[i].UserID
-		}
-
+	users := make([]*user_model.User, 0, len(userIDs)+1)
+	if len(userIDs) > 0 {
 		if err = e.In("id", userIDs).Find(&users); err != nil {
 			return nil, err
 		}
 	}
-	if !repo.Owner.IsOrganization() {
+	if !repo.Owner.IsOrganization() && !uidMap[repo.OwnerID] {
 		users = append(users, repo.Owner)
 	}
 
