@@ -2042,11 +2042,23 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		}
 	}
 
+	// delete actions assigned to this issue
+	var comments []*Comment
+	if err := e.In("issue_id", issue.ID).
+		Find(&comments); err != nil {
+		return err
+	}
+	for i := range comments {
+		if _, err := e.Where("comment_id = ?", comments[i].ID).Cols("is_deleted").Delete(&Action{}); err != nil {
+			return err
+		}
+	}
+
 	// find attachments related to this issue and remove them
 	var attachments []*repo_model.Attachment
 	if err := e.In("issue_id", issue.ID).
 		Find(&attachments); err != nil {
-		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
+		return err
 	}
 
 	for i := range attachments {
