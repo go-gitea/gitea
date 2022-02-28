@@ -111,7 +111,7 @@ func (org *Organization) GetTeam(name string) (*Team, error) {
 }
 
 func (org *Organization) getOwnerTeam(ctx context.Context) (*Team, error) {
-	return org.getTeam(ctx, ownerTeamName)
+	return org.getTeam(ctx, OwnerTeamName)
 }
 
 // GetOwnerTeam returns owner team of organization.
@@ -124,7 +124,7 @@ func FindOrgTeams(ctx context.Context, orgID int64) ([]*Team, error) {
 	var teams []*Team
 	return teams, db.GetEngine(ctx).
 		Where("org_id=?", orgID).
-		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
+		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
 }
 
@@ -296,8 +296,8 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	// Create default owner team.
 	t := &Team{
 		OrgID:                   org.ID,
-		LowerName:               strings.ToLower(ownerTeamName),
-		Name:                    ownerTeamName,
+		LowerName:               strings.ToLower(OwnerTeamName),
+		Name:                    OwnerTeamName,
 		AccessMode:              perm.AccessModeOwner,
 		NumMembers:              1,
 		IncludesAllRepositories: true,

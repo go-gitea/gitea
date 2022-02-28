@@ -19,5 +19,6 @@ func TestMain(m *testing.M) {
 		"team_repo.yml",
 		"team_unit.yml",
 		"team_user.yml",
+		"repository.yml",
 	)
 }

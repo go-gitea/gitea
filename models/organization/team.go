@@ -60,7 +60,8 @@ func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
 }
 
-const ownerTeamName = "Owners"
+// OwnerTeamName return the owner team name
+const OwnerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
@@ -209,7 +210,7 @@ func (t *Team) GetUnitsMap() map[string]string {
 
 // IsOwnerTeam returns true if team is owner team.
 func (t *Team) IsOwnerTeam() bool {
-	return t.Name == ownerTeamName
+	return t.Name == OwnerTeamName
 }
 
 // IsMember returns true if given user is a member of team.
@@ -328,7 +329,7 @@ func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]i
 
 // GetOwnerTeam returns team by given team name and organization.
 func GetOwnerTeam(ctx context.Context, orgID int64) (*Team, error) {
-	return getTeam(ctx, orgID, ownerTeamName)
+	return getTeam(ctx, orgID, OwnerTeamName)
 }
 
 // GetTeamByIDCtx returns team by given ID.
@@ -369,7 +370,7 @@ func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err 
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
 		And("team_repo.repo_id=?", repo.ID).
-		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
+		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
 }
 

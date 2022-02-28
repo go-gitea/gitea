@@ -11,7 +11,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -110,91 +109,6 @@ func TestUser_GetMembers(t *testing.T) {
 		assert.Equal(t, int64(28), members[1].ID)
 		assert.Equal(t, int64(4), members[2].ID)
 	}
-}
-
-func TestUser_RemoveOrgRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: org.ID}).(*repo_model.Repository)
-
-	// remove a repo that does belong to org
-	unittest.AssertExistsAndLoadBean(t, &TeamRepo{RepoID: repo.ID, OrgID: org.ID})
-	assert.NoError(t, RemoveOrgRepo(db.DefaultContext, org.ID, repo.ID))
-	unittest.AssertNotExistsBean(t, &TeamRepo{RepoID: repo.ID, OrgID: org.ID})
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}) // repo should still exist
-
-	// remove a repo that does not belong to org
-	assert.NoError(t, RemoveOrgRepo(db.DefaultContext, org.ID, repo.ID))
-	unittest.AssertNotExistsBean(t, &TeamRepo{RepoID: repo.ID, OrgID: org.ID})
-
-	assert.NoError(t, RemoveOrgRepo(db.DefaultContext, org.ID, unittest.NonexistentID))
-
-	unittest.CheckConsistencyFor(t,
-		&user_model.User{ID: org.ID},
-		&Team{OrgID: org.ID},
-		&repo_model.Repository{ID: repo.ID})
-}
-
-func TestCreateOrganization(t *testing.T) {
-	// successful creation of org
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	const newOrgName = "neworg"
-	org := &Organization{
-		Name: newOrgName,
-	}
-
-	unittest.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	assert.NoError(t, CreateOrganization(org, owner))
-	org = unittest.AssertExistsAndLoadBean(t,
-		&Organization{Name: newOrgName, Type: user_model.UserTypeOrganization}).(*Organization)
-	ownerTeam := unittest.AssertExistsAndLoadBean(t,
-		&Team{Name: ownerTeamName, OrgID: org.ID}).(*Team)
-	unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: owner.ID, TeamID: ownerTeam.ID})
-	unittest.CheckConsistencyFor(t, &user_model.User{}, &Team{})
-}
-
-func TestCreateOrganization2(t *testing.T) {
-	// unauthorized creation of org
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	const newOrgName = "neworg"
-	org := &Organization{
-		Name: newOrgName,
-	}
-
-	unittest.AssertNotExistsBean(t, &Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	err := CreateOrganization(org, owner)
-	assert.Error(t, err)
-	assert.True(t, IsErrUserNotAllowedCreateOrg(err))
-	unittest.AssertNotExistsBean(t, &Organization{Name: newOrgName, Type: user_model.UserTypeOrganization})
-	unittest.CheckConsistencyFor(t, &Organization{}, &Team{})
-}
-
-func TestCreateOrganization3(t *testing.T) {
-	// create org with same name as existent org
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	org := &Organization{Name: "user3"}                                   // should already exist
-	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: org.Name}) // sanity check
-	err := CreateOrganization(org, owner)
-	assert.Error(t, err)
-	assert.True(t, user_model.IsErrUserAlreadyExist(err))
-	unittest.CheckConsistencyFor(t, &user_model.User{}, &Team{})
-}
-
-func TestCreateOrganization4(t *testing.T) {
-	// create org with unusable name
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	err := CreateOrganization(&Organization{Name: "assets"}, owner)
-	assert.Error(t, err)
-	assert.True(t, db.IsErrNameReserved(err))
-	unittest.CheckConsistencyFor(t, &Organization{}, &Team{})
 }
 
 func TestGetOrgByName(t *testing.T) {
@@ -395,33 +309,6 @@ func TestChangeOrgUserStatus(t *testing.T) {
 	testSuccess(3, 2, false)
 	testSuccess(3, 4, true)
 	assert.NoError(t, ChangeOrgUserStatus(unittest.NonexistentID, unittest.NonexistentID, true))
-}
-
-func TestAddOrgUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	testSuccess := func(orgID, userID int64, isPublic bool) {
-		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
-		expectedNumMembers := org.NumMembers
-		if !unittest.BeanExists(t, &OrgUser{OrgID: orgID, UID: userID}) {
-			expectedNumMembers++
-		}
-		assert.NoError(t, AddOrgUser(orgID, userID))
-		ou := &OrgUser{OrgID: orgID, UID: userID}
-		unittest.AssertExistsAndLoadBean(t, ou)
-		assert.Equal(t, isPublic, ou.IsPublic)
-		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
-		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
-	}
-
-	setting.Service.DefaultOrgMemberVisible = false
-	testSuccess(3, 5, false)
-	testSuccess(3, 5, false)
-	testSuccess(6, 2, false)
-
-	setting.Service.DefaultOrgMemberVisible = true
-	testSuccess(6, 3, true)
-
-	unittest.CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestUser_GetUserTeamIDs(t *testing.T) {
