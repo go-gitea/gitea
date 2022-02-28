@@ -43,9 +43,13 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page == 0 {
+		listOptions.Page = 1
+	}
 	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(int64(count))

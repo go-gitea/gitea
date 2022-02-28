@@ -185,8 +185,6 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
-
 ### Configuring local ElasticSearch instance
 
 Start local ElasticSearch instance using docker:
