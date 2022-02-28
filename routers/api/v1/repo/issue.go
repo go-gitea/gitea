@@ -867,11 +867,6 @@ func DeleteIssue(ctx *context.APIContext) {
 }
 
 func deleteIssue(ctx *context.APIContext) {
-	if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
-		ctx.Status(http.StatusForbidden)
-		return
-	}
-
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
