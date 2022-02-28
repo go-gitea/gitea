@@ -30,34 +30,34 @@ func SecToTime(duration int64) string {
 	// If the time is greater than a year, it makes no sense to display seconds.
 	switch {
 	case years > 0:
-		formattedTime = FormatTime(years, "year", formattedTime)
-		formattedTime = FormatTime(months, "month", formattedTime)
+		formattedTime = formatTime(years, "year", formattedTime)
+		formattedTime = formatTime(months, "month", formattedTime)
 	case months > 0:
-		formattedTime = FormatTime(months, "month", formattedTime)
-		formattedTime = FormatTime(weeks, "week", formattedTime)
+		formattedTime = formatTime(months, "month", formattedTime)
+		formattedTime = formatTime(weeks, "week", formattedTime)
 	case weeks > 0:
-		formattedTime = FormatTime(weeks, "week", formattedTime)
-		formattedTime = FormatTime(days, "day", formattedTime)
+		formattedTime = formatTime(weeks, "week", formattedTime)
+		formattedTime = formatTime(days, "day", formattedTime)
 	case days > 0:
-		formattedTime = FormatTime(days, "day", formattedTime)
-		formattedTime = FormatTime(hours, "hour", formattedTime)
+		formattedTime = formatTime(days, "day", formattedTime)
+		formattedTime = formatTime(hours, "hour", formattedTime)
 	case hours > 0:
-		formattedTime = FormatTime(hours, "hour", formattedTime)
-		formattedTime = FormatTime(minutes, "minute", formattedTime)
+		formattedTime = formatTime(hours, "hour", formattedTime)
+		formattedTime = formatTime(minutes, "minute", formattedTime)
 	default:
-		formattedTime = FormatTime(minutes, "minute", formattedTime)
-		formattedTime = FormatTime(seconds, "second", formattedTime)
+		formattedTime = formatTime(minutes, "minute", formattedTime)
+		formattedTime = formatTime(seconds, "second", formattedTime)
 	}
 
-	// The FormatTime() function always appends a space at the end. This will be trimmed
+	// The formatTime() function always appends a space at the end. This will be trimmed
 	return strings.TrimRight(formattedTime, " ")
 }
 
-// FormatTime appends the given value to the existing forammattedTime. E.g:
+// formatTime appends the given value to the existing forammattedTime. E.g:
 // formattedTime = "1 year"
 // input: value = 3, name = "month"
-// output will be "1 year 3 months"
-func FormatTime(value int64, name, formattedTime string) string {
+// output will be "1 year 3 months "
+func formatTime(value int64, name, formattedTime string) string {
 	if value == 1 {
 		formattedTime = fmt.Sprintf("%s1 %s ", formattedTime, name)
 	} else if value > 1 {
