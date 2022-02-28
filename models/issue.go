@@ -2043,13 +2043,12 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	// delete actions assigned to this issue
-	var comments []*Comment
-	if err := e.In("issue_id", issue.ID).Cols("id").
-		Find(&comments); err != nil {
+	var comments []int64
+	if err := e.Table(new(Comment)).In("issue_id", issue.ID).Cols("id").Find(&comments); err != nil {
 		return err
 	}
 	for i := range comments {
-		if _, err := e.Where("comment_id = ?", comments[i].ID).Delete(&Action{}); err != nil {
+		if _, err := e.Where("comment_id = ?", comments[i]).Delete(&Action{}); err != nil {
 			return err
 		}
 	}
