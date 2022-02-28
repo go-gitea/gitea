@@ -1,16 +1,16 @@
 ---
-date: '2017-01-01T16:00:00+02:00'
-title: 'Usage: Backup and Restore'
-slug: 'backup-and-restore'
+date: "2017-01-01T16:00:00+02:00"
+title: "Usage: Backup and Restore"
+slug: "backup-and-restore"
 weight: 11
 toc: false
 draft: false
 menu:
   sidebar:
-    parent: 'usage'
-    name: 'Backup and Restore'
+    parent: "usage"
+    name: "Backup and Restore"
     weight: 11
-    identifier: 'backup-and-restore'
+    identifier: "backup-and-restore"
 ---
 
 # Backup and Restore
