@@ -7,12 +7,10 @@ const viewedStyleClass = 'viewed-file-checked-form';
 // to watch for changes of viewed-file checkboxes
 export function initViewedCheckboxListenerFor(element) {
   for (const form of element.querySelectorAll('.viewed-file-form')) {
-
     // The checkbox consists of a form containing the real checkbox and a label,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
     checkbox.addEventListener('change', function() {
-
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -26,8 +24,8 @@ export function initViewedCheckboxListenerFor(element) {
       document.getElementById('viewed-files-summary').setAttribute('value', window.config.pageData.numberOfViewedFiles);
       const summaryLabel = document.getElementById('viewed-files-summary-label');
       summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
-        .replace('$1', window.config.pageData.numberOfViewedFiles)
-        .replace('$2', window.config.pageData.numberOfFiles);
+        .replace('%[1]d', window.config.pageData.numberOfViewedFiles || 0)
+        .replace('%[2]d', window.config.pageData.numberOfFiles || 0);
 
       // Unfortunately, form.submit() would attempt to redirect, so we have to workaround that
       // Because unchecked checkboxes are also not sent, we have to unset the value and use the fallback hidden input as sent value
