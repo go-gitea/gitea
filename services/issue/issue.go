@@ -138,7 +138,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.I
 		if err := issue.LoadPullRequest(); err != nil {
 			return err
 		}
-		if err := gitRepo.RemoveReference(fmt.Sprintf(git.PullPrefix+"%d", issue.PullRequest.Index)); err != nil {
+		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d", git.PullPrefix, issue.PullRequest.Index)); err != nil {
 			return err
 		}
 	}
