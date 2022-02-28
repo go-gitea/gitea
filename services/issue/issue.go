@@ -143,7 +143,7 @@ func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.I
 		}
 	}
 
-	notification.NotifyDeleteIssue(doer, gitRepo, issue)
+	notification.NotifyDeleteIssue(doer, issue)
 
 	return nil
 }

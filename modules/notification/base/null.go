@@ -8,7 +8,6 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -35,7 +34,7 @@ func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *model
 }
 
 // NotifyDeleteIssue notify when some issue deleted
-func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue) {
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
 }
 
 // NotifyNewPullRequest places a place holder function
