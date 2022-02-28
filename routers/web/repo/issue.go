@@ -1968,7 +1968,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 			team, err := organization.GetTeamByID(-reviewID)
 			if err != nil {
-				ctx.ServerError("organization.GetTeamByID", err)
+				ctx.ServerError("GetTeamByID", err)
 				return
 			}
 

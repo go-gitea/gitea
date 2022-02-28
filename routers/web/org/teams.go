@@ -385,7 +385,7 @@ func EditTeamPost(ctx *context.Context) {
 			})
 		}
 		if err := organization.UpdateTeamUnits(t, units); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadIssue", err.Error())
+			ctx.Error(http.StatusInternalServerError, "UpdateTeamUnits", err.Error())
 			return
 		}
 	}

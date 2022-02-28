@@ -13,13 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-// ___________                    ____ ___
-// \__    ___/___ _____    _____ |    |   \______ ___________
-//   |    |_/ __ \\__  \  /     \|    |   /  ___// __ \_  __ \
-//   |    |\  ___/ / __ \|  Y Y  \    |  /\___ \\  ___/|  | \/
-//   |____| \___  >____  /__|_|  /______//____  >\___  >__|
-//              \/     \/      \/             \/     \/
-
 // TeamUser represents an team-user relation.
 type TeamUser struct {
 	ID     int64 `xorm:"pk autoincr"`

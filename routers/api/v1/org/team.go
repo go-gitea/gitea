@@ -502,7 +502,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	}
 
 	if err := models.RemoveTeamMember(ctx.Org.Team, u.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
+		ctx.Error(http.StatusInternalServerError, "RemoveTeamMember", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

@@ -12,13 +12,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 )
 
-// ___________                    ____ ___      .__  __
-// \__    ___/___ _____    _____ |    |   \____ |__|/  |_
-//   |    |_/ __ \\__  \  /     \|    |   /    \|  \   __\
-//   |    |\  ___/ / __ \|  Y Y  \    |  /   |  \  ||  |
-//   |____| \___  >____  /__|_|  /______/|___|  /__||__|
-//              \/     \/      \/             \/
-
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
 	ID         int64     `xorm:"pk autoincr"`
