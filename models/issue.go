@@ -2083,6 +2083,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&TrackedTime{},
 		&ProjectIssue{},
 		&repo_model.Attachment{},
+		&PullRequest{},
 	); err != nil {
 		return err
 	}
