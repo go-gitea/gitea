@@ -2023,20 +2023,20 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	if issue.IsPull {
-		if _, err := e.Exec("UPDATE `repository` SET num_pulls = num_pulls - 1 WHERE id = ?", issue.RepoID); err != nil {
+		if _, err := e.ID(issue.RepoID).Decr("num_pulls").Update(new(repo_model.Repository)); err != nil {
 			return err
 		}
 		if issue.IsClosed {
-			if _, err := e.Exec("UPDATE `repository` SET num_closed_pulls = num_closed_pulls -1 WHERE id = ?", issue.RepoID); err != nil {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_pulls").Update(new(repo_model.Repository)); err != nil {
 				return err
 			}
 		}
 	} else {
-		if _, err := e.Exec("UPDATE `repository` SET num_issues = num_issues - 1 WHERE id = ?", issue.RepoID); err != nil {
+		if _, err := e.ID(issue.RepoID).Decr("num_issues").Update(new(repo_model.Repository)); err != nil {
 			return err
 		}
 		if issue.IsClosed {
-			if _, err := e.Exec("UPDATE `repository` SET num_closed_issues = num_closed_issues -1 WHERE id = ?", issue.RepoID); err != nil {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_issues").Update(new(repo_model.Repository)); err != nil {
 				return err
 			}
 		}
@@ -2060,8 +2060,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 
 	// find attachments related to this issue and remove them
 	var attachments []*repo_model.Attachment
-	if err := e.In("issue_id", issue.ID).
-		Find(&attachments); err != nil {
+	if err := e.In("issue_id", issue.ID).Find(&attachments); err != nil {
 		return err
 	}
 
