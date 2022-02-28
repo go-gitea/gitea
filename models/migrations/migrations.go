@@ -61,7 +61,6 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
-
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
@@ -367,9 +366,13 @@ var migrations = []Migration{
 	// v206 -> v207
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 	// v207 -> v208
-	NewMigration("Add webauthn table and migrate u2f data to webauthn", addWebAuthnCred),
+	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", addWebAuthnCred),
 	// v208 -> v209
-	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive", useBase32HexForCredIDInWebAuthnCredential),
+	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", useBase32HexForCredIDInWebAuthnCredential),
+	// v209 -> v210
+	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", increaseCredentialIDTo410),
+	// v210 -> v211
+	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
 }
 
 // GetCurrentDBVersion returns the current db version
