@@ -2007,7 +2007,7 @@ func DeleteIssue(issue *Issue) error {
 	return committer.Commit()
 }
 
-func deleteIn(e db.Engine, issueID int64, beans ...interface{}) error {
+func deleteInIssue(e db.Engine, issueID int64, beans ...interface{}) error {
 	for _, bean := range beans {
 		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
 			return err
@@ -2042,7 +2042,19 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		}
 	}
 
-	if err := deleteIn(e, issue.ID,
+	// find attachments related to this issue and remove them
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).
+		Find(&attachments); err != nil {
+		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	// delete all database data still assigned to this issue
+	if err := deleteInIssue(e, issue.ID,
 		&issues.ContentHistory{},
 		&Comment{},
 		&IssueLabel{},
@@ -2054,6 +2066,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&Stopwatch{},
 		&TrackedTime{},
 		&ProjectIssue{},
+		&repo_model.Attachment{},
 	); err != nil {
 		return err
 	}
@@ -2070,21 +2083,6 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 
 	// delete from dependent issues
 	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	var attachments []*repo_model.Attachment
-	if err := e.In("issue_id", issue.ID).
-		Find(&attachments); err != nil {
-		log.Info("Could not find attachments for issue %d: %s", issue.ID, err)
-	}
-
-	for i := range attachments {
-		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
-	}
-
-	if _, err := e.In("issue_id", issue.ID).
-		Delete(&repo_model.Attachment{}); err != nil {
 		return err
 	}
 
