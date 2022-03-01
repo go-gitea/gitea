@@ -55,9 +55,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 	log.Trace("Doing: Update")
 
-	requested := 0
-
-	handler := func(idx int, bean interface{}, limit int) error {
+	handler := func(idx int, bean interface{}) error {
 		var item SyncRequest
 		var repo *repo_model.Repository
 		if m, ok := bean.(*repo_model.Mirror); ok {
@@ -104,35 +102,35 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			}
 			return err
 		}
-
-		requested++
-		if limit > 0 && requested > limit {
-			return errLimit
-		}
 		return nil
 	}
 
 	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		requested = 0
-		if err := repo_model.MirrorsIterate(func(idx int, bean interface{}) error {
-			return handler(idx, bean, pullLimit)
+		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pullMirrorsRequested++
+			return nil
 		}); err != nil && err != errLimit {
 			log.Error("MirrorsIterate: %v", err)
 			return err
 		}
-		pullMirrorsRequested, requested = requested, 0
 	}
+
 	pushMirrorsRequested := 0
 	if pushLimit != 0 {
-		requested = 0
-		if err := repo_model.PushMirrorsIterate(func(idx int, bean interface{}) error {
-			return handler(idx, bean, pushLimit)
+		if err := repo_model.PushMirrorsIterate(pushLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pushMirrorsRequested++
+			return nil
 		}); err != nil && err != errLimit {
 			log.Error("PushMirrorsIterate: %v", err)
 			return err
 		}
-		pushMirrorsRequested, requested = requested, 0
 	}
 	log.Trace("Finished: Update: %d pull mirrors and %d push mirrors queued", pullMirrorsRequested, pushMirrorsRequested)
 	return nil
