@@ -215,6 +215,10 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	// Undocumented mode for internal usages, only return
+	// information that's useful for the dashboard's repo list.
+	minimalMode := ctx.FormBool("minimal")
+
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(db.DefaultContext); err != nil {
@@ -224,16 +228,28 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
+		if minimalMode {
+			results[i] = &api.Repository{
+				ID:       repo.ID,
+				FullName: repo.FullName(),
+				Private:  repo.IsPrivate,
+				Template: repo.IsTemplate,
+				Mirror:   repo.IsMirror,
+				Stars:    repo.NumStars,
+				HTMLURL:  repo.HTMLURL(),
+				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+			}
+		} else {
+			accessMode, err := models.AccessLevel(ctx.User, repo)
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, api.SearchError{
+					OK:    false,
+					Error: err.Error(),
+				})
+			}
+			results[i] = convert.ToRepo(repo, accessMode)
 		}
-		results[i] = convert.ToRepo(repo, accessMode)
 	}
-
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{

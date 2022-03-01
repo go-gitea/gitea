@@ -124,7 +124,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.subUrl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
+        return `${this.subUrl}/api/v1/repos/search?sort=updated&order=desc&minimal=1&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -301,21 +301,15 @@ function initVueComponents() {
       searchRepos() {
         this.isLoading = true;
 
-        if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.subUrl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
-          $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
-            this.reposTotalCount = request.getResponseHeader('X-Total-Count');
-          });
-        }
-
         const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
-        $.getJSON(searchedURL, (result, _textStatus, request) => {
+        fetch(searchedURL).then(async (response) => {
+          const json = await response.json();
           if (searchedURL === this.searchURL) {
-            this.repos = result.data;
-            const count = request.getResponseHeader('X-Total-Count');
+            this.repos = json.data;
+            const count = response.headers.get('X-Total-Count');
             if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
               this.reposTotalCount = count;
             }
@@ -323,7 +317,7 @@ function initVueComponents() {
             this.finalPage = Math.ceil(count / this.searchLimit);
             this.updateHistory();
           }
-        }).always(() => {
+        }).finally(() => {
           if (searchedURL === this.searchURL) {
             this.isLoading = false;
           }
