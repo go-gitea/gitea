@@ -412,7 +412,7 @@ export function initRepoPullRequestReview() {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
-        const id = groupID.substr(14);
+        const id = groupID.slice(14);
         $(`#show-outdated-${id}`).addClass('hide');
         $(`#code-comments-${id}`).removeClass('hide');
         $(`#code-preview-${id}`).removeClass('hide');
@@ -462,7 +462,7 @@ export function initRepoPullRequestReview() {
     (async () => {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
       // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
-      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
+      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px', maxHeight: 'calc(100vh - 360px)'});
       initCompImagePaste($reviewBox);
     })();
   }
@@ -560,7 +560,7 @@ export function initRepoIssueWipToggle() {
     const updateUrl = toggleWip.getAttribute('data-update-url');
     await $.post(updateUrl, {
       _csrf: csrfToken,
-      title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      title: title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
     });
     window.location.reload();
   });

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -81,6 +82,6 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	c.Flash.Success(c.Tr("repo.issues.del_time_history", models.SecToTime(t.Time)))
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
 	c.Redirect(issue.HTMLURL())
 }

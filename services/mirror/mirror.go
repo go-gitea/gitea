@@ -55,15 +55,15 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	}
 	log.Trace("Doing: Update")
 
-	requested := 0
-
-	handler := func(idx int, bean interface{}, limit int) error {
+	handler := func(idx int, bean interface{}) error {
 		var item SyncRequest
+		var repo *repo_model.Repository
 		if m, ok := bean.(*repo_model.Mirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected mirror found: %d", m.ID)
 				return nil
 			}
+			repo = m.Repo
 			item = SyncRequest{
 				Type:   PullMirrorType,
 				RepoID: m.RepoID,
@@ -73,6 +73,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
 			}
+			repo = m.Repo
 			item = SyncRequest{
 				Type:   PushMirrorType,
 				RepoID: m.RepoID,
@@ -89,44 +90,49 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		default:
 		}
 
-		// Check if this request is already in the queue
-		has, err := mirrorQueue.Has(&item)
-		if err != nil {
-			return err
-		}
-		if has {
-			return nil
-		}
-
 		// Push to the Queue
 		if err := mirrorQueue.Push(&item); err != nil {
+			if err == queue.ErrAlreadyInQueue {
+				if item.Type == PushMirrorType {
+					log.Trace("PushMirrors for %-v already queued for sync", repo)
+				} else {
+					log.Trace("PullMirrors for %-v already queued for sync", repo)
+				}
+				return nil
+			}
 			return err
-		}
-
-		requested++
-		if limit > 0 && requested > limit {
-			return errLimit
 		}
 		return nil
 	}
 
+	pullMirrorsRequested := 0
 	if pullLimit != 0 {
-		if err := repo_model.MirrorsIterate(func(idx int, bean interface{}) error {
-			return handler(idx, bean, pullLimit)
+		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pullMirrorsRequested++
+			return nil
 		}); err != nil && err != errLimit {
 			log.Error("MirrorsIterate: %v", err)
 			return err
 		}
 	}
+
+	pushMirrorsRequested := 0
 	if pushLimit != 0 {
-		if err := repo_model.PushMirrorsIterate(func(idx int, bean interface{}) error {
-			return handler(idx, bean, pushLimit)
+		if err := repo_model.PushMirrorsIterate(pushLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pushMirrorsRequested++
+			return nil
 		}); err != nil && err != errLimit {
 			log.Error("PushMirrorsIterate: %v", err)
 			return err
 		}
 	}
-	log.Trace("Finished: Update")
+	log.Trace("Finished: Update: %d pull mirrors and %d push mirrors queued", pullMirrorsRequested, pushMirrorsRequested)
 	return nil
 }
 

@@ -9,9 +9,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"html"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -36,7 +38,6 @@ import (
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
-	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -196,7 +197,10 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
 	tmplStartTime := time.Now()
-	ctx.Data["TmplLoadTimes"] = func() string {
+	if !setting.IsProd {
+		ctx.Data["TemplateName"] = name
+	}
+	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
@@ -265,6 +269,12 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
 		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
+		if errors.Is(logErr, &net.OpError{}) {
+			// This is an error within the underlying connection
+			// and further rendering will not work so just return
+			return
+		}
+
 		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = logErr
 		}
@@ -730,15 +740,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
-			ctx.Data["Tr"] = i18n.Tr
-			ctx.Data["Lang"] = locale.Language()
 			ctx.Data["AllLangs"] = translation.AllLangs()
-			for _, lang := range translation.AllLangs() {
-				if lang.Lang == locale.Language() {
-					ctx.Data["LangName"] = lang.Name
-					break
-				}
-			}
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 

@@ -1,7 +1,7 @@
 {{ template "base/alert" }}
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
-		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
@@ -146,7 +146,7 @@
 			{{else if eq .RefAction 2 }}
 				{{ $refTr = "repo.issues.ref_reopening_from" }}
 			{{end}}
-			{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+			{{ $createdStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				<a href="{{.Poster.HomeLink}}">
@@ -557,7 +557,7 @@
 									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
 										<div class="ui comments mb-0">
 											{{range $comms}}
-												{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+												{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
 												<div class="comment code-comment pb-4" id="{{.HashTag}}">
 													<div class="content">
 														<div class="header comment-header">

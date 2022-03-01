@@ -353,3 +353,51 @@ You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
 ## Why are Emoji displaying only as placeholders or in monochrome
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
+
+## Stdout logging on SystemD and Docker
+
+Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
+
+Similarly stdout on docker can be viewed using `docker logs <container>`
+
+## Initial logging
+
+Before Gitea has read the configuration file and set-up its logging it will log a number of things to stdout in order to help debug things if logging does not work.
+
+You can stop this logging by setting the `--quiet` or `-q` option. Please note this will only stop logging until Gitea has set-up its own logging.
+
+If you report a bug or issue you MUST give us logs with this information restored.
+
+You should only set this option once you have completely configured everything.
+
+## Warnings about struct defaults during database startup
+
+Sometimes when there are migrations the old columns and default values may be left
+unchanged in the database schema. This may lead to warning such as:
+
+```
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+```
+
+These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+
+```
+gitea doctor recreate-table user
+```
+
+This will cause Gitea to recreate the user table and copy the old data into the new table
+with the defaults set appropriately.
+
+You can ask Gitea to recreate multiple tables using:
+
+```
+gitea doctor recreate-table table1 table2 ...
+```
+
+And if you would like Gitea to recreate all tables simply call:
+
+```
+gitea doctor recreate-table
+```
+
+It is highly recommended to back-up your database before running these commands.
