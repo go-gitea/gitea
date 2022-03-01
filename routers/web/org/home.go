@@ -5,7 +5,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,7 +27,7 @@ func Home(ctx *context.Context) {
 	uname := ctx.Params(":username")
 
 	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
-		ctx.NotFound("Unimplemented feature", fmt.Errorf("organisations has no keys"))
+		ctx.NotFound("", nil)
 		return
 	}
 
