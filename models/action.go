@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -375,14 +376,19 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		opts.RequestedUser = org
 	}
 
-	// check activity visibility for actor ( equal to activityReadable() )
+	// check activity visibility for actor ( similar to activityReadable() )
 	if opts.Actor == nil {
-		cond = cond.And(builder.In("user_id",
-			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": false}).From("`user`"),
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+			).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("user_id",
-			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": false}.Or(builder.Eq{"id": opts.Actor.ID})).From("`user`"),
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false}.
+					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
 		))
 	}
 
