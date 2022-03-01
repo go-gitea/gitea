@@ -592,7 +592,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		statsOpts := models.UserIssueStatsOptions{
 			UserID:     ctx.User.ID,
 			FilterMode: filterMode,
-			RepoIDs:    userRepoIDs,
 			IsPull:     isPullList,
 			IsClosed:   isShowClosed,
 			IssueIDs:   issueIDsFromSearch,
