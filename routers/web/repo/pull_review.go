@@ -7,14 +7,17 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -241,4 +244,50 @@ func DismissReview(ctx *context.Context) {
 	}
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
+}
+
+// GetUserSpecificDiff is like gitdiff.GetDiff, except that user specific data such as which files the given user has already viewed will also be set
+// This function should have been a part of the services/gitdiff - package, but doing that results in an import cycle for weird reasons
+func GetUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gitdiff.DiffOptions, files ...string) (*gitdiff.Diff, error) {
+	diff, err := gitdiff.GetDiff(gitRepo, opts, files...)
+	if err != nil || !ctx.IsSigned {
+		return diff, err
+	}
+	pull := checkPullInfo(ctx)
+	review, err := models.GetNewestReview(ctx.User.ID, pull.ID)
+	if err != nil || review == nil || review.ViewedFiles == nil {
+		return diff, err
+	}
+
+	// Prepation to check for each file whether it was changed since the last review
+	changedFilesString, err := git.NewCommand(ctx, "diff", "--name-only", "--", fmt.Sprintf("%s..%s", review.CommitSHA, pull.PullRequest.HeadCommitID)).RunInDirTimeout(10 * 1000 * 1000 * 1000, ctx.Repo.GitRepo.Path)
+	if err != nil {
+		return diff, err
+	}
+	changedFiles := strings.Split(string(changedFilesString), "\n")
+
+outer:
+	for _, diffFile := range diff.Files {
+
+		// Check whether the file has changed since the last review
+		for _, changedFile := range changedFiles {
+			diffFile.HasChangedSinceLastReview = isSameFile(diffFile, changedFile)
+			if diffFile.HasChangedSinceLastReview {
+				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
+			}
+		}
+		// Check whether the file has already been viewed
+		for file, viewed := range review.ViewedFiles {
+			if isSameFile(diffFile, file)  {
+				diffFile.IsViewed = viewed
+				break
+			}
+		}
+	}
+	return diff, err
+}
+
+// isSameFile returns whether the given diff file and the given file name point at the same file
+func isSameFile(diffFile *gitdiff.DiffFile, file string) bool {
+	return diffFile.Name == file || (diffFile.Name == "" && diffFile.OldName == file)
 }
