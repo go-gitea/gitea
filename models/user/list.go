@@ -38,8 +38,8 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	}
 
 	if ids, err := users.userIDsWithWebAuthn(db.GetEngine(db.DefaultContext)); err == nil {
-		for i := range ids {
-			results[ids[i]] = true
+		for _, id := range ids {
+			results[id] = true
 		}
 	}
 
