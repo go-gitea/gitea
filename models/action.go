@@ -397,6 +397,10 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
+	if opts.RequestedRepo != nil {
+		cond = cond.And(builder.Eq{"repo_id": opts.RequestedRepo.ID})
+	}
+
 	if opts.RequestedTeam != nil {
 		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
