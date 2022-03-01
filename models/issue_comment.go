@@ -1152,9 +1152,7 @@ func DeleteComment(comment *Comment) error {
 }
 
 func deleteComment(e db.Engine, comment *Comment) error {
-	if _, err := e.Delete(&Comment{
-		ID: comment.ID,
-	}); err != nil {
+	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
 
