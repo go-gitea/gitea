@@ -736,6 +736,11 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
+	if len(keys) == 0 {
+		ctx.NotFound("", nil)
+		return
+	}
+
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
