@@ -60,7 +60,7 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
-		OnlyPerformedBy: true,
+		OnlyPerformedBy: !ctxUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})

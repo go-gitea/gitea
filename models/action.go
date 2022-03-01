@@ -367,12 +367,6 @@ func activityReadable(user, doer *user_model.User) bool {
 func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
-	var repoIDs []int64
-	var actorID int64
-	if opts.Actor != nil {
-		actorID = opts.Actor.ID
-	}
-
 	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
 		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
 		if err != nil {
@@ -394,18 +388,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		if opts.RequestedUser != nil && opts.RequestedUser.IsOrganization() {
-			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
-			if err != nil {
-				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
-			}
-			if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
-				return nil, fmt.Errorf("GetUserRepositories: %v", err)
-			}
-			cond = cond.And(builder.In("repo_id", repoIDs))
-		} else {
-			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
-		}
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	if opts.RequestedTeam != nil {
