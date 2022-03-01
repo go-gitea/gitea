@@ -25,20 +25,34 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		CountResult int
 		JSONResult  string
 	}{
-		{"self looks at action in private repo",
-			2, 2, 1, `[{"timestamp":1603227600,"contributions":1}]`},
-		{"admin looks at action in private repo",
-			2, 1, 1, `[{"timestamp":1603227600,"contributions":1}]`},
-		{"other user looks at action in private repo",
-			2, 3, 0, `[]`},
-		{"nobody looks at action in private repo",
-			2, 0, 0, `[]`},
-		{"collaborator looks at action in private repo",
-			16, 15, 1, `[{"timestamp":1603267200,"contributions":1}]`},
-		{"no action action not performed by target user",
-			3, 3, 0, `[]`},
-		{"multiple actions performed with two grouped together",
-			10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
+		{
+			"self looks at action in private repo",
+			2, 2, 1, `[{"timestamp":1603227600,"contributions":1}]`,
+		},
+		{
+			"admin looks at action in private repo",
+			2, 1, 1, `[{"timestamp":1603227600,"contributions":1}]`,
+		},
+		{
+			"other user looks at action in private repo",
+			2, 3, 0, `[]`,
+		},
+		{
+			"nobody looks at action in private repo",
+			2, 0, 0, `[]`,
+		},
+		{
+			"collaborator looks at action in private repo",
+			16, 15, 1, `[{"timestamp":1603267200,"contributions":1}]`,
+		},
+		{
+			"no action action not performed by target user",
+			3, 3, 0, `[]`,
+		},
+		{
+			"multiple actions performed with two grouped together",
+			10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`,
+		},
 	}
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
