@@ -2046,7 +2046,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 	subQuery := builder.Select("`id`").
 		From("`comment`").
 		Where(builder.Eq{"`issue_id`": issue.ID})
-	if _, err := e.In("comment_id = ?", subQuery).Delete(&Action{}); err != nil {
+	if _, err := e.In("comment_id", subQuery).Delete(&Action{}); err != nil {
 		return err
 	}
 
