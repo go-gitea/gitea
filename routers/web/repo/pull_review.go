@@ -280,10 +280,14 @@ outer:
 		for file, viewed := range review.ViewedFiles {
 			if isSameFile(diffFile, file)  {
 				diffFile.IsViewed = viewed
+				diff.NumViewedFiles++
 				break
 			}
 		}
 	}
+	ctx.PageData["numberOfFiles"] = diff.NumFiles
+	ctx.PageData["numberOfViewedFiles"] = diff.NumViewedFiles
+
 	return diff, err
 }
 
