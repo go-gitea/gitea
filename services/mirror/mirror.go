@@ -30,7 +30,7 @@ const (
 // SyncRequest for the mirror queue
 type SyncRequest struct {
 	Type        SyncType
-	ReferenceID int64
+	ReferenceID int64 // RepoID for pull mirror, MirrorID fro push mirror
 }
 
 // doMirrorSync causes this request to mirror itself
