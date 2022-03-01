@@ -446,12 +446,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		repoOpts.TeamID = ctx.Org.Team.ID
 	}
 
-	userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
-	if err != nil {
-		ctx.ServerError("models.SearchRepositoryIDs: %v", err)
-		return
-	}
-
 	switch filterMode {
 	case models.FilterModeAll:
 	case models.FilterModeAssign:
@@ -468,6 +462,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			// to check if it's in the team(which possible isn't the case).
 			opts.User = nil
 		}
+		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
+		if err != nil {
+			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
+			return
+		}
+
 		opts.RepoIDs = userRepoIDs
 	}
 
@@ -601,8 +601,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if len(repoIDs) > 0 {
-			statsOpts.RepoIDs = repoIDs
+		if filterMode == models.FilterModeYourRepositories {
+			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
 		}
 		// Detect when we only should search by team.
 		if opts.User == nil {
