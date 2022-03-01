@@ -384,12 +384,12 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	// check activity visibility for actor ( equal to activityReadable() )
 	if opts.Actor == nil {
 		cond = cond.And(builder.In("user_id",
-			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": true}).From("`user`"),
+			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": false}).From("`user`"),
 		))
 	} else if !opts.Actor.IsAdmin {
 		cond = cond.And(builder.In("user_id",
-			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": true}).From("`user`"),
-		).Or(builder.In("user_id", opts.Actor.ID)))
+			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": false}.Or(builder.Eq{"id": opts.Actor.ID})).From("`user`"),
+		))
 	}
 
 	// check readable repositories by doer/actor
