@@ -33,6 +33,10 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.
 func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 }
 
+// NotifyDeleteIssue notify when some issue deleted
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
+}
+
 // NotifyNewPullRequest places a place holder function
 func (*NullNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
 }
