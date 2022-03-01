@@ -81,7 +81,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 	err = nl.LoadAttributes()
-	if err != nil {
+	if err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
