@@ -55,3 +55,12 @@ func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "tab", "TabName")
 	p.AddParam(ctx, "t", "queryType")
 }
+
+// SetUserFilterParams sets common pagination params for user filtering, e.g. the admin userlist
+func (p *Pagination) SetUserFilterParams(ctx *Context) {
+	p.AddParamString("status_filter[is_active]", ctx.FormString("status_filter[is_active]"))
+	p.AddParamString("status_filter[is_admin]", ctx.FormString("status_filter[is_admin]"))
+	p.AddParamString("status_filter[is_restricted]", ctx.FormString("status_filter[is_restricted]"))
+	p.AddParamString("status_filter[is_2fa_enabled]", ctx.FormString("status_filter[is_2fa_enabled]"))
+	p.AddParamString("status_filter[is_prohibit_login]", ctx.FormString("status_filter[is_prohibit_login]"))
+}
