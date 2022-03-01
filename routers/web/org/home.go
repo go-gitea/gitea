@@ -5,7 +5,9 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -23,7 +25,14 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	ctx.SetParams(":org", ctx.Params(":username"))
+	uname := ctx.Params(":username")
+
+	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
+		ctx.NotFound("Unimplemented feature", fmt.Errorf("organisations has no keys"))
+		return
+	}
+
+	ctx.SetParams(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
