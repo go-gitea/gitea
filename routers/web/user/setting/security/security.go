@@ -63,11 +63,12 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	ctx.Data["U2FRegistrations"], err = auth.GetU2FRegistrationsByUID(ctx.User.ID)
+	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetU2FRegistrationsByUID", err)
+		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
+	ctx.Data["WebAuthnCredentials"] = credentials
 
 	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
 	if err != nil {

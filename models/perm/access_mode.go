@@ -51,11 +51,13 @@ func (mode AccessMode) ColorFormat(s fmt.State) {
 // ParseAccessMode returns corresponding access mode to given permission string.
 func ParseAccessMode(permission string) AccessMode {
 	switch permission {
+	case "read":
+		return AccessModeRead
 	case "write":
 		return AccessModeWrite
 	case "admin":
 		return AccessModeAdmin
 	default:
-		return AccessModeRead
+		return AccessModeNone
 	}
 }

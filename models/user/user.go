@@ -95,8 +95,8 @@ type User struct {
 	Type        UserType
 	Location    string
 	Website     string
-	Rands       string `xorm:"VARCHAR(10)"`
-	Salt        string `xorm:"VARCHAR(10)"`
+	Rands       string `xorm:"VARCHAR(32)"`
+	Salt        string `xorm:"VARCHAR(32)"`
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
@@ -358,24 +358,40 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt, algo string) string {
+func hashPassword(passwd, salt, algo string) (string, error) {
 	var tempPasswd []byte
+	var saltBytes []byte
+
+	// There are two formats for the Salt value:
+	// * The new format is a (32+)-byte hex-encoded string
+	// * The old format was a 10-byte binary format
+	// We have to tolerate both here but Authenticate should
+	// regenerate the Salt following a successful validation.
+	if len(salt) == 10 {
+		saltBytes = []byte(salt)
+	} else {
+		var err error
+		saltBytes, err = hex.DecodeString(salt)
+		if err != nil {
+			return "", err
+		}
+	}
 
 	switch algo {
 	case algoBcrypt:
 		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
-		return string(tempPasswd)
+		return string(tempPasswd), nil
 	case algoScrypt:
-		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
+		tempPasswd, _ = scrypt.Key([]byte(passwd), saltBytes, 65536, 16, 2, 50)
 	case algoArgon2:
-		tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), 2, 65536, 8, 50)
+		tempPasswd = argon2.IDKey([]byte(passwd), saltBytes, 2, 65536, 8, 50)
 	case algoPbkdf2:
 		fallthrough
 	default:
-		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+		tempPasswd = pbkdf2.Key([]byte(passwd), saltBytes, 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd)
+	return fmt.Sprintf("%x", tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
@@ -391,15 +407,20 @@ func (u *User) SetPassword(passwd string) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
+	if u.Passwd, err = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo); err != nil {
+		return err
+	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
-	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 
 	return nil
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+	tempHash, err := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+	if err != nil {
+		return false
+	}
 
 	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
 		return true
@@ -505,9 +526,19 @@ func IsUserExist(uid int64, name string) (bool, error) {
 	return isUserExist(db.GetEngine(db.DefaultContext), uid, name)
 }
 
+// Note: As of the beginning of 2022, it is recommended to use at least
+// 64 bits of salt, but NIST is already recommending to use to 128 bits.
+// (16 bytes = 16 * 8 = 128 bits)
+const SaltByteLength = 16
+
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return util.RandomString(10)
+	rBytes, err := util.CryptoRandomBytes(SaltByteLength)
+	if err != nil {
+		return "", err
+	}
+	// Returns a 32 bytes long string.
+	return hex.EncodeToString(rBytes), nil
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -796,8 +827,9 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
-func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
-	if err := validateUser(u); err != nil {
+func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
+	err := validateUser(u)
+	if err != nil {
 		return err
 	}
 
@@ -824,20 +856,40 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 			if _, err := e.Insert(&emailAddress); err != nil {
 				return err
 			}
-		} else if _, err := e.ID(emailAddress).Cols("is_primary").Update(&EmailAddress{
+		} else if _, err := e.ID(emailAddress.ID).Cols("is_primary").Update(&EmailAddress{
 			IsPrimary: true,
 		}); err != nil {
 			return err
 		}
+	} else if !u.IsOrganization() { // check if primary email in email_address table
+		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
+		if err != nil {
+			return err
+		}
+
+		if !primaryEmailExist {
+			if _, err := e.Insert(&EmailAddress{
+				Email:       u.Email,
+				UID:         u.ID,
+				IsActivated: true,
+				IsPrimary:   true,
+			}); err != nil {
+				return err
+			}
+		}
 	}
 
-	_, err := e.ID(u.ID).AllCols().Update(u)
+	if len(cols) == 0 {
+		_, err = e.ID(u.ID).AllCols().Update(u)
+	} else {
+		_, err = e.ID(u.ID).Cols(cols...).Update(u)
+	}
 	return err
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(u *User, emailChanged bool) error {
-	return updateUser(db.DefaultContext, u, emailChanged)
+func UpdateUser(u *User, emailChanged bool, cols ...string) error {
+	return updateUser(db.DefaultContext, u, emailChanged, cols...)
 }
 
 // UpdateUserCols update user according special columns
@@ -994,6 +1046,19 @@ func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	return unames, err
 }
 
+// GetUserNameByID returns username for the id
+func GetUserNameByID(ctx context.Context, id int64) (string, error) {
+	var name string
+	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
+	if err != nil {
+		return "", err
+	}
+	if has {
+		return name, nil
+	}
+	return "", nil
+}
+
 // GetUserIDsByNames returns a slice of ids corresponds to names.
 func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
@@ -1073,19 +1138,9 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	email = strings.ToLower(email)
-	// First try to find the user by primary email
-	user := &User{Email: email}
-	has, err := db.GetEngine(ctx).Get(user)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return user, nil
-	}
-
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = db.GetEngine(ctx).Get(emailAddress)
+	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
+	has, err := db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}

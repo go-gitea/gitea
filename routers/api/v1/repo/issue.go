@@ -188,7 +188,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -379,7 +379,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
@@ -599,7 +599,7 @@ func CreateIssue(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	var assigneeIDs = make([]int64, 0)
+	assigneeIDs := make([]int64, 0)
 	var err error
 	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
@@ -832,6 +832,52 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
+}
+
+func DeleteIssue(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index} issue issueDelete
+	// ---
+	// summary: Delete an issue
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of issue to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		}
+		return
+	}
+
+	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // UpdateIssueDeadline updates an issue deadline

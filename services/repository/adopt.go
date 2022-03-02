@@ -84,7 +84,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 			}
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if stdout, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
@@ -121,11 +121,14 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 
 	repo.IsEmpty = false
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+
+	// Don't bother looking this repo in the context it won't be there
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
 	defer gitRepo.Close()
+
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
 
@@ -249,7 +252,8 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 		ListOptions: db.ListOptions{
 			Page:     1,
 			PageSize: len(repoNamesToCheck),
-		}, LowerNames: repoNamesToCheck})
+		}, LowerNames: repoNamesToCheck,
+	})
 	if err != nil {
 		return err
 	}

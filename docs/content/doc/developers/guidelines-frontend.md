@@ -83,7 +83,7 @@ el.addEventListener('click', (e) => {
 
 el.addEventListener('async', async (e) => { // not recommended but acceptable
   e.preventDefault(); // acceptable
-  await asyncFoo();   // skip out event dispath 
+  await asyncFoo();   // skip out event dispatch
   e.preventDefault(); // WRONG
 });
 ```
@@ -106,7 +106,7 @@ $('#el').on('click', (e) => {
 $('#el').on('click', async (e) => {  // not recommended but acceptable
   e.preventDefault();  // acceptable
   return false;        // WRONG, jQuery expects the returned value is a boolean, not a Promise
-  await asyncFoo();    // skip out event dispath
+  await asyncFoo();    // skip out event dispatch
   return false;        // WRONG
 });
 ```

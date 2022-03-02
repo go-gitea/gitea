@@ -44,7 +44,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if token.Type != oauth2.TypeAccessToken {
 		return 0
 	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
 		return 0
 	}
 	return grant.UserID
@@ -53,8 +53,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 // OAuth2 implements the Auth interface and authenticates requests
 // (API requests only) by looking for an OAuth token in query parameters or the
 // "Authorization" header.
-type OAuth2 struct {
-}
+type OAuth2 struct{}
 
 // Name represents the name of auth method
 func (o *OAuth2) Name() string {

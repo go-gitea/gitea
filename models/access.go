@@ -162,7 +162,7 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		// Owner team gets owner access, and skip for teams that do not
 		// have relations with repository.
 		if t.IsOwnerTeam() {
-			t.Authorize = perm.AccessModeOwner
+			t.AccessMode = perm.AccessModeOwner
 		} else if !t.hasRepository(e, repo.ID) {
 			continue
 		}
@@ -171,7 +171,7 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
 		}
 		for _, m := range t.Members {
-			updateUserAccess(accessMap, m, t.Authorize)
+			updateUserAccess(accessMap, m, t.AccessMode)
 		}
 	}
 
@@ -210,10 +210,10 @@ func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 
 		for _, t := range teams {
 			if t.IsOwnerTeam() {
-				t.Authorize = perm.AccessModeOwner
+				t.AccessMode = perm.AccessModeOwner
 			}
 
-			accessMode = maxAccessMode(accessMode, t.Authorize)
+			accessMode = maxAccessMode(accessMode, t.AccessMode)
 		}
 	}
 

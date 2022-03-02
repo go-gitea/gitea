@@ -396,6 +396,20 @@ func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewPackagistHookForm form for creating packagist hook
+type NewPackagistHookForm struct {
+	Username   string `binding:"Required"`
+	APIToken   string `binding:"Required"`
+	PackageURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -535,7 +549,7 @@ type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
-	Color       string `binding:"Required;Size(7)" locale:"repo.issues.label_color"`
+	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
 
 // Validate validates the fields
@@ -736,6 +750,30 @@ type EditPreviewDiffForm struct {
 
 // Validate validates the fields
 func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// _________ .__                                 __________.__        __
+// \_   ___ \|  |__   __________________ ___.__. \______   \__| ____ |  | __
+// /    \  \/|  |  \_/ __ \_  __ \_  __ <   |  |  |     ___/  |/ ___\|  |/ /
+// \     \___|   Y  \  ___/|  | \/|  | \/\___  |  |    |   |  \  \___|    <
+//  \______  /___|  /\___  >__|   |__|   / ____|  |____|   |__|\___  >__|_ \
+//         \/     \/     \/              \/                        \/     \/
+
+// CherryPickForm form for changing repository file
+type CherryPickForm struct {
+	CommitSummary string `binding:"MaxSize(100)"`
+	CommitMessage string
+	CommitChoice  string `binding:"Required;MaxSize(50)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
+	Revert        bool
+	Signoff       bool
+}
+
+// Validate validates the fields
+func (f *CherryPickForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

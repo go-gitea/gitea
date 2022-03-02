@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 
@@ -194,6 +195,8 @@ var (
 			&cmdAuthUpdateLdapBindDn,
 			&cmdAuthAddLdapSimpleAuth,
 			&cmdAuthUpdateLdapSimpleAuth,
+			&microcmdAuthAddSMTP,
+			&microcmdAuthUpdateSMTP,
 			&microcmdAuthList,
 			&microcmdAuthDelete,
 		},
@@ -231,7 +234,7 @@ var (
 		},
 	}
 
-	idFlag = cli.Int64Flag{
+	idFlag = &cli.Int64Flag{
 		Name:  "id",
 		Usage: "ID of authentication source",
 	}
@@ -239,7 +242,7 @@ var (
 	microcmdAuthDelete = cli.Command{
 		Name:   "delete",
 		Usage:  "Delete specific auth source",
-		Flags:  []cli.Flag{&idFlag},
+		Flags:  []cli.Flag{idFlag},
 		Action: runDeleteAuth,
 	}
 
@@ -339,7 +342,7 @@ var (
 		Name:   "update-oauth",
 		Usage:  "Update existing Oauth authentication source",
 		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{&idFlag}, oauthCLIFlags[1:]...)...),
+		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
 	}
 
 	microcmdAuthAddOauth = cli.Command{
@@ -370,6 +373,77 @@ var (
 				Usage:   "A flag to bypass a confirmation step",
 			},
 		},
+	}
+
+	smtpCLIFlags = []cli.Flag{
+		&cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Application Name",
+		},
+		&cli.StringFlag{
+			Name:  "auth-type",
+			Value: "PLAIN",
+			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
+		},
+		&cli.StringFlag{
+			Name:  "host",
+			Value: "",
+			Usage: "SMTP Host",
+		},
+		&cli.IntFlag{
+			Name:  "port",
+			Usage: "SMTP Port",
+		},
+		&cli.BoolFlag{
+			Name:  "force-smtps",
+			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "skip-verify",
+			Usage: "Skip TLS verify.",
+			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "helo-hostname",
+			Value: "",
+			Usage: "Hostname sent with HELO. Leave blank to send current hostname",
+		},
+		&cli.BoolFlag{
+			Name:  "disable-helo",
+			Usage: "Disable SMTP helo.",
+			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "allowed-domains",
+			Value: "",
+			Usage: "Leave empty to allow all domains. Separate multiple domains with a comma (',')",
+		},
+		&cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Skip 2FA to log on.",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "active",
+			Usage: "This Authentication Source is Activated.",
+			Value: true,
+		},
+	}
+
+	microcmdAuthAddSMTP = cli.Command{
+		Name:   "add-smtp",
+		Usage:  "Add new SMTP authentication source",
+		Action: runAddSMTP,
+		Flags:  smtpCLIFlags,
+	}
+
+	microcmdAuthUpdateSMTP = cli.Command{
+		Name:   "update-smtp",
+		Usage:  "Update existing SMTP authentication source",
+		Action: runUpdateSMTP,
+		Flags:  append(smtpCLIFlags[:1], append([]cli.Flag{idFlag}, smtpCLIFlags[1:]...)...),
 	}
 )
 
@@ -461,7 +535,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	// always default to true
-	var changePassword = true
+	changePassword := true
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
@@ -513,7 +587,6 @@ func runListUsers(c *cli.Context) error {
 	}
 
 	users, err := user_model.GetAllUsers()
-
 	if err != nil {
 		return err
 	}
@@ -537,7 +610,6 @@ func runListUsers(c *cli.Context) error {
 
 	w.Flush()
 	return nil
-
 }
 
 func runDeleteUser(c *cli.Context) error {
@@ -605,7 +677,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue
@@ -762,7 +834,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("required-claim-name") {
 		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
-
 	}
 	if c.IsSet("required-claim-value") {
 		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
@@ -779,7 +850,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping = &oauth2.CustomURLMapping{}
+	customURLMapping := &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
@@ -809,6 +880,118 @@ func runUpdateOauth(c *cli.Context) error {
 	return auth.UpdateSource(source)
 }
 
+func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
+	if c.IsSet("auth-type") {
+		conf.Auth = c.String("auth-type")
+		validAuthTypes := []string{"PLAIN", "LOGIN", "CRAM-MD5"}
+		if !contains(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
+			return errors.New("Auth must be one of PLAIN/LOGIN/CRAM-MD5")
+		}
+		conf.Auth = c.String("auth-type")
+	}
+	if c.IsSet("host") {
+		conf.Host = c.String("host")
+	}
+	if c.IsSet("port") {
+		conf.Port = c.Int("port")
+	}
+	if c.IsSet("allowed-domains") {
+		conf.AllowedDomains = c.String("allowed-domains")
+	}
+	if c.IsSet("force-smtps") {
+		conf.ForceSMTPS = c.BoolT("force-smtps")
+	}
+	if c.IsSet("skip-verify") {
+		conf.SkipVerify = c.BoolT("skip-verify")
+	}
+	if c.IsSet("helo-hostname") {
+		conf.HeloHostname = c.String("helo-hostname")
+	}
+	if c.IsSet("disable-helo") {
+		conf.DisableHelo = c.BoolT("disable-helo")
+	}
+	if c.IsSet("skip-local-2fa") {
+		conf.SkipLocalTwoFA = c.BoolT("skip-local-2fa")
+	}
+	return nil
+}
+
+func runAddSMTP(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	if !c.IsSet("name") || len(c.String("name")) == 0 {
+		return errors.New("name must be set")
+	}
+	if !c.IsSet("host") || len(c.String("host")) == 0 {
+		return errors.New("host must be set")
+	}
+	if !c.IsSet("port") {
+		return errors.New("port must be set")
+	}
+	active := true
+	if c.IsSet("active") {
+		active = c.BoolT("active")
+	}
+
+	var smtpConfig smtp.Source
+	if err := parseSMTPConfig(c, &smtpConfig); err != nil {
+		return err
+	}
+
+	// If not set default to PLAIN
+	if len(smtpConfig.Auth) == 0 {
+		smtpConfig.Auth = "PLAIN"
+	}
+
+	return auth.CreateSource(&auth.Source{
+		Type:     auth.SMTP,
+		Name:     c.String("name"),
+		IsActive: active,
+		Cfg:      &smtpConfig,
+	})
+}
+
+func runUpdateSMTP(c *cli.Context) error {
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	source, err := auth.GetSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	smtpConfig := source.Cfg.(*smtp.Source)
+
+	if err := parseSMTPConfig(c, smtpConfig); err != nil {
+		return err
+	}
+
+	if c.IsSet("name") {
+		source.Name = c.String("name")
+	}
+
+	if c.IsSet("active") {
+		source.IsActive = c.BoolT("active")
+	}
+
+	source.Cfg = smtpConfig
+
+	return auth.UpdateSource(source)
+}
+
 func runListAuth(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -818,7 +1001,6 @@ func runListAuth(c *cli.Context) error {
 	}
 
 	authSources, err := auth.Sources()
-
 	if err != nil {
 		return err
 	}

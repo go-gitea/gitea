@@ -239,7 +239,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// if user in an owner team
 	for _, team := range teams {
-		if team.Authorize >= perm_model.AccessModeOwner {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
 			perm.AccessMode = perm_model.AccessModeOwner
 			perm.UnitsMode = nil
 			return
@@ -249,10 +249,11 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			if team.unitEnabled(e, u.Type) {
+			teamMode := team.unitAccessMode(e, u.Type)
+			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
-				if m < team.Authorize {
-					perm.UnitsMode[u.Type] = team.Authorize
+				if m < teamMode {
+					perm.UnitsMode[u.Type] = teamMode
 				}
 				found = true
 			}
@@ -324,7 +325,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 	}
 
 	for _, team := range teams {
-		if team.Authorize >= perm_model.AccessModeAdmin {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
 			return true, nil
 		}
 	}

@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -31,8 +32,8 @@ func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOption
 }
 
 // DeleteRepository deletes a repository for a user or organization.
-func DeleteRepository(doer *user_model.User, repo *repo_model.Repository, notify bool) error {
-	if err := pull_service.CloseRepoBranchesPulls(doer, repo); err != nil {
+func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, notify bool) error {
+	if err := pull_service.CloseRepoBranchesPulls(ctx, doer, repo); err != nil {
 		log.Error("CloseRepoBranchesPulls failed: %v", err)
 	}
 

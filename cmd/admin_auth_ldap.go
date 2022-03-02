@@ -260,7 +260,6 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("skip-local-2fa") {
 		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
-
 	return nil
 }
 

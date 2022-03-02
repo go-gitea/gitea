@@ -99,7 +99,7 @@ const (
 	// 28 merge pull request
 	CommentTypeMergePull
 	// 29 push to PR head branch
-	CommentTypePullPush
+	CommentTypePullRequestPush
 	// 30 Project changed
 	CommentTypeProject
 	// 31 Project board changed
@@ -519,7 +519,7 @@ func (c *Comment) LoadPoster() error {
 	return c.loadPoster(db.GetEngine(db.DefaultContext))
 }
 
-// LoadAttachments loads attachments
+// LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
 func (c *Comment) LoadAttachments() error {
 	if len(c.Attachments) > 0 {
 		return nil
@@ -724,8 +724,8 @@ func (c *Comment) CodeCommentURL() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits() (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
 		return nil
 	}
 
@@ -746,11 +746,11 @@ func (c *Comment) LoadPushCommits() (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 		if err != nil {
 			return err
 		}
-		defer gitRepo.Close()
+		defer closer.Close()
 
 		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
@@ -835,13 +835,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 		fallthrough
-	case CommentTypeReview:
-		fallthrough
 	case CommentTypeComment:
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-
+		fallthrough
+	case CommentTypeReview:
 		// Check attachments
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
@@ -857,12 +856,12 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(e); err != nil {
+		if err = opts.Issue.updateClosedNum(ctx); err != nil {
 			return err
 		}
 	}
 	// update the issue's updated_unix column
-	return updateIssueCols(e, opts.Issue, "updated_unix")
+	return updateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
@@ -1153,9 +1152,7 @@ func DeleteComment(comment *Comment) error {
 }
 
 func deleteComment(e db.Engine, comment *Comment) error {
-	if _, err := e.Delete(&Comment{
-		ID: comment.ID,
-	}); err != nil {
+	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
 
@@ -1273,6 +1270,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: issue.Repo.Link(),
 			Metas:     issue.Repo.ComposeMetas(),
 		}, comment.Content); err != nil {
@@ -1283,19 +1281,19 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.DefaultContext, opts, issue, currentUser, nil)
+	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(db.DefaultContext, issue, currentUser)
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeComments(ctx, issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
@@ -1319,20 +1317,20 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 }
 
 // CreatePushPullComment create push code to pull base comment
-func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
 	}
 
 	ops := &CreateCommentOptions{
-		Type: CommentTypePullPush,
+		Type: CommentTypePullRequestPush,
 		Doer: pusher,
 		Repo: pr.BaseRepo,
 	}
 
 	var data PushActionContent
 
-	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -1354,13 +1352,13 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 	if err != nil {
 		return nil, false, err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {
@@ -1464,3 +1462,20 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	}
 	return nil
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
+	c.OriginalAuthor = externalName
+	c.OriginalAuthorID = externalID
+	c.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (c *Comment) GetUserID() int64 { return c.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }

@@ -12,12 +12,9 @@ import (
 )
 
 // NullNotifier implements a blank notifier
-type NullNotifier struct {
-}
+type NullNotifier struct{}
 
-var (
-	_ Notifier = &NullNotifier{}
-)
+var _ Notifier = &NullNotifier{}
 
 // Run places a place holder function
 func (*NullNotifier) Run() {
@@ -34,6 +31,10 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.
 
 // NotifyIssueChangeStatus places a place holder function
 func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+}
+
+// NotifyDeleteIssue notify when some issue deleted
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
 }
 
 // NotifyNewPullRequest places a place holder function
@@ -118,7 +119,7 @@ func (*NullNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.I
 
 // NotifyIssueChangeLabels places a place holder function
 func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label) {
 }
 
 // NotifyCreateRepository places a place holder function
@@ -142,7 +143,7 @@ func (*NullNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
@@ -162,7 +163,7 @@ func (*NullNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_m
 }
 
 // NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifySyncDeleteRef places a place holder function

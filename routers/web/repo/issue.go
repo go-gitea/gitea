@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"path"
@@ -57,17 +58,15 @@ const (
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
-var (
-	// IssueTemplateCandidates issue templates
-	IssueTemplateCandidates = []string{
-		"ISSUE_TEMPLATE.md",
-		"issue_template.md",
-		".gitea/ISSUE_TEMPLATE.md",
-		".gitea/issue_template.md",
-		".github/ISSUE_TEMPLATE.md",
-		".github/issue_template.md",
-	}
-)
+// IssueTemplateCandidates issue templates
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"issue_template.md",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/issue_template.md",
+	".github/ISSUE_TEMPLATE.md",
+	".github/issue_template.md",
+}
 
 // MustAllowUserComment checks to make sure if an issue is locked.
 // If locked and user has permissions to write to the repository,
@@ -162,10 +161,13 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{repo.ID}, keyword)
 		if err != nil {
-			ctx.ServerError("issueIndexer.Search", err)
-			return
+			if issue_indexer.IsAvailable() {
+				ctx.ServerError("issueIndexer.Search", err)
+				return
+			}
+			ctx.Data["IssueIndexerUnavailable"] = true
 		}
 		if len(issueIDs) == 0 {
 			forceEmpty = true
@@ -245,7 +247,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var issueList = models.IssueList(issues)
+	issueList := models.IssueList(issues)
 	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
@@ -263,7 +265,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
@@ -311,8 +313,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
-	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -442,7 +443,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-
 	var err error
 
 	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
@@ -789,7 +789,6 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
@@ -803,7 +802,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.FormInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -890,7 +889,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
@@ -962,7 +961,6 @@ func NewIssuePost(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1026,7 +1024,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 }
 
-// roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
+// roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {
@@ -1147,7 +1145,6 @@ func ViewIssue(ctx *context.Context) {
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1336,7 +1333,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 
-		if comment.Type == models.CommentTypeComment {
+		if comment.Type == models.CommentTypeComment || comment.Type == models.CommentTypeReview {
 			if err := comment.LoadAttachments(); err != nil {
 				ctx.ServerError("LoadAttachments", err)
 				return
@@ -1437,14 +1434,14 @@ func ViewIssue(ctx *context.Context) {
 			if comment.Review == nil {
 				continue
 			}
-			if err = comment.Review.LoadAttributes(); err != nil {
+			if err = comment.Review.LoadAttributes(ctx); err != nil {
 				if !user_model.IsErrUserNotExist(err) {
 					ctx.ServerError("Review.LoadAttributes", err)
 					return
 				}
 				comment.Review.Reviewer = user_model.NewGhostUser()
 			}
-			if err = comment.Review.LoadCodeComments(); err != nil {
+			if err = comment.Review.LoadCodeComments(ctx); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
@@ -1472,9 +1469,9 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
 			}
-		} else if comment.Type == models.CommentTypePullPush {
+		} else if comment.Type == models.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = comment.LoadPushCommits(); err != nil {
+			if err = comment.LoadPushCommits(ctx); err != nil {
 				ctx.ServerError("LoadPushCommits", err)
 				return
 			}
@@ -1586,7 +1583,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
-			sign, key, _, err := asymkey_service.SignMerge(pull, ctx.User, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+			sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.User, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
 			ctx.Data["WillSign"] = sign
 			ctx.Data["SigningKey"] = key
 			if err != nil {
@@ -1657,6 +1654,20 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+
+	var hiddenCommentTypes *big.Int
+	if ctx.IsSigned {
+		val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
+		if err != nil {
+			ctx.ServerError("GetUserSetting", err)
+			return
+		}
+		hiddenCommentTypes, _ = new(big.Int).SetString(val, 10) // we can safely ignore the failed conversion here
+	}
+	ctx.Data["ShouldShowCommentType"] = func(commentType models.CommentType) bool {
+		return hiddenCommentTypes == nil || hiddenCommentTypes.Bit(int(commentType)) == 0
+	}
+
 	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
@@ -2197,7 +2208,9 @@ func UpdateCommentContent(ctx *context.Context) {
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+	}
+
+	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -2215,11 +2228,9 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
+	if err := comment.LoadAttachments(); err != nil {
+		ctx.ServerError("LoadAttachments", err)
+		return
 	}
 
 	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
@@ -2407,7 +2418,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		ctx.Error(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
+	}
+
+	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode && comment.Type != models.CommentTypeReview {
 		ctx.Error(http.StatusNoContent)
 		return
 	}
@@ -2509,7 +2522,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
@@ -2523,7 +2536,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
 	}
-	var attachments = make([]*api.Attachment, 0)
+	attachments := make([]*api.Attachment, 0)
 	if comment.Type == models.CommentTypeComment {
 		if err := comment.LoadAttachments(); err != nil {
 			ctx.ServerError("LoadAttachments", err)
@@ -2544,7 +2557,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		attachments = content.Attachments
 	default:
-		return fmt.Errorf("Unknown Type: %T", content)
+		return fmt.Errorf("unknown Type: %T", content)
 	}
 	for i := 0; i < len(attachments); i++ {
 		if util.IsStringInSlice(attachments[i].UUID, files) {
@@ -2562,7 +2575,7 @@ func updateAttachments(item interface{}, files []string) error {
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
-			return fmt.Errorf("Unknown Type: %T", content)
+			return fmt.Errorf("unknown Type: %T", content)
 		}
 		if err != nil {
 			return err
@@ -2574,7 +2587,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		content.Attachments, err = repo_model.GetAttachmentsByCommentID(content.ID)
 	default:
-		return fmt.Errorf("Unknown Type: %T", content)
+		return fmt.Errorf("unknown Type: %T", content)
 	}
 	return err
 }
@@ -2668,7 +2681,7 @@ func handleTeamMentions(ctx *context.Context) {
 	var isAdmin bool
 	var err error
 	var teams []*models.Team
-	var org = models.OrgFromUser(ctx.Repo.Owner)
+	org := models.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.User.IsAdmin {
 		isAdmin = true

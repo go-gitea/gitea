@@ -42,7 +42,7 @@ func TestUserAvatar(t *testing.T) {
 
 		body := &bytes.Buffer{}
 
-		//Setup multi-part
+		// Setup multi-part
 		writer := multipart.NewWriter(body)
 		writer.WriteField("source", "local")
 		part, err := writer.CreateFormFile("avatar", "avatar-for-testuseravatar.png")

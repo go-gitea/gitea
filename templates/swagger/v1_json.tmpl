@@ -3383,6 +3383,50 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/diffpatch": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Apply diff patch to repository",
+        "operationId": "repoApplyDiffPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/editorconfig/{filepath}": {
       "get": {
         "produces": [
@@ -4916,6 +4960,48 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Issue"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete an issue",
+        "operationId": "issueDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue to delete",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -13517,7 +13603,8 @@
             "slack",
             "telegram",
             "feishu",
-            "wechatwork"
+            "wechatwork",
+            "packagist"
           ],
           "x-go-name": "Type"
         }
@@ -13893,7 +13980,7 @@
       ],
       "properties": {
         "auto_init": {
-          "description": "Whether the repository should be auto-intialized?",
+          "description": "Whether the repository should be auto-initialized?",
           "type": "boolean",
           "x-go-name": "AutoInit"
         },
@@ -14049,6 +14136,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14860,6 +14955,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16384,7 +16487,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OrganizationPermissions": {
-      "description": "OrganizationPermissions list differents users permissions on an organization",
+      "description": "OrganizationPermissions list different users permissions on an organization",
       "type": "object",
       "properties": {
         "can_create_repository": {
@@ -17171,6 +17274,14 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "languages_url": {
+          "type": "string",
+          "x-go-name": "LanguagesURL"
+        },
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
@@ -17178,6 +17289,11 @@
         "mirror_interval": {
           "type": "string",
           "x-go-name": "MirrorInterval"
+        },
+        "mirror_updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "MirrorUpdated"
         },
         "name": {
           "type": "string",
@@ -17453,6 +17569,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

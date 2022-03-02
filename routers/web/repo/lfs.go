@@ -115,19 +115,19 @@ func LFSLocks(ctx *context.Context) {
 		}
 	}()
 
-	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -140,7 +140,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
 		return
 	}
 
@@ -300,11 +300,12 @@ func LFSFileGet(ctx *context.Context) {
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(rd)
+		escapedContent := &bytes.Buffer{}
+		ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, escapedContent)
 
 		var output bytes.Buffer
-		lines := strings.Split(string(fileContent), "\n")
-		//Remove blank line at the end of file
+		lines := strings.Split(escapedContent.String(), "\n")
+		// Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]
 		}
@@ -524,18 +525,18 @@ func LFSAutoAssociate(ctx *context.Context) {
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')
 		if idx < 0 || idx+1 > len(oid) {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s", oid))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s", oid))
 			return
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]
-		//metas[i].RepositoryID = ctx.Repo.Repository.ID
+		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
 	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
