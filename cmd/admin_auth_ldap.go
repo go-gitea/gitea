@@ -143,7 +143,7 @@ var (
 		Action: func(c *cli.Context) error {
 			return newAuthService().updateLdapBindDn(c)
 		},
-		Flags: append([]cli.Flag{&idFlag}, ldapBindDnCLIFlags...),
+		Flags: append([]cli.Flag{idFlag}, ldapBindDnCLIFlags...),
 	}
 
 	cmdAuthAddLdapSimpleAuth = cli.Command{
@@ -161,7 +161,7 @@ var (
 		Action: func(c *cli.Context) error {
 			return newAuthService().updateLdapSimpleAuth(c)
 		},
-		Flags: append([]cli.Flag{&idFlag}, ldapSimpleAuthCLIFlags...),
+		Flags: append([]cli.Flag{idFlag}, ldapSimpleAuthCLIFlags...),
 	}
 )
 

@@ -899,19 +899,19 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		conf.AllowedDomains = c.String("allowed-domains")
 	}
 	if c.IsSet("force-smtps") {
-		conf.ForceSMTPS = c.BoolT("force-smtps")
+		conf.ForceSMTPS = c.Bool("force-smtps")
 	}
 	if c.IsSet("skip-verify") {
-		conf.SkipVerify = c.BoolT("skip-verify")
+		conf.SkipVerify = c.Bool("skip-verify")
 	}
 	if c.IsSet("helo-hostname") {
 		conf.HeloHostname = c.String("helo-hostname")
 	}
 	if c.IsSet("disable-helo") {
-		conf.DisableHelo = c.BoolT("disable-helo")
+		conf.DisableHelo = c.Bool("disable-helo")
 	}
 	if c.IsSet("skip-local-2fa") {
-		conf.SkipLocalTwoFA = c.BoolT("skip-local-2fa")
+		conf.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
 	return nil
 }
@@ -935,7 +935,7 @@ func runAddSMTP(c *cli.Context) error {
 	}
 	active := true
 	if c.IsSet("active") {
-		active = c.BoolT("active")
+		active = c.Bool("active")
 	}
 
 	var smtpConfig smtp.Source
@@ -984,7 +984,7 @@ func runUpdateSMTP(c *cli.Context) error {
 	}
 
 	if c.IsSet("active") {
-		source.IsActive = c.BoolT("active")
+		source.IsActive = c.Bool("active")
 	}
 
 	source.Cfg = smtpConfig

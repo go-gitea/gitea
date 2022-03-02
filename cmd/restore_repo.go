@@ -44,7 +44,7 @@ var CmdRestoreRepository = cli.Command{
 			Usage: `Which items will be restored, one or more units should be separated as comma.
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
-		cli.BoolFlag{
+		&cli.BoolFlag{
 			Name:  "validation",
 			Usage: "Sanity check the content of the files before trying to load them",
 		},
