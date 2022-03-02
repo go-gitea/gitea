@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1988,6 +1990,118 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	}
 
 	return committer.Commit()
+}
+
+// DeleteIssue deletes the issue
+func DeleteIssue(issue *Issue) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteIssue(ctx, issue); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func deleteInIssue(e db.Engine, issueID int64, beans ...interface{}) error {
+	for _, bean := range beans {
+		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteIssue(ctx context.Context, issue *Issue) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+		return err
+	}
+
+	if issue.IsPull {
+		if _, err := e.ID(issue.RepoID).Decr("num_pulls").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_pulls").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := e.ID(issue.RepoID).Decr("num_issues").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_issues").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// delete actions assigned to this issue
+	var comments []int64
+	if err := e.Table(new(Comment)).In("issue_id", issue.ID).Cols("id").Find(&comments); err != nil {
+		return err
+	}
+	for i := range comments {
+		if _, err := e.Where("comment_id = ?", comments[i]).Delete(&Action{}); err != nil {
+			return err
+		}
+	}
+	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").Delete(&Action{}); err != nil {
+		return err
+	}
+
+	// find attachments related to this issue and remove them
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).Find(&attachments); err != nil {
+		return err
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	// delete all database data still assigned to this issue
+	if err := deleteInIssue(e, issue.ID,
+		&issues.ContentHistory{},
+		&Comment{},
+		&IssueLabel{},
+		&IssueDependency{},
+		&IssueAssignees{},
+		&IssueUser{},
+		&Reaction{},
+		&IssueWatch{},
+		&Stopwatch{},
+		&TrackedTime{},
+		&ProjectIssue{},
+		&repo_model.Attachment{},
+		&PullRequest{},
+	); err != nil {
+		return err
+	}
+
+	// References to this issue in other issues
+	if _, err := e.In("ref_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err := e.In("dependency_id", issue.ID).Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// delete from dependent issues
+	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
