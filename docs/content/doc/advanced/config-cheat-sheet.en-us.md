@@ -107,7 +107,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Upload (`repository.upload`)
 
 - `ENABLED`: **true**: Whether repository file uploads are enabled
-- `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (tmp gets deleted on Gitea restart)
+- `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (content gets deleted on Gitea restart)
 - `ALLOWED_TYPES`: **\<empty\>**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `FILE_MAX_SIZE`: **3**: Max size of each file in megabytes.
 - `MAX_FILES`: **5**: Max number of files per upload
@@ -144,7 +144,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Repository - Local (`repository.local`)
 
-- `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
+- `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo` (content gets deleted on Gitea restart)
 
 ## Repository -  MIME type mapping (`repository.mimetype_mapping`)
 
