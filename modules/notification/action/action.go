@@ -91,7 +91,8 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *m
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
 func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
