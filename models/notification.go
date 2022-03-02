@@ -505,7 +505,7 @@ func (nl NotificationList) LoadAttributes() (err error) {
 			return
 		}
 	}
-	return
+	return nil
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
