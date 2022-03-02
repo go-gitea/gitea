@@ -217,15 +217,17 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["Sources"] = sources
 
-	ctx.Data["TwoFactorEnabled"] = true
-	_, err = auth.GetTwoFactorByUID(u.ID)
+	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-			return nil
-		}
-		ctx.Data["TwoFactorEnabled"] = false
+		ctx.ServerError("auth.HasTwoFactorByUID", err)
+		return nil
 	}
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
+		return nil
+	}
+	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
 	return u
 }
@@ -327,14 +329,27 @@ func EditUserPost(ctx *context.Context) {
 	if form.Reset2FA {
 		tf, err := auth.GetTwoFactorByUID(u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("GetTwoFactorByUID", err)
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
+		} else if tf != nil {
+			if err := auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteTwoFactorByID", err)
+				return
+			}
 		}
 
-		if err = auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
-			ctx.ServerError("DeleteTwoFactorByID", err)
+		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		if err != nil {
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
+		for _, cred := range wn {
+			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteCredential", err)
+				return
+			}
+		}
+
 	}
 
 	u.LoginName = form.LoginName
