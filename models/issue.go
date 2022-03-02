@@ -2136,7 +2136,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&IssueWatch{},
 		&Stopwatch{},
 		&TrackedTime{},
-		&ProjectIssue{},
+		&project_model.ProjectIssue{},
 		&repo_model.Attachment{},
 		&PullRequest{},
 	); err != nil {
