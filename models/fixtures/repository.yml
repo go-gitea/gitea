@@ -24,6 +24,7 @@
   owner_name: user2
   lower_name: repo2
   name: repo2
+  is_empty: false
   is_archived: false
   is_private: true
   num_issues: 2
@@ -40,6 +41,7 @@
   owner_name: user3
   lower_name: repo3
   name: repo3
+  is_empty: false
   is_private: true
   num_issues: 1
   num_closed_issues: 0
@@ -56,6 +58,7 @@
   owner_name: user5
   lower_name: repo4
   name: repo4
+  is_empty: false
   is_private: false
   num_issues: 0
   num_closed_issues: 0
@@ -143,6 +146,7 @@
   owner_name: user12
   lower_name: repo10
   name: repo10
+  is_empty: false
   is_private: false
   num_issues: 0
   num_closed_issues: 0
@@ -160,6 +164,7 @@
   owner_name: user13
   lower_name: repo11
   name: repo11
+  is_empty: false
   is_private: false
   num_issues: 0
   num_closed_issues: 0
@@ -217,7 +222,8 @@
   owner_name: user2
   lower_name: repo15
   name: repo15
-  is_empty: true
+  is_empty: false
+  is_private: true
   status: 0
 
 -
@@ -226,6 +232,7 @@
   owner_name: user2
   lower_name: repo16
   name: repo16
+  is_empty: false
   is_private: true
   num_issues: 0
   num_closed_issues: 0
@@ -459,6 +466,8 @@
   owner_name: user2
   lower_name: repo20
   name: repo20
+  is_empty: false
+  is_private: true
   num_stars: 0
   num_forks: 0
   num_issues: 0
@@ -484,6 +493,7 @@
   owner_name: user2
   lower_name: utf8
   name: utf8
+  is_empty: false
   is_private: false
   status: 0
 
@@ -519,6 +529,7 @@
   owner_name: user2
   lower_name: commits_search_test
   name: commits_search_test
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -532,6 +543,7 @@
   owner_name: user2
   lower_name: git_hooks_test
   name: git_hooks_test
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -545,6 +557,7 @@
   owner_name: limited_org
   lower_name: public_repo_on_limited_org
   name: public_repo_on_limited_org
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -558,6 +571,7 @@
   owner_name: limited_org
   lower_name: private_repo_on_limited_org
   name: private_repo_on_limited_org
+  is_empty: false
   is_private: true
   num_stars: 0
   num_forks: 0
@@ -571,6 +585,7 @@
   owner_name: privated_org
   lower_name: public_repo_on_private_org
   name: public_repo_on_private_org
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -584,6 +599,7 @@
   owner_name: privated_org
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
+  is_empty: false
   is_private: true
   num_stars: 0
   num_forks: 0
@@ -596,6 +612,7 @@
   owner_name: user2
   lower_name: glob
   name: glob
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -622,6 +639,7 @@
   owner_name: user27
   lower_name: template1
   name: template1
+  is_empty: false
   is_private: false
   is_template: true
   num_stars: 0
@@ -650,6 +668,7 @@
   owner_name: org26
   lower_name: repo_external_tracker
   name: repo_external_tracker
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -663,6 +682,7 @@
   owner_name: org26
   lower_name: repo_external_tracker_numeric
   name: repo_external_tracker_numeric
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -676,6 +696,7 @@
   owner_name: org26
   lower_name: repo_external_tracker_alpha
   name: repo_external_tracker_alpha
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -690,6 +711,7 @@
   owner_name: user27
   lower_name: repo49
   name: repo49
+  is_empty: false
   is_private: false
   num_stars: 0
   num_forks: 0
@@ -735,4 +757,14 @@
   num_watches: 0
   num_projects: 0
   num_closed_projects: 0
+  status: 0
+
+-
+  id: 52
+  owner_id: 30
+  owner_name: user30
+  lower_name: empty
+  name: empty
+  is_empty: true
+  is_private: true
   status: 0
