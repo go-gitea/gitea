@@ -82,6 +82,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.SetUserFilterParams(ctx)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)
