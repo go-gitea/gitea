@@ -92,7 +92,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	if len(logMessage) > 0 {
 		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
 	}
-	return cli.NewExitError("", 1)
+	return cli.Exit("", 1)
 }
 
 func runServ(c *cli.Context) error {
