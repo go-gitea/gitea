@@ -21,8 +21,6 @@ type Permission struct {
 	AccessMode perm_model.AccessMode
 	Units      []*repo_model.RepoUnit
 	UnitsMode  map[unit.Type]perm_model.AccessMode
-
-	User *user_model.User
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -105,7 +103,7 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
-func (p *Permission) CanWriteToBranch(branch string) bool {
+func (p *Permission) CanWriteToBranch(user *user_model.User, branch string) bool {
 	if p.CanWrite(unit.TypeCode) {
 		return true
 	}
@@ -125,7 +123,7 @@ func (p *Permission) CanWriteToBranch(branch string) bool {
 			continue
 		}
 		if pr.AllowMaintainerEdit {
-			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, p.User)
+			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
 			if err != nil {
 				continue
 			}
@@ -198,8 +196,6 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 				perm)
 		}()
 	}
-
-	perm.User = user
 
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???

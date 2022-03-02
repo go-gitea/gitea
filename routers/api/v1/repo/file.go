@@ -183,8 +183,10 @@ func GetEditorconfig(ctx *context.APIContext) {
 }
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
-func canWriteFiles(r *context.Repository, branch string) bool {
-	return r.Permission.CanWriteToBranch(branch) && !r.Repository.IsMirror && !r.Repository.IsArchived
+func canWriteFiles(ctx *context.APIContext, branch string) bool {
+	return ctx.Repo.Permission.CanWriteToBranch(ctx.User, branch) &&
+		!ctx.Repo.Repository.IsMirror &&
+		!ctx.Repo.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
@@ -389,7 +391,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 
 // Called from both CreateFile or UpdateFile to handle both
 func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
-	if !canWriteFiles(ctx.Repo, opts.OldBranch) {
+	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
@@ -446,7 +448,7 @@ func DeleteFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
-	if !canWriteFiles(ctx.Repo, apiOpts.BranchName) {
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
