@@ -736,10 +736,6 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
-	if len(keys) == 0 {
-		ctx.NotFound("", nil)
-		return
-	}
 
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
@@ -760,6 +756,8 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
 		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+	} else if len(entities) == 0 {
+		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}
 	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
 	for _, e := range entities {
