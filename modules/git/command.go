@@ -158,6 +158,7 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		// avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_TERMINAL_PROMPT=0",
+		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
 	cmd.Dir = rc.Dir
