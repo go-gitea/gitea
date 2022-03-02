@@ -94,7 +94,7 @@ func AddChangesWithArgs(repoPath string, globalArgs []string, all bool, files ..
 		cmd.AddArguments("--all")
 	}
 	cmd.AddArguments("--")
-	_, err := cmd.AddArguments(files...).RunInDir(repoPath)
+	err := cmd.AddArguments(files...).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1})
 	return err
 }
 
@@ -130,7 +130,7 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 	}
 	cmd.AddArguments("-m", opts.Message)
 
-	_, err := cmd.RunInDir(repoPath)
+	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1})
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil
@@ -151,12 +151,13 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 		cmd.AddArguments(files...)
 	}
 
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, err
 	}
 
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	return strconv.ParseInt(strings.TrimSpace(stdout.String()), 10, 64)
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
@@ -168,12 +169,13 @@ func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath [
 		cmd.AddArguments(relpath...)
 	}
 
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, err
 	}
 
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+	return strconv.ParseInt(strings.TrimSpace(stdout.String()), 10, 64)
 }
 
 // CommitsCount returns number of total commits of until given revision.
@@ -206,7 +208,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 	}
 
 	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1})
 		if err == nil {
 			return true, nil
 		}
@@ -219,7 +221,9 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	result, err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
+	result := stdout.String()
 	if err != nil {
 		return false, err
 	}
@@ -381,7 +385,9 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	data, err := NewCommand(c.repo.Ctx, args...).RunInDir(c.repo.Path)
+	stdout := new(bytes.Buffer)
+	err = NewCommand(c.repo.Ctx, args...).RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
+	data := stdout.String()
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -407,7 +413,9 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
+	data := stdout.String()
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
@@ -503,7 +511,9 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
-	commitID, err := NewCommand(ctx, "rev-parse", shortID).RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(ctx, "rev-parse", shortID).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+	commitID := stdout.String()
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}

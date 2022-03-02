@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -24,7 +25,7 @@ const PullRequestPrefix = "refs/for/"
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(ctx context.Context, repoPath, name string) bool {
-	_, err := NewCommand(ctx, "show-ref", "--verify", "--", name).RunInDir(repoPath)
+	err := NewCommand(ctx, "show-ref", "--verify", "--", name).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1})
 	return err == nil
 }
 
@@ -46,32 +47,35 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, err
 	}
-	stdout = strings.TrimSpace(stdout)
+	stdoutS := strings.TrimSpace(stdout.String())
 
-	if !strings.HasPrefix(stdout, BranchPrefix) {
+	if !strings.HasPrefix(stdoutS, BranchPrefix) {
 		return nil, fmt.Errorf("invalid HEAD branch: %v", stdout)
 	}
 
 	return &Branch{
-		Name:    stdout[len(BranchPrefix):],
-		Path:    stdout,
+		Name:    stdoutS[len(BranchPrefix):],
+		Path:    stdoutS,
 		gitRepo: repo,
 	}, nil
 }
 
 // SetDefaultBranch sets default branch of repository.
 func (repo *Repository) SetDefaultBranch(name string) error {
-	_, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD", BranchPrefix+name).RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD", BranchPrefix+name).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
-	return NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	return stdout.String(), err
 }
 
 // GetBranch returns a branch by it's name
@@ -133,7 +137,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 	}
 
 	cmd.AddArguments("--", name)
-	_, err := cmd.RunInDir(repo.Path)
+	err := cmd.RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 
 	return err
 }
@@ -143,7 +147,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 	cmd := NewCommand(repo.Ctx, "branch")
 	cmd.AddArguments("--", branch, oldbranchOrCommit)
 
-	_, err := cmd.RunInDir(repo.Path)
+	err := cmd.RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 
 	return err
 }
@@ -156,13 +160,13 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 	}
 	cmd.AddArguments(name, url)
 
-	_, err := cmd.RunInDir(repo.Path)
+	err := cmd.RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand(repo.Ctx, "remote", "rm", name).RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "remote", "rm", name).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
@@ -173,6 +177,6 @@ func (branch *Branch) GetCommit() (*Commit, error) {
 
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string) error {
-	_, err := NewCommand(repo.Ctx, "branch", "-m", from, to).RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "branch", "-m", from, to).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }

@@ -479,7 +479,7 @@ func UpdateRef(ctx context.Context, pr *models.PullRequest) (err error) {
 		return err
 	}
 
-	_, err = git.NewCommand(ctx, "update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunInDir(pr.BaseRepo.RepoPath())
+	err = git.NewCommand(ctx, "update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunWithContext(&git.RunContext{Dir: pr.BaseRepo.RepoPath(), Timeout: -1})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}

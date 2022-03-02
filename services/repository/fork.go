@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -120,10 +121,11 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommand(ctx, "update-server-info").
+		stdout := new(bytes.Buffer)
+		if err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunInDir(repoPath); err != nil {
-			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
+			RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout}); err != nil {
+			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout.String(), err)
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 

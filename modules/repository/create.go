@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -111,10 +112,11 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommand(ctx, "update-server-info").
+		stdout := new(bytes.Buffer)
+		if err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunInDir(repoPath); err != nil {
-			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout}); err != nil {
+			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout.String(), err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)

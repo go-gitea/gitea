@@ -18,7 +18,9 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
-		res, err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunInDir(repo.Path)
+		stdout := new(bytes.Buffer)
+		err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+		res := stdout.String()
 		if err != nil {
 			return err
 		}
@@ -69,7 +71,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, err := NewCommand(repo.Ctx, "read-tree", "--empty").RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "read-tree", "--empty").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
@@ -118,13 +120,15 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
 	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
-	_, err := cmd.RunInDir(repo.Path)
+	err := cmd.RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	res, err := NewCommand(repo.Ctx, "write-tree").RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "write-tree").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	res := stdout.String()
 	if err != nil {
 		return nil, err
 	}

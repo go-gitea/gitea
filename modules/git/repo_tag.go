@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -24,13 +25,13 @@ func IsTagExist(ctx context.Context, repoPath, name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
+	err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 	return err
 }
 
@@ -103,12 +104,13 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
 	}
 
-	tagRefs := strings.Split(stdout, "\n")
+	tagRefs := strings.Split(stdout.String(), "\n")
 	for _, tagRef := range tagRefs {
 		if len(strings.TrimSpace(tagRef)) > 0 {
 			fields := strings.Fields(tagRef)
@@ -126,12 +128,13 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
 	}
 	// Make sure exact match is used: "v1" != "release/v1"
-	for _, line := range strings.Split(stdout, "\n") {
+	for _, line := range strings.Split(stdout.String(), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) == 2 && fields[1] == "refs/tags/"+name {
 			return fields[0], nil
@@ -162,12 +165,13 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
-	stdout, err := NewCommand(repo.Ctx, "tag").RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "tag").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	tagNames := strings.Split(strings.TrimRight(stdout.String(), "\n"), "\n")
 	tagsTotal := len(tagNames)
 
 	if page != 0 {
@@ -195,14 +199,15 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	// Get tag type
-	stdout, err := NewCommand(repo.Ctx, "cat-file", "-t", id.String()).RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "cat-file", "-t", id.String()).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
 	}
-	if len(stdout) == 0 {
+	if len(stdout.String()) == 0 {
 		return "", ErrNotExist{ID: id.String()}
 	}
-	return strings.TrimSpace(stdout), nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag

@@ -6,6 +6,7 @@ package code
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -192,12 +193,13 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
-			RunInDir(repo.RepoPath())
+		stdout := new(bytes.Buffer)
+		err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
+			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 		if err != nil {
 			return err
 		}
-		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout.String()), 10, 64); err != nil {
 			return fmt.Errorf("Misformatted git cat-file output: %v", err)
 		}
 	}

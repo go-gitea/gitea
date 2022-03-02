@@ -34,12 +34,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
 	// Remove old remote
-	_, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunInDir(repoPath)
+	err := git.NewCommand(ctx, "remote", "rm", remoteName).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
-	_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -48,12 +48,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		wikiPath := m.Repo.WikiPath()
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunInDir(wikiPath)
+		err := git.NewCommand(ctx, "remote", "rm", remoteName).RunWithContext(&git.RunContext{Dir: wikiPath, Timeout: -1})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
 
-		_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunWithContext(&git.RunContext{Dir: wikiPath, Timeout: -1})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}

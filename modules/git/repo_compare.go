@@ -40,14 +40,15 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, err := NewCommand(repo.Ctx, "fetch", tmpRemote, base+":"+tmpBaseName).RunInDir(repo.Path)
+		err := NewCommand(repo.Ctx, "fetch", tmpRemote, base+":"+tmpBaseName).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
 		if err == nil {
 			base = tmpBaseName
 		}
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "merge-base", "--", base, head).RunInDir(repo.Path)
-	return strings.TrimSpace(stdout), base, err
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "merge-base", "--", base, head).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	return strings.TrimSpace(stdout.String()), base, err
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
@@ -192,12 +193,13 @@ func GetDiffShortStat(ctx context.Context, repoPath string, args ...string) (num
 		"--shortstat",
 	}, args...)
 
-	stdout, err := NewCommand(ctx, args...).RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err = NewCommand(ctx, args...).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, 0, 0, err
 	}
 
-	return parseDiffStat(stdout)
+	return parseDiffStat(stdout.String())
 }
 
 var shortStatFormat = regexp.MustCompile(

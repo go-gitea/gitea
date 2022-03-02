@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -80,7 +81,9 @@ func refixMergeBase(x *xorm.Engine) error {
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			parentsString, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+			stdout := new(bytes.Buffer)
+			err = git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+			parentsString := stdout.String()
 			if err != nil {
 				log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue
@@ -94,7 +97,9 @@ func refixMergeBase(x *xorm.Engine) error {
 			args := append([]string{"merge-base", "--"}, parents[1:]...)
 			args = append(args, gitRefName)
 
-			pr.MergeBase, err = git.NewCommand(git.DefaultContext, args...).RunInDir(repoPath)
+			stdout.Reset()
+			err = git.NewCommand(git.DefaultContext, args...).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+			pr.MergeBase = stdout.String()
 			if err != nil {
 				log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue

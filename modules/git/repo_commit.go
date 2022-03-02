@@ -58,12 +58,13 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 		relpath = `\` + relpath
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, id.String(), "--", relpath).RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, id.String(), "--", relpath).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, err
 	}
 
-	id, err = NewIDFromString(stdout)
+	id, err = NewIDFromString(stdout.String())
 	if err != nil {
 		return nil, err
 	}
@@ -254,16 +255,18 @@ func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, pag
 
 // FilesCountBetween return the number of files changed between two commits
 func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
-	stdout, err := NewCommand(repo.Ctx, "diff", "--name-only", startCommitID+"..."+endCommitID).RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err := NewCommand(repo.Ctx, "diff", "--name-only", startCommitID+"..."+endCommitID).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
 		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
-		stdout, err = NewCommand(repo.Ctx, "diff", "--name-only", startCommitID, endCommitID).RunInDir(repo.Path)
+		stdout.Reset()
+		err = NewCommand(repo.Ctx, "diff", "--name-only", startCommitID, endCommitID).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	}
 	if err != nil {
 		return 0, err
 	}
-	return len(strings.Split(stdout, "\n")) - 1, nil
+	return len(strings.Split(stdout.String(), "\n")) - 1, nil
 }
 
 // CommitsBetween returns a list that contains commits between [before, last).
@@ -380,22 +383,24 @@ func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) ([]*Commit, erro
 }
 
 func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error) {
+	stdout := new(bytes.Buffer)
 	if CheckGitVersionAtLeast("2.7.0") == nil {
-		stdout, err := NewCommand(repo.Ctx, "for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunInDir(repo.Path)
+		err := NewCommand(repo.Ctx, "for-each-ref", "--count="+strconv.Itoa(limit), "--format=%(refname:strip=2)", "--contains", commit.ID.String(), BranchPrefix).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 		if err != nil {
 			return nil, err
 		}
 
-		branches := strings.Fields(stdout)
+		branches := strings.Fields(stdout.String())
 		return branches, nil
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "branch", "--contains", commit.ID.String()).RunInDir(repo.Path)
+	stdout.Reset()
+	err := NewCommand(repo.Ctx, "branch", "--contains", commit.ID.String()).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, err
 	}
 
-	refs := strings.Split(stdout, "\n")
+	refs := strings.Split(stdout.String(), "\n")
 
 	var max int
 	if len(refs) > limit {
@@ -429,9 +434,10 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
 
 // IsCommitInBranch check if the commit is on the branch
 func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
-	stdout, err := NewCommand(repo.Ctx, "branch", "--contains", commitID, branch).RunInDir(repo.Path)
+	stdout := new(bytes.Buffer)
+	err = NewCommand(repo.Ctx, "branch", "--contains", commitID, branch).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return false, err
 	}
-	return len(stdout) > 0, err
+	return len(stdout.String()) > 0, err
 }

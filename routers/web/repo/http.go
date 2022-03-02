@@ -412,11 +412,12 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, err := git.NewCommand(ctx, "config", option).RunInDir(dir)
+	stdout := new(bytes.Buffer)
+	err := git.NewCommand(ctx, "config", option).RunWithContext(&git.RunContext{Dir: dir, Timeout: -1, Stdout: stdout})
 	if err != nil {
-		log.Error("%v - %s", err, out)
+		log.Error("%v - %s", err, stdout.String())
 	}
-	return out[0 : len(out)-1]
+	return stdout.String()[0 : len(stdout.String())-1]
 }
 
 func getConfigSetting(ctx gocontext.Context, service, dir string) bool {

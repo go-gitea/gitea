@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -41,20 +42,25 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			repoPath := repo.RepoPath()
 
 			oldMergeBase := pr.MergeBase
+			stdout := new(bytes.Buffer)
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, err = git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
+				err = git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+				pr.MergeBase = stdout.String()
 				if err != nil {
 					var err2 error
-					pr.MergeBase, err2 = git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					stdout.Reset()
+					err2 = git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+					pr.MergeBase = stdout.String()
 					if err2 != nil {
 						logger.Warn("Unable to get merge base for PR ID %d, #%d onto %s in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
 						return nil
 					}
 				}
 			} else {
-				parentsString, err := git.NewCommand(ctx, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				err := git.NewCommand(ctx, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+				parentsString := stdout.String()
 				if err != nil {
 					logger.Warn("Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
@@ -67,7 +73,9 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				args := append([]string{"merge-base", "--"}, parents[1:]...)
 				args = append(args, pr.GetGitRefName())
 
-				pr.MergeBase, err = git.NewCommand(ctx, args...).RunInDir(repoPath)
+				stdout.Reset()
+				err = git.NewCommand(ctx, args...).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+				pr.MergeBase = stdout.String()
 				if err != nil {
 					logger.Warn("Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil

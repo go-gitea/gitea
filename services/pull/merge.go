@@ -142,7 +142,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	stagingBranch := "staging"
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunInDir(tmpBasePath)
+		stdout := new(bytes.Buffer)
+		err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunWithContext(&git.RunContext{Dir: tmpBasePath, Timeout: -1, Stdout: stdout})
+		trackingCommitID := stdout.String()
 		if err != nil {
 			log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
 			return "", fmt.Errorf("getDiffTree: %v", err)

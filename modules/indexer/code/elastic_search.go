@@ -6,6 +6,7 @@ package code
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -222,12 +223,13 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
-			RunInDir(repo.RepoPath())
+		stdout := new(bytes.Buffer)
+		err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
+			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 		if err != nil {
 			return nil, err
 		}
-		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout.String()), 10, 64); err != nil {
 			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
 		}
 	}

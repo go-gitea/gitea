@@ -5,6 +5,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"net/url"
 )
@@ -22,7 +23,9 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
 	}
 
-	result, err := cmd.RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err = cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+	result := stdout.String()
 	if err != nil {
 		return nil, err
 	}

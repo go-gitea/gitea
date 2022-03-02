@@ -5,6 +5,7 @@
 package code
 
 import (
+	"bytes"
 	"context"
 	"strconv"
 	"strings"
@@ -29,11 +30,12 @@ type repoChanges struct {
 }
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout, err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
+	stdout := new(bytes.Buffer)
+	err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(stdout), nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 // getRepoChanges returns changes to repo since last indexer update
@@ -103,9 +105,10 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
+	stdout := new(bytes.Buffer)
 	diffCmd := git.NewCommand(ctx, "diff", "--name-status",
 		repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, err := diffCmd.RunInDir(repo.RepoPath())
+	err := diffCmd.RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 	if err != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
@@ -117,7 +120,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 	}
 	var changes repoChanges
 	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
+	for _, line := range strings.Split(stdout.String(), "\n") {
 		line = strings.TrimSpace(line)
 		if len(line) == 0 {
 			continue

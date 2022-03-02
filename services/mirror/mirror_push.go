@@ -28,13 +28,13 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		if _, err := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr).RunInDir(path); err != nil {
+		if err := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr).RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
+		if err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
+		if err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
 			return err
 		}
 		return nil
@@ -60,12 +60,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", m.RemoteName)
 
-	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
+	if err := cmd.RunWithContext(&git.RunContext{Dir: m.Repo.RepoPath(), Timeout: -1}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, err := cmd.RunInDir(m.Repo.WikiPath()); err != nil {
+		if err := cmd.RunWithContext(&git.RunContext{Dir: m.Repo.WikiPath(), Timeout: -1}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}

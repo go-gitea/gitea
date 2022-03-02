@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -34,22 +35,26 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	value, _ := NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunInDir(repo.Path)
-	sign, valid := ParseBool(strings.TrimSpace(value))
+	stdout := new(bytes.Buffer)
+	_ = NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	sign, valid := ParseBool(strings.TrimSpace(stdout.String()))
 	if !sign || !valid {
 		gpgSettings.Sign = false
 		repo.gpgSettings = gpgSettings
 		return gpgSettings, nil
 	}
 
-	signingKey, _ := NewCommand(repo.Ctx, "config", "--get", "user.signingkey").RunInDir(repo.Path)
-	gpgSettings.KeyID = strings.TrimSpace(signingKey)
+	stdout.Reset()
+	_ = NewCommand(repo.Ctx, "config", "--get", "user.signingkey").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	gpgSettings.KeyID = strings.TrimSpace(stdout.String())
 
-	defaultEmail, _ := NewCommand(repo.Ctx, "config", "--get", "user.email").RunInDir(repo.Path)
-	gpgSettings.Email = strings.TrimSpace(defaultEmail)
+	stdout.Reset()
+	_ = NewCommand(repo.Ctx, "config", "--get", "user.email").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	gpgSettings.Email = strings.TrimSpace(stdout.String())
 
-	defaultName, _ := NewCommand(repo.Ctx, "config", "--get", "user.name").RunInDir(repo.Path)
-	gpgSettings.Name = strings.TrimSpace(defaultName)
+	stdout.Reset()
+	_ = NewCommand(repo.Ctx, "config", "--get", "user.name").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	gpgSettings.Name = strings.TrimSpace(stdout.String())
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 		return nil, err

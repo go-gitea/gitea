@@ -73,7 +73,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err = cmd.RunInDir(repoPath)
+	err = cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1})
 	return err
 }
 
@@ -245,11 +245,12 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
 	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return time.Time{}, err
 	}
-	commitTime := strings.TrimSpace(stdout)
+	commitTime := strings.TrimSpace(stdout.String())
 	return time.Parse(GitTimeLayout, commitTime)
 }
 
@@ -262,11 +263,12 @@ type DivergeObject struct {
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
 	cmd := NewCommand(ctx, "rev-list", "--count", branches)
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout := new(bytes.Buffer)
+	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return -1, err
 	}
-	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout, "\n"))
+	outInteger, errInteger := strconv.Atoi(strings.Trim(stdout.String(), "\n"))
 	if errInteger != nil {
 		return -1, errInteger
 	}

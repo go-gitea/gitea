@@ -5,6 +5,7 @@
 package asymkey
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -90,15 +91,26 @@ func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _ := git.NewCommand(ctx, "config", "--get", "commit.gpgsign").RunInDir(repoPath)
+		stdout := new(bytes.Buffer)
+		_ = git.NewCommand(ctx, "config", "--get", "commit.gpgsign").RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+		value := stdout.String()
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return "", nil
 		}
 
-		signingKey, _ := git.NewCommand(ctx, "config", "--get", "user.signingkey").RunInDir(repoPath)
-		signingName, _ := git.NewCommand(ctx, "config", "--get", "user.name").RunInDir(repoPath)
-		signingEmail, _ := git.NewCommand(ctx, "config", "--get", "user.email").RunInDir(repoPath)
+		stdout.Reset()
+		_ = git.NewCommand(ctx, "config", "--get", "user.signingkey").RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+		signingKey := stdout.String()
+
+		stdout.Reset()
+		_ = git.NewCommand(ctx, "config", "--get", "user.name").RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+		signingName := stdout.String()
+
+		stdout.Reset()
+		_ = git.NewCommand(ctx, "config", "--get", "user.email").RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+		signingEmail := stdout.String()
+
 		return strings.TrimSpace(signingKey), &git.Signature{
 			Name:  strings.TrimSpace(signingName),
 			Email: strings.TrimSpace(signingEmail),

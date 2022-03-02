@@ -269,7 +269,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*repo_model.Repository)
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunInDir(path)
+		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunWithContext(&git.RunContext{Dir: path, Timeout: -1})
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
@@ -284,12 +284,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
+		err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunWithContext(&git.RunContext{Dir: path, Timeout: -1})
 		assert.NoError(t, err)
 
-		treeSha, err := git.NewCommand(git.DefaultContext, "write-tree").RunInDir(path)
+		stdoutTreeSha := new(bytes.Buffer)
+		err = git.NewCommand(git.DefaultContext, "write-tree").RunWithContext(&git.RunContext{Dir: path, Timeout: -1, Stdout: stdoutTreeSha})
 		assert.NoError(t, err)
-		treeSha = strings.TrimSpace(treeSha)
+		treeSha := strings.TrimSpace(stdoutTreeSha.String())
 
 		commitTimeStr := time.Now().Format(time.RFC3339)
 		doerSig := user1.NewGitSig()
@@ -318,7 +319,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunInDir(path)
+		err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunWithContext(&git.RunContext{Dir: path, Timeout: -1})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")

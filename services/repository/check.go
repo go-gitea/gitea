@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -75,20 +76,20 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			log.Trace("Running git gc on %v", repo)
 			command := git.NewCommand(ctx, args...).
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
-			var stdout string
+			stdout := new(bytes.Buffer)
 			var err error
 			if timeout > 0 {
 				var stdoutBytes []byte
 				stdoutBytes, err = command.RunInDirTimeout(
 					timeout,
 					repo.RepoPath())
-				stdout = string(stdoutBytes)
+				stdout.Write(stdoutBytes)
 			} else {
-				stdout, err = command.RunInDir(repo.RepoPath())
+				err = command.RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 			}
 
 			if err != nil {
-				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
+				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout.String(), err)
 				desc := fmt.Sprintf("Repository garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
