@@ -29,19 +29,23 @@ const (
 
 // SyncRequest for the mirror queue
 type SyncRequest struct {
-	Type   SyncType
-	RepoID int64
+	Type        SyncType
+	ReferenceID int64 // RepoID for pull mirror, MirrorID fro push mirror
 }
 
 // doMirrorSync causes this request to mirror itself
 func doMirrorSync(ctx context.Context, req *SyncRequest) {
+	if req.ReferenceID == 0 {
+		log.Warn("Skipping mirror sync request, no mirror ID was specified")
+		return
+	}
 	switch req.Type {
 	case PushMirrorType:
-		_ = SyncPushMirror(ctx, req.RepoID)
+		_ = SyncPushMirror(ctx, req.ReferenceID)
 	case PullMirrorType:
-		_ = SyncPullMirror(ctx, req.RepoID)
+		_ = SyncPullMirror(ctx, req.ReferenceID)
 	default:
-		log.Error("Unknown Request type in queue: %v for RepoID[%d]", req.Type, req.RepoID)
+		log.Error("Unknown Request type in queue: %v for MirrorID[%d]", req.Type, req.ReferenceID)
 	}
 }
 
@@ -65,8 +69,8 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			}
 			repo = m.Repo
 			item = SyncRequest{
-				Type:   PullMirrorType,
-				RepoID: m.RepoID,
+				Type:        PullMirrorType,
+				ReferenceID: m.RepoID,
 			}
 		} else if m, ok := bean.(*repo_model.PushMirror); ok {
 			if m.Repo == nil {
@@ -75,8 +79,8 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			}
 			repo = m.Repo
 			item = SyncRequest{
-				Type:   PushMirrorType,
-				RepoID: m.RepoID,
+				Type:        PushMirrorType,
+				ReferenceID: m.ID,
 			}
 		} else {
 			log.Error("Unknown bean: %v", bean)
@@ -161,11 +165,12 @@ func StartToMirror(repoID int64) {
 	}
 	go func() {
 		err := mirrorQueue.Push(&SyncRequest{
-			Type:   PullMirrorType,
-			RepoID: repoID,
+			Type:        PullMirrorType,
+			ReferenceID: repoID,
 		})
 		if err != nil {
-			log.Error("Unable to push sync request for to the queue for push mirror repo[%d]: Error: %v", repoID, err)
+			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]: Error: %v", repoID, err)
+			return
 		}
 	}()
 }
@@ -177,8 +182,8 @@ func AddPushMirrorToQueue(mirrorID int64) {
 	}
 	go func() {
 		err := mirrorQueue.Push(&SyncRequest{
-			Type:   PushMirrorType,
-			RepoID: mirrorID,
+			Type:        PushMirrorType,
+			ReferenceID: mirrorID,
 		})
 		if err != nil {
 			log.Error("Unable to push sync request to the queue for pull mirror repo[%d]: Error: %v", mirrorID, err)
