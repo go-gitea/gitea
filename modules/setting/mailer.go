@@ -5,7 +5,9 @@
 package setting
 
 import (
+	"net"
 	"net/mail"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -27,14 +29,16 @@ type Mailer struct {
 	SubjectPrefix        string
 
 	// SMTP sender
-	Host              string
-	User, Passwd      string
-	DisableHelo       bool
-	HeloHostname      string
-	SkipVerify        bool
-	UseCertificate    bool
-	CertFile, KeyFile string
-	IsTLSEnabled      bool
+	Protocol             string
+	SMTPAddr             string
+	SMTPPort             string
+	User, Passwd         string
+	EnableHelo           bool
+	HeloHostname         string
+	ForceTrustServerCert bool
+	UseClientCert        bool
+	ClientCertFile       string
+	ClientKeyFile        string
 
 	// Sendmail sender
 	SendmailPath        string
@@ -58,17 +62,18 @@ func newMailService() {
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
 		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
-		Host:           sec.Key("HOST").String(),
-		User:           sec.Key("USER").String(),
-		Passwd:         sec.Key("PASSWD").String(),
-		DisableHelo:    sec.Key("DISABLE_HELO").MustBool(),
-		HeloHostname:   sec.Key("HELO_HOSTNAME").String(),
-		SkipVerify:     sec.Key("SKIP_VERIFY").MustBool(),
-		UseCertificate: sec.Key("USE_CERTIFICATE").MustBool(),
-		CertFile:       sec.Key("CERT_FILE").String(),
-		KeyFile:        sec.Key("KEY_FILE").String(),
-		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
-		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
+		Protocol:             sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+startls", "smtp+unix"}),
+		SMTPAddr:             sec.Key("SMTP_ADDR").String(),
+		SMTPPort:             sec.Key("SMTP_PORT").String(),
+		User:                 sec.Key("USER").String(),
+		Passwd:               sec.Key("PASSWD").String(),
+		EnableHelo:           sec.Key("ENABLE_HELO").MustBool(true),
+		HeloHostname:         sec.Key("HELO_HOSTNAME").String(),
+		ForceTrustServerCert: sec.Key("FORCE_TRUST_SERVER_CERT").MustBool(false),
+		UseClientCert:        sec.Key("USE_CLIENT_CERT").MustBool(false),
+		ClientCertFile:       sec.Key("CLIENT_CERT_FILE").String(),
+		ClientKeyFile:        sec.Key("CLIENT_KEY_FILE").String(),
+		SubjectPrefix:        sec.Key("SUBJECT_PREFIX").MustString(""),
 
 		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
 		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
@@ -78,17 +83,114 @@ func newMailService() {
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
 	// FIXME: DEPRECATED to be removed in v1.18.0
-	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
-	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
-		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
 	deprecatedSetting("mailer", "USE_SENDMAIL", "mailer", "MAILER_TYPE")
 	if sec.HasKey("USE_SENDMAIL") {
 		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
 			MailService.MailerType = "sendmail"
 		}
+	}
+
+	if MailService.MailerType == "" {
+		MailService.MailerType = "smtp"
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "HOST", "mailer", "SMTP_ADDR")
+	if sec.HasKey("HOST") {
+		givenHost := sec.Key("HOST").String()
+		addr, port, err := net.SplitHostPort(givenHost)
+		if err != nil {
+			log.Fatal("Invalid mailer.HOST (%s): %v", givenHost, err)
+		}
+		MailService.SMTPAddr = addr
+		MailService.SMTPPort = port
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
+	if sec.HasKey("IS_TLS_ENABLED") {
+		if sec.Key("IS_TLS_ENABLED").MustBool() {
+			MailService.Protocol = "smtps"
+		} else {
+			MailService.Protocol = "smtp+startls"
+		}
+	}
+
+	if MailService.SMTPPort == "" {
+		switch MailService.Protocol {
+		case "smtp":
+			MailService.SMTPPort = "25"
+		case "smtps":
+			MailService.SMTPPort = "465"
+		case "smtp+startls":
+			MailService.SMTPPort = "587"
+		}
+	}
+
+	if MailService.MailerType == "smtp" && MailService.Protocol == "" {
+		if strings.ContainsAny(MailService.SMTPAddr, "/\\") {
+			MailService.Protocol = "smtp+unix"
+		} else {
+			switch MailService.SMTPPort {
+			case "25":
+				MailService.Protocol = "smtp"
+			case "465":
+				MailService.Protocol = "smtps"
+			case "587":
+				MailService.Protocol = "smtp+startls"
+			default:
+				log.Fatal("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = \"%s\"", MailService.SMTPPort)
+			}
+		}
+	}
+
+	if MailService.Protocol == "smtp" {
+		switch MailService.SMTPAddr {
+		case "localhost":
+		case "127.0.0.1":
+		case "::1":
+		case "[::1]":
+			// this is a local address, so, we're fine
+			break
+		default:
+			log.Warn("connect via insecure SMTP to non-local address")
+		}
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
+	if sec.HasKey("DISABLE_HELO") {
+		MailService.EnableHelo = !sec.Key("DISABLE_HELO").MustBool()
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
+	if sec.HasKey("SKIP_VERIFY") {
+		MailService.ForceTrustServerCert = sec.Key("SKIP_VERIFY").MustBool()
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
+	if sec.HasKey("USE_CERTIFICATE") {
+		MailService.UseClientCert = sec.Key("USE_CLIENT_CERT").MustBool()
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
+	if sec.HasKey("CERT_FILE") {
+		MailService.ClientCertFile = sec.Key("CERT_FILE").String()
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
+	if sec.HasKey("KEY_FILE") {
+		MailService.ClientKeyFile = sec.Key("KEY_FILE").String()
+	}
+
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
+	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
+		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
 	parsed, err := mail.ParseAddress(MailService.From)
@@ -111,10 +213,6 @@ func newMailService() {
 		}
 		MailService.OverrideEnvelopeFrom = true
 		MailService.EnvelopeFrom = parsed.Address
-	}
-
-	if MailService.MailerType == "" {
-		MailService.MailerType = "smtp"
 	}
 
 	if MailService.MailerType == "sendmail" {

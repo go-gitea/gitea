@@ -45,7 +45,7 @@ type AuthenticationForm struct {
 	IsActive                      bool
 	IsSyncEnabled                 bool
 	SMTPAuth                      string
-	SMTPHost                      string
+	SMTPAddr                      string
 	SMTPPort                      int
 	AllowedDomains                string
 	SecurityProtocol              int `binding:"Range(0,2)"`

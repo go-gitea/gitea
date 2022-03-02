@@ -40,7 +40,8 @@ type InstallForm struct {
 	AppURL       string `binding:"Required"`
 	LogRootPath  string `binding:"Required"`
 
-	SMTPHost        string
+	SMTPAddr        string
+	SMTPPort        string
 	SMTPFrom        string
 	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string

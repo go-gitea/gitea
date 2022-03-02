@@ -159,7 +159,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 	return &smtp.Source{
 		Auth:           form.SMTPAuth,
-		Host:           form.SMTPHost,
+		Addr:           form.SMTPAddr,
 		Port:           form.SMTPPort,
 		AllowedDomains: form.AllowedDomains,
 		ForceSMTPS:     form.ForceSMTPS,
