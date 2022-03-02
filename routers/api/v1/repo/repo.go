@@ -215,6 +215,13 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
+	// Undocumented mode for internal usages, don't send
+	// any data only the count.
+	if ctx.FormBool("count_only") {
+		ctx.SetTotalCountHeader(count)
+		return
+	}
+
 	// Undocumented mode for internal usages, only return
 	// information that's useful for the dashboard's repo list.
 	minimalMode := ctx.FormBool("minimal")

@@ -308,6 +308,12 @@ function initVueComponents() {
         let json = {};
         let response;
         try {
+          if (!this.reposTotalCount) {
+            const totalCountSearchURL = `${this.subUrl}/api/v1/repos/search?sort=updated&count_only=1&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
+            const response = await fetch(totalCountSearchURL);
+            this.reposTotalCount = response.headers.get('X-Total-Count');
+          }
+
           response = await fetch(searchedURL);
           json = await response.json();
         } catch {
@@ -320,7 +326,7 @@ function initVueComponents() {
         if (searchedURL === this.searchURL) {
           this.repos = json.data;
           const count = response.headers.get('X-Total-Count');
-          if (searchedQuery === '' && searchedMode === '') {
+          if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
             this.reposTotalCount = count;
           }
           Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
