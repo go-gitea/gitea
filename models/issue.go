@@ -2043,17 +2043,17 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	// delete actions assigned to this issue
-	var comments []int64
-	if err := e.Table(new(Comment)).In("issue_id", issue.ID).Cols("id").Find(&comments); err != nil {
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issue.ID})
+	if _, err := e.In("comment_id", subQuery).Delete(&Action{}); err != nil {
 		return err
 	}
-	for i := range comments {
-		if _, err := e.Where("comment_id = ?", comments[i]).Delete(&Action{}); err != nil {
-			return err
-		}
-	}
-	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").Delete(&Action{}); err != nil {
+
+	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").
+		Delete(&Action{}); err != nil {
 		return err
 	}
 
