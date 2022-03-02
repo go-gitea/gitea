@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 )
 
-
 // TeamRepo represents an team-repository relation.
 type TeamRepo struct {
 	ID     int64 `xorm:"pk autoincr"`
