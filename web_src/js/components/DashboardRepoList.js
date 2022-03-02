@@ -298,30 +298,36 @@ function initVueComponents() {
         this.searchRepos();
       },
 
-      searchRepos() {
+      async searchRepos() {
         this.isLoading = true;
 
         const searchedMode = this.repoTypes[this.reposFilter].searchMode;
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
-        fetch(searchedURL).then(async (response) => {
-          const json = await response.json();
-          if (searchedURL === this.searchURL) {
-            this.repos = json.data;
-            const count = response.headers.get('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
-              this.reposTotalCount = count;
-            }
-            Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
-            this.finalPage = Math.ceil(count / this.searchLimit);
-            this.updateHistory();
-          }
-        }).finally(() => {
+        let json = {};
+        let response;
+        try {
+          response = await fetch(searchedURL);
+          json = await response.json();
+        } catch {
           if (searchedURL === this.searchURL) {
             this.isLoading = false;
           }
-        });
+          return;
+        }
+
+        if (searchedURL === this.searchURL) {
+          this.repos = json.data;
+          const count = response.headers.get('X-Total-Count');
+          if (searchedQuery === '' && searchedMode === '') {
+            this.reposTotalCount = count;
+          }
+          Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
+          this.finalPage = Math.ceil(count / this.searchLimit);
+          this.updateHistory();
+          this.isLoading = false;
+        }
       },
 
       repoIcon(repo) {

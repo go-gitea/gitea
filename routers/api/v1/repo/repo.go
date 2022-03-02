@@ -232,6 +232,7 @@ func Search(ctx *context.APIContext) {
 			results[i] = &api.Repository{
 				ID:       repo.ID,
 				FullName: repo.FullName(),
+				Fork:     repo.IsFork,
 				Private:  repo.IsPrivate,
 				Template: repo.IsTemplate,
 				Mirror:   repo.IsMirror,
