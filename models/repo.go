@@ -977,7 +977,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	// Remove attachment with no issue_id and release_id.
 	for i := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
