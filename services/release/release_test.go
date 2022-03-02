@@ -5,7 +5,6 @@
 package release
 
 import (
-	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -26,7 +25,6 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
 	})
-	git.Init(context.Background())
 }
 
 func TestRelease_Create(t *testing.T) {
