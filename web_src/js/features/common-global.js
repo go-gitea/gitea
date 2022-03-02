@@ -3,8 +3,9 @@ import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
+import {htmlEscape} from 'escape-goat';
 
-const {csrfToken} = window.config;
+const {appUrl, csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -342,4 +343,28 @@ export function initGlobalButtons() {
       window.location.href = $this.attr('data-done-url');
     });
   });
+}
+
+/**
+ * Too many users set their ROOT_URL to wrong value, and it causes a lot of problems:
+ *   * Cross-origin API request without correct cookie
+ *   * Incorrect href in <a>
+ *   * ...
+ * So we check whether current URL starts with AppUrl(ROOT_URL).
+ * If they don't match, show a warning to users.
+ */
+export function checkAppUrl() {
+  const curUrl = window.location.href;
+  if (curUrl.startsWith(appUrl)) {
+    return;
+  }
+  const $pageContent = $('.page-content');
+  if (!$pageContent.length) {
+    return;
+  }
+  const $tip = $(`<div class="ui container negative message center aligned">
+    Your ROOT_URL in app.ini is ${htmlEscape(appUrl)} but you are visiting ${htmlEscape(curUrl)}<br />
+    You should set ROOT_URL correctly, otherwise the web may not work correctly.
+  </div>`);
+  $($pageContent[0]).prepend($tip);
 }

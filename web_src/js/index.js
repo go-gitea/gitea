@@ -39,6 +39,7 @@ import {
 } from './features/repo-issue.js';
 import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
+  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -169,4 +170,6 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
+
+  checkAppUrl();
 });
