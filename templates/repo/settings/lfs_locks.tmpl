@@ -24,7 +24,7 @@
 							<td>
 								{{if index $.Linkable $index}}
 									{{svg "octicon-file"}}
-								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $lock.Repo.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
+								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
 								<span class="tooltip" title="{{$.i18n.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
@@ -34,9 +34,9 @@
 								{{end}}
 							</td>
 							<td>
-								<a href="{{$lock.Owner.HomeLink}}">
-									{{avatar $lock.Owner}}
-									{{$lock.Owner.DisplayName}}
+								<a href="{{$.Owner.HomeLink}}">
+									{{avatar $.Owner}}
+									{{$.Owner.DisplayName}}
 								</a>
 							</td>
 							<td>{{TimeSince .Created $.Lang}}</td>
