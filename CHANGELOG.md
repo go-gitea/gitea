@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
 * BUGFIXES
+  * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
   * Send 404 on `/{org}.gpg` (#18959) (#18962)
   * Fix admin user list pagination (#18957) (#18960)
   * Fix lfs management setting (#18947)
