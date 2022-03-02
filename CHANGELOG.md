@@ -6,9 +6,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
 
+* SECURITY
+ * Git backend ignore replace objects (#18979) (#18980) 
 * ENHANCEMENTS
   * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
 * BUGFIXES
+  * Set max text height to prevent overflow (#18862) (#18977)
+  * Fix newAttachmentPaths deletion for DeleteRepository() (#18973) (#18974)
   * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
   * Send 404 on `/{org}.gpg` (#18959) (#18962)
   * Fix admin user list pagination (#18957) (#18960)
