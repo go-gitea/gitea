@@ -4,6 +4,35 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
+
+* SECURITY
+ * Git backend ignore replace objects (#18979) (#18980) 
+* ENHANCEMENTS
+  * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
+* BUGFIXES
+  * Set max text height to prevent overflow (#18862) (#18977)
+  * Fix newAttachmentPaths deletion for DeleteRepository() (#18973) (#18974)
+  * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
+  * Send 404 on `/{org}.gpg` (#18959) (#18962)
+  * Fix admin user list pagination (#18957) (#18960)
+  * Fix lfs management setting (#18947) (#18946)
+  * Fix login with email panic when email is not exist (#18942)
+  * Update go-org to v1.6.1 (#18932) (#18933)
+  * Fix `<strong>` html in translation (#18929) (#18931)
+  * Fix page and missing return on unadopted repos API (#18848) (#18927)
+  * Allow adminstrator teams members to see other teams (#18918) (#18919)
+  * Don't treat BOM escape sequence as hidden character. (#18909) (#18910)
+  * Correctly link URLs to users/repos with dashes, dots or underscores (… (#18908)
+  * Fix redirect when using lowercase repo name (#18775) (#18902)
+  * Fix migration v210 (#18893) (#18892)
+  * Fix team management UI (#18887) (18886)
+  * BeforeSourcePath should point to base commit (#18880) (#18799)
+* TRANSLATION
+  * Backport locales from master (#18944)
+* MISC
+  * Don't update email for organisation (#18905) (#18906)
+
 ## [1.16.2](https://github.com/go-gitea/gitea/releases/tag/v1.16.2) - 2022-02-24
 
 * ENHANCEMENTS
