@@ -153,7 +153,7 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 	userIDs := make([]int64, 0, 10)
 	if err = e.Table("access").
 		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
-		Select("id").
+		Select("user_id").
 		Find(&userIDs); err != nil {
 		return nil, err
 	}
