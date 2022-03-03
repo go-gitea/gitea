@@ -95,3 +95,59 @@ Repository Git Hooks should be regenerated if installation method is changed (eg
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
 
 This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
+
+### Using Docker (`restore`)
+
+There is also no support for a recovery command in a Docker-based gitea instance. The restore process contains the same steps as described in the previous section but with different paths.
+
+Example:
+
+```sh
+# open bash session in container
+docker exec --user git -it 2a83b293548e bash
+# unzip your backup file within the container
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+# restore the gitea data
+mv data/* /data/gitea
+# restore the repositories itself
+mv repos/* /data/git/repositories/
+# adjust file permissions
+chown -R git:git /data
+# Regenerate Git Hooks
+/usr/local/bin/gitea -c '/data/gitea/conf/app.ini' admin regenerate hooks
+```
+
+The default user in the gitea container is `git` (1000:1000). Please replace `2a83b293548e` with your gitea container id or name.
+
+These are the default paths used in the container:
+
+```text
+DEFAULT CONFIGURATION:
+     CustomPath:  /data/gitea (GITEA_CUSTOM)
+     CustomConf:  /data/gitea/conf/app.ini
+     AppPath:     /usr/local/bin/gitea
+     AppWorkPath: /usr/local/bin
+```
+
+### Using Docker-rootless (`restore`)
+
+The restore workflow in Docker-rootless containers differs only in the directories to be used:
+
+```sh
+# open bash session in container
+docker exec --user git -it 2a83b293548e bash
+# unzip your backup file within the container
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+# restore the app.ini
+mv data/conf/app.ini /etc/gitea/app.ini
+# restore the gitea data
+mv data/* /var/lib/gitea
+# restore the repositories itself
+mv repos/* /var/lib/gitea/git/repositories
+# adjust file permissions
+chown -R git:git /etc/gitea/app.ini /var/lib/gitea
+# Regenerate Git Hooks
+/usr/local/bin/gitea -c '/etc/gitea/app.ini' admin regenerate hooks
+```
