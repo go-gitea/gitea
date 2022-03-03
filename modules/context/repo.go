@@ -442,7 +442,20 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
-		ctx.Redirect(strings.Replace(ctx.Req.RequestURI, ".wiki", "/wiki", 1))
+		parts := strings.Split(ctx.Req.RequestURI, "/")
+		for i := len(parts) - 1; i >= 0; i-- {
+			if parts[i] == repoName {
+				parts[i] = strings.Replace(parts[i], ".wiki", "/wiki", 1)
+				break
+			}
+		}
+		
+		redirectLink := ""
+		for _, part := range parts {
+			redirectLink += part + "/"
+		}
+
+		ctx.Redirect(redirectLink)
 		return
 	}
 
