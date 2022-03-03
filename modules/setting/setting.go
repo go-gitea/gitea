@@ -829,6 +829,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		SSH.StartBuiltinServer = false
 	}
 
+	// Make sure any SSH.RedirectPath are to lowered
+	SSH.RedirectPath = strings.ToLower(SSH.RedirectPath)
+
 	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
 	for _, caKey := range trustedUserCaKeys {
 		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))

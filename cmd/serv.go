@@ -182,10 +182,9 @@ func runServ(c *cli.Context) error {
 	rr := strings.SplitN(repoPath, "/", 2)
 	if len(rr) != 2 {
 		if len(setting.SSH.RedirectPath) > 0 {
-			redirectPath := strings.ToLower(setting.SSH.RedirectPath)
-			// Fake repoPath and we know len of rr will be 2
-			repoPath = redirectPath + "/" + repoPath
-			rr = strings.SplitN(repoPath, "/", 2)
+			rr = []string{setting.SSH.RedirectPath, repoPath}
+			// build new repoPath used in gitcmd
+			repoPath = setting.SSH.RedirectPath + "/" + repoPath
 		} else {
 			return fail("Invalid repository path", "Invalid repository path: %s", repoPath)
 		}
