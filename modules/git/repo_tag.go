@@ -128,7 +128,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
@@ -165,7 +165,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "tag").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, 0, err
@@ -199,7 +199,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	// Get tag type
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "cat-file", "-t", id.String()).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err

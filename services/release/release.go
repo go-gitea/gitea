@@ -5,7 +5,6 @@
 package release
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -298,7 +297,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 	}
 
 	if delTag {
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		if err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout}); err != nil && !strings.Contains(err.Error(), "not found") {

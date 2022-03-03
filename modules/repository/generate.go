@@ -5,7 +5,6 @@
 package repository
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -282,7 +281,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	if err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
 		RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout}); err != nil {

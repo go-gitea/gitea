@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -81,7 +80,7 @@ func refixMergeBase(x *xorm.Engine) error {
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			stdout := new(bytes.Buffer)
+			stdout := new(strings.Builder)
 			err = git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 			parentsString := stdout.String()
 			if err != nil {

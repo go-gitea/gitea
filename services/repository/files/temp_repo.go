@@ -182,7 +182,7 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (t *TemporaryUploadRepository) WriteTree() (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := git.NewCommand(t.ctx, "write-tree").RunWithContext(&git.RunContext{Dir: t.basePath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
@@ -201,7 +201,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	if ref == "" {
 		ref = "HEAD"
 	}
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := git.NewCommand(t.ctx, "rev-parse", ref).RunWithContext(&git.RunContext{Dir: t.basePath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)

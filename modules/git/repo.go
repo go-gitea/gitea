@@ -245,7 +245,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
 	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return time.Time{}, err
@@ -263,7 +263,7 @@ type DivergeObject struct {
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
 	cmd := NewCommand(ctx, "rev-list", "--count", branches)
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return -1, err

@@ -50,7 +50,9 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	actualCommitID, err := NewCommand(repo.Ctx, "rev-parse", "--verify", commitID).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1,})
+	stdout := new(strings.Builder)
+	err := NewCommand(repo.Ctx, "rev-parse", "--verify", commitID).RunWithContext(&git.RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+	actualCommitID := stdout.String()
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
 			strings.Contains(err.Error(), "fatal: Needed a single revision") {

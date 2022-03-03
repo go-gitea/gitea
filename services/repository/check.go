@@ -5,7 +5,6 @@
 package repository
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -76,7 +75,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			log.Trace("Running git gc on %v", repo)
 			command := git.NewCommand(ctx, args...).
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
-			stdout := new(bytes.Buffer)
+			stdout := new(strings.Builder)
 			var err error
 			if timeout > 0 {
 				var stdoutBytes []byte

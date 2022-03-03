@@ -6,7 +6,6 @@ package code
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -223,7 +222,7 @@ func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.Wr
 	size := update.Size
 
 	if !update.Sized {
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
 			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 		if err != nil {

@@ -5,9 +5,9 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"net/url"
+	"strings"
 )
 
 // GetRemoteAddress returns the url of a specific remote of the repository.
@@ -23,7 +23,7 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err = cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	result := stdout.String()
 	if err != nil {

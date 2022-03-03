@@ -151,7 +151,7 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 		cmd.AddArguments(files...)
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, err
@@ -169,7 +169,7 @@ func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath [
 		cmd.AddArguments(relpath...)
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := cmd.RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, err
@@ -221,7 +221,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
 	result := stdout.String()
 	if err != nil {
@@ -385,7 +385,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err = NewCommand(c.repo.Ctx, args...).RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
 	data := stdout.String()
 	if err != nil {
@@ -413,7 +413,7 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunWithContext(&RunContext{Dir: c.repo.Path, Timeout: -1, Stdout: stdout})
 	data := stdout.String()
 	if err != nil {
@@ -511,7 +511,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(ctx, "rev-parse", shortID).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	commitID := stdout.String()
 	if err != nil {

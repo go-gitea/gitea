@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"path/filepath"
@@ -81,7 +80,7 @@ func fixMergeBase(x *xorm.Engine) error {
 			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
-			stdout := new(bytes.Buffer)
+			stdout := new(strings.Builder)
 
 			if !pr.HasMerged {
 				var err error

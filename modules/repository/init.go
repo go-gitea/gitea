@@ -117,7 +117,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	if err := git.NewCommand(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
 		RunWithContext(&git.RunContext{Dir: tmpPath, Timeout: -1, Stdout: stdout}); err != nil {

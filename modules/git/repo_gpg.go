@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
@@ -35,7 +34,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	_ = NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	sign, valid := ParseBool(strings.TrimSpace(stdout.String()))
 	if !sign || !valid {

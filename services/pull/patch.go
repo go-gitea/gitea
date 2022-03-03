@@ -7,7 +7,6 @@ package pull
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -77,7 +76,7 @@ func TestPatch(pr *models.PullRequest) error {
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunWithContext(&git.RunContext{Dir: tmpBasePath, Timeout: -1, Stdout: stdout})
 	pr.MergeBase = stdout.String()
 	if err != nil {
@@ -169,7 +168,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunWithContext(&git.RunContext{Dir: tmpBasePath, Timeout: -1, Stdout: stdout})
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
@@ -285,7 +284,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	}
 
 	if !conflict {
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err := git.NewCommand(ctx, "write-tree").RunWithContext(&git.RunContext{Dir: tmpBasePath, Timeout: -1, Stdout: stdout})
 		if err != nil {
 			return false, err

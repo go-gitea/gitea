@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -47,7 +46,7 @@ func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {
 		return nil, fmt.Errorf("nil repo")
 	}
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return nil, err
@@ -73,7 +72,7 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	return stdout.String(), err
 }

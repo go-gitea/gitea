@@ -18,7 +18,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 		res := stdout.String()
 		if err != nil {
@@ -126,7 +126,7 @@ func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename stri
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "write-tree").RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	res := stdout.String()
 	if err != nil {

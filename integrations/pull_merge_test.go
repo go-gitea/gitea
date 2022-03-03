@@ -287,7 +287,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunWithContext(&git.RunContext{Dir: path, Timeout: -1})
 		assert.NoError(t, err)
 
-		stdoutTreeSha := new(bytes.Buffer)
+		stdoutTreeSha := new(strings.Builder)
 		err = git.NewCommand(git.DefaultContext, "write-tree").RunWithContext(&git.RunContext{Dir: path, Timeout: -1, Stdout: stdoutTreeSha})
 		assert.NoError(t, err)
 		treeSha := strings.TrimSpace(stdoutTreeSha.String())

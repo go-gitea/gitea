@@ -5,7 +5,6 @@
 package doctor
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -100,7 +99,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 			return err
 		}
 
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err = git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunWithContext(&git.RunContext{Dir: r.Path, Timeout: -1, Stdout: stdout})
 		value := stdout.String()
 		if err != nil {

@@ -9,7 +9,6 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 	"strings"
@@ -19,7 +18,7 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "show-ref", "--hash", name).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {

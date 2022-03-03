@@ -46,7 +46,7 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 		}
 	}
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "merge-base", "--", base, head).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
 	return strings.TrimSpace(stdout.String()), base, err
 }
@@ -193,7 +193,7 @@ func GetDiffShortStat(ctx context.Context, repoPath string, args ...string) (num
 		"--shortstat",
 	}, args...)
 
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err = NewCommand(ctx, args...).RunWithContext(&RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return 0, 0, 0, err

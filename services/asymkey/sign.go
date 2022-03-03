@@ -5,7 +5,6 @@
 package asymkey
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -91,7 +90,7 @@ func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		_ = git.NewCommand(ctx, "config", "--get", "commit.gpgsign").RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 		value := stdout.String()
 		sign, valid := git.ParseBool(strings.TrimSpace(value))

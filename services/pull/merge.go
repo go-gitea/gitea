@@ -142,7 +142,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	stagingBranch := "staging"
 
 	if expectedHeadCommitID != "" {
-		stdout := new(bytes.Buffer)
+		stdout := new(strings.Builder)
 		err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunWithContext(&git.RunContext{Dir: tmpBasePath, Timeout: -1, Stdout: stdout})
 		trackingCommitID := stdout.String()
 		if err != nil {

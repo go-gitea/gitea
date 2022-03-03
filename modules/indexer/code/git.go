@@ -5,7 +5,6 @@
 package code
 
 import (
-	"bytes"
 	"context"
 	"strconv"
 	"strings"
@@ -30,7 +29,7 @@ type repoChanges struct {
 }
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})
 	if err != nil {
 		return "", err
@@ -105,7 +104,7 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	diffCmd := git.NewCommand(ctx, "diff", "--name-status",
 		repo.CodeIndexerStatus.CommitSha, revision)
 	err := diffCmd.RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout})

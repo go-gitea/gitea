@@ -7,7 +7,6 @@
 package repo
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"html"
@@ -339,7 +338,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			stdout := new(bytes.Buffer)
+			stdout := new(strings.Builder)
 			err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunWithContext(&git.RunContext{Dir: ctx.Repo.GitRepo.Path, Timeout: -1, Stdout: stdout})
 			parentCommit := stdout.String()
 			if err == nil {

@@ -5,7 +5,6 @@
 package doctor
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -42,7 +41,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			repoPath := repo.RepoPath()
 
 			oldMergeBase := pr.MergeBase
-			stdout := new(bytes.Buffer)
+			stdout := new(strings.Builder)
 
 			if !pr.HasMerged {
 				var err error

@@ -5,8 +5,8 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 )
 
 // FileBlame return the Blame object of file
@@ -16,7 +16,7 @@ func (repo *Repository) FileBlame(revision, path, file string) ([]byte, error) {
 
 // LineBlame returns the latest commit at the given line
 func (repo *Repository) LineBlame(revision, path, file string, line uint) (*Commit, error) {
-	stdout := new(bytes.Buffer)
+	stdout := new(strings.Builder)
 	err := NewCommand(repo.Ctx, "blame", fmt.Sprintf("-L %d,%d", line, line), "-p", revision, "--", file).RunWithContext(&RunContext{Dir: path, Timeout: -1, Stdout: stdout})
 	res := stdout.String()
 	if err != nil {
