@@ -16,7 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
   * Send 404 on `/{org}.gpg` (#18959) (#18962)
   * Fix admin user list pagination (#18957) (#18960)
-  * Fix lfs management setting (#18947)
+  * Fix lfs management setting (#18947) (#18946)
   * Fix login with email panic when email is not exist (#18942)
   * Update go-org to v1.6.1 (#18932) (#18933)
   * Fix `<strong>` html in translation (#18929) (#18931)
@@ -25,9 +25,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Don't treat BOM escape sequence as hidden character. (#18909) (#18910)
   * Correctly link URLs to users/repos with dashes, dots or underscores (… (#18908)
   * Fix redirect when using lowercase repo name (#18775) (#18902)
-  * Fix migration v210 (#18893)
-  * Fix team management UI (#18887)
-  * BeforeSourcePath should point to base commit (#18880)
+  * Fix migration v210 (#18893) (#18892)
+  * Fix team management UI (#18887) (18886)
+  * BeforeSourcePath should point to base commit (#18880) (#18799)
 * TRANSLATION
   * Backport locales from master (#18944)
 * MISC
