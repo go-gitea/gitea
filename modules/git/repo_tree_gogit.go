@@ -8,6 +8,8 @@
 
 package git
 
+import "strings"
+
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	gogitTree, err := repo.gogitRepo.TreeObject(id)
 	if err != nil {
@@ -22,7 +24,9 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand(repo.Ctx, "rev-parse", "--verify", idStr).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1})
+		stdout := new(strings.Builder)
+		err := NewCommand(repo.Ctx, "rev-parse", "--verify", idStr).RunWithContext(&RunContext{Dir: repo.Path, Timeout: -1, Stdout: stdout})
+		res := stdout.String()
 		if err != nil {
 			return nil, err
 		}
