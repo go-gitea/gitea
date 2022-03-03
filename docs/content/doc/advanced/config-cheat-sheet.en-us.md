@@ -1064,6 +1064,10 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
 
+## Packages (`packages`)
+
+- `ENABLED`: **true**: Enable/Disable package registry capabilities
+
 ## Mirror (`mirror`)
 
 - `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors.

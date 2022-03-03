@@ -256,10 +256,6 @@ var (
 	RepoArchive = struct {
 		Storage
 	}{}
-
-	Packages = struct {
-		Storage
-	}{}
 )
 
 func newRepository() {

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
@@ -33,6 +34,10 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 
 func Routes() *web.Route {
 	r := web.NewRoute()
+
+	if !setting.Packages.Enabled {
+		return r
+	}
 
 	r.Use(context.PackageContexter())
 
