@@ -54,6 +54,11 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
+// DisableSanitize disabled sanitize if return true
+func (p *Renderer) SanitizeDisabled() bool {
+	return p.DisableSanitize
+}
+
 func envMark(envName string) string {
 	if runtime.GOOS == "windows" {
 		return "%" + envName + "%"

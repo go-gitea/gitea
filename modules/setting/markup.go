@@ -29,6 +29,7 @@ type MarkupRenderer struct {
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
+	DisableSanitize      bool
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -150,5 +151,6 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 		Command:         command,
 		IsInputFile:     sec.Key("IS_INPUT_FILE").MustBool(false),
 		NeedPostProcess: sec.Key("NEED_POSTPROCESS").MustBool(true),
+		DisableSanitize: sec.Key("DISABLE_SANITIZE").MustBool(false),
 	})
 }

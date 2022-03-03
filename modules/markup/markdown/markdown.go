@@ -221,6 +221,11 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
 
+// SanitizeDisabled disabled sanitize if return true
+func (Renderer) SanitizeDisabled() bool {
+	return false
+}
+
 // Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return render(ctx, input, output)

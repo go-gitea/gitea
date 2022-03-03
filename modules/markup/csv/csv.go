@@ -46,6 +46,11 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	}
 }
 
+// SanitizeDisabled disabled sanitize if return true
+func (Renderer) SanitizeDisabled() bool {
+	return false
+}
+
 func writeField(w io.Writer, element, class, field string) error {
 	if _, err := io.WriteString(w, "<"); err != nil {
 		return err
