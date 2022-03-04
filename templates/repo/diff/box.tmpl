@@ -109,18 +109,17 @@
 								{{end}}
 							{{end}}
 							{{if and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
-								<div class="unselectable">
-									{{if $file.HasChangedSinceLastReview}}
-										<span class="changed-since-last-review">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
-									{{end}}
-									<form method="POST" action="{{$.Issue.Link}}/viewed-files" class="viewed-file-form{{if $file.IsViewed}} viewed-file-checked-form{{end}}" novalidate>
-										{{$.CsrfTokenHtml}}
-										<input type="hidden" name="_headCommitID" value="{{$.PullHeadCommitID}}"></input>
-										<!-- This input must exist so that the server is also notified about unviewed files-->
-										<input type="hidden" name="{{if $file.Name}}{{$file.Name}}{{else}}{{$file.OldName}}{{end}}" value="false"></input>
-										<input type="checkbox" name="{{if $file.Name}}{{$file.Name}}{{else}}{{$file.OldName}}{{end}}" value="true" id="viewed-file-checkbox-{{$i}}" {{if $file.IsViewed}}checked{{end}}></input>
-										<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
-									</form>
+								{{if $file.HasChangedSinceLastReview}}
+									<span class="changed-since-last-review unselectable">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
+								{{end}}
+								<form method="POST" action="{{$.Issue.Link}}/viewed-files" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}" novalidate>
+									{{$.CsrfTokenHtml}}
+									<input type="hidden" name="_headCommitID" value="{{$.PullHeadCommitID}}"></input>
+									<!-- This input must exist so that the server is also notified about unviewed files-->
+									<input type="hidden" name="{{if $file.Name}}{{$file.Name}}{{else}}{{$file.OldName}}{{end}}" value="false"></input>
+									<input type="checkbox" name="{{if $file.Name}}{{$file.Name}}{{else}}{{$file.OldName}}{{end}}" value="true" id="viewed-file-checkbox-{{$i}}" {{if $file.IsViewed}}checked{{end}}></input>
+									<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
+								</form>
 							{{end}}
 						</div>
 					</h4>

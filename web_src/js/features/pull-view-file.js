@@ -21,11 +21,14 @@ export function initViewedCheckboxListenerFor(element) {
       }
 
       // Update viewed-files summary
-      document.getElementById('viewed-files-summary').setAttribute('value', window.config.pageData.numberOfViewedFiles);
+      const viewedFilesMeter = document.getElementById('viewed-files-summary');
+      if(viewedFilesMeter)
+        viewedFilesMeter.setAttribute('value', window.config.pageData.numberOfViewedFiles);
       const summaryLabel = document.getElementById('viewed-files-summary-label');
-      summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
-        .replace('%[1]d', window.config.pageData.numberOfViewedFiles || 0)
-        .replace('%[2]d', window.config.pageData.numberOfFiles || 0);
+      if(summaryLabel)
+        summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
+          .replace('%[1]d', window.config.pageData.numberOfViewedFiles)
+          .replace('%[2]d', window.config.pageData.numberOfFiles);
 
       // Unfortunately, form.submit() would attempt to redirect, so we have to workaround that
       // Because unchecked checkboxes are also not sent, we have to unset the value and use the fallback hidden input as sent value
