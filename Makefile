@@ -60,7 +60,7 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
+MAKE_VERSION := $(shell "$(MAKE)" -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 ifeq ($(RACE_ENABLED),true)
@@ -166,6 +166,9 @@ help:
 	@echo " - watch-backend                    watch backend files and continuously rebuild"
 	@echo " - clean                            delete backend and integration files"
 	@echo " - clean-all                        delete backend, frontend and integration files"
+	@echo " - deps                             install dependencies"
+	@echo " - deps-frontend                    install frontend dependencies"
+	@echo " - deps-backend                     install backend dependencies"
 	@echo " - lint                             lint everything"
 	@echo " - lint-frontend                    lint frontend files"
 	@echo " - lint-backend                     lint backend files"
@@ -231,10 +234,11 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@hash xgogofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@latest; \
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@v0.3.0; \
 	fi
-	gofumpt -w -l -extra -lang 1.16 .
+	@echo "Running gitea-fmt (with gofumpt)..."
+	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 
 .PHONY: vet
 vet:
@@ -282,8 +286,11 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
+	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install mvdan.cc/gofumpt@0.3.0; \
+	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
@@ -306,10 +313,9 @@ lint: lint-frontend lint-backend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
-	npx editorconfig-checker templates
 
 .PHONY: lint-backend
-lint-backend: golangci-lint vet
+lint-backend: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
@@ -397,6 +403,11 @@ test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
 test-sqlite-migration:  migrations.sqlite.test migrations.individual.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.individual.sqlite.test
+
+.PHONY: test-sqlite-migration\#%
+test-sqlite-migration\#%:  migrations.sqlite.test migrations.individual.sqlite.test generate-ini-sqlite
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.individual.sqlite.test -test.run $(subst .,/,$*)
+
 
 generate-ini-mysql:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -503,6 +514,10 @@ bench-pgsql: integrations.pgsql.test generate-ini-pgsql
 integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
+.PHONY: integration-test-coverage-sqlite
+integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.cover.sqlite.test -test.coverprofile=integration.coverage.out
+
 integrations.mysql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
@@ -520,6 +535,9 @@ integrations.sqlite.test: git-check $(GO_SOURCES)
 
 integrations.cover.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
+
+integrations.cover.sqlite.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
@@ -658,6 +676,16 @@ docs:
 	fi
 	cd docs; make trans-copy clean build-offline;
 
+.PHONY: deps
+deps: deps-frontend deps-backend
+
+.PHONY: deps-frontend
+deps-frontend: node_modules
+
+.PHONY: deps-backend
+deps-backend:
+	$(GO) mod download
+
 node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
@@ -766,6 +794,13 @@ golangci-lint-check:
 		export BINARY="golangci-lint"; \
 		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
 	fi
+
+.PHONY: editorconfig-checker
+editorconfig-checker:
+	@hash editorconfig-checker > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@50adf46752da119dfef66e57be3ce2693ea4aa9c; \
+	fi
+	editorconfig-checker templates
 
 .PHONY: docker
 docker:

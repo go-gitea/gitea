@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
@@ -23,6 +24,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1862,7 +1865,12 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	kw = strings.ToUpper(kw)
+	// SQLite's UPPER function only transforms ASCII letters.
+	if setting.Database.UseSQLite3 {
+		kw = util.ToUpperASCII(kw)
+	} else {
+		kw = strings.ToUpper(kw)
+	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
@@ -1982,6 +1990,118 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	}
 
 	return committer.Commit()
+}
+
+// DeleteIssue deletes the issue
+func DeleteIssue(issue *Issue) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteIssue(ctx, issue); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func deleteInIssue(e db.Engine, issueID int64, beans ...interface{}) error {
+	for _, bean := range beans {
+		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteIssue(ctx context.Context, issue *Issue) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+		return err
+	}
+
+	if issue.IsPull {
+		if _, err := e.ID(issue.RepoID).Decr("num_pulls").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_pulls").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := e.ID(issue.RepoID).Decr("num_issues").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_issues").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// delete actions assigned to this issue
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issue.ID})
+	if _, err := e.In("comment_id", subQuery).Delete(&Action{}); err != nil {
+		return err
+	}
+
+	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").
+		Delete(&Action{}); err != nil {
+		return err
+	}
+
+	// find attachments related to this issue and remove them
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).Find(&attachments); err != nil {
+		return err
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	// delete all database data still assigned to this issue
+	if err := deleteInIssue(e, issue.ID,
+		&issues.ContentHistory{},
+		&Comment{},
+		&IssueLabel{},
+		&IssueDependency{},
+		&IssueAssignees{},
+		&IssueUser{},
+		&Reaction{},
+		&IssueWatch{},
+		&Stopwatch{},
+		&TrackedTime{},
+		&ProjectIssue{},
+		&repo_model.Attachment{},
+		&PullRequest{},
+	); err != nil {
+		return err
+	}
+
+	// References to this issue in other issues
+	if _, err := e.In("ref_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err := e.In("dependency_id", issue.ID).Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// delete from dependent issues
+	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
@@ -2323,3 +2443,20 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	return
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (issue *Issue) RemapExternalUser(externalName string, externalID, userID int64) error {
+	issue.OriginalAuthor = externalName
+	issue.OriginalAuthorID = externalID
+	issue.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (issue *Issue) GetUserID() int64 { return issue.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }

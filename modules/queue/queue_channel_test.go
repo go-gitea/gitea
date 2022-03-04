@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/stretchr/testify/assert"
 )
 

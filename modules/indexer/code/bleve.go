@@ -182,7 +182,8 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 }
 
 func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch,
+) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -191,7 +192,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	size := update.Size
 
 	if !update.Sized {
-		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
+		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {
 			return err

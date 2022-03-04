@@ -835,7 +835,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
-							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue)
+							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue).
+							Delete(reqToken(), reqAdmin(), repo.DeleteIssue)
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
@@ -975,6 +976,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
 				}, reqRepoReader(unit.TypeCode))
+				m.Post("/diffpatch", reqRepoWriter(unit.TypeCode), reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)

@@ -78,8 +78,8 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
 	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
-		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, head)
-		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, head)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, base)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, base)
 	}
 }
 
@@ -787,6 +787,15 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+	if ctx.FormBool("wiki") {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+	}
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {

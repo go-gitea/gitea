@@ -186,7 +186,8 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 // delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
 // editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
 func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.Release,
-	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string) (err error) {
+	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string,
+) (err error) {
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
@@ -296,7 +297,7 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 	}
 
 	if delTag {
-		if stdout, err := git.NewCommandContext(ctx, "tag", "-d", rel.TagName).
+		if stdout, err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)

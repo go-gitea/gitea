@@ -170,3 +170,14 @@ func CryptoRandomBytes(length int64) ([]byte, error) {
 	_, err := rand.Read(buf)
 	return buf, err
 }
+
+// ToUpperASCII returns s with all ASCII letters mapped to their upper case.
+func ToUpperASCII(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if 'a' <= c && c <= 'z' {
+			b[i] -= 'a' - 'A'
+		}
+	}
+	return string(b)
+}
