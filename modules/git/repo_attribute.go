@@ -205,7 +205,7 @@ func (c *CheckAttributeReader) Run() error {
 			return nil
 		},
 	})
-	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
+	if err != nil && c.ctx.Err() != err && err.Error() != "signal: killed" {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
 	return nil
