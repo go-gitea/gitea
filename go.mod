@@ -6,6 +6,8 @@ require (
 	cloud.google.com/go v0.78.0 // indirect
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
+	gitea.com/gitea/gliderlabs-ssh v0.0.0-20220304124244-0214a860fad6
+	gitea.com/gitea/go-crypto v0.0.0-20220304121443-e812292233de
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -35,7 +37,6 @@ require (
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v1.0.0
-	github.com/gliderlabs/ssh v0.3.3
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-chi/chi/v5 v5.0.4
 	github.com/go-chi/cors v1.2.0
@@ -147,10 +148,6 @@ replace github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
-
-replace golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871 => gitea.com/gitea/go-crypto v0.0.0-20220216221207-31cfbd2326cb
-
-replace golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 => gitea.com/gitea/go-crypto v0.0.0-20220216221207-31cfbd2326cb
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/gliderlabs/ssh"
+	ssh "gitea.com/gitea/gliderlabs-ssh"
 )
 
 func listen(server *ssh.Server) {
