@@ -197,6 +197,13 @@ a.blob-excerpt:hover {
   color: #fff;
 }
 
+// See the comment of createCommentEasyMDE() for the review editor
+// EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code
+#review-box .CodeMirror-scroll {
+  min-height: 80px;
+  max-height: calc(100vh - 360px);
+}
+
 @media @mediaSm {
   #review-box > .menu {
     > .ui.segment {
