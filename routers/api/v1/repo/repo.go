@@ -860,6 +860,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowSquash:                   true,
 					AllowManualMerge:              true,
 					AutodetectManualMerge:         false,
+					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,
 					DefaultMergeStyle:             repo_model.MergeStyleMerge,
 				}
@@ -887,6 +888,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AutodetectManualMerge != nil {
 				config.AutodetectManualMerge = *opts.AutodetectManualMerge
+			}
+			if opts.AllowRebaseUpdate != nil {
+				config.AllowRebaseUpdate = *opts.AllowRebaseUpdate
 			}
 			if opts.DefaultDeleteBranchAfterMerge != nil {
 				config.DefaultDeleteBranchAfterMerge = *opts.DefaultDeleteBranchAfterMerge
