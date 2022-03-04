@@ -106,7 +106,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	return nil, errors.New("Unable to set OrgRepo context")
+	return nil, errors.New("unable to set OrgRepo context")
 }
 
 func checkHookType(ctx *context.Context) string {

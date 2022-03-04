@@ -804,11 +804,12 @@ steps:
     depends_on: [gpg-sign]
 
   - name: github
-    image: plugins/github-release:1
+    image: plugins/github-release:latest
     pull: always
     settings:
       files:
         - "dist/release/*"
+      file_exists: overwrite
     environment:
       GITHUB_TOKEN:
         from_secret: github_token

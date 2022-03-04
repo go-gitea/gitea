@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -97,7 +98,12 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 
 	// can't do rebase on protected branch because need force push
 	if pr.ProtectedBranch == nil {
-		rebaseAllowed = true
+		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+		if err != nil {
+			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+			return false, false, err
+		}
+		rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
 	}
 
 	// Update function need push permission
