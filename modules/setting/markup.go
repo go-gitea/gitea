@@ -29,7 +29,7 @@ type MarkupRenderer struct {
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
-	DisableSanitize      bool
+	DisableSanitizer     bool
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -145,12 +145,12 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	}
 
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:         sec.Key("ENABLED").MustBool(false),
-		MarkupName:      name,
-		FileExtensions:  exts,
-		Command:         command,
-		IsInputFile:     sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess: sec.Key("NEED_POSTPROCESS").MustBool(true),
-		DisableSanitize: sec.Key("DISABLE_SANITIZE").MustBool(false),
+		Enabled:          sec.Key("ENABLED").MustBool(false),
+		MarkupName:       name,
+		FileExtensions:   exts,
+		Command:          command,
+		IsInputFile:      sec.Key("IS_INPUT_FILE").MustBool(false),
+		NeedPostProcess:  sec.Key("NEED_POSTPROCESS").MustBool(true),
+		DisableSanitizer: sec.Key("DISABLE_SANITIZER").MustBool(false),
 	})
 }

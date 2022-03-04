@@ -54,9 +54,9 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
-// DisableSanitize disabled sanitize if return true
-func (p *Renderer) SanitizeDisabled() bool {
-	return p.DisableSanitize
+// SanitizerDisabled disabled sanitize if return true
+func (p *Renderer) SanitizerDisabled() bool {
+	return p.DisableSanitizer
 }
 
 func envMark(envName string) string {

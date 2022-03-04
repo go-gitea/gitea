@@ -318,14 +318,14 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
-- DISABLE_SANITIZE: **false** 如果为 true 则不过滤 HTML 标签和属性。除非你知道这意味着什么，否则不要设置为 true。
+- DISABLE_SANITIZER: **false** 如果为 true 则不过滤 HTML 标签和属性。除非你知道这意味着什么，否则不要设置为 true。
 
 以下两个环境变量将会被传递给渲染命令：
 
 - `GITEA_PREFIX_SRC`：包含当前的`src`路径的URL前缀，可以被用于链接的前缀。
 - `GITEA_PREFIX_RAW`：包含当前的`raw`路径的URL前缀，可以被用于图片的前缀。
 
-如果 `DISABLE_SANITIZE` 为 false，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
+如果 `DISABLE_SANITIZER` 为 false，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
 
 ```ini
 [markup.sanitizer.TeX]

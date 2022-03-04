@@ -81,7 +81,7 @@ type Renderer interface {
 	Extensions() []string
 	NeedPostProcess() bool
 	SanitizerRules() []setting.MarkupSanitizerRule
-	SanitizeDisabled() bool
+	SanitizerDisabled() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -146,7 +146,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	var pr2 io.ReadCloser
 	var pw2 io.WriteCloser
 
-	if !renderer.SanitizeDisabled() {
+	if !renderer.SanitizerDisabled() {
 		pr2, pw2 = io.Pipe()
 		defer func() {
 			_ = pr2.Close()

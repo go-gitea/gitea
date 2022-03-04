@@ -46,8 +46,8 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	}
 }
 
-// SanitizeDisabled disabled sanitize if return true
-func (Renderer) SanitizeDisabled() bool {
+// SanitizerDisabled disabled sanitize if return true
+func (Renderer) SanitizerDisabled() bool {
 	return false
 }
 
