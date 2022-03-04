@@ -450,6 +450,12 @@
 						</div>
 						<div class="field">
 							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
 								<input name="default_delete_branch_after_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.default_delete_branch_after_merge"}}</label>
 							</div>
