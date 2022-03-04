@@ -62,20 +62,21 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 // GetNewestReview gets the newest review of the current user in the current PR.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
 func GetNewestReview(userID, pullID int64) (*PRReview, error) {
-	var review *PRReview
+	var review PRReview
 	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(1).Get(&review)
 	if err != nil || !has {
 		return nil, err
 	}
-	return review, err
+	return &review, err
 }
 
-// getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit
+// getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
+// The returned PR Review will be nil if the user has not yet reviewed this PR.
 func getNewestReviewApartFrom(commitSHA string, userID, pullID int64) (*PRReview, error) {
-	var review *PRReview
+	var review PRReview
 	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).And("commit_sha != ?", commitSHA).OrderBy("updated_unix DESC").Limit(1).Get(&review)
 	if err != nil || !has {
 		return nil, err
 	}
-	return review, err
+	return &review, err
 }

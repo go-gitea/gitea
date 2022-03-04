@@ -1512,8 +1512,9 @@ func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Re
 		return diff, err
 	}
 
+
 	// Prepation to check for each file whether it was changed since the last review
-	changedFiles, err := gitRepo.GetFilesChangedBetween(review.CommitSHA, pull.HeadCommitID)
+	changedFiles, err := gitRepo.GetFilesChangedBetween(review.CommitSHA, pull.HeadBranch)
 	if err != nil {
 		return diff, err
 	}

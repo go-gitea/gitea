@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -245,9 +246,9 @@ func DismissReview(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }
 
-// GetUserSpecificDiff is like gitdiff.GetDiff, except that user specific data such as which files the given user has already viewed will also be set
-// This function should have been a part of the services/gitdiff - package, but doing that results in an import cycle for weird reasons
-func GetUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gitdiff.DiffOptions, files ...string) (*gitdiff.Diff, error) {
+// getUserSpecificDiff is an extension to gitdiff.GetUserSpecificDiff that additionally falls back to gitdiff.GetDiff if the current user is not signed in that sets the two page data params "numberOfFiles" and "numberOfViewedFiles"
+// This function should have been a part of gitdiff.GetUserSpecificDiff, but doing so results in an import cycle for weird reasons
+func getUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gitdiff.DiffOptions, files ...string) (*gitdiff.Diff, error) {
 	if !ctx.IsSigned {
 		return gitdiff.GetDiff(gitRepo, opts, files...)
 	}
@@ -262,7 +263,40 @@ func GetUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gi
 	return diff, err
 }
 
-// isSameFile returns whether the given diff file and the given file name point at the same file
-func isSameFile(diffFile *gitdiff.DiffFile, file string) bool {
-	return diffFile.Name == file || (diffFile.Name == "" && diffFile.OldName == file)
+const headCommitKey = "_headCommitID"
+
+func UpdateViewedFiles(ctx *context.Context) {
+	pull := checkPullInfo(ctx).PullRequest
+	if ctx.Written() {
+		return
+	}
+	updatedFiles := make(map[string]bool, len(ctx.Req.Form))
+	headCommitID := ""
+
+	// Collect all files and their viewed state
+	for file, values := range ctx.Req.Form {
+		for _, viewedString := range values {
+			viewed, err := strconv.ParseBool(viewedString)
+
+			// Ignore fields that do not parse as a boolean, i.e. the CSRF token
+			if err != nil {
+
+				// Prevent invalid reviews by specifically supplying the commit the user viewed the file under
+				if file == headCommitKey {
+					headCommitID = viewedString
+				}
+				continue
+			}
+			updatedFiles[file] = viewed
+		}
+	}
+
+	// No head commit ID was supplied - expect the review to have been now
+	if headCommitID == "" {
+		headCommitID = pull.HeadCommitID
+	}
+
+	if err := models.UpdateReview(ctx.User.ID, pull.ID, headCommitID, updatedFiles); err != nil {
+		ctx.ServerError("UpdateReview", err)
+	}
 }

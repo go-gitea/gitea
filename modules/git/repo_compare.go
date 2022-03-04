@@ -316,7 +316,7 @@ func (lineWriter *lineWriter) Write(p []byte) (int, error) {
 func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
 	stderr := new(bytes.Buffer)
 	w := &lineWriter{}
-	err := NewCommand(repo.Ctx, "diff", "--name-only", "--", base+".."+head).
+	err := NewCommand(repo.Ctx, "diff", "--name-only", base+".."+head).
 		RunWithContext(&RunContext{
 			Timeout: -1,
 			Dir:     repo.Path,
