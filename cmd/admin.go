@@ -675,7 +675,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	user, err := models.GetUserByName(c.String("username"))
+	user, err := user_model.GetUserByName(c.String("username"))
 	if err != nil {
 		return err
 	}
