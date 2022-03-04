@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/gogs/go-gogs-client"
@@ -32,8 +30,7 @@ func init() {
 }
 
 // GogsDownloaderFactory defines a gogs downloader factory
-type GogsDownloaderFactory struct {
-}
+type GogsDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GogsDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -83,7 +80,7 @@ func (g *GogsDownloader) SetContext(ctx context.Context) {
 
 // NewGogsDownloader creates a gogs Downloader via gogs API
 func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GogsDownloader {
-	var downloader = GogsDownloader{
+	downloader := GogsDownloader{
 		ctx:       ctx,
 		baseURL:   baseURL,
 		userName:  userName,
@@ -97,13 +94,12 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 		client = gogs.NewClient(baseURL, token)
 		downloader.userName = token
 	} else {
-		downloader.transport = &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-			Proxy: func(req *http.Request) (*url.URL, error) {
-				req.SetBasicAuth(userName, password)
-				return proxy.Proxy()(req)
-			},
+		transport := NewMigrationHTTPTransport()
+		transport.Proxy = func(req *http.Request) (*url.URL, error) {
+			req.SetBasicAuth(userName, password)
+			return proxy.Proxy()(req)
 		}
+		downloader.transport = transport
 
 		client = gogs.NewClient(baseURL, "")
 		client.SetHTTPClient(&http.Client{
@@ -142,8 +138,8 @@ func (g *GogsDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetMilestones returns milestones
 func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
-	var perPage = 100
-	var milestones = make([]*base.Milestone, 0, perPage)
+	perPage := 100
+	milestones := make([]*base.Milestone, 0, perPage)
 
 	ms, err := g.client.ListRepoMilestones(g.repoOwner, g.repoName)
 	if err != nil {
@@ -165,8 +161,8 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 // GetLabels returns labels
 func (g *GogsDownloader) GetLabels() ([]*base.Label, error) {
-	var perPage = 100
-	var labels = make([]*base.Label, 0, perPage)
+	perPage := 100
+	labels := make([]*base.Label, 0, perPage)
 	ls, err := g.client.ListRepoLabels(g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
@@ -206,7 +202,7 @@ func (g *GogsDownloader) GetIssues(page, _ int) ([]*base.Issue, bool, error) {
 }
 
 func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool, error) {
-	var allIssues = make([]*base.Issue, 0, 10)
+	allIssues := make([]*base.Issue, 0, 10)
 
 	issues, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gogs.ListIssueOption{
 		Page:  page,
@@ -228,7 +224,7 @@ func (g *GogsDownloader) getIssues(page int, state string) ([]*base.Issue, bool,
 
 // GetComments returns comments according issueNumber
 func (g *GogsDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var allComments = make([]*base.Comment, 0, 100)
+	allComments := make([]*base.Comment, 0, 100)
 
 	comments, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID())
 	if err != nil {
@@ -257,7 +253,7 @@ func (g *GogsDownloader) GetTopics() ([]string, error) {
 	return []string{}, nil
 }
 
-// FormatCloneURL add authentification into remote URLs
+// FormatCloneURL add authentication into remote URLs
 func (g *GogsDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
 		u, err := url.Parse(remoteAddr)
@@ -279,7 +275,7 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 	if issue.Milestone != nil {
 		milestone = issue.Milestone.Title
 	}
-	var labels = make([]*base.Label, 0, len(issue.Labels))
+	labels := make([]*base.Label, 0, len(issue.Labels))
 	for _, l := range issue.Labels {
 		labels = append(labels, convertGogsLabel(l))
 	}

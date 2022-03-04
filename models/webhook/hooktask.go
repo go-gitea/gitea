@@ -175,24 +175,51 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(t *HookTask) error {
-	return createHookTask(db.GetEngine(db.DefaultContext), t)
-}
-
-func createHookTask(e db.Engine, t *HookTask) error {
 	data, err := t.Payloader.JSONPayload()
 	if err != nil {
 		return err
 	}
 	t.UUID = gouuid.New().String()
 	t.PayloadContent = string(data)
-	_, err = e.Insert(t)
-	return err
+	return db.Insert(db.DefaultContext, t)
 }
 
 // UpdateHookTask updates information of hook task.
 func UpdateHookTask(t *HookTask) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
 	return err
+}
+
+// ReplayHookTask copies a hook task to get re-delivered
+func ReplayHookTask(hookID int64, uuid string) (*HookTask, error) {
+	var newTask *HookTask
+
+	err := db.WithTx(func(ctx context.Context) error {
+		task := &HookTask{
+			HookID: hookID,
+			UUID:   uuid,
+		}
+		has, err := db.GetByBean(ctx, task)
+		if err != nil {
+			return err
+		} else if !has {
+			return ErrHookTaskNotExist{
+				HookID: hookID,
+				UUID:   uuid,
+			}
+		}
+
+		newTask = &HookTask{
+			UUID:           gouuid.New().String(),
+			RepoID:         task.RepoID,
+			HookID:         task.HookID,
+			PayloadContent: task.PayloadContent,
+			EventType:      task.EventType,
+		}
+		return db.Insert(ctx, newTask)
+	})
+
+	return newTask, err
 }
 
 // FindUndeliveredHookTasks represents find the undelivered hook tasks

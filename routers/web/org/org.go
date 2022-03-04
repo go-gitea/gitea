@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -49,10 +51,10 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	org := &models.User{
+	org := &models.Organization{
 		Name:                      form.OrgName,
 		IsActive:                  true,
-		Type:                      models.UserTypeOrganization,
+		Type:                      user_model.UserTypeOrganization,
 		Visibility:                form.Visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
@@ -60,12 +62,12 @@ func CreatePost(ctx *context.Context) {
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		ctx.Data["Err_OrgName"] = true
 		switch {
-		case models.IsErrUserAlreadyExist(err):
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("form.org_name_been_taken"), tplCreateOrg, &form)
-		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(models.ErrNameReserved).Name), tplCreateOrg, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
+		case db.IsErrNameReserved(err):
+			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(db.ErrNameReserved).Name), tplCreateOrg, &form)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
 		case models.IsErrUserNotAllowedCreateOrg(err):
 			ctx.RenderWithErr(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:
@@ -75,5 +77,5 @@ func CreatePost(ctx *context.Context) {
 	}
 	log.Trace("Organization created: %s", org.Name)
 
-	ctx.Redirect(org.DashboardLink())
+	ctx.Redirect(org.AsUser().DashboardLink())
 }

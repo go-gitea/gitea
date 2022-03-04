@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
@@ -17,9 +18,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const AppURL = "http://localhost:3000/"
-const Repo = "gogits/gogs"
-const AppSubURL = AppURL + Repo + "/"
+const (
+	AppURL    = "http://localhost:3000/"
+	Repo      = "gogits/gogs"
+	AppSubURL = AppURL + Repo + "/"
+)
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
@@ -119,7 +122,6 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
-
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
@@ -279,6 +281,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: AppSubURL,
 			Metas:     localMetas,
 			IsWiki:    true,
@@ -318,6 +321,7 @@ func TestTotal_RenderString(t *testing.T) {
 
 	for i := 0; i < len(sameCases); i++ {
 		line, err := RenderString(&markup.RenderContext{
+			Ctx:       git.DefaultContext,
 			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
 			Metas:     localMetas,
 		}, sameCases[i])
@@ -391,5 +395,13 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	res, err := RenderRawString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
+}
 
+func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
+	testcase := `[Link with emoji :moon: in text](https://gitea.io)`
+	expected := `<p><a href="https://gitea.io" rel="nofollow">Link with emoji <span class="emoji" aria-label="waxing gibbous moon">🌔</span> in text</a></p>
+`
+	res, err := RenderString(&markup.RenderContext{}, testcase)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, res)
 }

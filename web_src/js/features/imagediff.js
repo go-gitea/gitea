@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;

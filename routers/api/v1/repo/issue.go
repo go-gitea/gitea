@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -133,7 +134,7 @@ func SearchIssues(ctx *context.APIContext) {
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
-		OrderBy: models.SearchOrderByAlphabetically,
+		OrderBy: db.SearchOrderByAlphabetically,
 		Actor:   ctx.User,
 	}
 	if ctx.IsSigned {
@@ -141,9 +142,9 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -187,7 +188,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -378,7 +379,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
@@ -492,8 +493,8 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 		return 0
 	}
 
-	user, err := models.GetUserByName(userName)
-	if models.IsErrUserNotExist(err) {
+	user, err := user_model.GetUserByName(userName)
+	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0
 	}
@@ -598,13 +599,13 @@ func CreateIssue(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	var assigneeIDs = make([]int64, 0)
+	assigneeIDs := make([]int64, 0)
 	var err error
 	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "AddAssigneeByName", err)
@@ -614,7 +615,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 		// Check if the passed assignees is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := models.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(aID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -831,6 +832,52 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
+}
+
+func DeleteIssue(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index} issue issueDelete
+	// ---
+	// summary: Delete an issue
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of issue to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		}
+		return
+	}
+
+	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // UpdateIssueDeadline updates an issue deadline

@@ -24,7 +24,7 @@
 		const sshButton = document.getElementById('repo-clone-ssh');
 		const httpsButton = document.getElementById('repo-clone-https');
 		const input = document.getElementById('repo-clone-url');
-		if (input) input.value = (isSSH ? sshButton : httpsButton).dataset.link;
+		if (input) input.value = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
 		if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
 		if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
 		setTimeout(() => {

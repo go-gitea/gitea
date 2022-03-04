@@ -10,7 +10,11 @@
 						{{.i18n.Tr "repo.archive.title"}}
 					</div>
 				{{end}}
-				{{if .CanWriteCode}}
+				{{if .Repository.IsBroken}}
+						<div class="ui segment center">
+							{{.i18n.Tr "repo.broken_message"}}
+						</div>
+				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
 					</h4>
@@ -51,7 +55,7 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								const cloneUrls = document.getElementsByClassName('clone-url');
 								if (cloneUrls) {
 									for (let i = 0; i < cloneUrls.length; i++) {
-										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).dataset.link;
+										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
 									}
 								}
 							</script>

@@ -83,17 +83,17 @@ func fixMergeBase(x *xorm.Engine) error {
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, err = git.NewCommand("merge-base", "--", pr.BaseBranch, gitRefName).RunInDir(repoPath)
+				pr.MergeBase, err = git.NewCommand(git.DefaultContext, "merge-base", "--", pr.BaseBranch, gitRefName).RunInDir(repoPath)
 				if err != nil {
 					var err2 error
-					pr.MergeBase, err2 = git.NewCommand("rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					pr.MergeBase, err2 = git.NewCommand(git.DefaultContext, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
 						continue
 					}
 				}
 			} else {
-				parentsString, err := git.NewCommand("rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				parentsString, err := git.NewCommand(git.DefaultContext, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
 				if err != nil {
 					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
@@ -106,7 +106,7 @@ func fixMergeBase(x *xorm.Engine) error {
 				args := append([]string{"merge-base", "--"}, parents[1:]...)
 				args = append(args, gitRefName)
 
-				pr.MergeBase, err = git.NewCommand(args...).RunInDir(repoPath)
+				pr.MergeBase, err = git.NewCommand(git.DefaultContext, args...).RunInDir(repoPath)
 				if err != nil {
 					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue

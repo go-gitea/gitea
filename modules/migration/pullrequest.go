@@ -8,6 +8,8 @@ package migration
 import (
 	"fmt"
 	"time"
+
+	"code.gitea.io/gitea/modules/git"
 )
 
 // PullRequest defines a standard pull request information
@@ -43,7 +45,7 @@ func (p *PullRequest) IsForkPullRequest() bool {
 
 // GetGitRefName returns pull request relative path to head
 func (p PullRequest) GetGitRefName() string {
-	return fmt.Sprintf("refs/pull/%d/head", p.Number)
+	return fmt.Sprintf("%s%d/head", git.PullPrefix, p.Number)
 }
 
 // PullRequestBranch represents a pull request branch
@@ -59,3 +61,9 @@ type PullRequestBranch struct {
 func (p PullRequestBranch) RepoPath() string {
 	return fmt.Sprintf("%s/%s", p.OwnerName, p.RepoName)
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (p *PullRequest) GetExternalName() string { return p.PosterName }
+
+// ExternalID ExternalUserMigrated interface
+func (p *PullRequest) GetExternalID() int64 { return p.PosterID }

@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -41,9 +43,13 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page == 0 {
+		listOptions.Page = 1
+	}
 	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(int64(count))
@@ -79,9 +85,9 @@ func AdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := models.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ownerName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -90,12 +96,12 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -141,9 +147,9 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := models.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ownerName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -152,12 +158,12 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

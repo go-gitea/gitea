@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,7 +22,7 @@ func TestAPIPullReview(t *testing.T) {
 	defer prepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
@@ -79,22 +80,23 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		Body: "body1",
 		// Event: "" # will result in PENDING
-		Comments: []api.CreatePullReviewComment{{
-			Path:       "README.md",
-			Body:       "first new line",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		}, {
-			Path:       "README.md",
-			Body:       "first old line",
-			OldLineNum: 1,
-			NewLineNum: 0,
-		}, {
-			Path:       "iso-8859-1.txt",
-			Body:       "this line contains a non-utf-8 character",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		},
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "first new line",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			}, {
+				Path:       "README.md",
+				Body:       "first old line",
+				OldLineNum: 1,
+				NewLineNum: 0,
+			}, {
+				Path:       "iso-8859-1.txt",
+				Body:       "this line contains a non-utf-8 character",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			},
 		},
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -146,17 +148,18 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		// Body:  "",
 		Event: "COMMENT",
-		Comments: []api.CreatePullReviewComment{{
-			Path:       "README.md",
-			Body:       "first new line",
-			OldLineNum: 0,
-			NewLineNum: 1,
-		}, {
-			Path:       "README.md",
-			Body:       "first old line",
-			OldLineNum: 1,
-			NewLineNum: 0,
-		},
+		Comments: []api.CreatePullReviewComment{
+			{
+				Path:       "README.md",
+				Body:       "first new line",
+				OldLineNum: 0,
+				NewLineNum: 1,
+			}, {
+				Path:       "README.md",
+				Body:       "first old line",
+				OldLineNum: 1,
+				NewLineNum: 0,
+			},
 		},
 	})
 	var commentReview api.PullReview
@@ -198,7 +201,7 @@ func TestAPIPullReview(t *testing.T) {
 	// to make it simple, use same api with get review
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID}).(*repo_model.Repository)
 
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -222,7 +225,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	defer prepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)
 
 	// Test add Review Request
 	session := loginUser(t, "user2")
@@ -267,7 +270,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	// Test team review request
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID}).(*repo_model.Repository)
 
 	// Test add Team Review Request
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{

@@ -109,23 +109,23 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	ids := make([]int64, len(uploads))
 	for i := 0; i < len(uploads); i++ {
 		ids[i] = uploads[i].ID
 	}
-	if _, err = sess.
+	if _, err = db.GetEngine(ctx).
 		In("id", ids).
 		Delete(new(Upload)); err != nil {
 		return fmt.Errorf("delete uploads: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
 

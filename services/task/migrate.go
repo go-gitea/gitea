@@ -5,12 +5,14 @@
 package task
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -23,16 +25,16 @@ import (
 	"code.gitea.io/gitea/services/migrations"
 )
 
-func handleCreateError(owner *models.User, err error) error {
+func handleCreateError(owner *user_model.User, err error) error {
 	switch {
-	case models.IsErrReachLimitOfRepo(err):
+	case repo_model.IsErrReachLimitOfRepo(err):
 		return fmt.Errorf("You have already reached your limit of %d repositories", owner.MaxCreationLimit())
-	case models.IsErrRepoAlreadyExist(err):
+	case repo_model.IsErrRepoAlreadyExist(err):
 		return errors.New("The repository name is already used")
-	case models.IsErrNameReserved(err):
-		return fmt.Errorf("The repository name '%s' is reserved", err.(models.ErrNameReserved).Name)
-	case models.IsErrNamePatternNotAllowed(err):
-		return fmt.Errorf("The pattern '%s' is not allowed in a repository name", err.(models.ErrNamePatternNotAllowed).Pattern)
+	case db.IsErrNameReserved(err):
+		return fmt.Errorf("The repository name '%s' is reserved", err.(db.ErrNameReserved).Name)
+	case db.IsErrNamePatternNotAllowed(err):
+		return fmt.Errorf("The pattern '%s' is not allowed in a repository name", err.(db.ErrNamePatternNotAllowed).Pattern)
 	default:
 		return err
 	}
@@ -78,7 +80,7 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	// if repository is ready, then just finish the task
-	if t.Repo.Status == models.RepositoryReady {
+	if t.Repo.Status == repo_model.RepositoryReady {
 		return nil
 	}
 
@@ -97,11 +99,9 @@ func runMigrateTask(t *models.Task) (err error) {
 
 	opts.MigrateToRepoID = t.RepoID
 
-	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
-	defer cancel()
 	pm := process.GetManager()
-	pid := pm.Add(fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName), cancel)
-	defer pm.Remove(pid)
+	ctx, _, finished := pm.AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName))
+	defer finished()
 
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning
@@ -123,7 +123,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	if models.IsErrRepoAlreadyExist(err) {
+	if repo_model.IsErrRepoAlreadyExist(err) {
 		err = errors.New("The repository name is already used")
 		return
 	}

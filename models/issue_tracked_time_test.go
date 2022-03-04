@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ import (
 func TestAddTime(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user3, err := GetUserByID(3)
+	user3, err := user_model.GetUserByID(3)
 	assert.NoError(t, err)
 
 	issue1, err := GetIssueByID(1)
@@ -33,7 +34,7 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(3661), tt.Time)
 
 	comment := unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
-	assert.Equal(t, comment.Content, "1h 1min 1s")
+	assert.Equal(t, comment.Content, "1 hour 1 minute")
 }
 
 func TestGetTrackedTimes(t *testing.T) {
@@ -85,7 +86,7 @@ func TestTotalTimes(t *testing.T) {
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(1), user.ID)
-		assert.Equal(t, "6min 40s", time)
+		assert.Equal(t, "6 minutes 40 seconds", time)
 	}
 
 	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 2})
@@ -93,9 +94,9 @@ func TestTotalTimes(t *testing.T) {
 	assert.Len(t, total, 2)
 	for user, time := range total {
 		if user.ID == 2 {
-			assert.Equal(t, "1h 1min 2s", time)
+			assert.Equal(t, "1 hour 1 minute", time)
 		} else if user.ID == 1 {
-			assert.Equal(t, "20s", time)
+			assert.Equal(t, "20 seconds", time)
 		} else {
 			assert.Error(t, assert.AnError)
 		}
@@ -106,7 +107,7 @@ func TestTotalTimes(t *testing.T) {
 	assert.Len(t, total, 1)
 	for user, time := range total {
 		assert.Equal(t, int64(2), user.ID)
-		assert.Equal(t, "1s", time)
+		assert.Equal(t, "1 second", time)
 	}
 
 	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 4})

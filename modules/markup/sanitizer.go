@@ -6,7 +6,6 @@
 package markup
 
 import (
-	"bytes"
 	"io"
 	"regexp"
 	"sync"
@@ -87,7 +86,8 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
 
 	// Allow generally safe attributes
-	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
+	generalSafeAttrs := []string{
+		"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",
 		"aria-describedby", "aria-hidden", "aria-label", "aria-labelledby",
 		"axis", "border", "cellpadding", "cellspacing", "char",
@@ -149,11 +149,11 @@ func Sanitize(s string) string {
 }
 
 // SanitizeReader sanitizes a Reader
-func SanitizeReader(r io.Reader, renderer string) *bytes.Buffer {
+func SanitizeReader(r io.Reader, renderer string, w io.Writer) error {
 	NewSanitizer()
 	policy, exist := sanitizer.rendererPolicies[renderer]
 	if !exist {
 		policy = sanitizer.defaultPolicy
 	}
-	return policy.SanitizeReader(r)
+	return policy.SanitizeReaderToWriter(r, w)
 }

@@ -1,62 +1,74 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
+function moveIssue({item, from, to, oldIndex}) {
+  const columnCards = to.getElementsByClassName('board-card');
+
+  const columnSorting = {
+    issues: [...columnCards].map((card, i) => ({
+      issueID: parseInt($(card).attr('data-issue')),
+      sorting: i
+    }))
+  };
+
+  $.ajax({
+    url: `${to.getAttribute('data-url')}/move`,
+    data: JSON.stringify(columnSorting),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+    },
+    contentType: 'application/json',
+    type: 'POST',
+    error: () => {
+      from.insertBefore(item, from.children[oldIndex]);
+    }
+  });
+}
+
 async function initRepoProjectSortable() {
-  const els = document.getElementsByClassName('board');
+  const els = document.querySelectorAll('#project-board > .board');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
-  const boardColumns = document.getElementsByClassName('board-column');
-  new Sortable(
-    els[0],
-    {
-      group: 'board-column',
-      draggable: '.board-column',
-      animation: 150,
-      ghostClass: 'card-ghost',
-      onSort: () => {
-        const board = document.getElementsByClassName('board')[0];
-        const boardColumns = board.getElementsByClassName('board-column');
 
-        boardColumns.forEach((column, i) => {
-          if (parseInt($(column).data('sorting')) !== i) {
-            $.ajax({
-              url: $(column).data('url'),
-              data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
-              headers: {
-                'X-Csrf-Token': csrfToken,
-                'X-Remote': true,
-              },
-              contentType: 'application/json',
-              method: 'PUT',
-            });
-          }
-        });
-      },
-    },
-  );
-
-  for (const column of boardColumns) {
-    new Sortable(
-      column.getElementsByClassName('board')[0],
-      {
-        group: 'shared',
-        animation: 150,
-        ghostClass: 'card-ghost',
-        onAdd: (e) => {
-          $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
+  // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
+  const mainBoard = els[0];
+  let boardColumns = mainBoard.getElementsByClassName('board-column');
+  new Sortable(mainBoard, {
+    group: 'board-column',
+    draggable: '.board-column',
+    filter: '[data-id="0"]',
+    animation: 150,
+    ghostClass: 'card-ghost',
+    onSort: () => {
+      boardColumns = mainBoard.getElementsByClassName('board-column');
+      for (let i = 0; i < boardColumns.length; i++) {
+        const column = boardColumns[i];
+        if (parseInt($(column).data('sorting')) !== i) {
+          $.ajax({
+            url: $(column).data('url'),
+            data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
             headers: {
               'X-Csrf-Token': csrfToken,
-              'X-Remote': true,
             },
             contentType: 'application/json',
-            type: 'POST',
-            error: () => {
-              e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
-            },
+            method: 'PUT',
           });
-        },
-      },
-    );
+        }
+      }
+    },
+  });
+
+  for (const boardColumn of boardColumns) {
+    const boardCardList = boardColumn.getElementsByClassName('board')[0];
+    new Sortable(boardCardList, {
+      group: 'shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: moveIssue,
+      onUpdate: moveIssue,
+    });
   }
 }
 
@@ -90,7 +102,6 @@ export default function initRepoProject() {
           data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
           headers: {
             'X-Csrf-Token': csrfToken,
-            'X-Remote': true,
           },
           contentType: 'application/json',
           method: 'PUT',
@@ -114,7 +125,6 @@ export default function initRepoProject() {
       url: $(this).data('url'),
       headers: {
         'X-Csrf-Token': csrfToken,
-        'X-Remote': true,
       },
       contentType: 'application/json',
     });
@@ -130,7 +140,6 @@ export default function initRepoProject() {
         url: $(this).data('url'),
         headers: {
           'X-Csrf-Token': csrfToken,
-          'X-Remote': true,
         },
         contentType: 'application/json',
         method: 'DELETE',
@@ -151,7 +160,6 @@ export default function initRepoProject() {
       data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
       headers: {
         'X-Csrf-Token': csrfToken,
-        'X-Remote': true,
       },
       contentType: 'application/json',
       method: 'POST',
@@ -163,9 +171,9 @@ export default function initRepoProject() {
 }
 
 function setLabelColor(label, color) {
-  const red = getRelativeColor(parseInt(color.substr(1, 2), 16));
-  const green = getRelativeColor(parseInt(color.substr(3, 2), 16));
-  const blue = getRelativeColor(parseInt(color.substr(5, 2), 16));
+  const red = getRelativeColor(parseInt(color.slice(1, 3), 16));
+  const green = getRelativeColor(parseInt(color.slice(3, 5), 16));
+  const blue = getRelativeColor(parseInt(color.slice(5, 7), 16));
   const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 
   if (luminance > 0.179) {

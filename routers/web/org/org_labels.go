@@ -34,6 +34,7 @@ func NewLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
+	ctx.Data["PageIsOrgSettings"] = true
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
@@ -95,7 +96,7 @@ func DeleteLabel(ctx *context.Context) {
 func InitializeLabels(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
-		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+		ctx.Redirect(ctx.Org.OrgLink + "/labels")
 		return
 	}
 

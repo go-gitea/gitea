@@ -28,8 +28,7 @@ func TestDumpDatabase(t *testing.T) {
 	}
 	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync2(new(Version)))
 
-	for _, dbName := range setting.SupportedDatabases {
-		dbType := setting.GetDBTypeByName(dbName)
+	for _, dbType := range setting.SupportedDatabaseTypes {
 		assert.NoError(t, db.DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }

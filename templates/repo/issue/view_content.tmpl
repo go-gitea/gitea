@@ -15,7 +15,7 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
+	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -48,19 +48,19 @@
 							{{end}}
 						</div>
 						<div class="comment-header-right actions df ac">
-							{{if not $.Repository.IsArchived}}
-								{{if gt .Issue.ShowRole 0}}
-									{{if (.Issue.ShowRole.HasRole "Writer")}}
-										<div class="ui basic label">
-											{{$.i18n.Tr "repo.issues.collaborator"}}
-										</div>
-									{{end}}
-									{{if (.Issue.ShowRole.HasRole "Owner")}}
-										<div class="ui basic label">
-											{{$.i18n.Tr "repo.issues.owner"}}
-										</div>
-									{{end}}
+							{{if gt .Issue.ShowRole 0}}
+								{{if (.Issue.ShowRole.HasRole "Writer")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.collaborator"}}
+									</div>
 								{{end}}
+								{{if (.Issue.ShowRole.HasRole "Owner")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.owner"}}
+									</div>
+								{{end}}
+							{{end}}
+							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							{{end}}

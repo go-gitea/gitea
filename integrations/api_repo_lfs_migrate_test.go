@@ -9,11 +9,12 @@ import (
 	"path"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,8 +26,9 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	oldAllowLocalNetworks := setting.Migrations.AllowLocalNetworks
 	setting.ImportLocalPaths = true
 	setting.Migrations.AllowLocalNetworks = true
+	assert.NoError(t, migrations.Init())
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -47,4 +49,5 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 
 	setting.ImportLocalPaths = oldImportLocalPaths
 	setting.Migrations.AllowLocalNetworks = oldAllowLocalNetworks
+	assert.NoError(t, migrations.Init()) // reset old migration settings
 }

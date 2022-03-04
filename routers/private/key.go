@@ -8,7 +8,7 @@ package private
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -18,17 +18,17 @@ import (
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
-	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
+	if err := asymkey_model.UpdatePublicKeyUpdated(keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
 		return
 	}
 
-	deployKey, err := models.GetDeployKeyByRepo(keyID, repoID)
+	deployKey, err := asymkey_model.GetDeployKeyByRepo(keyID, repoID)
 	if err != nil {
-		if models.IsErrDeployKeyNotExist(err) {
-			ctx.PlainText(http.StatusOK, []byte("success"))
+		if asymkey_model.IsErrDeployKeyNotExist(err) {
+			ctx.PlainText(http.StatusOK, "success")
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -37,14 +37,14 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+	if err = asymkey_model.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
 		return
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
@@ -52,12 +52,12 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
 
-	publicKey, err := models.SearchPublicKeyByContent(content)
+	publicKey, err := asymkey_model.SearchPublicKeyByContent(content)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte(publicKey.AuthorizedString()))
+	ctx.PlainText(http.StatusOK, publicKey.AuthorizedString())
 }

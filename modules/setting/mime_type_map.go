@@ -6,16 +6,14 @@ package setting
 
 import "strings"
 
-var (
-	// MimeTypeMap defines custom mime type mapping settings
-	MimeTypeMap = struct {
-		Enabled bool
-		Map     map[string]string
-	}{
-		Enabled: false,
-		Map:     map[string]string{},
-	}
-)
+// MimeTypeMap defines custom mime type mapping settings
+var MimeTypeMap = struct {
+	Enabled bool
+	Map     map[string]string
+}{
+	Enabled: false,
+	Map:     map[string]string{},
+}
 
 func newMimeTypeMap() {
 	sec := Cfg.Section("repository.mimetype_mapping")

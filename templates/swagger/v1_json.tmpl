@@ -2951,6 +2951,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filepath of a file/dir",
+            "name": "path",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -2958,7 +2964,7 @@
           },
           {
             "type": "integer",
-            "description": "page size of results",
+            "description": "page size of results (ignored if used with 'path')",
             "name": "limit",
             "in": "query"
           }
@@ -3377,6 +3383,50 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/diffpatch": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Apply diff patch to repository",
+        "operationId": "repoApplyDiffPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateFileOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/FileResponse"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/editorconfig/{filepath}": {
       "get": {
         "produces": [
@@ -3502,6 +3552,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "409": {
+            "description": "The repository with the same name already exists."
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -4913,6 +4966,48 @@
           }
         }
       },
+      "delete": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete an issue",
+        "operationId": "issueDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue to delete",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "patch": {
         "consumes": [
           "application/json"
@@ -6044,6 +6139,73 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/timeline": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List all comments and events on an issue",
+        "operationId": "issueGetCommentsAndTimeline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated since the specified time are returned.",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated before the provided time are returned.",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TimelineList"
           }
         }
       }
@@ -9889,6 +10051,84 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/transfer/accept": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Accept a repo transfer",
+        "operationId": "acceptRepoTransfer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to transfer",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to transfer",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/transfer/reject": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Reject a repo transfer",
+        "operationId": "rejectRepoTransfer",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo to transfer",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to transfer",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/wiki/new": {
       "post": {
         "consumes": [
@@ -13292,6 +13532,11 @@
       "description": "CreateForkOption options for creating a fork",
       "type": "object",
       "properties": {
+        "name": {
+          "description": "name of the forked repository",
+          "type": "string",
+          "x-go-name": "Name"
+        },
         "organization": {
           "description": "organization name, if forking into an organization",
           "type": "string",
@@ -13358,7 +13603,8 @@
             "slack",
             "telegram",
             "feishu",
-            "wechatwork"
+            "wechatwork",
+            "packagist"
           ],
           "x-go-name": "Type"
         }
@@ -13734,7 +13980,7 @@
       ],
       "properties": {
         "auto_init": {
-          "description": "Whether the repository should be auto-intialized?",
+          "description": "Whether the repository should be auto-initialized?",
           "type": "boolean",
           "x-go-name": "AutoInit"
         },
@@ -13890,6 +14136,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14555,6 +14809,11 @@
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
+        "allow_rebase_update": {
+          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebaseUpdate"
+        },
         "allow_squash_merge": {
           "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
           "type": "boolean",
@@ -14701,6 +14960,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15578,6 +15845,10 @@
           "type": "string",
           "x-go-name": "Name"
         },
+        "ref": {
+          "type": "string",
+          "x-go-name": "Ref"
+        },
         "title": {
           "type": "string",
           "x-go-name": "Title"
@@ -15670,6 +15941,10 @@
         "force_merge": {
           "type": "boolean",
           "x-go-name": "ForceMerge"
+        },
+        "head_commit_id": {
+          "type": "string",
+          "x-go-name": "HeadCommitID"
         }
       },
       "x-go-name": "MergePullRequestForm",
@@ -16217,7 +16492,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OrganizationPermissions": {
-      "description": "OrganizationPermissions list differents users permissions on an organization",
+      "description": "OrganizationPermissions list different users permissions on an organization",
       "type": "object",
       "properties": {
         "can_create_repository": {
@@ -16876,6 +17151,26 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoTransfer": {
+      "description": "RepoTransfer represents a pending repo transfer",
+      "type": "object",
+      "properties": {
+        "doer": {
+          "$ref": "#/definitions/User"
+        },
+        "recipient": {
+          "$ref": "#/definitions/User"
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Team"
+          },
+          "x-go-name": "Teams"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Repository": {
       "description": "Repository represents a repository",
       "type": "object",
@@ -16984,6 +17279,14 @@
         "internal_tracker": {
           "$ref": "#/definitions/InternalTracker"
         },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "languages_url": {
+          "type": "string",
+          "x-go-name": "LanguagesURL"
+        },
         "mirror": {
           "type": "boolean",
           "x-go-name": "Mirror"
@@ -16991,6 +17294,11 @@
         "mirror_interval": {
           "type": "string",
           "x-go-name": "MirrorInterval"
+        },
+        "mirror_updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "MirrorUpdated"
         },
         "name": {
           "type": "string",
@@ -17027,6 +17335,9 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Releases"
+        },
+        "repo_transfer": {
+          "$ref": "#/definitions/RepoTransfer"
         },
         "size": {
           "type": "integer",
@@ -17263,6 +17574,14 @@
             "repo.projects",
             "repo.ext_wiki"
           ]
+        },
+        "units_map": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "UnitsMap",
+          "example": "{\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"]"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17272,6 +17591,126 @@
       "type": "integer",
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
+    },
+    "TimelineComment": {
+      "description": "TimelineComment represents a timeline comment (comment of any type) on a commit or issue",
+      "type": "object",
+      "properties": {
+        "assignee": {
+          "$ref": "#/definitions/User"
+        },
+        "assignee_team": {
+          "$ref": "#/definitions/Team"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "dependent_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "issue_url": {
+          "type": "string",
+          "x-go-name": "IssueURL"
+        },
+        "label": {
+          "$ref": "#/definitions/Label"
+        },
+        "milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "new_ref": {
+          "type": "string",
+          "x-go-name": "NewRef"
+        },
+        "new_title": {
+          "type": "string",
+          "x-go-name": "NewTitle"
+        },
+        "old_milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "old_project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OldProjectID"
+        },
+        "old_ref": {
+          "type": "string",
+          "x-go-name": "OldRef"
+        },
+        "old_title": {
+          "type": "string",
+          "x-go-name": "OldTitle"
+        },
+        "project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ProjectID"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "PRURL"
+        },
+        "ref_action": {
+          "type": "string",
+          "x-go-name": "RefAction"
+        },
+        "ref_comment": {
+          "$ref": "#/definitions/Comment"
+        },
+        "ref_commit_sha": {
+          "description": "commit SHA where issue/PR was referenced",
+          "type": "string",
+          "x-go-name": "RefCommitSHA"
+        },
+        "ref_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "removed_assignee": {
+          "description": "whether the assignees were removed or added",
+          "type": "boolean",
+          "x-go-name": "RemovedAssignee"
+        },
+        "resolve_doer": {
+          "$ref": "#/definitions/User"
+        },
+        "review_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ReviewID"
+        },
+        "tracked_time": {
+          "$ref": "#/definitions/TrackedTime"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
@@ -18399,6 +18838,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Team"
+        }
+      }
+    },
+    "TimelineList": {
+      "description": "TimelineList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TimelineComment"
         }
       }
     },

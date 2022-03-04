@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const $service = $('#service_type');
 const $user = $('#auth_username');
 const $pass = $('#auth_password');

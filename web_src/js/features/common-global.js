@@ -1,8 +1,8 @@
+import $ from 'jquery';
+import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
-
-import 'jquery.are-you-sure';
 
 const {csrfToken} = window.config;
 
@@ -211,7 +211,7 @@ export function initGlobalLinkActions() {
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
@@ -297,13 +297,38 @@ export function initGlobalButtons() {
   });
 
   $('.hide-panel.button').on('click', function (event) {
-    $($(this).data('panel')).hide();
+    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
     event.preventDefault();
+    let sel = $(this).attr('data-panel');
+    if (sel) {
+      $(sel).hide();
+      return;
+    }
+    sel = $(this).attr('data-panel-closest');
+    if (sel) {
+      $(this).closest(sel).hide();
+      return;
+    }
+    // should never happen, otherwise there is a bug in code
+    alert('Nothing to hide');
   });
 
-  $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+  $('.show-modal').on('click', function () {
+    const modalDiv = $($(this).attr('data-modal'));
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith('data-modal-')) {
+        continue;
+      }
+      const id = attrib.name.substring(11);
+      const target = modalDiv.find(`#${id}`);
+      if (target.is('input')) {
+        target.val(attrib.value);
+      } else {
+        target.text(attrib.value);
+      }
+    }
+    modalDiv.modal('show');
+    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
@@ -311,10 +336,10 @@ export function initGlobalButtons() {
 
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
-    $.post($this.data('request-url'), {
+    $.post($this.attr('data-request-url'), {
       _csrf: csrfToken
     }).done(() => {
-      window.location.href = $this.data('done-url');
+      window.location.href = $this.attr('data-done-url');
     });
   });
 }

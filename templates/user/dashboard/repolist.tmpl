@@ -14,7 +14,7 @@
 	{{end}}
 	]"
 	:is-organization="false"
-	:organizations-total-count="{{.ContextUser.GetOrganizationCount}}"
+	:organizations-total-count="{{.UserOrgsCount}}"
 	:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
 	{{end}}
 	inline-template

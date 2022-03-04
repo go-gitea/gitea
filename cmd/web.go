@@ -71,8 +71,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, "HTTP Redirector", handler)
-
+	err := runHTTP("tcp", source, "HTTP Redirector", handler)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
@@ -88,7 +87,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 	defer func() {
 		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
+			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
 		}
 	}()
 
@@ -124,6 +123,10 @@ func runWeb(ctx *cli.Context) error {
 		}
 		c := install.Routes()
 		err := listen(c, false)
+		if err != nil {
+			log.Critical("Unable to open listener for installer. Is Gitea already running?")
+			graceful.GetManager().DoGracefulShutdown()
+		}
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -145,7 +148,15 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	routers.GlobalInit(graceful.GetManager().HammerContext())
+	setting.LoadFromExisting()
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
+
+	// We check that AppDataPath exists here (it should have been created during installation)
+	// We can't check it in `GlobalInitInstalled`, because some integration tests
+	// use cmd -> GlobalInitInstalled, but the AppDataPath doesn't exist during those tests.
+	if _, err := os.Stat(setting.AppDataPath); err != nil {
+		log.Fatal("Can not find APP_DATA_PATH '%s'", setting.AppDataPath)
+	}
 
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
@@ -168,7 +179,7 @@ func setPort(port string) error {
 	setting.HTTPPort = port
 
 	switch setting.Protocol {
-	case setting.UnixSocket:
+	case setting.HTTPUnix:
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
@@ -190,7 +201,7 @@ func setPort(port string) error {
 
 func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
-	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
+	if setting.Protocol != setting.HTTPUnix && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
@@ -211,24 +222,25 @@ func listen(m http.Handler, handleRedirector bool) error {
 		}
 		err = runHTTP("tcp", listenAddr, "Web", m)
 	case setting.HTTPS:
-		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
+		if setting.EnableAcme {
+			err = runACME(listenAddr, m)
 			break
-		}
-		if handleRedirector {
-			if setting.RedirectOtherPort {
-				go runHTTPRedirector()
-			} else {
-				NoHTTPRedirector()
+		} else {
+			if handleRedirector {
+				if setting.RedirectOtherPort {
+					go runHTTPRedirector()
+				} else {
+					NoHTTPRedirector()
+				}
 			}
+			err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
 		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
-	case setting.UnixSocket:
+	case setting.HTTPUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}

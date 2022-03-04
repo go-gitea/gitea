@@ -129,7 +129,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		if err = util.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
 		}
-		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
+		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0o777); err != nil {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
@@ -140,7 +140,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		if err = util.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
 		}
-		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
+		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0o777); err != nil {
 			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
 		}
 
@@ -157,7 +157,7 @@ func checkExecutable(filename string) bool {
 	if err != nil {
 		return false
 	}
-	return (fileInfo.Mode() & 0100) > 0
+	return (fileInfo.Mode() & 0o100) > 0
 }
 
 func ensureExecutable(filename string) error {
@@ -165,10 +165,10 @@ func ensureExecutable(filename string) error {
 	if err != nil {
 		return err
 	}
-	if (fileInfo.Mode() & 0100) > 0 {
+	if (fileInfo.Mode() & 0o100) > 0 {
 		return nil
 	}
-	mode := fileInfo.Mode() | 0100
+	mode := fileInfo.Mode() | 0o100
 	return os.Chmod(filename, mode)
 }
 

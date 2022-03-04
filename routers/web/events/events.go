@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/routers/web/auth"
 )
 
 // Events listens for events
@@ -133,7 +133,7 @@ loop:
 					}).WriteTo(ctx.Resp)
 					ctx.Resp.Flush()
 					go unregister()
-					user.HandleSignOut(ctx)
+					auth.HandleSignOut(ctx)
 					break loop
 				}
 				// Replace the event - we don't want to expose the session ID to the user
