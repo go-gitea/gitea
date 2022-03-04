@@ -249,42 +249,14 @@ func DismissReview(ctx *context.Context) {
 // GetUserSpecificDiff is like gitdiff.GetDiff, except that user specific data such as which files the given user has already viewed will also be set
 // This function should have been a part of the services/gitdiff - package, but doing that results in an import cycle for weird reasons
 func GetUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gitdiff.DiffOptions, files ...string) (*gitdiff.Diff, error) {
-	diff, err := gitdiff.GetDiff(gitRepo, opts, files...)
-	if err != nil || !ctx.IsSigned {
-		return diff, err
+	if !ctx.IsSigned {
+		return gitdiff.GetDiff(gitRepo, opts, files...)
 	}
-	pull := checkPullInfo(ctx)
-	review, err := models.GetNewestReview(ctx.User.ID, pull.ID)
-	if err != nil || review == nil || review.ViewedFiles == nil {
-		return diff, err
-	}
-
-	// Prepation to check for each file whether it was changed since the last review
-	changedFilesString, err := git.NewCommand(ctx, "diff", "--name-only", "--", fmt.Sprintf("%s..%s", review.CommitSHA, pull.PullRequest.HeadCommitID)).RunInDirTimeout(10 * 1000 * 1000 * 1000, ctx.Repo.GitRepo.Path)
+	diff, err := gitdiff.GetUserSpecificDiff(ctx.User.ID, checkPullInfo(ctx).PullRequest, gitRepo, opts, files...)
 	if err != nil {
 		return diff, err
 	}
-	changedFiles := strings.Split(string(changedFilesString), "\n")
 
-outer:
-	for _, diffFile := range diff.Files {
-
-		// Check whether the file has changed since the last review
-		for _, changedFile := range changedFiles {
-			diffFile.HasChangedSinceLastReview = isSameFile(diffFile, changedFile)
-			if diffFile.HasChangedSinceLastReview {
-				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
-			}
-		}
-		// Check whether the file has already been viewed
-		for file, viewed := range review.ViewedFiles {
-			if isSameFile(diffFile, file)  {
-				diffFile.IsViewed = viewed
-				diff.NumViewedFiles++
-				break
-			}
-		}
-	}
 	ctx.PageData["numberOfFiles"] = diff.NumFiles
 	ctx.PageData["numberOfViewedFiles"] = diff.NumViewedFiles
 

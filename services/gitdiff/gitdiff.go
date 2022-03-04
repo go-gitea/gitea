@@ -1501,6 +1501,50 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	return diff, nil
 }
 
+// GetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
+func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+	diff, err := GetDiff(gitRepo, opts, files...)
+	if err != nil {
+		return diff, err
+	}
+	review, err := models.GetNewestReview(userID, pull.ID)
+	if err != nil || review == nil || review.ViewedFiles == nil {
+		return diff, err
+	}
+
+	// Prepation to check for each file whether it was changed since the last review
+	changedFiles, err := gitRepo.GetFilesChangedBetween(review.CommitSHA, pull.HeadCommitID)
+	if err != nil {
+		return diff, err
+	}
+outer:
+	for _, diffFile := range diff.Files {
+
+		// Check whether the file has changed since the last review
+		for _, changedFile := range changedFiles {
+			diffFile.HasChangedSinceLastReview = isSameFile(diffFile, changedFile)
+			if diffFile.HasChangedSinceLastReview {
+				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
+			}
+		}
+		// Check whether the file has already been viewed
+		for file, viewed := range review.ViewedFiles {
+			if isSameFile(diffFile, file)  {
+				diffFile.IsViewed = viewed
+				diff.NumViewedFiles++
+				break
+			}
+		}
+	}
+
+	return diff, err
+}
+
+// isSameFile returns whether the given diff file and the given file name point at the same file
+func isSameFile(diffFile *DiffFile, file string) bool {
+	return diffFile.Name == file || (diffFile.Name == "" && diffFile.OldName == file)
+}
+
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(c *models.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,

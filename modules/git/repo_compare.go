@@ -292,6 +292,40 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	return err
 }
 
+type lineWriter struct {
+	lines []string
+	hasEndedWithLineBreak bool
+}
+
+// Write accumulates all lines in the provided bytestream
+func (lineWriter *lineWriter) Write(p []byte) (int, error) {
+	buffer := string(p)
+	lines := strings.Split(buffer, "\n")
+
+	// Merge the previously last value with the first value now in case there was only a buffer end and no newline
+	if !lineWriter.hasEndedWithLineBreak && len(lineWriter.lines) > 0  {
+		lineWriter.lines[len(lineWriter.lines) - 1] = lineWriter.lines[len(lineWriter.lines)-1] + lines[0]
+		lines = lines[1:]
+	}
+	lineWriter.lines = append(lineWriter.lines, lines...)
+	lineWriter.hasEndedWithLineBreak = strings.HasSuffix(buffer, "\n")
+	return len(p), nil
+}
+
+// GetFilesChangedBetween returns a list of all files that have been changed between the given commits
+func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
+	stderr := new(bytes.Buffer)
+	w := &lineWriter{}
+	err := NewCommand(repo.Ctx, "diff", "--name-only", "--", base+".."+head).
+		RunWithContext(&RunContext{
+			Timeout: -1,
+			Dir:     repo.Path,
+			Stdout:  w,
+			Stderr:  stderr,
+		})
+	return w.lines, err
+}
+
 // GetDiffFromMergeBase generates and return patch data from merge base to head
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
