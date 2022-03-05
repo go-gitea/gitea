@@ -278,6 +278,10 @@ func TestAPILFSBatch(t *testing.T) {
 			meta, err = models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
+
+			// Cleanup
+			err = contentStore.Delete(p.RelativePath())
+			assert.NoError(t, err)
 		})
 
 		t.Run("AlreadyExists", func(t *testing.T) {
@@ -378,6 +382,10 @@ func TestAPILFSUpload(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
+
+		// Cleanup
+		err = contentStore.Delete(p.RelativePath())
+		assert.NoError(t, err)
 	})
 
 	t.Run("MetaAlreadyExists", func(t *testing.T) {

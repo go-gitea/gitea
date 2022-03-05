@@ -49,6 +49,7 @@ type CommitVerification struct {
 	CommittingUser *user_model.User
 	SigningEmail   string
 	SigningKey     *GPGKey
+	SigningSSHKey  *PublicKey
 	TrustStatus    string
 }
 
@@ -70,7 +71,7 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error)) []*SignCommit {
+func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error)) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -80,7 +81,7 @@ func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repoTrustMod
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
-		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isCodeReader, &keyMap)
+		_ = CalculateTrustStatus(signCommit.Verification, repoTrustModel, isOwnerMemberCollaborator, &keyMap)
 
 		newCommits = append(newCommits, signCommit)
 	}
@@ -120,6 +121,11 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			Verified:       false,                         // Default value
 			Reason:         "gpg.error.not_signed_commit", // Default value
 		}
+	}
+
+	// If this a SSH signature handle it differently
+	if strings.HasPrefix(c.Signature.Signature, "-----BEGIN SSH SIGNATURE-----") {
+		return ParseCommitWithSSHSignature(c, committer)
 	}
 
 	// Parsing signature
@@ -449,7 +455,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *use
 
 // CalculateTrustStatus will calculate the TrustStatus for a commit verification within a repository
 // There are several trust models in Gitea
-func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isCodeReader func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
+func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_model.TrustModelType, isOwnerMemberCollaborator func(*user_model.User) (bool, error), keyMap *map[string]bool) (err error) {
 	if !verification.Verified {
 		return
 	}
@@ -487,28 +493,31 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 		return
 	}
 
-	var isMember bool
-	if keyMap != nil {
-		var has bool
-		isMember, has = (*keyMap)[verification.SigningKey.KeyID]
-		if !has {
-			isMember, err = isCodeReader(verification.SigningUser)
-			(*keyMap)[verification.SigningKey.KeyID] = isMember
+	// Check we actually have a GPG SigningKey
+	if verification.SigningKey != nil {
+		var isMember bool
+		if keyMap != nil {
+			var has bool
+			isMember, has = (*keyMap)[verification.SigningKey.KeyID]
+			if !has {
+				isMember, err = isOwnerMemberCollaborator(verification.SigningUser)
+				(*keyMap)[verification.SigningKey.KeyID] = isMember
+			}
+		} else {
+			isMember, err = isOwnerMemberCollaborator(verification.SigningUser)
 		}
-	} else {
-		isMember, err = isCodeReader(verification.SigningUser)
-	}
 
-	if !isMember {
-		verification.TrustStatus = "untrusted"
-		if verification.CommittingUser.ID != verification.SigningUser.ID {
-			// The committing user and the signing user are not the same
-			// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+		if !isMember {
+			verification.TrustStatus = "untrusted"
+			if verification.CommittingUser.ID != verification.SigningUser.ID {
+				// The committing user and the signing user are not the same
+				// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+				verification.TrustStatus = "unmatched"
+			}
+		} else if repoTrustModel == repo_model.CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
+			// The committing user and the signing user are not the same and our trustmodel states that they must match
 			verification.TrustStatus = "unmatched"
 		}
-	} else if repoTrustModel == repo_model.CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
-		// The committing user and the signing user are not the same and our trustmodel states that they must match
-		verification.TrustStatus = "unmatched"
 	}
 
 	return

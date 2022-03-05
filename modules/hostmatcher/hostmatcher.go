@@ -39,7 +39,7 @@ func isBuiltin(s string) bool {
 }
 
 // ParseHostMatchList parses the host list HostMatchList
-func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
+func ParseHostMatchList(settingKeyHint, hostList string) *HostMatchList {
 	hl := &HostMatchList{SettingKeyHint: settingKeyHint, SettingValue: hostList}
 	for _, s := range strings.Split(hostList, ",") {
 		s = strings.ToLower(strings.TrimSpace(s))
@@ -59,7 +59,7 @@ func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
 }
 
 // ParseSimpleMatchList parse a simple matchlist (no built-in networks, no CIDR support, only wildcard pattern match)
-func ParseSimpleMatchList(settingKeyHint string, matchList string) *HostMatchList {
+func ParseSimpleMatchList(settingKeyHint, matchList string) *HostMatchList {
 	hl := &HostMatchList{
 		SettingKeyHint: settingKeyHint,
 		SettingValue:   matchList,

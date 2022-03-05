@@ -13,10 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-var (
-	// ErrInvalidReceiveHook FIXME
-	ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webhook")
-)
+// ErrInvalidReceiveHook FIXME
+var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webhook")
 
 // Hook a hook is a web hook when one repository changed
 type Hook struct {
@@ -42,7 +40,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork,packagist
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	Config       CreateHookOptionConfig `json:"config" binding:"Required"`

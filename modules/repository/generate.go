@@ -62,7 +62,7 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLink().SSH, Transformers: nil},
 	}
 
-	var expansionMap = make(map[string]string)
+	expansionMap := make(map[string]string)
 	for _, e := range expansions {
 		expansionMap[e.Name] = e.Value
 		for _, tr := range e.Transformers {
@@ -99,7 +99,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 	return gt, nil
 }
 
-func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
+func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -115,7 +115,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository,
 
 	// Clone to temporary path and do the init commit.
 	templateRepoPath := templateRepo.RepoPath()
-	if err := git.Clone(templateRepoPath, tmpDir, git.CloneRepoOptions{
+	if err := git.Clone(ctx, templateRepoPath, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
@@ -159,7 +159,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository,
 
 						if err := os.WriteFile(path,
 							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-							0644); err != nil {
+							0o644); err != nil {
 							return err
 						}
 						break
@@ -172,19 +172,19 @@ func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository,
 		}
 	}
 
-	if err := git.InitRepository(tmpDir, false); err != nil {
+	if err := git.InitRepository(ctx, tmpDir, false); err != nil {
 		return err
 	}
 
 	repoPath := repo.RepoPath()
-	if stdout, err := git.NewCommand("remote", "add", "origin", repoPath).
+	if stdout, err := git.NewCommand(ctx, "remote", "add", "origin", repoPath).
 		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
 		RunInDirWithEnv(tmpDir, env); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -199,7 +199,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		}
 	}()
 
-	if err = generateRepoCommit(repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %v", err)
 	}
 
@@ -209,7 +209,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	repo.DefaultBranch = templateRepo.DefaultBranch
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
@@ -273,7 +273,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
+	if err = checkInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 
@@ -281,7 +281,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+	if stdout, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
 		RunInDir(repoPath); err != nil {
 		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)

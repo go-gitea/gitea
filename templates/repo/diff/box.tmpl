@@ -94,6 +94,10 @@
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
+							{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
+								<a class="ui basic tiny button unescape-button">{{$.i18n.Tr "repo.unescape_control_characters"}}</a>
+								<a class="ui basic tiny button escape-button" style="display: none;">{{$.i18n.Tr "repo.escape_control_characters"}}</a>
+							{{end}}
 							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 								{{if $file.IsDeleted}}
 									<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
@@ -104,7 +108,7 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						<div id="diff-source-{{$i}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
+						<div id="diff-source-{{$i}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
 							{{if or $file.IsIncomplete $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">
 									{{if $file.IsIncomplete}}

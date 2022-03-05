@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	texttmpl "text/template"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -78,7 +79,6 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -129,7 +129,6 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -160,7 +159,6 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -194,7 +192,6 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -235,6 +232,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// This is the body of the new issue or comment, not the mail body
 	body, err := markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: ctx.Issue.Repo.HTMLURL(),
 		Metas:     ctx.Issue.Repo.ComposeMetas(),
 	}, ctx.Content)
@@ -278,7 +276,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
-		"TrN":      templates.TrN,
 	}
 
 	var mailSubject bytes.Buffer
@@ -302,13 +299,15 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
+	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
+	reference := createReference(ctx.Issue, nil, models.ActionType(0))
+
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
 		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
-		reference := createReference(ctx.Issue, nil)
+		msg.SetHeader("Message-ID", "<"+msgID+">")
 		msg.SetHeader("In-Reply-To", "<"+reference+">")
 		msg.SetHeader("References", "<"+reference+">")
 
@@ -322,7 +321,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *models.Issue, comment *models.Comment) string {
+func createReference(issue *models.Issue, comment *models.Comment, actionType models.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -333,6 +332,17 @@ func createReference(issue *models.Issue, comment *models.Comment) string {
 	var extra string
 	if comment != nil {
 		extra = fmt.Sprintf("/comment/%d", comment.ID)
+	} else {
+		switch actionType {
+		case models.ActionCloseIssue, models.ActionClosePullRequest:
+			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
+		case models.ActionReopenIssue, models.ActionReopenPullRequest:
+			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
+		case models.ActionMergePullRequest:
+			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
+		case models.ActionPullRequestReadyForReview:
+			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
+		}
 	}
 
 	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
@@ -348,7 +358,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		// https://datatracker.ietf.org/doc/html/rfc2369
 		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
-		//"List-Unsubscribe": https://github.com/go-gitea/gitea/issues/10808, https://github.com/go-gitea/gitea/issues/13283
+		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
 		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
@@ -417,7 +427,8 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
 func actionToTemplate(issue *models.Issue, actionType models.ActionType,
-	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
+	commentType models.CommentType, reviewType models.ReviewType,
+) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
 	} else {
@@ -453,7 +464,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
-		case models.CommentTypePullPush:
+		case models.CommentTypePullRequestPush:
 			name = "push"
 		default:
 			name = "default"

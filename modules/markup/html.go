@@ -55,7 +55,7 @@ var (
 	anySHA1Pattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(/[-+~_%.a-zA-Z0-9/]+)?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40})(\.\.\.?)([0-9a-f]{40})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,40})(\.\.\.?)([0-9a-f]{7,40})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	validLinksPattern = regexp.MustCompile(`^[a-z][\w-]+://`)
 
@@ -99,7 +99,7 @@ var issueFullPatternOnce sync.Once
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
 	return issueFullPattern
 }
@@ -202,7 +202,7 @@ func RenderCommitMessage(
 	ctx *RenderContext,
 	content string,
 ) (string, error) {
-	var procs = commitMessageProcessors
+	procs := commitMessageProcessors
 	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageProcessors of fixed len and cap, every time we append
@@ -238,7 +238,7 @@ func RenderCommitMessageSubject(
 	ctx *RenderContext,
 	content string,
 ) (string, error) {
-	var procs = commitMessageSubjectProcessors
+	procs := commitMessageSubjectProcessors
 	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageSubjectProcessors of fixed len and cap, every time we
@@ -291,8 +291,10 @@ func RenderEmoji(
 	return renderProcessString(&RenderContext{}, emojiProcessors, content)
 }
 
-var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
-var nulCleaner = strings.NewReplacer("\000", "")
+var (
+	tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+	nulCleaner = strings.NewReplacer("\000", "")
+)
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
@@ -322,7 +324,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		node = node.FirstChild
 	}
 
-	visitNode(ctx, procs, node, true)
+	visitNode(ctx, procs, procs, node)
 
 	newNodes := make([]*html.Node, 0, 5)
 
@@ -354,7 +356,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	return nil
 }
 
-func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText bool) {
+func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node) {
 	// Add user-content- to IDs if they don't already have them
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
@@ -362,16 +364,14 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 
 		if attr.Key == "class" && attr.Val == "emoji" {
-			visitText = false
+			textProcs = nil
 		}
 	}
 
-	// We ignore code, pre and already generated links.
+	// We ignore code and pre.
 	switch node.Type {
 	case html.TextNode:
-		if visitText {
-			textNode(ctx, procs, node)
-		}
+		textNode(ctx, textProcs, node)
 	case html.ElementNode:
 		if node.Data == "img" {
 			for i, attr := range node.Attr {
@@ -390,7 +390,8 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
-			visitText = false
+			// Restrict text in links to emojis
+			textProcs = emojiProcessors
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
 		} else if node.Data == "i" {
@@ -416,7 +417,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			visitNode(ctx, procs, n, visitText)
+			visitNode(ctx, procs, textProcs, n)
 		}
 	}
 	// ignore everything else
@@ -945,6 +946,13 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			return
 		}
 
+		// Ensure that every group (m[0]...m[7]) has a match
+		for i := 0; i < 8; i++ {
+			if m[i] == -1 {
+				return
+			}
+		}
+
 		urlFull := node.Data[m[0]:m[1]]
 		text1 := base.ShortSha(node.Data[m[2]:m[3]])
 		textDots := base.ShortSha(node.Data[m[4]:m[5]])
@@ -1071,7 +1079,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
-				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				ctx.GitRepo, err = git.OpenRepositoryCtx(ctx.Ctx, ctx.Metas["repoPath"])
 				if err != nil {
 					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
 					return

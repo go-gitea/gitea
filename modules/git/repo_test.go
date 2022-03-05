@@ -13,7 +13,7 @@ import (
 
 func TestGetLatestCommitTime(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	lct, err := GetLatestCommitTime(bareRepo1Path)
+	lct, err := GetLatestCommitTime(DefaultContext, bareRepo1Path)
 	assert.NoError(t, err)
 	// Time is Sun Jul 21 22:43:13 2019 +0200
 	// which is the time of commit

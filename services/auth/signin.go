@@ -7,8 +7,8 @@ package auth
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -21,20 +21,21 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*user_model.User, *login.Source, error) {
+func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
 	if strings.Contains(username, "@") {
-		user = &user_model.User{Email: strings.ToLower(strings.TrimSpace(username))}
+		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := db.Count(user)
+		has, err := db.GetEngine(db.DefaultContext).Where("is_activated=?", true).Get(&emailAddress)
 		if err != nil {
 			return nil, nil, err
 		}
-		if cnt > 1 {
-			return nil, nil, user_model.ErrEmailAlreadyUsed{
-				Email: user.Email,
+		if !has {
+			return nil, nil, user_model.ErrEmailAddressNotExist{
+				Email: username,
 			}
 		}
+		user = &user_model.User{ID: emailAddress.UID}
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
 		if len(trimmedUsername) == 0 {
@@ -50,13 +51,13 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 	}
 
 	if hasUser {
-		source, err := login.GetSourceByID(user.LoginSource)
+		source, err := auth.GetSourceByID(user.LoginSource)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		if !source.IsActive {
-			return nil, nil, oauth2.ErrLoginSourceNotActived
+			return nil, nil, oauth2.ErrAuthSourceNotActived
 		}
 
 		authenticator, ok := source.Cfg.(PasswordAuthenticator)
@@ -64,7 +65,7 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 			return nil, nil, smtp.ErrUnsupportedLoginType
 		}
 
-		user, err := authenticator.Authenticate(user, username, password)
+		user, err := authenticator.Authenticate(user, user.LoginName, password)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -78,7 +79,7 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 		return user, source, nil
 	}
 
-	sources, err := login.AllActiveSources()
+	sources, err := auth.AllActiveSources()
 	if err != nil {
 		return nil, nil, err
 	}

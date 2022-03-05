@@ -8,6 +8,7 @@ package private
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -123,6 +124,43 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
+
+		// post update for agit pull request
+		if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullPrefix) {
+			if repo == nil {
+				repo = loadRepository(ctx, ownerName, repoName)
+				if ctx.Written() {
+					return
+				}
+			}
+
+			pullIndexStr := strings.TrimPrefix(refFullName, git.PullPrefix)
+			pullIndexStr = strings.Split(pullIndexStr, "/")[0]
+			pullIndex, _ := strconv.ParseInt(pullIndexStr, 10, 64)
+			if pullIndex <= 0 {
+				continue
+			}
+
+			pr, err := models.GetPullRequestByIndex(repo.ID, pullIndex)
+			if err != nil && !models.IsErrPullRequestNotExist(err) {
+				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
+				})
+				return
+			}
+			if pr == nil {
+				continue
+			}
+
+			results = append(results, private.HookPostReceiveBranchResult{
+				Message: setting.Git.PullRequestPushMessage && repo.AllowsPulls(),
+				Create:  false,
+				Branch:  "",
+				URL:     fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			})
+			continue
+		}
 
 		branch := git.RefEndName(opts.RefFullNames[i])
 

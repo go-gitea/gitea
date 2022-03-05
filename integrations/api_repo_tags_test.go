@@ -68,7 +68,7 @@ func TestAPIRepoTags(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func createNewTagUsingAPI(t *testing.T, session *TestSession, token string, ownerName, repoName, name, target, msg string) *api.Tag {
+func createNewTagUsingAPI(t *testing.T, session *TestSession, token, ownerName, repoName, name, target, msg string) *api.Tag {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags?token=%s", ownerName, repoName, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateTagOption{
 		TagName: name,

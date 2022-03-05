@@ -33,7 +33,7 @@ chmod +x gitea
 
 ## Verify GPG signature
 Gitea signs all binaries with a [GPG key](https://keys.openpgp.org/search?q=teabot%40gitea.io) to prevent against unwanted modification of binaries.
-To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the gpg command line tool.
+To validate the binary, download the signature file which ends in `.asc` for the binary you downloaded and use the GPG command line tool.
 
 ```sh
 gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
@@ -146,7 +146,7 @@ Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to loa
 Gitea binary, usually producing an error such as ```./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version `GLIBC\_2.14' not found (required by ./gitea)```. This is due to the integrated
 SQLite support in the binaries provided by dl.gitea.io. In this situation, it is usually
-possible to [install from source]({{< relref "from-source.en-us.md" >}}) without sqlite
+possible to [install from source]({{< relref "from-source.en-us.md" >}}) without SQLite
 support.
 
 ### Running Gitea on another port
@@ -168,7 +168,7 @@ please remove after fixing the arm7 bug
 ### Git error after updating to a new version of Gitea
 
 If the binary file name has been changed during the update to a new version of Gitea,
-git hooks in existing repositories will not work any more. In that case, a git
+Git Hooks in existing repositories will not work any more. In that case, a Git
 error will be displayed when pushing to the repository.
 
 ```
@@ -180,7 +180,7 @@ binary.
 
 To solve this, go to the admin options and run the task `Resynchronize pre-receive,
 update and post-receive hooks of all repositories` to update all hooks to contain
-the new binary path. Please note that this overwrite all git hooks including ones
+the new binary path. Please note that this overwrite all Git Hooks including ones
 with customizations made.
 
 If you aren't using the built-in to Gitea SSH server you will also need to re-write

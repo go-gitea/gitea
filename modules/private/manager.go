@@ -170,7 +170,6 @@ func AddLogger(ctx context.Context, group, name, mode string, config map[string]
 	}
 
 	return http.StatusOK, "Added"
-
 }
 
 // RemoveLogger removes a logger

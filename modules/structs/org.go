@@ -17,7 +17,7 @@ type Organization struct {
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 }
 
-// OrganizationPermissions list differents users permissions on an organization
+// OrganizationPermissions list different users permissions on an organization
 type OrganizationPermissions struct {
 	IsOwner             bool `json:"is_owner"`
 	IsAdmin             bool `json:"is_admin"`

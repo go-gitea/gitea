@@ -32,8 +32,7 @@ func init() {
 }
 
 // GiteaDownloaderFactory defines a gitea downloader factory
-type GiteaDownloaderFactory struct {
-}
+type GiteaDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GiteaDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -159,7 +158,7 @@ func (g *GiteaDownloader) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
-	var milestones = make([]*base.Milestone, 0, g.maxPerPage)
+	milestones := make([]*base.Milestone, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -224,7 +223,7 @@ func (g *GiteaDownloader) convertGiteaLabel(label *gitea_sdk.Label) *base.Label 
 
 // GetLabels returns labels
 func (g *GiteaDownloader) GetLabels() ([]*base.Label, error) {
-	var labels = make([]*base.Label, 0, g.maxPerPage)
+	labels := make([]*base.Label, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -304,7 +303,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 
 // GetReleases returns releases
 func (g *GiteaDownloader) GetReleases() ([]*base.Release, error) {
-	var releases = make([]*base.Release, 0, g.maxPerPage)
+	releases := make([]*base.Release, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -379,7 +378,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	var allIssues = make([]*base.Issue, 0, perPage)
+	allIssues := make([]*base.Issue, 0, perPage)
 
 	issues, _, err := g.client.ListRepoIssues(g.repoOwner, g.repoName, gitea_sdk.ListIssueOption{
 		ListOptions: gitea_sdk.ListOptions{Page: page, PageSize: perPage},
@@ -391,7 +390,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 	}
 	for _, issue := range issues {
 
-		var labels = make([]*base.Label, 0, len(issue.Labels))
+		labels := make([]*base.Label, 0, len(issue.Labels))
 		for i := range issue.Labels {
 			labels = append(labels, g.convertGiteaLabel(issue.Labels[i]))
 		}
@@ -444,7 +443,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	var allComments = make([]*base.Comment, 0, g.maxPerPage)
+	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully
@@ -496,7 +495,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
-	var allPRs = make([]*base.PullRequest, 0, perPage)
+	allPRs := make([]*base.PullRequest, 0, perPage)
 
 	prs, _, err := g.client.ListRepoPullRequests(g.repoOwner, g.repoName, gitea_sdk.ListPullRequestsOptions{
 		ListOptions: gitea_sdk.ListOptions{
@@ -514,7 +513,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			milestone = pr.Milestone.Title
 		}
 
-		var labels = make([]*base.Label, 0, len(pr.Labels))
+		labels := make([]*base.Label, 0, len(pr.Labels))
 		for i := range pr.Labels {
 			labels = append(labels, g.convertGiteaLabel(pr.Labels[i]))
 		}
@@ -620,7 +619,7 @@ func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review,
 		return nil, nil
 	}
 
-	var allReviews = make([]*base.Review, 0, g.maxPerPage)
+	allReviews := make([]*base.Review, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
 		// make sure gitea can shutdown gracefully

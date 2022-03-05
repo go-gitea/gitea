@@ -79,76 +79,99 @@ func TestAPISearchRepo(t *testing.T) {
 		name, requestURL string
 		expectedResults
 	}{
-		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-			nil:   {count: 30},
-			user:  {count: 30},
-			user2: {count: 30}},
+		{
+			name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
+				nil:   {count: 30},
+				user:  {count: 30},
+				user2: {count: 30},
+			},
 		},
-		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
-			nil:   {count: 10},
-			user:  {count: 10},
-			user2: {count: 10}},
+		{
+			name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
+				nil:   {count: 10},
+				user:  {count: 10},
+				user2: {count: 10},
+			},
 		},
-		{name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
-			nil:   {count: 10},
-			user:  {count: 10},
-			user2: {count: 10}},
+		{
+			name: "RepositoriesDefault", requestURL: "/api/v1/repos/search?default&private=false", expectedResults: expectedResults{
+				nil:   {count: 10},
+				user:  {count: 10},
+				user2: {count: 10},
+			},
 		},
-		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 7, repoName: "big_test_"},
-			user:  {count: 7, repoName: "big_test_"},
-			user2: {count: 7, repoName: "big_test_"}},
+		{
+			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
+				nil:   {count: 7, repoName: "big_test_"},
+				user:  {count: 7, repoName: "big_test_"},
+				user2: {count: 7, repoName: "big_test_"},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			nil:   {count: 5},
-			user:  {count: 9, includesPrivate: true},
-			user2: {count: 6, includesPrivate: true}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+				nil:   {count: 5},
+				user:  {count: 9, includesPrivate: true},
+				user2: {count: 6, includesPrivate: true},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 2, includesPrivate: true},
-			user2: {count: 2, includesPrivate: true},
-			user4: {count: 1}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 2, includesPrivate: true},
+				user2: {count: 2, includesPrivate: true},
+				user4: {count: 1},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 4, includesPrivate: true},
-			user2: {count: 3, includesPrivate: true},
-			user3: {count: 4, includesPrivate: true}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 4, includesPrivate: true},
+				user2: {count: 3, includesPrivate: true},
+				user3: {count: 4, includesPrivate: true},
+			},
 		},
-		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-			nil:   {count: 1, repoOwnerID: orgUser.ID},
-			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
-			user2: {count: 1, repoOwnerID: orgUser.ID}},
+		{
+			name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+				nil:   {count: 1, repoOwnerID: orgUser.ID},
+				user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+				user2: {count: 1, repoOwnerID: orgUser.ID},
+			},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
 			nil:   {count: 3},
 			user:  {count: 4, includesPrivate: true},
-			user4: {count: 7, includesPrivate: true}}},
+			user4: {count: 7, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
 			nil:   {count: 0},
 			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true}}},
+			user4: {count: 1, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
 			nil:   {count: 2},
 			user:  {count: 2},
-			user4: {count: 4, includesPrivate: true}}},
+			user4: {count: 4, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
 			nil:   {count: 0},
 			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true}}},
+			user4: {count: 1, includesPrivate: true},
+		}},
 	}
 
 	for _, testCase := range testCases {
@@ -445,7 +468,6 @@ func TestAPIRepoTransfer(t *testing.T) {
 		expectedStatus int
 	}{
 		// Disclaimer for test story: "user1" is an admin, "user2" is normal user and part of in owner team of org "user3"
-
 		// Transfer to a user with teams in another org should fail
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
 		// Transfer to a user with non-existent team IDs should fail
@@ -464,7 +486,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	defer prepareTestEnv(t)()
 
-	//create repo to move
+	// create repo to move
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -480,7 +502,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, apiRepo)
 
-	//start testing
+	// start testing
 	for _, testCase := range testCases {
 		user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID}).(*user_model.User)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
@@ -493,9 +515,88 @@ func TestAPIRepoTransfer(t *testing.T) {
 		session.MakeRequest(t, req, testCase.expectedStatus)
 	}
 
-	//cleanup
+	// cleanup
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+}
+
+func transfer(t *testing.T) *repo_model.Repository {
+	// create repo to move
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+	repoName := "moveME"
+	apiRepo := new(api.Repository)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
+		Name:        repoName,
+		Description: "repo move around",
+		Private:     false,
+		Readme:      "Default",
+		AutoInit:    true,
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, apiRepo)
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID}).(*repo_model.Repository)
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
+		NewOwner: "user4",
+	})
+	session.MakeRequest(t, req, http.StatusCreated)
+
+	return repo
+}
+
+func TestAPIAcceptTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to accept with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to accept repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// accept transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/accept?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusAccepted)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user4", apiRepo.Owner.UserName)
+}
+
+func TestAPIRejectTransfer(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := transfer(t)
+
+	// try to reject with not authorized user
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	session.MakeRequest(t, req, http.StatusForbidden)
+
+	// try to reject repo that's not marked as transferred
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", "user2", "repo1", token))
+	session.MakeRequest(t, req, http.StatusNotFound)
+
+	// reject transfer
+	session = loginUser(t, "user4")
+	token = getTokenForLoggedInUser(t, session)
+
+	req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer/reject?token=%s", repo.OwnerName, repo.Name, token))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	apiRepo := new(api.Repository)
+	DecodeJSON(t, resp, apiRepo)
+	assert.Equal(t, "user2", apiRepo.Owner.UserName)
 }
 
 func TestAPIGenerateRepo(t *testing.T) {

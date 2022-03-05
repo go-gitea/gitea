@@ -80,7 +80,7 @@ func GetListLockHandler(ctx *context.Context) {
 		limit = 0
 	}
 	id := ctx.FormString("id")
-	if id != "" { //Case where we request a specific id
+	if id != "" { // Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, api.LFSLockError{
@@ -97,7 +97,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	path := ctx.FormString("path")
-	if path != "" { //Case where we request a specific id
+	if path != "" { // Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock for repository %-v with path %s: Error: %v", repository, path, err)
@@ -106,7 +106,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	//If no query params path or id
+	// If no query params path or id
 	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)

@@ -42,7 +42,7 @@
 				<li class="item">
 					{{svg "octicon-project"}} <a href="{{$.RepoLink}}/projects/{{.ID}}">{{.Title}}</a>
 					<div class="meta">
-						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.Lang }}
+						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.i18n.Lang }}
 						{{if .IsClosed }}
 							{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{end}}

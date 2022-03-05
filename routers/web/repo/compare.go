@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bufio"
+	gocontext "context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+func setCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
 	ctx.Data["BaseCommit"] = base
 	ctx.Data["HeadCommit"] = head
 
@@ -73,12 +74,12 @@ func RawCommitURL(owner, name string, commit *git.Commit) string {
 }
 
 // setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOwner, headName string) {
 	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
 	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
-		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, head)
-		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, head)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, base)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, base)
 	}
 }
 
@@ -110,7 +111,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		Error    string
 	}
 
-	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) CsvDiffResult {
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit, headCommit *git.Commit) CsvDiffResult {
 		if diffFile == nil || baseCommit == nil || headCommit == nil {
 			return CsvDiffResult{nil, ""}
 		}
@@ -136,14 +137,14 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.OldName}, baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.OldName}, baseCommit)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.Name}, headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.Name}, headCommit)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
@@ -215,21 +216,19 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	)
 
 	infoPath = ctx.Params("*")
-	infos := strings.SplitN(infoPath, "...", 2)
-
-	if len(infos) != 2 {
-		infos = []string{baseRepo.DefaultBranch, infoPath}
-		if strings.Contains(infoPath, "..") {
-			infos = strings.SplitN(infoPath, "..", 2)
-			ci.DirectComparison = true
-			ctx.Data["PageIsComparePull"] = false
+	var infos []string
+	if infoPath == "" {
+		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
+	} else {
+		infos = strings.SplitN(infoPath, "...", 2)
+		if len(infos) != 2 {
+			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
+				ci.DirectComparison = true
+				ctx.Data["PageIsComparePull"] = false
+			} else {
+				infos = []string{baseRepo.DefaultBranch, infoPath}
+			}
 		}
-	}
-
-	if len(infos) != 2 {
-		log.Trace("ParseCompareInfo[%d]: not enough compared branches information %s", baseRepo.ID, infos)
-		ctx.NotFound("CompareAndPullRequest", nil)
-		return nil
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -384,7 +383,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepository(ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = git.OpenRepositoryCtx(ctx, ci.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -444,7 +443,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(rootRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -469,7 +468,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ownForkRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -542,8 +541,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 func PrepareCompareDiff(
 	ctx *context.Context,
 	ci *CompareInfo,
-	whitespaceBehavior string) bool {
-
+	whitespaceBehavior string,
+) bool {
 	var (
 		repo  = ctx.Repo.Repository
 		err   error
@@ -655,8 +654,8 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -685,6 +684,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["DirectComparison"] = ci.DirectComparison
 	ctx.Data["OtherCompareSeparator"] = ".."
 	ctx.Data["CompareSeparator"] = "..."
@@ -736,6 +736,10 @@ func CompareDiff(ctx *context.Context) {
 			}
 		} else {
 			ctx.Data["HasPullRequest"] = true
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("LoadIssue", err)
+				return
+			}
 			ctx.Data["PullRequest"] = pr
 			ctx.HTML(http.StatusOK, tplCompareDiff)
 			return
@@ -761,8 +765,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireEasyMDE"] = true
-	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -785,6 +787,15 @@ func ExcerptBlob(ctx *context.Context) {
 	direction := ctx.FormString("direction")
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
+	if ctx.FormBool("wiki") {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer gitRepo.Close()
+	}
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
@@ -837,7 +848,8 @@ func ExcerptBlob(ctx *context.Context) {
 				RightIdx:      idxRight,
 				LeftHunkSize:  leftHunkSize,
 				RightHunkSize: rightHunkSize,
-			}}
+			},
+		}
 		if direction == "up" {
 			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
 		} else if direction == "down" {
@@ -851,7 +863,7 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight int, chunkSize int) ([]*gitdiff.DiffLine, error) {
+func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
 	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
 		return nil, err

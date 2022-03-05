@@ -5,17 +5,19 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // Update updates pull request with base branch.
-func Update(pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
+func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	var (
 		pr    *models.PullRequest
 		style repo_model.MergeStyle
@@ -25,7 +27,7 @@ func Update(pull *models.PullRequest, doer *user_model.User, message string, reb
 		pr = pull
 		style = repo_model.MergeStyleRebaseUpdate
 	} else {
-		//use merge functions but switch repo's and branch's
+		// use merge functions but switch repo's and branch's
 		pr = &models.PullRequest{
 			HeadRepoID: pull.BaseRepoID,
 			BaseRepoID: pull.HeadRepoID,
@@ -48,14 +50,14 @@ func Update(pull *models.PullRequest, doer *user_model.User, message string, reb
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	diffCount, err := GetDiverging(pull)
+	diffCount, err := GetDiverging(ctx, pull)
 	if err != nil {
 		return err
 	} else if diffCount.Behind == 0 {
 		return fmt.Errorf("HeadBranch of PR %d is up to date", pull.Index)
 	}
 
-	_, err = rawMerge(pr, doer, style, message)
+	_, err = rawMerge(ctx, pr, doer, style, "", message)
 
 	defer func() {
 		if rebase {
@@ -96,7 +98,12 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 
 	// can't do rebase on protected branch because need force push
 	if pr.ProtectedBranch == nil {
-		rebaseAllowed = true
+		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+		if err != nil {
+			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
+			return false, false, err
+		}
+		rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
 	}
 
 	// Update function need push permission
@@ -113,7 +120,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
-func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
+func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, err
@@ -122,7 +129,7 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 		return nil, err
 	}
 
-	tmpRepo, err := createTemporaryRepo(pr)
+	tmpRepo, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
 		if !models.IsErrBranchDoesNotExist(err) {
 			log.Error("CreateTemporaryRepo: %v", err)
@@ -135,6 +142,6 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 		}
 	}()
 
-	diff, err := git.GetDivergingCommits(tmpRepo, "base", "tracking")
+	diff, err := git.GetDivergingCommits(ctx, tmpRepo, "base", "tracking")
 	return &diff, err
 }

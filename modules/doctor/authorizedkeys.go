@@ -7,6 +7,7 @@ package doctor
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 
 const tplCommentPrefix = `# gitea public key`
 
-func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
+func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) error {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}

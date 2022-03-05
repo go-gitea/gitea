@@ -21,5 +21,4 @@ func createUserSettingsTable(x *xorm.Engine) error {
 		return fmt.Errorf("sync2: %v", err)
 	}
 	return nil
-
 }

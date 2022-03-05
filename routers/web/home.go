@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/user"
 )
 
@@ -26,7 +27,7 @@ func Home(ctx *context.Context) {
 	if ctx.IsSigned {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(http.StatusOK, user.TplActivate)
+			ctx.HTML(http.StatusOK, auth.TplActivate)
 		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")

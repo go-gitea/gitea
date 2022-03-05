@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -129,7 +130,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, updateIssueCols(db.GetEngine(db.DefaultContext), issue, "name"))
+	assert.NoError(t, updateIssueCols(db.DefaultContext, issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
@@ -206,11 +207,26 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeAll,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             0,
-				ClosedCount:           0,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
+				ClosedCount:           1, // 1
+			},
+		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				RepoIDs:    []int64{1},
+				FilterMode: FilterModeAll,
+				IsClosed:   true,
+			},
+			IssueStats{
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           0,
+				CreateCount:           0,
+				OpenCount:             1, // 6
+				ClosedCount:           1, // 1
 			},
 		},
 		{
@@ -219,10 +235,10 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeAssign,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
 		},
@@ -232,26 +248,11 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeCreate,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
-			},
-		},
-		{
-			UserIssueStatsOptions{
-				UserID:      2,
-				UserRepoIDs: []int64{1, 2},
-				FilterMode:  FilterModeAll,
-				IsClosed:    true,
-			},
-			IssueStats{
-				YourRepositoriesCount: 2,
-				AssignCount:           0,
-				CreateCount:           2,
-				OpenCount:             2,
-				ClosedCount:           2,
 			},
 		},
 		{
@@ -260,9 +261,10 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeMention,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				MentionCount:          0,
 				OpenCount:             0,
 				ClosedCount:           0,
 			},
@@ -274,19 +276,21 @@ func TestGetUserIssueStats(t *testing.T) {
 				IssueIDs:   []int64{1},
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             1,
+				YourRepositoriesCount: 1, // 1
+				AssignCount:           1, // 1
+				CreateCount:           1, // 1
+				OpenCount:             1, // 1
 				ClosedCount:           0,
 			},
 		},
 	} {
-		stats, err := GetUserIssueStats(test.Opts)
-		if !assert.NoError(t, err) {
-			continue
-		}
-		assert.Equal(t, test.ExpectedIssueStats, *stats)
+		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
+			stats, err := GetUserIssueStats(test.Opts)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, test.ExpectedIssueStats, *stats)
+		})
 	}
 }
 
@@ -300,23 +304,23 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 
 func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	total, ids, err := SearchIssueIDsByKeyword("issue2", []int64{1}, 10, 0)
+	total, ids, err := SearchIssueIDsByKeyword(context.TODO(), "issue2", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	total, ids, err = SearchIssueIDsByKeyword("first", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "first", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	total, ids, err = SearchIssueIDsByKeyword("for", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "for", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, total)
 	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	// issue1's comment id 2
-	total, ids, err = SearchIssueIDsByKeyword("good", []int64{1}, 10, 0)
+	total, ids, err = SearchIssueIDsByKeyword(context.TODO(), "good", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
@@ -391,7 +395,58 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
+}
 
+func TestIssue_DeleteIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issueIDs, err := GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 5, len(issueIDs))
+
+	issue := &Issue{
+		RepoID: 1,
+		ID:     issueIDs[2],
+	}
+
+	err = DeleteIssue(issue)
+	assert.NoError(t, err)
+	issueIDs, err = GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 4, len(issueIDs))
+
+	// check attachment removal
+	attachments, err := repo_model.GetAttachmentsByIssueID(4)
+	assert.NoError(t, err)
+	issue, err = GetIssueByID(4)
+	assert.NoError(t, err)
+	err = DeleteIssue(issue)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(attachments))
+	for i := range attachments {
+		attachment, err := repo_model.GetAttachmentByUUID(attachments[i].UUID)
+		assert.Error(t, err)
+		assert.True(t, repo_model.IsErrAttachmentNotExist(err))
+		assert.Nil(t, attachment)
+	}
+
+	// check issue dependencies
+	user, err := user_model.GetUserByID(1)
+	assert.NoError(t, err)
+	issue1, err := GetIssueByID(1)
+	assert.NoError(t, err)
+	issue2, err := GetIssueByID(2)
+	assert.NoError(t, err)
+	err = CreateIssueDependency(user, issue1, issue2)
+	assert.NoError(t, err)
+	left, err := IssueNoDependenciesLeft(issue1)
+	assert.NoError(t, err)
+	assert.False(t, left)
+	err = DeleteIssue(&Issue{ID: 2})
+	assert.NoError(t, err)
+	left, err = IssueNoDependenciesLeft(issue1)
+	assert.NoError(t, err)
+	assert.True(t, left)
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
@@ -462,7 +517,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	wg.Wait()
 
 	// Now we will get all issueID's that match the "Bugs are nasty" query.
-	total, ids, err := SearchIssueIDsByKeyword("Bugs are nasty", []int64{1}, issueAmount, 0)
+	total, ids, err := SearchIssueIDsByKeyword(context.TODO(), "Bugs are nasty", []int64{1}, issueAmount, 0)
 
 	// Just to be sure.
 	assert.NoError(t, err)

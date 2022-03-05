@@ -55,7 +55,7 @@ func GetNote(ctx *context.APIContext) {
 }
 
 func getNote(ctx *context.APIContext, identifier string) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 		return
@@ -72,7 +72,7 @@ func getNote(ctx *context.APIContext, identifier string) {
 		return
 	}
 
-	cmt, err := convert.ToCommit(ctx.Repo.Repository, note.Commit, nil)
+	cmt, err := convert.ToCommit(ctx.Repo.Repository, gitRepo, note.Commit, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ToCommit", err)
 		return

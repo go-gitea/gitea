@@ -129,7 +129,23 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Team.
 	if ctx.Org.IsMember {
+		shouldSeeAllTeams := false
 		if ctx.Org.IsOwner {
+			shouldSeeAllTeams = true
+		} else {
+			teams, err := org.GetUserTeams(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("GetUserTeams", err)
+				return
+			}
+			for _, team := range teams {
+				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					shouldSeeAllTeams = true
+					break
+				}
+			}
+		}
+		if shouldSeeAllTeams {
 			ctx.Org.Teams, err = org.LoadTeams()
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
@@ -168,7 +184,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 
-		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.Authorize >= perm.AccessModeAdmin
+		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.AccessMode >= perm.AccessModeAdmin
 		ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 		if requireTeamAdmin && !ctx.Org.IsTeamAdmin {
 			ctx.NotFound("OrgAssignment", err)

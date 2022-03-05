@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -89,7 +90,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err
@@ -190,7 +191,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
@@ -218,7 +219,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	var rctx = &markup.RenderContext{
+	rctx := &markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 		IsWiki:    true,
@@ -232,7 +234,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("Render", err)
 		return nil, nil
 	}
-	ctx.Data["content"] = buf.String()
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
@@ -243,7 +246,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = buf.String()
+	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
@@ -254,7 +257,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = buf.String()
+	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -288,7 +291,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
@@ -362,7 +365,7 @@ func renderEditPage(ctx *context.Context) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
@@ -622,7 +625,6 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
@@ -639,7 +641,6 @@ func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -657,7 +658,7 @@ func NewWikiPost(ctx *context.Context) {
 		form.Message = ctx.Tr("repo.editor.add", form.Title)
 	}
 
-	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.AddWikiPage(ctx, ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
@@ -677,7 +678,6 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
-	ctx.Data["RequireEasyMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
@@ -697,7 +697,6 @@ func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireEasyMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -711,7 +710,7 @@ func EditWikiPost(ctx *context.Context) {
 		form.Message = ctx.Tr("repo.editor.update", form.Title)
 	}
 
-	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.EditWikiPage(ctx, ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)
 		return
 	}
@@ -726,7 +725,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		wikiName = "Home"
 	}
 
-	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
+	if err := wiki_service.DeleteWikiPage(ctx, ctx.User, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}

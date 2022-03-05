@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -41,10 +41,16 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
+	extraParamStrings := map[string]string{}
 	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
 	statusFilterMap := map[string]string{}
 	for _, filterKey := range statusFilterKeys {
-		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+		paramKey := "status_filter[" + filterKey + "]"
+		paramVal := ctx.FormString(paramKey)
+		statusFilterMap[filterKey] = paramVal
+		if paramVal != "" {
+			extraParamStrings[paramKey] = paramVal
+		}
 	}
 
 	sortType := ctx.FormString("sort")
@@ -68,6 +74,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
 
@@ -81,9 +88,9 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := login.Sources()
+	sources, err := auth.Sources()
 	if err != nil {
-		ctx.ServerError("login.Sources", err)
+		ctx.ServerError("auth.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -100,9 +107,9 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
-	sources, err := login.Sources()
+	sources, err := auth.Sources()
 	if err != nil {
-		ctx.ServerError("login.Sources", err)
+		ctx.ServerError("auth.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -119,19 +126,19 @@ func NewUserPost(ctx *context.Context) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: login.Plain,
+		LoginType: auth.Plain,
 	}
 
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
 			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = login.Type(lType)
+			u.LoginType = auth.Type(lType)
 			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == login.NoType || u.LoginType == login.Plain {
+	if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
@@ -201,31 +208,33 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	ctx.Data["User"] = u
 
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = login.GetSourceByID(u.LoginSource)
+		ctx.Data["LoginSource"], err = auth.GetSourceByID(u.LoginSource)
 		if err != nil {
-			ctx.ServerError("login.GetSourceByID", err)
+			ctx.ServerError("auth.GetSourceByID", err)
 			return nil
 		}
 	} else {
-		ctx.Data["LoginSource"] = &login.Source{}
+		ctx.Data["LoginSource"] = &auth.Source{}
 	}
 
-	sources, err := login.Sources()
+	sources, err := auth.Sources()
 	if err != nil {
-		ctx.ServerError("login.Sources", err)
+		ctx.ServerError("auth.Sources", err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources
 
-	ctx.Data["TwoFactorEnabled"] = true
-	_, err = login.GetTwoFactorByUID(u.ID)
+	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if !login.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-			return nil
-		}
-		ctx.Data["TwoFactorEnabled"] = false
+		ctx.ServerError("auth.HasTwoFactorByUID", err)
+		return nil
 	}
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
+		return nil
+	}
+	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
 	return u
 }
@@ -268,11 +277,11 @@ func EditUserPost(ctx *context.Context) {
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
 		loginType, _ := strconv.ParseInt(fields[0], 10, 0)
-		loginSource, _ := strconv.ParseInt(fields[1], 10, 64)
+		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
-		if u.LoginSource != loginSource {
-			u.LoginSource = loginSource
-			u.LoginType = login.Type(loginType)
+		if u.LoginSource != authSource {
+			u.LoginSource = authSource
+			u.LoginType = auth.Type(loginType)
 		}
 	}
 
@@ -325,16 +334,29 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Reset2FA {
-		tf, err := login.GetTwoFactorByUID(u.ID)
-		if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("GetTwoFactorByUID", err)
+		tf, err := auth.GetTwoFactorByUID(u.ID)
+		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
+		} else if tf != nil {
+			if err := auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteTwoFactorByID", err)
+				return
+			}
 		}
 
-		if err = login.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
-			ctx.ServerError("DeleteTwoFactorByID", err)
+		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		if err != nil {
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
+		for _, cred := range wn {
+			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteCredential", err)
+				return
+			}
+		}
+
 	}
 
 	u.LoginName = form.LoginName

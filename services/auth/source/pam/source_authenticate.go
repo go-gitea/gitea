@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
@@ -55,8 +55,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		Name:        username,
 		Email:       email,
 		Passwd:      password,
-		LoginType:   login.PAM,
-		LoginSource: source.loginSource.ID,
+		LoginType:   auth.PAM,
+		LoginSource: source.authSource.ID,
 		LoginName:   userName, // This is what the user typed in
 		IsActive:    true,
 	}

@@ -70,7 +70,7 @@ func Activity(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoActivityTopAuthors"], err = models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10); err != nil {
+	if ctx.PageData["repoActivityTopAuthors"], err = models.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return
 	}
@@ -103,7 +103,7 @@ func ActivityAuthors(ctx *context.Context) {
 	}
 
 	var err error
-	authors, err := models.GetActivityStatsTopAuthors(ctx.Repo.Repository, timeFrom, 10)
+	authors, err := models.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return

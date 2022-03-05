@@ -17,10 +17,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var (
-	// ErrMirrorNotExist mirror does not exist error
-	ErrMirrorNotExist = errors.New("Mirror does not exist")
-)
+// ErrMirrorNotExist mirror does not exist error
+var ErrMirrorNotExist = errors.New("Mirror does not exist")
 
 // RemoteMirrorer defines base methods for pull/push mirrors.
 type RemoteMirrorer interface {
@@ -122,11 +120,12 @@ func DeleteMirrorByRepoID(repoID int64) error {
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(f func(idx int, bean interface{}) error) error {
+func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		OrderBy("updated_unix ASC").
+		Limit(limit).
 		Iterate(new(Mirror), f)
 }
 
