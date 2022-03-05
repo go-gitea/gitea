@@ -167,3 +167,21 @@ func TestLinkedRepository(t *testing.T) {
 		})
 	}
 }
+
+func TestRepoAssignees(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	users, err := GetRepoAssignees(repo2)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	assert.Equal(t, users[0].ID, int64(2))
+
+	repo21 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 21}).(*repo_model.Repository)
+	users, err = GetRepoAssignees(repo21)
+	assert.NoError(t, err)
+	assert.Len(t, users, 3)
+	assert.Equal(t, users[0].ID, int64(15))
+	assert.Equal(t, users[1].ID, int64(18))
+	assert.Equal(t, users[2].ID, int64(16))
+}
