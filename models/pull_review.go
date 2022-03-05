@@ -40,7 +40,7 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 
 		// Overwrite the viewed files of the previous review if present
 	} else if previousReview != nil && previousReview.ViewedFiles != nil {
-		var newlyViewedFiles = viewedFiles
+		newlyViewedFiles := viewedFiles
 		viewedFiles = previousReview.ViewedFiles
 		for file, viewed := range newlyViewedFiles {
 			viewedFiles[file] = viewed

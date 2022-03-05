@@ -277,7 +277,6 @@ func UpdateViewedFiles(ctx *context.Context) {
 	for file, values := range ctx.Req.Form {
 		for _, viewedString := range values {
 			viewed, err := strconv.ParseBool(viewedString)
-
 			// Ignore fields that do not parse as a boolean, i.e. the CSRF token
 			if err != nil {
 

@@ -293,7 +293,7 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 }
 
 type lineWriter struct {
-	lines []string
+	lines                 []string
 	hasEndedWithLineBreak bool
 }
 
@@ -303,8 +303,8 @@ func (lineWriter *lineWriter) Write(p []byte) (int, error) {
 	lines := strings.Split(buffer, "\n")
 
 	// Merge the previously last value with the first value now in case there was only a buffer end and no newline
-	if !lineWriter.hasEndedWithLineBreak && len(lineWriter.lines) > 0  {
-		lineWriter.lines[len(lineWriter.lines) - 1] = lineWriter.lines[len(lineWriter.lines)-1] + lines[0]
+	if !lineWriter.hasEndedWithLineBreak && len(lineWriter.lines) > 0 {
+		lineWriter.lines[len(lineWriter.lines)-1] = lineWriter.lines[len(lineWriter.lines)-1] + lines[0]
 		lines = lines[1:]
 	}
 	lineWriter.lines = append(lineWriter.lines, lines...)
