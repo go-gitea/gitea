@@ -58,7 +58,7 @@ func (key *DeployKey) GetContent() error {
 	return nil
 }
 
-// IsReadOnly checks if the key can only be used for read operations
+// IsReadOnly checks if the key can only be used for read operations, used by template
 func (key *DeployKey) IsReadOnly() bool {
 	return key.Mode == perm.AccessModeRead
 }
@@ -167,7 +167,12 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
+func GetDeployKeyByID(id int64) (*DeployKey, error) {
+	return GetDeployKeyByIDCtx(db.DefaultContext, id)
+}
+
+// GetDeployKeyByIDCtx returns deploy key by given ID.
+func GetDeployKeyByIDCtx(ctx context.Context, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
 	has, err := db.GetEngine(ctx).ID(id).Get(key)
 	if err != nil {
@@ -200,12 +205,6 @@ func getDeployKeyByRepo(e db.Engine, keyID, repoID int64) (*DeployKey, error) {
 // UpdateDeployKeyCols updates deploy key information in the specified columns.
 func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).Cols(cols...).Update(key)
-	return err
-}
-
-// UpdateDeployKey updates deploy key information.
-func UpdateDeployKey(key *DeployKey) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).AllCols().Update(key)
 	return err
 }
 

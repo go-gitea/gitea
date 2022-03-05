@@ -1308,7 +1308,7 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 
 // DeleteDeployKey delete deploy keys
 func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
-	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
+	key, err := asymkey_model.GetDeployKeyByIDCtx(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			return nil
