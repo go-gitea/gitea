@@ -683,19 +683,30 @@ func ViewPullFiles(ctx *context.Context) {
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
+	diffOptions := &gitdiff.DiffOptions{
+		BeforeCommitID:     startCommitID,
+		AfterCommitID:      endCommitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}
 
-	diff, err := getUserSpecificDiff(ctx, gitRepo,
-		&gitdiff.DiffOptions{
-			BeforeCommitID:     startCommitID,
-			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
-			MaxLines:           maxLines,
-			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		}, ctx.FormStrings("files")...)
+	var methodWithError string
+	var diff *gitdiff.Diff
+	if !ctx.IsSigned {
+		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+		methodWithError = "GetDiff"
+	} else {
+		diff, err = gitdiff.GetUserSpecificDiff(ctx.User.ID, checkPullInfo(ctx).PullRequest, gitRepo, diffOptions, ctx.FormStrings("files")...)
+		ctx.PageData["numberOfFiles"] = diff.NumFiles
+		ctx.PageData["numberOfViewedFiles"] = diff.NumViewedFiles
+		methodWithError = "GetUserSpecificDiff"
+	}
+	fmt.Println(diff.NumViewedFiles, diff.Files, diff.NumFiles)
 	if err != nil {
-		ctx.ServerError("GetUserSpecificDiff", err)
+		ctx.ServerError(methodWithError, err)
 		return
 	}
 

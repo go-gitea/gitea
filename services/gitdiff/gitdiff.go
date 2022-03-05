@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/pulls"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -1507,7 +1508,7 @@ func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Re
 	if err != nil {
 		return diff, err
 	}
-	review, err := models.GetNewestReview(userID, pull.ID)
+	review, err := pulls.GetNewestReview(userID, pull.ID)
 	if err != nil || review == nil || review.ViewedFiles == nil {
 		return diff, err
 	}

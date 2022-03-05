@@ -1,13 +1,14 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
-package models
+package pulls
 
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// PRReview stores for a user - PR - commit combination which files the user has already viewed
 type PRReview struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"NOT NULL UNIQUE(pull_commit_user)"`

@@ -10,14 +10,13 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/pulls"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -246,23 +245,6 @@ func DismissReview(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }
 
-// getUserSpecificDiff is an extension to gitdiff.GetUserSpecificDiff that additionally falls back to gitdiff.GetDiff if the current user is not signed in that sets the two page data params "numberOfFiles" and "numberOfViewedFiles"
-// This function should have been a part of gitdiff.GetUserSpecificDiff, but doing so results in an import cycle for weird reasons
-func getUserSpecificDiff(ctx *context.Context, gitRepo *git.Repository, opts *gitdiff.DiffOptions, files ...string) (*gitdiff.Diff, error) {
-	if !ctx.IsSigned {
-		return gitdiff.GetDiff(gitRepo, opts, files...)
-	}
-	diff, err := gitdiff.GetUserSpecificDiff(ctx.User.ID, checkPullInfo(ctx).PullRequest, gitRepo, opts, files...)
-	if err != nil {
-		return diff, err
-	}
-
-	ctx.PageData["numberOfFiles"] = diff.NumFiles
-	ctx.PageData["numberOfViewedFiles"] = diff.NumViewedFiles
-
-	return diff, err
-}
-
 const headCommitKey = "_headCommitID"
 
 func UpdateViewedFiles(ctx *context.Context) {
@@ -295,7 +277,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		headCommitID = pull.HeadCommitID
 	}
 
-	if err := models.UpdateReview(ctx.User.ID, pull.ID, headCommitID, updatedFiles); err != nil {
+	if err := pulls.UpdateReview(ctx.User.ID, pull.ID, headCommitID, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }
