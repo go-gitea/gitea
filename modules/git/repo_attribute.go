@@ -205,7 +205,9 @@ func (c *CheckAttributeReader) Run() error {
 			return nil
 		},
 	})
-	if err != nil && c.ctx.Err() != err && err.Error() != "signal: killed" {
+	if err != nil && //                      If there is an error we need to return but:
+		c.ctx.Err() != err && //             1. We should not pass up error due to the context being cancelled
+		err.Error() != "signal: killed" { // 2. We should not pass up errors due to the program being killed
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
 	return nil
