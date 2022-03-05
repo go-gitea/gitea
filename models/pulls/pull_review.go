@@ -35,7 +35,9 @@ func GetReview(userID, pullID int64, commitSHA string) (*PRReview, bool, error) 
 // The given map of viewed files will be merged with the previous review, if present
 func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string]bool) error {
 	review, exists, err := GetReview(userID, pullID, commitSHA)
-	engine := db.GetEngine(db.DefaultContext)
+	if err != nil {
+		return err
+	}
 	if previousReview, err := getNewestReviewApartFrom(commitSHA, userID, pullID); err != nil {
 		return err
 
@@ -48,11 +50,10 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 		}
 	}
 	review.ViewedFiles = viewedFiles
-	if err != nil {
-		return err
 
-		// Insert or Update review
-	} else if !exists {
+	// Insert or Update review
+	engine := db.GetEngine(db.DefaultContext)
+	if !exists {
 		_, err := engine.Insert(review)
 		return err
 	}
