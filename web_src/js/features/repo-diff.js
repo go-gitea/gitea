@@ -91,7 +91,7 @@ export function initRepoDiffConversationNav() {
 }
 
 // Will be called when the show more (files) button has been pressed
-function onShowMoreFiles(newElements) {
+function onShowMoreFiles() {
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor(document);
 }
