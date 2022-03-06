@@ -153,7 +153,7 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 	userIDs := make([]int64, 0, 10)
 	if err = e.Table("access").
 		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
-		Select("id").
+		Select("user_id").
 		Find(&userIDs); err != nil {
 		return nil, err
 	}
@@ -521,7 +521,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge},
+				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge, AllowRebaseUpdate: true},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
