@@ -1,3 +1,4 @@
+{{$resolveReason := (index .comments 0).ResolveReason}}
 {{$resolved := (index .comments 0).IsResolved}}
 {{$hidden := (index .comments 0).IsHidden}}
 {{$resolveDoer := (index .comments 0).ResolveDoer}}
@@ -6,8 +7,20 @@
 	{{if or $hidden $resolved}}
 		<div class="ui attached header resolved-placeholder df ac sb">
 			<div class="ui grey text">
-				{{svg "octicon-check" 16 "icon mr-2"}}
-				<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+				{{if eq $resolveReason 1}}
+					{{svg "octicon-check" 16 "icon mr-2"}}
+					<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+				{{else if eq $resolveReason 2}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_spam"}}
+				{{else if eq $resolveReason 3}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_abuse"}}
+				{{else if eq $resolveReason 4}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_offtopic"}}
+				{{else if eq $resolveReason 5}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_outdated"}}
+				{{else if eq $resolveReason 6}}
+					{{$.i18n.Tr "repo.issues.hide.hide_reason_duplicate"}}
+				{{end}}
 			</div>
 			<div>
 				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated df ac">
@@ -21,7 +34,7 @@
 			</div>
 		</div>
 	{{end}}
-	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
+	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if or $hidden $resolved}}hide{{end}}">
 		<div class="comment-list">
 			<ui class="ui comments">
 				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}

@@ -1,21 +1,50 @@
-{{range .comments}}
+{{range $i, $comment := .comments}}
 
-{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.Lang }}
-<div class="comment" id="{{.HashTag}}">
-	{{if .OriginalAuthor }}
+{{ $createdStr:= TimeSinceUnix $comment.CreatedUnix $.root.Lang }}
+{{if and ($comment.IsHidden) (not (eq $i 0))}}
+	<div class="ui attached header resolved-placeholder df ac sb">
+			<div class="ui grey text">
+				{{if eq $comment.ResolveReason 1}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_resolved"}}
+				{{else if eq $comment.ResolveReason 2}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_spam"}}
+				{{else if eq $comment.ResolveReason 3}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_abuse"}}
+				{{else if eq $comment.ResolveReason 4}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_offtopic"}}
+				{{else if eq $comment.ResolveReason 5}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_outdated"}}
+				{{else if eq $comment.ResolveReason 6}}
+					{{$.root.i18n.Tr "repo.issues.hide.hide_reason_duplicate"}}
+				{{end}}
+			</div>
+			<div>
+				<button id="show-hidden-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $comment.IsHidden}}hide {{end}}ui tiny right labeled button show-hidden df ac">
+					{{svg "octicon-unfold" 16 "mr-3"}}
+					{{$.root.i18n.Tr "repo.issues.review.show_hidden"}}
+				</button>
+				<button id="hide-hidden-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if $comment.IsHidden}}hide {{end}}ui tiny right labeled button hide-hidden df ac">
+					{{svg "octicon-fold" 16 "mr-3"}}
+					{{$.root.i18n.Tr "repo.issues.review.hide_hidden"}}
+				</button>
+			</div>
+	</div>
+{{end}}
+<div class="{{if and ($comment.IsHidden) (not (eq $i 0))}}hide resolved {{end}}comment" id="{{$comment.HashTag}}">
+	{{if $comment.OriginalAuthor }}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-			{{avatar .Poster}}
+		<a class="avatar" {{if gt $comment.Poster.ID 0}}href="{{$comment.Poster.HomeLink}}"{{end}}>
+			{{avatar $comment.Poster}}
 		</a>
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header df ac sb">
 			<div class="comment-header-left df ac">
-				{{if .OriginalAuthor }}
+				{{if $comment.OriginalAuthor }}
 					<span class="text black mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
-						{{ .OriginalAuthor }}
+						{{ $comment.OriginalAuthor }}
 					</span>
 					<span class="text grey">
 						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
@@ -27,16 +56,16 @@
 					</span>
 				{{else}}
 					<span class="text grey">
-						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-							{{.Poster.GetDisplayName}}
+						<a {{if gt $comment.Poster.ID 0}}href="{{$comment.Poster.HomeLink}}"{{end}}>
+							{{$comment.Poster.GetDisplayName}}
 						</a>
 						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
 			</div>
 			<div class="comment-header-right actions df ac">
-				{{if and .Review}}
-					{{if eq .Review.Type 0}}
+				{{if and $comment.Review}}
+					{{if eq $comment.Review.Type 0}}
 						<div class="ui label basic small yellow">
 						{{$.root.i18n.Tr "repo.issues.review.pending"}}
 						</div>
@@ -46,8 +75,8 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
-				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "hide" (not .IsHidden) "unhide" .IsHidden "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
+				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink $comment.ID) }}
+				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" $comment "delete" true "hide" (not $comment.IsHidden) "unhide" $comment.IsHidden "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID $comment.PosterID))}}
 				</div>
 				</div>
 				<div class="ui attached segment hide-comment hide">
@@ -76,26 +105,26 @@
 								<div class="item" data-value="6">{{ $.root.i18n.Tr "repo.issues.hide.duplicate" }}</div>
 							</div>
 						</div>
-						<button class="ui green button hide-comment-submit" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}/hide" data-action="Resolve" type="submit">
+						<button class="ui green button hide-comment-submit" data-update-url="{{$.root.RepoLink}}/comments/{{$comment.ID}}/hide" data-action="Resolve" type="submit">
 							{{ $.root.i18n.Tr "repo.issues.hide.hide_comment" }}
 						</button>
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
-			{{if .RenderedContent}}
-				{{.RenderedContent|Str2html}}
+			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID $comment.PosterID))}}data-can-edit="true"{{end}}>
+			{{if $comment.RenderedContent}}
+				{{$comment.RenderedContent|Str2html}}
 			{{else}}
 				<span class="no-content">{{$.root.i18n.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
-			<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
-			<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-context="{{$.root.RepoLink}}"></div>
+			<div id="comment-{{$comment.ID}}" class="raw-content hide">{{$comment.Content}}</div>
+			<div class="edit-content-zone hide" data-write="issuecomment-{{$comment.ID}}-write" data-preview="issuecomment-{{$comment.ID}}-preview" data-update-url="{{$.root.RepoLink}}/comments/{{$comment.ID}}" data-context="{{$.root.RepoLink}}"></div>
 		</div>
-		{{$reactions := .Reactions.GroupByType}}
+		{{$reactions := $comment.Reactions.GroupByType}}
 		{{if $reactions}}
 			<div class="ui attached segment reactions">
-			{{template "repo/issue/view_content/reactions" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{template "repo/issue/view_content/reactions" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink $comment.ID) "Reactions" $reactions}}
 			</div>
 		{{end}}
 	</div>
