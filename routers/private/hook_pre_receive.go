@@ -29,7 +29,7 @@ type preReceiveContext struct {
 
 	// loadedPusher indicates that where the following information are loaded
 	loadedPusher        bool
-	user                *user_model.User
+	user                *user_model.User // it's the org user if a DeployKey is used
 	userPerm            models.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
@@ -294,6 +294,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			})
 			return
 		}
+
+		ctx.loadPusherAndPermission()
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
