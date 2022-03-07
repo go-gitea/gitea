@@ -59,6 +59,11 @@ func (p *Renderer) SanitizerDisabled() bool {
 	return p.DisableSanitizer
 }
 
+// DisplayInIFrame disabled sanitize if return true
+func (p *Renderer) DisplayInIFrame() bool {
+	return p.UseIFrame
+}
+
 func envMark(envName string) string {
 	if runtime.GOOS == "windows" {
 		return "%" + envName + "%"

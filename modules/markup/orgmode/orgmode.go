@@ -52,6 +52,11 @@ func (Renderer) SanitizerDisabled() bool {
 	return false
 }
 
+// DisplayInIFrame disabled sanitize if return true
+func (Renderer) DisplayInIFrame() bool {
+	return false
+}
+
 // Render renders orgmode rawbytes to HTML
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()

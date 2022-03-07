@@ -516,12 +516,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
+			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			err := markup.Render(&markup.RenderContext{
 				Ctx:       ctx,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+				Metas:     metas,
 				GitRepo:   ctx.Repo.GitRepo,
+				UseIframe: true,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)

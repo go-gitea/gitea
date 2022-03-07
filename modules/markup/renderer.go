@@ -45,6 +45,7 @@ type RenderContext struct {
 	GitRepo       *git.Repository
 	ShaExistCache map[string]bool
 	cancelFn      func()
+	UseIframe     bool
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -82,6 +83,7 @@ type Renderer interface {
 	NeedPostProcess() bool
 	SanitizerRules() []setting.MarkupSanitizerRule
 	SanitizerDisabled() bool
+	DisplayInIFrame() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -133,6 +135,18 @@ type nopCloser struct {
 }
 
 func (nopCloser) Close() error { return nil }
+
+func renderIFrame(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	_, err := io.WriteString(output, fmt.Sprintf(`<iframe src="%s%s/%s/render/%s/%s" name="ifd"
+onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no" frameborder="0"/>`,
+		setting.AppURL,
+		ctx.Metas["user"],
+		ctx.Metas["repo"],
+		ctx.Metas["BranchNameSubURL"],
+		ctx.Filename,
+	))
+	return err
+}
 
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
@@ -212,6 +226,9 @@ func (err ErrUnsupportedRenderExtension) Error() string {
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	extension := strings.ToLower(filepath.Ext(ctx.Filename))
 	if renderer, ok := extRenderers[extension]; ok {
+		if renderer.DisplayInIFrame() && ctx.UseIframe {
+			return renderIFrame(ctx, renderer, input, output)
+		}
 		return render(ctx, renderer, input, output)
 	}
 	return ErrUnsupportedRenderExtension{extension}
