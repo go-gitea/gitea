@@ -31,7 +31,7 @@ require (
 	github.com/djherbis/nio/v3 v3.0.1
 	github.com/duo-labs/webauthn v0.0.0-20220223184316-4d1cf2d34051
 	github.com/dustin/go-humanize v1.0.0
-	github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
+	github.com/editorconfig/editorconfig-core-go/v2 v2.4.3
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v1.0.0
 	github.com/gliderlabs/ssh v0.3.3
@@ -135,7 +135,7 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.62.0
+	gopkg.in/ini.v1 v1.66.4
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
