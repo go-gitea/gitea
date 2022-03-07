@@ -7,7 +7,7 @@ require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
-	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
+	gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
 	gitea.com/lunny/levelqueue v0.4.1
