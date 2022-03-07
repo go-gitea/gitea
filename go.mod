@@ -3,7 +3,6 @@ module code.gitea.io/gitea
 go 1.16
 
 require (
-	cloud.google.com/go v0.78.0 // indirect
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
@@ -30,7 +29,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/djherbis/buffer v1.2.0
 	github.com/djherbis/nio/v3 v3.0.1
-	github.com/duo-labs/webauthn v0.0.0-20220122034320-81aea484c951
+	github.com/duo-labs/webauthn v0.0.0-20220223184316-4d1cf2d34051
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
 	github.com/emirpasic/gods v1.12.0
