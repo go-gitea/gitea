@@ -88,7 +88,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.23
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
-	github.com/msteinert/pam v0.0.0-20201130170657-e61372126161
+	github.com/msteinert/pam v1.0.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.1
 	github.com/nwaples/rardecode v1.1.3 // indirect
