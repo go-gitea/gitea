@@ -18,7 +18,8 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma v0.10.0
 	github.com/andybalholm/brotli v1.0.3 // indirect
-	github.com/blevesearch/bleve/v2 v2.3.0
+	github.com/bits-and-blooms/bitset v1.2.1 // indirect
+	github.com/blevesearch/bleve/v2 v2.3.1
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.15.2
