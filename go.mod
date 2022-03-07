@@ -114,7 +114,7 @@ require (
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/unknwon/com v1.0.1
-	github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
+	github.com/unknwon/i18n v0.0.0-20210904045753-ff3a8617e361
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.4.0
 	github.com/urfave/cli v1.22.5
