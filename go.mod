@@ -11,6 +11,7 @@ require (
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
 	gitea.com/lunny/levelqueue v0.4.1
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
+	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
@@ -42,7 +43,7 @@ require (
 	github.com/go-enry/go-enry/v2 v2.8.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
-	github.com/go-ldap/ldap/v3 v3.3.0
+	github.com/go-ldap/ldap/v3 v3.4.2
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.27.0
