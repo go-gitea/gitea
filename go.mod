@@ -22,7 +22,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.3.1
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.15.2
+	github.com/caddyserver/certmagic v0.15.4
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.13.1
-	github.com/klauspost/cpuid/v2 v2.0.9
+	github.com/klauspost/cpuid/v2 v2.0.11
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lib/pq v1.10.2
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
@@ -78,8 +78,10 @@ require (
 	github.com/mattn/go-isatty v0.0.13
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.8
+	github.com/mholt/acmez v1.0.2 // indirect
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.16
+	github.com/miekg/dns v1.1.46 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.12
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -121,15 +123,15 @@ require (
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.19.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
+	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
-	golang.org/x/tools v0.1.0
+	golang.org/x/tools v0.1.9
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
