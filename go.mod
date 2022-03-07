@@ -16,8 +16,11 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
 	github.com/alecthomas/chroma v0.10.0
+	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect
 	github.com/alecthomas/kong v0.2.4 // indirect
+	github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/bits-and-blooms/bitset v1.2.1 // indirect
 	github.com/blevesearch/bleve/v2 v2.3.1
@@ -29,6 +32,7 @@ require (
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
 	github.com/couchbase/goutils v0.0.0-20210118111533-e33d3ffb5401 // indirect
+	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/djherbis/buffer v1.2.0
 	github.com/djherbis/nio/v3 v3.0.1
@@ -122,7 +126,7 @@ require (
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.4.8
-	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
+	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/yuin/goldmark-meta v1.0.0
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.jolheiser.com/hcaptcha v0.0.4
