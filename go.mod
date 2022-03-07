@@ -16,15 +16,10 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38 // indirect
 	github.com/alecthomas/chroma v0.10.0
-	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect
-	github.com/alecthomas/kong v0.2.4 // indirect
-	github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/bits-and-blooms/bitset v1.2.1 // indirect
 	github.com/blevesearch/bleve/v2 v2.3.1
-	github.com/blevesearch/scorch_segment_api v1.0.0 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.15.4
@@ -32,7 +27,6 @@ require (
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
 	github.com/couchbase/goutils v0.0.0-20210118111533-e33d3ffb5401 // indirect
-	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/djherbis/buffer v1.2.0
 	github.com/djherbis/nio/v3 v3.0.1
@@ -66,7 +60,6 @@ require (
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/sessions v1.2.1
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.4.0
 	github.com/hashicorp/golang-lru v0.5.4
@@ -78,7 +71,6 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.15.0
 	github.com/klauspost/cpuid/v2 v2.0.11
-	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lib/pq v1.10.4
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.69.0
@@ -97,7 +89,6 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.2
 	github.com/nwaples/rardecode v1.1.3 // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.31
 	github.com/pierrec/lz4/v4 v4.1.14 // indirect
@@ -106,13 +97,11 @@ require (
 	github.com/prometheus/client_golang v1.12.1
 	github.com/quasoft/websspi v1.1.2
 	github.com/rs/xid v1.3.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.0.0
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
-	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
@@ -141,7 +130,6 @@ require (
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
 	golang.org/x/tools v0.1.9
-	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.66.4
