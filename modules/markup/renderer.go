@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -143,7 +144,7 @@ onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no"
 		ctx.Metas["user"],
 		ctx.Metas["repo"],
 		ctx.Metas["BranchNameSubURL"],
-		ctx.Filename,
+		url.PathEscape(ctx.Filename),
 	))
 	return err
 }
