@@ -339,7 +339,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	sess := db.GetEngine(db.DefaultContext).Where(cond)
-	if opts.Page >= 0 {
+	if opts.Page <= 0 {
 		opts.Page = 1
 	}
 	if opts.PageSize >= setting.API.MaxResponseItems || opts.PageSize <= 0 {
