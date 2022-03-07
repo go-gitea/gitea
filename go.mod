@@ -19,6 +19,7 @@ require (
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/bits-and-blooms/bitset v1.2.1 // indirect
 	github.com/blevesearch/bleve/v2 v2.3.1
+	github.com/blevesearch/scorch_segment_api v1.0.0 // indirect
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.15.4
@@ -33,7 +34,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.3
 	github.com/emirpasic/gods v1.12.0
-	github.com/ethantkoenig/rupture v1.0.0
+	github.com/ethantkoenig/rupture v1.0.1
 	github.com/gliderlabs/ssh v0.3.3
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-chi/chi/v5 v5.0.4
