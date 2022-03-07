@@ -11,9 +11,9 @@ require (
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
 	gitea.com/lunny/levelqueue v0.4.1
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
-	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma v0.10.0
 	github.com/andybalholm/brotli v1.0.3 // indirect
@@ -116,6 +116,7 @@ require (
 	github.com/unrolled/render v1.4.0
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.50.1
+	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.4.4
 	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
