@@ -18,9 +18,18 @@
 		{{svg "octicon-paste"}}
 	</button>
 {{end}}
+{{if $.DisableHTTP}}
+	<script defer>
+		const httpsDisabled = true;
+	</script>
+{{else}}
+	<script defer>
+		const httpsDisabled = false;
+	</script>
+{{end}}
 {{if not (and $.DisableHTTP $.DisableSSH)}}
 	<script defer>
-		const isSSH = {{if $.DisableHTTP}}true{{else}}localStorage.getItem('repo-clone-protocol') === 'ssh'{{end}};
+		const isSSH = httpsDisabled || localStorage.getItem('repo-clone-protocol') === 'ssh';
 		const sshButton = document.getElementById('repo-clone-ssh');
 		const httpsButton = document.getElementById('repo-clone-https');
 		const input = document.getElementById('repo-clone-url');
