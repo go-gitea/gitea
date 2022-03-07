@@ -108,6 +108,7 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
+	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
