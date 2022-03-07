@@ -1291,6 +1291,8 @@ github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/niklasfasching/go-org v1.6.1 h1:vaGWr6TPqprkAbOJ/+E08mgZxsLM0SCOqWo9D5plj4U=
 github.com/niklasfasching/go-org v1.6.1/go.mod h1:3m8LIjGNz0ijv6UQzCpDl/bORThFI80/1xz2r1GgIT0=
+github.com/niklasfasching/go-org v1.6.2 h1:kQBIZlfL4oRNApJCrBgaeNBfzxWzP6XlC7/b744Polk=
+github.com/niklasfasching/go-org v1.6.2/go.mod h1:wn76Xgu4/KRe43WZhsgZjxYMaloSrl3BSweGV74SwHs=
 github.com/nishanths/predeclared v0.0.0-20200524104333-86fad755b4d3/go.mod h1:nt3d53pc1VYcphSCIaYAJtnPYnr3Zyn8fMq2wvPGPso=
 github.com/nkovacs/streamquote v1.0.0/go.mod h1:BN+NaZ2CmdKqUuTUXUEm9j95B2TRbpOWpxbJYzzgUsc=
 github.com/nwaples/rardecode v1.1.0 h1:vSxaY8vQhOcVr4mm5e8XllHWTiM4JF507A0Katqw7MQ=
