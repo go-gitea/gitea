@@ -74,7 +74,7 @@ require (
 	github.com/klauspost/compress v1.15.0
 	github.com/klauspost/cpuid/v2 v2.0.11
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/lib/pq v1.10.2
+	github.com/lib/pq v1.10.4
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.68.0
 	github.com/mattn/go-isatty v0.0.14
