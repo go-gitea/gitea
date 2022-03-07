@@ -82,7 +82,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.12
 	github.com/mholt/acmez v1.0.2 // indirect
 	github.com/mholt/archiver/v3 v3.5.1
-	github.com/microcosm-cc/bluemonday v1.0.16
+	github.com/microcosm-cc/bluemonday v1.0.18
 	github.com/miekg/dns v1.1.46 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.12
