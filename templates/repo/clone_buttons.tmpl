@@ -20,7 +20,7 @@
 {{end}}
 {{if not (and $.DisableHTTP $.DisableSSH)}}
 	<script defer>
-		const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
+		const isSSH = {{if $.DisableHTTP}}true{{else}}localStorage.getItem('repo-clone-protocol') === 'ssh'{{end}};
 		const sshButton = document.getElementById('repo-clone-ssh');
 		const httpsButton = document.getElementById('repo-clone-https');
 		const input = document.getElementById('repo-clone-url');
