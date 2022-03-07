@@ -116,7 +116,7 @@ require (
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20210904045753-ff3a8617e361
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
-	github.com/unrolled/render v1.4.0
+	github.com/unrolled/render v1.4.1
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.50.1
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
