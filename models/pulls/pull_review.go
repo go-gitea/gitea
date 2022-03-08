@@ -47,6 +47,8 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 		// Overwrite the viewed files of the previous review if present
 	} else if previousReview != nil {
 		review.ViewedFiles = mergeFiles(previousReview.ViewedFiles, viewedFiles)
+	} else {
+		review.ViewedFiles = viewedFiles
 	}
 
 	// Insert or Update review
