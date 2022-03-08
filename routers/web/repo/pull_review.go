@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/pulls"
@@ -268,7 +269,10 @@ func UpdateViewedFiles(ctx *context.Context) {
 				}
 				continue
 			}
-			updatedFiles[file] = viewed
+			updatedFiles[strings.ReplaceAll(file, "%22", "\"")] = viewed
+			// \" is the only character that gets encoded when sent as form-encoded string.
+			// Unfortunately, this WILL break marking any file as viewed that contains an actual "%22" in its name.
+			// There is no way to prevent this, and "%22" is way more unlikely to occur in a filename than \".
 		}
 	}
 
