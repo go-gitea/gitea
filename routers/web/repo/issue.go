@@ -854,17 +854,12 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 
 // DeleteIssue deletes an issue
 func DeleteIssue(ctx *context.Context) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("IssueOrPullRequestNotExist", err)
-		} else {
-			ctx.ServerError("GetIssueByID", err)
-		}
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+	if err := issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.ServerError("DeleteIssueByID", err)
 		return
 	}
