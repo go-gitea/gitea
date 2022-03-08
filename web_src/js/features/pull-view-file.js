@@ -39,7 +39,7 @@ export function initViewedCheckboxListenerFor(element) {
       const data = new FormData();
       data.append('_headCommitSHA', form.getAttribute('data-headcommit'));
       data.append('_csrf', form.querySelector('input[name=_csrf]').getAttribute('value'));
-      data.append(form.querySelector('input[type=checkbox]').getAttribute('name'), this.checked);
+      data.append(checkbox.getAttribute('name'), this.checked);
       const request = new XMLHttpRequest();
       request.open('POST', form.getAttribute('data-link'));
       request.send(data);
