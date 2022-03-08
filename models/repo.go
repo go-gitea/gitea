@@ -219,7 +219,6 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 	}
 
 	cond := builder.NewCond()
-	users := make([]*user_model.User, 0, 8)
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
@@ -239,24 +238,24 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			cond = cond.Or(builder.Eq{"id": repo.Owner.ID})
 		}
 
-		return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
+	} else {
+		// This is a "public" repository:
+		// Any user that has read access, is a watcher or organization member can be requested to review
+		cond = cond.And(builder.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead})),
+		).Or(builder.In("`user`.id",
+			builder.Select("user_id").From("watch").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+		).Or(builder.In("`user`.id",
+			builder.Select("uid").From("org_user").
+				Where(builder.Eq{"org_id": repo.OwnerID}),
+		))))).And(builder.Neq{"`user`.id": posterID})
 	}
 
-	// This is a "public" repository:
-	// Any user that has read access, is a watcher or organization member can be requested to review
-	cond = cond.And(builder.And(builder.In("`user`.id",
-		builder.Select("user_id").From("access").
-			Where(builder.Eq{"repo_id": repo.ID}.
-				And(builder.Gte{"mode": perm.AccessModeRead})),
-	).Or(builder.In("`user`.id",
-		builder.Select("user_id").From("watch").
-			Where(builder.Eq{"repo_id": repo.ID}.
-				And(builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
-	).Or(builder.In("`user`.id",
-		builder.Select("uid").From("org_user").
-			Where(builder.Eq{"org_id": repo.OwnerID}),
-	))))).And(builder.Neq{"`user`.id": posterID})
-
+	users := make([]*user_model.User, 0, 8)
 	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
 }
 
