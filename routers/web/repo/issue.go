@@ -2557,7 +2557,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		attachments = content.Attachments
 	default:
-		return fmt.Errorf("Unknown Type: %T", content)
+		return fmt.Errorf("unknown Type: %T", content)
 	}
 	for i := 0; i < len(attachments); i++ {
 		if util.IsStringInSlice(attachments[i].UUID, files) {
@@ -2575,7 +2575,7 @@ func updateAttachments(item interface{}, files []string) error {
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
-			return fmt.Errorf("Unknown Type: %T", content)
+			return fmt.Errorf("unknown Type: %T", content)
 		}
 		if err != nil {
 			return err
@@ -2587,7 +2587,7 @@ func updateAttachments(item interface{}, files []string) error {
 	case *models.Comment:
 		content.Attachments, err = repo_model.GetAttachmentsByCommentID(content.ID)
 	default:
-		return fmt.Errorf("Unknown Type: %T", content)
+		return fmt.Errorf("unknown Type: %T", content)
 	}
 	return err
 }

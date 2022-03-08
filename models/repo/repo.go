@@ -290,7 +290,14 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	}
 
 	repo.Units, err = getUnitsByRepoID(db.GetEngine(ctx), repo.ID)
-	log.Trace("repo.Units: %-+v", repo.Units)
+	if log.IsTrace() {
+		unitTypeStrings := make([]string, len(repo.Units))
+		for i, unit := range repo.Units {
+			unitTypeStrings[i] = unit.Type.String()
+		}
+		log.Trace("repo.Units, ID=%d, Types: [%s]", repo.ID, strings.Join(unitTypeStrings, ", "))
+	}
+
 	return err
 }
 
@@ -513,7 +520,7 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: repo.HTMLURL(),
-		Metas:     repo.ComposeMetas(),
+		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
