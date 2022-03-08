@@ -226,7 +226,7 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
 			SQL("SELECT * FROM `user` WHERE id in ("+
-				"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN (?)"+ // private org repos
+				"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id != ?"+ // private org repos
 				") ORDER BY name",
 				repo.ID, perm.AccessModeRead,
 				posterID).
@@ -252,7 +252,7 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
 			"UNION "+
 			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
-			") AND id NOT IN (?) ORDER BY name",
+			") AND id != ? ORDER BY name",
 			repo.ID, perm.AccessModeRead,
 			repo.ID, repo_model.WatchModeNormal, repo_model.WatchModeAuto,
 			repo.OwnerID,
