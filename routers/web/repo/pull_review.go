@@ -245,7 +245,7 @@ func DismissReview(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }
 
-const headCommitKey = "_headCommitID"
+const headCommitKey = "_headCommitSHA"
 
 func UpdateViewedFiles(ctx *context.Context) {
 	pull := checkPullInfo(ctx).PullRequest
@@ -253,7 +253,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		return
 	}
 	updatedFiles := make(map[string]bool, len(ctx.Req.Form))
-	headCommitID := ""
+	headCommitSHA := ""
 
 	// Collect all files and their viewed state
 	for file, values := range ctx.Req.Form {
@@ -264,7 +264,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 
 				// Prevent invalid reviews by specifically supplying the commit the user viewed the file under
 				if file == headCommitKey {
-					headCommitID = viewedString
+					headCommitSHA = viewedString
 				}
 				continue
 			}
@@ -272,12 +272,12 @@ func UpdateViewedFiles(ctx *context.Context) {
 		}
 	}
 
-	// No head commit ID was supplied - expect the review to have been now
-	if headCommitID == "" {
-		headCommitID = pull.HeadCommitID
+	// No head commit SHA was supplied - expect the review to have been now
+	if headCommitSHA == "" {
+		headCommitSHA = pull.HeadCommitID
 	}
 
-	if err := pulls.UpdateReview(ctx.User.ID, pull.ID, headCommitID, updatedFiles); err != nil {
+	if err := pulls.UpdateReview(ctx.User.ID, pull.ID, headCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }

@@ -19,7 +19,7 @@ export function initViewedCheckboxListenerFor(element) {
     // To prevent double addition of listeners
     form.setAttribute('data-has-listener', true);
 
-    // The checkbox consists of a form containing the real checkbox and a label,
+    // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
     checkbox.addEventListener('change', function() {
@@ -35,15 +35,14 @@ export function initViewedCheckboxListenerFor(element) {
       // Update viewed-files summary
       refreshViewedFilesSummary();
 
-      // Unfortunately, form.submit() would attempt to redirect, so we have to workaround that
-      // Because unchecked checkboxes are also not sent, we have to unset the value and use the fallback hidden input as sent value
-      const previousCheckedState = this.checked;
-      this.checked = false;
-      this.previousElementSibling.setAttribute('value', previousCheckedState);
+      // Unfortunately, using an actual form causes too many problems, hence we have to emulate the form
+      const data = new FormData();
+      data.append('_headCommitSHA', form.getAttribute('data-headcommit'));
+      data.append('_csrf', form.querySelector('input[name=_csrf]').getAttribute('value'));
+      data.append(form.querySelector('input[type=checkbox]').getAttribute('name'), this.checked);
       const request = new XMLHttpRequest();
-      request.open('POST', form.getAttribute('action'));
-      request.send(new FormData(form));
-      this.checked = previousCheckedState;
+      request.open('POST', form.getAttribute('data-link'));
+      request.send(data);
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');

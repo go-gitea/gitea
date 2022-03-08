@@ -704,7 +704,6 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.PageData["numberOfViewedFiles"] = diff.NumViewedFiles
 		methodWithError = "GetUserSpecificDiff"
 	}
-	fmt.Println(diff.NumViewedFiles, diff.Files, diff.NumFiles)
 	if err != nil {
 		ctx.ServerError(methodWithError, err)
 		return
