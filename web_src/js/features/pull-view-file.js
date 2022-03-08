@@ -35,8 +35,7 @@ export function initViewedCheckboxListenerFor(element) {
       // Update viewed-files summary and remove "has changed" label if present
       refreshViewedFilesSummary();
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
-      if(hasChangedLabel)
-        hasChangedLabel.parentNode.removeChild(hasChangedLabel);
+      if (hasChangedLabel) hasChangedLabel.parentNode.removeChild(hasChangedLabel);
 
       // Unfortunately, using an actual form causes too many problems, hence we have to emulate the form
       const data = new FormData();
