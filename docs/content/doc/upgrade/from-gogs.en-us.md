@@ -81,7 +81,7 @@ Upgrade to [`gitea 1.6.4`](https://dl.gitea.io/gitea/1.6.4/) first. Download the
 the destination platform from the [downloads page](https://dl.gitea.io/gitea/1.6.4/) and replace the binary.
 Run Gitea at least once and check that everything works as expected.
 
-Then repeat the procedure, but this time using the [lastest release](https://dl.gitea.io/gitea/{{< version >}}/).
+Then repeat the procedure, but this time using the [latest release](https://dl.gitea.io/gitea/{{< version >}}/).
 
 ## Upgrading from a more recent version of Gogs
 
@@ -96,7 +96,7 @@ See [#4286](https://github.com/go-gitea/gitea/issues/4286).
 
 ## Add Gitea to startup on Unix
 
-Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/master/contrib)
+Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/main/contrib)
 with the right environment variables.
 
 For distros with systemd:

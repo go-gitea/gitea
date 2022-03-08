@@ -1,16 +1,19 @@
-const fastGlob = require('fast-glob');
-const wrapAnsi = require('wrap-ansi');
-const AddAssetPlugin = require('add-asset-webpack-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {statSync} = require('fs');
-const {resolve, parse} = require('path');
-const {SourceMapDevToolPlugin} = require('webpack');
+import fastGlob from 'fast-glob';
+import wrapAnsi from 'wrap-ansi';
+import AddAssetPlugin from 'add-asset-webpack-plugin';
+import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
+import VueLoader from 'vue-loader';
+import EsBuildLoader from 'esbuild-loader';
+import {resolve, parse, dirname} from 'path';
+import webpack from 'webpack';
+import {fileURLToPath} from 'url';
 
+const {VueLoaderPlugin} = VueLoader;
+const {ESBuildMinifyPlugin} = EsBuildLoader;
+const {SourceMapDevToolPlugin} = webpack;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
@@ -36,14 +39,16 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-module.exports = {
+export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
       resolve(__dirname, 'web_src/js/jquery.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
+      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
+      resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
@@ -55,10 +60,6 @@ module.exports = {
     ],
     'eventsource.sharedworker': [
       resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
-    ],
-    'easymde': [
-      resolve(__dirname, 'web_src/js/easymde.js'),
-      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
     ],
     ...themes,
   },
@@ -78,26 +79,11 @@ module.exports = {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new TerserPlugin({
-        extractComments: false,
-        terserOptions: {
-          output: {
-            comments: false,
-          },
-        },
-      }),
-      new CssMinimizerPlugin({
-        sourceMap: true,
-        minimizerOptions: {
-          preset: [
-            'default',
-            {
-              discardComments: {
-                removeAll: true,
-              },
-            },
-          ],
-        },
+      new ESBuildMinifyPlugin({
+        target: 'es2015',
+        minify: true,
+        css: true,
+        legalComments: 'none',
       }),
     ],
     splitChunks: {
@@ -131,36 +117,9 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'babel-loader',
+            loader: 'esbuild-loader',
             options: {
-              sourceMaps: true,
-              cacheDirectory: true,
-              cacheCompression: false,
-              cacheIdentifier: [
-                resolve(__dirname, 'package.json'),
-                resolve(__dirname, 'package-lock.json'),
-                resolve(__dirname, 'webpack.config.js'),
-              ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              presets: [
-                [
-                  '@babel/preset-env',
-                  {
-                    useBuiltIns: 'usage',
-                    corejs: 3,
-                  },
-                ],
-              ],
-              plugins: [
-                [
-                  '@babel/plugin-transform-runtime',
-                  {
-                    regenerator: true,
-                  }
-                ],
-              ],
-              generatorOpts: {
-                compact: false,
-              },
+              target: 'es2015'
             },
           },
         ],
@@ -175,8 +134,8 @@ module.exports = {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
@@ -192,8 +151,8 @@ module.exports = {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
           {
@@ -214,7 +173,6 @@ module.exports = {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
         }
       },
       {
@@ -222,7 +180,6 @@ module.exports = {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
         }
       },
     ],
@@ -256,6 +213,10 @@ module.exports = {
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
+      allow: '(Apache-2.0 OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC)',
+      ignore: [
+        'font-awesome',
+      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {

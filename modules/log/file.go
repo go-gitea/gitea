@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // FileLogger implements LoggerProvider.
@@ -76,7 +76,7 @@ func (mw *MuxWriter) SetFd(fd *os.File) {
 func NewFileLogger() LoggerProvider {
 	log := &FileLogger{
 		Filename:         "",
-		Maxsize:          1 << 28, //256 MB
+		Maxsize:          1 << 28, // 256 MB
 		Daily:            true,
 		Maxdays:          7,
 		Rotate:           true,
@@ -101,7 +101,6 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), log); err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
@@ -138,7 +137,7 @@ func (log *FileLogger) docheck(size int) {
 
 func (log *FileLogger) createLogFile() (*os.File, error) {
 	// Open the log file
-	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+	return os.OpenFile(log.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o660)
 }
 
 func (log *FileLogger) initFd() error {
@@ -177,7 +176,7 @@ func (log *FileLogger) DoRotate() error {
 
 		// close fd before rename
 		// Rename the file to its newfound home
-		if err = os.Rename(log.Filename, fname); err != nil {
+		if err = util.Rename(log.Filename, fname); err != nil {
 			return fmt.Errorf("Rotate: %v", err)
 		}
 
@@ -203,7 +202,7 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 	}
 	defer reader.Close()
 	buffer := bufio.NewReader(reader)
-	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0660)
+	fw, err := os.OpenFile(fname+".gz", os.O_WRONLY|os.O_CREATE, 0o660)
 	if err != nil {
 		return err
 	}
@@ -235,7 +234,6 @@ func (log *FileLogger) deleteOldLog() {
 
 		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*log.Maxdays) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
-
 				if err := util.Remove(path); err != nil {
 					returnErr = fmt.Errorf("Failed to remove %s: %v", path, err)
 				}
@@ -243,6 +241,15 @@ func (log *FileLogger) deleteOldLog() {
 		}
 		return returnErr
 	})
+}
+
+// Content returns the content accumulated in the content provider
+func (log *FileLogger) Content() (string, error) {
+	b, err := os.ReadFile(log.Filename)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Flush flush file logger.

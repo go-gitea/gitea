@@ -53,7 +53,7 @@
 					<div class="ui bottom active tab" data-tab="write">
 						<textarea name="content">{{.content}}</textarea>
 					</div>
-					<div class="ui bottom tab markdown" data-tab="preview">
+					<div class="ui bottom tab markup" data-tab="preview">
 						{{$.i18n.Tr "loading"}}
 					</div>
 				</div>
@@ -68,7 +68,7 @@
 							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
 							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
-							<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+							<span class="tooltip" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 								{{svg "octicon-info"}}
 							</span>
 						</div>
@@ -76,7 +76,6 @@
 				{{end}}
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
-						<div class="files"></div>
 						{{template "repo/upload" .}}
 					</div>
 				{{end}}

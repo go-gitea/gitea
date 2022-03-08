@@ -14,13 +14,13 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.i18n.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{else}}
 				{{if not .PageIsIssueList}}
 					<div class="column right aligned">
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{$.i18n.Tr "action.compare_commits_general"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{$.i18n.Tr "action.compare_commits_general"}}</a>
 					</div>
 				{{end}}
 			{{end}}
@@ -161,6 +161,24 @@
 							{{range .Milestones}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 									{{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Projects -->
+					<div class="ui {{if not .Projects}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.project_board"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
+							{{.i18n.Tr "repo.issues.new.no_projects"}}
+							</div>
+							{{range .Projects}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+									{{.Title}}
 								</div>
 							{{end}}
 						</div>

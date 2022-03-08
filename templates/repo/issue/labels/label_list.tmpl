@@ -40,7 +40,7 @@
 				</div>
 				<div class="three wide column">
 					{{if $.PageIsOrgSettingsLabels}}
-						<a class="ui right open-issues" href="/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
+						<a class="ui right open-issues" href="{{AppSubUrl}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{else}}
 						<a class="ui right open-issues" href="{{$.RepoLink}}/issues?labels={{.ID}}">{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.label_open_issues" .NumOpenIssues}}</a>
 					{{end}}

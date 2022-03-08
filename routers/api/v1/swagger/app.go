@@ -14,3 +14,10 @@ type swaggerResponseOAuth2Application struct {
 	// in:body
 	Body api.OAuth2Application `json:"body"`
 }
+
+// AccessToken represents an API access token.
+// swagger:response AccessToken
+type swaggerResponseAccessToken struct {
+	// in:body
+	Body api.AccessToken `json:"body"`
+}

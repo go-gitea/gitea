@@ -13,8 +13,24 @@ import (
 // TimeStamp defines a timestamp
 type TimeStamp int64
 
+// mock is NOT concurrency-safe!!
+var mock time.Time
+
+// Set sets the time to a mocked time.Time
+func Set(now time.Time) {
+	mock = now
+}
+
+// Unset will unset the mocked time.Time
+func Unset() {
+	mock = time.Time{}
+}
+
 // TimeStampNow returns now int64
 func TimeStampNow() TimeStamp {
+	if !mock.IsZero() {
+		return TimeStamp(mock.Unix())
+	}
 	return TimeStamp(time.Now().Unix())
 }
 

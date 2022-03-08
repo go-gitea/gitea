@@ -15,15 +15,16 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 )
 
 var (
-	// GlobalCommandArgs global command args for external package setting
-	GlobalCommandArgs []string
+	// globalCommandArgs global command args for external package setting
+	globalCommandArgs []string
 
-	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 360 * time.Second
+	// defaultCommandExecutionTimeout default command execution timeout duration
+	defaultCommandExecutionTimeout = 360 * time.Second
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.
@@ -45,15 +46,10 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(args ...string) *Command {
-	return NewCommandContext(DefaultContext, args...)
-}
-
-// NewCommandContext creates and returns a new Git Command based on given command and arguments.
-func NewCommandContext(ctx context.Context, args ...string) *Command {
-	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+func NewCommand(ctx context.Context, args ...string) *Command {
+	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return &Command{
 		name:          GitExecutable,
 		args:          append(cargs, args...),
@@ -109,48 +105,73 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	if timeout == -1 {
-		timeout = DefaultCommandExecutionTimeout
+	return c.RunWithContext(&RunContext{
+		Env:          env,
+		Timeout:      timeout,
+		Dir:          dir,
+		Stdout:       stdout,
+		Stderr:       stderr,
+		Stdin:        stdin,
+		PipelineFunc: fn,
+	})
+}
+
+// RunContext represents parameters to run the command
+type RunContext struct {
+	Env            []string
+	Timeout        time.Duration
+	Dir            string
+	Stdout, Stderr io.Writer
+	Stdin          io.Reader
+	PipelineFunc   func(context.Context, context.CancelFunc) error
+}
+
+// RunWithContext run the command with context
+func (c *Command) RunWithContext(rc *RunContext) error {
+	if rc.Timeout == -1 {
+		rc.Timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(dir) == 0 {
-		log(c.String())
+	if len(rc.Dir) == 0 {
+		log.Debug("%s", c)
 	} else {
-		log("%s: %v", dir, c)
-	}
-
-	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if env == nil {
-		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
-	} else {
-		cmd.Env = env
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
-	}
-
-	// TODO: verify if this is still needed in golang 1.15
-	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
-	cmd.Dir = dir
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Stdin = stdin
-	if err := cmd.Start(); err != nil {
-		return err
+		log.Debug("%s: %v", rc.Dir, c)
 	}
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args, " "), rc.Dir)
 	}
-	pid := process.GetManager().Add(desc, cancel)
-	defer process.GetManager().Remove(pid)
 
-	if fn != nil {
-		err := fn(ctx, cancel)
+	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
+	defer finished()
+
+	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	if rc.Env == nil {
+		cmd.Env = os.Environ()
+	} else {
+		cmd.Env = rc.Env
+	}
+
+	cmd.Env = append(
+		cmd.Env,
+		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
+		// avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_TERMINAL_PROMPT=0",
+		// ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
+	)
+
+	cmd.Dir = rc.Dir
+	cmd.Stdout = rc.Stdout
+	cmd.Stderr = rc.Stderr
+	cmd.Stdin = rc.Stdin
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	if rc.PipelineFunc != nil {
+		err := rc.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
@@ -191,9 +212,12 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
 		return nil, ConcatenateError(err, stderr.String())
 	}
-
-	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout.Bytes()[:1024])
+	if stdout.Len() > 0 && log.IsTrace() {
+		tracelen := stdout.Len()
+		if tracelen > 1024 {
+			tracelen = 1024
+		}
+		log.Trace("Stdout:\n %s", stdout.Bytes()[:tracelen])
 	}
 	return stdout.Bytes(), nil
 }
@@ -246,4 +270,20 @@ func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) Run() (string, error) {
 	return c.RunTimeout(-1)
+}
+
+// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
+func AllowLFSFiltersArgs() []string {
+	// Now here we should explicitly allow lfs filters to run
+	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	j := 0
+	for _, arg := range globalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	return filteredLFSGlobalArgs[:j]
 }

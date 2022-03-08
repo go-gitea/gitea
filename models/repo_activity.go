@@ -5,10 +5,14 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
 	"xorm.io/xorm"
@@ -40,7 +44,7 @@ type ActivityStats struct {
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
@@ -61,11 +65,11 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
 	if code {
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
-		defer gitRepo.Close()
+		defer closer.Close()
 
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
@@ -77,12 +81,12 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 }
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
-func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
@@ -93,13 +97,13 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := GetUserByEmail(v.Email)
-		if u == nil || IsErrUserNotExist(err) {
+		u, err := user_model.GetUserByEmail(v.Email)
+		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
 				Name:       v.Name,
@@ -245,7 +249,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 }
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
-	sess := x.Where("pull_request.base_repo_id=?", repoID).
+	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", repoID).
 		Join("INNER", "issue", "pull_request.issue_id = issue.id")
 
 	if merged {
@@ -313,7 +317,7 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 }
 
 func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	sess := x.Where("issue.repo_id = ?", repoID).
+	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", repoID).
 		And("issue.is_closed = ?", closed)
 
 	if !unresolved {
@@ -355,7 +359,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	return x.Where("release.repo_id = ?", repoID).
+	return db.GetEngine(db.DefaultContext).Where("release.repo_id = ?", repoID).
 		And("release.is_draft = ?", false).
 		And("release.created_unix >= ?", fromTime.Unix())
 }

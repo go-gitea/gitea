@@ -6,7 +6,7 @@ package log
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -20,7 +20,7 @@ func listenReadAndClose(t *testing.T, l net.Listener, expected string) {
 	conn, err := l.Accept()
 	assert.NoError(t, err)
 	defer conn.Close()
-	written, err := ioutil.ReadAll(conn)
+	written, err := io.ReadAll(conn)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, string(written))
@@ -135,7 +135,7 @@ func TestConnLoggerFailConnect(t *testing.T) {
 
 	date := time.Date(2019, time.January, 13, 22, 3, 30, 15, location)
 
-	//dateString := date.UTC().Format("2006/01/02 15:04:05")
+	// dateString := date.UTC().Format("2006/01/02 15:04:05")
 
 	event := Event{
 		level:    INFO,
@@ -224,7 +224,6 @@ func TestConnLoggerClose(t *testing.T) {
 		err := logger.LogEvent(&event)
 		assert.NoError(t, err)
 		logger.Close()
-
 	}()
 	wg.Wait()
 	logger.Flush()

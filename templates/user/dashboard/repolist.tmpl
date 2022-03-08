@@ -1,7 +1,7 @@
-<div id="app" class="six wide column">
+<div id="dashboard-repo-list" class="six wide column">
 	<repo-search
 	:search-limit="searchLimit"
-	:suburl="suburl"
+	:sub-url="subUrl"
 	:uid="uid"
 	{{if .Team}}
 	:team-id="{{.Team.ID}}"
@@ -9,12 +9,12 @@
 	:more-repos-link="'{{.ContextUser.HomeLink}}'"
 	{{if not .ContextUser.IsOrganization}}
 	:organizations="[
-	{{range .ContextUser.Orgs}}
+	{{range .Orgs}}
 	{name: '{{.Name}}', num_repos: '{{.NumRepos}}'},
 	{{end}}
 	]"
 	:is-organization="false"
-	:organizations-total-count="{{.ContextUser.GetOrganizationCount}}"
+	:organizations-total-count="{{.UserOrgsCount}}"
 	:can-create-organization="{{.SignedUser.CanCreateOrganization}}"
 	{{end}}
 	inline-template
@@ -31,14 +31,14 @@
 					{{.i18n.Tr "home.my_repos"}}
 					<span class="ui grey label ml-3">${reposTotalCount}</span>
 				</div>
-				<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+				<a class="tooltip" :href="subUrl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 				</a>
 			</h4>
 			<div class="ui attached segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-					<input @input="searchRepos(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
+					<input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
 					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					<div class="ui dropdown icon button" title="{{.i18n.Tr "home.filter"}}">
 						<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
@@ -96,7 +96,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="ui secondary tiny pointing borderless menu center aligned grid repos-filter">
+				<div class="ui secondary tiny pointing borderless menu center grid repos-filter">
 					<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
 						{{.i18n.Tr "all"}}
 						<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${repoTypeCount}</div>
@@ -122,7 +122,7 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a class="repo-list-link df ac sb" :href="suburl + '/' + repo.full_name">
+						<a class="repo-list-link df ac sb" :href="repo.html_url">
 							<div class="text truncate item-name f1">
 								<component v-bind:is="repoIcon(repo)" size="16"></component>
 								<strong>${repo.full_name}</strong>
@@ -130,10 +130,12 @@
 									{{svg "octicon-archive" 16 "ml-2"}}
 								</span>
 							</div>
-							<div class="text light grey df ac">
-								${repo.stars_count}
-								{{svg "octicon-star" 16 "ml-2"}}
-							</div>
+							{{if not .DisableStars}}
+								<div class="text light grey df ac">
+									${repo.stars_count}
+									{{svg "octicon-star" 16 "ml-2"}}
+								</div>
+							{{end}}
 						</a>
 					</li>
 				</ul>
@@ -166,7 +168,7 @@
 					{{.i18n.Tr "home.my_orgs"}}
 					<span class="ui grey label ml-3">${organizationsTotalCount}</span>
 				</div>
-				<a v-if="canCreateOrganization" class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+				<a v-if="canCreateOrganization" class="tooltip" :href="subUrl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
 				</a>
@@ -174,7 +176,7 @@
 			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
-						<a class="repo-list-link df ac sb" :href="suburl + '/' + org.name">
+						<a class="repo-list-link df ac sb" :href="subUrl + '/' + encodeURIComponent(org.name)">
 							<div class="text truncate item-name f1">
 								{{svg "octicon-organization" 16 "mr-2"}}
 								<strong>${org.name}</strong>

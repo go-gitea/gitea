@@ -10,7 +10,7 @@ import (
 	"io"
 	"net"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 type connWriter struct {
@@ -106,7 +106,6 @@ func NewConn() LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *ConnLogger) Init(jsonconfig string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)
@@ -118,6 +117,11 @@ func (log *ConnLogger) Init(jsonconfig string) error {
 		Addr:           log.Addr,
 	}, log.Level)
 	return nil
+}
+
+// Content returns the content accumulated in the content provider
+func (log *ConnLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
 }
 
 // Flush does nothing for this implementation

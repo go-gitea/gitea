@@ -1,0 +1,5 @@
+/* can not have this selector in less because of https://github.com/less/less.js/issues/3027 */
+.view-raw img[src$='.svg' i] {
+  max-height: 600px !important;
+  max-width: 600px !important;
+}

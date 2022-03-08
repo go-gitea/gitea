@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"sync"
 
+	"code.gitea.io/gitea/modules/json"
+
 	"gitea.com/go-chi/session"
 	couchbase "gitea.com/go-chi/session/couchbase"
 	memcache "gitea.com/go-chi/session/memcache"
 	mysql "gitea.com/go-chi/session/mysql"
 	postgres "gitea.com/go-chi/session/postgres"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
@@ -25,7 +26,6 @@ type VirtualSessionProvider struct {
 // Init initializes the cookie session provider with given root path.
 func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	var opts session.Options
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), &opts); err != nil {
 		return err
 	}

@@ -5,31 +5,41 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+
+	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/builder"
 )
 
-func iterateRepositories(each func(*models.Repository) error) error {
-	err := models.Iterate(
-		models.DefaultDBContext(),
-		new(models.Repository),
+func iterateRepositories(each func(*repo_model.Repository) error) error {
+	err := db.Iterate(
+		db.DefaultContext,
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
-			return each(bean.(*models.Repository))
+			return each(bean.(*repo_model.Repository))
 		},
 	)
 	return err
 }
 
-func checkScriptType(logger log.Logger, autofix bool) error {
+func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
@@ -39,8 +49,8 @@ func checkScriptType(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkHooks(logger log.Logger, autofix bool) error {
-	if err := iterateRepositories(func(repo *models.Repository) error {
+func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
@@ -64,7 +74,7 @@ func checkHooks(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkUserStarNum(logger log.Logger, autofix bool) error {
+func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := models.DoctorUserStarNum(); err != nil {
 		logger.Critical("Unable update User Stars numbers")
 		return err
@@ -72,23 +82,24 @@ func checkUserStarNum(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkEnablePushOptions(logger log.Logger, autofix bool) error {
+func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
-	if err := iterateRepositories(func(repo *models.Repository) error {
+
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepository(repo.RepoPath())
+		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
 		if autofix {
-			_, err := git.NewCommand("config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			_, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
 			return err
 		}
 
-		value, err := git.NewCommand("config", "receive.advertisePushOptions").RunInDir(r.Path)
+		value, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunInDir(r.Path)
 		if err != nil {
 			return err
 		}
@@ -108,7 +119,66 @@ func checkEnablePushOptions(logger log.Logger, autofix bool) error {
 		logger.Info("Enabled push options for %d repositories.", numRepos)
 	} else {
 		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
+	}
 
+	return nil
+}
+
+func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
+	numRepos := 0
+	numNeedUpdate := 0
+	cache, err := lru.New(512)
+	if err != nil {
+		logger.Critical("Unable to create cache: %v", err)
+		return err
+	}
+	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+		numRepos++
+
+		if owner, has := cache.Get(repo.OwnerID); has {
+			repo.Owner = owner.(*user_model.User)
+		} else {
+			if err := repo.GetOwner(db.DefaultContext); err != nil {
+				return err
+			}
+			cache.Add(repo.OwnerID, repo.Owner)
+		}
+
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		isExist, err := util.IsExist(daemonExportFile)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			return err
+		}
+		isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
+
+		if isPublic != isExist {
+			numNeedUpdate++
+			if autofix {
+				if !isPublic && isExist {
+					if err = util.Remove(daemonExportFile); err != nil {
+						log.Error("Failed to remove %s: %v", daemonExportFile, err)
+					}
+				} else if isPublic && !isExist {
+					if f, err := os.Create(daemonExportFile); err != nil {
+						log.Error("Failed to create %s: %v", daemonExportFile, err)
+					} else {
+						f.Close()
+					}
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.Critical("Unable to checkDaemonExport: %v", err)
+		return err
+	}
+
+	if autofix {
+		logger.Info("Updated git-daemon-export-ok files for %d of %d repositories.", numNeedUpdate, numRepos)
+	} else {
+		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
 	}
 
 	return nil
@@ -142,5 +212,12 @@ func init() {
 		IsDefault: false,
 		Run:       checkEnablePushOptions,
 		Priority:  7,
+	})
+	Register(&Check{
+		Title:     "Check git-daemon-export-ok files",
+		Name:      "check-git-daemon-export-ok",
+		IsDefault: false,
+		Run:       checkDaemonExport,
+		Priority:  8,
 	})
 }

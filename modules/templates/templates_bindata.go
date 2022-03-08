@@ -2,8 +2,9 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-//+build bindata
+//go:build bindata
+// +build bindata
 
 package templates
 
-//go:generate go run -mod=vendor ../../build/generate-bindata.go ../../templates templates bindata.go
+//go:generate go run ../../build/generate-bindata.go ../../templates templates bindata.go true

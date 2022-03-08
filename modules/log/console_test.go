@@ -48,7 +48,7 @@ func TestConsoleLoggerMinimalConfig(t *testing.T) {
 		assert.Equal(t, prefix, realCW.Prefix)
 		assert.Equal(t, "", string(written))
 		cw.Close()
-		assert.Equal(t, false, closed)
+		assert.False(t, closed)
 
 	}
 }
@@ -97,20 +97,20 @@ func TestConsoleLogger(t *testing.T) {
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = DEBUG
 	expected = ""
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 
 	event.level = TRACE
 	expected = ""
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 
 	nonMatchEvent := Event{
 		level:    INFO,
@@ -124,15 +124,15 @@ func TestConsoleLogger(t *testing.T) {
 	expected = ""
 	cw.LogEvent(&nonMatchEvent)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 
 	event.level = WARN
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	cw.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	cw.Close()
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 }

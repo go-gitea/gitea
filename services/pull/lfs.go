@@ -7,6 +7,7 @@ package pull
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"strconv"
 	"sync"
@@ -18,7 +19,7 @@ import (
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
-func LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequest) error {
+func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequest) error {
 	// Now we have to implement git lfs push
 	// git rev-list --objects --filter=blob:limit=1k HEAD --not base
 	// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
@@ -41,19 +42,19 @@ func LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequ
 	go createLFSMetaObjectsFromCatFileBatch(catFileBatchReader, &wg, pr)
 
 	// 5. Take the shas of the blobs and batch read them
-	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
+	go pipeline.CatFileBatch(ctx, shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
 
 	// 4. From the provided objects restrict to blobs <=1k
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
 
 	// 3. Run batch-check on the objects retrieved from rev-list
-	go pipeline.CatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, tmpBasePath)
+	go pipeline.CatFileBatchCheck(ctx, shasToCheckReader, catFileCheckWriter, &wg, tmpBasePath)
 
 	// 2. Check each object retrieved rejecting those without names as they will be commits or trees
 	go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
 
 	// 1. Run rev-list objects from mergeHead to mergeBase
-	go pipeline.RevListObjects(revListWriter, &wg, tmpBasePath, mergeHeadSHA, mergeBaseSHA, errChan)
+	go pipeline.RevListObjects(ctx, revListWriter, &wg, tmpBasePath, mergeHeadSHA, mergeBaseSHA, errChan)
 
 	wg.Wait()
 	select {
@@ -69,6 +70,8 @@ func LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequ
 func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *models.PullRequest) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
+
+	contentStore := lfs.NewContentStore()
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
@@ -101,12 +104,18 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs.IsPointerFile(&pointerBuf)
-		if pointer == nil {
+		pointer, _ := lfs.ReadPointerFromBuffer(pointerBuf)
+		if !pointer.IsValid() {
 			continue
 		}
+
+		exist, _ := contentStore.Exists(pointer)
+		if !exist {
+			continue
+		}
+
 		// Then we need to check that this pointer is in the db
-		if _, err := pr.HeadRepo.GetLFSMetaObjectByOid(pointer.Oid); err != nil {
+		if _, err := models.GetLFSMetaObjectByOid(pr.HeadRepo.ID, pointer.Oid); err != nil {
 			if err == models.ErrLFSObjectNotExist {
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
@@ -117,8 +126,9 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		pointer.RepositoryID = pr.BaseRepoID
-		if _, err := models.NewLFSMetaObject(pointer); err != nil {
+		meta := &models.LFSMetaObject{Pointer: pointer}
+		meta.RepositoryID = pr.BaseRepoID
+		if _, err := models.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}

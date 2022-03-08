@@ -10,7 +10,7 @@ import (
 	"net/smtp"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 type smtpWriter struct {
@@ -57,7 +57,6 @@ func NewSMTPLogger() LoggerProvider {
 //		"level":LevelError
 //	}
 func (log *SMTPLogger) Init(jsonconfig string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)
@@ -94,6 +93,11 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 		log.RecipientAddresses,
 		mailmsg,
 	)
+}
+
+// Content returns the content accumulated in the content provider
+func (log *SMTPLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
 }
 
 // Flush when log should be flushed

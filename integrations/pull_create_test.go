@@ -114,7 +114,7 @@ func testUIDeleteBranch(t *testing.T, session *TestSession, ownerName, repoName,
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	req = NewRequestWithValues(t, "POST", relURL+"/delete", map[string]string{
-		"_csrf": getCsrf(t, htmlDoc.doc),
+		"_csrf": htmlDoc.GetCSRF(),
 		"name":  branchName,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
@@ -127,7 +127,7 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	req = NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
-		"_csrf":     getCsrf(t, htmlDoc.doc),
+		"_csrf":     htmlDoc.GetCSRF(),
 		"repo_name": repoName,
 	})
 	session.MakeRequest(t, req, http.StatusFound)

@@ -29,7 +29,7 @@ func (vars Vars) Merge(another map[string]interface{}) Vars {
 
 // BaseVars returns all basic vars
 func BaseVars() Vars {
-	var startTime = time.Now()
+	startTime := time.Now()
 	return map[string]interface{}{
 		"IsLandingPageHome":          setting.LandingPageURL == setting.LandingPageHome,
 		"IsLandingPageExplore":       setting.LandingPageURL == setting.LandingPageExplore,
@@ -43,9 +43,6 @@ func BaseVars() Vars {
 		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
 		"PageStartTime":      startTime,
-		"TmplLoadTimes": func() string {
-			return time.Since(startTime).String()
-		},
 	}
 }
 
@@ -91,7 +88,7 @@ func HTMLRenderer() *render.Render {
 		Funcs:                     NewFuncMap(),
 		Asset:                     GetAsset,
 		AssetNames:                GetAssetNames,
-		IsDevelopment:             !setting.IsProd(),
+		IsDevelopment:             !setting.IsProd,
 		DisableHTTPErrorRendering: true,
 	})
 }

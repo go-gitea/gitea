@@ -6,13 +6,13 @@
 		</a>
 		{{if .EnableOpenIDSignIn}}
 		<a class="{{if .PageIsLoginOpenID}}active{{end}} item" rel="nofollow" href="{{AppSubUrl}}/user/login/openid">
-			<i class="fa fa-openid"></i>
+			{{svg "fontawesome-openid"}}
 			&nbsp;OpenID
 		</a>
 		{{end}}
 		{{if .EnableSSPI}}
 		<a class="item" rel="nofollow" href="{{AppSubUrl}}/user/login?auth_with_sspi=1">
-			<i class="fa fa-windows"></i>
+			{{svg "fontawesome-windows"}}
 			&nbsp;SSPI
 		</a>
 		{{end}}

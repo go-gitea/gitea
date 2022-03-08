@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -158,7 +158,6 @@ func NewTestLogger() log.LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *TestLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return err
@@ -167,11 +166,16 @@ func (log *TestLogger) Init(config string) error {
 	return nil
 }
 
+// Content returns the content accumulated in the content provider
+func (log *TestLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
+}
+
 // Flush when log should be flushed
 func (log *TestLogger) Flush() {
 }
 
-//ReleaseReopen does nothing
+// ReleaseReopen does nothing
 func (log *TestLogger) ReleaseReopen() error {
 	return nil
 }

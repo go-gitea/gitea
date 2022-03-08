@@ -5,7 +5,9 @@
 package graceful
 
 import (
+	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 )
 
@@ -16,6 +18,7 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 		WriteTimeout:   DefaultWriteTimeOut,
 		MaxHeaderBytes: DefaultMaxHeaderBytes,
 		Handler:        handler,
+		BaseContext:    func(net.Listener) context.Context { return GetManager().HammerContext() },
 	}
 	server.OnShutdown = func() {
 		httpServer.SetKeepAlivesEnabled(false)
@@ -28,13 +31,6 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 func HTTPListenAndServe(network, address, name string, handler http.Handler) error {
 	server, lHandler := newHTTPServer(network, address, name, handler)
 	return server.ListenAndServe(lHandler)
-}
-
-// HTTPListenAndServeTLS listens on the provided network address and then calls Serve
-// to handle requests on incoming connections.
-func HTTPListenAndServeTLS(network, address, name, certFile, keyFile string, handler http.Handler) error {
-	server, lHandler := newHTTPServer(network, address, name, handler)
-	return server.ListenAndServeTLS(certFile, keyFile, lHandler)
 }
 
 // HTTPListenAndServeTLSConfig listens on the provided network address and then calls Serve

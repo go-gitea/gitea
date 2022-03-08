@@ -6,12 +6,12 @@ package integrations
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +71,6 @@ func TestAccessTokenExchange(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -96,7 +95,6 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -186,7 +184,6 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -230,7 +227,6 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 
 	// test without invalidation
@@ -244,20 +240,20 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"refresh_token": parsed.RefreshToken,
 	})
 
-	bs, err := ioutil.ReadAll(refreshReq.Body)
+	bs, err := io.ReadAll(refreshReq.Body)
 	assert.NoError(t, err)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 400)
 }

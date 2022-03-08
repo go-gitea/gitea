@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/unknwon/com"
@@ -56,9 +57,9 @@ type csrf struct {
 	Form string
 	// Cookie name value for setting and getting csrf token.
 	Cookie string
-	//Cookie domain
+	// Cookie domain
 	CookieDomain string
-	//Cookie path
+	// Cookie path
 	CookiePath string
 	// Cookie HttpOnly flag value used for the csrf token.
 	CookieHTTPOnly bool
@@ -266,7 +267,12 @@ func Validate(ctx *Context, x CSRF) {
 				-1,
 				x.GetCookiePath(),
 				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-			x.Error(ctx.Resp)
+			if middleware.IsAPIPath(ctx.Req) {
+				x.Error(ctx.Resp)
+				return
+			}
+			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}
@@ -277,10 +283,19 @@ func Validate(ctx *Context, x CSRF) {
 				-1,
 				x.GetCookiePath(),
 				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-			x.Error(ctx.Resp)
+			if middleware.IsAPIPath(ctx.Req) {
+				x.Error(ctx.Resp)
+				return
+			}
+			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}
-
-	http.Error(ctx.Resp, "Bad Request: no CSRF token present", http.StatusBadRequest)
+	if middleware.IsAPIPath(ctx.Req) {
+		http.Error(ctx.Resp, "Bad Request: no CSRF token present", http.StatusBadRequest)
+		return
+	}
+	ctx.Flash.Error(ctx.Tr("error.missing_csrf"))
+	ctx.Redirect(setting.AppSubURL + "/")
 }

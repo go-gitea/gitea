@@ -7,11 +7,16 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -52,17 +57,40 @@ func confirm() (bool, error) {
 	}
 }
 
-func initDB() error {
-	return initDBDisableConsole(false)
-}
-
-func initDBDisableConsole(disableConsole bool) error {
-	setting.NewContext()
+func initDB(ctx context.Context) error {
+	setting.LoadFromExisting()
 	setting.InitDBConfig()
+	setting.NewXORMLogService(false)
 
-	setting.NewXORMLogService(disableConsole)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+	if setting.Database.Type == "" {
+		log.Fatal(`Database settings are missing from the configuration file: %q.
+Ensure you are running in the correct environment or set the correct configuration file with -c.
+If this is the intended configuration file complete the [database] section.`, setting.CustomConf)
+	}
+	if err := db.InitEngine(ctx); err != nil {
+		return fmt.Errorf("unable to initialise the database using the configuration in %q. Error: %v", setting.CustomConf, err)
 	}
 	return nil
+}
+
+func installSignals() (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		// install notify
+		signalChannel := make(chan os.Signal, 1)
+
+		signal.Notify(
+			signalChannel,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+		)
+		select {
+		case <-signalChannel:
+		case <-ctx.Done():
+		}
+		cancel()
+		signal.Reset()
+	}()
+
+	return ctx, cancel
 }
