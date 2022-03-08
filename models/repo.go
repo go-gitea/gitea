@@ -218,7 +218,7 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		return nil, err
 	}
 
-	cond := builder.NewCond()
+	cond := builder.And(builder.Neq{"`user`.id": posterID})
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
@@ -227,7 +227,6 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		cond = cond.And(builder.In("`user`.id",
 			builder.Select("user_id").From("access").Where(
 				builder.Eq{"repo_id": repo.ID}.
-					And(builder.Neq{"user_id": posterID}).
 					And(builder.Gte{"mode": perm.AccessModeRead}),
 			),
 		))
@@ -252,7 +251,7 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		).Or(builder.In("`user`.id",
 			builder.Select("uid").From("org_user").
 				Where(builder.Eq{"org_id": repo.OwnerID}),
-		))))).And(builder.Neq{"`user`.id": posterID})
+		)))))
 	}
 
 	users := make([]*user_model.User, 0, 8)
