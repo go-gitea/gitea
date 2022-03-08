@@ -82,7 +82,12 @@
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header df ac sb">
-					<div class="ui large label board-label py-2">{{.Title}}</div>
+					<div class="ui large label board-label py-2">
+						<div class="ui small circular grey label board-card-cnt">
+							{{len .Issues}}
+						</div>
+						{{.Title}}
+					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) (ne .ID 0)}}
 						<div class="ui dropdown jump item tooltip">
 							<div class="not-mobile px-3" tabindex="-1">
@@ -229,13 +234,19 @@
 							</div>
 							{{- end }}
 						</div>
-						{{if .Labels}}
-							<div class="extra content labels-list p-0 pt-2">
-								{{ range .Labels }}
-								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+
+						{{ if or .Labels .Assignees }}
+						<div class="extra content labels-list p-0 pt-2">
+							{{ range .Labels }}
+								<a class="ui label" target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+							{{ end }}
+							<div class="right floated">
+								{{ range .Assignees }}
+									<a class="tooltip" target="_blank" href="{{.HTMLURL}}" data-content="{{$.i18n.Tr "repo.projects.board.assigned_to"}} {{.Name}}">{{avatar . 28 "mini mr-3"}}</a>
 								{{ end }}
 							</div>
-						{{end}}
+						</div>
+						{{ end }}
 					</div>
 					<!-- stop issue card -->
 
