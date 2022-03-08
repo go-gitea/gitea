@@ -120,12 +120,12 @@ func TestRepoGetReviewers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
-	// should include doer, if not PR poster.
+	// should include doer if doer is not PR poster.
 	reviewers, err = GetReviewers(repo1, 11, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
-	// should not include PR poster, if PR poster would be otherwise elligible
+	// should not include PR poster, if PR poster would be otherwise eligible
 	reviewers, err = GetReviewers(repo1, 11, 4)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 3)
