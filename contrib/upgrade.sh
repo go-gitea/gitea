@@ -34,7 +34,7 @@ function require {
 require curl xz sha256sum gpg
 
 if [[ -f /etc/os-release ]]; then
-  os_release=`cat /etc/os-release`
+  os_release=$(cat /etc/os-release)
 
   if [[ "$os_release" =~ "OpenWrt" ]]; then
     sudocmd="su"
@@ -62,7 +62,7 @@ fi
 
 function giteacmd {
   if [[ $sudocmd = "su" ]]; then
-    "$sudocmd" - "$giteauser" -c "$giteabin --config $giteaconf --work-path $giteahome $@"
+    "$sudocmd" - "$giteauser" -c "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
   else
     "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
   fi
@@ -73,7 +73,7 @@ if [[ -z "${ver:-}" ]]; then
   require jq
   giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
 else
-  giteaversion="$1"
+  giteaversion="$ver"
 fi
 
 
