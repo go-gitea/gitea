@@ -225,11 +225,19 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
-			SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
+			SQL("SELECT * FROM `user` WHERE id in ("+
+				"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id != ?"+ // private org repos
+				") ORDER BY name",
 				repo.ID, perm.AccessModeRead,
-				doerID, posterID).
+				posterID).
 			Find(&users); err != nil {
 			return nil, err
+		}
+
+		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
+			// as private *user* repos don't generate an entry in the `access` table,
+			// the owner of a private repo needs to be explicitly added.
+			users = append(users, repo.Owner)
 		}
 
 		return users, nil
@@ -244,11 +252,11 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
 			"UNION "+
 			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
-			") AND id NOT IN (?, ?) ORDER BY name",
+			") AND id != ? ORDER BY name",
 			repo.ID, perm.AccessModeRead,
 			repo.ID, repo_model.WatchModeNormal, repo_model.WatchModeAuto,
 			repo.OwnerID,
-			doerID, posterID).
+			posterID).
 		Find(&users); err != nil {
 		return nil, err
 	}
