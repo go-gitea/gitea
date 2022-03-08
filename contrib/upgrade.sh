@@ -122,6 +122,6 @@ cp -f "$giteabin" "$giteabin.bak" && mv -f "$binname" "$giteabin"
 $service_start
 $service_status
 
-echo "Upgrade gitea to $giteaversion successfully!"
+echo "Upgrade to $giteaversion successful!"
 
 popd
