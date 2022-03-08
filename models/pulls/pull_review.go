@@ -85,7 +85,6 @@ func GetNewestReview(userID, pullID int64) (*PRReview, error) {
 	return &review, err
 }
 
-
 // getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
 func getNewestReviewApartFrom(commitSHA string, userID, pullID int64) (*PRReview, error) {
