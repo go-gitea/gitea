@@ -1025,7 +1025,8 @@ IS_INPUT_FILE = false
    command. Multiple extensions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
-- DISABLE_SANITIZER: **false** Don't filter html tags and attributes if true. Don't change this to true except you know what that means.
+- DISABLE_SANITIZER: **false** Don't filter html tags and attributes if true. This is insecure. Don't change this to true except you know what that means. 
+- USE_IFRAME: **false** Display the HTML with an embed iframe but not directly renderer.
 
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.

@@ -318,7 +318,8 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
-- DISABLE_SANITIZER: **false** 如果为 true 则不过滤 HTML 标签和属性。除非你知道这意味着什么，否则不要设置为 true。
+- DISABLE_SANITIZER: **false** 如果为 true 则不过滤 HTML 标签和属性。本功能可能引起 XSS 安全问题。除非你知道这意味着什么，否则不要设置为 true。
+- USE_IFRAME: **false** 采用iframe来渲染生成的HTML，还是直接在本页面渲染。
 
 以下两个环境变量将会被传递给渲染命令：
 
