@@ -217,12 +217,9 @@
 									{{end}}
 								</span>
 							</div>
-							<div class="meta">
-								#{{.Index}} {{$.i18n.Tr "repo.projects.board.opened_by"}} <a target="_blank" href="{{.Poster.HTMLURL}}">{{.Poster.Name}}</a>
-							</div>
 							{{- if .MilestoneID }}
 							<div class="meta my-2">
-								<a class="milestone" target="_blank" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
+								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
 									{{svg "octicon-milestone" 16 "mr-2 vm"}}
 									<span class="vm">{{ .Milestone.Name }}</span>
 								</a>
