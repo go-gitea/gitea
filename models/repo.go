@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -123,7 +122,8 @@ func NewRepoContext() {
 	loadRepoConfig()
 	unit.LoadUnitConfig()
 
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", LocalCopyPath())
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
@@ -153,7 +153,7 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 	userIDs := make([]int64, 0, 10)
 	if err = e.Table("access").
 		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
-		Select("id").
+		Select("user_id").
 		Find(&userIDs); err != nil {
 		return nil, err
 	}
@@ -521,7 +521,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge},
+				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge, AllowRebaseUpdate: true},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
@@ -956,28 +956,28 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Remove archives
-	for i := range archivePaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	for _, archive := range archivePaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects
-	for i := range lfsPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	for _, lfsObj := range lfsPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
 	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	for _, attachment := range attachmentPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
 	}
 
 	// Remove release attachment files.
-	for i := range releaseAttachments {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	for _, releaseAttachment := range releaseAttachments {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
 	}
 
 	// Remove attachment with no issue_id and release_id.
-	for i := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	for _, newAttachment := range newAttachmentPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {

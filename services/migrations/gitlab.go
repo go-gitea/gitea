@@ -485,6 +485,7 @@ func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 				for _, note := range comment.Notes {
 					allComments = append(allComments, &base.Comment{
 						IssueIndex:  context.LocalID(),
+						Index:       int64(note.ID),
 						PosterID:    int64(note.Author.ID),
 						PosterName:  note.Author.Username,
 						PosterEmail: note.Author.Email,
@@ -496,6 +497,7 @@ func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 				c := comment.Notes[0]
 				allComments = append(allComments, &base.Comment{
 					IssueIndex:  context.LocalID(),
+					Index:       int64(c.ID),
 					PosterID:    int64(c.Author.ID),
 					PosterName:  c.Author.Username,
 					PosterEmail: c.Author.Email,
