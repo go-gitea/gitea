@@ -645,6 +645,27 @@
 					</form>
 				</div>
 			</div>
+			<button class="fluid ui show-modal button negative mt-3" data-modal="#delete">
+				{{svg "octicon-trash"}}
+				{{.i18n.Tr "repo.issues.delete"}}
+			</button>
+			<div class="ui basic modal" id="delete">
+				<div class="ui icon header">
+					{{.i18n.Tr "repo.issues.delete.title"}}
+				</div>
+				<div class="content center">
+					<p>
+						{{.i18n.Tr "repo.issues.delete.text"}}
+					</p>
+				</div>
+				<form action="{{.Issue.Link}}/delete" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="center actions">
+						<div class="ui basic cancel inverted button">{{.i18n.Tr "settings.cancel"}}</div>
+						<button class="ui basic red inverted button">{{.i18n.Tr "modal.yes"}}</button>
+					</div>
+				</form>
+			</div>
 		{{end}}
 	</div>
 </div>
