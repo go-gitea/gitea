@@ -6,24 +6,27 @@ package util
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
 // relative to absoluteBase if necessary
-func EnsureAbsolutePath(path string, absoluteBase string) string {
+func EnsureAbsolutePath(path, absoluteBase string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
 	return filepath.Join(absoluteBase, path)
 }
 
-const notRegularFileMode os.FileMode = os.ModeDir | os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+const notRegularFileMode os.FileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
 
-// GetDirectorySize returns the dumb disk consumption for a given path
+// GetDirectorySize returns the disk consumption for a given path
 func GetDirectorySize(path string) (int64, error) {
 	var size int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
@@ -149,4 +152,24 @@ func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
 		isIncludeDir = includeDir[0]
 	}
 	return statDir(rootPath, "", isIncludeDir, false, false)
+}
+
+// FileURLToPath extracts the path information from a file://... url.
+func FileURLToPath(u *url.URL) (string, error) {
+	if u.Scheme != "file" {
+		return "", errors.New("URL scheme is not 'file': " + u.String())
+	}
+
+	path := u.Path
+
+	if runtime.GOOS != "windows" {
+		return path, nil
+	}
+
+	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
+	re := regexp.MustCompile("/[A-Za-z]:/")
+	if re.MatchString(path) {
+		return path[1:], nil
+	}
+	return path, nil
 }

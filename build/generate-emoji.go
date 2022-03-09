@@ -3,23 +3,26 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 const (
@@ -27,9 +30,7 @@ const (
 	maxUnicodeVersion = 12
 )
 
-var (
-	flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
-)
+var flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
 
 // Gemoji is a set of emoji data.
 type Gemoji []Emoji
@@ -65,7 +66,7 @@ func main() {
 	}
 
 	// write
-	err = ioutil.WriteFile(*flagOut, buf, 0644)
+	err = os.WriteFile(*flagOut, buf, 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,7 +95,7 @@ func generate() ([]byte, error) {
 	defer res.Body.Close()
 
 	// read all
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func generate() ([]byte, error) {
 		return nil, err
 	}
 
-	var skinTones = make(map[string]string)
+	skinTones := make(map[string]string)
 
 	skinTones["\U0001f3fb"] = "Light Skin Tone"
 	skinTones["\U0001f3fc"] = "Medium-Light Skin Tone"
@@ -116,7 +117,7 @@ func generate() ([]byte, error) {
 
 	var tmp Gemoji
 
-	//filter out emoji that require greater than max unicode version
+	// filter out emoji that require greater than max unicode version
 	for i := range data {
 		val, _ := strconv.ParseFloat(data[i].UnicodeVersion, 64)
 		if int(val) <= maxUnicodeVersion {
@@ -155,7 +156,7 @@ func generate() ([]byte, error) {
 
 	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
 	file, _ := json.Marshal(data)
-	_ = ioutil.WriteFile("assets/emoji.json", file, 0644)
+	_ = os.WriteFile("assets/emoji.json", file, 0o644)
 
 	// Add skin tones to emoji that support it
 	var (

@@ -1,6 +1,7 @@
 -
   id: 1
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+  repo_id: 1
   issue_id: 1
   comment_id: 0
   name: attach1
@@ -10,6 +11,7 @@
 -
   id: 2
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+  repo_id: 2
   issue_id: 4
   comment_id: 0
   name: attach2
@@ -19,6 +21,7 @@
 -
   id: 3
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13
+  repo_id: 1
   issue_id: 2
   comment_id: 1
   name: attach1
@@ -28,6 +31,7 @@
 -
   id: 4
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14
+  repo_id: 1
   issue_id: 3
   comment_id: 1
   name: attach2
@@ -37,6 +41,7 @@
 -
   id: 5
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15
+  repo_id: 2
   issue_id: 4
   comment_id: 0
   name: attach1
@@ -46,6 +51,7 @@
 -
   id: 6
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16
+  repo_id: 1
   issue_id: 5
   comment_id: 2
   name: attach1
@@ -55,6 +61,7 @@
 -
   id: 7
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17
+  repo_id: 1
   issue_id: 5
   comment_id: 2
   name: attach1
@@ -64,6 +71,7 @@
 -
   id: 8
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18
+  repo_id: 3
   issue_id: 6
   comment_id: 0
   name: attach1
@@ -73,6 +81,7 @@
 -
   id: 9
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19
+  repo_id: 1
   release_id: 1
   name: attach1
   download_count: 0
@@ -81,6 +90,7 @@
 -
   id: 10
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
+  repo_id: 0 # TestGetAttachment/NotLinked
   uploader_id: 8
   name: attach1
   download_count: 0
@@ -89,6 +99,7 @@
 -
   id: 11
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21
+  repo_id: 40
   release_id: 2
   name: attach1
   download_count: 0

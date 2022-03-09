@@ -5,31 +5,32 @@
 package queue
 
 import (
-	"context"
-	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLevelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
-	handle := func(data ...Data) {
+	handle := func(data ...Data) []Data {
 		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
+		return nil
 	}
 
 	var lock sync.Mutex
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := ioutil.TempDir("", "level-queue-test-data")
+	tmpDir, err := os.MkdirTemp("", "level-queue-test-data")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
@@ -49,11 +50,11 @@ func TestLevelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
 		lock.Unlock()
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
 		lock.Unlock()
@@ -123,11 +124,11 @@ func TestLevelQueue(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
 		lock.Unlock()
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
 		lock.Unlock()

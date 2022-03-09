@@ -3,6 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
@@ -21,7 +22,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
 			ID: t.ID,
-			//Type: ObjectTree,
+			// Type: ObjectTree,
 			gogitTreeEntry: &object.TreeEntry{
 				Name: "",
 				Mode: filemode.Dir,

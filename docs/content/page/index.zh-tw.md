@@ -69,7 +69,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
     - PostgreSQL
     - SQLite3
     - MSSQL
-    - TiDB（實驗中, 不建議使用）
+    - TiDB（MySQL 協議）
   - 設定檔
     - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
   - 管理員面板
@@ -261,7 +261,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 
 ## 瀏覽器支援
 
-- 最近 2 個版本的 Chrome, Firefox, Safari, Edge (EdgeHTML), Edge (Chromium)
+- 最近 2 個版本的 Chrome, Firefox, Safari, Edge
 - Firefox ESR
 
 ## 元件

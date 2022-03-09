@@ -8,8 +8,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -24,8 +25,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -33,7 +37,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -58,6 +61,26 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 	}
 }
 
+type NilResponseHashSumRecorder struct {
+	httptest.ResponseRecorder
+	Hash   hash.Hash
+	Length int
+}
+
+func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
+	_, _ = n.Hash.Write(b)
+	n.Length += len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
+	return &NilResponseHashSumRecorder{
+		Hash:             fnv.New32(),
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	defer log.Close()
 
@@ -66,7 +89,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NormalRoutes()
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -89,8 +112,10 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	err := models.InitFixtures(
-		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+	err := unittest.InitFixtures(
+		unittest.FixturesOptions{
+			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
@@ -98,7 +123,7 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
-	writerCloser.t = nil
+	writerCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -139,9 +164,9 @@ func initIntegrationTest() {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext()
-	util.RemoveAll(models.LocalCopyPath())
-	setting.CheckLFSVersion()
+	setting.LoadForTest()
+	_ = util.RemoveAll(models.LocalCopyPath())
+	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
@@ -215,7 +240,8 @@ func initIntegrationTest() {
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit(graceful.GetManager().HammerContext())
+
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {
@@ -225,10 +251,30 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 		ourSkip += skip[0]
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
+
 	return deferFn
 }
 
@@ -275,6 +321,23 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 		req.AddCookie(c)
 	}
 	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -332,7 +395,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
-//token has to be unique this counter take care of
+// token has to be unique this counter take care of
 var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
@@ -376,6 +439,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
+
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -427,6 +491,19 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 	return recorder
 }
 
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	recorder := NewNilResponseHashSumRecorder()
+	c.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+		}
+	}
+	return recorder
+}
+
 // logUnexpectedResponse logs the contents of an unexpected response.
 func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	t.Helper()
@@ -453,6 +530,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
+
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
@@ -470,7 +548,26 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 // within a single test this is required
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
 }

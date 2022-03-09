@@ -38,7 +38,7 @@ type delayedStarter struct {
 }
 
 // setInternal must be called with the lock locked.
-func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), handle HandlerFunc, exemplar interface{}) error {
+func (q *delayedStarter) setInternal(atShutdown func(func()), handle HandlerFunc, exemplar interface{}) error {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if q.timeout > 0 {
@@ -49,19 +49,17 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 
 	defer cancel()
 	// Ensure we also stop at shutdown
-	atShutdown(ctx, func() {
-		cancel()
-	})
+	atShutdown(cancel)
 
 	i := 1
 	for q.internal == nil {
 		select {
 		case <-ctx.Done():
-			var cfg = q.cfg
+			cfg := q.cfg
 			if s, ok := cfg.([]byte); ok {
 				cfg = string(s)
 			}
-			return fmt.Errorf("Timedout creating queue %v with cfg %#v in %s", q.underlying, cfg, q.name)
+			return fmt.Errorf("timedout creating queue %v with cfg %#v in %s", q.underlying, cfg, q.name)
 		default:
 			queue, err := NewQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
@@ -78,9 +76,9 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			i++
 			if q.maxAttempts > 0 && i > q.maxAttempts {
 				if bs, ok := q.cfg.([]byte); ok {
-					return fmt.Errorf("Unable to create queue %v for %s with cfg %s by max attempts: error: %v", q.underlying, q.name, string(bs), err)
+					return fmt.Errorf("unable to create queue %v for %s with cfg %s by max attempts: error: %v", q.underlying, q.name, string(bs), err)
 				}
-				return fmt.Errorf("Unable to create queue %v for %s with cfg %#v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
+				return fmt.Errorf("unable to create queue %v for %s with cfg %#v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
 			}
 			sleepTime := 100 * time.Millisecond
 			if q.timeout > 0 && q.maxAttempts > 0 {
@@ -221,7 +219,7 @@ func (q *WrappedQueue) IsEmpty() bool {
 }
 
 // Run starts to run the queue and attempts to create the internal queue
-func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+func (q *WrappedQueue) Run(atShutdown, atTerminate func(func())) {
 	log.Debug("WrappedQueue: %s Starting", q.name)
 	q.lock.Lock()
 	if q.internal == nil {
@@ -273,6 +271,46 @@ func (q *WrappedQueue) Terminate() {
 	log.Debug("WrappedQueue: %s Terminated", q.name)
 }
 
+// IsPaused will return if the pool or queue is paused
+func (q *WrappedQueue) IsPaused() bool {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	pausable, ok := q.internal.(Pausable)
+	return ok && pausable.IsPaused()
+}
+
+// Pause will pause the pool or queue
+func (q *WrappedQueue) Pause() {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		pausable.Pause()
+	}
+}
+
+// Resume will resume the pool or queue
+func (q *WrappedQueue) Resume() {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		pausable.Resume()
+	}
+}
+
+// IsPausedIsResumed will return a bool indicating if the pool or queue is paused and a channel that will be closed when it is resumed
+func (q *WrappedQueue) IsPausedIsResumed() (paused, resumed <-chan struct{}) {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if pausable, ok := q.internal.(Pausable); ok {
+		return pausable.IsPausedIsResumed()
+	}
+	return context.Background().Done(), closedChan
+}
+
+var closedChan chan struct{}
+
 func init() {
 	queuesMap[WrappedQueueType] = NewWrappedQueue
+	closedChan = make(chan struct{})
+	close(closedChan)
 }

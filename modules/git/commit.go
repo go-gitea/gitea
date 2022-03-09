@@ -8,19 +8,15 @@ package git
 import (
 	"bufio"
 	"bytes"
-	"container/list"
+	"context"
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"io"
-	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Commit represents a git commit.
@@ -40,7 +36,7 @@ type Commit struct {
 // CommitGPGSignature represents a git commit signature part.
 type CommitGPGSignature struct {
 	Signature string
-	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
+	Payload   string // TODO check if can be reconstruct from the rest of commit information to not have duplicate data
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -81,70 +77,6 @@ func (c *Commit) ParentCount() int {
 	return len(c.Parents)
 }
 
-func isImageFile(data []byte) (string, bool) {
-	contentType := http.DetectContentType(data)
-	if strings.Contains(contentType, "image/") {
-		return contentType, true
-	}
-	return contentType, false
-}
-
-// IsImageFile is a file image type
-func (c *Commit) IsImageFile(name string) bool {
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return false
-	}
-
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return false
-	}
-	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
-	buf = buf[:n]
-	_, isImage := isImageFile(buf)
-	return isImage
-}
-
-// ImageMetaData represents metadata of an image file
-type ImageMetaData struct {
-	ColorModel color.Model
-	Width      int
-	Height     int
-	ByteSize   int64
-}
-
-// ImageInfo returns information about the dimensions of an image
-func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
-	if !c.IsImageFile(name) {
-		return nil, nil
-	}
-
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return nil, err
-	}
-	reader, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	config, _, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata := ImageMetaData{
-		ColorModel: config.ColorModel,
-		Width:      config.Width,
-		Height:     config.Height,
-		ByteSize:   blob.Size(),
-	}
-	return &metadata, nil
-}
-
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
@@ -152,12 +84,12 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
-	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)
+	return AddChangesWithArgs(repoPath, globalCommandArgs, all, files...)
 }
 
 // AddChangesWithArgs marks local changes to be ready for commit.
-func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
+func AddChangesWithArgs(repoPath string, globalArgs []string, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(globalArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -176,8 +108,8 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return CommitChangesWithArgs(repoPath, cargs, opts)
 }
 
@@ -207,12 +139,12 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
+func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	args := []string{"--all", "--count"}
 	if hidePRRefs {
-		args = append([]string{"--exclude=refs/pull/*"}, args...)
+		args = append([]string{"--exclude=" + PullPrefix + "*"}, args...)
 	}
-	cmd := NewCommand("rev-list")
+	cmd := NewCommand(ctx, "rev-list")
 	cmd.AddArguments(args...)
 	if len(files) > 0 {
 		cmd.AddArguments("--")
@@ -228,8 +160,8 @@ func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, 
 }
 
 // CommitsCountFiles returns number of total commits of until given revision.
-func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, error) {
-	cmd := NewCommand("rev-list", "--count")
+func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
+	cmd := NewCommand(ctx, "rev-list", "--count")
 	cmd.AddArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--")
@@ -245,22 +177,22 @@ func CommitsCountFiles(repoPath string, revision, relpath []string) (int64, erro
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(repoPath string, revision ...string) (int64, error) {
-	return CommitsCountFiles(repoPath, revision, []string{})
+func CommitsCount(ctx context.Context, repoPath string, revision ...string) (int64, error) {
+	return CommitsCountFiles(ctx, repoPath, revision, []string{})
 }
 
 // CommitsCount returns number of total commits of until current revision.
 func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Path, c.ID.String())
+	return CommitsCount(c.repo.Ctx, c.repo.Path, c.ID.String())
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
+func (c *Commit) CommitsByRange(page, pageSize int) ([]*Commit, error) {
 	return c.repo.commitsByRange(c.ID, page, pageSize)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() (*list.List, error) {
+func (c *Commit) CommitsBefore() ([]*Commit, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
@@ -274,7 +206,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 	}
 
 	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, err := NewCommand("merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		_, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
 		if err == nil {
 			return true, nil
 		}
@@ -287,7 +219,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	result, err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
 	if err != nil {
 		return false, err
 	}
@@ -296,12 +228,12 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
+func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) (*list.List, error) {
+func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
 	endCommit, err := c.repo.GetCommit(commitID)
 	if err != nil {
 		return nil, err
@@ -349,7 +281,7 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) (*list.List, error) {
+func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
 	return c.repo.searchCommits(c.ID, opts)
 }
 
@@ -449,7 +381,7 @@ func (c *Commit) GetBranchName() (string, error) {
 	}
 	args = append(args, "--name-only", "--no-undefined", c.ID.String())
 
-	data, err := NewCommand(args...).RunInDir(c.repo.Path)
+	data, err := NewCommand(c.repo.Ctx, args...).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -475,7 +407,7 @@ func (c *Commit) LoadBranchName() (err error) {
 
 // GetTagName gets the current tag name for given commit
 func (c *Commit) GetTagName() (string, error) {
-	data, err := NewCommand("describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
+	data, err := NewCommand(c.repo.Ctx, "describe", "--exact-match", "--tags", "--always", c.ID.String()).RunInDir(c.repo.Path)
 	if err != nil {
 		// handle special case where there is no tag for this commit
 		if strings.Contains(err.Error(), "no tag exactly matches") {
@@ -502,33 +434,64 @@ func NewCommitFileStatus() *CommitFileStatus {
 	}
 }
 
+func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
+	rd := bufio.NewReader(stdout)
+	peek, err := rd.Peek(1)
+	if err != nil {
+		if err != io.EOF {
+			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+		}
+		return
+	}
+	if peek[0] == '\n' || peek[0] == '\x00' {
+		_, _ = rd.Discard(1)
+	}
+	for {
+		modifier, err := rd.ReadSlice('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file, err := rd.ReadString('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file = file[:len(file)-1]
+		switch modifier[0] {
+		case 'A':
+			fileStatus.Added = append(fileStatus.Added, file)
+		case 'D':
+			fileStatus.Removed = append(fileStatus.Removed, file)
+		case 'M':
+			fileStatus.Modified = append(fileStatus.Modified, file)
+		}
+	}
+}
+
 // GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
+func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if len(fields) < 2 {
-				continue
-			}
-
-			switch fields[0][0] {
-			case 'A':
-				fileStatus.Added = append(fileStatus.Added, fields[1])
-			case 'D':
-				fileStatus.Removed = append(fileStatus.Removed, fields[1])
-			case 'M':
-				fileStatus.Modified = append(fileStatus.Modified, fields[1])
-			}
-		}
-		done <- struct{}{}
+		parseCommitFileStatus(fileStatus, stdout)
+		close(done)
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
+	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
+
+	err := NewCommand(ctx, args...).RunWithContext(&RunContext{
+		Timeout: -1,
+		Dir:     repoPath,
+		Stdout:  w,
+		Stderr:  stderr,
+	})
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
 		return nil, ConcatenateError(err, stderr.String())
@@ -539,8 +502,8 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
-func GetFullCommitID(repoPath, shortID string) (string, error) {
-	commitID, err := NewCommand("rev-parse", shortID).RunInDir(repoPath)
+func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
+	commitID, err := NewCommand(ctx, "rev-parse", shortID).RunInDir(repoPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}

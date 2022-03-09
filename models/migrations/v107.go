@@ -9,7 +9,6 @@ import (
 )
 
 func addTemplateToRepo(x *xorm.Engine) error {
-
 	type Repository struct {
 		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
 		TemplateID int64 `xorm:"INDEX"`

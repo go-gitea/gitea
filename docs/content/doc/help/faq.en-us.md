@@ -31,7 +31,7 @@ On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory
 The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
 The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
+This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).  
 On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
@@ -45,7 +45,7 @@ To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
 In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
 [Example (requires login)](https://try.gitea.io/repo/migrate)
 
-To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
+To migrate from GitLab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
@@ -84,6 +84,12 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 `DISABLE_HTTP_GIT`: if set to true, there will be no HTTP/HTTPS link  
 `DISABLE_SSH`: if set to true, there will be no SSH link  
 `SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users
+
+## File upload fails with: 413 Request Entity Too Large
+
+This error occurs when the reverse proxy limits the file upload size.
+
+See the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}) for a solution with nginx.
 
 ## Custom Templates not loading or working incorrectly
 
@@ -142,7 +148,7 @@ The current way to achieve this is to create/modify a user with a max repo creat
 
 Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.\_\_
 
-Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browseable by all co-workers).
+Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browsable by all co-workers).
 
 At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
 
@@ -152,11 +158,11 @@ Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor an
 
 ## How to add/use custom themes
 
-Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
+Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`  
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
 ## SSHD vs built-in SSH
@@ -223,7 +229,7 @@ following things:
 - On the client:
   - Ensure the public and private ssh keys are added to the correct Gitea user.
   - Make sure there are no issues in the remote url. In particular, ensure the name of the
-    git user (before the `@`) is spelled correctly.
+    Git user (before the `@`) is spelled correctly.
   - Ensure public and private ssh keys are correct on client machine.
 - On the server:
   - Make sure the repository exists and is correctly named.
@@ -324,7 +330,13 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
-you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.  
+If you are using MySQL 5, another possible fix is
+```mysql
+SET GLOBAL innodb_file_format=Barracuda;
+SET GLOBAL innodb_file_per_table=1;
+SET GLOBAL innodb_large_prefix=1;
+```
 
 ## Why Are Emoji Broken On MySQL
 
@@ -341,3 +353,51 @@ You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
 ## Why are Emoji displaying only as placeholders or in monochrome
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
+
+## Stdout logging on SystemD and Docker
+
+Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
+
+Similarly stdout on docker can be viewed using `docker logs <container>`
+
+## Initial logging
+
+Before Gitea has read the configuration file and set-up its logging it will log a number of things to stdout in order to help debug things if logging does not work.
+
+You can stop this logging by setting the `--quiet` or `-q` option. Please note this will only stop logging until Gitea has set-up its own logging.
+
+If you report a bug or issue you MUST give us logs with this information restored.
+
+You should only set this option once you have completely configured everything.
+
+## Warnings about struct defaults during database startup
+
+Sometimes when there are migrations the old columns and default values may be left
+unchanged in the database schema. This may lead to warning such as:
+
+```
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+```
+
+These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+
+```
+gitea doctor recreate-table user
+```
+
+This will cause Gitea to recreate the user table and copy the old data into the new table
+with the defaults set appropriately.
+
+You can ask Gitea to recreate multiple tables using:
+
+```
+gitea doctor recreate-table table1 table2 ...
+```
+
+And if you would like Gitea to recreate all tables simply call:
+
+```
+gitea doctor recreate-table
+```
+
+It is highly recommended to back-up your database before running these commands.

@@ -5,9 +5,10 @@
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"gitea.com/go-chi/session"
 	couchbase "gitea.com/go-chi/session/couchbase"

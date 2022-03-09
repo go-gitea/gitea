@@ -16,6 +16,9 @@
 
       .item {
         text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
 
         .text {
           height: 16px;
@@ -98,8 +101,6 @@
       margin-left: .35rem;
     }
 
-    line-height: 1.2;
-
     > .ui.grid {
       margin-left: auto;
       margin-right: auto;
@@ -181,23 +182,8 @@
       margin-right: .25rem;
     }
 
-    .repo-owner-name-list {
-      .item-name {
-        max-width: 70%;
-        margin-bottom: -4px;
-      }
-    }
-
-    #collaborative-repo-list {
-      .owner-and-repo {
-        max-width: 80%;
-        margin-bottom: -5px;
-      }
-
-      .owner-name {
-        max-width: 120px;
-        margin-bottom: -5px;
-      }
+    .repo-owner-name-list .item-name {
+      max-width: 70%;
     }
   }
 }

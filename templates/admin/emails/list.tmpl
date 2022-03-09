@@ -49,7 +49,7 @@
 				<tbody>
 					{{range .Emails}}
 						<tr>
-							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
+							<td><a href="{{AppSubUrl}}/{{.Name | PathEscape}}">{{.Name}}</a></td>
 							<td><span class="text truncate">{{.FullName}}</span></td>
 							<td><span class="text email">{{.Email}}</span></td>
 							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>

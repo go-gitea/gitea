@@ -19,17 +19,15 @@
 						{{end}}
 					{{else}}
 						{{if .NeedsPassword}}
-							<form class="ui form" action="/user/activate" method="post">
-								<div class="required inline field">
-									<label for="password">{{.i18n.Tr "password"}}</label>
-									<input id="password" name="password" type="password" autocomplete="off" required>
-								</div>
-								<div class="inline field">
-									<label></label>
-									<button class="ui green button">{{.i18n.Tr "install.confirm_password"}}</button>
-								</div>
-								<input id="code" name="code" type="hidden" value="{{.Code}}">
-							</form>
+							<div class="required inline field">
+								<label for="password">{{.i18n.Tr "password"}}</label>
+								<input id="password" name="password" type="password" autocomplete="off" required>
+							</div>
+							<div class="inline field">
+								<label></label>
+								<button class="ui green button">{{.i18n.Tr "install.confirm_password"}}</button>
+							</div>
+							<input id="code" name="code" type="hidden" value="{{.Code}}">
 						{{else if .IsSendRegisterMail}}
 							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
 						{{else if .IsActivateFailed}}

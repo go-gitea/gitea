@@ -45,7 +45,7 @@
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings">{{svg "octicon-pencil"}}</a></td>
+							<td><a href="{{.OrganisationLink}}/settings">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

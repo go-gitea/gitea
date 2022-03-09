@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -43,14 +44,16 @@ func ListStargazers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	stargazers, err := ctx.Repo.Repository.GetStargazers(utils.GetListOptions(ctx))
+	stargazers, err := repo_model.GetStargazers(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetStargazers", err)
 		return
 	}
 	users := make([]*api.User, len(stargazers))
 	for i, stargazer := range stargazers {
-		users[i] = convert.ToUser(stargazer, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(stargazer, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumStars))
 	ctx.JSON(http.StatusOK, users)
 }

@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -83,6 +85,14 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: draft
+	//   in: query
+	//   description: filter (exclude / include) drafts, if you dont have repo write access none will show
+	//   type: boolean
+	// - name: pre-release
+	//   in: query
+	//   description: filter (exclude / include) pre-releases
+	//   type: boolean
 	// - name: per_page
 	//   in: query
 	//   description: page size of results, deprecated - use limit
@@ -100,15 +110,19 @@ func ListReleases(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("per_page") != 0 {
-		listOptions.PageSize = ctx.QueryInt("per_page")
+	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
+		listOptions.PageSize = ctx.FormInt("per_page")
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+	opts := models.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+		IncludeDrafts: ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite,
 		IncludeTags:   false,
-	})
+		IsDraft:       ctx.FormOptionalBool("draft"),
+		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
+	}
+
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
@@ -121,6 +135,15 @@ func ListReleases(ctx *context.APIContext) {
 		}
 		rels[i] = convert.ToRelease(release)
 	}
+
+	filteredCount, err := models.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, rels)
 }
 
@@ -179,7 +202,7 @@ func CreateRelease(ctx *context.APIContext) {
 			IsTag:        false,
 			Repo:         ctx.Repo.Repository,
 		}
-		if err := releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+		if err := releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, nil, ""); err != nil {
 			if models.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
 			} else {
@@ -202,8 +225,8 @@ func CreateRelease(ctx *context.APIContext) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, true); err != nil {
-			ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
+		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+			ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 			return
 		}
 	}
@@ -277,8 +300,8 @@ func EditRelease(ctx *context.APIContext) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, nil, false); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateReleaseOrCreatReleaseFromTag", err)
+	if err := releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)
 		return
 	}
 
@@ -333,7 +356,7 @@ func DeleteRelease(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if err := releaseservice.DeleteReleaseByID(id, ctx.User, false); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, id, ctx.User, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 		return
 	}

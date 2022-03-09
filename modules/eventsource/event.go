@@ -6,14 +6,15 @@ package eventsource
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
-func wrapNewlines(w io.Writer, prefix []byte, value []byte) (sum int64, err error) {
+func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	if len(value) == 0 {
 		return
 	}
@@ -89,7 +90,6 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 		if err != nil {
 			return sum, err
 		}
-
 	}
 
 	n, err = wrapNewlines(w, []byte("id: "), []byte(e.ID))

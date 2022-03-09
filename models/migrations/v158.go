@@ -51,10 +51,12 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		AND comment.id != first.id
 		AND comment.commit_sha != first.commit_sha`
 
-	var sqlCmd string
-	var start = 0
-	var batchSize = 100
-	sess := x.NewSession()
+	var (
+		sqlCmd    string
+		start     = 0
+		batchSize = 100
+		sess      = x.NewSession()
+	)
 	defer sess.Close()
 	for {
 		if err := sess.Begin(); err != nil {
@@ -68,7 +70,7 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 			}
 		}
 
-		var comments = make([]*Comment, 0, batchSize)
+		comments := make([]*Comment, 0, batchSize)
 
 		switch {
 		case setting.Database.UseMySQL:

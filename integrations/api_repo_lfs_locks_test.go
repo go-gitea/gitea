@@ -10,7 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -20,8 +23,8 @@ import (
 func TestAPILFSLocksNotStarted(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = false
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -36,29 +39,29 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 func TestAPILFSLocksNotLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = true
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
-	req.Header.Set("Accept", "application/vnd.git-lfs+json")
+	req.Header.Set("Accept", lfs.MediaType)
 	resp := MakeRequest(t, req, http.StatusUnauthorized)
 	var lfsLockError api.LFSLockError
 	DecodeJSON(t, resp, &lfsLockError)
-	assert.Equal(t, "Unauthorized", lfsLockError.Message)
+	assert.Equal(t, "You must have pull access to list locks", lfsLockError.Message)
 }
 
 func TestAPILFSLocksLogged(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = true
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) //in org 3
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) //in org 3
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // in org 3
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // in org 3
 
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // own by org 3
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository) // own by org 3
 
 	tests := []struct {
-		user       *models.User
-		repo       *models.Repository
+		user       *user_model.User
+		repo       *repo_model.Repository
 		path       string
 		httpResult int
 		addTime    []int
@@ -79,47 +82,47 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	}
 
 	resultsTests := []struct {
-		user        *models.User
-		repo        *models.Repository
+		user        *user_model.User
+		repo        *repo_model.Repository
 		totalCount  int
 		oursCount   int
 		theirsCount int
-		locksOwners []*models.User
+		locksOwners []*user_model.User
 		locksTimes  []time.Time
 	}{
-		{user: user2, repo: repo1, totalCount: 4, oursCount: 4, theirsCount: 0, locksOwners: []*models.User{user2, user2, user2, user2}, locksTimes: []time.Time{}},
-		{user: user2, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
-		{user: user4, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*models.User{user2, user4}, locksTimes: []time.Time{}},
+		{user: user2, repo: repo1, totalCount: 4, oursCount: 4, theirsCount: 0, locksOwners: []*user_model.User{user2, user2, user2, user2}, locksTimes: []time.Time{}},
+		{user: user2, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*user_model.User{user2, user4}, locksTimes: []time.Time{}},
+		{user: user4, repo: repo3, totalCount: 2, oursCount: 1, theirsCount: 1, locksOwners: []*user_model.User{user2, user4}, locksTimes: []time.Time{}},
 	}
 
 	deleteTests := []struct {
-		user   *models.User
-		repo   *models.Repository
+		user   *user_model.User
+		repo   *repo_model.Repository
 		lockID string
 	}{}
 
-	//create locks
+	// create locks
 	for _, test := range tests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
-		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
 			var lfsLock api.LFSLockResponse
 			DecodeJSON(t, resp, &lfsLock)
-			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
+			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 			for _, id := range test.addTime {
 				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
 			}
 		}
 	}
 
-	//check creation
+	// check creation
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
-		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Accept", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
@@ -127,12 +130,12 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		for i, lock := range lfsLocks.Locks {
 			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 10*time.Second)
-			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
+			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 		}
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
-		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Content-Type", lfs.MediaType)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocksVerify api.LFSLockListVerify
 		DecodeJSON(t, resp, &lfsLocksVerify)
@@ -141,8 +144,8 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		for _, lock := range lfsLocksVerify.Ours {
 			assert.EqualValues(t, test.user.DisplayName(), lock.Owner.Name)
 			deleteTests = append(deleteTests, struct {
-				user   *models.User
-				repo   *models.Repository
+				user   *user_model.User
+				repo   *repo_model.Repository
 				lockID string
 			}{test.user, test.repo, lock.ID})
 		}
@@ -151,12 +154,12 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		}
 	}
 
-	//remove all locks
+	// remove all locks
 	for _, test := range deleteTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
-		req.Header.Set("Accept", "application/vnd.git-lfs+json")
-		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
+		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLockRep api.LFSLockResponse
 		DecodeJSON(t, resp, &lfsLockRep)
@@ -168,7 +171,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
-		req.Header.Set("Accept", "application/vnd.git-lfs+json")
+		req.Header.Set("Accept", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)

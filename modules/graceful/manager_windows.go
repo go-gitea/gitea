@@ -1,9 +1,10 @@
-// +build windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
+
+//go:build windows
+// +build windows
 
 package graceful
 
@@ -36,14 +37,22 @@ type Manager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	doneCtx                context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	doneCtxCancel          context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
 	shutdownRequested      chan struct{}
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -58,27 +67,33 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start() {
+	// Make contexts
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
+	g.doneCtx, g.doneCtxCancel = context.WithCancel(g.ctx)
+
 	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
 	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
 	g.setState(stateRunning)
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
+		log.Trace("Skipping SVC check as SKIP_MINWINSVC is set")
 		return
 	}
 
 	// Make SVC process
 	run := svc.Run
-	isInteractive, err := svc.IsWindowsService()
+
+	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
 	if err != nil {
-		log.Error("Unable to ascertain if running as an Interactive Session: %v", err)
+		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return
 	}
-	if isInteractive {
+	if isAnInteractiveSession {
+		log.Trace("Not running a service ... using the debug SVC manager")
 		run = debug.Run
 	}
 	go func() {
@@ -94,10 +109,14 @@ func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, statu
 		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout / time.Millisecond)}
 	}
 
+	log.Trace("Awaiting server start-up")
 	// Now need to wait for everything to start...
 	if !g.awaitServer(setting.StartupTimeout) {
+		log.Trace("... start-up failed ... Stopped")
 		return false, 1
 	}
+
+	log.Trace("Sending Running state to SVC")
 
 	// We need to implement some way of svc.AcceptParamChange/svc.ParamChange
 	status <- svc.Status{
@@ -105,27 +124,34 @@ func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, statu
 		Accepts: svc.AcceptStop | svc.AcceptShutdown | acceptHammerCode,
 	}
 
+	log.Trace("Started")
+
 	waitTime := 30 * time.Second
 
 loop:
 	for {
 		select {
 		case <-g.ctx.Done():
+			log.Trace("Shutting down")
 			g.DoGracefulShutdown()
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case <-g.shutdownRequested:
+			log.Trace("Shutting down")
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case change := <-changes:
 			switch change.Cmd {
 			case svc.Interrogate:
+				log.Trace("SVC sent interrogate")
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown:
+				log.Trace("SVC requested shutdown - shutting down")
 				g.DoGracefulShutdown()
 				waitTime += setting.GracefulHammerTime
 				break loop
 			case hammerCode:
+				log.Trace("SVC requested hammer - shutting down and hammering immediately")
 				g.DoGracefulShutdown()
 				g.DoImmediateHammer()
 				break loop
@@ -134,6 +160,8 @@ loop:
 			}
 		}
 	}
+
+	log.Trace("Sending StopPending state to SVC")
 	status <- svc.Status{
 		State:    svc.StopPending,
 		WaitHint: uint32(waitTime / time.Millisecond),
@@ -145,17 +173,21 @@ hammerLoop:
 		case change := <-changes:
 			switch change.Cmd {
 			case svc.Interrogate:
+				log.Trace("SVC sent interrogate")
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown, hammerCmd:
+				log.Trace("SVC requested hammer - hammering immediately")
 				g.DoImmediateHammer()
 				break hammerLoop
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
 			}
-		case <-g.hammer:
+		case <-g.hammerCtx.Done():
 			break hammerLoop
 		}
 	}
+
+	log.Trace("Stopped")
 	return false, 0
 }
 

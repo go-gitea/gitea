@@ -115,14 +115,14 @@ services:
       - ./gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-     ports:
-       - "3000:3000"
-       - "222:22"
+    ports:
+      - "3000:3000"
+      - "222:22"
 +    depends_on:
 +      - db
 +
 +  db:
-+    image: mysql:5.7
++    image: mysql:8
 +    restart: always
 +    environment:
 +      - MYSQL_ROOT_PASSWORD=gitea
@@ -172,7 +172,7 @@ services:
 +      - db
 +
 +  db:
-+    image: postgres:9.6
++    image: postgres:13
 +    restart: always
 +    environment:
 +      - POSTGRES_USER=gitea

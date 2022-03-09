@@ -3,10 +3,12 @@
 	<div class="ui secondary pointing tabular top attached borderless menu new-menu navbar">
 		<div class="new-menu-inner">
 			<!-- TODO handle .ShowRegistrationButton once other login bugs are fixed -->
-			<a class="item {{if not .user_exists}}active{{end}}"
-				data-tab="auth-link-signup-tab">
-				{{.i18n.Tr "auth.oauth_signup_tab"}}
-			</a>
+			{{if not .AllowOnlyInternalRegistration}}
+				<a class="item {{if not .user_exists}}active{{end}}"
+					data-tab="auth-link-signup-tab">
+					{{.i18n.Tr "auth.oauth_signup_tab"}}
+				</a>
+			{{end}}
 			<a class="item {{if .user_exists}}active{{end}}"
 				data-tab="auth-link-signin-tab">
 				{{.i18n.Tr "auth.oauth_signin_tab"}}

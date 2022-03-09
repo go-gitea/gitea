@@ -169,10 +169,12 @@ var levelToColor = map[Level][]byte{
 	NONE:     ColorBytes(Reset),
 }
 
-var resetBytes = ColorBytes(Reset)
-var fgCyanBytes = ColorBytes(FgCyan)
-var fgGreenBytes = ColorBytes(FgGreen)
-var fgBoldBytes = ColorBytes(Bold)
+var (
+	resetBytes   = ColorBytes(Reset)
+	fgCyanBytes  = ColorBytes(FgCyan)
+	fgGreenBytes = ColorBytes(FgGreen)
+	fgBoldBytes  = ColorBytes(Bold)
+)
 
 type protectedANSIWriterMode int
 
@@ -259,7 +261,7 @@ normalLoop:
 		}
 
 		// Process naughty character
-		if _, err := fmt.Fprintf(c.w, `\%#o03d`, bytes[i]); err != nil {
+		if _, err := fmt.Fprintf(c.w, `\%#03o`, bytes[i]); err != nil {
 			return totalWritten, err
 		}
 		i++
@@ -335,7 +337,6 @@ func NewColoredValuePointer(value *interface{}, color ...ColorAttribute) *Colore
 		resetBytes: &resetBytes,
 		Value:      value,
 	}
-
 }
 
 // NewColoredValueBytes creates a value from the provided value with color bytes

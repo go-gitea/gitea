@@ -8,17 +8,18 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{.i18n.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
+						<input type="hidden" id="auth_type" name="type" value="{{.type.Int}}">
 						<div class="text">{{.CurrentTypeName}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range .AuthSources}}
-								<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+								<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
 							{{end}}
 						</div>
 					</div>
@@ -38,6 +39,15 @@
 				<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
 					<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
+					<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
+				</div>
+				<div class="pam optional field {{if not (eq .type 4)}}hide{{end}}">
+					<div class="ui checkbox">
+						<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+						<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+					</div>
 				</div>
 
 				<!-- OAuth2 -->
@@ -50,18 +60,6 @@
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
-					</div>
-				</div>
-				<div class="smtp inline field {{if not (eq .type 3)}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
-						<input name="tls" type="checkbox" {{if .tls}}checked{{end}}>
-					</div>
-				</div>
-				<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-						<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 					</div>
 				</div>
 				<div class="ldap inline field {{if not (eq .type 2)}}hide{{end}}">
@@ -119,8 +117,8 @@
 				<span>{{.i18n.Tr "admin.auths.tip.nextcloud"}}</span>
 				<li>Yandex</li>
 				<span>{{.i18n.Tr "admin.auths.tip.yandex"}}</span>
-        <li>Mastodon</li>
-        <span>{{.i18n.Tr "admin.auths.tip.mastodon"}}</span>
+				<li>Mastodon</li>
+				<span>{{.i18n.Tr "admin.auths.tip.mastodon"}}</span>
 			</div>
 		</div>
 	</div>

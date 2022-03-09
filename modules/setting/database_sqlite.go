@@ -1,3 +1,4 @@
+//go:build sqlite
 // +build sqlite
 
 // Copyright 2014 The Gogs Authors. All rights reserved.
@@ -12,5 +13,5 @@ import (
 
 func init() {
 	EnableSQLite3 = true
-	SupportedDatabases = append(SupportedDatabases, "SQLite3")
+	SupportedDatabaseTypes = append(SupportedDatabaseTypes, "sqlite3")
 }

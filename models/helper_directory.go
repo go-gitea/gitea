@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -30,7 +29,7 @@ func CreateTemporaryPath(prefix string) (string, error) {
 		log.Error("Unable to create localcopypath directory: %s (%v)", LocalCopyPath(), err)
 		return "", fmt.Errorf("Failed to create localcopypath directory %s: %v", LocalCopyPath(), err)
 	}
-	basePath, err := ioutil.TempDir(LocalCopyPath(), prefix+".git")
+	basePath, err := os.MkdirTemp(LocalCopyPath(), prefix+".git")
 	if err != nil {
 		log.Error("Unable to create temporary directory: %s-*.git (%v)", prefix, err)
 		return "", fmt.Errorf("Failed to create dir %s-*.git: %v", prefix, err)
