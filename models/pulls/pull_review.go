@@ -90,10 +90,20 @@ func GetNewestReview(userID, pullID int64) (*PRReview, error) {
 // getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
 func getNewestReviewApartFrom(commitSHA string, userID, pullID int64) (*PRReview, error) {
-	var review PRReview
-	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).And("commit_sha != ?", commitSHA).OrderBy("updated_unix DESC").Limit(1).Get(&review)
-	if err != nil || !has {
+	var reviews []PRReview
+	err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
+	// It would also be possible to use ".And("commit_sha != ?", commitSHA)" instead of the error handling below
+	// However, benchmarks show a MASSIVE performance gain by not doing that: 1000 ms => <300 ms
+
+	// Error cases in which no review should be returned
+	if err != nil || len(reviews) == 0 || (len(reviews) == 1 && reviews[0].CommitSHA == commitSHA) {
 		return nil, err
+
+		// The first review points at the commit to exclude, hence skip to the second review
+	} else if len(reviews) >= 2 && reviews[0].CommitSHA == commitSHA {
+		return &reviews[1], nil
 	}
-	return &review, err
+
+	// As we have no error cases left, the result must be the first element in the list
+	return &reviews[0], nil
 }
