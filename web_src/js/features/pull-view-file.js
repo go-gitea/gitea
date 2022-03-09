@@ -1,8 +1,11 @@
 import {setFileFolding} from './file-fold.js';
 
 const viewedStyleClass = 'viewed-file-checked-form';
+export const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
 
-function refreshViewedFilesSummary() {
+// Refreshes the summary of viewed files if present
+// The data used will window.config.pageData.numberOf{Viewed}Files
+export function refreshViewedFilesSummary() {
   const viewedFilesMeter = document.getElementById('viewed-files-summary');
   if (viewedFilesMeter) viewedFilesMeter.setAttribute('value', window.config.pageData.numberOfViewedFiles);
   const summaryLabel = document.getElementById('viewed-files-summary-label');
@@ -15,7 +18,7 @@ function refreshViewedFilesSummary() {
 // (for example 'document' in the most basic case)
 // to watch for changes of viewed-file checkboxes
 export function initViewedCheckboxListenerFor(element) {
-  for (const form of element.querySelectorAll('.viewed-file-form:not([data-has-listener="true"])')) {
+  for (const form of element.querySelectorAll(`${viewedCheckboxSelector}:not([data-has-listener="true"])`)) {
     // To prevent double addition of listeners
     form.setAttribute('data-has-listener', true);
 
