@@ -666,6 +666,14 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 	return tailSection
 }
 
+// GetDiffFileName returns the name of the diff file, or its old name in case it was deleted
+func (diffFile *DiffFile) GetDiffFileName() string {
+	if diffFile.Name == "" {
+		return diffFile.OldName
+	}
+	return diffFile.Name
+}
+
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	blob, err := commit.GetBlobByPath(filePath)
 	if err != nil {
@@ -1523,27 +1531,19 @@ outer:
 
 		// Check whether the file has changed since the last review
 		for _, changedFile := range changedFiles {
-			diffFile.HasChangedSinceLastReview = isSameFile(diffFile, changedFile)
+			diffFile.HasChangedSinceLastReview = diffFile.GetDiffFileName() == changedFile
 			if diffFile.HasChangedSinceLastReview {
 				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
 			}
 		}
 		// Check whether the file has already been viewed
-		for file, viewed := range review.ViewedFiles {
-			if isSameFile(diffFile, file) {
-				diffFile.IsViewed = viewed
-				diff.NumViewedFiles++
-				break
-			}
+		if review.ViewedFiles[diffFile.GetDiffFileName()] {
+			diffFile.IsViewed = true
+			diff.NumViewedFiles++
 		}
 	}
 
 	return diff, err
-}
-
-// isSameFile returns whether the given diff file and the given file name point at the same file
-func isSameFile(diffFile *DiffFile, file string) bool {
-	return diffFile.Name == file || (diffFile.Name == "" && diffFile.OldName == file)
 }
 
 // CommentAsDiff returns c.Patch as *Diff

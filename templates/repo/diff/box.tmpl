@@ -114,7 +114,7 @@
 								{{end}}
 								<div data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
 									{{$.CsrfTokenHtml}}
-									<input type="checkbox" name="{{if $file.Name}}{{$file.Name}}{{else}}{{$file.OldName}}{{end}}" id="viewed-file-checkbox-{{$i}}" {{if $file.IsViewed}}checked{{end}}></input>
+									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$i}}" {{if $file.IsViewed}}checked{{end}}></input>
 									<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
 								</div>
 							{{end}}
