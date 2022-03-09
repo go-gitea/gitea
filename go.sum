@@ -69,8 +69,8 @@ contrib.go.opencensus.io/exporter/stackdriver v0.13.5/go.mod h1:aXENhDJ1Y4lIg4EU
 contrib.go.opencensus.io/integrations/ocsql v0.1.4/go.mod h1:8DsSdjz3F+APR+0z0WkU1aRorQCFfRxvqjUUPMbF3fE=
 contrib.go.opencensus.io/resource v0.1.1/go.mod h1:F361eGI91LCmW1I/Saf+rX0+OFcigGlFvXwEGEnkRLA=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be h1:IzSwPVzd2hE6e67ujY8ReBCrQ5IFNd0uiBmC7Ux5IaY=
-gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be/go.mod h1:/vR0YjlusOYvosKYW7QKcSnrY0nPLe4RQ/DGi3+i/Do=
+gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
+gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
 gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea h1:Fq/f4hjigb5v5WpA5TfBCZOSavpHPBiB4Wkj/WsITYM=
 gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
