@@ -106,6 +106,16 @@ i.e. `servcies/user`, `models/repository`.
 Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
 i.e. `import user_service "code.gitea.io/gitea/services/user"`
 
+### Important Gotchas
+
+- Never write `x.Update(exemplar)` without an explicit `WHERE` clause:
+  - This will cause all rows in the table to be updated with the non-zero values of the exemplar - including IDs.
+  - You should usually write `x.ID(id).Update(exemplar)`.
+- If during a migration you are inserting into a table using `x.Insert(exemplar)` where the ID is preset:
+  - You will need to ``SET IDENTITY_INSERT `table` ON`` for the MSSQL variant (the migration will fail otherwise)
+  - However, you will also need to update the id sequence for postgres - the migration will silently pass here but later insertions will fail:
+    ``SELECT setval('table_name_id_seq', COALESCE((SELECT MAX(id)+1 FROM `table_name`), 1), false)``
+
 ### Future Tasks
 
 Currently, we are creating some refactors to do the following things:
