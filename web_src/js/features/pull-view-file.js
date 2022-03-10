@@ -1,17 +1,26 @@
 import {setFileFolding} from './file-fold.js';
 
+const prReview = window.config.pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
-export const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
+const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
 
 // Refreshes the summary of viewed files if present
-// The data used will window.config.pageData.numberOf{Viewed}Files
-export function refreshViewedFilesSummary() {
+// The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
+function refreshViewedFilesSummary() {
   const viewedFilesMeter = document.getElementById('viewed-files-summary');
-  if (viewedFilesMeter) viewedFilesMeter.setAttribute('value', window.config.pageData.numberOfViewedFiles);
+  if (viewedFilesMeter) viewedFilesMeter.setAttribute('value', prReview.numberOfViewedFiles);
   const summaryLabel = document.getElementById('viewed-files-summary-label');
   if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
-    .replace('%[1]d', window.config.pageData.numberOfViewedFiles)
-    .replace('%[2]d', window.config.pageData.numberOfFiles);
+    .replace('%[1]d', prReview.numberOfViewedFiles)
+    .replace('%[2]d', prReview.numberOfFiles);
+}
+
+// Explicitly recounts how many files the user has currently reviewed by counting the number of checked "viewed" checkboxes
+// Additionally, the viewed files summary will be updated if it exists
+export function countAndUpdateViewedFiles() {
+  // The number of files is constant, but the number of viewed files can change because files can be loaded dynamically
+  prReview.numberOfViewedFiles = document.querySelectorAll(`${viewedCheckboxSelector} > input[type=checkbox][checked]`).length;
+  refreshViewedFilesSummary();
 }
 
 // Initializes a listener for all children of the given html element
@@ -29,10 +38,10 @@ export function initViewedCheckboxListenerFor(element) {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
-        window.config.pageData.numberOfViewedFiles++;
+        prReview.numberOfViewedFiles++;
       } else {
         form.classList.remove(viewedStyleClass);
-        window.config.pageData.numberOfViewedFiles--;
+        prReview.numberOfViewedFiles--;
       }
 
       // Update viewed-files summary and remove "has changed" label if present

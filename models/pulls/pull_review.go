@@ -41,7 +41,7 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 
 	if exists {
 		review.ViewedFiles = mergeFiles(review.ViewedFiles, viewedFiles)
-	} else if previousReview, err := getNewestReviewApartFrom(commitSHA, userID, pullID); err != nil {
+	} else if previousReview, err := getNewestReviewApartFrom(userID, pullID, commitSHA); err != nil {
 		return err
 
 		// Overwrite the viewed files of the previous review if present
@@ -89,7 +89,7 @@ func GetNewestReview(userID, pullID int64) (*PRReview, error) {
 
 // getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
-func getNewestReviewApartFrom(commitSHA string, userID, pullID int64) (*PRReview, error) {
+func getNewestReviewApartFrom(userID, pullID int64, commitSHA string) (*PRReview, error) {
 	var reviews []PRReview
 	err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
 	// It would also be possible to use ".And("commit_sha != ?", commitSHA)" instead of the error handling below
