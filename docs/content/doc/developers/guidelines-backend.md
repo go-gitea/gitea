@@ -42,7 +42,7 @@ To maintain understandable code and avoid circular dependencies it is important 
   - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
-- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
+- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) must not depend on routers.
   - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests. 
   - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false). 
   - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
@@ -122,4 +122,4 @@ Currently, we are creating some refactors to do the following things:
 
 - Correct that codes which doesn't follow the rules.
 - There are too many files in `models`, so we are moving some of them into a sub package `models/xxx`.
-- Some `modules` sub packages should be moved to `services` because they depends on `models`.
+- Some `modules` sub packages should be moved to `services` because they depend on `models`.
