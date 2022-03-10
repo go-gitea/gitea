@@ -121,7 +121,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 	err = nl.LoadAttributes()
-	if err != nil && !models.IsErrCommentNotExist(err) {
+	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
