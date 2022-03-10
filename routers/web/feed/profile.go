@@ -16,7 +16,7 @@ import (
 )
 
 // RetrieveFeeds loads feeds for the specified user
-func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*models.Action {
+func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) models.ActionList {
 	actions, err := models.GetFeeds(options)
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)

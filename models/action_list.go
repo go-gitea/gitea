@@ -45,11 +45,6 @@ func (actions ActionList) loadUsers(e db.Engine) ([]*user_model.User, error) {
 	return valuesUser(userMaps), nil
 }
 
-// LoadUsers loads actions' all users
-func (actions ActionList) LoadUsers() ([]*user_model.User, error) {
-	return actions.loadUsers(db.GetEngine(db.DefaultContext))
-}
-
 func (actions ActionList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(actions))
 	for _, action := range actions {
@@ -80,11 +75,6 @@ func (actions ActionList) loadRepositories(e db.Engine) ([]*repo_model.Repositor
 	return valuesRepository(repoMaps), nil
 }
 
-// LoadRepositories loads actions' all repositories
-func (actions ActionList) LoadRepositories() ([]*repo_model.Repository, error) {
-	return actions.loadRepositories(db.GetEngine(db.DefaultContext))
-}
-
 // loadAttributes loads all attributes
 func (actions ActionList) loadAttributes(e db.Engine) (err error) {
 	if _, err = actions.loadUsers(e); err != nil {
@@ -96,9 +86,4 @@ func (actions ActionList) loadAttributes(e db.Engine) (err error) {
 	}
 
 	return nil
-}
-
-// LoadAttributes loads attributes of the actions
-func (actions ActionList) LoadAttributes() error {
-	return actions.loadAttributes(db.GetEngine(db.DefaultContext))
 }

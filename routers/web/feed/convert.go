@@ -45,7 +45,7 @@ func toReleaseLink(act *models.Action) string {
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
-func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (items []*feeds.Item, err error) {
+func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (items []*feeds.Item, err error) {
 	for _, act := range actions {
 		act.LoadActUser()
 
