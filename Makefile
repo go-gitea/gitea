@@ -235,7 +235,7 @@ clean:
 .PHONY: fmt
 fmt:
 	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@latest; \
+		$(GO) install mvdan.cc/gofumpt@v0.3.0; \
 	fi
 	@echo "Running gitea-fmt (with gofumpt)..."
 	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
@@ -287,7 +287,7 @@ errcheck:
 .PHONY: fmt-check
 fmt-check:
 	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@latest; \
+		$(GO) install mvdan.cc/gofumpt@0.3.0; \
 	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
@@ -514,6 +514,10 @@ bench-pgsql: integrations.pgsql.test generate-ini-pgsql
 integration-test-coverage: integrations.cover.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
+.PHONY: integration-test-coverage-sqlite
+integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.cover.sqlite.test -test.coverprofile=integration.coverage.out
+
 integrations.mysql.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -o integrations.mysql.test
 
@@ -531,6 +535,9 @@ integrations.sqlite.test: git-check $(GO_SOURCES)
 
 integrations.cover.test: git-check $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.test
+
+integrations.cover.sqlite.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations -coverpkg $(shell echo $(GO_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: migrations.mysql.test
 migrations.mysql.test: $(GO_SOURCES)
