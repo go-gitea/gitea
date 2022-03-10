@@ -234,7 +234,7 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
 			// as private *user* repos don't generate an entry in the `access` table,
 			// the owner of a private repo needs to be explicitly added.
-			cond = cond.Or(builder.Eq{"id": repo.Owner.ID})
+			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
 		}
 
 	} else {
