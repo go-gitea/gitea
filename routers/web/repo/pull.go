@@ -699,7 +699,7 @@ func ViewPullFiles(ctx *context.Context) {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
-		diff, err = gitdiff.GetUserSpecificDiff(ctx.User.ID, checkPullInfo(ctx).PullRequest, gitRepo, diffOptions, ctx.FormStrings("files")...)
+		diff, err = gitdiff.GetUserSpecificDiff(ctx.User.ID, pull, gitRepo, diffOptions, ctx.FormStrings("files")...)
 		methodWithError = "GetUserSpecificDiff"
 	}
 	if err != nil {

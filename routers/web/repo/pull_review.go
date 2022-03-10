@@ -249,10 +249,11 @@ func DismissReview(ctx *context.Context) {
 const headCommitKey = "_headCommitSHA"
 
 func UpdateViewedFiles(ctx *context.Context) {
-	pull := checkPullInfo(ctx).PullRequest
-	if pull == nil || ctx.Written() { // If pull == nil, the user has already been notified that it was not found
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
 		return
 	}
+	pull := issue.PullRequest
 	updatedFiles := make(map[string]bool, len(ctx.Req.Form))
 	headCommitSHA := ""
 
