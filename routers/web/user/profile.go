@@ -94,14 +94,11 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
-		/*
-			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
-			// Show Org RSS feed
-			if len(showFeedType) != 0 {
-				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
-				return
-			}
-		*/
+		// Show Org RSS feed
+		if len(showFeedType) != 0 {
+			feed.ShowUserFeed(ctx, ctxUser, showFeedType)
+			return
+		}
 
 		org.Home(ctx)
 		return
