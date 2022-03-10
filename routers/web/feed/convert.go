@@ -7,6 +7,7 @@ package feed
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -225,4 +226,25 @@ func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (it
 		})
 	}
 	return
+}
+
+// GetFeedType return altered name and feed type, if type is empty it's no feed.
+func GetFeedType(name string, req *http.Request) (string, string) {
+	if strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
+		return name, "rss"
+	}
+
+	if strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
+		return name, "atom"
+	}
+
+	if strings.HasSuffix(name, ".rss") {
+		return strings.TrimSuffix(name, ".rss"), "rss"
+	}
+
+	if strings.HasSuffix(name, ".atom") {
+		return strings.TrimSuffix(name, ".atom"), "atom"
+	}
+
+	return name, ""
 }

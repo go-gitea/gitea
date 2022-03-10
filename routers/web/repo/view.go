@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 )
 
 const (
@@ -691,6 +692,12 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
+	_, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+	if len(showFeedType) != 0 {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+		return
+	}
+
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return

@@ -74,19 +74,7 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	showFeedType := ""
-	if strings.HasSuffix(uname, ".rss") {
-		showFeedType = "rss"
-		uname = strings.TrimSuffix(uname, ".rss")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
-		showFeedType = "rss"
-	}
-	if strings.HasSuffix(uname, ".atom") {
-		showFeedType = "atom"
-		uname = strings.TrimSuffix(uname, ".atom")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
-		showFeedType = "atom"
-	}
+	uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
 
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
