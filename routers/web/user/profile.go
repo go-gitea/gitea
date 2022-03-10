@@ -259,7 +259,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
@@ -267,7 +267,8 @@ func Profile(ctx *context.Context) {
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
 		})
-		if ctx.Written() {
+		if err != nil {
+			ctx.ServerError("GetFeeds", err)
 			return
 		}
 	case "stars":

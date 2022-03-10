@@ -15,20 +15,9 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-// RetrieveFeeds loads feeds for the specified user
-func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) models.ActionList {
-	actions, err := models.GetFeeds(options)
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
-		return nil
-	}
-
-	return actions
-}
-
 // ShowUserFeed show user activity as RSS / Atom feed
 func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
-	actions := RetrieveFeeds(ctx, models.GetFeedsOptions{
+	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
@@ -36,7 +25,8 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
-	if ctx.Written() {
+	if err != nil {
+		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
@@ -47,7 +37,6 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		Created:     time.Now(),
 	}
 
-	var err error
 	feed.Items, err = feedActionsToFeedItems(ctx, actions)
 	if err != nil {
 		ctx.ServerError("convert feed", err)

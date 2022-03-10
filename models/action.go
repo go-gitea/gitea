@@ -328,7 +328,7 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(opts GetFeedsOptions) (ActionList, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
 		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
@@ -338,7 +338,7 @@ func GetFeeds(opts GetFeedsOptions) (ActionList, error) {
 		return nil, err
 	}
 
-	e := db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(ctx)
 	sess := e.Where(cond)
 
 	opts.SetDefaultValues()

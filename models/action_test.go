@@ -8,6 +8,7 @@ import (
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -39,7 +40,7 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	actions, err := GetFeeds(GetFeedsOptions{
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -52,7 +53,7 @@ func TestGetFeeds(t *testing.T) {
 		assert.EqualValues(t, user.ID, actions[0].UserID)
 	}
 
-	actions, err = GetFeeds(GetFeedsOptions{
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  false,
@@ -68,7 +69,7 @@ func TestGetFeeds2(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	actions, err := GetFeeds(GetFeedsOptions{
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -82,7 +83,7 @@ func TestGetFeeds2(t *testing.T) {
 		assert.EqualValues(t, org.ID, actions[0].UserID)
 	}
 
-	actions, err = GetFeeds(GetFeedsOptions{
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  false,
