@@ -269,7 +269,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
 				if err := models.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
-					return fmt.Errorf("unable to PushUpdateDeleteTag for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
+					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
 				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
@@ -283,7 +283,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 	for _, tagName := range tags {
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
 			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("unable to PushUpdateAddTag %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+				return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
 	}
