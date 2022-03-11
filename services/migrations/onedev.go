@@ -379,6 +379,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 	}
 
 	rawComments := make([]struct {
+		ID      int64     `json:"id"`
 		Date    time.Time `json:"date"`
 		UserID  int64     `json:"userId"`
 		Content string    `json:"content"`
@@ -429,6 +430,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 		poster := d.tryGetUser(comment.UserID)
 		comments = append(comments, &base.Comment{
 			IssueIndex:  context.LocalID(),
+			Index:       comment.ID,
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,

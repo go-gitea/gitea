@@ -107,7 +107,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Upload (`repository.upload`)
 
 - `ENABLED`: **true**: Whether repository file uploads are enabled
-- `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (tmp gets deleted on Gitea restart)
+- `TEMP_PATH`: **data/tmp/uploads**: Path for uploads (content gets deleted on Gitea restart)
 - `ALLOWED_TYPES`: **\<empty\>**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `FILE_MAX_SIZE`: **3**: Max size of each file in megabytes.
 - `MAX_FILES`: **5**: Max number of files per upload
@@ -144,7 +144,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Repository - Local (`repository.local`)
 
-- `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
+- `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo` (content gets deleted on Gitea restart)
 
 ## Repository -  MIME type mapping (`repository.mimetype_mapping`)
 
@@ -1003,13 +1003,13 @@ IS_INPUT_FILE = false
    command. Multiple extensions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
+- DISABLE_SANITIZER: **false** Don't filter html tags and attributes if true. Don't change this to true except you know what that means.
 
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
-
-Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
+If `DISABLE_SANITIZER` is false, Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
 [markup.sanitizer.TeX]

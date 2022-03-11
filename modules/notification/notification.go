@@ -60,6 +60,13 @@ func NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionC
 	}
 }
 
+// NotifyDeleteIssue notify when some issue deleted
+func NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteIssue(doer, issue)
+	}
+}
+
 // NotifyMergePullRequest notifies merge pull request to notifiers
 func NotifyMergePullRequest(pr *models.PullRequest, doer *user_model.User) {
 	for _, notifier := range notifiers {

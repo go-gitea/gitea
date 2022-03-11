@@ -473,6 +473,7 @@ func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comm
 
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  opts.Context.LocalID(),
+				Index:       comment.ID,
 				PosterID:    comment.Poster.ID,
 				PosterName:  comment.Poster.UserName,
 				PosterEmail: comment.Poster.Email,
