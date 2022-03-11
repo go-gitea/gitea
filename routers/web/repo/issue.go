@@ -1495,7 +1495,7 @@ func ViewIssue(ctx *context.Context) {
 		if ctx.IsSigned {
 			if err := pull.LoadHeadRepo(); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
-			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
+			} else if pull.HeadRepo != nil {
 				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.User)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
@@ -1503,11 +1503,13 @@ func ViewIssue(ctx *context.Context) {
 				}
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
-					if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
+						if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+							log.Error("IsProtectedBranch: %v", err)
+						} else if !protected {
+							canDelete = true
+							ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+						}
 					}
 					ctx.Data["CanWriteToHeadRepo"] = true
 				}
