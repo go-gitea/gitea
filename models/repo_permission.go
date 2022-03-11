@@ -118,11 +118,11 @@ func (p *Permission) CanWriteToBranch(user *user_model.User, branch string) bool
 	}
 
 	for _, pr := range prs {
-		err = pr.LoadBaseRepo()
-		if err != nil {
-			continue
-		}
 		if pr.AllowMaintainerEdit {
+			err = pr.LoadBaseRepo()
+			if err != nil {
+				continue
+			}
 			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
 			if err != nil {
 				continue
