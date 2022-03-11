@@ -111,7 +111,7 @@ func (email *EmailAddress) BeforeInsert() {
 	}
 }
 
-var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a allowed address
 func ValidateEmail(email string) error {
@@ -121,6 +121,12 @@ func ValidateEmail(email string) error {
 
 	if !emailRegexp.MatchString(email) {
 		return ErrEmailCharIsNotSupported
+	}
+
+	if !(email[0] >= 'a' && email[0] <= 'z') &&
+		!(email[0] >= 'A' && email[0] <= 'Z') &&
+		!(email[0] >= '0' && email[0] <= '9') {
+		return ErrEmailInvalid{email}
 	}
 
 	if _, err := mail.ParseAddress(email); err != nil {
