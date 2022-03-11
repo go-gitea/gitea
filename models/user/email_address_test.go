@@ -254,7 +254,7 @@ func TestListEmails(t *testing.T) {
 }
 
 func TestEmailAddressValidate(t *testing.T) {
-	var kases = map[string]error{
+	kases := map[string]error{
 		"abc@gmail.com":                  nil,
 		"132@hotmail.com":                nil,
 		"1-3-2@test.org":                 nil,
