@@ -46,10 +46,6 @@ func toReleaseLink(act *models.Action) string {
 	return act.GetRepoLink() + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
-func toIssueContent(ctx *context.Context, act *models.Action) string {
-	return renderMarkdown(ctx, act, act.GetIssueContent())
-}
-
 // renderMarkdown creates a minimal markdown render context from an action.
 // If rendering fails, the original markdown text is returned
 func renderMarkdown(ctx *context.Context, act *models.Action, content string) string {
