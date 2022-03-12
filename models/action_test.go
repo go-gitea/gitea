@@ -93,6 +93,15 @@ func TestGetFeedsForRepos(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
+
+	// public repo & login
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo:  pubRepo,
+		IncludePrivate: true,
+		Actor:          user,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
 }
 
 func TestGetFeeds2(t *testing.T) {
