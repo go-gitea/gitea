@@ -698,8 +698,6 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-
-
 	// insert email address
 	if err := db.Insert(ctx, &EmailAddress{
 		UID:         u.ID,
