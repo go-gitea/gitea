@@ -371,6 +371,7 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			poster := d.tryGetUser(note.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  issue.TicketID.Value,
+				Index:       note.ID.Value,
 				PosterID:    poster.ID,
 				PosterName:  poster.Name,
 				PosterEmail: poster.Email,
@@ -481,7 +482,11 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				Type    string `xml:"type,attr"`
 				Comment []struct {
 					Content string `xml:"content"`
-					UserID  struct {
+					ID      struct {
+						Value int64  `xml:",chardata"`
+						Type  string `xml:"type,attr"`
+					} `xml:"id"`
+					UserID struct {
 						Value int64  `xml:",chardata"`
 						Type  string `xml:"type,attr"`
 					} `xml:"user-id"`
@@ -528,6 +533,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 			poster := d.tryGetUser(comment.UserID.Value)
 			comments = append(comments, &base.Comment{
 				IssueIndex:  number,
+				Index:       comment.ID.Value,
 				PosterID:    poster.ID,
 				PosterName:  poster.Name,
 				PosterEmail: poster.Email,

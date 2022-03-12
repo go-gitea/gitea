@@ -318,6 +318,33 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
+- DISABLE_SANITIZER: **false** 如果为 true 则不过滤 HTML 标签和属性。除非你知道这意味着什么，否则不要设置为 true。
+
+以下两个环境变量将会被传递给渲染命令：
+
+- `GITEA_PREFIX_SRC`：包含当前的`src`路径的URL前缀，可以被用于链接的前缀。
+- `GITEA_PREFIX_RAW`：包含当前的`raw`路径的URL前缀，可以被用于图片的前缀。
+
+如果 `DISABLE_SANITIZER` 为 false，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
+
+```ini
+[markup.sanitizer.TeX]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
+```
+
+- `ELEMENT`: 将要被应用到该策略的 HTML 元素，不能为空。
+- `ALLOW_ATTR`: 将要被应用到该策略的属性，不能为空。
+- `REGEXP`: 正则表达式，用来匹配属性的内容。如果为空，则跟属性内容无关。
+- `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
+
+多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 seciton。
+如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)
 
