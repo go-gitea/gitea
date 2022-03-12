@@ -698,6 +698,8 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return

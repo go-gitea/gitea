@@ -75,6 +75,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
+	isShowFeed := len(showFeedType) != 0
 
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
@@ -83,7 +84,7 @@ func Profile(ctx *context.Context) {
 
 	if ctxUser.IsOrganization() {
 		// Show Org RSS feed
-		if len(showFeedType) != 0 {
+		if isShowFeed {
 			feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 			return
 		}
@@ -111,10 +112,13 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if len(showFeedType) != 0 {
+	if isShowFeed {
 		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 		return
 	}
+
+	// advertise feed via meta tag
+	ctx.Data["FeedURL"] = ctxUser.HTMLURL()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
