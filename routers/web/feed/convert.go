@@ -249,17 +249,17 @@ func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (it
 	return
 }
 
-// GetFeedType return altered name and feed type, if type is empty it's no feed.
-func GetFeedType(name string, req *http.Request) (string, string) {
+// GetFeedType return if it is a feed request and altered name and feed type.
+func GetFeedType(name string, req *http.Request) (bool, string, string) {
 	if strings.HasSuffix(name, ".rss") ||
 		strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
-		return strings.TrimSuffix(name, ".rss"), "rss"
+		return true, strings.TrimSuffix(name, ".rss"), "rss"
 	}
 
 	if strings.HasSuffix(name, ".atom") ||
 		strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
-		return strings.TrimSuffix(name, ".atom"), "atom"
+		return true, strings.TrimSuffix(name, ".atom"), "atom"
 	}
 
-	return name, ""
+	return false, name, ""
 }

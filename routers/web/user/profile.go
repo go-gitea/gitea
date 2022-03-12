@@ -74,8 +74,7 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
-	isShowFeed := len(showFeedType) != 0
+	isShowFeed, uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
 
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {

@@ -692,8 +692,8 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	_, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
-	if len(showFeedType) != 0 {
+	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+	if isFeed {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
 		return
 	}
