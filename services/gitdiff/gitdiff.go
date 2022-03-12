@@ -1514,7 +1514,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, err := GetDiff(gitRepo, opts, files...)
 	if err != nil {
-		return diff, err
+		return nil, err
 	}
 	review, err := pulls.GetNewestReview(userID, pull.ID)
 	if err != nil || review == nil || review.ViewedFiles == nil {
