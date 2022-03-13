@@ -88,7 +88,9 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 					}
 				}
 				if len(closeIssueIndexes) > 0 {
-					vars["ClosedIssueIndexes"] = strings.Join(closeIssueIndexes, ", ")
+					vars["ClosingIssues"] = strings.Join(closeIssueIndexes, ", ")
+				} else {
+					vars["ClosingIssues"] = ""
 				}
 			}
 

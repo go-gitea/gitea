@@ -52,7 +52,7 @@ Possible file names for PR default merge message templates:
 - `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
 - `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
 
-You can use some variables in these template with `{}`
+You can use the following variables enclosed in `{}` inside these templates:
 
 - BaseRepoOwner: Base repository owner name of this pull request
 - BaseRepoName: Base repository name of this pull request
@@ -65,7 +65,7 @@ You can use some variables in these template with `{}`
 - PullRequestPoster: Pull request's poster name
 - PullRequestIndex: Pull request's index number
 - IssueReferenceChar: return # if it's internal tracker or ! for external tracker
-- ClosedIssueIndexes: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
+- ClosingIssues: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 
