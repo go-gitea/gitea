@@ -44,13 +44,11 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 			stdout := new(strings.Builder)
 
 			if !pr.HasMerged {
-				var err error
-				err = git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+				err := git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 				pr.MergeBase = stdout.String()
 				if err != nil {
-					var err2 error
 					stdout.Reset()
-					err2 = git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+					err2 := git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 					pr.MergeBase = stdout.String()
 					if err2 != nil {
 						logger.Warn("Unable to get merge base for PR ID %d, #%d onto %s in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)

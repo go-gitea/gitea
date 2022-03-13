@@ -83,13 +83,11 @@ func fixMergeBase(x *xorm.Engine) error {
 			stdout := new(strings.Builder)
 
 			if !pr.HasMerged {
-				var err error
-				err = git.NewCommand(git.DefaultContext, "merge-base", "--", pr.BaseBranch, gitRefName).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+				err := git.NewCommand(git.DefaultContext, "merge-base", "--", pr.BaseBranch, gitRefName).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 				pr.MergeBase = stdout.String()
 				if err != nil {
-					var err2 error
 					stdout.Reset()
-					err2 = git.NewCommand(git.DefaultContext, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
+					err2 := git.NewCommand(git.DefaultContext, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout})
 					pr.MergeBase = stdout.String()
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)

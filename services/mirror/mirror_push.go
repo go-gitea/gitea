@@ -34,10 +34,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		if err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
 			return err
 		}
-		if err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
-			return err
-		}
-		return nil
+		return git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1})
 	}
 
 	if err := addRemoteAndConfig(addr, m.Repo.RepoPath()); err != nil {
