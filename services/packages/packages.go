@@ -174,7 +174,7 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfci)
 	removeBlob := false
 	defer func() {
-		if blobCreated && removeBlob {
+		if removeBlob {
 			contentStore := packages_module.NewContentStore()
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
@@ -182,12 +182,12 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 		}
 	}()
 	if err != nil {
-		removeBlob = true
+		removeBlob = blobCreated
 		return nil, nil, err
 	}
 
 	if err := committer.Commit(); err != nil {
-		removeBlob = true
+		removeBlob = blobCreated
 		return nil, nil, err
 	}
 
@@ -199,13 +199,11 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 
 	hashMD5, hashSHA1, hashSHA256, hashSHA512 := pfci.Data.Sums()
 
-	blobKey := fmt.Sprintf("%x", hashSHA256)
-
 	pb := &packages_model.PackageBlob{
 		Size:       pfci.Data.Size(),
 		HashMD5:    fmt.Sprintf("%x", hashMD5),
 		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
-		HashSHA256: blobKey,
+		HashSHA256: fmt.Sprintf("%x", hashSHA256),
 		HashSHA512: fmt.Sprintf("%x", hashSHA512),
 	}
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, pb)
@@ -215,7 +213,7 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
-		if err := contentStore.Save(packages_module.BlobHash256Key(blobKey), pfci.Data, pfci.Data.Size()); err != nil {
+		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), pfci.Data, pfci.Data.Size()); err != nil {
 			log.Error("Error saving package blob in content store: %v", err)
 			return nil, nil, false, err
 		}
@@ -412,7 +410,7 @@ func GetFileStreamByPackageVersion(pv *packages_model.PackageVersion, pfi *Packa
 	return GetPackageFileStream(pv, pf)
 }
 
-// GetPackageFileStream returns the cotent of the specific package file
+// GetPackageFileStream returns the content of the specific package file
 func GetPackageFileStream(pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(db.DefaultContext, pf.BlobID)
 	if err != nil {
