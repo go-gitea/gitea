@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -69,9 +70,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 			err = git.NewCommand(git.DefaultContext, "tag", "v-2").RunWithContext(&git.RunContext{Dir: dstPath, Timeout: -1})
 			assert.NoError(t, err)
 
-			err = git.NewCommand(git.DefaultContext, "push", "--tags").RunWithContext(&git.RunContext{Dir: dstPath, Timeout: -1})
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "Tag v-2 is protected")
+			stderr := new(strings.Builder)
+			err = git.NewCommand(git.DefaultContext, "push", "--tags").RunWithContext(&git.RunContext{Dir: dstPath, Timeout: -1, Stderr: stderr})
+			if assert.Error(t, err) {
+				assert.Contains(t, stderr.String(), "Tag v-2 is protected")
+			}
 		})
 	})
 
