@@ -21,20 +21,19 @@ import (
 func TestPackageGeneric(t *testing.T) {
 	defer prepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
 
 	packageName := "te-st_pac.kage"
 	packageVersion := "1.0.3"
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
-	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
@@ -63,6 +62,7 @@ func TestPackageGeneric(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
@@ -84,6 +84,7 @@ func TestPackageGeneric(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", url)
+		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
 		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
@@ -102,6 +103,7 @@ func TestPackageGeneric(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", url)
+		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

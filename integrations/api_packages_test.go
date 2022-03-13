@@ -28,8 +28,9 @@ func TestPackageAPI(t *testing.T) {
 	packageVersion := "1.0.3"
 	filename := "file.bin"
 
-	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
 	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
+	AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
 	var packageID int64

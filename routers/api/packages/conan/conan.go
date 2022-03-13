@@ -113,7 +113,12 @@ func Ping(ctx *context.Context) {
 
 // Authenticate creates an authentication token for the user
 func Authenticate(ctx *context.Context) {
-	token, err := createAuthorizationToken(ctx)
+	if ctx.User == nil {
+		apiError(ctx, http.StatusBadRequest, nil)
+		return
+	}
+
+	token, err := packages_service.CreateAuthorizationToken(ctx.User)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
