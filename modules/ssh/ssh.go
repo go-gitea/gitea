@@ -4,6 +4,7 @@
 
 package ssh
 
+// Allow "gitea.com/gitea/go-crypto/ssh" import.
 import (
 	"bytes"
 	"context"
