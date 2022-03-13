@@ -167,6 +167,7 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	t.Run("empty treePath", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx, ctx.Repo.Repository, branch, "", content)
 		assert.Nil(t, diff)
+		assert.Error(t, err)
 		assert.EqualError(t, err, "path is invalid [path: ]")
 	})
 }

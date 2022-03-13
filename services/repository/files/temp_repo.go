@@ -164,11 +164,14 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 	return strings.TrimSpace(stdOut.String()), nil
 }
 
+var regexInvalidPath = regexp.MustCompile(".*Invalid path '.*")
+
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPath string) error {
-	if err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).RunWithContext(&git.RunContext{Dir: t.basePath, Timeout: -1}); err != nil {
-		stderr := err.Error()
-		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
+	stderr := new(strings.Builder)
+	if err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).
+		RunWithContext(&git.RunContext{Dir: t.basePath, Timeout: -1, Stderr: stderr}); err != nil {
+		if matched := regexInvalidPath.MatchString(stderr.String()); matched {
 			return models.ErrFilePathInvalid{
 				Message: objectPath,
 				Path:    objectPath,
