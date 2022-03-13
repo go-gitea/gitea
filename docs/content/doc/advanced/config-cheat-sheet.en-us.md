@@ -1003,13 +1003,13 @@ IS_INPUT_FILE = false
    command. Multiple extensions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
+- DISABLE_SANITIZER: **false** Don't filter html tags and attributes if true. Don't change this to true except you know what that means.
 
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
-
-Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
+If `DISABLE_SANITIZER` is false, Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
 
 ```ini
 [markup.sanitizer.TeX]
