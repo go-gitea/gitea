@@ -93,7 +93,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP
+	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0]
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
