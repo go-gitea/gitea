@@ -5,7 +5,6 @@
 package user
 
 import (
-	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
