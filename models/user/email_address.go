@@ -25,9 +25,22 @@ import (
 var (
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("e-mail address has not been activated")
-	// ErrEmailCharIsNotSupported e-mail address contains unsupported character
-	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported character")
 )
+
+// ErrEmailCharIsNotSupported e-mail address contains unsupported character
+type ErrEmailCharIsNotSupported struct {
+	Email string
+}
+
+// IsErrEmailCharIsNotSupported checks if an error is an ErrEmailCharIsNotSupported
+func IsErrEmailCharIsNotSupported(err error) bool {
+	_, ok := err.(ErrEmailCharIsNotSupported)
+	return ok
+}
+
+func (err ErrEmailCharIsNotSupported) Error() string {
+	return fmt.Sprintf("e-mail address contains unsupported character [email: %s]", err.Email)
+}
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
 type ErrEmailInvalid struct {
@@ -120,7 +133,7 @@ func ValidateEmail(email string) error {
 	}
 
 	if !emailRegexp.MatchString(email) {
-		return ErrEmailCharIsNotSupported
+		return ErrEmailCharIsNotSupported{email}
 	}
 
 	if !(email[0] >= 'a' && email[0] <= 'z') &&

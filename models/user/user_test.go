@@ -5,6 +5,7 @@
 package user
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -232,7 +233,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, IsErrEmailInvalid(err))
+	assert.True(t, IsErrEmailCharIsNotSupported(err))
 }
 
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
