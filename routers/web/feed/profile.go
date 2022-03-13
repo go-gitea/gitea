@@ -23,31 +23,34 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 		return nil
 	}
 
-	userCache := map[int64]*user_model.User{options.RequestedUser.ID: options.RequestedUser}
-	if ctx.User != nil {
-		userCache[ctx.User.ID] = ctx.User
-	}
-	for _, act := range actions {
-		if act.ActUser != nil {
-			userCache[act.ActUserID] = act.ActUser
+	// TODO: move load repoOwner of act.Repo into models.GetFeeds->loadAttributes()
+	{
+		userCache := map[int64]*user_model.User{options.RequestedUser.ID: options.RequestedUser}
+		if ctx.User != nil {
+			userCache[ctx.User.ID] = ctx.User
+		}
+		for _, act := range actions {
+			if act.ActUser != nil {
+				userCache[act.ActUserID] = act.ActUser
+			}
+		}
+		for _, act := range actions {
+			repoOwner, ok := userCache[act.Repo.OwnerID]
+			if !ok {
+				repoOwner, err = user_model.GetUserByID(act.Repo.OwnerID)
+				if err != nil {
+					if user_model.IsErrUserNotExist(err) {
+						continue
+					}
+					ctx.ServerError("GetUserByID", err)
+					return nil
+				}
+				userCache[repoOwner.ID] = repoOwner
+			}
+			act.Repo.Owner = repoOwner
 		}
 	}
 
-	for _, act := range actions {
-		repoOwner, ok := userCache[act.Repo.OwnerID]
-		if !ok {
-			repoOwner, err = user_model.GetUserByID(act.Repo.OwnerID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetUserByID", err)
-				return nil
-			}
-			userCache[repoOwner.ID] = repoOwner
-		}
-		act.Repo.Owner = repoOwner
-	}
 	return actions
 }
 
@@ -57,7 +60,7 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
-		OnlyPerformedBy: true,
+		OnlyPerformedBy: !ctxUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})

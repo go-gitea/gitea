@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -42,6 +44,25 @@ func toSrcLink(act *models.Action) string {
 
 func toReleaseLink(act *models.Action) string {
 	return act.GetRepoLink() + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
+}
+
+// renderMarkdown creates a minimal markdown render context from an action.
+// If rendering fails, the original markdown text is returned
+func renderMarkdown(ctx *context.Context, act *models.Action, content string) string {
+	markdownCtx := &markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: act.GetRepoLink(),
+		Type:      markdown.MarkupName,
+		Metas: map[string]string{
+			"user": act.GetRepoUserName(),
+			"repo": act.GetRepoName(),
+		},
+	}
+	markdown, err := markdown.RenderString(markdownCtx, content)
+	if err != nil {
+		return content
+	}
+	return markdown
 }
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
@@ -192,12 +213,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 
 			case models.ActionCreateIssue, models.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = act.GetIssueContent()
+				content = renderMarkdown(ctx, act, act.GetIssueContent())
 			case models.ActionCommentIssue, models.ActionApprovePullRequest, models.ActionRejectPullRequest, models.ActionCommentPull:
 				desc = act.GetIssueTitle()
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + comment
+					desc += "\n\n" + renderMarkdown(ctx, act, comment)
 				}
 			case models.ActionMergePullRequest:
 				desc = act.GetIssueInfos()[1]

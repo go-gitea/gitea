@@ -218,50 +218,44 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		return nil, err
 	}
 
-	var users []*user_model.User
-	e := db.GetEngine(ctx)
+	cond := builder.And(builder.Neq{"`user`.id": posterID})
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
-		if err := e.
-			SQL("SELECT * FROM `user` WHERE id in ("+
-				"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id != ?"+ // private org repos
-				") ORDER BY name",
-				repo.ID, perm.AccessModeRead,
-				posterID).
-			Find(&users); err != nil {
-			return nil, err
-		}
+
+		cond = cond.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").Where(
+				builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead}),
+			),
+		))
 
 		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
 			// as private *user* repos don't generate an entry in the `access` table,
 			// the owner of a private repo needs to be explicitly added.
-			users = append(users, repo.Owner)
+			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
 		}
 
-		return users, nil
+	} else {
+		// This is a "public" repository:
+		// Any user that has read access, is a watcher or organization member can be requested to review
+		cond = cond.And(builder.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead})),
+		).Or(builder.In("`user`.id",
+			builder.Select("user_id").From("watch").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+		).Or(builder.In("`user`.id",
+			builder.Select("uid").From("org_user").
+				Where(builder.Eq{"org_id": repo.OwnerID}),
+		)))))
 	}
 
-	// This is a "public" repository:
-	// Any user that has read access, is a watcher or organization member can be requested to review
-	if err := e.
-		SQL("SELECT * FROM `user` WHERE id IN ( "+
-			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? "+
-			"UNION "+
-			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
-			"UNION "+
-			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
-			") AND id != ? ORDER BY name",
-			repo.ID, perm.AccessModeRead,
-			repo.ID, repo_model.WatchModeNormal, repo_model.WatchModeAuto,
-			repo.OwnerID,
-			posterID).
-		Find(&users); err != nil {
-		return nil, err
-	}
-
-	return users, nil
+	users := make([]*user_model.User, 0, 8)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
 }
 
 // GetReviewers get all users can be requested to review:
