@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.16.4](https://github.com/go-gitea/gitea/releases/tag/v1.16.4) - 2022-03-14
 
 * SECURITY
+  * Restrict email address validation (#17688) (#19085)
   * Fix lfs bug (#19072) (#19080)
 * ENHANCEMENTS
   * Improve SyncMirrors logging (#19045) (#19050)
