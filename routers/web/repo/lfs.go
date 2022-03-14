@@ -256,7 +256,7 @@ func LFSFileGet(ctx *context.Context) {
 
 	p := lfs.Pointer{Oid: oid}
 	if !p.IsValid() {
-		ctx.NotFound("LFSDelete", nil)
+		ctx.NotFound("LFSFileGet", nil)
 		return
 	}
 
