@@ -7,7 +7,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/url"
 	"os"
@@ -121,7 +120,7 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 
 func isLocalPathValid(path string) bool {
 	a := filepath.Clean(path)
-	if strings.HasPrefix(a, fmt.Sprintf("..%c", filepath.Separator)) {
+	if strings.HasPrefix(a, "../") || strings.HasPrefix(a, "..\\") {
 		return false
 	}
 	return a == path
