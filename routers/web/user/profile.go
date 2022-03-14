@@ -74,19 +74,7 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	showFeedType := ""
-	if strings.HasSuffix(uname, ".rss") {
-		showFeedType = "rss"
-		uname = strings.TrimSuffix(uname, ".rss")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
-		showFeedType = "rss"
-	}
-	if strings.HasSuffix(uname, ".atom") {
-		showFeedType = "atom"
-		uname = strings.TrimSuffix(uname, ".atom")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
-		showFeedType = "atom"
-	}
+	isShowFeed, uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
 
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
@@ -95,7 +83,7 @@ func Profile(ctx *context.Context) {
 
 	if ctxUser.IsOrganization() {
 		// Show Org RSS feed
-		if len(showFeedType) != 0 {
+		if isShowFeed {
 			feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 			return
 		}
@@ -123,10 +111,13 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if len(showFeedType) != 0 {
+	if isShowFeed {
 		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 		return
 	}
+
+	// advertise feed via meta tag
+	ctx.Data["FeedURL"] = ctxUser.HTMLURL()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
@@ -259,7 +250,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
@@ -267,7 +258,8 @@ func Profile(ctx *context.Context) {
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
 		})
-		if ctx.Written() {
+		if err != nil {
+			ctx.ServerError("GetFeeds", err)
 			return
 		}
 	case "stars":

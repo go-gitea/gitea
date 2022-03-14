@@ -34,10 +34,10 @@ func Auth(serviceName, userName, passwd string) (string, error) {
 	if err = t.Authenticate(0); err != nil {
 		return "", err
 	}
-	
+
 	if err = t.AcctMgmt(0); err != nil {
-	  return "", err
-  }
+		return "", err
+	}
 
 	// PAM login names might suffer transformations in the PAM stack.
 	// We should take whatever the PAM stack returns for it.
