@@ -253,6 +253,13 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	oid := ctx.Params("oid")
+
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSFileGet", nil)
+		return
+	}
+
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
@@ -343,6 +350,12 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	oid := ctx.Params("oid")
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSDelete", nil)
+		return
+	}
+
 	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
