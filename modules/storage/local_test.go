@@ -24,6 +24,10 @@ func TestLocalPathIsValid(t *testing.T) {
 			false,
 		},
 		{
+			"a\\0\\a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			true,
+		},
+		{
 			"b/../a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 			false,
 		},

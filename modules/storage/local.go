@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -118,12 +119,12 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(filepath.Join(l.dir, path))
 }
 
-func isLocalPathValid(path string) bool {
-	a := filepath.Clean(path)
+func isLocalPathValid(p string) bool {
+	a := path.Clean(p)
 	if strings.HasPrefix(a, "../") || strings.HasPrefix(a, "..\\") {
 		return false
 	}
-	return a == path
+	return a == p
 }
 
 // Delete delete a file
