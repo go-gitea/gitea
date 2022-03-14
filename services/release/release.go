@@ -298,10 +298,11 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 
 	if delTag {
 		stdout := new(strings.Builder)
+		stderr := new(strings.Builder)
 		if err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
-			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout}); err != nil && !strings.Contains(err.Error(), "not found") {
-			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout.String(), err)
+			RunWithContext(&git.RunContext{Dir: repo.RepoPath(), Timeout: -1, Stdout: stdout, Stderr: stderr}); err != nil && !strings.Contains(stderr.String(), "not found") {
+			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout.String(), stderr.String())
 			return fmt.Errorf("git tag -d: %v", err)
 		}
 
