@@ -329,11 +329,11 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 			signers = append(signers,
 				&wrapSigner{
 					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2512,
+					algorithm: gossh.KeyAlgoRSASHA512,
 				},
 				&wrapSigner{
 					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2256,
+					algorithm: gossh.KeyAlgoRSASHA256,
 				},
 			)
 		}
