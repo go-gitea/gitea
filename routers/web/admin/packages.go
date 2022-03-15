@@ -30,7 +30,7 @@ func Packages(ctx *context.Context) {
 	packageType := ctx.FormTrim("type")
 	sort := ctx.FormTrim("sort")
 
-	pvs, total, err := packages_model.SearchVersions(&packages_model.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		Query: query,
 		Type:  packageType,
 		Sort:  sort,
@@ -44,7 +44,7 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages_model.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return

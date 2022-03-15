@@ -13,20 +13,20 @@ import (
 
 // Metadata represents the metadata of a Maven package
 type Metadata struct {
-	GroupID      string        `json:"group_id"`
-	ArtifactID   string        `json:"artifact_id"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	ProjectURL   string        `json:"project_url"`
-	Licenses     []string      `json:"licenses"`
-	Dependencies []*Dependency `json:"dependencies"`
+	GroupID      string        `json:"group_id,omitempty"`
+	ArtifactID   string        `json:"artifact_id,omitempty"`
+	Name         string        `json:"name,omitempty"`
+	Description  string        `json:"description,omitempty"`
+	ProjectURL   string        `json:"project_url,omitempty"`
+	Licenses     []string      `json:"licenses,omitempty"`
+	Dependencies []*Dependency `json:"dependencies,omitempty"`
 }
 
 // Dependency represents a dependency of a Maven package
 type Dependency struct {
-	GroupID    string `json:"group_id"`
-	ArtifactID string `json:"artifact_id"`
-	Version    string `json:"version"`
+	GroupID    string `json:"group_id,omitempty"`
+	ArtifactID string `json:"artifact_id,omitempty"`
+	Version    string `json:"version,omitempty"`
 }
 
 type pomStruct struct {

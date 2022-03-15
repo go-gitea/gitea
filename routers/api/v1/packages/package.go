@@ -54,7 +54,7 @@ func ListPackages(ctx *context.APIContext) {
 	packageType := ctx.FormTrim("type")
 	query := ctx.FormTrim("q")
 
-	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
+	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
 		Type:      packageType,
 		Query:     query,
@@ -65,7 +65,7 @@ func ListPackages(ctx *context.APIContext) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptors", err)
 		return
@@ -167,7 +167,7 @@ func ListPackageFiles(ctx *context.APIContext) {
 
 	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
 	for _, pfd := range ctx.Package.Descriptor.Files {
-		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(&pfd))
+		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pfd))
 	}
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)

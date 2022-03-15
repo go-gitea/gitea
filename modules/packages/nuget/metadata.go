@@ -55,12 +55,12 @@ type Package struct {
 
 // Metadata represents the metadata of a Nuget package
 type Metadata struct {
-	Description   string                  `json:"description"`
-	ReleaseNotes  string                  `json:"release_notes"`
-	Authors       string                  `json:"authors"`
-	ProjectURL    string                  `json:"project_url"`
-	RepositoryURL string                  `json:"repository_url"`
-	Dependencies  map[string][]Dependency `json:"dependencies"`
+	Description   string                  `json:"description,omitempty"`
+	ReleaseNotes  string                  `json:"release_notes,omitempty"`
+	Authors       string                  `json:"authors,omitempty"`
+	ProjectURL    string                  `json:"project_url,omitempty"`
+	RepositoryURL string                  `json:"repository_url,omitempty"`
+	Dependencies  map[string][]Dependency `json:"dependencies,omitempty"`
 }
 
 // Dependency represents a dependency of a Nuget package

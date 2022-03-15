@@ -36,11 +36,11 @@ func TestPackageGeneric(t *testing.T) {
 		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(pvs[0])
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.Nil(t, pd.Metadata)
@@ -74,7 +74,7 @@ func TestPackageGeneric(t *testing.T) {
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -87,7 +87,7 @@ func TestPackageGeneric(t *testing.T) {
 		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

@@ -37,7 +37,7 @@ func Packages(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
-	pvs, total, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
+	pvs, total, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -51,13 +51,13 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
 	}
 
-	hasPackages, err := packages.HasOwnerPackages(db.DefaultContext, ctx.ContextUser.ID)
+	hasPackages, err := packages.HasOwnerPackages(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("HasOwnerPackages", err)
 		return
@@ -94,7 +94,7 @@ func ViewPackage(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	otherVersions, err := packages.GetVersionsByPackageName(pd.Owner.ID, pd.Package.Type, pd.Package.LowerName)
+	otherVersions, err := packages.GetVersionsByPackageName(ctx, pd.Owner.ID, pd.Package.Type, pd.Package.LowerName)
 	if err != nil {
 		ctx.ServerError("GetVersionsByPackageName", err)
 		return
@@ -160,7 +160,7 @@ func PackageSettingsPost(ctx *context.Context) {
 				repoID = repo.ID
 			}
 
-			if err := packages.SetRepositoryLink(pd.Package.ID, repoID); err != nil {
+			if err := packages.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
 				log.Error("Error updating package: %v", err)
 				return false
 			}
@@ -193,6 +193,7 @@ func PackageSettingsPost(ctx *context.Context) {
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
 	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
+		ctx,
 		ctx.ContextUser,
 		ctx.ParamsInt64(":versionid"),
 		ctx.ParamsInt64(":fileid"),

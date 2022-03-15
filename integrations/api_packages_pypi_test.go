@@ -65,11 +65,11 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(pvs[0])
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
@@ -93,11 +93,11 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(pvs[0])
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
@@ -146,7 +146,7 @@ func TestPackagePyPI(t *testing.T) {
 		downloadFile("test.whl")
 		downloadFile("test.tar.gz")
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(2), pvs[0].DownloadCount)

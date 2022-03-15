@@ -37,16 +37,16 @@ type Package struct {
 
 // Metadata represents the metadata of a RubyGems package
 type Metadata struct {
-	Platform                string               `json:"platform"`
-	Description             string               `json:"description"`
-	Summary                 string               `json:"summary"`
-	Authors                 []string             `json:"authors"`
-	Licenses                []string             `json:"licenses"`
-	RequiredRubyVersion     []VersionRequirement `json:"required_ruby_version"`
-	RequiredRubygemsVersion []VersionRequirement `json:"required_rubygems_version"`
-	ProjectURL              string               `json:"project_url"`
-	RuntimeDependencies     []Dependency         `json:"runtime_dependencies"`
-	DevelopmentDependencies []Dependency         `json:"development_dependencies"`
+	Platform                string               `json:"platform,omitempty"`
+	Description             string               `json:"description,omitempty"`
+	Summary                 string               `json:"summary,omitempty"`
+	Authors                 []string             `json:"authors,omitempty"`
+	Licenses                []string             `json:"licenses,omitempty"`
+	RequiredRubyVersion     []VersionRequirement `json:"required_ruby_version,omitempty"`
+	RequiredRubygemsVersion []VersionRequirement `json:"required_rubygems_version,omitempty"`
+	ProjectURL              string               `json:"project_url,omitempty"`
+	RuntimeDependencies     []Dependency         `json:"runtime_dependencies,omitempty"`
+	DevelopmentDependencies []Dependency         `json:"development_dependencies,omitempty"`
 }
 
 // VersionRequirement represents a version restriction

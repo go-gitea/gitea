@@ -15,10 +15,10 @@ const (
 
 // Metadata represents the metadata of a Conan package
 type Metadata struct {
-	Author        string   `json:"author"`
-	License       string   `json:"license"`
-	ProjectURL    string   `json:"project_url"`
-	RepositoryURL string   `json:"repository_url"`
-	Description   string   `json:"description"`
-	Keywords      []string `json:"keywords"`
+	Author        string   `json:"author,omitempty"`
+	License       string   `json:"license,omitempty"`
+	ProjectURL    string   `json:"project_url,omitempty"`
+	RepositoryURL string   `json:"repository_url,omitempty"`
+	Description   string   `json:"description,omitempty"`
+	Keywords      []string `json:"keywords,omitempty"`
 }

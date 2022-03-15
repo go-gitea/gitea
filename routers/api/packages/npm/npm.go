@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
@@ -55,7 +55,7 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -65,7 +65,7 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -90,9 +90,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeNpm,
+			PackageType: packages_model.TypeNpm,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
@@ -101,7 +102,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -132,7 +133,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypeNpm,
+				PackageType: packages_model.TypeNpm,
 				Name:        npmPackage.Name,
 				Version:     npmPackage.Version,
 			},
@@ -149,7 +150,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -179,7 +180,7 @@ func ListPackageTags(ctx *context.Context) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -187,7 +188,7 @@ func ListPackageTags(ctx *context.Context) {
 
 	tags := make(map[string]string)
 	for _, pv := range pvs {
-		pvps, err := packages.GetPropertiesByName(ctx, packages.PropertyTypeVersion, pv.ID, npm_module.TagProperty)
+		pvps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, npm_module.TagProperty)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -215,9 +216,9 @@ func AddPackageTag(ctx *context.Context) {
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
 
-	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages.TypeNpm, packageName, version)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName, version)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -243,7 +244,7 @@ func DeletePackageTag(ctx *context.Context) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -261,7 +262,7 @@ func DeletePackageTag(ctx *context.Context) {
 	}
 }
 
-func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) error {
+func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly bool) error {
 	if tag == "" {
 		return errInvalidTagName
 	}
@@ -276,20 +277,20 @@ func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) err
 	}
 	defer committer.Close()
 
-	pvs, err := packages.FindVersionsByPropertyNameAndValue(ctx, pv.PackageID, npm_module.TagProperty, tag)
+	pvs, err := packages_model.FindVersionsByPropertyNameAndValue(ctx, pv.PackageID, npm_module.TagProperty, tag)
 	if err != nil {
 		return err
 	}
 
 	if len(pvs) == 1 {
-		pvps, err := packages.GetPropertiesByName(ctx, packages.PropertyTypeVersion, pvs[0].ID, npm_module.TagProperty)
+		pvps, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypeVersion, pvs[0].ID, npm_module.TagProperty)
 		if err != nil {
 			return err
 		}
 
 		for _, pvp := range pvps {
 			if pvp.Value == tag {
-				if err := packages.DeletePropertyByID(ctx, pvp.ID); err != nil {
+				if err := packages_model.DeletePropertyByID(ctx, pvp.ID); err != nil {
 					return err
 				}
 				break
@@ -298,7 +299,7 @@ func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) err
 	}
 
 	if !deleteOnly {
-		_, err = packages.InsertProperty(ctx, packages.PropertyTypeVersion, pv.ID, npm_module.TagProperty, tag)
+		_, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, npm_module.TagProperty, tag)
 		if err != nil {
 			return err
 		}

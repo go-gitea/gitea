@@ -94,7 +94,7 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 	}
 
 	if created {
-		pd, err := packages_model.GetPackageDescriptor(pv)
+		pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -282,7 +282,7 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 	}
 	defer committer.Close()
 
-	pd, err := packages_model.GetPackageDescriptorCtx(ctx, pv)
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
 	}
@@ -353,10 +353,10 @@ func DeleteUnreferencedBlobs() error {
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			return nil, nil, err
@@ -365,14 +365,14 @@ func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, pfi *PackageFileInfo
 		return nil, nil, err
 	}
 
-	return GetFileStreamByPackageVersion(pv, pfi)
+	return GetFileStreamByPackageVersion(ctx, pv, pfi)
 }
 
 // GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
-func GetFileStreamByPackageVersionAndFileID(owner *user_model.User, versionID, fileID int64) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
 
-	pv, err := packages_model.GetVersionByID(db.DefaultContext, versionID)
+	pv, err := packages_model.GetVersionByID(ctx, versionID)
 	if err != nil {
 		if err == packages_model.ErrPackageVersionNotExist {
 			return nil, nil, packages_model.ErrPackageNotExist
@@ -381,7 +381,7 @@ func GetFileStreamByPackageVersionAndFileID(owner *user_model.User, versionID, f
 		return nil, nil, err
 	}
 
-	p, err := packages_model.GetPackageByID(db.DefaultContext, pv.PackageID)
+	p, err := packages_model.GetPackageByID(ctx, pv.PackageID)
 	if err != nil {
 		log.Error("Error getting package: %v", err)
 		return nil, nil, err
@@ -391,28 +391,28 @@ func GetFileStreamByPackageVersionAndFileID(owner *user_model.User, versionID, f
 		return nil, nil, packages_model.ErrPackageNotExist
 	}
 
-	pf, err := packages_model.GetFileForVersionByID(db.DefaultContext, versionID, fileID)
+	pf, err := packages_model.GetFileForVersionByID(ctx, versionID, fileID)
 	if err != nil {
 		log.Error("Error getting file: %v", err)
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(pv, pf)
+	return GetPackageFileStream(ctx, pv, pf)
 }
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
-func GetFileStreamByPackageVersion(pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(db.DefaultContext, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(pv, pf)
+	return GetPackageFileStream(ctx, pv, pf)
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
-	pb, err := packages_model.GetBlobByID(db.DefaultContext, pf.BlobID)
+func GetPackageFileStream(ctx context.Context, pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
+	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -420,7 +420,7 @@ func GetPackageFileStream(pv *packages_model.PackageVersion, pf *packages_model.
 	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
 	if err == nil {
 		if pf.IsLead {
-			if err := packages_model.IncrementDownloadCounter(pv.ID); err != nil {
+			if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
 				log.Error("Error incrementing download counter: %v", err)
 			}
 		}

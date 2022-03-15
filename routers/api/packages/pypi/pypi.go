@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
@@ -39,7 +39,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 func PackageMetadata(ctx *context.Context) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypePyPI, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -49,7 +49,7 @@ func PackageMetadata(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -69,9 +69,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypePyPI,
+			PackageType: packages_model.TypePyPI,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
@@ -80,7 +81,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -136,7 +137,7 @@ func UploadPackageFile(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypePyPI,
+				PackageType: packages_model.TypePyPI,
 				Name:        packageName,
 				Version:     packageVersion,
 			},
@@ -161,7 +162,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageFile {
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}

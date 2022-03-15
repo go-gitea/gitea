@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -61,9 +61,9 @@ func SearchPackages(ctx *context.Context) {
 		PageSize: convert.ToCorrectPageSize(perPage),
 	}
 
-	opts := &packages.PackageSearchOptions{
+	opts := &packages_model.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      string(packages.TypeComposer),
+		Type:      string(packages_model.TypeComposer),
 		Query:     ctx.FormTrim("q"),
 		Paginator: &paginator,
 	}
@@ -73,7 +73,7 @@ func SearchPackages(ctx *context.Context) {
 		}
 	}
 
-	pvs, total, err := packages.SearchLatestVersions(opts)
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, opts)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -98,7 +98,7 @@ func SearchPackages(ctx *context.Context) {
 		nextLink = u.String()
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -112,7 +112,7 @@ func SearchPackages(ctx *context.Context) {
 // EnumeratePackages lists all package names
 // https://packagist.org/apidoc#list-packages
 func EnumeratePackages(ctx *context.Context) {
-	ps, err := packages.GetPackagesByType(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeComposer)
+	ps, err := packages_model.GetPackagesByType(db.DefaultContext, ctx.Package.Owner.ID, packages_model.TypeComposer)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -134,17 +134,17 @@ func PackageMetadata(ctx *context.Context) {
 	vendorName := ctx.Params("vendorname")
 	projectName := ctx.Params("projectname")
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeComposer, vendorName+"/"+projectName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, packages.ErrPackageNotExist)
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -164,12 +164,13 @@ func DownloadPackageFile(ctx *context.Context) {
 	fileID := ctx.ParamsInt64("fileid")
 
 	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
+		ctx,
 		ctx.Package.Owner,
 		versionID,
 		fileID,
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -214,7 +215,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypeComposer,
+				PackageType: packages_model.TypeComposer,
 				Name:        cp.Name,
 				Version:     cp.Version,
 			},
@@ -234,7 +235,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}

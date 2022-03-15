@@ -27,7 +27,7 @@ func Packages(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
-	pvs, total, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
+	pvs, total, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -42,13 +42,13 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
 	}
 
-	hasPackages, err := packages.HasRepositoryPackages(ctx.Repo.Repository.ID)
+	hasPackages, err := packages.HasRepositoryPackages(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("HasRepositoryPackages", err)
 		return

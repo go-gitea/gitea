@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -39,9 +39,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeGeneric,
+			PackageType: packages_model.TypeGeneric,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
@@ -50,7 +51,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -92,7 +93,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypeGeneric,
+				PackageType: packages_model.TypeGeneric,
 				Name:        packageName,
 				Version:     packageVersion,
 			},
@@ -108,7 +109,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -131,13 +132,13 @@ func DeletePackage(ctx *context.Context) {
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeGeneric,
+			PackageType: packages_model.TypeGeneric,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

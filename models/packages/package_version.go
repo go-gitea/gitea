@@ -62,14 +62,14 @@ func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersio
 }
 
 // UpdateVersion updates a version
-func UpdateVersion(pv *PackageVersion) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(pv.ID).Update(pv)
+func UpdateVersion(ctx context.Context, pv *PackageVersion) error {
+	_, err := db.GetEngine(ctx).ID(pv.ID).Update(pv)
 	return err
 }
 
 // IncrementDownloadCounter increments the download counter of a version
-func IncrementDownloadCounter(versionID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `package_version` SET `download_count` = `download_count` + 1 WHERE `id` = ?", versionID)
+func IncrementDownloadCounter(ctx context.Context, versionID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `package_version` SET `download_count` = `download_count` + 1 WHERE `id` = ?", versionID)
 	return err
 }
 
@@ -112,21 +112,21 @@ func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 }
 
 // GetVersionsByPackageType gets all versions of a specific type
-func GetVersionsByPackageType(ownerID int64, packageType Type) ([]*PackageVersion, error) {
+func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id": ownerID,
 		"package.type":     packageType,
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(db.DefaultContext).
+	return pvs, db.GetEngine(ctx).
 		Where(cond).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Find(&pvs)
 }
 
 // GetVersionsByPackageName gets all versions of a specific package
-func GetVersionsByPackageName(ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
+func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id":   ownerID,
 		"package.type":       packageType,
@@ -134,14 +134,14 @@ func GetVersionsByPackageName(ownerID int64, packageType Type, name string) ([]*
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(db.DefaultContext).
+	return pvs, db.GetEngine(ctx).
 		Where(cond).
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Find(&pvs)
 }
 
 // GetVersionsByFilename gets all versions which are linked to a filename
-func GetVersionsByFilename(ownerID int64, packageType Type, filename string) ([]*PackageVersion, error) {
+func GetVersionsByFilename(ctx context.Context, ownerID int64, packageType Type, filename string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.owner_id":        ownerID,
 		"package.type":            packageType,
@@ -149,7 +149,7 @@ func GetVersionsByFilename(ownerID int64, packageType Type, filename string) ([]
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(db.DefaultContext).
+	return pvs, db.GetEngine(ctx).
 		Where(cond).
 		Join("INNER", "package_file", "package_file.version_id = package_version.id").
 		Join("INNER", "package", "package.id = package_version.package_id").
@@ -237,8 +237,8 @@ func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
 }
 
 // SearchVersions gets all versions of packages matching the search options
-func SearchVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func SearchVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id")
@@ -255,11 +255,11 @@ func SearchVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error
 }
 
 // SearchLatestVersions gets the latest version of every package matching the search options
-func SearchLatestVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
+func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	cond := opts.toConds().
 		And(builder.Expr("pv2.id IS NULL"))
 
-	sess := db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(ctx).
 		Table("package_version").
 		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.created_unix < pv2.created_unix").
 		Join("INNER", "package", "package.id = package_version.package_id").

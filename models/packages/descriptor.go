@@ -8,7 +8,6 @@ import (
 	"context"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -23,6 +22,19 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
+// PackagePropertyList is a list of package properties
+type PackagePropertyList []*PackageProperty
+
+// GetByName gets the first property value with the specific name
+func (l PackagePropertyList) GetByName(name string) string {
+	for _, pp := range l {
+		if pp.Name == name {
+			return pp.Value
+		}
+	}
+	return ""
+}
+
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
 	Package    *Package
@@ -31,16 +43,16 @@ type PackageDescriptor struct {
 	Version    *PackageVersion
 	SemVer     *version.Version
 	Creator    *user_model.User
-	Properties []*PackageProperty
+	Properties PackagePropertyList
 	Metadata   interface{}
-	Files      []PackageFileDescriptor
+	Files      []*PackageFileDescriptor
 }
 
 // PackageFileDescriptor describes a package file
 type PackageFileDescriptor struct {
 	File       *PackageFile
 	Blob       *PackageBlob
-	Properties []*PackageProperty
+	Properties PackagePropertyList
 }
 
 // WebLink returns the package's web link
@@ -58,12 +70,7 @@ func (pd *PackageDescriptor) CalculateBlobSize() int64 {
 }
 
 // GetPackageDescriptor gets the package description for a version
-func GetPackageDescriptor(pv *PackageVersion) (*PackageDescriptor, error) {
-	return GetPackageDescriptorCtx(db.DefaultContext, pv)
-}
-
-// GetPackageDescriptorCtx gets the package description for a version
-func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
+func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDescriptor, error) {
 	p, err := GetPackageByID(ctx, pv.PackageID)
 	if err != nil {
 		return nil, err
@@ -96,21 +103,13 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 		return nil, err
 	}
 
-	pfds := make([]PackageFileDescriptor, 0, len(pfs))
+	pfds := make([]*PackageFileDescriptor, 0, len(pfs))
 	for _, pf := range pfs {
-		pb, err := GetBlobByID(ctx, pf.BlobID)
+		pfd, err := GetPackageFileDescriptor(ctx, pf)
 		if err != nil {
 			return nil, err
 		}
-		pfps, err := GetProperties(ctx, PropertyTypeFile, pf.ID)
-		if err != nil {
-			return nil, err
-		}
-		pfds = append(pfds, PackageFileDescriptor{
-			pf,
-			pb,
-			pfps,
-		})
+		pfds = append(pfds, pfd)
 	}
 
 	var metadata interface{}
@@ -143,17 +142,34 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 		Version:    pv,
 		SemVer:     semVer,
 		Creator:    creator,
-		Properties: pvps,
+		Properties: PackagePropertyList(pvps),
 		Metadata:   metadata,
 		Files:      pfds,
 	}, nil
 }
 
+// GetPackageFileDescriptor gets a package file descriptor for a package file
+func GetPackageFileDescriptor(ctx context.Context, pf *PackageFile) (*PackageFileDescriptor, error) {
+	pb, err := GetBlobByID(ctx, pf.BlobID)
+	if err != nil {
+		return nil, err
+	}
+	pfps, err := GetProperties(ctx, PropertyTypeFile, pf.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &PackageFileDescriptor{
+		pf,
+		pb,
+		PackagePropertyList(pfps),
+	}, nil
+}
+
 // GetPackageDescriptors gets the package descriptions for the versions
-func GetPackageDescriptors(pvs []*PackageVersion) ([]*PackageDescriptor, error) {
+func GetPackageDescriptors(ctx context.Context, pvs []*PackageVersion) ([]*PackageDescriptor, error) {
 	pds := make([]*PackageDescriptor, 0, len(pvs))
 	for _, pv := range pvs {
-		pd, err := GetPackageDescriptor(pv)
+		pd, err := GetPackageDescriptor(ctx, pv)
 		if err != nil {
 			return nil, err
 		}

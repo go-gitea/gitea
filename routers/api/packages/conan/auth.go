@@ -19,6 +19,7 @@ func (a *Auth) Name() string {
 	return "conan"
 }
 
+// Verify extracts the user from the Bearer token
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) *user_model.User {
 	uid, err := packages.ParseAuthorizationToken(req)
 	if err != nil {

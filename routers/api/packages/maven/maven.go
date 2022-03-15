@@ -18,8 +18,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -67,17 +66,17 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeMaven, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, packages.ErrPackageNotExist)
+		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -117,9 +116,9 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 func servePackageFile(ctx *context.Context, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName, params.Version)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -134,9 +133,9 @@ func servePackageFile(ctx *context.Context, params parameters) {
 		filename = filename[:len(filename)-len(ext)]
 	}
 
-	pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, filename, packages.EmptyFileKey)
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, filename, packages_model.EmptyFileKey)
 	if err != nil {
-		if err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -144,7 +143,7 @@ func servePackageFile(ctx *context.Context, params parameters) {
 		return
 	}
 
-	pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -173,7 +172,7 @@ func servePackageFile(ctx *context.Context, params parameters) {
 	defer s.Close()
 
 	if pf.IsLead {
-		if err := packages.IncrementDownloadCounter(pv.ID); err != nil {
+		if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
 			log.Error("Error incrementing download counter: %v", err)
 		}
 	}
@@ -209,7 +208,7 @@ func UploadPackageFile(ctx *context.Context) {
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeMaven,
+			PackageType: packages_model.TypeMaven,
 			Name:        packageName,
 			Version:     params.Version,
 		},
@@ -221,25 +220,25 @@ func UploadPackageFile(ctx *context.Context) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
-			if err == packages.ErrPackageNotExist {
+			if err == packages_model.ErrPackageNotExist {
 				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages.EmptyFileKey)
+		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages_model.EmptyFileKey)
 		if err != nil {
-			if err == packages.ErrPackageFileNotExist {
+			if err == packages_model.ErrPackageFileNotExist {
 				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -282,8 +281,8 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 
 		if pvci.Metadata != nil {
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
-			if err != nil && err != packages.ErrPackageNotExist {
+			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
+			if err != nil && err != packages_model.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -294,7 +293,7 @@ func UploadPackageFile(ctx *context.Context) {
 					return
 				}
 				pv.MetadataJSON = string(raw)
-				if err := packages.UpdateVersion(pv); err != nil {
+				if err := packages_model.UpdateVersion(ctx, pv); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
@@ -312,7 +311,7 @@ func UploadPackageFile(ctx *context.Context) {
 		pfci,
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageFile {
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}

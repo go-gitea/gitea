@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
@@ -28,7 +28,7 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 
 // EnumeratePackages serves the package list
 func EnumeratePackages(ctx *context.Context) {
-	packages, err := packages.GetVersionsByPackageType(ctx.Package.Owner.ID, packages.TypeRubyGems)
+	packages, err := packages_model.GetVersionsByPackageType(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -39,9 +39,9 @@ func EnumeratePackages(ctx *context.Context) {
 
 // EnumeratePackagesLatest serves the list of the lastest version of every package
 func EnumeratePackagesLatest(ctx *context.Context) {
-	pvs, _, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    string(packages.TypeRubyGems),
+		Type:    string(packages_model.TypeRubyGems),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -53,11 +53,11 @@ func EnumeratePackagesLatest(ctx *context.Context) {
 
 // EnumeratePackagesPreRelease is not supported and serves an empty list
 func EnumeratePackagesPreRelease(ctx *context.Context) {
-	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages.PackageVersion{})
+	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages_model.PackageVersion{})
 }
 
-func enumeratePackages(ctx *context.Context, filename string, pvs []*packages.PackageVersion) {
-	pds, err := packages.GetPackageDescriptors(pvs)
+func enumeratePackages(ctx *context.Context, filename string, pvs []*packages_model.PackageVersion) {
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -96,7 +96,7 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByFilename(ctx.Package.Owner.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
+	pvs, err := packages_model.GetVersionsByFilename(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, filename[:len(filename)-10]+"gem")
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -107,7 +107,7 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	pd, err := packages.GetPackageDescriptor(pvs[0])
+	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -158,7 +158,7 @@ func ServePackageSpecification(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
-	pvs, err := packages.GetVersionsByFilename(ctx.Package.Owner.ID, packages.TypeRubyGems, filename)
+	pvs, err := packages_model.GetVersionsByFilename(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, filename)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -170,13 +170,14 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 
 	s, pf, err := packages_service.GetFileStreamByPackageVersion(
+		ctx,
 		pvs[0],
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -227,7 +228,7 @@ func UploadPackageFile(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypeRubyGems,
+				PackageType: packages_model.TypeRubyGems,
 				Name:        rp.Name,
 				Version:     rp.Version,
 			},
@@ -244,7 +245,7 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -269,13 +270,13 @@ func DeletePackage(ctx *context.Context) {
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeRubyGems,
+			PackageType: packages_model.TypeRubyGems,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

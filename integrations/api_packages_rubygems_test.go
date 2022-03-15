@@ -124,11 +124,11 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		uploadFile(t, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(pvs[0])
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &rubygems.Metadata{}, pd.Metadata)
@@ -161,7 +161,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		assert.Equal(t, gemContent, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -180,7 +180,7 @@ DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
 gAAAAP//MS06Gw==`)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -219,7 +219,7 @@ gAAAAP//MS06Gw==`)
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

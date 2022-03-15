@@ -120,8 +120,8 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 }
 
 // SetRepositoryLink sets the linked repository
-func SetRepositoryLink(packageID, repoID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
+func SetRepositoryLink(ctx context.Context, packageID, repoID int64) error {
+	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
 	return err
 }
 
@@ -181,6 +181,6 @@ func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
 }
 
 // HasRepositoryPackages tests if a repository has packages
-func HasRepositoryPackages(repositoryID int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repositoryID).Exist(&Package{})
+func HasRepositoryPackages(ctx context.Context, repositoryID int64) (bool, error) {
+	return db.GetEngine(ctx).Where("repo_id = ?", repositoryID).Exist(&Package{})
 }

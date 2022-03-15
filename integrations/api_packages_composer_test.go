@@ -87,11 +87,11 @@ func TestPackageComposer(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeComposer)
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
-			pd, err := packages.GetPackageDescriptor(pvs[0])
+			pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 			assert.NoError(t, err)
 			assert.NotNil(t, pd.SemVer)
 			assert.IsType(t, &composer_module.Metadata{}, pd.Metadata)
@@ -117,7 +117,7 @@ func TestPackageComposer(t *testing.T) {
 	t.Run("Download", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeComposer)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(0), pvs[0].DownloadCount)
@@ -132,7 +132,7 @@ func TestPackageComposer(t *testing.T) {
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err = packages.GetVersionsByPackageType(user.ID, packages.TypeComposer)
+		pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)

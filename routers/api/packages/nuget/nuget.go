@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
@@ -38,9 +38,9 @@ func ServiceIndex(ctx *context.Context) {
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.Context) {
-	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
+	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    string(packages.TypeNuGet),
+		Type:    string(packages_model.TypeNuGet),
 		Query:   ctx.FormTrim("q"),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
@@ -52,7 +52,7 @@ func SearchService(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -71,7 +71,7 @@ func SearchService(ctx *context.Context) {
 func RegistrationIndex(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -81,7 +81,7 @@ func RegistrationIndex(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -100,9 +100,9 @@ func RegistrationLeaf(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeNuGet, packageName, packageVersion)
+	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -110,7 +110,7 @@ func RegistrationLeaf(ctx *context.Context) {
 		return
 	}
 
-	pd, err := packages.GetPackageDescriptor(pv)
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -128,7 +128,7 @@ func RegistrationLeaf(ctx *context.Context) {
 func EnumeratePackageVersions(ctx *context.Context) {
 	packageName := ctx.Params("id")
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -138,7 +138,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -156,9 +156,10 @@ func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeNuGet,
+			PackageType: packages_model.TypeNuGet,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
@@ -167,7 +168,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -196,7 +197,7 @@ func UploadPackage(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages.TypeNuGet,
+				PackageType: packages_model.TypeNuGet,
 				Name:        np.ID,
 				Version:     np.Version,
 			},
@@ -213,7 +214,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageVersion {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -251,7 +252,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 
 	pi := &packages_service.PackageInfo{
 		Owner:       ctx.Package.Owner,
-		PackageType: packages.TypeNuGet,
+		PackageType: packages_model.TypeNuGet,
 		Name:        np.ID,
 		Version:     np.Version,
 	}
@@ -268,9 +269,9 @@ func UploadSymbolPackage(ctx *context.Context) {
 	)
 	if err != nil {
 		switch err {
-		case packages.ErrPackageNotExist:
+		case packages_model.ErrPackageNotExist:
 			apiError(ctx, http.StatusNotFound, err)
-		case packages.ErrDuplicatePackageFile:
+		case packages_model.ErrDuplicatePackageFile:
 			apiError(ctx, http.StatusBadRequest, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -295,7 +296,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		)
 		if err != nil {
 			switch err {
-			case packages.ErrDuplicatePackageFile:
+			case packages_model.ErrDuplicatePackageFile:
 				apiError(ctx, http.StatusBadRequest, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -358,9 +359,9 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	pfs, _, err := packages.SearchFiles(ctx, &packages.PackageFileSearchOptions{
+	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:     ctx.Package.Owner.ID,
-		PackageType: string(packages.TypeNuGet),
+		PackageType: string(packages_model.TypeNuGet),
 		Query:       filename,
 		Properties: map[string]string{
 			nuget_module.PropertySymbolID: strings.ToLower(guid),
@@ -375,15 +376,15 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	pv, err := packages.GetVersionByID(ctx, pfs[0].VersionID)
+	pv, err := packages_model.GetVersionByID(ctx, pfs[0].VersionID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(pv, pfs[0])
+	s, _, err := packages_service.GetPackageFileStream(ctx, pv, pfs[0])
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -405,13 +406,13 @@ func DeletePackage(ctx *context.Context) {
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages.TypeNuGet,
+			PackageType: packages_model.TypeNuGet,
 			Name:        packageName,
 			Version:     packageVersion,
 		},
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
+		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

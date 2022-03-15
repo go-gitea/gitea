@@ -260,11 +260,11 @@ func TestPackageConan(t *testing.T) {
 			t.Run("Validate", func(t *testing.T) {
 				defer PrintCurrentTest(t)()
 
-				pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeConan)
+				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
 				assert.Len(t, pvs, 1)
 
-				pd, err := packages.GetPackageDescriptor(pvs[0])
+				pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 				assert.NoError(t, err)
 				assert.NotNil(t, pd.SemVer)
 				assert.Equal(t, name, pd.Package.Name)
@@ -518,7 +518,7 @@ func TestPackageConan(t *testing.T) {
 			t.Run("Validate", func(t *testing.T) {
 				defer PrintCurrentTest(t)()
 
-				pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeConan)
+				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
 				assert.Len(t, pvs, 2)
 			})

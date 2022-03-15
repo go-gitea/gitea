@@ -385,7 +385,7 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 					return
 				}
 				pv.MetadataJSON = string(raw)
-				if err := packages_model.UpdateVersion(pv); err != nil {
+				if err := packages_model.UpdateVersion(ctx, pv); err != nil {
 					apiError(ctx, http.StatusInternalServerError, err)
 					return
 				}
@@ -453,6 +453,7 @@ func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	}
 
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeConan,
@@ -612,7 +613,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 		return err
 	}
 
-	pd, err := packages_model.GetPackageDescriptorCtx(ctx, pv)
+	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
 	if err != nil {
 		return err
 	}

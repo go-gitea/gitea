@@ -73,11 +73,11 @@ func TestPackageNpm(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(pvs[0])
+		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
@@ -116,7 +116,7 @@ func TestPackageNpm(t *testing.T) {
 		b, _ := base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)

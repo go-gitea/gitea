@@ -86,9 +86,9 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			return
 		}
 
-		ctx.Package.Descriptor, err = packages_model.GetPackageDescriptorCtx(ctx, pv)
+		ctx.Package.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
-			errCb(http.StatusInternalServerError, "GetPackageDescriptorCtx", err)
+			errCb(http.StatusInternalServerError, "GetPackageDescriptor", err)
 			return
 		}
 
