@@ -25,7 +25,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - make deps-backend
@@ -79,7 +79,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: checks-backend
-    image: golang:1.17
+    image: golang:1.18
     commands:
       - make checks-backend
     depends_on: [deps-backend]
@@ -100,7 +100,7 @@ steps:
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.16 # this step is kept as the lowest version of golang that we support
+    image: golang:1.17 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
@@ -113,7 +113,7 @@ steps:
         path: /go
 
   - name: build-backend-arm64
-    image: golang:1.17
+    image: golang:1.18
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.cn
@@ -129,7 +129,7 @@ steps:
         path: /go
 
   - name: build-backend-windows
-    image: golang:1.17
+    image: golang:1.18
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.cn
@@ -144,7 +144,7 @@ steps:
         path: /go
 
   - name: build-backend-386
-    image: golang:1.17
+    image: golang:1.18
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.cn
@@ -233,7 +233,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - make deps-backend
@@ -350,7 +350,7 @@ steps:
         path: /go
 
   - name: generate-coverage
-    image: golang:1.17
+    image: golang:1.18
     commands:
       - make coverage
     environment:
@@ -425,7 +425,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - make deps-backend
@@ -567,7 +567,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
@@ -628,7 +628,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - make deps-backend
@@ -637,7 +637,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.17.x
+    image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
@@ -746,7 +746,7 @@ steps:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.17
+    image: golang:1.18
     pull: always
     commands:
       - make deps-backend
@@ -755,7 +755,7 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.17.x
+    image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
