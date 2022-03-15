@@ -109,37 +109,111 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 	return tag, nil
 }
 
+const (
+	dualNullChar         = "\x00\x00"
+	forEachRefTagsFormat = `type %(objecttype)%00tag %(refname:short)%00object %(object)%00objectname %(objectname)%00tagger %(creator)%00message %(contents)%00signature %(contents:signature)%00%00`
+)
+
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
-	// TODO this a slow implementation, makes one git command per tag
-	stdout, err := NewCommand(repo.Ctx, "tag").RunInDir(repo.Path)
+	stdout, err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefTagsFormat, "--sort", "-*creatordate", "refs/tags").RunInDir(repo.Path)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
-	tagsTotal := len(tagNames)
+	refBlocks := strings.Split(stdout, dualNullChar)
+	var tags []*Tag
+	for _, refBlock := range refBlocks {
+		refBlock = strings.TrimSpace(refBlock)
+		if refBlock == "" {
+			break
+		}
 
-	if page != 0 {
-		tagNames = util.PaginateSlice(tagNames, page, pageSize).([]string)
+		tag, err := parseTagRef(refBlock)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		tags = append(tags, tag)
 	}
 
-	tags := make([]*Tag, 0, len(tagNames))
-	for _, tagName := range tagNames {
-		tagName = strings.TrimSpace(tagName)
-		if len(tagName) == 0 {
+	tagsTotal := len(tags)
+	if page != 0 {
+		tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
+	}
+	// TODO shouldn't be necessary
+	sortTagsByTime(tags)
+	return tags, tagsTotal, nil
+}
+
+// note: relies on output being formatted using forEachRefFormat
+func parseTagRef(ref string) (*Tag, error) {
+	var tag Tag
+	items := strings.Split(ref, "\x00")
+	for _, item := range items {
+		// item = strings.TrimSpace(item)
+		if item == "" {
 			continue
 		}
 
-		tag, err := repo.GetTag(tagName)
-		if err != nil {
-			return nil, tagsTotal, err
+		var field string
+		var value string
+		firstSpace := strings.Index(item, " ")
+		if firstSpace > 0 {
+			field = item[:firstSpace]
+			value = item[firstSpace+1:]
+		} else {
+			field = item
 		}
-		tag.Name = tagName
-		tags = append(tags, tag)
+
+		if value == "" {
+			continue
+		}
+
+		switch field {
+		case "type":
+			tag.Type = value
+		case "tag":
+			tag.Name = value
+		case "objectname":
+			var err error
+			tag.ID, err = NewIDFromString(value)
+			if err != nil {
+				return nil, fmt.Errorf("parse objectname '%s': %v", value, err)
+			}
+			if tag.Type == "commit" {
+				tag.Object = tag.ID
+			}
+		case "object":
+			var err error
+			tag.Object, err = NewIDFromString(value)
+			if err != nil {
+				return nil, fmt.Errorf("parse object '%s': %v", value, err)
+			}
+		case "tagger":
+			var err error
+			tag.Tagger, err = newSignatureFromCommitline([]byte(value))
+			if err != nil {
+				return nil, fmt.Errorf("parse tagger: %w", err)
+			}
+		case "message":
+			tag.Message = value
+			// srtip PGP signature if present in contents field
+			pgpStart := strings.Index(value, beginpgp)
+			if pgpStart >= 0 {
+				tag.Message = tag.Message[0:pgpStart]
+			}
+			// tag.Message += "\n"
+		case "signature":
+			tag.Signature = &CommitGPGSignature{
+				Signature: value,
+				// TODO: don't know what to do about Payload. Is
+				// it even relevant in this context?
+			}
+		}
 	}
-	sortTagsByTime(tags)
-	return tags, tagsTotal, nil
+
+	return &tag, nil
 }
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
