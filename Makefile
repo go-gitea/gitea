@@ -24,10 +24,19 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.17.x
-MIN_GO_VERSION := 001016000
+XGO_VERSION := go-1.18.x
+MIN_GO_VERSION := 001017000
 MIN_NODE_VERSION := 012017000
-MIN_GOLANGCI_LINT_VERSION := 001044000
+
+AIR_PACKAGE ?= github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@50adf46752da119dfef66e57be3ce2693ea4aa9c
+ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
+MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.27.0
+XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -125,8 +134,6 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
 
-#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
-SWAGGER := $(GO) run github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
@@ -234,11 +241,8 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@v0.3.0; \
-	fi
 	@echo "Running gitea-fmt (with gofumpt)..."
-	@$(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 
 .PHONY: vet
 vet:
@@ -257,7 +261,7 @@ endif
 
 .PHONY: generate-swagger
 generate-swagger:
-	$(SWAGGER) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
+	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -273,24 +277,18 @@ swagger-check: generate-swagger
 .PHONY: swagger-validate
 swagger-validate:
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
-	$(SWAGGER) validate './$(SWAGGER_SPEC)'
+	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:
-	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344; \
-	fi
 	@echo "Running errcheck..."
-	@errcheck $(GO_PACKAGES)
+	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
 
 .PHONY: fmt-check
 fmt-check:
-	@hash gofumpt > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install mvdan.cc/gofumpt@0.3.0; \
-	fi
 	# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
+	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
@@ -328,10 +326,7 @@ watch-frontend: node-check node_modules
 
 .PHONY: watch-backend
 watch-backend: go-check
-	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4; \
-	fi
-	air -c .air.toml
+	$(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test
 test: test-frontend test-backend
@@ -611,12 +606,9 @@ $(DIST_DIRS):
 
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install src.techknowlogick.com/xgo@latest; \
-	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
@@ -624,20 +616,14 @@ endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install src.techknowlogick.com/xgo@latest; \
-	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install src.techknowlogick.com/xgo@latest; \
-	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -652,10 +638,7 @@ release-check: | $(DIST_DIRS)
 
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
-	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/ulikunitz/xz/cmd/gxz@v0.5.10; \
-	fi
-	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
+	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && $(GO) run $(GXZ_PAGAGE) -k -9 $${file}; done;
 
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS)
@@ -685,6 +668,15 @@ deps-frontend: node_modules
 .PHONY: deps-backend
 deps-backend:
 	$(GO) mod download
+	$(GO) install $(AIR_PACKAGE)
+	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
+	$(GO) install $(ERRCHECK_PACKAGE)
+	$(GO) install $(GOFUMPT_PACKAGE)
+	$(GO) install $(GOLANGCI_LINT_PACKAGE)
+	$(GO) install $(GXZ_PAGAGE)
+	$(GO) install $(MISSPELL_PACKAGE)
+	$(GO) install $(SWAGGER_PACKAGE)
+	$(GO) install $(XGO_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
@@ -778,29 +770,19 @@ pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
-golangci-lint: golangci-lint-check
-	golangci-lint run --timeout 10m
+golangci-lint:
+	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
 
-.PHONY: golangci-lint-check
-golangci-lint-check:
-	$(eval GOLANGCI_LINT_VERSION := $(shell printf "%03d%03d%03d" $(shell golangci-lint --version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
-	$(eval MIN_GOLANGCI_LINT_VER_FMT := $(shell printf "%g.%g.%g" $(shell echo $(MIN_GOLANGCI_LINT_VERSION) | grep -o ...)))
-	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Downloading golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
-		export BINARY="golangci-lint"; \
-		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
-	elif [ "$(GOLANGCI_LINT_VERSION)" -lt "$(MIN_GOLANGCI_LINT_VERSION)" ]; then \
-		echo "Downloading newer version of golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
-		export BINARY="golangci-lint"; \
-		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
-	fi
+# workaround step for the lint-backend-windows CI task because 'go run' can not
+# have distinct GOOS/GOARCH for its build and run steps
+.PHONY: golangci-lint-windows
+golangci-lint-windows:
+	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
+	golangci-lint run
 
 .PHONY: editorconfig-checker
 editorconfig-checker:
-	@hash editorconfig-checker > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) install github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@50adf46752da119dfef66e57be3ce2693ea4aa9c; \
-	fi
-	editorconfig-checker templates
+	$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) templates
 
 .PHONY: docker
 docker:
