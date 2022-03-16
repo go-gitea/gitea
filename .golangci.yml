@@ -64,7 +64,7 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.16
+    lang-version: 1.18
 
 issues:
   exclude-rules:
