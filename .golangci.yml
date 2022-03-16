@@ -13,7 +13,7 @@ linters:
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
-    - gocritic
+    #- gocritic # TODO: disabled until fixed with go 1.18
     - bidichk
     - ineffassign
     - revive
