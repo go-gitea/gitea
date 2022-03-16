@@ -24,7 +24,7 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.17.x
+XGO_VERSION := go-1.18.x
 MIN_GO_VERSION := 001017000
 MIN_NODE_VERSION := 012017000
 
@@ -32,7 +32,7 @@ AIR_PACKAGE ?= github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@50adf46752da119dfef66e57be3ce2693ea4aa9c
 ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.27.0
