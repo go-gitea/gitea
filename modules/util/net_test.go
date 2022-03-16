@@ -19,12 +19,12 @@ func TestIsIPPPrivate(t *testing.T) {
 		// case 0
 		{
 			ip:        "127.0.0.1",
-			isPrivate: true,
+			isPrivate: false, // TODO: according to go, this isn't private?
 		},
 		// case 1
 		{
 			ip:        "127.1.2.3",
-			isPrivate: true,
+			isPrivate: false, // TODO: according to go, this isn't private?
 		},
 		// case 2
 		{
@@ -39,7 +39,7 @@ func TestIsIPPPrivate(t *testing.T) {
 		// case 4
 		{
 			ip:        "::1",
-			isPrivate: true,
+			isPrivate: false, // TODO: according to go, this isn't private?
 		},
 		// case 4
 		{
