@@ -23,7 +23,7 @@ linters:
   fast: false
 
 run:
-  timeout: 3m
+  timeout: 10m
   skip-dirs:
     - node_modules
     - public
