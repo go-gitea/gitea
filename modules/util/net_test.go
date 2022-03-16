@@ -49,7 +49,7 @@ func TestIsIPPPrivate(t *testing.T) {
 	}
 
 	for n, c := range cases {
-		i, _ := net.ParseIP(c.ip)
+		i := net.ParseIP(c.ip)
 		p := IsIPPrivate(i)
 		assert.Equal(t, c.isPrivate, p, "case %d: should be equal", n)
 	}
