@@ -498,14 +498,15 @@ func (n *Notification) APIURL() string {
 type NotificationList []*Notification
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
-func (nl NotificationList) LoadAttributes() (err error) {
+func (nl NotificationList) LoadAttributes() error {
+	var err error
 	for i := 0; i < len(nl); i++ {
 		err = nl[i].LoadAttributes()
 		if err != nil && !IsErrCommentNotExist(err) {
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {

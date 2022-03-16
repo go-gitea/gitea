@@ -6,15 +6,20 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ErrLocalPathNotSupported represents an error that path is not supported
+var ErrLocalPathNotSupported = errors.New("local path is not supported")
 var _ ObjectStorage = &LocalStorage{}
 
 // LocalStorageType is the type descriptor for local storage
@@ -59,11 +64,18 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 
 // Open a file
 func (l *LocalStorage) Open(path string) (Object, error) {
+	if !isLocalPathValid(path) {
+		return nil, ErrLocalPathNotSupported
+	}
 	return os.Open(filepath.Join(l.dir, path))
 }
 
 // Save a file
 func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+	if !isLocalPathValid(path) {
+		return 0, ErrLocalPathNotSupported
+	}
+
 	p := filepath.Join(l.dir, path)
 	if err := os.MkdirAll(filepath.Dir(p), os.ModePerm); err != nil {
 		return 0, err
@@ -107,8 +119,19 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 	return os.Stat(filepath.Join(l.dir, path))
 }
 
+func isLocalPathValid(p string) bool {
+	a := path.Clean(p)
+	if strings.HasPrefix(a, "../") || strings.HasPrefix(a, "..\\") {
+		return false
+	}
+	return a == p
+}
+
 // Delete delete a file
 func (l *LocalStorage) Delete(path string) error {
+	if !isLocalPathValid(path) {
+		return ErrLocalPathNotSupported
+	}
 	p := filepath.Join(l.dir, path)
 	return util.Remove(p)
 }
