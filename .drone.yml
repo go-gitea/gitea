@@ -49,11 +49,14 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: lint-backend-windows
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - make golangci-lint vet
+      - make golangci-lint-windows vet
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -61,6 +64,9 @@ steps:
       GOOS: windows
       GOARCH: amd64
     depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: lint-backend-gogit
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -71,6 +77,9 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
     depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
   - name: checks-frontend
     image: node:16
@@ -100,7 +109,7 @@ steps:
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.16 # this step is kept as the lowest version of golang that we support
+    image: golang:1.17 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
