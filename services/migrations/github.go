@@ -532,6 +532,7 @@ func (g *GithubDownloaderV3) getComments(issueContext base.IssueContext) ([]*bas
 
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  issueContext.LocalID(),
+				Index:       comment.GetID(),
 				PosterID:    comment.GetUser().GetID(),
 				PosterName:  comment.GetUser().GetLogin(),
 				PosterEmail: comment.GetUser().GetEmail(),
@@ -607,6 +608,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 		issueIndex, _ := strconv.ParseInt((*comment.IssueURL)[idx+1:], 10, 64)
 		allComments = append(allComments, &base.Comment{
 			IssueIndex:  issueIndex,
+			Index:       comment.GetID(),
 			PosterID:    comment.GetUser().GetID(),
 			PosterName:  comment.GetUser().GetLogin(),
 			PosterEmail: comment.GetUser().GetEmail(),

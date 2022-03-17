@@ -236,6 +236,7 @@ func (g *GogsDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comme
 		}
 		allComments = append(allComments, &base.Comment{
 			IssueIndex:  opts.Context.LocalID(),
+			Index:       comment.ID,
 			PosterID:    comment.Poster.ID,
 			PosterName:  comment.Poster.Login,
 			PosterEmail: comment.Poster.Email,
