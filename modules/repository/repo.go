@@ -110,11 +110,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	stdout := new(strings.Builder)
+	stderr := new(strings.Builder)
 	if err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
-		RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout}); err != nil {
-		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout.String(), err)
-		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+		RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1, Stdout: stdout, Stderr: stderr}); err != nil {
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout.String(), stderr.String())
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", stderr.String())
 	}
 
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
