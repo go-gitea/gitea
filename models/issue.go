@@ -2075,6 +2075,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&IssueDependency{},
 		&IssueAssignees{},
 		&IssueUser{},
+		&Notification{},
 		&Reaction{},
 		&IssueWatch{},
 		&Stopwatch{},
