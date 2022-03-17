@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -316,18 +317,18 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 
 	notification.NotifyPackageDelete(doer, pd)
 
-	return DeleteUnreferencedBlobs()
+	return nil
 }
 
-// DeleteUnreferencedBlobs deletes all unreferenced package blobs
-func DeleteUnreferencedBlobs() error {
+// Cleanup removes old unreferenced package blobs
+func Cleanup(unused context.Context, olderThan time.Duration) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	pbs, err := packages_model.GetUnreferencedBlobs(ctx)
+	pbs, err := packages_model.GetUnreferencedBlobsOlderThan(ctx, olderThan)
 	if err != nil {
 		return err
 	}

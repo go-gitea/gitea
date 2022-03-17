@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	packages_service "code.gitea.io/gitea/services/packages"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
@@ -140,6 +141,21 @@ func registerCleanupHookTaskTable() {
 	})
 }
 
+func registerCleanupPackages() {
+	RegisterTaskFatal("cleanup_packages", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
+			NoSuccessNotice: true,
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return packages_service.Cleanup(ctx, realConfig.OlderThan)
+	})
+}
+
 func initBasicTasks() {
 	registerUpdateMirrorTask()
 	registerRepoHealthCheck()
@@ -151,4 +167,7 @@ func initBasicTasks() {
 		registerUpdateMigrationPosterID()
 	}
 	registerCleanupHookTaskTable()
+	if setting.Packages.Enabled {
+		registerCleanupPackages()
+	}
 }

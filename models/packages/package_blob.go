@@ -7,6 +7,7 @@ package packages
 import (
 	"context"
 	"errors"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -61,13 +62,13 @@ func GetBlobByID(ctx context.Context, blobID int64) (*PackageBlob, error) {
 	return pb, nil
 }
 
-// GetUnreferencedBlobs gets all blobs without associated files
-func GetUnreferencedBlobs(ctx context.Context) ([]*PackageBlob, error) {
+// GetUnreferencedBlobsOlderThan gets all blobs without associated files older than the specific duration
+func GetUnreferencedBlobsOlderThan(ctx context.Context, olderThan time.Duration) ([]*PackageBlob, error) {
 	pbs := make([]*PackageBlob, 0, 10)
 	return pbs, db.GetEngine(ctx).
 		Table("package_blob").
 		Join("LEFT OUTER", "package_file", "package_file.blob_id = package_blob.id").
-		Where("package_file.id IS NULL").
+		Where("package_file.id IS NULL AND package_blob.created_unix < ?", time.Now().Add(-olderThan).Unix()).
 		Find(&pbs)
 }
 

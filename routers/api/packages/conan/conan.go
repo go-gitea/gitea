@@ -681,7 +681,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 		notification.NotifyPackageDelete(apictx.User, pd)
 	}
 
-	return packages_service.DeleteUnreferencedBlobs()
+	return nil
 }
 
 // ListRecipeRevisions gets a list of all recipe revisions
