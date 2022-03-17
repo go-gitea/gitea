@@ -19,8 +19,10 @@ import (
 )
 
 // ErrLocalPathNotSupported represents an error that path is not supported
-var ErrLocalPathNotSupported = errors.New("local path is not supported")
-var _ ObjectStorage = &LocalStorage{}
+var (
+	ErrLocalPathNotSupported               = errors.New("local path is not supported")
+	_                        ObjectStorage = &LocalStorage{}
+)
 
 // LocalStorageType is the type descriptor for local storage
 const LocalStorageType Type = "local"
