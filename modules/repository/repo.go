@@ -72,9 +72,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
