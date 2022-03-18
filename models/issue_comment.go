@@ -1152,9 +1152,7 @@ func DeleteComment(comment *Comment) error {
 }
 
 func deleteComment(e db.Engine, comment *Comment) error {
-	if _, err := e.Delete(&Comment{
-		ID: comment.ID,
-	}); err != nil {
+	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
 
@@ -1165,7 +1163,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
 			return err
 		}
 	}
