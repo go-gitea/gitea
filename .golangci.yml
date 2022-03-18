@@ -13,7 +13,7 @@ linters:
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
-    - gocritic
+    #- gocritic # TODO: disabled until fixed with go 1.18
     - bidichk
     - ineffassign
     - revive
@@ -23,7 +23,7 @@ linters:
   fast: false
 
 run:
-  timeout: 3m
+  timeout: 10m
   skip-dirs:
     - node_modules
     - public
@@ -64,7 +64,7 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.16
+    lang-version: 1.18
 
 issues:
   exclude-rules:
@@ -152,3 +152,5 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
+    - linters: staticcheck
+      text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."
