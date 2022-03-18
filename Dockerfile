@@ -1,3 +1,5 @@
+#Build stage
+FROM golang:1.18-alpine3.15 AS build-env
 
 ###################################
 #Build stage - temporarily using techknowlogick image until we upgrade to latest official alpine/go image
