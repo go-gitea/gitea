@@ -644,6 +644,15 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		u.Visibility = overwriteDefault[0].Visibility
 	}
 
+	// validate data
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
+	if err := ValidateEmail(u.Email); err != nil {
+		return err
+	}
+
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -651,11 +660,6 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	defer committer.Close()
 
 	sess := db.GetEngine(ctx)
-
-	// validate data
-	if err := validateUser(u); err != nil {
-		return err
-	}
 
 	isExist, err := isUserExist(sess, 0, u.Name)
 	if err != nil {
@@ -861,20 +865,21 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		}); err != nil {
 			return err
 		}
-	} else { // check if primary email in email_address table
+	} else if !u.IsOrganization() { // check if primary email in email_address table
 		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
 		if err != nil {
 			return err
 		}
 
 		if !primaryEmailExist {
-			_, err = e.Insert(&EmailAddress{
+			if _, err := e.Insert(&EmailAddress{
 				Email:       u.Email,
 				UID:         u.ID,
 				IsActivated: true,
 				IsPrimary:   true,
-			})
-			return err
+			}); err != nil {
+				return err
+			}
 		}
 	}
 
