@@ -153,3 +153,7 @@ issues:
         - golint
     - linters: staticcheck
       text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."
+    - linters: staticcheck
+      text: "util.FindClosure is deprecated: This function can not handle newlines. Many elements can be existed over multiple lines(e.g. link labels). Use text.Reader.FindClosure."
+    - linters: staticcheck
+      text: "gossh.SigAlgoRSASHA2256 is deprecated: use KeyAlgoRSASHA256."
