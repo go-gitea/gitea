@@ -3,7 +3,7 @@ module code.gitea.io/gitea
 go 1.17
 
 require (
-	cloud.google.com/go v0.78.0 // indirect
+	cloud.google.com/go v0.99.0 // indirect
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.15.1
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
@@ -53,7 +53,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.13.1
+	github.com/klauspost/compress v1.13.6
 	github.com/klauspost/cpuid/v2 v2.0.9
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lib/pq v1.10.2
@@ -73,7 +73,6 @@ require (
 	github.com/pquerna/otp v1.3.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/quasoft/websspi v1.1.2
-	github.com/santhosh-tekuri/jsonschema/v5 v5.0.0
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 	github.com/stretchr/testify v1.7.0
@@ -98,7 +97,7 @@ require (
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.9
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.62.0
+	gopkg.in/ini.v1 v1.66.2
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
@@ -107,7 +106,6 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.99.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
@@ -205,7 +203,6 @@ require (
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
-	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/libdns/libdns v0.2.1 // indirect
