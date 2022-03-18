@@ -1163,7 +1163,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
 			return err
 		}
 	}
