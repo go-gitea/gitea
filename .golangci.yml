@@ -157,3 +157,5 @@ issues:
       text: "util.FindClosure is deprecated: This function can not handle newlines. Many elements can be existed over multiple lines(e.g. link labels). Use text.Reader.FindClosure."
     - linters: staticcheck
       text: "gossh.SigAlgoRSASHA2256 is deprecated: use KeyAlgoRSASHA256."
+    - linters: staticcheck
+      text: "gossh.SigAlgoRSASHA2512 is deprecated: use KeyAlgoRSASHA512."
