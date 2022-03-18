@@ -193,17 +193,13 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		}
 		return nil, false, err
 	}
-
-	for _, issue := range issues {
-		issue.Context = base.BasicIssueContext(issue.Number)
-	}
 	return issues, true, nil
 }
 
 // GetComments returns comments according issueNumber
-func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+func (r *RepositoryRestorer) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
 	comments := make([]*base.Comment, 0, 10)
-	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", opts.Context.ForeignID()))
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", commentable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -247,15 +243,14 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 	for _, pr := range pulls {
 		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
-		pr.Context = base.BasicIssueContext(pr.Number)
 	}
 	return pulls, true, nil
 }
 
 // GetReviews returns pull requests review
-func (r *RepositoryRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+func (r *RepositoryRestorer) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	reviews := make([]*base.Review, 0, 10)
-	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", context.ForeignID()))
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", reviewable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
