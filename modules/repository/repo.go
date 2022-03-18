@@ -502,7 +502,6 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 			}
 		}
 		return nil
-
 	})
 	if err != nil {
 		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
