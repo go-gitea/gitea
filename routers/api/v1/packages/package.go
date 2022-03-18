@@ -83,7 +83,7 @@ func ListPackages(ctx *context.APIContext) {
 
 // GetPackage gets a package
 func GetPackage(ctx *context.APIContext) {
-	// swagger:operation GET /packages/{owner}/{versionid} package getPackage
+	// swagger:operation GET /packages/{owner}/{type}/{name}/{version} package getPackage
 	// ---
 	// summary: Gets a package
 	// produces:
@@ -94,11 +94,20 @@ func GetPackage(ctx *context.APIContext) {
 	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: versionid
+	// - name: type
 	//   in: path
-	//   description: id of the package version
-	//   type: integer
-	//   format: int64
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// - name: version
+	//   in: path
+	//   description: version of the package
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
@@ -111,7 +120,7 @@ func GetPackage(ctx *context.APIContext) {
 
 // DeletePackage deletes a package
 func DeletePackage(ctx *context.APIContext) {
-	// swagger:operation DELETE /packages/{owner}/{versionid} package deletePackage
+	// swagger:operation DELETE /packages/{owner}/{type}/{name}/{version} package deletePackage
 	// ---
 	// summary: Delete a package
 	// parameters:
@@ -120,12 +129,20 @@ func DeletePackage(ctx *context.APIContext) {
 	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: versionid
+	// - name: type
 	//   in: path
-	//   description: id of the package version
-	//   type: integer
-	//   format: int64
+	//   description: type of the package
+	//   type: string
 	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// - name: version
+	//   in: path
+	//   description: version of the package
+	//   type: string
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -142,7 +159,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 // ListPackageFiles gets all files of a package
 func ListPackageFiles(ctx *context.APIContext) {
-	// swagger:operation GET /packages/{owner}/{versionid}/files package listPackageFiles
+	// swagger:operation GET /packages/{owner}/{type}/{name}/{version}/files package listPackageFiles
 	// ---
 	// summary: Gets all files of a package
 	// produces:
@@ -153,11 +170,20 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: versionid
+	// - name: type
 	//   in: path
-	//   description: id of the package version
-	//   type: integer
-	//   format: int64
+	//   description: type of the package
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of the package
+	//   type: string
+	//   required: true
+	// - name: version
+	//   in: path
+	//   description: version of the package
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":

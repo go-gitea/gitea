@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
@@ -37,7 +37,7 @@ func Packages(ctx *context.Context) {
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
 
-	pvs, total, err := packages.SearchLatestVersions(ctx, &packages.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -51,13 +51,13 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	pds, err := packages.GetPackageDescriptors(ctx, pvs)
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
 	}
 
-	hasPackages, err := packages.HasOwnerPackages(ctx, ctx.ContextUser.ID)
+	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("HasOwnerPackages", err)
 		return
@@ -94,7 +94,7 @@ func ViewPackage(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	otherVersions, err := packages.GetVersionsByPackageName(ctx, pd.Owner.ID, pd.Package.Type, pd.Package.LowerName)
+	otherVersions, err := packages_model.GetVersionsByPackageName(ctx, pd.Owner.ID, pd.Package.Type, pd.Package.LowerName)
 	if err != nil {
 		ctx.ServerError("GetVersionsByPackageName", err)
 		return
@@ -160,7 +160,7 @@ func PackageSettingsPost(ctx *context.Context) {
 				repoID = repo.ID
 			}
 
-			if err := packages.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
+			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
 				log.Error("Error updating package: %v", err)
 				return false
 			}
@@ -192,18 +192,23 @@ func PackageSettingsPost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
+	pf, err := packages_model.GetFileForVersionByID(ctx, ctx.Package.Descriptor.Version.ID, ctx.ParamsInt64(":fileid"))
+	if err != nil {
+		if err == packages_model.ErrPackageFileNotExist {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("GetFileForVersionByID", err)
+		}
+		return
+	}
+
+	s, _, err := packages_service.GetPackageFileStream(
 		ctx,
-		ctx.ContextUser,
-		ctx.ParamsInt64(":versionid"),
-		ctx.ParamsInt64(":fileid"),
+		ctx.Package.Descriptor.Version,
+		pf,
 	)
 	if err != nil {
-		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
-			ctx.NotFound("", err)
-			return
-		}
-		ctx.ServerError("GetFileStreamByPackageVersionAndFileID", err)
+		ctx.ServerError("GetPackageFileStream", err)
 		return
 	}
 	defer s.Close()

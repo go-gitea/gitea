@@ -629,7 +629,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}/-", func() {
 		m.Group("/packages", func() {
 			m.Get("", user.Packages)
-			m.Group("/{versionid}", func() {
+			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", user.ViewPackage)
 				m.Get("/files/{fileid}", user.DownloadPackageFile)
 				m.Group("/settings", func() {

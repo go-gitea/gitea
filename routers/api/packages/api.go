@@ -53,7 +53,7 @@ func Routes() *web.Route {
 			r.Get("/list.json", composer.EnumeratePackages)
 			r.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
-			r.Get("/files/{versionid}/{fileid}", composer.DownloadPackageFile)
+			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
 		})
 		r.Group("/conan", func() {

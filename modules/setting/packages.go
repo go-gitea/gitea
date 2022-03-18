@@ -16,7 +16,7 @@ var (
 	}
 )
 
-func newPackagesService() {
+func newPackages() {
 	if err := Cfg.Section("packages").MapTo(&Packages); err != nil {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}

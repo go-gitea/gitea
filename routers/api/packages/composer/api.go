@@ -5,7 +5,8 @@
 package composer
 
 import (
-	"strconv"
+	"fmt"
+	"net/url"
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -102,7 +103,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			Metadata: pd.Metadata.(*composer_module.Metadata),
 			Dist: Dist{
 				Type:     "zip",
-				URL:      registryURL + "/files/" + strconv.FormatInt(pd.Version.ID, 10) + "/" + strconv.FormatInt(pd.Files[0].File.ID, 10),
+				URL:      fmt.Sprintf("%s/files/%s/%s/%s", registryURL, url.PathEscape(pd.Package.LowerName), url.PathEscape(pd.Version.LowerVersion), url.PathEscape(pd.Files[0].File.LowerName)),
 				Checksum: pd.Files[0].Blob.HashSHA1,
 			},
 		})

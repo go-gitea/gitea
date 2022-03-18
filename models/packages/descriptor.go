@@ -6,7 +6,8 @@ package packages
 
 import (
 	"context"
-	"strconv"
+	"fmt"
+	"net/url"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -55,9 +56,14 @@ type PackageFileDescriptor struct {
 	Properties PackagePropertyList
 }
 
-// WebLink returns the package's web link
-func (pd *PackageDescriptor) WebLink() string {
-	return pd.Owner.HTMLURL() + "/-/packages/" + strconv.FormatInt(pd.Version.ID, 10)
+// PackageWebLink returns the package web link
+func (pd *PackageDescriptor) PackageWebLink() string {
+	return fmt.Sprintf("%s/-/packages/%s/%s", pd.Owner.HTMLURL(), string(pd.Package.Type), url.PathEscape(pd.Package.LowerName))
+}
+
+// FullWebLink returns the package version web link
+func (pd *PackageDescriptor) FullWebLink() string {
+	return fmt.Sprintf("%s/%s", pd.PackageWebLink(), url.PathEscape(pd.Version.LowerVersion))
 }
 
 // CalculateBlobSize returns the total blobs size in bytes

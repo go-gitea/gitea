@@ -63,7 +63,7 @@
 							<div class="ui relaxed list">
 							{{range .OtherVersions}}
 								<div class="item">
-									<a href="{{$.PackageDescriptor.Owner.HTMLURL}}/-/packages/{{.ID}}">{{.Version}}</a>
+									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
 									<span class="text small">{{$.i18n.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
 								</div>
 							{{end}}

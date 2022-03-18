@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -126,7 +127,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%d/%d", url, pvs[0].ID, pfs[0].ID))
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", url, neturl.PathEscape(packageName), neturl.PathEscape(pvs[0].LowerVersion), neturl.PathEscape(pfs[0].LowerName)))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 

@@ -40,7 +40,7 @@ func Packages(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		ctx.ServerError("SearchLatestVersions", err)
+		ctx.ServerError("SearchVersions", err)
 		return
 	}
 

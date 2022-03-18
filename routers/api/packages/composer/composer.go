@@ -160,14 +160,17 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	versionID := ctx.ParamsInt64("versionid")
-	fileID := ctx.ParamsInt64("fileid")
-
-	s, pf, err := packages_service.GetFileStreamByPackageVersionAndFileID(
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
-		ctx.Package.Owner,
-		versionID,
-		fileID,
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeComposer,
+			Name:        ctx.Params("package"),
+			Version:     ctx.Params("version"),
+		},
+		&packages_service.PackageFileInfo{
+			Filename: ctx.Params("filename"),
+		},
 	)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {

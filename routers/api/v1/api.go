@@ -1015,7 +1015,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		})
 
 		m.Group("/packages/{username}", func() {
-			m.Group("/{versionid}", func() {
+			m.Group("/{type}/{name}/{version}", func() {
 				m.Get("", packages.GetPackage)
 				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 				m.Get("/files", packages.ListPackageFiles)

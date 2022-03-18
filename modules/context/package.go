@@ -7,7 +7,6 @@ package context
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -68,20 +67,16 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		}
 	}
 
-	versionID := ctx.Params(":versionid")
-	if versionID != "" {
-		id, err := strconv.ParseInt(versionID, 10, 64)
-		if err != nil {
-			errCb(http.StatusInternalServerError, "ParseInt", err)
-			return
-		}
-
-		pv, err := packages_model.GetVersionByID(ctx, id)
+	packageType := ctx.Params("type")
+	name := ctx.Params("name")
+	version := ctx.Params("version")
+	if packageType != "" && name != "" && version != "" {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {
 			if err == packages_model.ErrPackageNotExist {
-				errCb(http.StatusNotFound, "GetVersionByID", err)
+				errCb(http.StatusNotFound, "GetVersionByNameAndVersion", err)
 			} else {
-				errCb(http.StatusInternalServerError, "GetVersionByID", err)
+				errCb(http.StatusInternalServerError, "GetVersionByNameAndVersion", err)
 			}
 			return
 		}
@@ -89,11 +84,6 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		ctx.Package.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
 			errCb(http.StatusInternalServerError, "GetPackageDescriptor", err)
-			return
-		}
-
-		if ctx.Package.Descriptor.Owner.ID != ctx.Package.Owner.ID {
-			errCb(http.StatusNotFound, "Package owner does not match", "Package owner does not match")
 			return
 		}
 	}

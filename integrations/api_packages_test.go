@@ -33,8 +33,6 @@ func TestPackageAPI(t *testing.T) {
 	AddBasicAuthHeader(req, user.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
-	var packageID int64
-
 	t.Run("ListPackages", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
@@ -50,17 +48,15 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, packageVersion, apiPackages[0].Version)
 		assert.NotNil(t, apiPackages[0].Creator)
 		assert.Equal(t, user.Name, apiPackages[0].Creator.UserName)
-
-		packageID = apiPackages[0].ID
 	})
 
 	t.Run("GetPackage", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, 123456, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, packageID, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var p *api.Package
@@ -76,10 +72,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackageFiles", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d/files?token=%s", user.Name, 123456, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d/files?token=%s", user.Name, packageID, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/files?token=%s", user.Name, packageName, packageVersion, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var files []*api.PackageFile
@@ -97,10 +93,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("DeletePackage", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, 123456, token))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, packageID, token))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

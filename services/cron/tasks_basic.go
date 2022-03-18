@@ -144,9 +144,9 @@ func registerCleanupHookTaskTable() {
 func registerCleanupPackages() {
 	RegisterTaskFatal("cleanup_packages", &OlderThanConfig{
 		BaseConfig: BaseConfig{
-			Enabled:    true,
-			RunAtStart: true,
-			Schedule:   "@midnight",
+			Enabled:         true,
+			RunAtStart:      true,
+			Schedule:        "@midnight",
 			NoSuccessNotice: true,
 		},
 		OlderThan: 24 * time.Hour,
