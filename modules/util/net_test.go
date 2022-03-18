@@ -38,11 +38,6 @@ func TestIsIPPPrivate(t *testing.T) {
 		},
 		// case 4
 		{
-			ip:        "::1",
-			isPrivate: false, // TODO: according to go, this isn't private?
-		},
-		// case 4
-		{
 			ip:        "2a12:7c40::f00d",
 			isPrivate: false,
 		},
