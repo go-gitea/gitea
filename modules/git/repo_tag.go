@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/foreachref"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -116,104 +117,81 @@ const (
 
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
-	stdout, err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefTagsFormat, "--sort", "-*creatordate", "refs/tags").RunInDir(repo.Path)
+	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
+
+	stdout, err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").RunInDir(repo.Path)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	refBlocks := strings.Split(stdout, dualNullChar)
 	var tags []*Tag
-	for _, refBlock := range refBlocks {
-		refBlock = strings.TrimSpace(refBlock)
-		if refBlock == "" {
+	parser := forEachRefFmt.Parser(strings.NewReader(stdout))
+	for {
+		ref := parser.Next()
+		if ref == nil {
 			break
 		}
 
-		tag, err := parseTagRef(refBlock)
+		tag, err := parseTagRef(ref)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
 		}
-
 		tags = append(tags, tag)
+	}
+	if err := parser.Err(); err != nil {
+		return nil, 0, fmt.Errorf("GetTagInfos: parse output: %w", err)
 	}
 
 	tagsTotal := len(tags)
 	if page != 0 {
 		tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
 	}
-	// TODO shouldn't be necessary
+	// TODO shouldn't be necessary since we're running with '--sort'?
 	sortTagsByTime(tags)
 	return tags, tagsTotal, nil
 }
 
-// note: relies on output being formatted using forEachRefFormat
-func parseTagRef(ref string) (*Tag, error) {
-	var tag Tag
-	items := strings.Split(ref, "\x00")
-	for _, item := range items {
-		// item = strings.TrimSpace(item)
-		if item == "" {
-			continue
-		}
+func parseTagRef(ref map[string]string) (tag *Tag, err error) {
+	tag = &Tag{
+		Type: ref["objecttype"],
+		Name: ref["refname:short"],
+	}
 
-		var field string
-		var value string
-		firstSpace := strings.Index(item, " ")
-		if firstSpace > 0 {
-			field = item[:firstSpace]
-			value = item[firstSpace+1:]
-		} else {
-			field = item
-		}
+	tag.ID, err = NewIDFromString(ref["objectname"])
+	if err != nil {
+		return nil, fmt.Errorf("parse objectname '%s': %v", ref["objectname"], err)
+	}
 
-		if value == "" {
-			continue
-		}
-
-		switch field {
-		case "type":
-			tag.Type = value
-		case "tag":
-			tag.Name = value
-		case "objectname":
-			var err error
-			tag.ID, err = NewIDFromString(value)
-			if err != nil {
-				return nil, fmt.Errorf("parse objectname '%s': %v", value, err)
-			}
-			if tag.Type == "commit" {
-				tag.Object = tag.ID
-			}
-		case "object":
-			var err error
-			tag.Object, err = NewIDFromString(value)
-			if err != nil {
-				return nil, fmt.Errorf("parse object '%s': %v", value, err)
-			}
-		case "tagger":
-			var err error
-			tag.Tagger, err = newSignatureFromCommitline([]byte(value))
-			if err != nil {
-				return nil, fmt.Errorf("parse tagger: %w", err)
-			}
-		case "message":
-			tag.Message = value
-			// srtip PGP signature if present in contents field
-			pgpStart := strings.Index(value, beginpgp)
-			if pgpStart >= 0 {
-				tag.Message = tag.Message[0:pgpStart]
-			}
-			// tag.Message += "\n"
-		case "signature":
-			tag.Signature = &CommitGPGSignature{
-				Signature: value,
-				// TODO: don't know what to do about Payload. Is
-				// it even relevant in this context?
-			}
+	if tag.Type == "commit" {
+		// lightweight tag
+		tag.Object = tag.ID
+	} else {
+		// annotated tag
+		tag.Object, err = NewIDFromString(ref["object"])
+		if err != nil {
+			return nil, fmt.Errorf("parse object '%s': %v", ref["object"], err)
 		}
 	}
 
-	return &tag, nil
+	tag.Tagger, err = newSignatureFromCommitline([]byte(ref["creator"]))
+	if err != nil {
+		return nil, fmt.Errorf("parse tagger: %w", err)
+	}
+
+	tag.Message = ref["contents"]
+	// strip PGP signature if present in contents field
+	pgpStart := strings.Index(tag.Message, beginpgp)
+	if pgpStart >= 0 {
+		tag.Message = tag.Message[0:pgpStart]
+	}
+	tag.Signature = &CommitGPGSignature{
+		Signature: ref["contents:signature"],
+		// TODO: don't know what to do about Payload. Is it relevant in
+		// this context?
+		Payload: "",
+	}
+
+	return tag, nil
 }
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
