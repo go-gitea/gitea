@@ -621,6 +621,12 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// Send confirmation email
 	if !u.IsActive && u.ID > 1 {
+		if setting.Service.RegisterManualConfirm {
+			ctx.Data["ManualActivationOnly"] = true
+			ctx.HTML(http.StatusOK, TplActivate)
+			return
+		}
+
 		mailer.SendActivateAccountMail(ctx.Locale, u)
 
 		ctx.Data["IsSendRegisterMail"] = true
