@@ -6,13 +6,13 @@ package integrations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
@@ -37,7 +37,7 @@ func TestActivityPubPerson(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "@context")
 		var m map[string]interface{}
-		_ = json.Unmarshal(resp.Body.Bytes(), &m)
+		err := json.Unmarshal(resp.Body.Bytes(), &m)
 
 		var person vocab.ActivityStreamsPerson
 		resolver, _ := streams.NewJSONResolver(func(c context.Context, p vocab.ActivityStreamsPerson) error {
@@ -55,6 +55,7 @@ func TestActivityPubPerson(t *testing.T) {
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.GetActivityStreamsInbox().GetIRI().String())
 
 		pkp := person.GetW3IDSecurityV1PublicKey()
+		assert.NotNil(t, pkp)
 		publicKeyID := keyID + "/#main-key"
 		var pkpFound vocab.W3IDSecurityV1PublicKey
 		for pkpIter := pkp.Begin(); pkpIter != pkp.End(); pkpIter = pkpIter.Next() {
