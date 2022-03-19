@@ -80,7 +80,8 @@ func AddEmail(ctx *context.APIContext) {
 	if err := user_model.AddEmailAddresses(emails); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
-		} else if user_model.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			errMsg := fmt.Sprintf("Email address %s invalid", err.(user_model.ErrEmailInvalid).Email)
 			ctx.Error(http.StatusUnprocessableEntity, "", errMsg)
 		} else {

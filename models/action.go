@@ -328,7 +328,7 @@ type GetFeedsOptions struct {
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
 		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
@@ -338,7 +338,8 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		return nil, err
 	}
 
-	sess := db.GetEngine(db.DefaultContext).Where(cond)
+	e := db.GetEngine(ctx)
+	sess := e.Where(cond)
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
@@ -349,7 +350,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	if err := ActionList(actions).LoadAttributes(); err != nil {
+	if err := ActionList(actions).loadAttributes(e); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 

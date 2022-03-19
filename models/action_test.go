@@ -8,6 +8,7 @@ import (
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -39,7 +40,7 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	actions, err := GetFeeds(GetFeedsOptions{
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -52,7 +53,7 @@ func TestGetFeeds(t *testing.T) {
 		assert.EqualValues(t, user.ID, actions[0].UserID)
 	}
 
-	actions, err = GetFeeds(GetFeedsOptions{
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  false,
@@ -62,13 +63,54 @@ func TestGetFeeds(t *testing.T) {
 	assert.Len(t, actions, 0)
 }
 
+func TestGetFeedsForRepos(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8}).(*repo_model.Repository)
+
+	// private repo & no login
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo:  privRepo,
+		IncludePrivate: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 0)
+
+	// public repo & no login
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo:  pubRepo,
+		IncludePrivate: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+
+	// private repo and login
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo:  privRepo,
+		IncludePrivate: true,
+		Actor:          user,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+
+	// public repo & login
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo:  pubRepo,
+		IncludePrivate: true,
+		Actor:          user,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+}
+
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	actions, err := GetFeeds(GetFeedsOptions{
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -82,7 +124,7 @@ func TestGetFeeds2(t *testing.T) {
 		assert.EqualValues(t, org.ID, actions[0].UserID)
 	}
 
-	actions, err = GetFeeds(GetFeedsOptions{
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  false,

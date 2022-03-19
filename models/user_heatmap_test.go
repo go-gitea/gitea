@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -72,7 +73,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 
 		// get the action for comparison
-		actions, err := GetFeeds(GetFeedsOptions{
+		actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
