@@ -317,64 +317,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		}
 	}
 
-	// Workaround slightly broken behaviour in x/crypto/ssh/handshake.go:458-463
-	//
-	// Fundamentally the issue here is that HostKeyAlgos make the incorrect assumption
-	// that the PublicKey().Type() matches the signature algorithm.
-	//
-	// Therefore we need to add duplicates for the RSA with different signing algorithms.
-	signers := make([]ssh.Signer, 0, len(srv.HostSigners))
-	for _, signer := range srv.HostSigners {
-		if signer.PublicKey().Type() == "ssh-rsa" {
-			signers = append(signers,
-				&wrapSigner{
-					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2512,
-				},
-				&wrapSigner{
-					Signer:    signer,
-					algorithm: gossh.SigAlgoRSASHA2256,
-				},
-			)
-		}
-		signers = append(signers, signer)
-	}
-	srv.HostSigners = signers
-
 	go listen(&srv)
-
-}
-
-// wrapSigner wraps a signer and overrides its public key type with the provided algorithm
-type wrapSigner struct {
-	ssh.Signer
-	algorithm string
-}
-
-// PublicKey returns an associated PublicKey instance.
-func (s *wrapSigner) PublicKey() gossh.PublicKey {
-	return &wrapPublicKey{
-		PublicKey: s.Signer.PublicKey(),
-		algorithm: s.algorithm,
-	}
-}
-
-// Sign returns raw signature for the given data. This method
-// will apply the hash specified for the keytype to the data using
-// the algorithm assigned for this key
-func (s *wrapSigner) Sign(rand io.Reader, data []byte) (*gossh.Signature, error) {
-	return s.Signer.(gossh.AlgorithmSigner).SignWithAlgorithm(rand, data, s.algorithm)
-}
-
-// wrapPublicKey wraps a PublicKey and overrides its type
-type wrapPublicKey struct {
-	gossh.PublicKey
-	algorithm string
-}
-
-// Type returns the algorithm
-func (k *wrapPublicKey) Type() string {
-	return k.algorithm
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
