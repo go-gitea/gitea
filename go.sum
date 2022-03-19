@@ -467,7 +467,6 @@ github.com/go-enry/go-oniguruma v1.2.1 h1:k8aAMuJfMrqm/56SG2lV9Cfti6tC4x8673aHCc
 github.com/go-enry/go-oniguruma v1.2.1/go.mod h1:bWDhYP+S6xZQgiRL7wlTScFYBe023B6ilRZbCAD5Hf4=
 github.com/go-fed/activity v1.0.1-0.20220119073622-b14b50eecad0 h1:rV8Mp/ChJLd0ZUrS6xMwiP6ZIFpSomffrQOjf4Xyd3M=
 github.com/go-fed/activity v1.0.1-0.20220119073622-b14b50eecad0/go.mod h1:v4QoPaAzjWZ8zN2VFVGL5ep9C02mst0hQYHUpQwso4Q=
-github.com/go-fed/httpsig v0.1.1-0.20190914113940-c2de3672e5b5 h1:WLvFZqoXnuVTBKA6U/1FnEHNQ0Rq0QM0rGhY8Tx6R1g=
 github.com/go-fed/httpsig v0.1.1-0.20190914113940-c2de3672e5b5/go.mod h1:T56HUNYZUQ1AGUzhAYPugZfp36sKApVnGBgKlIY+aIE=
 github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e h1:oRq/fiirun5HqlEWMLIcDmLpIELlG4iGbd0s8iqgPi8=
 github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e/go.mod h1:RCMrTZvN1bJYtofsG4rd5NaO5obxQ5xBkdiS7xsT7bM=
@@ -615,6 +614,7 @@ github.com/go-swagger/go-swagger v0.29.0/go.mod h1:Z4GJzI+bHKKkGB2Ji1rawpi3/ldXX
 github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013 h1:l9rI6sNaZgNC0LnF3MiE+qTmyBA/tZAg1rtyrGbUMK0=
 github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013/go.mod h1:b65mBPzqzZWxOZGxSWrqs4GInLIn+u99Q9q7p+GKni0=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
+github.com/go-test/deep v1.0.1 h1:UQhStjbkDClarlmv0am7OXXO4/GaPdCGiUiMTvi28sg=
 github.com/go-test/deep v1.0.1/go.mod h1:wGDj63lr65AM2AQyKZd/NYHGb0R+1RLqB8NKt3aSFNA=
 github.com/go-testfixtures/testfixtures/v3 v3.6.1 h1:n4Fv95Exp0D05G6l6CAZv22Ck1EJK0pa0TfPqE4ncSs=
 github.com/go-testfixtures/testfixtures/v3 v3.6.1/go.mod h1:Bsb2MoHAfHnNsPpSwAjtOs102mqDuM+1u3nE2OCi0N0=
