@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -19,25 +20,40 @@ import (
 
 func TestGetUserHeatmapDataByUser(t *testing.T) {
 	testCases := []struct {
+		desc        string
 		userID      int64
 		doerID      int64
 		CountResult int
 		JSONResult  string
 	}{
-		// self looks at action in private repo
-		{2, 2, 1, `[{"timestamp":1603227600,"contributions":1}]`},
-		// admin looks at action in private repo
-		{2, 1, 1, `[{"timestamp":1603227600,"contributions":1}]`},
-		// other user looks at action in private repo
-		{2, 3, 0, `[]`},
-		// nobody looks at action in private repo
-		{2, 0, 0, `[]`},
-		// collaborator looks at action in private repo
-		{16, 15, 1, `[{"timestamp":1603267200,"contributions":1}]`},
-		// no action action not performed by target user
-		{3, 3, 0, `[]`},
-		// multiple actions performed with two grouped together
-		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
+		{
+			"self looks at action in private repo",
+			2, 2, 1, `[{"timestamp":1603227600,"contributions":1}]`,
+		},
+		{
+			"admin looks at action in private repo",
+			2, 1, 1, `[{"timestamp":1603227600,"contributions":1}]`,
+		},
+		{
+			"other user looks at action in private repo",
+			2, 3, 0, `[]`,
+		},
+		{
+			"nobody looks at action in private repo",
+			2, 0, 0, `[]`,
+		},
+		{
+			"collaborator looks at action in private repo",
+			16, 15, 1, `[{"timestamp":1603267200,"contributions":1}]`,
+		},
+		{
+			"no action action not performed by target user",
+			3, 3, 0, `[]`,
+		},
+		{
+			"multiple actions performed with two grouped together",
+			10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`,
+		},
 	}
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -46,7 +62,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
 	defer timeutil.Unset()
 
-	for i, tc := range testCases {
+	for _, tc := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID}).(*user_model.User)
 
 		doer := &user_model.User{ID: tc.doerID}
@@ -57,7 +73,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 
 		// get the action for comparison
-		actions, err := GetFeeds(GetFeedsOptions{
+		actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -74,7 +90,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 		assert.NoError(t, err)
 		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
-		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
+		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase '%s'", tc.desc))
 
 		// Test JSON rendering
 		jsonData, err := json.Marshal(heatmap)
