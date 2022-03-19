@@ -249,6 +249,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		Name:          opts.Name,
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
+		DefaultBranch: templateRepo.DefaultBranch,
 		IsPrivate:     opts.Private,
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
