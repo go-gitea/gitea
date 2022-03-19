@@ -89,10 +89,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 
 			if err = git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
