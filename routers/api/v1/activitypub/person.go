@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
+
 	"github.com/go-fed/activity/streams"
 )
 

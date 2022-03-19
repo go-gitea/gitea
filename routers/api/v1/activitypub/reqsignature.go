@@ -18,6 +18,7 @@ import (
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-fed/activity/pub"
 	"github.com/go-fed/activity/streams"
 	"github.com/go-fed/activity/streams/vocab"

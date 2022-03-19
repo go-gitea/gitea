@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-fed/activity/pub"
 )
 
