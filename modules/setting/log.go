@@ -15,13 +15,17 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	ini "gopkg.in/ini.v1"
 )
 
-var filenameSuffix = ""
-var descriptionLock = sync.RWMutex{}
-var logDescriptions = make(map[string]*LogDescription)
+var (
+	filenameSuffix  = ""
+	descriptionLock = sync.RWMutex{}
+	logDescriptions = make(map[string]*LogDescription)
+)
 
 // GetLogDescriptions returns a race safe set of descriptions
 func GetLogDescriptions() map[string]*LogDescription {
@@ -86,7 +90,7 @@ func RemoveSubLogDescription(key, name string) bool {
 type defaultLogOptions struct {
 	levelName      string // LogLevel
 	flags          string
-	filename       string //path.Join(LogRootPath, "gitea.log")
+	filename       string // path.Join(LogRootPath, "gitea.log")
 	bufferLength   int64
 	disableConsole bool
 }
@@ -243,7 +247,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
+		log.Info("%s Log: %s(%s:%s)", cases.Title(language.English).String(key), cases.Title(language.English).String(name), provider, levelName)
 	}
 
 	AddLogDescription(key, &description)
@@ -327,7 +331,7 @@ func newLogService() {
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
+		log.Info("Gitea Log Mode: %s(%s:%s)", cases.Title(language.English).String(name), cases.Title(language.English).String(provider), levelName)
 	}
 
 	AddLogDescription(log.DEFAULT, &description)
