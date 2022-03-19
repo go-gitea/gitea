@@ -208,7 +208,11 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
-	repo.DefaultBranch = templateRepo.DefaultBranch
+	// if there was no default branch supplied when generating the repo, use the default one from the template
+	if strings.TrimSpace(repo.DefaultBranch) == "" {
+		repo.DefaultBranch = templateRepo.DefaultBranch
+	}
+
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
