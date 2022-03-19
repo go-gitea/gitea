@@ -6,10 +6,15 @@ package webhook
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
+
+var Webhooks map[string]*Webhook
 
 // Webhook is a custom webhook
 type Webhook struct {
@@ -17,6 +22,18 @@ type Webhook struct {
 	HTTP string   `yaml:"http"`
 	Exec []string `yaml:"exec"`
 	Form []Form   `yaml:"form"`
+	Path string   `yaml:"-"`
+}
+
+// Image returns a custom webhook image if it exists, else the default image
+func (w *Webhook) Image() ([]byte, error) {
+	img, err := os.Open(filepath.Join(w.Path, "image.png"))
+	if err != nil {
+		return nil, fmt.Errorf("could not open custom webhook image: %w", err)
+	}
+	defer img.Close()
+
+	return io.ReadAll(img)
 }
 
 // Form is a webhook form
@@ -45,11 +62,16 @@ func (w *Webhook) validate() error {
 		if form.Type == "" {
 			return errors.New("form type is required")
 		}
+		switch form.Type {
+		case "text", "secret", "bool", "number":
+		default:
+			return errors.New("form type is invalid; must be one of text, secret, bool, or number")
+		}
 	}
 	return nil
 }
 
-// Parse parses a Webhooks from an io.Reader
+// Parse parses a Webhook from an io.Reader
 func Parse(r io.Reader) (*Webhook, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
@@ -66,4 +88,38 @@ func Parse(r io.Reader) (*Webhook, error) {
 	}
 
 	return &w, nil
+}
+
+// Init initializes any custom webhooks found in path
+func Init(path string) error {
+	dir, err := os.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("could not read dir %q: %w", path, err)
+	}
+
+	for _, d := range dir {
+		if !d.IsDir() {
+			continue
+		}
+
+		hookPath := filepath.Join(path, d.Name())
+		cfg, err := os.Open(filepath.Join(hookPath, "config.yml"))
+		if err != nil {
+			return fmt.Errorf("could not open custom webhook config: %w", err)
+		}
+
+		hook, err := Parse(cfg)
+		if err != nil {
+			return fmt.Errorf("could not parse custom webhook config: %w", err)
+		}
+		hook.Path = hookPath
+
+		Webhooks[hook.ID] = hook
+
+		if err := cfg.Close(); err != nil {
+			return fmt.Errorf("could not close custom webhook config: %w", err)
+		}
+	}
+
+	return nil
 }
