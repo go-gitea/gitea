@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -47,6 +46,8 @@ import (
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"gitea.com/go-chi/session"
 )
@@ -111,7 +112,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
+	log.Info("Run Mode: %s", cases.Title(language.English).String(setting.RunMode))
 
 	// Setup i18n
 	translation.InitLocales()
