@@ -99,16 +99,9 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
 
-	// the custom favicon should be seen when viewing files instead of the default one if it exists,
+	// redirect default favicon to the path of the custom favicon with a default as a fallback
 	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
-		faviconPath := ""
-		res, err := http.Get(path.Join(setting.StaticURLPrefix, "/assets/img/favicon.ico"))
-		if err != nil || res.StatusCode != 200 {
-			faviconPath = "/favicon.ico"
-		} else {
-			faviconPath = "/assets/img/favicon.ico"
-		}
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, faviconPath), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
 	})
 
 	common := []interface{}{}
