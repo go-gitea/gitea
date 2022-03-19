@@ -72,9 +72,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err = git.CloneWithContext(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
@@ -88,10 +89,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 
 			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
@@ -310,7 +312,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 	}
 
 	var author *user_model.User
-	var createdAt = time.Unix(1, 0)
+	createdAt := time.Unix(1, 0)
 
 	if sig != nil {
 		author, err = user_model.GetUserByEmail(sig.Email)
@@ -325,7 +327,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("unable to get CommitsCount: %w", err)
 	}
 
-	var rel = models.Release{
+	rel := models.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),
