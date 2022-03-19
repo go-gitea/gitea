@@ -40,7 +40,7 @@ func passThroughCmd(cmd string, args []string) error {
 	}
 	c := exec.Cmd{
 		Path:   foundCmd,
-		Args:   args,
+		Args:   append([]string{cmd}, args...),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -270,9 +270,10 @@ func main() {
 			if containsString(subArgs, "-w") {
 				cmdErrors = append(cmdErrors, giteaFormatGoImports(files))
 			}
-			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
+			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-l"), containsString(subArgs, "-w")))
+			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", "1.17"}, substArgs...)))
 		case "misspell":
-			cmdErrors = append(cmdErrors, passThroughCmd("misspell", substArgs))
+			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("MISSPELL_PACKAGE")}, substArgs...)))
 		default:
 			log.Fatalf("unknown cmd: %s %v", subCmd, subArgs)
 		}
