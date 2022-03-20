@@ -181,6 +181,14 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	} else {
 		customURLMapping = nil
 	}
+	var scopes []string
+	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			scopes = append(scopes, s)
+		}
+	}
+
 	return &oauth2.Source{
 		Provider:                      form.Oauth2Provider,
 		ClientID:                      form.Oauth2Key,
@@ -188,7 +196,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
-		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		Scopes:                        scopes,
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
@@ -243,6 +251,9 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
+	// FIXME: most error path to render tplAuthNew will fail and result in 500
+	// * template: admin/auth/new:17:68: executing "admin/auth/new" at <.type.Int>: can't evaluate field Int in type interface {}
+	// * template: admin/auth/source/oauth:5:93: executing "admin/auth/source/oauth" at <.oauth2_provider.Name>: can't evaluate field Name in type interface {}
 	hasTLS := false
 	var config convert.Conversion
 	switch auth.Type(form.Type) {
@@ -393,6 +404,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
+	// FIXME: if the name conflicts, it will result in 500: Error 1062: Duplicate entry 'aa' for key 'login_source.UQE_login_source_name'
 	if err := auth.UpdateSource(source); err != nil {
 		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
