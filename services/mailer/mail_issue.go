@@ -125,6 +125,10 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
+		if !user.IsActive {
+			// Exclude deactivated users
+			continue
+		}
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||

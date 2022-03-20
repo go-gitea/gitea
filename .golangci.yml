@@ -13,7 +13,7 @@ linters:
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
-    - gocritic
+    #- gocritic # TODO: disabled until fixed with go 1.18
     - bidichk
     - ineffassign
     - revive
@@ -22,7 +22,7 @@ linters:
   fast: false
 
 run:
-  timeout: 3m
+  timeout: 10m
   skip-dirs:
     - node_modules
     - public
@@ -61,6 +61,9 @@ linters-settings:
       - name: errorf
       - name: duplicated-imports
       - name: modifies-value-receiver
+  gofumpt:
+    extra-rules: true
+    lang-version: 1.18
 
 issues:
   exclude-rules:
@@ -148,3 +151,11 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
+    - linters: staticcheck
+      text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."
+    - linters: staticcheck
+      text: "util.FindClosure is deprecated: This function can not handle newlines. Many elements can be existed over multiple lines(e.g. link labels). Use text.Reader.FindClosure."
+    - linters: staticcheck
+      text: "gossh.SigAlgoRSASHA2256 is deprecated: use KeyAlgoRSASHA256."
+    - linters: staticcheck
+      text: "gossh.SigAlgoRSASHA2512 is deprecated: use KeyAlgoRSASHA512."
