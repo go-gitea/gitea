@@ -143,6 +143,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   in: path
 	//   description: version of the package
 	//   type: string
+	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
