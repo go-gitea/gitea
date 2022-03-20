@@ -26,10 +26,8 @@ import (
 func TestActivityPubPerson(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		setting.Federation.Enabled = true
-		setting.Database.LogSQL = true
 		defer func() {
 			setting.Federation.Enabled = false
-			setting.Database.LogSQL = false
 		}()
 
 		username := "user2"
