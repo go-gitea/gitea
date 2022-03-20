@@ -245,18 +245,23 @@ func SearchIssues(ctx *context.APIContext) {
 			UpdatedAfterUnix:   since,
 		}
 
+		ctxUserID := int64(0)
+		if ctx.IsSigned {
+			ctxUserID = ctx.User.ID
+		}
+
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
 		if ctx.FormBool("created") {
-			issuesOpt.PosterID = ctx.User.ID
+			issuesOpt.PosterID = ctxUserID
 		}
 		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeID = ctx.User.ID
+			issuesOpt.AssigneeID = ctxUserID
 		}
 		if ctx.FormBool("mentioned") {
-			issuesOpt.MentionedID = ctx.User.ID
+			issuesOpt.MentionedID = ctxUserID
 		}
 		if ctx.FormBool("review_requested") {
-			issuesOpt.ReviewRequestedID = ctx.User.ID
+			issuesOpt.ReviewRequestedID = ctxUserID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
@@ -599,7 +604,7 @@ func CreateIssue(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 
-	var assigneeIDs = make([]int64, 0)
+	assigneeIDs := make([]int64, 0)
 	var err error
 	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
