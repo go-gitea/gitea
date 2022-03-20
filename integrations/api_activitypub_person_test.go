@@ -36,6 +36,7 @@ func TestActivityPubPerson(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "@context")
 		var m map[string]interface{}
 		err := json.Unmarshal(resp.Body.Bytes(), &m)
+		assert.Equal(t, err, nil)
 
 		var person vocab.ActivityStreamsPerson
 		resolver, _ := streams.NewJSONResolver(func(c context.Context, p vocab.ActivityStreamsPerson) error {
