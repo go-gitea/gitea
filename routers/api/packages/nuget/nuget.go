@@ -39,9 +39,9 @@ func ServiceIndex(ctx *context.Context) {
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.Context) {
 	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    string(packages_model.TypeNuGet),
-		Query:   ctx.FormTrim("q"),
+		OwnerID:   ctx.Package.Owner.ID,
+		Type:      string(packages_model.TypeNuGet),
+		QueryName: ctx.FormTrim("q"),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
@@ -402,7 +402,7 @@ func DeletePackage(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 
-	err := packages_service.DeletePackageVersionByNameAndVersion(
+	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

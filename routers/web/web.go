@@ -628,14 +628,18 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/-", func() {
 		m.Group("/packages", func() {
-			m.Get("", user.Packages)
-			m.Group("/{type}/{name}/{version}", func() {
-				m.Get("", user.ViewPackage)
-				m.Get("/files/{fileid}", user.DownloadPackageFile)
-				m.Group("/settings", func() {
-					m.Get("", user.PackageSettings)
-					m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
-				}, reqPackageAccess(perm.AccessModeWrite))
+			m.Get("", user.ListPackages)
+			m.Group("/{type}/{name}", func() {
+				m.Get("", user.RedirectToLastVersion)
+				m.Get("/versions", user.ListPackageVersions)
+				m.Group("/{version}", func() {
+					m.Get("", user.ViewPackageVersion)
+					m.Get("/files/{fileid}", user.DownloadPackageFile)
+					m.Group("/settings", func() {
+						m.Get("", user.PackageSettings)
+						m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+					}, reqPackageAccess(perm.AccessModeWrite))
+				})
 			})
 		}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 	}, context.UserAssignment())

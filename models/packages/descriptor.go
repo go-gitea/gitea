@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/conan"
+	"code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
@@ -124,6 +125,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &composer.Metadata{}
 	case TypeConan:
 		metadata = &conan.Metadata{}
+	case TypeContainer:
+		metadata = &container.Metadata{}
 	case TypeNuGet:
 		metadata = &nuget.Metadata{}
 	case TypeNpm:

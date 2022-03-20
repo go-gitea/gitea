@@ -266,7 +266,7 @@ func DeletePackage(ctx *context.Context) {
 	packageName := ctx.FormString("gem_name")
 	packageVersion := ctx.FormString("version")
 
-	err := packages_service.DeletePackageVersionByNameAndVersion(
+	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

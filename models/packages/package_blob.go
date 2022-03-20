@@ -62,8 +62,8 @@ func GetBlobByID(ctx context.Context, blobID int64) (*PackageBlob, error) {
 	return pb, nil
 }
 
-// GetUnreferencedBlobsOlderThan gets all blobs without associated files older than the specific duration
-func GetUnreferencedBlobsOlderThan(ctx context.Context, olderThan time.Duration) ([]*PackageBlob, error) {
+// FindExpiredUnreferencedBlobs gets all blobs without associated files older than the specific duration
+func FindExpiredUnreferencedBlobs(ctx context.Context, olderThan time.Duration) ([]*PackageBlob, error) {
 	pbs := make([]*PackageBlob, 0, 10)
 	return pbs, db.GetEngine(ctx).
 		Table("package_blob").

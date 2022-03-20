@@ -667,10 +667,6 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
 			return err
 		}
-
-		if err := packages_model.DeletePackageByIDIfUnreferenced(ctx, pv.PackageID); err != nil {
-			return err
-		}
 	}
 
 	if err := committer.Commit(); err != nil {

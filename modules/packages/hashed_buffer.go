@@ -5,24 +5,23 @@
 package packages
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
-	"crypto/sha256"
-	"crypto/sha512"
-	"hash"
 	"io"
 
 	"code.gitea.io/gitea/modules/util/filebuffer"
 )
 
+// HashedSizeReader provide methods to read, sum hashes and a Size method
+type HashedSizeReader interface {
+	io.Reader
+	HashSummer
+	Size() int64
+}
+
 // HashedBuffer is buffer which calculates multiple checksums
 type HashedBuffer struct {
 	*filebuffer.FileBackedBuffer
 
-	md5    hash.Hash
-	sha1   hash.Hash
-	sha256 hash.Hash
-	sha512 hash.Hash
+	hash *MultiHasher
 
 	combinedWriter io.Writer
 }
@@ -33,19 +32,14 @@ func NewHashedBuffer(maxMemorySize int) (*HashedBuffer, error) {
 	if err != nil {
 		return nil, err
 	}
-	md5 := md5.New()
-	sha1 := sha1.New()
-	sha256 := sha256.New()
-	sha512 := sha512.New()
 
-	combinedWriter := io.MultiWriter(b, md5, sha1, sha256, sha512)
+	hash := NewMultiHasher()
+
+	combinedWriter := io.MultiWriter(b, hash)
 
 	return &HashedBuffer{
 		b,
-		md5,
-		sha1,
-		sha256,
-		sha512,
+		hash,
 		combinedWriter,
 	}, nil
 }
@@ -72,9 +66,5 @@ func (b *HashedBuffer) Write(p []byte) (int, error) {
 
 // Sums gets the MD5, SHA1, SHA256 and SHA512 checksums of the data
 func (b *HashedBuffer) Sums() (hashMD5, hashSHA1, hashSHA256, hashSHA512 []byte) {
-	hashMD5 = b.md5.Sum(nil)
-	hashSHA1 = b.sha1.Sum(nil)
-	hashSHA256 = b.sha256.Sum(nil)
-	hashSHA512 = b.sha512.Sum(nil)
-	return
+	return b.hash.Sums()
 }

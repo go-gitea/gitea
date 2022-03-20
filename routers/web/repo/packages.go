@@ -32,10 +32,10 @@ func Packages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		RepoID:  ctx.Repo.Repository.ID,
-		Query:   query,
-		Type:    packageType,
+		OwnerID:   ctx.ContextUser.ID,
+		RepoID:    ctx.Repo.Repository.ID,
+		QueryName: query,
+		Type:      packageType,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)

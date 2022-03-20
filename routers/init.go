@@ -189,6 +189,9 @@ func NormalRoutes() *web.Route {
 	r.Mount("/", web_routers.Routes(sessioner))
 	r.Mount("/api/v1", apiv1.Routes(sessioner))
 	r.Mount("/api/internal", private.Routes())
-	r.Mount("/api/packages", packages_router.Routes())
+	if setting.Packages.Enabled {
+		r.Mount("/api/packages", packages_router.Routes())
+		r.Mount("/v2", packages_router.ContainerRoutes())
+	}
 	return r
 }

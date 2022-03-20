@@ -21,6 +21,7 @@
 				<div class="twelve wide column">
 					{{template "package/content/composer" .}}
 					{{template "package/content/conan" .}}
+					{{template "package/content/container" .}}
 					{{template "package/content/generic" .}}
 					{{template "package/content/nuget" .}}
 					{{template "package/content/npm" .}}
@@ -30,7 +31,7 @@
 				</div>
 				<div class="four wide column">
 					<div class="ui segment metas">
-						<span class="text"><strong>{{.i18n.Tr "packages.details"}}</strong></span>
+						<strong>{{.i18n.Tr "packages.details"}}</strong>
 						<div class="ui relaxed list">
 							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
 							{{if .PackageDescriptor.Repository}}
@@ -40,6 +41,7 @@
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/conan" .}}
+							{{template "package/metadata/container" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/nuget" .}}
 							{{template "package/metadata/npm" .}}
@@ -47,21 +49,24 @@
 							{{template "package/metadata/pypi" .}}
 							{{template "package/metadata/rubygems" .}}
 						</div>
-						<div class="ui divider"></div>
-						<span class="text"><strong>{{.i18n.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong></span>
-						<div class="ui relaxed list">
-						{{range .PackageDescriptor.Files}}
-							<div class="item">
-								<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
-								<span class="text small file-size">{{FileSize .Blob.Size}}</span>
+						{{if not (eq .PackageDescriptor.Package.Type "container")}}
+							<div class="ui divider"></div>
+							<strong>{{.i18n.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
+							<div class="ui relaxed list">
+							{{range .PackageDescriptor.Files}}
+								<div class="item">
+									<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
+									<span class="text small file-size">{{FileSize .Blob.Size}}</span>
+								</div>
+							{{end}}
 							</div>
 						{{end}}
-						</div>
-						{{if .OtherVersions}}
+						{{if .LatestVersions}}
 							<div class="ui divider"></div>
-							<span class="text"><strong>{{.i18n.Tr "packages.versions"}}</strong></span>
+							<strong>{{.i18n.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
+							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.i18n.Tr "packages.versions.view_all"}}</a>
 							<div class="ui relaxed list">
-							{{range .OtherVersions}}
+							{{range .LatestVersions}}
 								<div class="item">
 									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
 									<span class="text small">{{$.i18n.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>

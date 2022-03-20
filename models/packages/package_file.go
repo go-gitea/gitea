@@ -9,6 +9,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -123,6 +124,7 @@ type PackageFileSearchOptions struct {
 	Query        string
 	CompositeKey string
 	Properties   map[string]string
+	OlderThan    time.Duration
 	db.Paginator
 }
 
@@ -137,8 +139,9 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 			From("package_version").
 			Join("INNER", "package", "package.id = package_version.package_id").
 			Where(builder.Eq{
-				"package.owner_id": opts.OwnerID,
-				"package.type":     opts.PackageType,
+				"package.owner_id":            opts.OwnerID,
+				"package.type":                opts.PackageType,
+				"package_version.is_internal": false,
 			})
 
 		cond = cond.And(builder.In("package_file.version_id", in))
@@ -168,6 +171,10 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{
 			strconv.Itoa(len(opts.Properties)): builder.Select("COUNT(*)").Where(propsCond).From("package_property"),
 		})
+	}
+
+	if opts.OlderThan != 0 {
+		cond = cond.And(builder.Lt{"package_file.created_unix": time.Now().Add(-opts.OlderThan).Unix()})
 	}
 
 	return cond

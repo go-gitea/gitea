@@ -15,6 +15,7 @@
 						<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
 						<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 						<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
+						<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
 						<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
 						<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
 						<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
@@ -62,8 +63,8 @@
 								{{end}}
 							</td>
 							<td>{{.Package.Type.Name}}</td>
-							<td>{{.Package.Name}}</td>
-							<td><a href="{{.FullWebLink}}">{{.Version.Version}}</a></td>
+							<td class="text truncate email">{{.Package.Name}}</td>
+							<td><a href="{{.FullWebLink}}" class="text truncate email">{{.Version.Version}}</a></td>
 							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
 							<td>
 							{{if .Repository}}

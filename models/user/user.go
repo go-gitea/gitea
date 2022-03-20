@@ -605,6 +605,7 @@ var (
 		"stars",
 		"template",
 		"user",
+		"v2",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}

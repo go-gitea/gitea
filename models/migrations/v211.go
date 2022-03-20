@@ -32,6 +32,7 @@ func addPackageTables(x *xorm.Engine) error {
 		Version       string             `xorm:"NOT NULL"`
 		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
+		IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 		MetadataJSON  string             `xorm:"TEXT metadata_json"`
 		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 	}
@@ -77,5 +78,17 @@ func addPackageTables(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	}
 
-	return x.Sync2(new(PackageBlob))
+	if err := x.Sync2(new(PackageBlob)); err != nil {
+		return err
+	}
+
+	type PackageBlobUpload struct {
+		ID             string             `xorm:"pk"`
+		BytesReceived  int64              `xorm:"NOT NULL DEFAULT 0"`
+		HashStateBytes []byte             `xorm:"BLOB"`
+		CreatedUnix    timeutil.TimeStamp `xorm:"created NOT NULL"`
+		UpdatedUnix    timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
+	}
+
+	return x.Sync2(new(PackageBlobUpload))
 }

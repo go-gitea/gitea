@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
 // PackageInfo describes a package
@@ -46,7 +47,7 @@ type PackageFileInfo struct {
 // PackageFileCreationInfo describes a package file to create
 type PackageFileCreationInfo struct {
 	PackageFileInfo
-	Data              *packages_module.HashedBuffer
+	Data              packages_module.HashedSizeReader
 	IsLead            bool
 	Properties        map[string]string
 	OverwriteExisting bool
@@ -195,19 +196,23 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfci *PackageFileCreationInfo) (
 	return pv, pf, nil
 }
 
-func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
-	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
+// NewPackageBlob creates a package blob instance
+func NewPackageBlob(hsr packages_module.HashedSizeReader) *packages_model.PackageBlob {
+	hashMD5, hashSHA1, hashSHA256, hashSHA512 := hsr.Sums()
 
-	hashMD5, hashSHA1, hashSHA256, hashSHA512 := pfci.Data.Sums()
-
-	pb := &packages_model.PackageBlob{
-		Size:       pfci.Data.Size(),
+	return &packages_model.PackageBlob{
+		Size:       hsr.Size(),
 		HashMD5:    fmt.Sprintf("%x", hashMD5),
 		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
 		HashSHA256: fmt.Sprintf("%x", hashSHA256),
 		HashSHA512: fmt.Sprintf("%x", hashSHA512),
 	}
-	pb, exists, err := packages_model.GetOrInsertBlob(ctx, pb)
+}
+
+func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfci *PackageFileCreationInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
+	log.Trace("Adding package file: %v, %s", pv.ID, pfci.Filename)
+
+	pb, exists, err := packages_model.GetOrInsertBlob(ctx, NewPackageBlob(pfci.Data))
 	if err != nil {
 		log.Error("Error inserting package blob: %v", err)
 		return nil, nil, false, err
@@ -265,18 +270,18 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 	return pf, pb, !exists, nil
 }
 
-// DeletePackageVersionByNameAndVersion deletes a package version and all associated files
-func DeletePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
+// RemovePackageVersionByNameAndVersion deletes a package version and all associated files
+func RemovePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
 	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		return err
 	}
 
-	return DeletePackageVersion(doer, pv)
+	return RemovePackageVersion(doer, pv)
 }
 
-// DeletePackageVersion deletes the package version and all associated files
-func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersion) error {
+// RemovePackageVersion deletes the package version and all associated files
+func RemovePackageVersion(doer *user_model.User, pv *packages_model.PackageVersion) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -290,24 +295,7 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 
 	log.Trace("Deleting package: %v", pv.ID)
 
-	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
-		return err
-	}
-
-	for _, file := range pd.Files {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, file.File.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, file.File.ID); err != nil {
-			return err
-		}
-	}
-
-	if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
-		return err
-	}
-
-	if err := packages_model.DeletePackageByIDIfUnreferenced(ctx, pv.PackageID); err != nil {
+	if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
 		return err
 	}
 
@@ -320,6 +308,34 @@ func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersi
 	return nil
 }
 
+// DeletePackageVersionAndReferences deletes the package version and its properties and files
+func DeletePackageVersionAndReferences(ctx context.Context, pv *packages_model.PackageVersion) error {
+	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
+		return err
+	}
+
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		return err
+	}
+
+	for _, pf := range pfs {
+		if err := DeletePackageFile(ctx, pf); err != nil {
+			return err
+		}
+	}
+
+	return packages_model.DeleteVersionByID(ctx, pv.ID)
+}
+
+// DeletePackageFile deletes the package file and its properties
+func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) error {
+	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
+		return err
+	}
+	return packages_model.DeleteFileByID(ctx, pf.ID)
+}
+
 // Cleanup removes old unreferenced package blobs
 func Cleanup(unused context.Context, olderThan time.Duration) error {
 	ctx, committer, err := db.TxContext()
@@ -328,13 +344,25 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 	}
 	defer committer.Close()
 
-	pbs, err := packages_model.GetUnreferencedBlobsOlderThan(ctx, olderThan)
+	if err := container_service.Cleanup(ctx, olderThan); err != nil {
+		log.Error("hier")
+		return err
+	}
+
+	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
+		log.Error("hier2")
+		return err
+	}
+
+	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
 	if err != nil {
+		log.Error("hier3")
 		return err
 	}
 
 	for _, pb := range pbs {
 		if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
+			log.Error("hier4")
 			return err
 		}
 	}

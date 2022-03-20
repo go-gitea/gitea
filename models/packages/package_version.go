@@ -35,6 +35,7 @@ type PackageVersion struct {
 	Version       string             `xorm:"NOT NULL"`
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
+	IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	MetadataJSON  string             `xorm:"TEXT metadata_json"`
 	DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 }
@@ -89,10 +90,20 @@ func GetVersionByID(ctx context.Context, versionID int64) (*PackageVersion, erro
 
 // GetVersionByNameAndVersion gets a version by name and version number
 func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
+	return getVersionByNameAndVersion(ctx, ownerID, packageType, name, version, false)
+}
+
+// GetInternalVersionByNameAndVersion gets a version by name and version number
+func GetInternalVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
+	return getVersionByNameAndVersion(ctx, ownerID, packageType, name, version, true)
+}
+
+func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string, isInternal bool) (*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":   ownerID,
-		"package.type":       packageType,
-		"package.lower_name": strings.ToLower(name),
+		"package.owner_id":            ownerID,
+		"package.type":                packageType,
+		"package.lower_name":          strings.ToLower(name),
+		"package_version.is_internal": isInternal,
 	}
 	pv := &PackageVersion{
 		LowerVersion: strings.ToLower(version),
@@ -114,8 +125,9 @@ func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 // GetVersionsByPackageType gets all versions of a specific type
 func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id": ownerID,
-		"package.type":     packageType,
+		"package.owner_id":            ownerID,
+		"package.type":                packageType,
+		"package_version.is_internal": false,
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
@@ -128,9 +140,10 @@ func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Ty
 // GetVersionsByPackageName gets all versions of a specific package
 func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":   ownerID,
-		"package.type":       packageType,
-		"package.lower_name": strings.ToLower(name),
+		"package.owner_id":            ownerID,
+		"package.type":                packageType,
+		"package.lower_name":          strings.ToLower(name),
+		"package_version.is_internal": false,
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
@@ -143,9 +156,10 @@ func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Ty
 // GetVersionsByFilename gets all versions which are linked to a filename
 func GetVersionsByFilename(ctx context.Context, ownerID int64, packageType Type, filename string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.owner_id":        ownerID,
-		"package.type":            packageType,
-		"package_file.lower_name": strings.ToLower(filename),
+		"package.owner_id":            ownerID,
+		"package.type":                packageType,
+		"package_file.lower_name":     strings.ToLower(filename),
+		"package_version.is_internal": false,
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
@@ -171,17 +185,19 @@ func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error
 
 // PackageSearchOptions are options for SearchXXX methods
 type PackageSearchOptions struct {
-	OwnerID    int64
-	RepoID     int64
-	Type       string
-	Query      string
-	Properties map[string]string
-	Sort       string
+	OwnerID      int64
+	RepoID       int64
+	Type         string
+	PackageID    int64
+	QueryName    string
+	QueryVersion string
+	Properties   map[string]string
+	Sort         string
 	db.Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	cond := builder.NewCond()
+	var cond builder.Cond = builder.Eq{"package_version.is_internal": false}
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
@@ -192,8 +208,14 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	if opts.Type != "" && opts.Type != "all" {
 		cond = cond.And(builder.Eq{"package.type": opts.Type})
 	}
-	if opts.Query != "" {
-		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Query)})
+	if opts.PackageID != 0 {
+		cond = cond.And(builder.Eq{"package.id": opts.PackageID})
+	}
+	if opts.QueryName != "" {
+		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.QueryName)})
+	}
+	if opts.QueryVersion != "" {
+		cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.QueryVersion)})
 	}
 
 	if len(opts.Properties) != 0 {
@@ -261,7 +283,7 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 
 	sess := db.GetEngine(ctx).
 		Table("package_version").
-		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.created_unix < pv2.created_unix").
+		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND (package_version.created_unix < pv2.created_unix OR (package_version.created_unix = pv2.created_unix AND package_version.id < pv2.id))").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond)
 
@@ -279,10 +301,11 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 // FindVersionsByPropertyNameAndValue gets all package versions which are associated with a specific property + value
 func FindVersionsByPropertyNameAndValue(ctx context.Context, packageID int64, name, value string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package_property.ref_type":  PropertyTypeVersion,
-		"package_property.name":      name,
-		"package_property.value":     value,
-		"package_version.package_id": packageID,
+		"package_property.ref_type":   PropertyTypeVersion,
+		"package_property.name":       name,
+		"package_property.value":      value,
+		"package_version.package_id":  packageID,
+		"package_version.is_internal": false,
 	}
 
 	pvs := make([]*PackageVersion, 0, 5)

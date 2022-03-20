@@ -128,7 +128,7 @@ func DeletePackage(ctx *context.Context) {
 		return
 	}
 
-	err = packages_service.DeletePackageVersionByNameAndVersion(
+	err = packages_service.RemovePackageVersionByNameAndVersion(
 		ctx.User,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,

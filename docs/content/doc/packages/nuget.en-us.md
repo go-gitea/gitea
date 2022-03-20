@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "NuGet"
-    weight: 60
+    weight: 70
     identifier: "nuget"
 ---
 

@@ -35,7 +35,12 @@ type RecipeSearchOptions struct {
 
 // SearchRecipes gets all recipes matching the search options
 func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, error) {
-	cond := builder.NewCond()
+	var cond builder.Cond = builder.Eq{
+		"package_file.is_lead":        true,
+		"package.type":                packages.TypeConan,
+		"package.owner_id":            opts.OwnerID,
+		"package_version.is_internal": false,
+	}
 
 	if opts.Name != "" {
 		cond = cond.And(buildCondition("package.lower_name", strings.ToLower(opts.Name)))
@@ -65,12 +70,6 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 			strconv.Itoa(count): builder.Select("COUNT(*)").Where(propsCond).From("package_property"),
 		})
 	}
-
-	cond = cond.And(builder.Eq{
-		"package_file.is_lead": true,
-		"package.type":         packages.TypeConan,
-		"package.owner_id":     opts.OwnerID,
-	})
 
 	query := builder.
 		Select("package.name, package_version.version, package_file.id").

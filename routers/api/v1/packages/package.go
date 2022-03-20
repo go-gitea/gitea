@@ -57,7 +57,7 @@ func ListPackages(ctx *context.APIContext) {
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
 		Type:      packageType,
-		Query:     query,
+		QueryName: query,
 		Paginator: &listOptions,
 	})
 	if err != nil {
@@ -149,9 +149,9 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := packages_service.DeletePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
+	err := packages_service.RemovePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeletePackageVersion", err)
+		ctx.Error(http.StatusInternalServerError, "RemovePackageVersion", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

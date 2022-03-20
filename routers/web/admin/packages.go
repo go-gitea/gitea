@@ -31,9 +31,9 @@ func Packages(ctx *context.Context) {
 	sort := ctx.FormTrim("sort")
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		Query: query,
-		Type:  packageType,
-		Sort:  sort,
+		QueryName: query,
+		Type:      packageType,
+		Sort:      sort,
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -83,8 +83,8 @@ func DeletePackageVersion(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_service.DeletePackageVersion(ctx.User, pv); err != nil {
-		ctx.ServerError("DeletePackageVersion", err)
+	if err := packages_service.RemovePackageVersion(ctx.User, pv); err != nil {
+		ctx.ServerError("RemovePackageVersion", err)
 		return
 	}
 

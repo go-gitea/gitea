@@ -58,6 +58,7 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 		"package.owner_id":                ownerID,
 		"package.lower_name":              strings.ToLower(name),
 		"package_version.lower_version":   strings.ToLower(version),
+		"package_version.is_internal":     false,
 		strconv.Itoa(len(propertyFilter)): builder.Select("COUNT(*)").Where(propsCond).From("package_property"),
 	}
 

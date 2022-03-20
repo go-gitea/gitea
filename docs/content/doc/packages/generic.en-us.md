@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "Generic"
-    weight: 30
+    weight: 40
     identifier: "generic"
 ---
 

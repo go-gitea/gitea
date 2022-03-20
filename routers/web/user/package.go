@@ -6,11 +6,11 @@ package user
 
 import (
 	"net/http"
-	"sort"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
@@ -23,13 +23,14 @@ import (
 )
 
 const (
-	tplPackagesList     base.TplName = "user/overview/packages"
-	tplPackagesView     base.TplName = "package/view"
-	tplPackagesSettings base.TplName = "package/settings"
+	tplPackagesList       base.TplName = "user/overview/packages"
+	tplPackagesView       base.TplName = "package/view"
+	tplPackageVersionList base.TplName = "user/overview/package_versions"
+	tplPackagesSettings   base.TplName = "package/settings"
 )
 
-// Packages displays a list of all packages of the context user
-func Packages(ctx *context.Context) {
+// ListPackages displays a list of all packages of the context user
+func ListPackages(ctx *context.Context) {
 	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
@@ -42,9 +43,9 @@ func Packages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		Query:   query,
-		Type:    packageType,
+		OwnerID:   ctx.ContextUser.ID,
+		Type:      packageType,
+		QueryName: query,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -80,43 +81,171 @@ func Packages(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplPackagesList)
 }
 
-// ViewPackage displays a single package
-func ViewPackage(ctx *context.Context) {
-	pd := ctx.Package.Descriptor
-
-	if pd == nil {
-		ctx.NotFound("Package does not exist", nil)
+// RedirectToLastVersion redirects to the latest package version
+func RedirectToLastVersion(ctx *context.Context) {
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			ctx.NotFound("GetPackageByName", err)
+		} else {
+			ctx.ServerError("GetPackageByName", err)
+		}
 		return
 	}
+
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		PackageID: p.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetPackageByName", err)
+		return
+	}
+	if len(pvs) == 0 {
+		ctx.NotFound("", err)
+	}
+
+	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptor", err)
+		return
+	}
+
+	ctx.Redirect(pd.FullWebLink())
+}
+
+// ViewPackageVersion displays a single package version
+func ViewPackageVersion(ctx *context.Context) {
+	pd := ctx.Package.Descriptor
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	otherVersions, err := packages_model.GetVersionsByPackageName(ctx, pd.Owner.ID, pd.Package.Type, pd.Package.LowerName)
-	if err != nil {
-		ctx.ServerError("GetVersionsByPackageName", err)
-		return
+	var (
+		total int64
+		pvs   []*packages_model.PackageVersion
+		err   error
+	)
+	switch pd.Package.Type {
+	case packages_model.TypeContainer:
+		ctx.Data["RegistryHost"] = setting.Packages.RegistryHost
+
+		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
+			Paginator: db.NewAbsoluteListOptions(0, 5),
+			PackageID: pd.Package.ID,
+			IsTagged:  true,
+		})
+	default:
+		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			Paginator: db.NewAbsoluteListOptions(0, 5),
+			PackageID: pd.Package.ID,
+		})
+		if err != nil {
+			ctx.ServerError("SearchVersions", err)
+		}
 	}
-	sort.Slice(otherVersions, func(i, j int) bool {
-		return otherVersions[i].CreatedUnix > otherVersions[j].CreatedUnix
-	})
-	ctx.Data["OtherVersions"] = otherVersions
+	if err != nil {
+		ctx.ServerError("", err)
+	}
+
+	ctx.Data["LatestVersions"] = pvs
+	ctx.Data["TotalVersionCount"] = total
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
+// ListPackageVersions lists all versions of a package
+func ListPackageVersions(ctx *context.Context) {
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.Params("type")), ctx.Params("name"))
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			ctx.NotFound("GetPackageByName", err)
+		} else {
+			ctx.ServerError("GetPackageByName", err)
+		}
+		return
+	}
+
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	pagination := &db.ListOptions{
+		PageSize: setting.UI.PackagesPagingNum,
+		Page:     page,
+	}
+
+	query := ctx.FormTrim("q")
+
+	ctx.Data["Title"] = ctx.Tr("packages.title")
+	ctx.Data["IsPackagesPage"] = true
+	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["PackageDescriptor"] = &packages_model.PackageDescriptor{
+		Package: p,
+		Owner:   ctx.Package.Owner,
+	}
+	ctx.Data["Query"] = query
+
+	pagerParams := map[string]string{
+		"q": query,
+	}
+
+	var (
+		total int64
+		pvs   []*packages_model.PackageVersion
+	)
+	switch p.Type {
+	case packages_model.TypeContainer:
+		tagged := ctx.FormTrim("tagged")
+
+		pagerParams["tagged"] = tagged
+		ctx.Data["Tagged"] = tagged
+
+		pvs, total, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
+			Paginator: pagination,
+			PackageID: p.ID,
+			Query:     query,
+			IsTagged:  tagged == "" || tagged == "tagged",
+		})
+		if err != nil {
+			ctx.ServerError("SearchImageTags", err)
+			return
+		}
+	default:
+		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			Paginator:    pagination,
+			PackageID:    p.ID,
+			QueryVersion: query,
+		})
+		if err != nil {
+			ctx.ServerError("SearchVersions", err)
+			return
+		}
+	}
+
+	ctx.Data["PackageDescriptors"], err = packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptors", err)
+		return
+	}
+
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
+	for k, v := range pagerParams {
+		pager.AddParamString(k, v)
+	}
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(http.StatusOK, tplPackageVersionList)
+}
+
 // PackageSettings displays the package settings page
 func PackageSettings(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-
-	if pd == nil {
-		ctx.NotFound("Package does not exist", nil)
-		return
-	}
 
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
@@ -135,11 +264,6 @@ func PackageSettings(ctx *context.Context) {
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
 	pd := ctx.Package.Descriptor
-
-	if pd == nil {
-		ctx.NotFound("Package does not exist", nil)
-		return
-	}
 
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
@@ -177,7 +301,7 @@ func PackageSettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Link)
 		return
 	case "delete":
-		err := packages_service.DeletePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
+		err := packages_service.RemovePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
 		if err != nil {
 			log.Error("Error deleting package: %v", err)
 			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))

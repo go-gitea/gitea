@@ -7,6 +7,7 @@ package packages
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 
@@ -29,14 +30,15 @@ type Type string
 
 // List of supported packages
 const (
-	TypeComposer Type = "composer"
-	TypeConan    Type = "conan"
-	TypeGeneric  Type = "generic"
-	TypeNuGet    Type = "nuget"
-	TypeNpm      Type = "npm"
-	TypeMaven    Type = "maven"
-	TypePyPI     Type = "pypi"
-	TypeRubyGems Type = "rubygems"
+	TypeComposer  Type = "composer"
+	TypeConan     Type = "conan"
+	TypeContainer Type = "container"
+	TypeGeneric   Type = "generic"
+	TypeNuGet     Type = "nuget"
+	TypeNpm       Type = "npm"
+	TypeMaven     Type = "maven"
+	TypePyPI      Type = "pypi"
+	TypeRubyGems  Type = "rubygems"
 )
 
 // Name gets the name of the package type
@@ -46,6 +48,8 @@ func (pt Type) Name() string {
 		return "Composer"
 	case TypeConan:
 		return "Conan"
+	case TypeContainer:
+		return "Container"
 	case TypeGeneric:
 		return "Generic"
 	case TypeNuGet:
@@ -69,6 +73,8 @@ func (pt Type) SVGName() string {
 		return "gitea-composer"
 	case TypeConan:
 		return "gitea-conan"
+	case TypeContainer:
+		return "octicon-container"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeNuGet:
@@ -145,6 +151,28 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	return p, nil
 }
 
+// GetPackageByName gets a package by name
+func GetPackageByName(ctx context.Context, ownerID int64, packageType Type, name string) (*Package, error) {
+	var cond builder.Cond = builder.Eq{
+		"package.owner_id":   ownerID,
+		"package.type":       packageType,
+		"package.lower_name": strings.ToLower(name),
+	}
+
+	p := &Package{}
+
+	has, err := db.GetEngine(ctx).
+		Where(cond).
+		Get(p)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrPackageNotExist
+	}
+	return p, nil
+}
+
 // GetPackagesByType gets all packages of a specific type
 func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
@@ -158,21 +186,19 @@ func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]
 		Find(&ps)
 }
 
-// DeletePackageByIDIfUnreferenced deletes a package if there are no associated versions
-func DeletePackageByIDIfUnreferenced(ctx context.Context, packageID int64) error {
-	e := db.GetEngine(ctx)
+// DeletePackagesIfUnreferenced deletes a package if there are no associated versions
+func DeletePackagesIfUnreferenced(ctx context.Context) error {
+	in := builder.
+		Select("package_version.package_id").
+		From("package").
+		Join("LEFT", "package_version", "package_version.package_id = package.id").
+		Where(builder.Expr("package_version.id IS NULL"))
 
-	count, err := e.Count(&PackageVersion{
-		PackageID: packageID,
-	})
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		_, err := e.ID(packageID).Delete(&Package{})
-		return err
-	}
-	return nil
+	_, err := db.GetEngine(ctx).
+		Where(builder.In("package.id", in)).
+		Delete(&Package{})
+
+	return err
 }
 
 // HasOwnerPackages tests if a user/org has packages
