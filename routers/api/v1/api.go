@@ -197,8 +197,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
-			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+			ctx.Error(http.StatusForbidden, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}
 	}
@@ -236,7 +235,6 @@ func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 			return
 		}
 		if !ctx.Context.IsBasicAuth {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea API"`)
 			ctx.Error(http.StatusUnauthorized, "reqBasicOrRevProxyAuth", "auth required")
 			return
 		}

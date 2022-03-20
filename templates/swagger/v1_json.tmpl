@@ -1930,7 +1930,7 @@
         }
       }
     },
-    "/packages/{owner}/{versionid}": {
+    "/packages/{owner}/{type}/{name}/{version}": {
       "get": {
         "produces": [
           "application/json"
@@ -1949,10 +1949,23 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the package version",
-            "name": "versionid",
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "version of the package",
+            "name": "version",
             "in": "path",
             "required": true
           }
@@ -1981,12 +1994,24 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the package version",
-            "name": "versionid",
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "version of the package",
+            "name": "version",
+            "in": "path"
           }
         ],
         "responses": {
@@ -1999,7 +2024,7 @@
         }
       }
     },
-    "/packages/{owner}/{versionid}/files": {
+    "/packages/{owner}/{type}/{name}/{version}/files": {
       "get": {
         "produces": [
           "application/json"
@@ -2018,10 +2043,23 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the package version",
-            "name": "versionid",
+            "type": "string",
+            "description": "type of the package",
+            "name": "type",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the package",
+            "name": "name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "version of the package",
+            "name": "version",
             "in": "path",
             "required": true
           }

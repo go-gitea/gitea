@@ -529,7 +529,7 @@ func RegisterRoutes(m *web.Route) {
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
-				ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+				ctx.Error(http.StatusForbidden, "reqPackageAccess", "user should have specific permission or be a site admin")
 			}
 		}
 	}

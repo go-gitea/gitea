@@ -266,28 +266,6 @@ func processImageManifestIndex(mci *manifestCreationInfo, buf *packages_module.H
 	return manifestDigest, nil
 }
 
-func deleteExistingVersionReferences(ctx context.Context, pv *packages_model.PackageVersion) error {
-	if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
-		return err
-	}
-
-	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
-	if err != nil {
-		return err
-	}
-
-	for _, pf := range pfs {
-		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
-			return err
-		}
-		if err := packages_model.DeleteFileByID(ctx, pf.ID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
 	p := &packages_model.Package{
 		OwnerID:   mci.Owner.ID,
