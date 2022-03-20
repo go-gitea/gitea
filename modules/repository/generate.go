@@ -184,7 +184,13 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
+	// set default branch based on whether it's specified in the newly generated repo or not
+	defaultBranch := repo.DefaultBranch
+	if strings.TrimSpace(defaultBranch) == "" {
+		defaultBranch = templateRepo.DefaultBranch
+	}
+
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
