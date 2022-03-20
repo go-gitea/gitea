@@ -37,7 +37,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					return
 				}
 
-				if !strings.HasPrefix(req.URL.EscapedPath(), "/"+prefix+"/") {
+				if !strings.HasPrefix(req.URL.Path, "/"+prefix+"/") {
 					next.ServeHTTP(w, req)
 					return
 				}
