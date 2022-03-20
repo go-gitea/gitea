@@ -50,7 +50,9 @@ type preReceiveContext struct {
 // CanWriteCode returns true if pusher can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
 	if !ctx.checkedCanWriteCode {
-		ctx.loadPusherAndPermission()
+		if !ctx.loadPusherAndPermission() {
+			return false
+		}
 		ctx.canWriteCode = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
@@ -74,7 +76,9 @@ func (ctx *preReceiveContext) AssertCanWriteCode() bool {
 // CanCreatePullRequest returns true if pusher can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
 	if !ctx.checkedCanCreatePullRequest {
-		ctx.loadPusherAndPermission()
+		if !ctx.loadPusherAndPermission() {
+			return false
+		}
 		ctx.canCreatePullRequest = ctx.userPerm.CanRead(unit.TypePullRequests)
 		ctx.checkedCanCreatePullRequest = true
 	}
@@ -295,7 +299,11 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			return
 		}
 
-		ctx.loadPusherAndPermission()
+		// although we should have called `loadPusherAndPermission` before, here we call it explicitly again because we need to access ctx.user below
+		if !ctx.loadPusherAndPermission() {
+			// if error occurs, loadPusherAndPermission had written the error response
+			return
+		}
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
@@ -444,9 +452,10 @@ func generateGitEnv(opts *private.HookOptions) (env []string) {
 	return env
 }
 
-func (ctx *preReceiveContext) loadPusherAndPermission() {
+// loadPusherAndPermission returns false if an error occurs, and it writes the error response
+func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	if ctx.loadedPusher {
-		return
+		return true
 	}
 
 	user, err := user_model.GetUserByID(ctx.opts.UserID)
@@ -455,7 +464,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
 		})
-		return
+		return false
 	}
 	ctx.user = user
 
@@ -465,7 +474,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
 		})
-		return
+		return false
 	}
 	ctx.userPerm = userPerm
 
@@ -476,10 +485,11 @@ func (ctx *preReceiveContext) loadPusherAndPermission() {
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err),
 			})
-			return
+			return false
 		}
 		ctx.deployKeyAccessMode = deployKey.Mode
 	}
 
 	ctx.loadedPusher = true
+	return true
 }
