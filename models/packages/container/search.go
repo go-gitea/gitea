@@ -79,8 +79,8 @@ func GetContainerBlobs(ctx context.Context, opts *BlobSearchOptions) ([]*package
 func getContainerBlobsLimit(ctx context.Context, opts *BlobSearchOptions, limit int) ([]*packages.PackageFileDescriptor, error) {
 	pfs := make([]*packages.PackageFile, 0, limit)
 	sess := db.GetEngine(ctx).
-		Join("INNER", "package", "package.id = package_version.package_id").
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
+		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(opts.toConds())
 
 	if limit > 0 {
