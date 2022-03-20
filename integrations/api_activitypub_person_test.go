@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-fed/activity/pub"
@@ -45,7 +45,7 @@ func TestActivityPubPerson(t *testing.T) {
 			return nil
 		})
 		ctx := context.Background()
-		err := resolver.Resolve(ctx, m)
+		err = resolver.Resolve(ctx, m)
 		assert.Equal(t, err, nil)
 		assert.Equal(t, "Person", person.GetTypeName())
 		assert.Equal(t, username, person.GetActivityStreamsName().Begin().GetXMLSchemaString())
