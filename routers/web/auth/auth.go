@@ -195,7 +195,7 @@ func SignInPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.SignInForm)
 	u, source, err := auth_service.UserSignIn(form.UserName, form.Password)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) || user_model.IsErrEmailAddressNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {
@@ -621,6 +621,12 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// Send confirmation email
 	if !u.IsActive && u.ID > 1 {
+		if setting.Service.RegisterManualConfirm {
+			ctx.Data["ManualActivationOnly"] = true
+			ctx.HTML(http.StatusOK, TplActivate)
+			return
+		}
+
 		mailer.SendActivateAccountMail(ctx.Locale, u)
 
 		ctx.Data["IsSendRegisterMail"] = true

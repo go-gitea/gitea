@@ -100,6 +100,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
 
+	// redirect default favicon to the path of the custom favicon with a default as a fallback
+	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
+	})
+
 	common := []interface{}{}
 
 	if setting.EnableGzip {
