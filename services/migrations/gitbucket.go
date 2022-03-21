@@ -66,6 +66,6 @@ func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 }
 
 // GetReviews is not supported
-func (g *GitBucketDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+func (g *GitBucketDownloader) GetReviews(reviewable base.GetReviewOptions) ([]*base.Review, bool, error) {
 	return nil, true, &base.ErrNotSupported{Entity: "Reviews"}
 }

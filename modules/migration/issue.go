@@ -36,6 +36,7 @@ func (i *Issue) GetExternalName() string { return i.PosterName }
 // GetExternalID ExternalUserMigrated interface
 func (i *Issue) GetExternalID() int64 { return i.PosterID }
 
-func (i *Issue) GetLocalIndex() int64          { return i.Number }
-func (i *Issue) GetForeignIndex() int64        { return i.ForeignIndex }
+func (i *Issue) GetLocalIndex() int64   { return i.Number }
+func (i *Issue) GetForeignIndex() int64 { return i.ForeignIndex }
+
 func (i *Issue) GetContext() DownloaderContext { return i.Context }

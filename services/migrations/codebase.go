@@ -407,10 +407,10 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 }
 
 // GetComments returns comments
-func (d *CodebaseDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	context, ok := commentable.GetContext().(codebaseIssueContext)
+func (d *CodebaseDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	context, ok := opts.Commentable.GetContext().(codebaseIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
+		return nil, false, fmt.Errorf("unexpected context: %+v", opts.Commentable.GetContext())
 	}
 
 	return context.Comments, true, nil
@@ -570,7 +570,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 }
 
 // GetReviews returns pull requests reviews
-func (d *CodebaseDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+func (d *CodebaseDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
 	return []*base.Review{}, true, nil
 }
 

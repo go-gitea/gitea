@@ -13,14 +13,14 @@ import (
 
 // GetCommentOptions represents an options for get comment
 type GetCommentOptions struct {
-	Context  DownloaderContext
+	Commentable
 	Page     int
 	PageSize int
 }
 
 // GetReviewOptions represents an options for get reviews
 type GetReviewOptions struct {
-	Context  DownloaderContext
+	Reviewable
 	Page     int
 	PageSize int
 }
@@ -34,11 +34,12 @@ type Downloader interface {
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
-	GetComments(commentable Commentable) ([]*Comment, bool, error)
+	GetComments(opts GetCommentOptions) ([]*Comment, bool, error)
 	GetAllComments(page, perPage int) ([]*Comment, bool, error)
 	SupportGetRepoComments() bool
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
-	GetReviews(reviewable Reviewable) ([]*Review, bool, error)
+	GetReviews(opts GetReviewOptions) ([]*Review, bool, error)
+	SupportGetRepoReviews() bool
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 	CleanUp()
 }

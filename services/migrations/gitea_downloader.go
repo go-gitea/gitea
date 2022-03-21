@@ -442,7 +442,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 }
 
 // GetComments returns comments according issueNumber
-func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	allComments := make([]*base.Comment, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
@@ -453,26 +453,26 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 		default:
 		}
 
-		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Commentable.GetForeignIndex(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
 		}})
 		if err != nil {
-			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", commentable.GetForeignIndex(), err)
+			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", opts.Commentable.GetForeignIndex(), err)
 		}
 
 		for _, comment := range comments {
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
-				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)
+				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)
 				if err2 := admin_model.CreateRepositoryNotice(
-					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
+					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
 					log.Error("create repository notice failed: ", err2)
 				}
 			}
 
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  commentable.GetLocalIndex(),
+				IssueIndex:  opts.Commentable.GetLocalIndex(),
 				Index:       comment.ID,
 				PosterID:    comment.Poster.ID,
 				PosterName:  comment.Poster.UserName,
@@ -614,7 +614,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, true, nil
@@ -630,7 +630,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 		default:
 		}
 
-		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
+		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, opts.Reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -639,7 +639,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 		}
 
 		for _, pr := range prl {
-			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
+			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, opts.Reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
 				return nil, true, err
 			}
@@ -665,7 +665,7 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 
 			allReviews = append(allReviews, &base.Review{
 				ID:           pr.ID,
-				IssueIndex:   reviewable.GetLocalIndex(),
+				IssueIndex:   opts.Reviewable.GetLocalIndex(),
 				ReviewerID:   pr.Reviewer.ID,
 				ReviewerName: pr.Reviewer.UserName,
 				Official:     pr.Official,
