@@ -32,8 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/unknwon/com"
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -109,8 +107,6 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				return vars[s]
 			}), nil
 		}
-
-		return com.Expand(templateContent, vars)
 	}
 
 	// Squash merge has a different from other styles.
