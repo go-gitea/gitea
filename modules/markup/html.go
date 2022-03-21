@@ -840,8 +840,8 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 			res, err := vars.Expand(ctx.Metas["format"], ctx.Metas)
 			if err != nil {
-				log.Error(err.Error())
-				return
+				// here we could just log the error and continue the rendering
+				log.Error("unable to expand template vars for ref %s, err:%s", ref.Issue, err.Error())
 			}
 
 			link = createLink(res, reftext, "ref-issue ref-external-issue")

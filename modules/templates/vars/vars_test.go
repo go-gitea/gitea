@@ -25,13 +25,13 @@ func TestExpandVars(t *testing.T) {
 			expected: "1",
 		},
 		{
-			template: "expand {a}, {b} and {c}",
+			template: "expand {a}, {b} and {c}, with escaped {#{}",
 			maps: map[string]string{
 				"a": "1",
 				"b": "2",
 				"c": "3",
 			},
-			expected: "expand 1, 2 and 3",
+			expected: "expand 1, 2 and 3, with escaped {",
 		},
 		{
 			template: "中文内容 {一}, {二} 和 {三} 中文结尾",
@@ -44,14 +44,16 @@ func TestExpandVars(t *testing.T) {
 		},
 		{
 			template: "expand {{a}, {b} and {c}",
+			maps: map[string]string{
+				"a": "foo",
+				"b": "bar",
+			},
+			expected: "expand {{a}, bar and {c}",
 			fail:     true,
 		},
 		{
-			template: "expand {}, {b} and {c}",
-			fail:     true,
-		},
-		{
-			template: "expand }, {b} and {c}",
+			template: "expand } {} and {",
+			expected: "expand } {} and {",
 			fail:     true,
 		},
 	}

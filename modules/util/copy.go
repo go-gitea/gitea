@@ -5,7 +5,7 @@
 package util
 
 import (
-	"github.com/unknwon/com"
+	"github.com/unknwon/com" //nolint:depguard
 )
 
 // CopyFile copies file from source to target path.

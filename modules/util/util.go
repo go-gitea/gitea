@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/unknwon/com"
+	"github.com/unknwon/com" //nolint:depguard
 )
 
 // OptionalBool a boolean that can be "null"
@@ -184,7 +184,22 @@ func ToUpperASCII(s string) string {
 	return string(b)
 }
 
-// ToStr should be replaced
+// ToStr (from unknwon/com): should be replaced.
 func ToStr(value interface{}, args ...int) string {
 	return com.ToStr(value, args...)
+}
+
+// ToSnakeCase (from unknwon/com): should be replaced.
+func ToSnakeCase(str string) string {
+	return com.ToSnakeCase(str)
+}
+
+// AESGCMEncrypt (from unknwon/com): encrypts plaintext with the given key using AES in GCM mode. should be replaced.
+func AESGCMEncrypt(key, plaintext []byte) ([]byte, error) {
+	return com.AESGCMEncrypt(key, plaintext)
+}
+
+// AESGCMDecrypt (from unknwon/com): decrypts ciphertext with the given key using AES in GCM mode. should be replaced.
+func AESGCMDecrypt(key, ciphertext []byte) ([]byte, error) {
+	return com.AESGCMDecrypt(key, ciphertext)
 }

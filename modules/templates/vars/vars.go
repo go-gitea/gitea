@@ -40,67 +40,65 @@ func IsErrNoMatchedVar(err error) bool {
 	return ok
 }
 
-// Expand replaces all variables like {var} to match
-func Expand(template string, match map[string]string, subs ...string) (string, error) {
-	var (
-		buf   strings.Builder
-		key   strings.Builder
-		enter bool
-	)
-	for _, c := range template {
-		switch {
-		case c == '{':
-			if enter {
-				return "", ErrWrongSyntax{
-					Template: template,
-				}
-			}
-			enter = true
-		case c == '}':
-			if !enter {
-				return "", ErrWrongSyntax{
-					Template: template,
-				}
-			}
-			if key.Len() == 0 {
-				return "", ErrWrongSyntax{
-					Template: template,
-				}
-			}
+// Expand replaces all variables like {var} to match, if error occurs, the error part doesn't change and is returned as it is.
+// `#' is a reversed char, templates can use `{#{}` to do escape and output char '{'.
+func Expand(template string, match map[string]string) (string, error) {
+	var buf strings.Builder
+	var err error
 
-			if len(match) == 0 {
-				return "", ErrNoMatchedVar{
-					Template: template,
-					Var:      key.String(),
+	posBegin := 0
+	strLen := len(template)
+	for posBegin < strLen {
+		// find the next `{`
+		pos := strings.IndexByte(template[posBegin:], '{')
+		if pos == -1 {
+			buf.WriteString(template[posBegin:])
+			break
+		}
+
+		// copy texts between vars
+		buf.WriteString(template[posBegin : posBegin+pos])
+
+		// find the var between `{` and `}`/end
+		posBegin += pos
+		posEnd := posBegin + 1
+		for posEnd < strLen {
+			if template[posEnd] == '#' {
+				// escape char, skip next
+				posEnd += 2
+				continue
+			} else if template[posEnd] == '}' {
+				posEnd++
+				break
+			}
+			posEnd++
+		}
+
+		// the var part, it can be "{", "{}", "{..." or or "{...}"
+		part := template[posBegin:posEnd]
+		posBegin = posEnd
+		if part == "{}" || part[len(part)-1] != '}' {
+			// treat "{}" or "{..." as error
+			err = ErrWrongSyntax{Template: template}
+			buf.WriteString(part)
+		} else {
+			// now we get a valid key "{...}"
+			key := part[1 : len(part)-1]
+			if key[0] == '#' {
+				// escaped char
+				buf.WriteString(key[1:])
+			} else {
+				// look up in the map
+				if val, ok := match[key]; ok {
+					buf.WriteString(val)
+				} else {
+					// write the non-existing var as it is
+					buf.WriteString(part)
+					err = ErrNoMatchedVar{Template: template, Var: key}
 				}
-			}
-
-			v, ok := match[key.String()]
-			if !ok {
-				if len(subs) == 0 {
-					return "", ErrNoMatchedVar{
-						Template: template,
-						Var:      key.String(),
-					}
-				}
-				v = subs[0]
-			}
-
-			if _, err := buf.WriteString(v); err != nil {
-				return "", err
-			}
-			key.Reset()
-
-			enter = false
-		case enter:
-			if _, err := key.WriteRune(c); err != nil {
-				return "", err
-			}
-		default:
-			if _, err := buf.WriteRune(c); err != nil {
-				return "", err
 			}
 		}
 	}
-	return buf.String(), nil
+
+	return buf.String(), err
 }
