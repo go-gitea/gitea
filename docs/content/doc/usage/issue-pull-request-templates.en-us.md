@@ -54,17 +54,17 @@ Possible file names for PR default merge message templates:
 
 You can use the following variables enclosed in `{}` inside these templates:
 
-- BaseRepoOwner: Base repository owner name of this pull request
+- BaseRepoOwnerName: Base repository owner name of this pull request
 - BaseRepoName: Base repository name of this pull request
 - BaseBranch: Base repository target branch name of this pull request
-- HeadRepoOwner: Head repository owner name of this pull request
+- HeadRepoOwnerName: Head repository owner name of this pull request
 - HeadRepoName: Head repository name of this pull request
 - HeadBranch: Head repository branch name of this pull request
 - PullRequestTitle: Pull request's title
 - PullRequestDescription: Pull request's description
-- PullRequestPoster: Pull request's poster name
+- PullRequestPosterName: Pull request's poster name
 - PullRequestIndex: Pull request's index number
-- IssueReferenceChar: return # if it's internal tracker or ! for external tracker
+- PullRequestReference: Pull request's reference char with index number. i.e. #1, !2
 - ClosingIssues: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
 
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.

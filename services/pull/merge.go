@@ -33,7 +33,6 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 
-	"gitea.com/lunny/size"
 	"github.com/unknwon/com"
 )
 
@@ -65,7 +64,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 			log.Error("GetBranchCommit: %v", err)
 			return ""
 		}
-		templateContent, err := commit.GetFileContent(templateFilepath, int(10*size.K))
+		templateContent, err := commit.GetFileContent(templateFilepath, 10*1024)
 		if err != nil {
 			log.Error("GetFileContent: %v", err)
 			return ""
@@ -83,7 +82,6 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 			"PullRequestPosterName":  pr.Issue.Poster.Name,
 			"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 			"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
-			"IssueReferenceChar":     issueReference,
 		}
 		refs, err := pr.ResolveCrossReferences()
 		if err == nil {
