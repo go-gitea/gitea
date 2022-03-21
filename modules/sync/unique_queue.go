@@ -5,7 +5,9 @@
 
 package sync
 
-import "code.gitea.io/gitea/modules/util"
+import (
+	"github.com/unknwon/com"
+)
 
 // UniqueQueue is a queue which guarantees only one instance of same
 // identity is in the line. Instances with same identity will be
@@ -71,13 +73,13 @@ func (q *UniqueQueue) Queue() <-chan string {
 // Exist returns true if there is an instance with given identity
 // exists in the queue.
 func (q *UniqueQueue) Exist(id interface{}) bool {
-	return q.table.IsRunning(util.ToStr(id))
+	return q.table.IsRunning(com.ToStr(id))
 }
 
 // AddFunc adds new instance to the queue with a custom runnable function,
 // the queue is blocked until the function exits.
 func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
-	idStr := util.ToStr(id)
+	idStr := com.ToStr(id)
 	q.table.lock.Lock()
 	if _, ok := q.table.pool[idStr]; ok {
 		q.table.lock.Unlock()
@@ -103,5 +105,5 @@ func (q *UniqueQueue) Add(id interface{}) {
 
 // Remove removes instance from the queue.
 func (q *UniqueQueue) Remove(id interface{}) {
-	q.table.Stop(util.ToStr(id))
+	q.table.Stop(com.ToStr(id))
 }

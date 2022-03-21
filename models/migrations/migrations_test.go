@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -203,7 +204,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
+	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {

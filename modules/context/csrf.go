@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/unknwon/com"
@@ -212,7 +211,7 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 	x.ID = "0"
 	uid := ctx.Session.Get(opt.SessionKey)
 	if uid != nil {
-		x.ID = util.ToStr(uid)
+		x.ID = com.ToStr(uid)
 	}
 
 	needsNew := false
