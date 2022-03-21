@@ -62,7 +62,7 @@ func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 		Exist()
 }
 
-// IsPublicMembership returns true if given user public his/her membership.
+// IsPublicMembership returns true if the given user's membership of given org is public.
 func IsPublicMembership(orgID, uid int64) (bool, error) {
 	return db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
@@ -74,9 +74,6 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 
 // CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
-	if owner, err := IsOrganizationOwner(db.DefaultContext, orgID, uid); owner || err != nil {
-		return owner, err
-	}
 	return db.GetEngine(db.DefaultContext).
 		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
