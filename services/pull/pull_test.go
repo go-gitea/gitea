@@ -45,11 +45,16 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
+	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", mergeMessage)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
+	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", mergeMessage)
 }
 
 func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
@@ -71,11 +76,17 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
+	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", mergeMessage)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
 	pr.BaseRepo = nil
 	pr.HeadRepo = nil
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", GetDefaultMergeMessage(gitRepo, pr, ""))
+	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)
 }

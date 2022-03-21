@@ -37,18 +37,15 @@ import (
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest, mergeStyle repo_model.MergeStyle) string {
+func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest, mergeStyle repo_model.MergeStyle) (string, error) {
 	if err := pr.LoadHeadRepo(); err != nil {
-		log.Error("LoadHeadRepo[%d]: %v", pr.HeadRepoID, err)
-		return ""
+		return "", err
 	}
 	if err := pr.LoadIssue(); err != nil {
-		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
-		return ""
+		return "", err
 	}
 	if err := pr.LoadBaseRepo(); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return ""
+		return "", err
 	}
 
 	isExternalTracker := pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker)
@@ -61,60 +58,60 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 		if err != nil {
-			log.Error("GetBranchCommit: %v", err)
-			return ""
+			return "", err
 		}
 		templateContent, err := commit.GetFileContent(templateFilepath, 10*1024)
 		if err != nil {
-			log.Error("GetFileContent: %v", err)
-			return ""
-		}
-
-		vars := map[string]string{
-			"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
-			"BaseRepoName":           pr.BaseRepo.Name,
-			"BaseBranch":             pr.BaseBranch,
-			"HeadRepoOwnerName":      pr.HeadRepo.OwnerName,
-			"HeadRepoName":           pr.HeadRepo.Name,
-			"HeadBranch":             pr.HeadBranch,
-			"PullRequestTitle":       pr.Issue.Title,
-			"PullRequestDescription": pr.Issue.Content,
-			"PullRequestPosterName":  pr.Issue.Poster.Name,
-			"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
-			"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
-		}
-		refs, err := pr.ResolveCrossReferences()
-		if err == nil {
-			closeIssueIndexes := make([]string, 0, len(refs))
-			closeWord := "close"
-			if len(setting.Repository.PullRequest.CloseKeywords) > 0 {
-				closeWord = setting.Repository.PullRequest.CloseKeywords[0]
+			if !git.IsErrNotExist(err) {
+				return "", err
 			}
-			for _, ref := range refs {
-				if ref.RefAction == references.XRefActionCloses {
-					closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
+		} else {
+			vars := map[string]string{
+				"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
+				"BaseRepoName":           pr.BaseRepo.Name,
+				"BaseBranch":             pr.BaseBranch,
+				"HeadRepoOwnerName":      pr.HeadRepo.OwnerName,
+				"HeadRepoName":           pr.HeadRepo.Name,
+				"HeadBranch":             pr.HeadBranch,
+				"PullRequestTitle":       pr.Issue.Title,
+				"PullRequestDescription": pr.Issue.Content,
+				"PullRequestPosterName":  pr.Issue.Poster.Name,
+				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
+				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
+			}
+			refs, err := pr.ResolveCrossReferences()
+			if err == nil {
+				closeIssueIndexes := make([]string, 0, len(refs))
+				closeWord := "close"
+				if len(setting.Repository.PullRequest.CloseKeywords) > 0 {
+					closeWord = setting.Repository.PullRequest.CloseKeywords[0]
+				}
+				for _, ref := range refs {
+					if ref.RefAction == references.XRefActionCloses {
+						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
+					}
+				}
+				if len(closeIssueIndexes) > 0 {
+					vars["ClosingIssues"] = strings.Join(closeIssueIndexes, ", ")
+				} else {
+					vars["ClosingIssues"] = ""
 				}
 			}
-			if len(closeIssueIndexes) > 0 {
-				vars["ClosingIssues"] = strings.Join(closeIssueIndexes, ", ")
-			} else {
-				vars["ClosingIssues"] = ""
-			}
-		}
 
-		return com.Expand(templateContent, vars)
+			return com.Expand(templateContent, vars), nil
+		}
 	}
 
 	// Squash merge has a different from other styles.
 	if mergeStyle == repo_model.MergeStyleSquash {
-		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index)
+		return fmt.Sprintf("%s (%s%d)", pr.Issue.Title, issueReference, pr.Issue.Index), nil
 	}
 
 	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
 	}
 
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
 }
 
 // Merge merges pull request to base repository.

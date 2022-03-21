@@ -829,7 +829,11 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		message = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		message, err = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetDefaultMergeMessage", err)
+			return
+		}
 	}
 
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
