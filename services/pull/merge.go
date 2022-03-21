@@ -32,7 +32,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
-	"github.com/Unknwon/com"
+
+	"github.com/unknwon/com"
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
