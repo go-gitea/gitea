@@ -225,8 +225,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				oldCommitID := opts.OldCommitID
 				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
-					oldCommitID = commits.Commits[len(commits.Commits)-1].Sha1
-					oldCommit, err := gitRepo.GetCommit(oldCommitID)
+					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
 					if err != nil {
 						log.Error("gitRepo.GetCommit %s/%s failed: %v", repo.ID, oldCommitID, err)
 					}
@@ -240,7 +239,16 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
+				if oldCommitID == git.EmptySHA && repo.DefaultBranch != branch {
+					oldCommitID = repo.DefaultBranch
+				}
+
+				if oldCommitID != git.EmptySHA {
+					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
+				} else {
+					commits.CompareURL = ""
+				}
+
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
 				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
