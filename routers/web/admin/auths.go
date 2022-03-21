@@ -93,7 +93,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP
+	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0]
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -183,6 +183,14 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	} else {
 		customURLMapping = nil
 	}
+	var scopes []string
+	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			scopes = append(scopes, s)
+		}
+	}
+
 	return &oauth2.Source{
 		Provider:                      form.Oauth2Provider,
 		ClientID:                      form.Oauth2Key,
@@ -190,7 +198,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
-		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		Scopes:                        scopes,
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
@@ -395,6 +403,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
+	// FIXME: if the name conflicts, it will result in 500: Error 1062: Duplicate entry 'aa' for key 'login_source.UQE_login_source_name'
 	if err := auth.UpdateSource(source); err != nil {
 		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)

@@ -31,7 +31,7 @@ func argsSet(c *cli.Context, args ...string) error {
 			return errors.New(a + " is not set")
 		}
 
-		if util.IsEmptyString(a) {
+		if util.IsEmptyString(c.String(a)) {
 			return errors.New(a + " is required")
 		}
 	}

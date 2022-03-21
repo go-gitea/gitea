@@ -18,9 +18,9 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.16.0
-  minGoVersion: 1.16
-  goVersion: 1.17
+  version: 1.16.4
+  minGoVersion: 1.17
+  goVersion: 1.18
   minNodeVersion: 12.17
 
 outputs:

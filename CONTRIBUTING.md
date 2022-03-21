@@ -423,6 +423,10 @@ be reviewed by two maintainers and must pass the automatic tests.
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
 * If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
 * Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
+* Verify all release assets were correctly published through CI on dl.gitea.io and GitHub releases. Once ACKed:
+  * bump the version of https://dl.gitea.io/gitea/version.json
+  * merge the blog post PR
+  * announce the release in discord `#announcements`
 
 ## Copyright
 
