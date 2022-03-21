@@ -16,7 +16,6 @@ import (
 	"time"
 
 	git_cmd "code.gitea.io/gitea/modules/git/cmd"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
@@ -288,11 +287,7 @@ func checkAndAddConfig(key, value string) error {
 			Stdout:  &stdout,
 			Stderr:  &stderr,
 		}); err != nil {
-		perr, ok := err.(*process.Error)
-		if !ok {
-			return fmt.Errorf("failed to get git %s(%v) errType %T: %s", key, err, err, stderr.String())
-		}
-		eerr, ok := perr.Err.(*exec.ExitError)
+		eerr, ok := err.(*exec.ExitError)
 		if !ok || eerr.ExitCode() != 1 {
 			return fmt.Errorf("failed to get git %s(%v) errType %T: %s", key, err, err, stderr.String())
 		}
@@ -320,11 +315,7 @@ func checkAndRemoveConfig(key, value string) error {
 			Timeout: -1,
 			Stderr:  &stderr,
 		}); err != nil {
-		perr, ok := err.(*process.Error)
-		if !ok {
-			return fmt.Errorf("failed to get git %s(%v) errType %T: %s", key, err, err, stderr.String())
-		}
-		eerr, ok := perr.Err.(*exec.ExitError)
+		eerr, ok := err.(*exec.ExitError)
 		if !ok || eerr.ExitCode() != 1 {
 			return fmt.Errorf("failed to get git %s(%v) errType %T: %s", key, err, err, stderr.String())
 		}
