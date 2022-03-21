@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	git_cmd "code.gitea.io/gitea/modules/git/cmd"
@@ -236,7 +237,13 @@ func CheckGitVersionAtLeast(atLeast string) error {
 	return nil
 }
 
+var gitConfigLock sync.Mutex
+
+// checkAndSetConfig to avoid config conflict, only allow one go routine call at the same time
 func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
+	gitConfigLock.Lock()
+	defer gitConfigLock.Unlock()
+
 	stdout := strings.Builder{}
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key).
