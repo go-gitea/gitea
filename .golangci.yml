@@ -13,7 +13,7 @@ linters:
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
-    #- gocritic # TODO: disabled until fixed with go 1.18
+    - gocritic
     - bidichk
     - ineffassign
     - revive
@@ -23,6 +23,7 @@ linters:
   fast: false
 
 run:
+  go: 1.18
   timeout: 10m
   skip-dirs:
     - node_modules
