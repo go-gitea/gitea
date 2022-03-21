@@ -47,13 +47,12 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 
 	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
 	assert.NoError(t, err)
-
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", mergeMessage)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
 	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
-
+	assert.NoError(t, err)
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", mergeMessage)
 }
 
