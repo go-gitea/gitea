@@ -12,10 +12,10 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 func goGet(ctx *context.Context) {
@@ -67,7 +67,7 @@ func goGet(ctx *context.Context) {
 	}
 	ctx.RespHeader().Set("Content-Type", "text/html")
 	ctx.Status(http.StatusOK)
-	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
+	res, err := vars.Expand(`<!doctype html>
 <html>
 	<head>
 		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
@@ -83,5 +83,19 @@ func goGet(ctx *context.Context) {
 		"GoDocDirectory": prefix + "{/dir}",
 		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
 		"Insecure":       insecure,
-	})))
+	})
+	if err != nil {
+		log.Error(err.Error())
+		_, _ = ctx.Write([]byte(`<!doctype html>
+<html>
+	<body>
+		invalid import path
+	</body>
+</html>
+`))
+		ctx.Status(400)
+		return
+	}
+
+	_, _ = ctx.Write([]byte(res))
 }

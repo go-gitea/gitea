@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/unknwon/com"
 )
 
 // OptionalBool a boolean that can be "null"
@@ -180,4 +182,9 @@ func ToUpperASCII(s string) string {
 		}
 	}
 	return string(b)
+}
+
+// ToStr should be replaced
+func ToStr(value interface{}, args ...int) string {
+	return com.ToStr(value, args...)
 }
