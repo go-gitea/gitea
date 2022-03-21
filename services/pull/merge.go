@@ -33,6 +33,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 
+	"gitea.com/lunny/size"
 	"github.com/unknwon/com"
 )
 
@@ -64,38 +65,46 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 			log.Error("GetBranchCommit: %v", err)
 			return ""
 		}
-		templateContent, ok := commit.GetFileContent(templateFilepath)
-		if ok {
-			vars := map[string]string{
-				"BaseRepoOwner":          pr.BaseRepo.OwnerName,
-				"BaseRepoName":           pr.BaseRepo.Name,
-				"BaseBranch":             pr.BaseBranch,
-				"HeadRepoOwner":          pr.HeadRepo.OwnerName,
-				"HeadRepoName":           pr.HeadRepo.Name,
-				"HeadBranch":             pr.HeadBranch,
-				"PullRequestTitle":       pr.Issue.Title,
-				"PullRequestDescription": pr.Issue.Content,
-				"PullRequestPoster":      pr.Issue.Poster.Name,
-				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
-				"IssueReferenceChar":     issueReference,
-			}
-			refs, err := pr.ResolveCrossReferences()
-			if err == nil {
-				closeIssueIndexes := make([]string, 0, len(refs))
-				for _, ref := range refs {
-					if ref.RefAction == references.XRefActionCloses {
-						closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("close %s%d", issueReference, ref.Issue.Index))
-					}
-				}
-				if len(closeIssueIndexes) > 0 {
-					vars["ClosingIssues"] = strings.Join(closeIssueIndexes, ", ")
-				} else {
-					vars["ClosingIssues"] = ""
-				}
-			}
-
-			return com.Expand(templateContent, vars)
+		templateContent, err := commit.GetFileContent(templateFilepath, int(10*size.K))
+		if err != nil {
+			log.Error("GetFileContent: %v", err)
+			return ""
 		}
+
+		vars := map[string]string{
+			"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
+			"BaseRepoName":           pr.BaseRepo.Name,
+			"BaseBranch":             pr.BaseBranch,
+			"HeadRepoOwnerName":      pr.HeadRepo.OwnerName,
+			"HeadRepoName":           pr.HeadRepo.Name,
+			"HeadBranch":             pr.HeadBranch,
+			"PullRequestTitle":       pr.Issue.Title,
+			"PullRequestDescription": pr.Issue.Content,
+			"PullRequestPosterName":  pr.Issue.Poster.Name,
+			"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
+			"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
+			"IssueReferenceChar":     issueReference,
+		}
+		refs, err := pr.ResolveCrossReferences()
+		if err == nil {
+			closeIssueIndexes := make([]string, 0, len(refs))
+			closeWord := "close"
+			if len(setting.Repository.PullRequest.CloseKeywords) > 0 {
+				closeWord = setting.Repository.PullRequest.CloseKeywords[0]
+			}
+			for _, ref := range refs {
+				if ref.RefAction == references.XRefActionCloses {
+					closeIssueIndexes = append(closeIssueIndexes, fmt.Sprintf("%s %s%d", closeWord, issueReference, ref.Issue.Index))
+				}
+			}
+			if len(closeIssueIndexes) > 0 {
+				vars["ClosingIssues"] = strings.Join(closeIssueIndexes, ", ")
+			} else {
+				vars["ClosingIssues"] = ""
+			}
+		}
+
+		return com.Expand(templateContent, vars)
 	}
 
 	// Squash merge has a different from other styles.
