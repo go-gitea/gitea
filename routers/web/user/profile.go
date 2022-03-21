@@ -35,15 +35,6 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctx.ContextUser.IsOrganization() {
-		/*
-			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
-			// Show Org RSS feed
-			if len(showFeedType) != 0 {
-				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
-				return
-			}
-		*/
-
 		org.Home(ctx)
 		return
 	}
@@ -53,6 +44,9 @@ func Profile(ctx *context.Context) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
+
+	// advertise feed via meta tag
+	ctx.Data["FeedURL"] = ctx.ContextUser.HTMLURL()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctx.ContextUser.ID)
@@ -185,7 +179,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctx.ContextUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
@@ -193,7 +187,8 @@ func Profile(ctx *context.Context) {
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
 		})
-		if ctx.Written() {
+		if err != nil {
+			ctx.ServerError("GetFeeds", err)
 			return
 		}
 	case "stars":

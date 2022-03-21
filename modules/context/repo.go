@@ -418,6 +418,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
+	repoName = strings.TrimSuffix(repoName, ".rss")
+	repoName = strings.TrimSuffix(repoName, ".atom")
 
 	// Check if the user is the same as the repository owner
 	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
@@ -915,7 +917,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")), ctx.Repo.RepoLink)
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
 
 				ctx.Redirect(path.Join(
 					ctx.Repo.RepoLink,

@@ -120,6 +120,7 @@ func CreateUser(ctx *context.APIContext) {
 			user_model.IsErrEmailAlreadyUsed(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
+			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -263,7 +264,9 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_model.UpdateUser(ctx.ContextUser, emailChanged); err != nil {
-		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) ||
+			user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)

@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 )
 
 const (
@@ -464,6 +465,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			return
 		}
 		ctx.Data["LFSLockOwner"] = u.DisplayName()
+		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 
@@ -690,6 +692,14 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
+	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+	if isFeed {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+		return
+	}
+
+	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return

@@ -20,7 +20,7 @@ export function initCommonIssue() {
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.getAttribute('data-issue-id');
     }).get().join(',');
-    if (elementId === '0' && url.substr(-9) === '/assignee') {
+    if (elementId === '0' && url.slice(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
     }

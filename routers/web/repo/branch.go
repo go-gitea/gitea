@@ -233,7 +233,8 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 
 func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
 	repoIDToRepo map[int64]*repo_model.Repository,
-	repoIDToGitRepo map[int64]*git.Repository) *Branch {
+	repoIDToGitRepo map[int64]*git.Repository,
+) *Branch {
 	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
 
 	commit, err := rawBranch.GetCommit()

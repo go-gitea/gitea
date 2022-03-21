@@ -29,16 +29,6 @@ func GetOrganizationCount(ctx context.Context, u *user_model.User) (int64, error
 		Count(new(OrgUser))
 }
 
-// deleteBeans deletes all given beans, beans should contain delete conditions.
-func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
-	for i := range beans {
-		if _, err = e.Delete(beans[i]); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // DeleteUser deletes models associated to an user.
 func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
@@ -82,7 +72,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 	// ***** END: Follow *****
 
-	if err = deleteBeans(e,
+	if err = db.DeleteBeans(ctx,
 		&AccessToken{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Access{UserID: u.ID},
