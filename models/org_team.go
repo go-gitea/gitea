@@ -780,9 +780,9 @@ func DeleteTeam(t *Team) error {
 	// update branch protections
 	{
 		protections := make([]*ProtectedBranch, 0, 10)
-		err := sess.In("`protected_branch`.repo_id",
+		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
-			Find(protections)
+			Find(&protections)
 		if err != nil {
 			return fmt.Errorf("findProtectedBranches: %v", err)
 		}
