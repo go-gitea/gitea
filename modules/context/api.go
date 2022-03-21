@@ -100,7 +100,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			message = ""
 		}
 	}
@@ -117,7 +117,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if !setting.IsProd || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 		message = err.Error()
 	}
 
@@ -225,7 +225,7 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Context.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
@@ -248,18 +248,18 @@ func (ctx *APIContext) CheckForOTP() {
 func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
-		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if ctx.User != nil {
-			if ctx.Locale.Language() != ctx.User.Language {
+		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.Doer != nil {
+			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.User
-			ctx.Data["SignedUserID"] = ctx.User.ID
-			ctx.Data["SignedUserName"] = ctx.User.Name
-			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+			ctx.Data["SignedUser"] = ctx.Doer
+			ctx.Data["SignedUserID"] = ctx.Doer.ID
+			ctx.Data["SignedUserName"] = ctx.Doer.Name
+			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 		} else {
 			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""

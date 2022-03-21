@@ -61,7 +61,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.Doer)
 	assert.NoError(t, err)
 }
 
@@ -81,7 +81,7 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.User = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has

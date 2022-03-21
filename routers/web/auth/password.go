@@ -103,7 +103,7 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
 
-	if nil != ctx.User {
+	if nil != ctx.Doer {
 		ctx.Data["user_signed_in"] = true
 	}
 
@@ -133,8 +133,8 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	// Show the user that they are affecting the account that they intended to
 	ctx.Data["user_email"] = u.Email
 
-	if nil != ctx.User && u.ID != ctx.User.ID {
-		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
+	if nil != ctx.Doer && u.ID != ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.Doer.Email, u.Email))
 		return nil, nil
 	}
 
@@ -283,7 +283,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMustChangePassword)
 		return
 	}
-	u := ctx.User
+	u := ctx.Doer
 	// Make sure only requests for users who are eligible to change their password via
 	// this method passes through
 	if !u.MustChangePassword {
