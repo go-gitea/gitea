@@ -10,6 +10,7 @@ require (
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
 	gitea.com/lunny/levelqueue v0.4.1
+	gitea.com/lunny/size v0.0.0-20190626083611-40ea84d72f67
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
