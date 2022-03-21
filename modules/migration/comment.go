@@ -7,9 +7,17 @@ package migration
 
 import "time"
 
+// Commentable can be commented upon
+type Commentable interface {
+	GetLocalIndex() int64
+	GetForeignIndex() int64
+	GetContext() DownloaderContext
+}
+
 // Comment is a standard comment information
 type Comment struct {
-	IssueIndex  int64  `yaml:"issue_index"`
+	IssueIndex  int64 `yaml:"issue_index"`
+	Index       int64
 	PosterID    int64  `yaml:"poster_id"`
 	PosterName  string `yaml:"poster_name"`
 	PosterEmail string `yaml:"poster_email"`

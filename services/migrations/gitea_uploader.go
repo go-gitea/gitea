@@ -11,11 +11,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -373,6 +375,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
+			ForeignReference: &foreignreference.ForeignReference{
+				LocalIndex:   issue.GetLocalIndex(),
+				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
+				RepoID:       g.repo.ID,
+				Type:         foreignreference.TypeIssue,
+			},
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
@@ -484,19 +492,9 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 	return nil
 }
 
-func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
-	var labels []*models.Label
-	for _, label := range pr.Labels {
-		lb, ok := g.labels[label.Name]
-		if ok {
-			labels = append(labels, lb)
-		}
-	}
-
-	milestoneID := g.milestones[pr.Milestone]
-
+func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
 	// download patch file
-	err := func() error {
+	err = func() error {
 		if pr.PatchURL == "" {
 			return nil
 		}
@@ -519,25 +517,25 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		return err
 	}()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// set head information
 	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
 	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-		return nil, err
+		return "", err
 	}
 	p, err := os.Create(filepath.Join(pullHead, "head"))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	_, err = p.WriteString(pr.Head.SHA)
 	p.Close()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	head := "unknown repository"
+	head = "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
@@ -560,16 +558,16 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 				} else {
 					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
 					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return nil, err
+						return "", err
 					}
 					b, err := os.Create(headBranch)
 					if err != nil {
-						return nil, err
+						return "", err
 					}
 					_, err = b.WriteString(pr.Head.SHA)
 					b.Close()
 					if err != nil {
-						return nil, err
+						return "", err
 					}
 					head = pr.Head.OwnerName + "/" + pr.Head.Ref
 				}
@@ -593,6 +591,25 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 				log.Error("Cannot remove local head ref, %v", err)
 			}
 		}
+	}
+
+	return head, nil
+}
+
+func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
+	var labels []*models.Label
+	for _, label := range pr.Labels {
+		lb, ok := g.labels[label.Name]
+		if ok {
+			labels = append(labels, lb)
+		}
+	}
+
+	milestoneID := g.milestones[pr.Milestone]
+
+	head, err := g.updateGitForPullRequest(pr)
+	if err != nil {
+		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)
 	}
 
 	if pr.Created.IsZero() {

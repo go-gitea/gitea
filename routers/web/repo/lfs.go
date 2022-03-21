@@ -120,14 +120,14 @@ func LFSLocks(ctx *context.Context) {
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
 	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -140,7 +140,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
 		return
 	}
 
@@ -253,6 +253,13 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	oid := ctx.Params("oid")
+
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSFileGet", nil)
+		return
+	}
+
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
@@ -343,6 +350,12 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	oid := ctx.Params("oid")
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSDelete", nil)
+		return
+	}
+
 	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
@@ -525,14 +538,14 @@ func LFSAutoAssociate(ctx *context.Context) {
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')
 		if idx < 0 || idx+1 > len(oid) {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s", oid))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s", oid))
 			return
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]

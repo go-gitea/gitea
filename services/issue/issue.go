@@ -5,6 +5,8 @@
 package issue
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -123,6 +125,33 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 	}
 
 	return
+}
+
+// DeleteIssue deletes an issue
+func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue) error {
+	// load issue before deleting it
+	if err := issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := issue.LoadPullRequest(); err != nil {
+		return err
+	}
+
+	// delete entries in database
+	if err := models.DeleteIssue(issue); err != nil {
+		return err
+	}
+
+	// delete pull request related git data
+	if issue.IsPull {
+		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d", git.PullPrefix, issue.PullRequest.Index)); err != nil {
+			return err
+		}
+	}
+
+	notification.NotifyDeleteIssue(doer, issue)
+
+	return nil
 }
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
