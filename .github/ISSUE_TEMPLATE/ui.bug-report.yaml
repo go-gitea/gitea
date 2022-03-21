@@ -1,5 +1,6 @@
 name: Web Interface Bug Report
 description: Something doesn't look quite as it should?  Report it here!
+labels: ["kind/bug", "kind/ui"]
 body:
 - type: markdown
   attributes:
@@ -18,23 +19,25 @@ body:
       6. In particular it's really important to provide pertinent logs. If you are certain that this is a javascript
          error, show us the javascript console. If the error appears to relate to Gitea the server you must also give us
          DEBUG level logs. (See https://docs.gitea.io/en-us/logging-configuration/#debugging-problems)
+- type: textarea
+  id: description
+  attributes:
+    label: Description
+    description: |
+      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see below)
+      If using a proxy or a CDN (e.g. CloudFlare) in front of gitea, please disable the proxy/CDN fully and connect to gitea directly to confirm the issue still persists without those services.
+- type: textarea
+  id: screenshots
+  attributes:
+    label: Screenshots
+    description: Please provide at least 1 screenshot showing the issue.
+  validations:
+    required: true
 - type: input
   id: gitea-ver
   attributes:
     label: Gitea Version
     description: Gitea version (or commit reference) your instance is running
-  validations:
-    required: true
-- type: input
-  id: os-ver
-  attributes:
-    label: Operating System
-    description: The operating system you are using to access Gitea
-- type: input
-  id: browser-ver
-  attributes:
-    label: Browser Version
-    description: The browser and version that you are using to access Gitea
   validations:
     required: true
 - type: dropdown
@@ -49,17 +52,15 @@ body:
     - "No"
   validations:
     required: true
-- type: textarea
-  id: description
+- type: input
+  id: os-ver
   attributes:
-    label: Description
-    description: |
-      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see above)
-      If using a proxy or a CDN (e.g. CloudFlare) in front of gitea, please disable the proxy/CDN fully and connect to gitea directly to confirm the issue still persists without those services.
-- type: textarea
-  id: screenshots
+    label: Operating System
+    description: The operating system you are using to access Gitea
+- type: input
+  id: browser-ver
   attributes:
-    label: Screenshots
-    description: Please provide at least 1 screenshot showing the issue.
+    label: Browser Version
+    description: The browser and version that you are using to access Gitea
   validations:
     required: true
