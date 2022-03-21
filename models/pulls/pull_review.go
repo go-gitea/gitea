@@ -8,14 +8,23 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// ViewedState stores for a file in which state it is currently viewed
+type ViewedState uint8
+
+const (
+	Unviewed   ViewedState = iota
+	HasChanged             // cannot be set from the UI/ API
+	Viewed
+)
+
 // PRReview stores for a user - PR - commit combination which files the user has already viewed
 type PRReview struct {
-	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-	ViewedFiles map[string]bool    `xorm:"TEXT JSON"`                         // Stores for each of the changed files of a PR whether they have been viewed or not
-	CommitSHA   string             `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
-	PullID      int64              `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which PR was the review on?
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
+	ID          int64                  `xorm:"pk autoincr"`
+	UserID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+	ViewedFiles map[string]ViewedState `xorm:"TEXT JSON"`                         // Stores for each of the changed files of a PR whether they have been viewed, changed, or not viewed
+	CommitSHA   string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
+	PullID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which PR was the review on?
+	UpdatedUnix timeutil.TimeStamp     `xorm:"updated"`                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
 
 func init() {
@@ -32,8 +41,8 @@ func GetReview(userID, pullID int64, commitSHA string) (*PRReview, bool, error) 
 }
 
 // UpdateReview updates the given review inside the database, regardless of whether it existed before or not
-// The given map of viewed files will be merged with the previous review, if present
-func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string]bool) error {
+// The given map of files with their viewed state will be merged with the previous review, if present
+func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string]ViewedState) error {
 	review, exists, err := GetReview(userID, pullID, commitSHA)
 	if err != nil {
 		return err
@@ -63,7 +72,7 @@ func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string
 
 // mergeFiles merges the given maps of files with their viewing state into one map.
 // Values from oldFiles will be overridden with values from newFiles
-func mergeFiles(oldFiles, newFiles map[string]bool) map[string]bool {
+func mergeFiles(oldFiles, newFiles map[string]ViewedState) map[string]ViewedState {
 	if oldFiles == nil {
 		return newFiles
 	} else if newFiles == nil {

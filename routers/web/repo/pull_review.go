@@ -254,7 +254,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		return
 	}
 	pull := issue.PullRequest
-	updatedFiles := make(map[string]bool, len(ctx.Req.Form))
+	updatedFiles := make(map[string]pulls.ViewedState, len(ctx.Req.Form))
 	headCommitSHA := ""
 
 	// Collect all files and their viewed state
@@ -270,7 +270,13 @@ func UpdateViewedFiles(ctx *context.Context) {
 				}
 				continue
 			}
-			updatedFiles[strings.ReplaceAll(file, "%22", "\"")] = viewed
+
+			// Only unviewed and viewed are possible, has-changed can not be set from the outside
+			state := pulls.Unviewed
+			if viewed {
+				state = pulls.Viewed
+			}
+			updatedFiles[strings.ReplaceAll(file, "%22", "\"")] = state
 			// \" is the only character that gets encoded when sent as form-encoded string.
 			// Unfortunately, this WILL break marking any file as viewed that contains an actual "%22" in its name.
 			// There is no way to prevent this, and "%22" is way more unlikely to occur in a filename than \".

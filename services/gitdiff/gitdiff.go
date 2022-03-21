@@ -674,6 +674,10 @@ func (diffFile *DiffFile) GetDiffFileName() string {
 	return diffFile.Name
 }
 
+func (diffFile *DiffFile) ShouldBeHidden() bool {
+	return diffFile.IsGenerated || diffFile.IsViewed
+}
+
 func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	blob, err := commit.GetBlobByPath(filePath)
 	if err != nil {
@@ -1526,21 +1530,40 @@ func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Re
 	if err != nil {
 		return diff, err
 	}
+
+	filesChangedSinceLastDiff := make(map[string]pulls.ViewedState)
 outer:
 	for _, diffFile := range diff.Files {
+		fileViewedState := review.ViewedFiles[diffFile.GetDiffFileName()]
 
-		// Check whether the file has changed since the last review
+		// Check whether it was previously checked whether the file has changed since the last review
+		if fileViewedState == pulls.HasChanged {
+			diffFile.HasChangedSinceLastReview = true
+			continue
+		}
+
+		filename := diffFile.GetDiffFileName()
+
+		// Check explicitly whether the file has changed since the last review
 		for _, changedFile := range changedFiles {
-			diffFile.HasChangedSinceLastReview = diffFile.GetDiffFileName() == changedFile
+			diffFile.HasChangedSinceLastReview = filename == changedFile
 			if diffFile.HasChangedSinceLastReview {
+				filesChangedSinceLastDiff[filename] = pulls.HasChanged
 				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
 			}
 		}
 		// Check whether the file has already been viewed
-		if review.ViewedFiles[diffFile.GetDiffFileName()] {
+		if fileViewedState == pulls.Viewed {
 			diffFile.IsViewed = true
 			diff.NumViewedFiles++
 		}
+	}
+
+	// Explicitly store files that have changed in the database, if any is present at all.
+	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
+	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+	if len(filesChangedSinceLastDiff) > 0 {
+		go pulls.UpdateReview(review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff) //nolint
 	}
 
 	return diff, err
