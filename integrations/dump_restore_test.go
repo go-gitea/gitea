@@ -178,7 +178,9 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	assert.GreaterOrEqual(c.t, len(issues), 1)
 	for _, issue := range issues {
 		filename := filepath.Join("comments", fmt.Sprintf("%d.yml", issue.Number))
-		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{}).([]*base.Comment)
+		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{
+			"Index": {ignore: true},
+		}).([]*base.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
 			assert.EqualValues(c.t, issue.Number, comment.IssueIndex)

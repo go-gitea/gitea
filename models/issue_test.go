@@ -8,11 +8,13 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -397,6 +399,58 @@ func TestIssue_InsertIssue(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestIssue_DeleteIssue(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issueIDs, err := GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 5, len(issueIDs))
+
+	issue := &Issue{
+		RepoID: 1,
+		ID:     issueIDs[2],
+	}
+
+	err = DeleteIssue(issue)
+	assert.NoError(t, err)
+	issueIDs, err = GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 4, len(issueIDs))
+
+	// check attachment removal
+	attachments, err := repo_model.GetAttachmentsByIssueID(4)
+	assert.NoError(t, err)
+	issue, err = GetIssueByID(4)
+	assert.NoError(t, err)
+	err = DeleteIssue(issue)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 2, len(attachments))
+	for i := range attachments {
+		attachment, err := repo_model.GetAttachmentByUUID(attachments[i].UUID)
+		assert.Error(t, err)
+		assert.True(t, repo_model.IsErrAttachmentNotExist(err))
+		assert.Nil(t, attachment)
+	}
+
+	// check issue dependencies
+	user, err := user_model.GetUserByID(1)
+	assert.NoError(t, err)
+	issue1, err := GetIssueByID(1)
+	assert.NoError(t, err)
+	issue2, err := GetIssueByID(2)
+	assert.NoError(t, err)
+	err = CreateIssueDependency(user, issue1, issue2)
+	assert.NoError(t, err)
+	left, err := IssueNoDependenciesLeft(issue1)
+	assert.NoError(t, err)
+	assert.False(t, left)
+	err = DeleteIssue(&Issue{ID: 2})
+	assert.NoError(t, err)
+	left, err = IssueNoDependenciesLeft(issue1)
+	assert.NoError(t, err)
+	assert.True(t, left)
+}
+
 func TestIssue_ResolveMentions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -481,4 +535,36 @@ func TestCorrectIssueStats(t *testing.T) {
 	// Now check the values.
 	assert.NoError(t, err)
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
+}
+
+func TestIssueForeignReference(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue)
+	assert.NotEqualValues(t, issue.Index, issue.ID) // make sure they are different to avoid false positive
+
+	// it is fine for an issue to not have a foreign reference
+	err := issue.LoadAttributes()
+	assert.NoError(t, err)
+	assert.Nil(t, issue.ForeignReference)
+
+	var foreignIndex int64 = 12345
+	_, err = GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
+	assert.True(t, foreignreference.IsErrLocalIndexNotExist(err))
+
+	_, err = db.GetEngine(db.DefaultContext).Insert(&foreignreference.ForeignReference{
+		LocalIndex:   issue.Index,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		RepoID:       issue.RepoID,
+		Type:         foreignreference.TypeIssue,
+	})
+	assert.NoError(t, err)
+
+	err = issue.LoadAttributes()
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, issue.ForeignReference.ForeignIndex, strconv.FormatInt(foreignIndex, 10))
+
+	found, err := GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
+	assert.NoError(t, err)
+	assert.EqualValues(t, found.Index, issue.Index)
 }

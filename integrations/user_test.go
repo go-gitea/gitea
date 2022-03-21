@@ -121,6 +121,7 @@ func TestExportUserGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO

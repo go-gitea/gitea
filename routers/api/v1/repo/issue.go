@@ -246,18 +246,23 @@ func SearchIssues(ctx *context.APIContext) {
 			UpdatedAfterUnix:   since,
 		}
 
+		ctxUserID := int64(0)
+		if ctx.IsSigned {
+			ctxUserID = ctx.User.ID
+		}
+
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
 		if ctx.FormBool("created") {
-			issuesOpt.PosterID = ctx.User.ID
+			issuesOpt.PosterID = ctxUserID
 		}
 		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeID = ctx.User.ID
+			issuesOpt.AssigneeID = ctxUserID
 		}
 		if ctx.FormBool("mentioned") {
-			issuesOpt.MentionedID = ctx.User.ID
+			issuesOpt.MentionedID = ctxUserID
 		}
 		if ctx.FormBool("review_requested") {
-			issuesOpt.ReviewRequestedID = ctx.User.ID
+			issuesOpt.ReviewRequestedID = ctxUserID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
@@ -833,6 +838,52 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
+}
+
+func DeleteIssue(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index} issue issueDelete
+	// ---
+	// summary: Delete an issue
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of issue to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		}
+		return
+	}
+
+	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // UpdateIssueDeadline updates an issue deadline
