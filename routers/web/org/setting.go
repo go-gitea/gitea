@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
@@ -232,6 +233,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

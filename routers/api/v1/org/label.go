@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -99,7 +100,7 @@ func CreateLabel(ctx *context.APIContext) {
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
-	if err := models.NewLabel(label); err != nil {
+	if err := models.NewLabel(db.DefaultContext, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
