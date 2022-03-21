@@ -15,48 +15,9 @@ import (
 	"github.com/gorilla/feeds"
 )
 
-// RetrieveFeeds loads feeds for the specified user
-func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*models.Action {
-	actions, err := models.GetFeeds(options)
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
-		return nil
-	}
-
-	// TODO: move load repoOwner of act.Repo into models.GetFeeds->loadAttributes()
-	{
-		userCache := map[int64]*user_model.User{options.RequestedUser.ID: options.RequestedUser}
-		if ctx.User != nil {
-			userCache[ctx.User.ID] = ctx.User
-		}
-		for _, act := range actions {
-			if act.ActUser != nil {
-				userCache[act.ActUserID] = act.ActUser
-			}
-		}
-		for _, act := range actions {
-			repoOwner, ok := userCache[act.Repo.OwnerID]
-			if !ok {
-				repoOwner, err = user_model.GetUserByID(act.Repo.OwnerID)
-				if err != nil {
-					if user_model.IsErrUserNotExist(err) {
-						continue
-					}
-					ctx.ServerError("GetUserByID", err)
-					return nil
-				}
-				userCache[repoOwner.ID] = repoOwner
-			}
-			act.Repo.Owner = repoOwner
-		}
-	}
-
-	return actions
-}
-
 // ShowUserFeed show user activity as RSS / Atom feed
 func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
-	actions := RetrieveFeeds(ctx, models.GetFeedsOptions{
+	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
@@ -64,7 +25,8 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
-	if ctx.Written() {
+	if err != nil {
+		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
@@ -75,7 +37,6 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 		Created:     time.Now(),
 	}
 
-	var err error
 	feed.Items, err = feedActionsToFeedItems(ctx, actions)
 	if err != nil {
 		ctx.ServerError("convert feed", err)
