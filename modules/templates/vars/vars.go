@@ -43,26 +43,25 @@ func IsErrNoMatchedVar(err error) bool {
 // Expand replaces all variables like {var} to match
 func Expand(template string, match map[string]string, subs ...string) (string, error) {
 	var (
-		buf   strings.Builder
-		key   strings.Builder
-		enter bool
+		buf         strings.Builder
+		keyStartPos = -1
 	)
-	for _, c := range template {
+	for i, c := range template {
 		switch {
 		case c == '{':
-			if enter {
+			if keyStartPos > -1 {
 				return "", ErrWrongSyntax{
 					Template: template,
 				}
 			}
-			enter = true
+			keyStartPos = i
 		case c == '}':
-			if !enter {
+			if keyStartPos == -1 {
 				return "", ErrWrongSyntax{
 					Template: template,
 				}
 			}
-			if key.Len() == 0 {
+			if i-keyStartPos <= 1 {
 				return "", ErrWrongSyntax{
 					Template: template,
 				}
@@ -71,16 +70,16 @@ func Expand(template string, match map[string]string, subs ...string) (string, e
 			if len(match) == 0 {
 				return "", ErrNoMatchedVar{
 					Template: template,
-					Var:      key.String(),
+					Var:      template[keyStartPos+1 : i],
 				}
 			}
 
-			v, ok := match[key.String()]
+			v, ok := match[template[keyStartPos+1:i]]
 			if !ok {
 				if len(subs) == 0 {
 					return "", ErrNoMatchedVar{
 						Template: template,
-						Var:      key.String(),
+						Var:      template[keyStartPos+1 : i],
 					}
 				}
 				v = subs[0]
@@ -89,13 +88,9 @@ func Expand(template string, match map[string]string, subs ...string) (string, e
 			if _, err := buf.WriteString(v); err != nil {
 				return "", err
 			}
-			key.Reset()
 
-			enter = false
-		case enter:
-			if _, err := key.WriteRune(c); err != nil {
-				return "", err
-			}
+			keyStartPos = -1
+		case keyStartPos > -1:
 		default:
 			if _, err := buf.WriteRune(c); err != nil {
 				return "", err
