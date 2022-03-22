@@ -185,6 +185,7 @@ func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
