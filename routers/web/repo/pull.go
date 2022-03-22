@@ -68,7 +68,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.User)
+	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -77,7 +77,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 	if !perm.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
 			"User in repo has Permissions: %-+v",
-			ctx.User,
+			ctx.Doer,
 			unit.TypeCode,
 			ctx.Repo,
 			perm)
@@ -107,11 +107,11 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !repo_model.HasForkedRepo(ctx.User.ID, forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.Doer.ID && !repo_model.HasForkedRepo(ctx.Doer.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
+	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
@@ -125,7 +125,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	traverseParentRepo := forkRepo
 	for {
-		if ctx.User.ID == traverseParentRepo.OwnerID {
+		if ctx.Doer.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
 		} else {
 			for i, org := range orgs {
@@ -150,7 +150,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["Orgs"] = orgs
 
 	if canForkToUser {
-		ctx.Data["ContextUser"] = ctx.User
+		ctx.Data["ContextUser"] = ctx.Doer
 	} else if len(orgs) > 0 {
 		ctx.Data["ContextUser"] = orgs[0]
 	}
@@ -216,7 +216,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
+		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
@@ -226,7 +226,7 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, repo_service.ForkRepoOptions{
+	repo, err := repo_service.ForkRepository(ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
 		BaseRepo:    forkRepo,
 		Name:        form.RepoName,
 		Description: form.Description,
@@ -288,7 +288,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = issue.ReadBy(ctx.User.ID); err != nil {
+		if err = issue.ReadBy(ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil
 		}
@@ -497,7 +497,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	if headBranchExist {
 		var err error
-		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
@@ -699,7 +699,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.User); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
@@ -732,8 +732,8 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if ctx.IsSigned && ctx.User != nil {
-		if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.User); err != nil {
+	if ctx.IsSigned && ctx.Doer != nil {
+		if ctx.Data["CanMarkConversation"], err = models.CanMarkConversation(issue, ctx.Doer); err != nil {
 			ctx.ServerError("CanMarkConversation", err)
 			return
 		}
@@ -751,13 +751,13 @@ func ViewPullFiles(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
+	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
 	getBranchData(ctx, issue)
-	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
@@ -792,7 +792,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
@@ -808,7 +808,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	if err = pull_service.Update(ctx, issue.PullRequest, ctx.User, message, rebase); err != nil {
+	if err = pull_service.Update(ctx, issue.PullRequest, ctx.Doer, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
@@ -870,7 +870,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	pr := issue.PullRequest
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
@@ -889,7 +889,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	// handle manually-merged mark
 	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
@@ -925,7 +925,7 @@ func MergePullRequest(ctx *context.Context) {
 			ctx.ServerError("Merge PR status", err)
 			return
 		}
-		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
 			ctx.ServerError("IsUserRepoAdmin", err)
 			return
 		} else if !isRepoAdmin {
@@ -973,7 +973,7 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err = pull_service.Merge(ctx, pr, ctx.User, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err = pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
@@ -1046,7 +1046,7 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
+	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -1168,8 +1168,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		RepoID:      repo.ID,
 		Repo:        repo,
 		Title:       form.Title,
-		PosterID:    ctx.User.ID,
-		Poster:      ctx.User,
+		PosterID:    ctx.Doer.ID,
+		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		IsPull:      true,
 		Content:     form.Content,
@@ -1260,7 +1260,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -1331,7 +1331,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Repository) {
 	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
-	if err := repo_service.DeleteBranch(ctx.User, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
+	if err := repo_service.DeleteBranch(ctx.Doer, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
@@ -1346,7 +1346,7 @@ func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Rep
 		return
 	}
 
-	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
+	if err := models.AddDeletePRBranchComment(ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
 		log.Error("DeleteBranch: %v", err)
 	}
@@ -1396,7 +1396,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
@@ -1407,7 +1407,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.User, targetBranch); err != nil {
+	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
 		if models.IsErrPullRequestAlreadyExists(err) {
 			err := err.(models.ErrPullRequestAlreadyExists)
 
@@ -1448,7 +1448,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		}
 		return
 	}
-	notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, targetBranch)
+	notification.NotifyPullRequestChangeTargetBranch(ctx.Doer, pr, targetBranch)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"base_branch": pr.BaseBranch,

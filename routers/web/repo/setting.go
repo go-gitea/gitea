@@ -70,7 +70,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
 			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
 			if err != nil {
@@ -119,7 +119,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case repo_model.IsErrRepoAlreadyExist(err):
@@ -162,7 +162,7 @@ func SettingsPost(ctx *context.Context) {
 
 		visibilityChanged := repo.IsPrivate != form.Private
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
 			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
 			return
 		}
@@ -213,7 +213,7 @@ func SettingsPost(ctx *context.Context) {
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
-			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
@@ -235,7 +235,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
 				return
 			}
-			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 			if err != nil {
 				ctx.Data["Err_LFSEndpoint"] = true
 				handleSettingRemoteAddrError(ctx, err, form)
@@ -329,7 +329,7 @@ func SettingsPost(ctx *context.Context) {
 
 		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
-			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_PushMirrorAddress"] = true
@@ -516,7 +516,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "admin":
-		if !ctx.User.IsAdmin {
+		if !ctx.Doer.IsAdmin {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -536,7 +536,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "admin_index":
-		if !ctx.User.IsAdmin {
+		if !ctx.Doer.IsAdmin {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -648,7 +648,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == user_model.UserTypeOrganization {
-			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
+			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
@@ -661,7 +661,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -724,7 +724,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 		}
 
-		if err := repo_service.DeleteRepository(ctx, ctx.User, ctx.Repo.Repository, true); err != nil {
+		if err := repo_service.DeleteRepository(ctx, ctx.Doer, ctx.Repo.Repository, true); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -894,7 +894,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableNotifyMail {
-		mailer.SendCollaboratorMail(u, ctx.User, ctx.Repo.Repository)
+		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
@@ -1127,7 +1127,7 @@ func DeployKeysPost(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx.User, ctx.FormInt64("id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))

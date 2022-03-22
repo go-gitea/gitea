@@ -139,7 +139,7 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
-		Actor:              ctx.User,
+		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
@@ -224,7 +224,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
+		accessMode, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
@@ -247,7 +247,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
-	repo, err := repo_service.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx.Doer, owner, models.CreateRepoOptions{
 		Name:          opt.Name,
 		Description:   opt.Description,
 		IssueLabels:   opt.IssueLabels,
@@ -303,12 +303,12 @@ func Create(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	if ctx.User.IsOrganization() {
+	if ctx.Doer.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
-	CreateUserRepo(ctx, ctx.User, *opt)
+	CreateUserRepo(ctx, ctx.Doer, *opt)
 }
 
 // Generate Create a repository using a template
@@ -353,7 +353,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.User.IsOrganization() {
+	if ctx.Doer.IsOrganization() {
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
@@ -375,7 +375,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	ctxUser := ctx.User
+	ctxUser := ctx.Doer
 	var err error
 	if form.Owner != ctxUser.Name {
 		ctxUser, err = user_model.GetUserByName(form.Owner)
@@ -391,13 +391,13 @@ func Generate(ctx *context.APIContext) {
 			return
 		}
 
-		if !ctx.User.IsAdmin && !ctxUser.IsOrganization() {
+		if !ctx.Doer.IsAdmin && !ctxUser.IsOrganization() {
 			ctx.Error(http.StatusForbidden, "", "Only admin can generate repository for other user.")
 			return
 		}
 
-		if !ctx.User.IsAdmin {
-			canCreate, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
+		if !ctx.Doer.IsAdmin {
+			canCreate, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -408,7 +408,7 @@ func Generate(ctx *context.APIContext) {
 		}
 	}
 
-	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, ctx.Repo.Repository, opts)
+	repo, err := repo_service.GenerateRepository(ctx.Doer, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
@@ -493,13 +493,13 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
-	if !ctx.User.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
+	if !ctx.Doer.IsAdmin {
+		canCreate, err := org.CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 			return
@@ -569,7 +569,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.User)
+	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
@@ -653,7 +653,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -694,7 +694,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 		visibilityChanged = repo.IsPrivate != *opts.Private
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.User.IsAdmin {
+		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.Doer.IsAdmin {
 			err := fmt.Errorf("cannot change private repository to public")
 			ctx.Error(http.StatusUnprocessableEntity, "Force Private enabled", err)
 			return err
@@ -1019,7 +1019,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := models.CanUserDelete(repo, ctx.User)
+	canDelete, err := models.CanUserDelete(repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return
@@ -1032,7 +1032,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.Repo.GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx, ctx.User, repo, true); err != nil {
+	if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}

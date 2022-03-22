@@ -338,8 +338,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
 	var ownForkRepo *repo_model.Repository
-	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
-		repo := repo_model.GetForkedRepo(ctx.User.ID, baseRepo.ID)
+	if ctx.Doer != nil && baseRepo.OwnerID != ctx.Doer.ID {
+		repo := repo_model.GetForkedRepo(ctx.Doer.ID, baseRepo.ID)
 		if repo != nil {
 			ownForkRepo = repo
 			ctx.Data["OwnForkRepo"] = ownForkRepo
@@ -354,7 +354,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		has = true
 	}
 
-	// 4. If the ctx.User has their own fork of the baseRepo and the headUser is the ctx.User
+	// 4. If the ctx.Doer has their own fork of the baseRepo and the headUser is the ctx.Doer
 	// set the headRepo to the ownFork
 	if !has && ownForkRepo != nil && ownForkRepo.OwnerID == ci.HeadUser.ID {
 		ci.HeadRepo = ownForkRepo
@@ -393,10 +393,10 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
 
-	// Now we need to assert that the ctx.User has permission to read
+	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
+	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -404,7 +404,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if !permBase.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.User,
+				ctx.Doer,
 				baseRepo,
 				permBase)
 		}
@@ -414,8 +414,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// If we're not merging from the same repo:
 	if !isSameRepo {
-		// Assert ctx.User has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ci.HeadRepo, ctx.User)
+		// Assert ctx.Doer has permission to read headRepo's codes
+		permHead, err := models.GetUserRepoPermission(ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
@@ -423,7 +423,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if !permHead.CanRead(unit.TypeCode) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					ci.HeadRepo,
 					permHead)
 			}
@@ -439,7 +439,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(rootRepo, ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -464,7 +464,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -506,7 +506,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot create/read pull requests in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.User,
+				ctx.Doer,
 				baseRepo,
 				permBase)
 		}

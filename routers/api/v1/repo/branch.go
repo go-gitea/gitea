@@ -75,7 +75,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -117,7 +117,7 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
@@ -176,7 +176,7 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_service.CreateNewBranch(ctx, ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err := repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The old branch does not exist")
@@ -211,7 +211,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx.Repo.Repository, branch, commit, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx.Repo.Repository, branch, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 		return
@@ -270,7 +270,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
-		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User, ctx.Repo.IsAdmin())
+		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 			return

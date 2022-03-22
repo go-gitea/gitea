@@ -278,7 +278,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(templateRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -346,7 +346,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -422,8 +422,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	repoName = strings.TrimSuffix(repoName, ".atom")
 
 	// Check if the user is the same as the repository owner
-	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-		owner = ctx.User
+	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+		owner = ctx.Doer
 	} else {
 		owner, err = user_model.GetUserByName(userName)
 		if err != nil {
@@ -502,14 +502,14 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	canSignedUserFork, err := models.CanUserForkRepo(ctx.User, ctx.Repo.Repository)
+	canSignedUserFork, err := models.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.User, ctx.Repo.Repository)
+	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetForksByUserAndOrgs", err)
 		return
@@ -532,8 +532,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.User.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.User.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.Doer.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -633,7 +633,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -669,8 +669,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 
 		ctx.Data["RepoTransfer"] = repoTransfer
-		if ctx.User != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.User)
+		if ctx.Doer != nil {
+			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.Doer)
 		}
 	}
 
@@ -950,7 +950,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
-		if !ctx.User.CanEditGitHook() {
+		if !ctx.Doer.CanEditGitHook() {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}
