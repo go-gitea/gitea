@@ -167,12 +167,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(id int64) (*DeployKey, error) {
-	return GetDeployKeyByIDCtx(db.DefaultContext, id)
-}
-
-// GetDeployKeyByIDCtx returns deploy key by given ID.
-func GetDeployKeyByIDCtx(ctx context.Context, id int64) (*DeployKey, error) {
+func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
 	has, err := db.GetEngine(ctx).ID(id).Get(key)
 	if err != nil {
