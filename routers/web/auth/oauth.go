@@ -267,21 +267,21 @@ type userInfoResponse struct {
 
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
-	if ctx.User == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
+	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(ctx.User.ID),
-		Name:     ctx.User.FullName,
-		Username: ctx.User.Name,
-		Email:    ctx.User.Email,
-		Picture:  ctx.User.AvatarLink(),
+		Sub:      fmt.Sprint(ctx.Doer.ID),
+		Name:     ctx.Doer.FullName,
+		Username: ctx.Doer.Name,
+		Email:    ctx.Doer.Email,
+		Picture:  ctx.Doer.AvatarLink(),
 	}
 
-	groups, err := getOAuthGroupsForUser(ctx.User)
+	groups, err := getOAuthGroupsForUser(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -317,7 +317,7 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
@@ -438,7 +438,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	grant, err := app.GetGrantByUserID(ctx.User.ID)
+	grant, err := app.GetGrantByUserID(ctx.Doer.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -515,7 +515,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.User.ID, form.Scope)
+	grant, err := app.CreateGrant(ctx.Doer.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,

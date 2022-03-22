@@ -29,7 +29,7 @@ const (
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	ctx.Data["DefaultOrgVisibilityMode"] = setting.Service.DefaultOrgVisibilityMode
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
@@ -41,7 +41,7 @@ func CreatePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.CreateOrgForm)
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
@@ -59,7 +59,7 @@ func CreatePost(ctx *context.Context) {
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 
-	if err := models.CreateOrganization(org, ctx.User); err != nil {
+	if err := models.CreateOrganization(org, ctx.Doer); err != nil {
 		ctx.Data["Err_OrgName"] = true
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
