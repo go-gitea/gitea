@@ -223,7 +223,6 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			models.EnvRepoName + "=" + reponame,
 			models.EnvPusherName + "=" + ctx.User.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", ctx.User.ID),
-			models.EnvIsDeployKey + "=false",
 			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
