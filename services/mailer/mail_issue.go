@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -81,7 +80,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = repo_model.GetRepoWatchersIDs(db.DefaultContext, ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -186,6 +185,7 @@ func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,

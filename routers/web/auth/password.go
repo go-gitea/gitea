@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -232,7 +231,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -327,7 +326,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	u.MustChangePassword = false
 
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

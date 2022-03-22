@@ -595,7 +595,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(db.DefaultContext); err != nil {
+		if err := repo.GetOwner(ctx); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -1055,7 +1055,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1071,7 +1071,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

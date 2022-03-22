@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,7 +255,7 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
 	}
@@ -273,7 +272,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = templateRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
@@ -341,7 +340,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(db.DefaultContext); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return
 	}
