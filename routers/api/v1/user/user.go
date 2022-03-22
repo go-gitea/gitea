@@ -56,7 +56,7 @@ func Search(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		Keyword:     ctx.FormTrim("q"),
 		UID:         ctx.FormInt64("uid"),
 		Type:        user_model.UserTypeIndividual,
@@ -75,7 +75,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": convert.ToUsers(ctx.User, users),
+		"data": convert.ToUsers(ctx.Doer, users),
 	})
 }
 
@@ -98,12 +98,12 @@ func GetInfo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.User) {
+	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
 		ctx.NotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.Params(":username")})
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -117,7 +117,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/User"
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.Doer, ctx.Doer))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap
@@ -139,7 +139,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	heatmap, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.User)
+	heatmap, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return

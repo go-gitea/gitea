@@ -129,13 +129,13 @@ func CreateUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
 	if form.SendNotify {
 		mailer.SendRegisterNotifyMail(u)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.User))
+	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.Doer))
 }
 
 // EditUser api for modifying a user's information
@@ -273,9 +273,9 @@ func EditUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, ctx.ContextUser.Name)
+	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
 }
 
 // DeleteUser api for deleting a user
@@ -313,7 +313,7 @@ func DeleteUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	log.Trace("Account deleted by admin(%s): %s", ctx.User.Name, ctx.ContextUser.Name)
+	log.Trace("Account deleted by admin(%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -387,7 +387,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 		}
 		return
 	}
-	log.Trace("Key deleted by admin(%s): %s", ctx.User.Name, ctx.ContextUser.Name)
+	log.Trace("Key deleted by admin(%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -417,7 +417,7 @@ func GetAllUsers(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeIndividual,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
@@ -429,7 +429,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.User)
+		results[i] = convert.ToUser(users[i], ctx.Doer)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

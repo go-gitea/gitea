@@ -28,7 +28,7 @@ func ShowUserFeedAtom(ctx *context.Context) {
 func showUserFeed(ctx *context.Context, formatType string) {
 	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
-		Actor:           ctx.User,
+		Actor:           ctx.Doer,
 		IncludePrivate:  false,
 		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
 		IncludeDeleted:  false,

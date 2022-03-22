@@ -40,7 +40,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.User) {
+	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
@@ -56,8 +56,8 @@ func Profile(ctx *context.Context) {
 	}
 
 	var isFollowing bool
-	if ctx.User != nil {
-		isFollowing = user_model.IsFollowing(ctx.User.ID, ctx.ContextUser.ID)
+	if ctx.Doer != nil {
+		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
@@ -67,7 +67,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.User)
+		data, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -89,7 +89,7 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctx.ContextUser.ID)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
 	orgs, err := models.FindOrgs(models.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
@@ -101,7 +101,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
+	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.Doer)
 
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
@@ -181,7 +181,7 @@ func Profile(ctx *context.Context) {
 	case "activity":
 		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
-			Actor:           ctx.User,
+			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
@@ -198,7 +198,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
@@ -230,7 +230,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
@@ -252,7 +252,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,
 			OrderBy:            orderBy,
@@ -279,7 +279,7 @@ func Profile(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 
-	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.User.ID)
+	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.Doer.ID)
 
 	ctx.HTML(http.StatusOK, tplProfile)
 }
@@ -289,9 +289,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.User.ID, ctx.ContextUser.ID)
+		err = user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.User.ID, ctx.ContextUser.ID)
+		err = user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID)
 	}
 
 	if err != nil {

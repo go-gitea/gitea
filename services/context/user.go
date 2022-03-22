@@ -40,8 +40,8 @@ func UserAssignmentAPI() func(ctx *context.APIContext) {
 func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) {
 	username := ctx.Params(":username")
 
-	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(username) {
-		ctx.ContextUser = ctx.User
+	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(username) {
+		ctx.ContextUser = ctx.Doer
 	} else {
 		var err error
 		ctx.ContextUser, err = user_model.GetUserByName(username)

@@ -18,7 +18,7 @@ import (
 func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.User)
+		apiUsers[i] = convert.ToUser(users[i], ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }
@@ -54,7 +54,7 @@ func ListMyFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	listUserFollowers(ctx, ctx.User)
+	listUserFollowers(ctx, ctx.Doer)
 }
 
 // ListFollowers list the given user's followers
@@ -116,7 +116,7 @@ func ListMyFollowing(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	listUserFollowing(ctx, ctx.User)
+	listUserFollowing(ctx, ctx.Doer)
 }
 
 // ListFollowing list the users that the given user is following
@@ -172,7 +172,7 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	checkUserFollowing(ctx, ctx.User, ctx.ContextUser.ID)
+	checkUserFollowing(ctx, ctx.Doer, ctx.ContextUser.ID)
 }
 
 // CheckFollowing check if one user is following another user
@@ -219,7 +219,7 @@ func Follow(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := user_model.FollowUser(ctx.User.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_model.FollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}
@@ -241,7 +241,7 @@ func Unfollow(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := user_model.UnfollowUser(ctx.User.ID, ctx.ContextUser.ID); err != nil {
+	if err := user_model.UnfollowUser(ctx.Doer.ID, ctx.ContextUser.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
 		return
 	}
