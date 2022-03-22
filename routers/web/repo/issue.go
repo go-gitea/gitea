@@ -1944,7 +1944,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
-			if err := issue.Repo.GetOwner(db.DefaultContext); err != nil {
+			if err := issue.Repo.GetOwner(ctx); err != nil {
 				ctx.ServerError("issue.Repo.GetOwner", err)
 				return
 			}
