@@ -32,6 +32,8 @@
 							<p>{{.i18n.Tr "auth.confirmation_mail_sent_prompt" (.Email|Escape) .ActiveCodeLives | Str2html}}</p>
 						{{else if .IsActivateFailed}}
 							<p>{{.i18n.Tr "auth.invalid_code"}}</p>
+						{{else if .ManualActivationOnly}}
+							<p class="center">{{.i18n.Tr "auth.disable_register_mail"}}</p>
 						{{else}}
 							<p>{{.i18n.Tr "auth.has_unconfirmed_mail" (.SignedUser.Name|Escape) (.SignedUser.Email|Escape) | Str2html}}</p>
 							<div class="ui divider"></div>

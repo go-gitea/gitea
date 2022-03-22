@@ -43,7 +43,7 @@ var defaultTransformers = []transformer{
 	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
 	{Name: "LOWER", Transform: strings.ToLower},
 	{Name: "UPPER", Transform: strings.ToUpper},
-	{Name: "TITLE", Transform: strings.Title},
+	{Name: "TITLE", Transform: strings.Title}, // nolint
 }
 
 func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository) string {
@@ -62,7 +62,7 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 		{Name: "TEMPLATE_SSH_URL", Value: templateRepo.CloneLink().SSH, Transformers: nil},
 	}
 
-	var expansionMap = make(map[string]string)
+	expansionMap := make(map[string]string)
 	for _, e := range expansions {
 		expansionMap[e.Name] = e.Value
 		for _, tr := range e.Transformers {
@@ -159,7 +159,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *repo_model.Repository,
 
 						if err := os.WriteFile(path,
 							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-							0644); err != nil {
+							0o644); err != nil {
 							return err
 						}
 						break

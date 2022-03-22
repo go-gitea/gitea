@@ -209,7 +209,7 @@ func shadowPassword(provider, cfgItem string) string {
 	case "redis":
 		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
-		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		// root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
 		if atIdx > 0 {
 			colonIdx := strings.Index(cfgItem[:atIdx], ":")
@@ -244,7 +244,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
+	ctx.Data["RunMode"] = setting.RunMode
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}

@@ -1,7 +1,5 @@
-
-###################################
-#Build stage - temporarily using techknowlogick image until we upgrade to latest official alpine/go image
-FROM techknowlogick/go:1.17-alpine3.13 AS build-env
+#Build stage
+FROM golang:1.18-alpine3.15 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}

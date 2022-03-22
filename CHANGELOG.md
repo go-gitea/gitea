@@ -4,6 +4,28 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.4](https://github.com/go-gitea/gitea/releases/tag/v1.16.4) - 2022-03-14
+
+* SECURITY
+  * Restrict email address validation (#17688) (#19085)
+  * Fix lfs bug (#19072) (#19080)
+* ENHANCEMENTS
+  * Improve SyncMirrors logging (#19045) (#19050)
+* BUGFIXES
+  * Refactor mirror code & fix `StartToMirror` (#18904) (#19075)
+  * Update the webauthn_credential_id_sequence in Postgres (#19048) (#19060)
+  * Prevent 500 when there is an error during new auth source post (#19041) (#19059)
+  * If rendering has failed due to a net.OpError stop rendering (attempt 2) (#19049) (#19056)
+  * Fix flag validation (#19046) (#19051)
+  * Add pam account authorization check (#19040) (#19047)
+  * Ignore missing comment for user notifications (#18954) (#19043)
+  * Set `rel="nofollow noindex"` on new issue links (#19023) (#19042)
+  * Upgrading binding package (#19034) (#19035)
+  * Don't show context cancelled errors in attribute reader (#19006) (#19027)
+  * Fix update hint bug (#18996) (#19002)
+* MISC
+  *  Fix potential assignee query for repo (#18994) (#18999)
+
 ## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
 
 * SECURITY
