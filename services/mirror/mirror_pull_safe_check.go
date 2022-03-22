@@ -162,7 +162,6 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 		return err, false
 	}
 	if repoCommitCount > newRepoCommitCount {
-		// 大概率用户已经删库跑路了
 		return nil, false
 	} else if repoCommitCount == newRepoCommitCount {
 		// noting to happen
