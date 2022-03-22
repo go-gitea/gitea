@@ -28,11 +28,12 @@ type RemoteMirrorer interface {
 
 // Mirror represents mirror information of a repository.
 type Mirror struct {
-	ID          int64       `xorm:"pk autoincr"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	Interval    time.Duration
-	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
+	ID               int64       `xorm:"pk autoincr"`
+	RepoID           int64       `xorm:"INDEX"`
+	Repo             *Repository `xorm:"-"`
+	Interval         time.Duration
+	EnablePrune      bool `xorm:"NOT NULL DEFAULT true"`
+	EnableSafeMirror bool `xorm:"NOT NULL DEFAULT true"`
 
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`

@@ -115,6 +115,13 @@
 									<label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
 										</div>
 									</div>
+									<div class="inline field {{if .Err_EnableSafeMirror}}error{{end}}">
+										<label>{{.i18n.Tr "repo.mirror_enable_safe"}}</label>
+										<div class="ui checkbox">
+									<input id="enable_safe_mirror" name="enable_safe_mirror" type="checkbox" {{if .EnableSafeMirror}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.mirror_enable_safe_desc"}}</label>
+										</div>
+									</div>
 									<div class="inline field {{if .Err_Interval}}error{{end}}">
 										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">

@@ -70,6 +70,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+	ctx.Data["EnableSafeMirror"] = ctx.Repo.Mirror.EnableSafeMirror
 	if ctx.User.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
 			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
@@ -193,6 +194,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
+			ctx.Repo.Mirror.EnableSafeMirror = form.EnableSafeMirror
 			ctx.Repo.Mirror.Interval = interval
 			if interval != 0 {
 				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
