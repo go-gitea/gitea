@@ -144,7 +144,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/DeployKey"
 
-	key, err := asymkey_model.GetDeployKeyByID(db.DefaultContext, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.NotFound()
