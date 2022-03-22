@@ -23,7 +23,7 @@ import (
 
 func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
 
 	opts := models.FindOrgOptions{
 		ListOptions:    listOptions,
@@ -71,7 +71,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	listUserOrgs(ctx, ctx.User)
+	listUserOrgs(ctx, ctx.Doer)
 }
 
 // ListUserOrgs list user's orgs
@@ -201,7 +201,7 @@ func GetAll(ctx *context.APIContext) {
 	vMode := []api.VisibleType{api.VisibleTypePublic}
 	if ctx.IsSigned {
 		vMode = append(vMode, api.VisibleTypeLimited)
-		if ctx.User.IsAdmin {
+		if ctx.Doer.IsAdmin {
 			vMode = append(vMode, api.VisibleTypePrivate)
 		}
 	}
@@ -209,7 +209,7 @@ func GetAll(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		ListOptions: listOptions,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -251,7 +251,7 @@ func Create(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
 	}
@@ -272,7 +272,7 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := models.CreateOrganization(org, ctx.User); err != nil {
+	if err := models.CreateOrganization(org, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -304,7 +304,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Organization"
 
-	if !models.HasOrgOrUserVisible(ctx.Org.Organization.AsUser(), ctx.User) {
+	if !models.HasOrgOrUserVisible(ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}

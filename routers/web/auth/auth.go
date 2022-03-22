@@ -393,8 +393,8 @@ func HandleSignOut(ctx *context.Context) {
 
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
-	if ctx.User != nil {
-		eventsource.GetManager().SendMessageBlocking(ctx.User.ID, &eventsource.Event{
+	if ctx.Doer != nil {
+		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
 			Name: "logout",
 			Data: ctx.Session.ID(),
 		})
@@ -649,19 +649,19 @@ func Activate(ctx *context.Context) {
 
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
-		if ctx.User == nil || ctx.User.IsActive {
+		if ctx.Doer == nil || ctx.Doer.IsActive {
 			ctx.NotFound("invalid user", nil)
 			return
 		}
 		// Resend confirmation email.
 		if setting.Service.RegisterEmailConfirm {
-			if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
+			if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
 				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-				mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
+				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
-				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+				if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
 					log.Error("Set cache(MailResendLimit) fail: %v", err)
 				}
 			}

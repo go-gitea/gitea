@@ -108,13 +108,13 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	cantSetUser := !ctx.User.IsAdmin &&
-		opts.UserID != ctx.User.ID &&
+	cantSetUser := !ctx.Doer.IsAdmin &&
+		opts.UserID != ctx.Doer.ID &&
 		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
-			opts.UserID = ctx.User.ID
+			opts.UserID = ctx.Doer.ID
 		} else {
 			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
@@ -189,7 +189,7 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
@@ -198,9 +198,9 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	user := ctx.User
+	user := ctx.Doer
 	if form.User != "" {
-		if (ctx.IsUserRepoAdmin() && ctx.User.Name != form.User) || ctx.User.IsAdmin {
+		if (ctx.IsUserRepoAdmin() && ctx.Doer.Name != form.User) || ctx.Doer.IsAdmin {
 			// allow only RepoAdmin, Admin and User to add time
 			user, err = user_model.GetUserByName(form.User)
 			if err != nil {
@@ -270,7 +270,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -279,7 +279,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.DeleteIssueUserTimes(issue, ctx.User)
+	err = models.DeleteIssueUserTimes(issue, ctx.Doer)
 	if err != nil {
 		if models.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
@@ -341,7 +341,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -364,7 +364,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
+	if !ctx.Doer.IsAdmin && time.UserID != ctx.Doer.ID {
 		// Only Admin and User itself can delete their time
 		ctx.Status(http.StatusForbidden)
 		return
@@ -428,7 +428,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin && ctx.User.ID != user.ID {
+	if !ctx.IsUserRepoAdmin() && !ctx.Doer.IsAdmin && ctx.Doer.ID != user.ID {
 		ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 		return
 	}
@@ -527,13 +527,13 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	cantSetUser := !ctx.User.IsAdmin &&
-		opts.UserID != ctx.User.ID &&
+	cantSetUser := !ctx.Doer.IsAdmin &&
+		opts.UserID != ctx.Doer.ID &&
 		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
-			opts.UserID = ctx.User.ID
+			opts.UserID = ctx.Doer.ID
 		} else {
 			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
@@ -593,7 +593,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 
 	opts := &models.FindTrackedTimesOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		UserID:      ctx.User.ID,
+		UserID:      ctx.Doer.ID,
 	}
 
 	var err error

@@ -85,7 +85,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		// Are we looking at default webhooks?
 		if ctx.Params(":configType") == "default-hooks" {
 			return &orgRepoCtx{
@@ -1258,7 +1258,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),

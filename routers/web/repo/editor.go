@@ -40,7 +40,7 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.User)
+	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
@@ -241,7 +241,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
+	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -447,7 +447,7 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
+	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -653,7 +653,7 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
+	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -798,7 +798,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 // that doesn't already exist. If we exceed 1000 tries or an error is thrown, we just return "" so the user has to
 // type in the branch name themselves (will be an empty field)
 func GetUniquePatchBranchName(ctx *context.Context) string {
-	prefix := ctx.User.LowerName + "-patch-"
+	prefix := ctx.Doer.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
 		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {

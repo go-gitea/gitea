@@ -46,7 +46,7 @@ const (
 
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
 func getDashboardContextUser(ctx *context.Context) *user_model.User {
-	ctxUser := ctx.User
+	ctxUser := ctx.Doer
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
 		ctxUser = ctx.Org.Organization.AsUser()
@@ -54,7 +54,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.User)
+	orgs, err := models.GetUserOrgsList(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -88,7 +88,7 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
+		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 			return
@@ -103,7 +103,7 @@ func Dashboard(ctx *context.Context) {
 		if ctx.Org.Team != nil {
 			env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctx.User.ID)
+			env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
@@ -133,7 +133,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
-		Actor:           ctx.User,
+		Actor:           ctx.Doer,
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
@@ -416,19 +416,19 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsArchived: util.OptionalBoolFalse,
 		Org:        org,
 		Team:       team,
-		User:       ctx.User,
+		User:       ctx.Doer,
 	}
 
 	switch filterMode {
 	case models.FilterModeAll:
 	case models.FilterModeAssign:
-		opts.AssigneeID = ctx.User.ID
+		opts.AssigneeID = ctx.Doer.ID
 	case models.FilterModeCreate:
-		opts.PosterID = ctx.User.ID
+		opts.PosterID = ctx.Doer.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctx.User.ID
+		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctx.User.ID
+		opts.ReviewRequestedID = ctx.Doer.ID
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -550,7 +550,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var issueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:     ctx.User.ID,
+			UserID:     ctx.Doer.ID,
 			FilterMode: filterMode,
 			IsPull:     isPullList,
 			IsClosed:   isShowClosed,
