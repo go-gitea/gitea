@@ -154,7 +154,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
+			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -190,7 +190,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
+			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -243,7 +243,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
+			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -305,7 +305,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
+			keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
