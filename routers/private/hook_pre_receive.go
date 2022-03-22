@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	perm_model "code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -480,7 +479,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	ctx.userPerm = userPerm
 
 	if ctx.opts.DeployKeyID != 0 {
-		deployKey, err := asymkey_model.GetDeployKeyByID(db.DefaultContext, ctx.opts.DeployKeyID)
+		deployKey, err := asymkey_model.GetDeployKeyByID(ctx, ctx.opts.DeployKeyID)
 		if err != nil {
 			log.Error("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
