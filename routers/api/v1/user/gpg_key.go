@@ -18,7 +18,7 @@ import (
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
-	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, listOptions)
+	keys, err := asymkey_model.ListGPGKeys(ctx, uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return

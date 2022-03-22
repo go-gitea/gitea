@@ -39,7 +39,7 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(db.DefaultContext, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+	if err := models.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
 		if models.IsErrIssueLabelTemplateLoad(err) {
 			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))

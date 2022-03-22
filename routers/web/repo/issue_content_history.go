@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	issuesModel "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -32,7 +31,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	lang := ctx.Locale.Language()
-	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(db.DefaultContext, issue.ID)
+	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
 			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
@@ -52,7 +51,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items, _ := issuesModel.FetchIssueContentHistoryList(db.DefaultContext, issue.ID, commentID)
+	items, _ := issuesModel.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -119,7 +118,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(db.DefaultContext, historyID)
+	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(ctx, historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
@@ -196,7 +195,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 	}
-	if history, err = issuesModel.GetIssueContentHistoryByID(db.DefaultContext, historyID); err != nil {
+	if history, err = issuesModel.GetIssueContentHistoryByID(ctx, historyID); err != nil {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
@@ -209,7 +208,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	err = issuesModel.SoftDeleteIssueContentHistory(db.DefaultContext, historyID)
+	err = issuesModel.SoftDeleteIssueContentHistory(ctx, historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": err == nil,
