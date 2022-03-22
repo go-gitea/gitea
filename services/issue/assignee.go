@@ -140,14 +140,6 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 			}
 		}
 
-		if doer.ID == reviewer.ID {
-			return models.ErrNotValidReviewRequest{
-				Reason: "doer can't be reviewer",
-				UserID: doer.ID,
-				RepoID: issue.Repo.ID,
-			}
-		}
-
 		if reviewer.ID == issue.PosterID && issue.OriginalAuthorID == 0 {
 			return models.ErrNotValidReviewRequest{
 				Reason: "poster of pr can't be reviewer",

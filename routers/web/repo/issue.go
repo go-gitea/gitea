@@ -852,6 +852,21 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
 
+// DeleteIssue deletes an issue
+func DeleteIssue(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+		ctx.ServerError("DeleteIssueByID", err)
+		return
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+}
+
 // ValidateRepoMetas check and returns repository's meta information
 func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (

@@ -2,8 +2,16 @@ import $ from 'jquery';
 
 const {csrfToken} = window.config;
 
+function updateIssueCount(cards) {
+  const parent = cards.parentElement;
+  const cnt = parent.getElementsByClassName('board-card').length;
+  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+}
+
 function moveIssue({item, from, to, oldIndex}) {
   const columnCards = to.getElementsByClassName('board-card');
+  updateIssueCount(from);
+  updateIssueCount(to);
 
   const columnSorting = {
     issues: [...columnCards].map((card, i) => ({

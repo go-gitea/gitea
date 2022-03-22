@@ -120,11 +120,12 @@ func DeleteMirrorByRepoID(repoID int64) error {
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(f func(idx int, bean interface{}) error) error {
+func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		OrderBy("updated_unix ASC").
+		Limit(limit).
 		Iterate(new(Mirror), f)
 }
 

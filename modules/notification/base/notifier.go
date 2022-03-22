@@ -22,6 +22,7 @@ type Notifier interface {
 	NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, oldOwnerName string)
 	NotifyNewIssue(issue *models.Issue, mentions []*user_model.User)
 	NotifyIssueChangeStatus(*user_model.User, *models.Issue, *models.Comment, bool)
+	NotifyDeleteIssue(*user_model.User, *models.Issue)
 	NotifyIssueChangeMilestone(doer *user_model.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment)
 	NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment)
