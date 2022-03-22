@@ -87,7 +87,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, opts)
+	keys, err := asymkey_model.ListDeployKeys(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
