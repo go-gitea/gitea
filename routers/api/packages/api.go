@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/packages/composer"
 	"code.gitea.io/gitea/routers/api/packages/conan"
@@ -39,7 +40,16 @@ func Routes() *web.Route {
 
 	r.Use(context.PackageContexter())
 
-	authGroup := auth.NewGroup(&auth.OAuth2{}, &auth.Basic{}, &conan.Auth{})
+	authMethods := []auth.Method{
+		&auth.OAuth2{},
+		&auth.Basic{},
+		&conan.Auth{},
+	}
+	if setting.Service.EnableReverseProxyAuth {
+		authMethods = append(authMethods, &auth.ReverseProxy{})
+	}
+
+	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.User = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 	})
@@ -225,7 +235,15 @@ func ContainerRoutes() *web.Route {
 
 	r.Use(context.PackageContexter())
 
-	authGroup := auth.NewGroup(&auth.Basic{}, &container.Auth{})
+	authMethods := []auth.Method{
+		&auth.Basic{},
+		&container.Auth{},
+	}
+	if setting.Service.EnableReverseProxyAuth {
+		authMethods = append(authMethods, &auth.ReverseProxy{})
+	}
+
+	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
 		ctx.User = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 	})
