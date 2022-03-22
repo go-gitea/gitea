@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -131,7 +130,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
@@ -140,8 +139,8 @@ func Dashboard(ctx *context.Context) {
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
-
-	if ctx.Written() {
+	if err != nil {
+		ctx.ServerError("GetFeeds", err)
 		return
 	}
 
@@ -736,6 +735,7 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
+
 	entities := make([]*openpgp.Entity, 0)
 	failedEntitiesID := make([]string, 0)
 	for _, k := range keys {
@@ -755,6 +755,8 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	headers := make(map[string]string)
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
 		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
+	} else if len(entities) == 0 {
+		headers["Note"] = "This user hasn't uploaded any GPG keys."
 	}
 	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
 	for _, e := range entities {

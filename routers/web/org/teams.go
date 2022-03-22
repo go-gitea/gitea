@@ -311,6 +311,7 @@ func TeamMembers(ctx *context.Context) {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamMembers)
 }
 
@@ -323,6 +324,7 @@ func TeamRepositories(ctx *context.Context) {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 
