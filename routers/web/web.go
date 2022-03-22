@@ -71,6 +71,26 @@ func CorsHandler() func(next http.Handler) http.Handler {
 	}
 }
 
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+func buildAuthGroup() *auth_service.Group {
+	group := auth_service.NewGroup(
+		&auth_service.OAuth2{},
+		&auth_service.Basic{},
+		auth_service.SharedSession,
+	)
+	if setting.Service.EnableReverseProxyAuth {
+		group.Add(&auth_service.ReverseProxy{})
+	}
+	specialAdd(group)
+
+	return group
+}
+
 // Routes returns all web routes
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
@@ -158,8 +178,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
+	group := buildAuthGroup()
+	if err := group.Init(); err != nil {
+		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
+	}
+
 	// Get user from session if logged in.
-	common = append(common, context.Auth(auth_service.NewGroup(auth_service.Methods()...)))
+	common = append(common, context.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
