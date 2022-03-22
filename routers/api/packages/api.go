@@ -39,7 +39,7 @@ func Routes() *web.Route {
 
 	r.Use(context.PackageContexter())
 
-	authGroup := auth.NewGroup(&auth.Basic{}, &conan.Auth{})
+	authGroup := auth.NewGroup(&auth.OAuth2{}, &auth.Basic{}, &conan.Auth{})
 	r.Use(func(ctx *context.Context) {
 		ctx.User = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 	})

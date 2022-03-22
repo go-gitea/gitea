@@ -26,6 +26,8 @@ func TestPackageNpm(t *testing.T) {
 	defer prepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
+	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name)))
+
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
 	packageTag := "latest"
@@ -70,7 +72,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		MakeRequest(t, req, http.StatusCreated)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
@@ -102,7 +104,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
@@ -110,7 +112,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename))
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		b, _ := base64.StdEncoding.DecodeString(data)
@@ -126,7 +128,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", root)
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result npm.PackageMetadata
@@ -154,7 +156,7 @@ func TestPackageNpm(t *testing.T) {
 
 		test := func(t *testing.T, status int, tag, version string) {
 			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, tag), strings.NewReader(`"`+version+`"`))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = addTokenAuthHeader(req, token)
 			MakeRequest(t, req, status)
 		}
 
@@ -169,7 +171,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", tagsRoot)
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result map[string]string
@@ -186,7 +188,7 @@ func TestPackageNpm(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", root)
-		req = AddBasicAuthHeader(req, user.Name)
+		req = addTokenAuthHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result npm.PackageMetadata
@@ -204,7 +206,7 @@ func TestPackageNpm(t *testing.T) {
 
 		test := func(t *testing.T, status int, tag string) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s", tagsRoot, tag))
-			req = AddBasicAuthHeader(req, user.Name)
+			req = addTokenAuthHeader(req, token)
 			MakeRequest(t, req, status)
 		}
 
