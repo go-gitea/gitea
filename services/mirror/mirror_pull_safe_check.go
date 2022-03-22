@@ -1,3 +1,7 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package mirror
 
 import (
@@ -134,24 +138,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 			return nil, false
 		}
 	}
-	/*
-		gitea安全镜像仓库实现逻辑及思路
 
-		思路逻辑 拉取最新的项目代码，对比当前镜像的代码count数目
-
-		譬如当前镜像的count数目为1135
-		最新的代码count数目为1140
-		那么比对1135后的commit
-		git log -1 --skip=5 --format="%H" 那么这是未更新前的代码的commit id 对比当前镜像仓库未更新前的最后一条commit id
-
-
-		实现思路，未更新本地镜像前记录下当前镜像项目已经提交的commit数目，另外拷贝一个文件夹进行代码更新，更新后获取提交过的commit数目，
-		如果本地镜像和更新后的commit 数目一致且代码最后一条commit id一致，那么可以进行安全进更新（重复进行更新，相当于只是为了记录运行更新日志）
-		如果本地镜像和更新后的commit数目不一致且后续的commit数目大于当前的项目commit数目，且skip后的项目commit id和当前的最后commit id一致，那么进行代码更新
-		如果本地镜像和更新后的commit数目小于已更新的代码数目，需进行人工干预更新，基本上已经判定作者提交了force push或者作者删库跑路或者已经商业化了
-
-		git rev-list HEAD --count 获取已经提交的历史记录数
-	*/
 	gitCommitCountArgs := []string{"rev-list", "HEAD", "--count"}
 	stdoutNewRepoCommitCount, _, err := getGitCommandStdoutStderr(ctx, m, gitCommitCountArgs, newRepoPath)
 	if err != nil {
