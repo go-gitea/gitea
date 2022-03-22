@@ -96,7 +96,7 @@ func SettingsPost(ctx *context.Context) {
 	org.Name = form.Name
 	org.LowerName = strings.ToLower(form.Name)
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		org.MaxRepoCreation = form.MaxRepoCreation
 	}
 

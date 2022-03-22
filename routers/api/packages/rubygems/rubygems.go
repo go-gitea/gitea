@@ -233,7 +233,7 @@ func UploadPackageFile(ctx *context.Context) {
 				Version:     rp.Version,
 			},
 			SemverCompatible: true,
-			Creator:          ctx.User,
+			Creator:          ctx.Doer,
 			Metadata:         rp.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -267,7 +267,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.FormString("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
-		ctx.User,
+		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeRubyGems,

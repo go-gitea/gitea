@@ -22,7 +22,7 @@ func NewAvailable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationCount"
-	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.User)})
+	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.Doer)})
 }
 
 func getFindNotificationOptions(ctx *context.APIContext) *models.FindNotificationOptions {
@@ -33,7 +33,7 @@ func getFindNotificationOptions(ctx *context.APIContext) *models.FindNotificatio
 	}
 	opts := &models.FindNotificationOptions{
 		ListOptions:       utils.GetListOptions(ctx),
-		UserID:            ctx.User.ID,
+		UserID:            ctx.Doer.ID,
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
 	}

@@ -110,7 +110,7 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
 func ReqContainerAccess(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token"`)
 		ctx.Resp.Header().Add("WWW-Authenticate", `Basic`)
 		apiErrorDefined(ctx, errUnauthorized)
@@ -135,7 +135,7 @@ func DetermineSupport(ctx *context.Context) {
 // Authenticate creates a token for the current user
 // If the current user is anonymous, the ghost user is used
 func Authenticate(ctx *context.Context) {
-	u := ctx.User
+	u := ctx.Doer
 	if u == nil {
 		u = user_model.NewGhostUser()
 	}
@@ -410,7 +410,7 @@ func UploadManifest(ctx *context.Context) {
 	mci := &manifestCreationInfo{
 		MediaType: oci.MediaType(ctx.Req.Header.Get("Content-Type")),
 		Owner:     ctx.Package.Owner,
-		Creator:   ctx.User,
+		Creator:   ctx.Doer,
 		Image:     ctx.Params("image"),
 		Reference: reference,
 		IsTagged:  !oci.Digest(reference).Validate(),
@@ -554,7 +554,7 @@ func DeleteManifest(ctx *context.Context) {
 	}
 
 	for _, pv := range pvs {
-		if err := packages_service.RemovePackageVersion(ctx.User, pv); err != nil {
+		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}

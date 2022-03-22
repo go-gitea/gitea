@@ -138,7 +138,7 @@ func UploadPackage(ctx *context.Context) {
 				Version:     npmPackage.Version,
 			},
 			SemverCompatible: true,
-			Creator:          ctx.User,
+			Creator:          ctx.Doer,
 			Metadata:         npmPackage.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{

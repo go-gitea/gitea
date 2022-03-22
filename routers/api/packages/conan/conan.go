@@ -113,12 +113,12 @@ func Ping(ctx *context.Context) {
 
 // Authenticate creates an authentication token for the user
 func Authenticate(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
 
-	token, err := packages_service.CreateAuthorizationToken(ctx.User)
+	token, err := packages_service.CreateAuthorizationToken(ctx.Doer)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -129,7 +129,7 @@ func Authenticate(ctx *context.Context) {
 
 // CheckCredentials tests if the provided authentication token is valid
 func CheckCredentials(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.Status(http.StatusUnauthorized)
 	} else {
 		ctx.Status(http.StatusOK)
@@ -343,7 +343,7 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 			Version:     rref.Version,
 		},
 		SemverCompatible: true,
-		Creator:          ctx.User,
+		Creator:          ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
@@ -674,7 +674,7 @@ func deleteRecipeOrPackage(apictx *context.Context, rref *conan_module.RecipeRef
 	}
 
 	if versionDeleted {
-		notification.NotifyPackageDelete(apictx.User, pd)
+		notification.NotifyPackageDelete(apictx.Doer, pd)
 	}
 
 	return nil

@@ -51,7 +51,7 @@ func Routes() *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.User = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 	})
 
 	r.Group("/{username}", func() {
@@ -245,7 +245,7 @@ func ContainerRoutes() *web.Route {
 
 	authGroup := auth.NewGroup(authMethods...)
 	r.Use(func(ctx *context.Context) {
-		ctx.User = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.Doer = authGroup.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 	})
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)

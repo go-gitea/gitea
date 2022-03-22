@@ -98,7 +98,7 @@ func UploadPackage(ctx *context.Context) {
 				Version:     packageVersion,
 			},
 			SemverCompatible: true,
-			Creator:          ctx.User,
+			Creator:          ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -129,7 +129,7 @@ func DeletePackage(ctx *context.Context) {
 	}
 
 	err = packages_service.RemovePackageVersionByNameAndVersion(
-		ctx.User,
+		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,

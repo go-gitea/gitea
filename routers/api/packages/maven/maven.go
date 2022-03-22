@@ -213,7 +213,7 @@ func UploadPackageFile(ctx *context.Context) {
 			Version:     params.Version,
 		},
 		SemverCompatible: false,
-		Creator:          ctx.User,
+		Creator:          ctx.Doer,
 	}
 
 	ext := filepath.Ext(params.Filename)

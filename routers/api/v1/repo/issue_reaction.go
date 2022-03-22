@@ -81,7 +81,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(r.User, ctx.User),
+			User:     convert.ToUser(r.User, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -197,13 +197,13 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 
 	if isCreateType {
 		// PostIssueCommentReaction part
-		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Reaction)
+		reaction, err := models.CreateCommentReaction(ctx.Doer, comment.Issue, comment, form.Reaction)
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx.User, ctx.User),
+					User:     convert.ToUser(ctx.Doer, ctx.Doer),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -214,13 +214,13 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx.User, ctx.User),
+			User:     convert.ToUser(ctx.Doer, ctx.Doer),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
 	} else {
 		// DeleteIssueCommentReaction part
-		err = models.DeleteCommentReaction(ctx.User, comment.Issue, comment, form.Reaction)
+		err = models.DeleteCommentReaction(ctx.Doer, comment.Issue, comment, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteCommentReaction", err)
 			return
@@ -299,7 +299,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	var result []api.Reaction
 	for _, r := range reactions {
 		result = append(result, api.Reaction{
-			User:     convert.ToUser(r.User, ctx.User),
+			User:     convert.ToUser(r.User, ctx.Doer),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
 		})
@@ -407,13 +407,13 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 
 	if isCreateType {
 		// PostIssueReaction part
-		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Reaction)
+		reaction, err := models.CreateIssueReaction(ctx.Doer, issue, form.Reaction)
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
-					User:     convert.ToUser(ctx.User, ctx.User),
+					User:     convert.ToUser(ctx.Doer, ctx.Doer),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
 				})
@@ -424,13 +424,13 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		}
 
 		ctx.JSON(http.StatusCreated, api.Reaction{
-			User:     convert.ToUser(ctx.User, ctx.User),
+			User:     convert.ToUser(ctx.Doer, ctx.Doer),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
 	} else {
 		// DeleteIssueReaction part
-		err = models.DeleteIssueReaction(ctx.User, issue, form.Reaction)
+		err = models.DeleteIssueReaction(ctx.Doer, issue, form.Reaction)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueReaction", err)
 			return

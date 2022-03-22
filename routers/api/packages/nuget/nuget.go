@@ -202,7 +202,7 @@ func UploadPackage(ctx *context.Context) {
 				Version:     np.Version,
 			},
 			SemverCompatible: true,
-			Creator:          ctx.User,
+			Creator:          ctx.Doer,
 			Metadata:         np.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -403,7 +403,7 @@ func DeletePackage(ctx *context.Context) {
 	packageVersion := ctx.Params("version")
 
 	err := packages_service.RemovePackageVersionByNameAndVersion(
-		ctx.User,
+		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeNuGet,

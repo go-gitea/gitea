@@ -142,7 +142,7 @@ func UploadPackageFile(ctx *context.Context) {
 				Version:     packageVersion,
 			},
 			SemverCompatible: true,
-			Creator:          ctx.User,
+			Creator:          ctx.Doer,
 			Metadata: &pypi_module.Metadata{
 				Author:          ctx.Req.FormValue("author"),
 				Description:     ctx.Req.FormValue("description"),
