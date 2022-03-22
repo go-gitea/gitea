@@ -110,7 +110,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -173,7 +173,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx.Doer, ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

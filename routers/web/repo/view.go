@@ -559,7 +559,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
-				if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 				} else {
@@ -609,7 +609,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {
@@ -663,7 +663,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.User.ID); err != nil {
+			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}

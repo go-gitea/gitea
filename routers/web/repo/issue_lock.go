@@ -35,7 +35,7 @@ func LockIssue(ctx *context.Context) {
 	}
 
 	if err := models.LockIssue(&models.IssueLockOptions{
-		Doer:   ctx.User,
+		Doer:   ctx.Doer,
 		Issue:  issue,
 		Reason: form.Reason,
 	}); err != nil {
@@ -60,7 +60,7 @@ func UnlockIssue(ctx *context.Context) {
 	}
 
 	if err := models.UnlockIssue(&models.IssueLockOptions{
-		Doer:  ctx.User,
+		Doer:  ctx.Doer,
 		Issue: issue,
 	}); err != nil {
 		ctx.ServerError("UnlockIssue", err)

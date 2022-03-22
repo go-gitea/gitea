@@ -18,7 +18,7 @@ import (
 func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType string) {
 	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedRepo:  repo,
-		Actor:          ctx.User,
+		Actor:          ctx.Doer,
 		IncludePrivate: true,
 		Date:           ctx.FormString("date"),
 	})

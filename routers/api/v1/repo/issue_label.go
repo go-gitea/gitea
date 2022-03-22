@@ -106,7 +106,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.AddLabels(issue, ctx.User, labels); err != nil {
+	if err = issue_service.AddLabels(issue, ctx.Doer, labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddLabels", err)
 		return
 	}
@@ -183,7 +183,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
+	if err := issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
 		return
 	}
@@ -232,7 +232,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.ReplaceLabels(issue, ctx.User, labels); err != nil {
+	if err := issue_service.ReplaceLabels(issue, ctx.Doer, labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
 		return
 	}
@@ -291,7 +291,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
+	if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ClearLabels", err)
 		return
 	}
