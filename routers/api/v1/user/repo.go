@@ -39,12 +39,12 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := models.AccessLevel(ctx.User, repos[i])
+		access, err := models.AccessLevel(ctx.Doer, repos[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		if ctx.IsSigned && ctx.User.IsAdmin || access >= perm.AccessModeRead {
+		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
 			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
@@ -109,8 +109,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
-		Actor:              ctx.User,
-		OwnerID:            ctx.User.ID,
+		Actor:              ctx.Doer,
+		OwnerID:            ctx.Doer.ID,
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
@@ -128,7 +128,7 @@ func ListMyRepos(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
+		accessMode, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}

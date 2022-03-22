@@ -194,7 +194,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getCreateRepoFileOptions(repo)
 
 		// test
@@ -230,7 +230,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 
 		// test
@@ -263,7 +263,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 		opts.FromTreePath = "README.md"
 		opts.TreePath = "README_new.md" // new file name, README_new.md
@@ -313,7 +313,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 		opts.OldBranch = ""
 		opts.NewBranch = ""
@@ -344,7 +344,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 
 		t.Run("bad branch", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)

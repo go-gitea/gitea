@@ -57,13 +57,13 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
+	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 
-	if !ctx.User.IsAdmin {
+	if !ctx.Doer.IsAdmin {
 		orgsAvailable := []*models.Organization{}
 		for i := 0; i < len(orgs); i++ {
 			if orgs[i].CanCreateRepo() {
@@ -76,13 +76,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	// Not equal means current user is an organization.
-	if uid == ctx.User.ID || uid == 0 {
-		return ctx.User
+	if uid == ctx.Doer.ID || uid == 0 {
+		return ctx.Doer
 	}
 
 	org, err := user_model.GetUserByID(uid)
 	if user_model.IsErrUserNotExist(err) {
-		return ctx.User
+		return ctx.Doer
 	}
 
 	if err != nil {
@@ -95,8 +95,8 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		ctx.Error(http.StatusForbidden)
 		return nil
 	}
-	if !ctx.User.IsAdmin {
-		canCreate, err := models.OrgFromUser(org).CanCreateOrgRepo(ctx.User.ID)
+	if !ctx.Doer.IsAdmin {
+		canCreate, err := models.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
@@ -113,13 +113,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 func getRepoPrivate(ctx *context.Context) bool {
 	switch strings.ToLower(setting.Repository.DefaultPrivate) {
 	case setting.RepoCreatingLastUserVisibility:
-		return ctx.User.LastRepoVisibility
+		return ctx.Doer.LastRepoVisibility
 	case setting.RepoCreatingPrivate:
 		return true
 	case setting.RepoCreatingPublic:
 		return false
 	default:
-		return ctx.User.LastRepoVisibility
+		return ctx.Doer.LastRepoVisibility
 	}
 }
 
@@ -153,8 +153,8 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
@@ -201,8 +201,8 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 
-	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -245,14 +245,14 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 
-		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -280,13 +280,13 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
-		err = repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
-		err = repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -320,7 +320,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
 		return errors.New("user does not have enough permissions")
 	}
 

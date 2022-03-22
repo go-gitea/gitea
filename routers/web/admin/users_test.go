@@ -27,7 +27,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 		ID:      2,
 	}).(*user_model.User)
 
-	ctx.User = u
+	ctx.Doer = u
 
 	username := "gitea"
 	email := "gitea@gitea.io"
@@ -64,7 +64,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 		ID:      2,
 	}).(*user_model.User)
 
-	ctx.User = u
+	ctx.Doer = u
 
 	username := "gitea"
 	email := "gitea@gitea.io"
@@ -101,7 +101,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 		ID:      2,
 	}).(*user_model.User)
 
-	ctx.User = u
+	ctx.Doer = u
 
 	username := "gitea"
 	email := "gitea@gitea.io\r\n"
@@ -131,7 +131,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 		ID:      2,
 	}).(*user_model.User)
 
-	ctx.User = u
+	ctx.Doer = u
 
 	username := "gitea"
 	email := "gitea@gitea.io"
@@ -169,7 +169,7 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 		ID:      2,
 	}).(*user_model.User)
 
-	ctx.User = u
+	ctx.Doer = u
 
 	username := "gitea"
 	email := "gitea@gitea.io"
