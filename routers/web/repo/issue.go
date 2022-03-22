@@ -848,6 +848,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["IssueTemplates"] = issueTemplates
 
 	if len(issueTemplates) == 0 {
+		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
