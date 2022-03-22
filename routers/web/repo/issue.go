@@ -843,12 +843,17 @@ func NewIssue(ctx *context.Context) {
 func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["milestone"] = ctx.FormInt64("milestone")
-	ctx.Data["project"] = ctx.FormInt64("project")
 
 	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
-	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["IssueTemplates"] = issueTemplates
+
+	if len(issueTemplates) == 0 {
+		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.HTMLURL(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
+		return
+	}
+
+	ctx.Data["milestone"] = ctx.FormInt64("milestone")
+	ctx.Data["project"] = ctx.FormInt64("project")
 
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
