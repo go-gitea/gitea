@@ -844,6 +844,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
+	ctx.Data["project"] = ctx.FormInt64("project")
 
 	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
 	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
