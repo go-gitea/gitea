@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Use the new/choose link for New Issue on project page (#19172) (#19176)
 * BUGFIXES
+  * Fix showing issues in your repositories (#18916) (#19191)
   * Fix compare link in active feeds for new branch (#19149) (#19185)
   * Redirect .wiki/* ui link to /wiki (#18831) (#19184)
   * Ensure deploy keys with write access can push (#19010) (#19182)
