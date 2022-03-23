@@ -89,7 +89,7 @@ func doCreatePushMirror(ctx APITestContext, address, username, password string) 
 			"push_mirror_password": password,
 			"push_mirror_interval": "0",
 		})
-		ctx.Session.MakeRequest(t, req, http.StatusFound)
+		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
@@ -110,7 +110,7 @@ func doRemovePushMirror(ctx APITestContext, address, username, password string, 
 			"push_mirror_password": password,
 			"push_mirror_interval": "0",
 		})
-		ctx.Session.MakeRequest(t, req, http.StatusFound)
+		ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)

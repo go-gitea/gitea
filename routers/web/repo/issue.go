@@ -1931,7 +1931,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 
 	// TODO: Not support 'clear' now
 	if action != "attach" && action != "detach" {
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
@@ -1946,7 +1946,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				"UpdatePullReviewRequest: refusing to add review request for non-PR issue %-v#%d",
 				issue.Repo, issue.Index,
 			)
-			ctx.Status(403)
+			ctx.Status(http.StatusForbidden)
 			return
 		}
 		if reviewID < 0 {
@@ -1961,7 +1961,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					"UpdatePullReviewRequest: refusing to add team review request for %s#%d owned by non organization UID[%d]",
 					issue.Repo.FullName(), issue.Index, issue.Repo.ID,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 
@@ -1975,7 +1975,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				log.Warn(
 					"UpdatePullReviewRequest: refusing to add team review request for UID[%d] team %s to %s#%d owned by UID[%d]",
 					team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 
@@ -1987,7 +1987,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 						team.OrgID, team.Name, issue.Repo.FullName(), issue.Index, issue.Repo.ID,
 						err,
 					)
-					ctx.Status(403)
+					ctx.Status(http.StatusForbidden)
 					return
 				}
 				ctx.ServerError("IsValidTeamReviewRequest", err)
@@ -2010,7 +2010,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					reviewID, issue.Repo, issue.Index,
 					err,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 			ctx.ServerError("GetUserByID", err)
@@ -2025,7 +2025,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 					reviewer, issue.Repo, issue.Index,
 					err,
 				)
-				ctx.Status(403)
+				ctx.Status(http.StatusForbidden)
 				return
 			}
 			ctx.ServerError("isValidReviewRequest", err)
@@ -2117,7 +2117,7 @@ func NewComment(ctx *context.Context) {
 
 	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Flash.Error(ctx.Tr("repo.issues.comment_on_locked"))
-		ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
@@ -2170,10 +2170,10 @@ func NewComment(ctx *context.Context) {
 					if models.IsErrDependenciesLeft(err) {
 						if issue.IsPull {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+							ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 						} else {
 							ctx.Flash.Error(ctx.Tr("repo.issues.dependency.issue_close_blocked"))
-							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index), http.StatusSeeOther)
+							ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
 						}
 						return
 					}
@@ -2306,7 +2306,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	ctx.Status(200)
+	ctx.Status(http.StatusOK)
 }
 
 // ChangeIssueReaction create a reaction for issue

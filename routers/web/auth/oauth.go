@@ -462,7 +462,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 				log.Error("Unable to update nonce: %v", err)
 			}
 		}
-		ctx.Redirect(redirect.String(), 302)
+		ctx.Redirect(redirect.String())
 		return
 	}
 
@@ -544,7 +544,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
@@ -752,7 +752,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	if redirectURI == "" {
 		log.Warn("Authorization failed: %v", authErr.ErrorDescription)
 		ctx.Data["Error"] = authErr
-		ctx.HTML(400, tplGrantError)
+		ctx.HTML(http.StatusBadRequest, tplGrantError)
 		return
 	}
 	redirect, err := url.Parse(redirectURI)
@@ -765,7 +765,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("error_description", authErr.ErrorDescription)
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // SignInOAuth handles the OAuth2 login buttons

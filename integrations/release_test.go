@@ -43,7 +43,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	test.RedirectURL(resp) // check that redirect URL exists
 }
