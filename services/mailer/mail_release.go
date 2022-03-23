@@ -74,8 +74,9 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 		"Subject":  subject,
 		"Language": locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer
