@@ -133,7 +133,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 	repoPath := m.Repo.RepoPath()
 	newRepoPath := fmt.Sprintf("%s_update", repoPath)
 
-	//do copy directory recursive
+	// do copy directory recursive
 	err := util.CopyDir(repoPath, newRepoPath)
 	defer util.RemoveAll(newRepoPath)
 	if err != nil {
@@ -175,7 +175,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 		// noting to happen
 		return true, nil
 	} else {
-		//compare commit id
+		// compare commit id
 		skipcout := newRepoCommitCount - repoCommitCount
 		gitNewRepoLastCommitIDArgs := []string{"log", "-1", fmt.Sprintf("--skip=%d", skipcout), "--format='%H'"}
 		stdoutNewRepoCommitID, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIDArgs, newRepoPath)
