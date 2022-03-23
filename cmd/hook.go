@@ -185,7 +185,7 @@ Gitea or set your environment appropriately.`, "")
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(models.EnvPRID), 10, 64)
-	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
+	deployKeyID, _ := strconv.ParseInt(os.Getenv(models.EnvDeployKeyID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -194,7 +194,7 @@ Gitea or set your environment appropriately.`, "")
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
-		IsDeployKey:                     isDeployKey,
+		DeployKeyID:                     deployKeyID,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
