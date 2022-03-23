@@ -298,6 +298,13 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
+		} else if ci.BaseBranch == git.EmptySHA {
+			if isSameRepo {
+				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
+			} else {
+				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadRepo.FullName()) + ":" + util.PathEscapeSegments(ci.HeadBranch))
+			}
+			return nil
 		} else {
 			ctx.NotFound("IsRefExist", nil)
 			return nil
