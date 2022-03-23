@@ -8,7 +8,7 @@
 			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived)}}
-					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
+					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new/choose?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
 				<div class="ui small modal new-board-modal" id="new-board-item">
