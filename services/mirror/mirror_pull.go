@@ -205,17 +205,23 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 	}
 
-	// detect can safe mirror
-	canUpdate, err := detectCanUpdateMirror(ctx, m, gitArgs)
-	if err != nil {
-		log.Error("CreateRepositoryNotice: %v", err)
-		return nil, false
-	}
-	newRepoPath := fmt.Sprintf("%s_update", repoPath)
-	util.RemoveAll(newRepoPath)
-	if safeMirror && !canUpdate {
-		log.Error("CheckSyncMirrors [repo: %-v]: can not safe mirror...", m.Repo)
-		return nil, false
+	if safeMirror {
+		// detect can safe mirror
+		canUpdate, err := detectCanUpdateMirror(ctx, m, gitArgs)
+		newRepoPath := fmt.Sprintf("%s_update", repoPath)
+		// delete the temp directory
+		errDelete := util.RemoveAll(newRepoPath)
+		if errDelete != nil {
+			log.Error("DeleteRepositoryTempDirectoryError: %v", errDelete)
+		}
+		if err != nil {
+			log.Error("CheckRepositoryCanSafeMirrorError: %v", err)
+		}
+		// can not safe mirror
+		if !canUpdate {
+			log.Error("CheckSyncMirrors [repo: %-v]: can not safe mirror...", m.Repo)
+			return nil, false
+		}
 	}
 
 	stdoutBuilder := strings.Builder{}
