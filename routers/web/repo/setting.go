@@ -73,10 +73,10 @@ func Settings(ctx *context.Context) {
 
 	mirrors, err := repo_model.GetMirrorByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetMirrorsByRepoID", err)
-		return
+		ctx.Data["EnableSafeMirror"] = false
+	} else {
+		ctx.Data["EnableSafeMirror"] = mirrors.EnableSafeMirror
 	}
-	ctx.Data["EnableSafeMirror"] = mirrors.EnableSafeMirror
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
