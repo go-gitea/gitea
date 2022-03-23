@@ -226,15 +226,16 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				oldCommitID := opts.OldCommitID
 				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
 					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
-					if err != nil {
-						log.Error("gitRepo.GetCommit %s/%s failed: %v", repo.ID, oldCommitID, err)
+					if err != nil && !git.IsErrNotExist(err) {
+						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
 					}
-
-					for i := 0; i < oldCommit.ParentCount(); i++ {
-						commitID, _ := oldCommit.ParentID(i)
-						if !commitID.IsZero() {
-							oldCommitID = commitID.String()
-							break
+					if oldCommit != nil {
+						for i := 0; i < oldCommit.ParentCount(); i++ {
+							commitID, _ := oldCommit.ParentID(i)
+							if !commitID.IsZero() {
+								oldCommitID = commitID.String()
+								break
+							}
 						}
 					}
 				}
