@@ -139,7 +139,7 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
 // HasAPIError returns true if error occurs in form validation.
@@ -215,7 +215,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // RenderToString renders the template content to a string
 func (ctx *Context) RenderToString(name base.TplName, data map[string]interface{}) (string, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, 200, string(name), data)
+	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
 	return buf.String(), err
 }
 
@@ -397,7 +397,7 @@ func (ctx *Context) JSON(status int, content interface{}) {
 
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
-	code := http.StatusFound
+	code := http.StatusSeeOther
 	if len(status) == 1 {
 		code = status[0]
 	}

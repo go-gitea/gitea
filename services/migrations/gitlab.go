@@ -91,7 +91,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	u, _ := url.Parse(baseURL)
 	for len(pathParts) >= 2 {
 		_, resp, err = gitlabClient.Version.GetVersion()
-		if err == nil || resp != nil && resp.StatusCode == 401 {
+		if err == nil || resp != nil && resp.StatusCode == http.StatusUnauthorized {
 			err = nil // if no authentication given, this still should work
 			break
 		}
@@ -619,7 +619,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, error) {
 	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
 			return []*base.Review{}, nil
 		}
