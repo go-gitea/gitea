@@ -58,6 +58,19 @@ func (Board) TableName() string {
 	return "project_board"
 }
 
+// NumIssues return counter of all issues assigned to the board
+func (b *Board) NumIssues() int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Where("project_board_id=?", b.ID).
+		GroupBy("issue_id").
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
 func init() {
 	db.RegisterModel(new(Board))
 }

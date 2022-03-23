@@ -30,13 +30,6 @@ func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
 	return err
 }
 
-//  ____            _           _
-// |  _ \ _ __ ___ (_) ___  ___| |_
-// | |_) | '__/ _ \| |/ _ \/ __| __|
-// |  __/| | | (_) | |  __/ (__| |_
-// |_|   |_|  \___// |\___|\___|\__|
-//               |__/
-
 // NumIssues return counter of all issues assigned to a project
 func (p *Project) NumIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
