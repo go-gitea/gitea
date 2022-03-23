@@ -4,6 +4,8 @@
 
 package v1
 
+import auth_service "code.gitea.io/gitea/services/auth"
+
 func specialAdd(group *auth_service.Group) {
 	if auth.IsSSPIEnabled() {
 		group.Add(&auth_service.SSPI{})
