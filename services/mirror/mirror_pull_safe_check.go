@@ -66,18 +66,18 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 	if remoteErr != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 	}
-	stdoutBuilder := strings.Builder{}
-	stderrBuilder := strings.Builder{}
+	stdoutSyncBuilder := strings.Builder{}
+	stderrSyncBuilder := strings.Builder{}
 	if err := git.NewCommand(ctx, gitArgs...).
-		SetDescription(fmt.Sprintf("Mirror.runSyncTest: %s", m.Repo.FullName())).
+		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 		RunWithContext(&git.RunContext{
 			Timeout: timeout,
 			Dir:     newRepoPath,
-			Stdout:  &stdoutBuilder,
-			Stderr:  &stderrBuilder,
+			Stdout:  &stdoutSyncBuilder,
+			Stderr:  &stderrSyncBuilder,
 		}); err != nil {
-		stdout := stdoutBuilder.String()
-		stderr := stderrBuilder.String()
+		stdout := stdoutSyncBuilder.String()
+		stderr := stderrSyncBuilder.String()
 
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
@@ -87,25 +87,25 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 
 		// Now check if the error is a resolve reference due to broken reference
 		if strings.Contains(stderr, "unable to resolve reference") && strings.Contains(stderr, "reference broken") {
-			log.Warn("SyncMirrorsTest [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
+			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, newRepoPath, timeout, &stdoutBuilder, &stderrBuilder, sanitizer, false)
+			pruneErr := pruneBrokenReferences(ctx, m, newRepoPath, timeout, &stdoutSyncBuilder, &stderrSyncBuilder, sanitizer, false)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
-				stderrBuilder.Reset()
-				stdoutBuilder.Reset()
+				stderrSyncBuilder.Reset()
+				stdoutSyncBuilder.Reset()
 				if err = git.NewCommand(ctx, gitArgs...).
-					SetDescription(fmt.Sprintf("Mirror.runSyncTest: %s", m.Repo.FullName())).
+					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 					RunWithContext(&git.RunContext{
 						Timeout: timeout,
 						Dir:     newRepoPath,
-						Stdout:  &stdoutBuilder,
-						Stderr:  &stderrBuilder,
+						Stdout:  &stdoutSyncBuilder,
+						Stderr:  &stderrSyncBuilder,
 					}); err != nil {
-					stdout := stdoutBuilder.String()
-					stderr := stderrBuilder.String()
+					stdout := stdoutSyncBuilder.String()
+					stderr := stderrSyncBuilder.String()
 
 					// sanitize the output, since it may contain the remote address, which may
 					// contain a password
@@ -117,7 +117,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 
 		// If there is still an error (or there always was an error)
 		if err != nil {
-			log.Error("SyncMirrorsTest [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+			log.Error("SyncMirrors [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 			desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", newRepoPath, stderrMessage)
 			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
