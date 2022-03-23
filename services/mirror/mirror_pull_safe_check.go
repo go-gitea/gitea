@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -184,5 +183,4 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 			return nil, true
 		}
 	}
-	return errors.New("Unknow error!"), false
 }
