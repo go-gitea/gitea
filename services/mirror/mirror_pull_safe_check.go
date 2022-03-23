@@ -167,7 +167,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 		//compare commit id
 		skipcout := newRepoCommitCount - repoCommitCount
 		gitNewRepoLastCommitIDArgs := []string{"log", "-1", fmt.Sprintf("--skip=%d", skipcout), "--format='%H'"}
-		stdoutNewRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIDArgs, newRepoPath)
+		stdoutNewRepoCommitID, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIDArgs, newRepoPath)
 		if err != nil {
 			return false, err
 		}
@@ -176,8 +176,8 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 		if err != nil {
 			return false, err
 		}
-		if stdoutNewRepoCommitId != stdoutRepoCommitId {
-			return false, fmt.Errorf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitId)
+		if stdoutNewRepoCommitID != stdoutRepoCommitId {
+			return false, fmt.Errorf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitID)
 		}
 	}
 	return true, nil
