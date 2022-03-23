@@ -44,8 +44,6 @@ func getGitCommandStdoutStderr(ctx context.Context, m *repo_model.Mirror, gitArg
 		stderrMessage := sanitizer.Replace(stderr)
 		stdoutMessage := sanitizer.Replace(stdout)
 		log.Error("CreateRepositoryNotice: %v", err)
-		stderrMessage = sanitizer.Replace(stderr)
-		stdoutMessage = sanitizer.Replace(stdout)
 		desc := fmt.Sprintf("Failed to get mirror repository can update '%s': %s", newRepoPath, stderrMessage)
 		log.Error("GetMirrorCanUpdate [repo: %-v]: failed to get mirror repository can update:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 		if err = admin_model.CreateRepositoryNotice(desc); err != nil {
