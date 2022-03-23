@@ -93,11 +93,8 @@ func SetExecutablePath(path string) error {
 		return fmt.Errorf("git not found: %w", err)
 	}
 	GitExecutable = absPath
-	return nil
-}
 
-func checkGitVersion() error {
-	err := LoadGitVersion()
+	err = LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
@@ -118,6 +115,7 @@ func checkGitVersion() error {
 		}
 		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), GitVersionRequired, moreHint)
 	}
+
 	return nil
 }
 
@@ -142,10 +140,6 @@ func Init(ctx context.Context) error {
 		return err
 	}
 
-	if err := checkGitVersion(); err != nil {
-		return err
-	}
-
 	// force cleanup args
 	globalCommandArgs = []string{}
 
@@ -162,6 +156,11 @@ func Init(ctx context.Context) error {
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
 		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
+	}
+
+	// Save current git version on init to gitVersion otherwise it would require an RWMutex
+	if err := LoadGitVersion(); err != nil {
+		return err
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
@@ -275,6 +274,9 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 }
 
 func checkAndAddConfig(key, value string) error {
+	gitConfigLock.Lock()
+	defer gitConfigLock.Unlock()
+
 	stdout := strings.Builder{}
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key).
@@ -305,6 +307,9 @@ func checkAndAddConfig(key, value string) error {
 }
 
 func checkAndRemoveConfig(key, value string) error {
+	gitConfigLock.Lock()
+	defer gitConfigLock.Unlock()
+
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key, value).
 		SetDescription("git.Init(get setting)").
