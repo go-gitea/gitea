@@ -346,7 +346,7 @@ func Queue(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
@@ -361,7 +361,7 @@ func WorkerCancel(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	pid := ctx.ParamsInt64("pid")
@@ -377,7 +377,7 @@ func Flush(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
@@ -423,7 +423,7 @@ func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	number := ctx.FormInt("number")
@@ -453,7 +453,7 @@ func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
