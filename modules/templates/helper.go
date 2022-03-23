@@ -379,6 +379,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
+		"DotEscape":   DotEscape,
 	}}
 }
 
