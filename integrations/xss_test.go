@@ -27,7 +27,7 @@ func TestXSSUserFullName(t *testing.T) {
 		"email":     user.Email,
 		"language":  "en-US",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequestf(t, "GET", "/%s", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)

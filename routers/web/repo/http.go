@@ -21,7 +21,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -159,7 +158,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
-		if err := repo.GetOwner(db.DefaultContext); err != nil {
+		if err := repo.GetOwner(ctx); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}
@@ -178,7 +177,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
-			_, err = auth.GetTwoFactorByUID(ctx.User.ID)
+			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
@@ -189,13 +188,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			}
 		}
 
-		if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+		if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
 			ctx.PlainText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
 		if repoExist {
-			p, err := models.GetUserRepoPermission(repo, ctx.User)
+			p, err := models.GetUserRepoPermission(repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -220,14 +219,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + ctx.User.Name,
-			models.EnvPusherID + fmt.Sprintf("=%d", ctx.User.ID),
-			models.EnvIsDeployKey + "=false",
+			models.EnvPusherName + "=" + ctx.Doer.Name,
+			models.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
 			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
-		if !ctx.User.KeepEmailPrivate {
-			environ = append(environ, models.EnvPusherEmail+"="+ctx.User.Email)
+		if !ctx.Doer.KeepEmailPrivate {
+			environ = append(environ, models.EnvPusherEmail+"="+ctx.Doer.Email)
 		}
 
 		if isWiki {
@@ -263,7 +261,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx.User, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx.Doer, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)

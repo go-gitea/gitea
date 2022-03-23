@@ -25,14 +25,14 @@ const (
 // Home render home page
 func Home(ctx *context.Context) {
 	if ctx.IsSigned {
-		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+		if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 			ctx.HTML(http.StatusOK, auth.TplActivate)
-		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
-			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+		} else if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+			log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
-		} else if ctx.User.MustChangePassword {
+		} else if ctx.Doer.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 			middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())

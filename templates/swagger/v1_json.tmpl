@@ -1474,7 +1474,7 @@
           "204": {
             "description": "user is a member"
           },
-          "302": {
+          "303": {
             "description": "redirection to /orgs/{org}/public_members/{username}"
           },
           "404": {
@@ -14808,6 +14808,11 @@
           "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
+        },
+        "allow_rebase_update": {
+          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebaseUpdate"
         },
         "allow_squash_merge": {
           "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",

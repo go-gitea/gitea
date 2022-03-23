@@ -7,12 +7,15 @@ package feed
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -44,8 +47,27 @@ func toReleaseLink(act *models.Action) string {
 	return act.GetRepoLink() + "/releases/tag/" + util.PathEscapeSegments(act.GetBranch())
 }
 
+// renderMarkdown creates a minimal markdown render context from an action.
+// If rendering fails, the original markdown text is returned
+func renderMarkdown(ctx *context.Context, act *models.Action, content string) string {
+	markdownCtx := &markup.RenderContext{
+		Ctx:       ctx,
+		URLPrefix: act.GetRepoLink(),
+		Type:      markdown.MarkupName,
+		Metas: map[string]string{
+			"user": act.GetRepoUserName(),
+			"repo": act.GetRepoName(),
+		},
+	}
+	markdown, err := markdown.RenderString(markdownCtx, content)
+	if err != nil {
+		return content
+	}
+	return markdown
+}
+
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
-func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (items []*feeds.Item, err error) {
+func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (items []*feeds.Item, err error) {
 	for _, act := range actions {
 		act.LoadActUser()
 
@@ -192,12 +214,12 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 
 			case models.ActionCreateIssue, models.ActionCreatePullRequest:
 				desc = strings.Join(act.GetIssueInfos(), "#")
-				content = act.GetIssueContent()
+				content = renderMarkdown(ctx, act, act.GetIssueContent())
 			case models.ActionCommentIssue, models.ActionApprovePullRequest, models.ActionRejectPullRequest, models.ActionCommentPull:
 				desc = act.GetIssueTitle()
 				comment := act.GetIssueInfos()[1]
 				if len(comment) != 0 {
-					desc += "\n\n" + comment
+					desc += "\n\n" + renderMarkdown(ctx, act, comment)
 				}
 			case models.ActionMergePullRequest:
 				desc = act.GetIssueInfos()[1]
@@ -225,4 +247,19 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 		})
 	}
 	return
+}
+
+// GetFeedType return if it is a feed request and altered name and feed type.
+func GetFeedType(name string, req *http.Request) (bool, string, string) {
+	if strings.HasSuffix(name, ".rss") ||
+		strings.Contains(req.Header.Get("Accept"), "application/rss+xml") {
+		return true, strings.TrimSuffix(name, ".rss"), "rss"
+	}
+
+	if strings.HasSuffix(name, ".atom") ||
+		strings.Contains(req.Header.Get("Accept"), "application/atom+xml") {
+		return true, strings.TrimSuffix(name, ".atom"), "atom"
+	}
+
+	return false, name, ""
 }

@@ -41,10 +41,16 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
+	extraParamStrings := map[string]string{}
 	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
 	statusFilterMap := map[string]string{}
 	for _, filterKey := range statusFilterKeys {
-		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+		paramKey := "status_filter[" + filterKey + "]"
+		paramVal := ctx.FormString(paramKey)
+		statusFilterMap[filterKey] = paramVal
+		if paramVal != "" {
+			extraParamStrings[paramKey] = paramVal
+		}
 	}
 
 	sortType := ctx.FormString("sort")
@@ -57,7 +63,7 @@ func Users(ctx *context.Context) {
 	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
-		Actor: ctx.User,
+		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
@@ -68,6 +74,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+		ExtraParamStrings:  extraParamStrings,
 	}, tplUsers)
 }
 
@@ -164,6 +171,9 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+		case user_model.IsErrEmailCharIsNotSupported(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
@@ -181,7 +191,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
 	if form.SendNotify {
@@ -217,15 +227,17 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["Sources"] = sources
 
-	ctx.Data["TwoFactorEnabled"] = true
-	_, err = auth.GetTwoFactorByUID(u.ID)
+	hasTOTP, err := auth.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-			return nil
-		}
-		ctx.Data["TwoFactorEnabled"] = false
+		ctx.ServerError("auth.HasTwoFactorByUID", err)
+		return nil
 	}
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("auth.HasWebAuthnRegistrationsByUID", err)
+		return nil
+	}
+	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
 
 	return u
 }
@@ -327,14 +339,27 @@ func EditUserPost(ctx *context.Context) {
 	if form.Reset2FA {
 		tf, err := auth.GetTwoFactorByUID(u.ID)
 		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("GetTwoFactorByUID", err)
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
+		} else if tf != nil {
+			if err := auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteTwoFactorByID", err)
+				return
+			}
 		}
 
-		if err = auth.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
-			ctx.ServerError("DeleteTwoFactorByID", err)
+		wn, err := auth.GetWebAuthnCredentialsByUID(u.ID)
+		if err != nil {
+			ctx.ServerError("auth.GetTwoFactorByUID", err)
 			return
 		}
+		for _, cred := range wn {
+			if _, err := auth.DeleteCredential(cred.ID, u.ID); err != nil {
+				ctx.ServerError("auth.DeleteCredential", err)
+				return
+			}
+		}
+
 	}
 
 	u.LoginName = form.LoginName
@@ -354,7 +379,7 @@ func EditUserPost(ctx *context.Context) {
 	u.Visibility = form.Visibility
 
 	// skip self Prohibit Login
-	if ctx.User.ID == u.ID {
+	if ctx.Doer.ID == u.ID {
 		u.ProhibitLogin = false
 	} else {
 		u.ProhibitLogin = form.ProhibitLogin
@@ -364,7 +389,8 @@ func EditUserPost(ctx *context.Context) {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
-		} else if user_model.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 		} else {
@@ -372,7 +398,7 @@ func EditUserPost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
@@ -403,7 +429,7 @@ func DeleteUser(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account deleted by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account deleted by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{

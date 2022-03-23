@@ -28,7 +28,7 @@ func ListEmails(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/EmailList"
 
-	emails, err := user_model.GetEmailAddresses(ctx.User.ID)
+	emails, err := user_model.GetEmailAddresses(ctx.Doer.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
@@ -71,7 +71,7 @@ func AddEmail(ctx *context.APIContext) {
 	emails := make([]*user_model.EmailAddress, len(form.Emails))
 	for i := range form.Emails {
 		emails[i] = &user_model.EmailAddress{
-			UID:         ctx.User.ID,
+			UID:         ctx.Doer.ID,
 			Email:       form.Emails[i],
 			IsActivated: !setting.Service.RegisterEmailConfirm,
 		}
@@ -80,7 +80,8 @@ func AddEmail(ctx *context.APIContext) {
 	if err := user_model.AddEmailAddresses(emails); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
-		} else if user_model.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			errMsg := fmt.Sprintf("Email address %s invalid", err.(user_model.ErrEmailInvalid).Email)
 			ctx.Error(http.StatusUnprocessableEntity, "", errMsg)
 		} else {
@@ -123,7 +124,7 @@ func DeleteEmail(ctx *context.APIContext) {
 	for i := range form.Emails {
 		emails[i] = &user_model.EmailAddress{
 			Email: form.Emails[i],
-			UID:   ctx.User.ID,
+			UID:   ctx.Doer.ID,
 		}
 	}
 

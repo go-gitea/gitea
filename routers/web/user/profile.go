@@ -74,19 +74,7 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	showFeedType := ""
-	if strings.HasSuffix(uname, ".rss") {
-		showFeedType = "rss"
-		uname = strings.TrimSuffix(uname, ".rss")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
-		showFeedType = "rss"
-	}
-	if strings.HasSuffix(uname, ".atom") {
-		showFeedType = "atom"
-		uname = strings.TrimSuffix(uname, ".atom")
-	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
-		showFeedType = "atom"
-	}
+	isShowFeed, uname, showFeedType := feed.GetFeedType(uname, ctx.Req)
 
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
@@ -94,21 +82,18 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
-		/*
-			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
-			// Show Org RSS feed
-			if len(showFeedType) != 0 {
-				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
-				return
-			}
-		*/
+		// Show Org RSS feed
+		if isShowFeed {
+			feed.ShowUserFeed(ctx, ctxUser, showFeedType)
+			return
+		}
 
 		org.Home(ctx)
 		return
 	}
 
 	// check view permissions
-	if !models.IsUserVisibleToViewer(ctxUser, ctx.User) {
+	if !models.IsUserVisibleToViewer(ctxUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(uname))
 		return
 	}
@@ -126,10 +111,13 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if len(showFeedType) != 0 {
+	if isShowFeed {
 		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 		return
 	}
+
+	// advertise feed via meta tag
+	ctx.Data["FeedURL"] = ctxUser.HTMLURL()
 
 	// Show OpenID URIs
 	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
@@ -139,8 +127,8 @@ func Profile(ctx *context.Context) {
 	}
 
 	var isFollowing bool
-	if ctx.User != nil && ctxUser != nil {
-		isFollowing = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
+	if ctx.Doer != nil && ctxUser != nil {
+		isFollowing = user_model.IsFollowing(ctx.Doer.ID, ctxUser.ID)
 	}
 
 	ctx.Data["Title"] = ctxUser.DisplayName()
@@ -150,7 +138,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
+		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -172,7 +160,7 @@ func Profile(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = content
 	}
 
-	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctxUser.ID)
 
 	orgs, err := models.FindOrgs(models.FindOrgOptions{
 		UserID:         ctxUser.ID,
@@ -184,7 +172,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
+	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.Doer)
 
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
@@ -262,15 +250,16 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctxUser,
-			Actor:           ctx.User,
+			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
 		})
-		if ctx.Written() {
+		if err != nil {
+			ctx.ServerError("GetFeeds", err)
 			return
 		}
 	case "stars":
@@ -280,7 +269,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
@@ -312,7 +301,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
 			Private:            ctx.IsSigned,
@@ -334,7 +323,7 @@ func Profile(ctx *context.Context) {
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
-			Actor:              ctx.User,
+			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OwnerID:            ctxUser.ID,
 			OrderBy:            orderBy,
@@ -361,7 +350,7 @@ func Profile(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 
-	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
+	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.Doer.ID)
 
 	ctx.HTML(http.StatusOK, tplProfile)
 }
@@ -376,9 +365,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.FormString("action") {
 	case "follow":
-		err = user_model.FollowUser(ctx.User.ID, u.ID)
+		err = user_model.FollowUser(ctx.Doer.ID, u.ID)
 	case "unfollow":
-		err = user_model.UnfollowUser(ctx.User.ID, u.ID)
+		err = user_model.UnfollowUser(ctx.Doer.ID, u.ID)
 	}
 
 	if err != nil {
