@@ -76,13 +76,14 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 			Stdout:  &stdoutBuilder,
 			Stderr:  &stderrBuilder,
 		})
+	sanitizer := util.NewURLSanitizer(remoteAddr, true)
+	var stdout,stderr string
 	if err != nil {
-		stdout := stdoutBuilder.String()
-		stderr := stderrBuilder.String()
+		stdout = stdoutBuilder.String()
+		stderr = stderrBuilder.String()
 
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
-		sanitizer := util.NewURLSanitizer(remoteAddr, true)
 		stderrMessage := sanitizer.Replace(stderr)
 		stdoutMessage := sanitizer.Replace(stdout)
 
