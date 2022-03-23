@@ -66,18 +66,19 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 	if remoteErr != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 	}
-	stdoutSyncBuilder := strings.Builder{}
-	stderrSyncBuilder := strings.Builder{}
-	if err := git.NewCommand(ctx, gitArgs...).
+	stdoutBuilder := strings.Builder{}
+	stderrBuilder := strings.Builder{}
+	err := git.NewCommand(ctx, gitArgs...).
 		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 		RunWithContext(&git.RunContext{
 			Timeout: timeout,
 			Dir:     newRepoPath,
-			Stdout:  &stdoutSyncBuilder,
-			Stderr:  &stderrSyncBuilder,
-		}); err != nil {
-		stdout := stdoutSyncBuilder.String()
-		stderr := stderrSyncBuilder.String()
+			Stdout:  &stdoutBuilder,
+			Stderr:  &stderrBuilder,
+		})
+	if err != nil {
+		stdout := stdoutBuilder.String()
+		stderr := stderrBuilder.String()
 
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
@@ -91,21 +92,21 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 			err = nil
 
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, newRepoPath, timeout, &stdoutSyncBuilder, &stderrSyncBuilder, sanitizer, false)
+			pruneErr := pruneBrokenReferences(ctx, m, newRepoPath, timeout, &stdoutBuilder, &stderrBuilder, sanitizer, false)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
-				stderrSyncBuilder.Reset()
-				stdoutSyncBuilder.Reset()
+				stderrBuilder.Reset()
+				stdoutBuilder.Reset()
 				if err = git.NewCommand(ctx, gitArgs...).
 					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 					RunWithContext(&git.RunContext{
 						Timeout: timeout,
 						Dir:     newRepoPath,
-						Stdout:  &stdoutSyncBuilder,
-						Stderr:  &stderrSyncBuilder,
+						Stdout:  &stdoutBuilder,
+						Stderr:  &stderrBuilder,
 					}); err != nil {
-					stdout := stdoutSyncBuilder.String()
-					stderr := stderrSyncBuilder.String()
+					stdout := stdoutBuilder.String()
+					stderr := stderrBuilder.String()
 
 					// sanitize the output, since it may contain the remote address, which may
 					// contain a password
