@@ -211,6 +211,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("CreateRepositoryNotice: %v", err)
 		return nil, false
 	}
+	newRepoPath := fmt.Sprintf("%s_update", repoPath)
+	util.RemoveAll(newRepoPath)
 	if safeMirror && !canUpdate {
 		log.Error("CheckSyncMirrors [repo: %-v]: can not safe mirror...", m.Repo)
 		return nil, false

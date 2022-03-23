@@ -137,7 +137,6 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 
 	// do copy directory recursive
 	err := util.CopyDir(repoPath, newRepoPath)
-	defer util.RemoveAll(newRepoPath)
 	if err != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: CopyDirectory Error %v", m.Repo, err)
 		return false, err
