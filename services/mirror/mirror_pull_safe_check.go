@@ -179,7 +179,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 			return err, false
 		}
 		if stdoutNewRepoCommitId != stdoutRepoCommitId {
-			return errors.New(fmt.Sprintf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitId)), false
+			return fmt.Errorf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitId), false
 		} else {
 			return nil, true
 		}
