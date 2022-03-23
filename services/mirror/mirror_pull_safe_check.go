@@ -5,17 +5,18 @@
 package mirror
 
 import (
+	"context"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"context"
-	"fmt"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // get git command running stdout and stderr
