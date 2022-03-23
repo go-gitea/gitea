@@ -197,7 +197,7 @@ func Milestones(ctx *context.Context) {
 		if issueReposQueryPattern.MatchString(reposQuery) {
 			// remove "[" and "]" from string
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
-			//for each ID (delimiter ",") add to int to repoIDs
+			// for each ID (delimiter ",") add to int to repoIDs
 
 			for _, rID := range strings.Split(reposQuery, ",") {
 				// Ensure nonempty string entries
@@ -350,7 +350,6 @@ func Issues(ctx *context.Context) {
 var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
 func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
-
 	// ----------------------------------------------------
 	// Determine user; can be either user or organization.
 	// Return with NotFound or ServerError if unsuccessful.
@@ -364,7 +363,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var (
 		viewType   string
 		sortType   = ctx.FormString("sort")
-		filterMode = models.FilterModeAll
+		filterMode int
 	)
 
 	// --------------------------------------------------------------------------------
@@ -390,8 +389,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = models.FilterModeMention
 	case "review_requested":
 		filterMode = models.FilterModeReviewRequested
-	case "your_repositories": // filterMode already set to All
+	case "your_repositories":
+		fallthrough
 	default:
+		filterMode = models.FilterModeYourRepositories
 		viewType = "your_repositories"
 	}
 
@@ -421,6 +422,30 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		User:       ctx.User,
 	}
 
+	// Search all repositories which
+	//
+	// As user:
+	// - Owns the repository.
+	// - Have collaborator permissions in repository.
+	//
+	// As org:
+	// - Owns the repository.
+	//
+	// As team:
+	// - Team org's owns the repository.
+	// - Team has read permission to repository.
+	repoOpts := &models.SearchRepoOptions{
+		Actor:      ctx.User,
+		OwnerID:    ctx.User.ID,
+		Private:    true,
+		AllPublic:  false,
+		AllLimited: false,
+	}
+
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+		repoOpts.TeamID = ctx.Org.Team.ID
+	}
+
 	switch filterMode {
 	case models.FilterModeAll:
 	case models.FilterModeAssign:
@@ -431,6 +456,19 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.User.ID
+	case models.FilterModeYourRepositories:
+		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+			// Fixes a issue whereby the user's ID would be used
+			// to check if it's in the team(which possible isn't the case).
+			opts.User = nil
+		}
+		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
+		if err != nil {
+			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
+			return
+		}
+
+		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -562,8 +600,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if len(repoIDs) > 0 {
-			statsOpts.RepoIDs = repoIDs
+		if filterMode == models.FilterModeYourRepositories {
+			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
+		}
+		// Detect when we only should search by team.
+		if opts.User == nil {
+			statsOpts.UserID = 0
 		}
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
@@ -586,8 +628,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	ctx.Data["Issues"] = issues
 
@@ -661,7 +702,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	var repoIDs []int64
 	// remove "[" and "]" from string
 	reposQuery = reposQuery[1 : len(reposQuery)-1]
-	//for each ID (delimiter ",") add to int to repoIDs
+	// for each ID (delimiter ",") add to int to repoIDs
 	for _, rID := range strings.Split(reposQuery, ",") {
 		// Ensure nonempty string entries
 		if rID != "" && rID != "0" {
@@ -693,8 +734,8 @@ func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.I
 }
 
 func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
-	var totalRes = make(map[int64]*repo_model.Repository, len(issueCountByRepo))
-	var repoIDs = make([]int64, 0, 500)
+	totalRes := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
+	repoIDs := make([]int64, 0, 500)
 	for id := range issueCountByRepo {
 		if id <= 0 {
 			continue
@@ -745,7 +786,7 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 		if err != nil {
 			if asymkey_model.IsErrGPGKeyImportNotExist(err) {
 				failedEntitiesID = append(failedEntitiesID, k.KeyID)
-				continue //Skip previous import without backup of imported armored key
+				continue // Skip previous import without backup of imported armored key
 			}
 			ctx.ServerError("ShowGPGKeys", err)
 			return
@@ -755,12 +796,12 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	var buf bytes.Buffer
 
 	headers := make(map[string]string)
-	if len(failedEntitiesID) > 0 { //If some key need re-import to be exported
+	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
 		headers["Note"] = fmt.Sprintf("The keys with the following IDs couldn't be exported and need to be reuploaded %s", strings.Join(failedEntitiesID, ", "))
 	}
 	writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", headers)
 	for _, e := range entities {
-		err = e.Serialize(writer) //TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
+		err = e.Serialize(writer) // TODO find why key are exported with a different cipherTypeByte as original (should not be blocking but strange)
 		if err != nil {
 			ctx.ServerError("ShowGPGKeys", err)
 			return

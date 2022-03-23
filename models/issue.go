@@ -1551,6 +1551,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeYourRepositories
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1695,6 +1696,7 @@ type UserIssueStatsOptions struct {
 	IssueIDs   []int64
 	IsArchived util.OptionalBool
 	LabelIDs   []int64
+	RepoCond   builder.Cond
 	Org        *Organization
 	Team       *Team
 }
@@ -1711,6 +1713,9 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
 	}
 
 	if opts.UserID > 0 {
@@ -1733,7 +1738,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	switch opts.FilterMode {
-	case FilterModeAll:
+	case FilterModeAll, FilterModeYourRepositories:
 		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
