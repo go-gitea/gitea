@@ -9,7 +9,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func addColorColToMirror(x *xorm.Engine)  error{
+func addColorColToMirror(x *xorm.Engine) error {
 	type Mirror struct {
 		EnableSafeMirror bool `xorm:"NOT NULL DEFAULT false"`
 	}
