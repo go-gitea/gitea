@@ -558,7 +558,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
-			if ctx.Repo.CanEnableEditor(ctx.User) {
+			if ctx.Repo.CanEnableEditor(ctx.Doer) {
 				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
@@ -608,13 +608,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	}
 
-<<<<<<< HEAD
-	if ctx.Repo.CanEnableEditor(ctx.User) {
-		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
-=======
-	if ctx.Repo.CanEnableEditor() {
+	if ctx.Repo.CanEnableEditor(ctx.Doer) {
 		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
->>>>>>> main
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {
