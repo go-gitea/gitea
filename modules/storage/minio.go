@@ -117,7 +117,7 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, p), "/")
+	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
 }
 
 // Open open a file
