@@ -165,14 +165,14 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 		return true, nil
 	} else {
 		//compare commit id
-		skipcout := newRepoCommitCount - newRepoCommitCount
-		gitNewRepoLastCommitIdArgs := []string{"log", "-1", fmt.Sprintf("--skip=%d", skipcout), "--format='%H'"}
-		stdoutNewRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIdArgs, newRepoPath)
+		skipcout := newRepoCommitCount - repoCommitCount
+		gitNewRepoLastCommitIDArgs := []string{"log", "-1", fmt.Sprintf("--skip=%d", skipcout), "--format='%H'"}
+		stdoutNewRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIDArgs, newRepoPath)
 		if err != nil {
 			return false, err
 		}
-		gitRepoLastCommitIdArgs := []string{"log", "--format='%H'", "-n", "1"}
-		stdoutRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitRepoLastCommitIdArgs, repoPath)
+		gitRepoLastCommitIDArgs := []string{"log", "--format='%H'", "-n", "1"}
+		stdoutRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitRepoLastCommitIDArgs, repoPath)
 		if err != nil {
 			return false, err
 		}
