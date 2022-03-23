@@ -10,14 +10,6 @@ import (
 	"time"
 )
 
-// defaultCommandExecutionTimeout default command execution timeout duration
-var defaultCommandExecutionTimeout = 360 * time.Second
-
-// SetDefaultCommandTimout set the default timeout
-func SetDefaultCommandTimout(timeout time.Duration) {
-	defaultCommandExecutionTimeout = timeout
-}
-
 // RunOpts represents parameters to run the command
 type RunOpts struct {
 	Env            []string

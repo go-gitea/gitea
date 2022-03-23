@@ -175,13 +175,6 @@ func initIntegrationTest() {
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
-	util.RemoveAll(setting.RepoRootPath)
-	util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath)
-
-	if err := git.Init(context.Background()); err != nil {
-		fmt.Printf("Init git failed: %v\n", err)
-		os.Exit(1)
-	}
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {

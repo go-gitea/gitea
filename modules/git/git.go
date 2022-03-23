@@ -138,9 +138,6 @@ func VersionInfo() string {
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
-	if setting.Git.Timeout.Default > 0 {
-		git_cmd.SetDefaultCommandTimout(time.Duration(setting.Git.Timeout.Default) * time.Second)
-	}
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
 	}

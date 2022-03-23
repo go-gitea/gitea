@@ -27,7 +27,7 @@ var (
 
 func getCmdService() cmd.Service {
 	cmdServiceOnce.Do(func() {
-		cmdService = cmd.NewLocalService(GitExecutable, setting.RepoRootPath)
+		cmdService = cmd.NewLocalService(GitExecutable, setting.RepoRootPath, time.Duration(setting.Git.Timeout.Default)*time.Second)
 	})
 	return cmdService
 }

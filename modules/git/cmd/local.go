@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -62,7 +63,7 @@ func (c *LocalCommand) Run(opts *RunOpts) error {
 		opts = &RunOpts{}
 	}
 	if opts.Timeout <= 0 {
-		opts.Timeout = defaultCommandExecutionTimeout
+		opts.Timeout = c.service.defaultTimeout
 	}
 
 	if len(opts.Dir) == 0 {
@@ -136,17 +137,19 @@ func (c *LocalCommand) Run(opts *RunOpts) error {
 
 // LocalService represents a command service to create local git commands
 type LocalService struct {
-	GitExecutable string // git binary location
-	RepoRootPath  string // repository storage root directory
+	GitExecutable  string // git binary location
+	RepoRootPath   string // repository storage root directory
+	defaultTimeout time.Duration
 }
 
 var _ Service = &LocalService{}
 
 // NewLocalService returns a local service
-func NewLocalService(gitExecutable, repoRootPath string) *LocalService {
+func NewLocalService(gitExecutable, repoRootPath string, defaultTimeout time.Duration) *LocalService {
 	return &LocalService{
-		GitExecutable: gitExecutable,
-		RepoRootPath:  repoRootPath,
+		GitExecutable:  gitExecutable,
+		RepoRootPath:   repoRootPath,
+		defaultTimeout: defaultTimeout,
 	}
 }
 
