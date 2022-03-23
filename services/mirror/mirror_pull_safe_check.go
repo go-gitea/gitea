@@ -77,7 +77,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 			Stderr:  &stderrBuilder,
 		})
 	sanitizer := util.NewURLSanitizer(remoteAddr, true)
-	var stdout,stderr string
+	var stdout, stderr string
 	if err != nil {
 		stdout = stdoutBuilder.String()
 		stderr = stderrBuilder.String()
