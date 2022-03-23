@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -129,6 +130,50 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 			return err
 		}
 	}
+
+	// ***** START: Branch Protections *****
+	{
+		const batchSize = 50
+		for start := 0; ; start += batchSize {
+			protections := make([]*ProtectedBranch, 0, batchSize)
+			// @perf: We can't filter on DB side by u.ID, as those IDs are serialized as JSON strings.
+			//   We could filter down with `WHERE repo_id IN (reposWithPushPermission(u))`,
+			//   though that query will be quite complex and tricky to maintain (compare `getRepoAssignees()`).
+			// Also, as we didn't update branch protections when removing entries from `access` table,
+			//   it's safer to iterate all protected branches.
+			if err = e.Limit(batchSize, start).Find(&protections); err != nil {
+				return fmt.Errorf("findProtectedBranches: %v", err)
+			}
+			if len(protections) == 0 {
+				break
+			}
+			for _, p := range protections {
+				var matched1, matched2, matched3 bool
+				if len(p.WhitelistUserIDs) != 0 {
+					p.WhitelistUserIDs, matched1 = util.RemoveIDFromList(
+						p.WhitelistUserIDs, u.ID)
+				}
+				if len(p.ApprovalsWhitelistUserIDs) != 0 {
+					p.ApprovalsWhitelistUserIDs, matched2 = util.RemoveIDFromList(
+						p.ApprovalsWhitelistUserIDs, u.ID)
+				}
+				if len(p.MergeWhitelistUserIDs) != 0 {
+					p.MergeWhitelistUserIDs, matched3 = util.RemoveIDFromList(
+						p.MergeWhitelistUserIDs, u.ID)
+				}
+				if matched1 || matched2 || matched3 {
+					if _, err = e.ID(p.ID).Cols(
+						"whitelist_user_i_ds",
+						"merge_whitelist_user_i_ds",
+						"approvals_whitelist_user_i_ds",
+					).Update(p); err != nil {
+						return fmt.Errorf("updateProtectedBranches: %v", err)
+					}
+				}
+			}
+		}
+	}
+	// ***** END: Branch Protections *****
 
 	// ***** START: PublicKey *****
 	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
