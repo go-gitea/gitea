@@ -36,13 +36,13 @@ func Members(ctx *context.Context) {
 		PublicOnly: true,
 	}
 
-	if ctx.User != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+	if ctx.Doer != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
 
 	total, err := models.CountOrgMembers(opts)
@@ -80,13 +80,13 @@ func MembersAction(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "private":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = models.ChangeOrgUserStatus(org.ID, uid, false)
 	case "public":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -105,7 +105,7 @@ func MembersAction(ctx *context.Context) {
 			return
 		}
 	case "leave":
-		err = org.RemoveMember(ctx.User.ID)
+		err = org.RemoveMember(ctx.Doer.ID)
 		if models.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{

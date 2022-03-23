@@ -19,17 +19,24 @@
 	</button>
 {{end}}
 {{if not (and $.DisableHTTP $.DisableSSH)}}
-	<script defer>
-		const isSSH = localStorage.getItem('repo-clone-protocol') === 'ssh';
-		const sshButton = document.getElementById('repo-clone-ssh');
-		const httpsButton = document.getElementById('repo-clone-https');
-		const input = document.getElementById('repo-clone-url');
-		if (input) input.value = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
-		if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
-		if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
-		setTimeout(() => {
-			if (sshButton) sshButton.classList.remove('no-transition');
-			if (httpsButton) httpsButton.classList.remove('no-transition');
-		}, 100);
+	<script>
+		<!-- /* eslint-disable */ -->
+		window.config.pageData['repoCloneButtons']= {httpsDisabled: {{$.DisableHTTP}}};
+	</script>
+	<script>
+		(() => {
+			const tmplData = window.config.pageData.repoCloneButtons;
+			const isSSH = tmplData.httpsDisabled || localStorage.getItem('repo-clone-protocol') === 'ssh';
+			const sshButton = document.getElementById('repo-clone-ssh');
+			const httpsButton = document.getElementById('repo-clone-https');
+			const input = document.getElementById('repo-clone-url');
+			if (input) input.value = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
+			if (sshButton) sshButton.classList[isSSH ? 'add' : 'remove']('primary');
+			if (httpsButton) httpsButton.classList[isSSH ? 'remove' : 'add']('primary');
+			setTimeout(() => {
+				if (sshButton) sshButton.classList.remove('no-transition');
+				if (httpsButton) httpsButton.classList.remove('no-transition');
+			}, 100);
+		})();
 	</script>
 {{end}}

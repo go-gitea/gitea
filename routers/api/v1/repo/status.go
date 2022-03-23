@@ -62,7 +62,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := files_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.User, sha, status); err != nil {
+	if err := files_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
 		return
 	}

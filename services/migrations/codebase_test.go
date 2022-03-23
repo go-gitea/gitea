@@ -108,9 +108,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: issues[0].Context,
-	})
+	comments, _, err := downloader.GetComments(issues[0])
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -148,7 +146,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(prs[0].Context)
+	rvs, err := downloader.GetReviews(prs[0])
 	assert.NoError(t, err)
 	assert.Empty(t, rvs)
 }

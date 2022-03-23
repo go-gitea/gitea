@@ -15,6 +15,10 @@
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
+{{if .FeedURL}}
+	<link rel="alternate" type="application/atom+xml" title="" href="{{.FeedURL}}.atom">
+	<link rel="alternate" type="application/rss+xml" title="" href="{{.FeedURL}}.rss">
+{{end}}
 	<script>
 		<!-- /* eslint-disable */ -->
 		window.config = {

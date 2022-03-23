@@ -1,5 +1,6 @@
 name: Bug Report
 description: Found something you weren't expecting? Report it here!
+labels: kind/bug
 body:
 - type: markdown
   attributes:
@@ -19,6 +20,13 @@ body:
       6. In particular it's really important to provide pertinent logs. You must give us DEBUG level logs.
          Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
          In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
+- type: textarea
+  id: description
+  attributes:
+    label: Description
+    description: |
+      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see below)
+      If you are using a proxy or a CDN (e.g. Cloudflare) in front of Gitea, please disable the proxy/CDN fully and access Gitea directly to confirm the issue still persists without those services.
 - type: input
   id: gitea-ver
   attributes:
@@ -26,6 +34,34 @@ body:
     description: Gitea version (or commit reference) of your instance
   validations:
     required: true
+- type: dropdown
+  id: can-reproduce
+  attributes:
+    label: Can you reproduce the bug on the Gitea demo site?
+    description: |
+      If so, please provide a URL in the Description field
+      URL of Gitea demo: https://try.gitea.io
+    options:
+    - "Yes"
+    - "No"
+  validations:
+    required: true
+- type: markdown
+  attributes:
+    value: |
+      It's really important to provide pertinent logs
+      Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
+      In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
+- type: input
+  id: logs
+  attributes:
+    label: Log Gist
+    description: Please provide a gist URL of your logs, with any sensitive information (e.g. API keys) removed/hidden
+- type: textarea
+  id: screenshots
+  attributes:
+    label: Screenshots
+    description: If this issue involves the Web Interface, please provide one or more screenshots
 - type: input
   id: git-ver
   attributes:
@@ -56,38 +92,3 @@ body:
     - MySQL
     - MSSQL
     - SQLite
-- type: dropdown
-  id: can-reproduce
-  attributes:
-    label: Can you reproduce the bug on the Gitea demo site?
-    description: |
-      If so, please provide a URL in the Description field
-      URL of Gitea demo: https://try.gitea.io
-    options:
-    - "Yes"
-    - "No"
-  validations:
-    required: true
-- type: markdown
-  attributes:
-    value: |
-      It's really important to provide pertinent logs
-      Please read https://docs.gitea.io/en-us/logging-configuration/#debugging-problems
-      In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini
-- type: input
-  id: logs
-  attributes:
-    label: Log Gist
-    description: Please provide a gist URL of your logs, with any sensitive information (e.g. API keys) removed/hidden
-- type: textarea
-  id: description
-  attributes:
-    label: Description
-    description: |
-      Please provide a description of your issue here, with a URL if you were able to reproduce the issue (see above)
-      If you are using a proxy or a CDN (e.g. Cloudflare) in front of Gitea, please disable the proxy/CDN fully and access Gitea directly to confirm the issue still persists without those services.
-- type: textarea
-  id: screenshots
-  attributes:
-    label: Screenshots
-    description: If this issue involves the Web Interface, please provide one or more screenshots

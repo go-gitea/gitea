@@ -232,7 +232,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, IsErrEmailInvalid(err))
+	assert.True(t, IsErrEmailCharIsNotSupported(err))
 }
 
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {

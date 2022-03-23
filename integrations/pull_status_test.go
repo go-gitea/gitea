@@ -29,7 +29,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -108,7 +108,7 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
 		resp := session.MakeRequest(t, req, http.StatusOK)

@@ -174,5 +174,11 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 		regs = regs[:0]
 	}
 
+	if x.Dialect().URI().DBType == schemas.POSTGRES {
+		if _, err := x.Exec("SELECT setval('webauthn_credential_id_seq', COALESCE((SELECT MAX(id)+1 FROM `webauthn_credential`), 1), false)"); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

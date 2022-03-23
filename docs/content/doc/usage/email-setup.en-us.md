@@ -35,6 +35,7 @@ ENABLED       = true
 FROM          = gitea@mydomain.com
 MAILER_TYPE   = sendmail
 SENDMAIL_PATH = /usr/sbin/sendmail
+SENDMAIL_ARGS = "--" ; most "sendmail" programs take options, "--" will prevent an email address being interpreted as an option.
 ```
 
 ## Using SMTP

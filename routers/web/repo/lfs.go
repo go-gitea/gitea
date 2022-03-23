@@ -217,7 +217,7 @@ func LFSLockFile(ctx *context.Context) {
 
 	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
 		Path:    lockPath,
-		OwnerID: ctx.User.ID,
+		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -237,7 +237,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.User, true)
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -253,6 +253,13 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	oid := ctx.Params("oid")
+
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSFileGet", nil)
+		return
+	}
+
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
@@ -343,6 +350,12 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	oid := ctx.Params("oid")
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSDelete", nil)
+		return
+	}
+
 	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
@@ -463,7 +476,7 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.Doer, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
@@ -538,7 +551,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i].Oid = oid[:idx]
 		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
-	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
+	if err := models.LFSAutoAssociate(metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
 		return
 	}

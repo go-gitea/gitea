@@ -46,7 +46,7 @@ func TestAdminEditUser(t *testing.T) {
 }
 
 func testSuccessfullEdit(t *testing.T, formData user_model.User) {
-	makeRequest(t, formData, http.StatusFound)
+	makeRequest(t, formData, http.StatusSeeOther)
 }
 
 func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
