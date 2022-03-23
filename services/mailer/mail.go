@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"mime"
@@ -146,8 +147,8 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(u *user_model.User) {
-	if setting.MailService == nil {
-		// No mail service configured
+	if setting.MailService == nil || !u.IsActive {
+		// No mail service configured OR user is inactive
 		return
 	}
 	locale := translation.NewLocale(u.Language)
@@ -176,8 +177,8 @@ func SendRegisterNotifyMail(u *user_model.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository) {
-	if setting.MailService == nil {
-		// No mail service configured
+	if setting.MailService == nil || !u.IsActive {
+		// No mail service configured OR the user is inactive
 		return
 	}
 	locale := translation.NewLocale(u.Language)
@@ -405,11 +406,16 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
+		if !user.IsActive {
+			// don't send emails to inactive users
+			continue
+		}
 		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: models.ActionType(0),

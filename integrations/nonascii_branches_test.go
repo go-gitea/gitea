@@ -18,7 +18,7 @@ func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route,
 
 	// Make request
 	req := NewRequest(t, "GET", path.Join(prefix, route))
-	resp := session.MakeRequest(t, req, http.StatusFound)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Check Location header
 	location := resp.HeaderMap.Get("Location")
@@ -37,7 +37,7 @@ func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch str
 		"action": "default_branch",
 		"branch": branch,
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func TestNonasciiBranches(t *testing.T) {

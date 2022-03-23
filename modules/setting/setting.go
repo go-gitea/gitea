@@ -89,13 +89,15 @@ var (
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
 	AppDataPath string
+	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
+	// It maps to ini:"LOCAL_ROOT_URL"
+	LocalURL string
 
 	// Server settings
 	Protocol             Scheme
 	Domain               string
 	HTTPAddr             string
 	HTTPPort             string
-	LocalURL             string
 	RedirectOtherPort    bool
 	PortToRedirect       string
 	OfflineMode          bool
@@ -747,6 +749,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()

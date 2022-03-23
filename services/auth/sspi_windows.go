@@ -109,7 +109,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
 
-		err := s.rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
+		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
 		if err != nil {
 			log.Error("%v", err)
 		}

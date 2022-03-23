@@ -19,7 +19,7 @@ import (
 func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
 	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
-		Actor:           ctx.User,
+		Actor:           ctx.Doer,
 		IncludePrivate:  false,
 		OnlyPerformedBy: !ctxUser.IsOrganization(),
 		IncludeDeleted:  false,

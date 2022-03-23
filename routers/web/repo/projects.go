@@ -143,7 +143,7 @@ func NewProjectPost(ctx *context.Context) {
 		RepoID:      ctx.Repo.Repository.ID,
 		Title:       form.Title,
 		Description: form.Content,
-		CreatorID:   ctx.User.ID,
+		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
 		Type:        models.ProjectTypeRepository,
 	}); err != nil {
@@ -354,7 +354,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			continue
 		}
 
-		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
+		if err := models.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -367,7 +367,7 @@ func UpdateIssueProject(ctx *context.Context) {
 
 // DeleteProjectBoard allows for the deletion of a project board
 func DeleteProjectBoard(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
@@ -444,7 +444,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
-		CreatorID: ctx.User.ID,
+		CreatorID: ctx.Doer.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
 		return
@@ -456,7 +456,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 }
 
 func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, *models.ProjectBoard) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
@@ -548,7 +548,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 
 // MoveIssues moves or keeps issues in a column and sorts them inside that column
 func MoveIssues(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
