@@ -6,6 +6,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"strings"
@@ -70,7 +71,8 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
-		Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, "en-US", recipients, false, "issue comment")
 	assert.NoError(t, err)
@@ -99,7 +101,8 @@ func TestComposeIssueMessage(t *testing.T) {
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
-		Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body",
 	}, "en-US", recipients, false, "issue create")
 	assert.NoError(t, err)
@@ -145,13 +148,15 @@ func TestTemplateSelection(t *testing.T) {
 	}
 
 	msg := testComposeIssueCommentMessage(t, &mailCommentContext{
-		Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body",
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
@@ -159,13 +164,15 @@ func TestTemplateSelection(t *testing.T) {
 	pull := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
 	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Issue: pull, Doer: doer, ActionType: models.ActionCommentPull,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   pull, Doer: doer, ActionType: models.ActionCommentPull,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
-		Issue: issue, Doer: doer, ActionType: models.ActionCloseIssue,
+		Context: context.TODO(), // TODO: use a correct context
+		Issue:   issue, Doer: doer, ActionType: models.ActionCloseIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "Re: [user2/repo1] issue1 (#1)", "issue/close/body")
@@ -184,7 +191,8 @@ func TestTemplateServices(t *testing.T) {
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msg := testComposeIssueCommentMessage(t, &mailCommentContext{
-			Issue: issue, Doer: doer, ActionType: actionType,
+			Context: context.TODO(), // TODO: use a correct context
+			Issue:   issue, Doer: doer, ActionType: actionType,
 			Content: "test body", Comment: comment,
 		}, recipients, fromMention, "TestTemplateServices")
 
@@ -226,7 +234,7 @@ func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, recip
 func TestGenerateAdditionalHeaders(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	ctx := &mailCommentContext{Issue: issue, Doer: doer}
+	ctx := &mailCommentContext{Context: context.TODO() /* TODO: use a correct context */, Issue: issue, Doer: doer}
 	recipient := &user_model.User{Name: "Test", Email: "test@gitea.com"}
 
 	headers := generateAdditionalHeaders(ctx, "dummy-reason", recipient)

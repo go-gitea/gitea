@@ -29,7 +29,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := models.GetCurrentReview(ctx.User, issue)
+	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
@@ -69,7 +69,7 @@ func CreateCodeComment(ctx *context.Context) {
 	}
 
 	comment, err := pull_service.CreateCodeComment(ctx,
-		ctx.User,
+		ctx.Doer,
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
@@ -117,7 +117,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	var permResult bool
-	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.User); err != nil {
+	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
@@ -132,7 +132,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if action == "Resolve" || action == "UnResolve" {
-		err = models.MarkConversation(comment, ctx.User, action == "Resolve")
+		err = models.MarkConversation(comment, ctx.Doer, action == "Resolve")
 		if err != nil {
 			ctx.ServerError("MarkConversation", err)
 			return
@@ -152,7 +152,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *models.Comment) {
-	comments, err := models.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.User, comment.TreePath, comment.Line)
+	comments, err := models.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -198,7 +198,7 @@ func SubmitReview(ctx *context.Context) {
 
 	// can not approve/reject your own PR
 	case models.ReviewTypeApprove, models.ReviewTypeReject:
-		if issue.IsPoster(ctx.User.ID) {
+		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
 			if reviewType == models.ReviewTypeApprove {
 				translated = ctx.Tr("repo.issues.review.self.approval")
@@ -217,7 +217,7 @@ func SubmitReview(ctx *context.Context) {
 		attachments = form.Files
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx, ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
+	_, comm, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
@@ -234,7 +234,7 @@ func SubmitReview(ctx *context.Context) {
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
-	comm, err := pull_service.DismissReview(ctx, form.ReviewID, form.Message, ctx.User, true)
+	comm, err := pull_service.DismissReview(ctx, form.ReviewID, form.Message, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return
