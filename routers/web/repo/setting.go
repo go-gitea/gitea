@@ -70,7 +70,13 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["EnableSafeMirror"] = ctx.Repo.Mirror.EnableSafeMirror
+
+	mirrors, err := repo_model.GetMirrorByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetMirrorsByRepoID", err)
+		return
+	}
+	ctx.Data["EnableSafeMirror"] = mirrors.EnableSafeMirror
 
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
