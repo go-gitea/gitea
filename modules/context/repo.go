@@ -443,17 +443,21 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
-		queryIndex := strings.LastIndex(ctx.Req.RequestURI, "?")
-		repoNameindex := 0
-		if queryIndex > 0 {
-			repoNameindex = strings.LastIndex(ctx.Req.RequestURI[:queryIndex], repoName)
-		} else {
-			repoNameindex = strings.LastIndex(ctx.Req.RequestURI, repoName)
+		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
+		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
+		originalRepoName := ctx.Params(":reponame")
+		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
+		redirectRepoName = redirectRepoName + originalRepoName[len(redirectRepoName)+5:]
+		redirectPath := strings.Replace(
+			ctx.Req.URL.EscapedPath(),
+			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
+			1,
+		)
+		if ctx.Req.URL.RawQuery != "" {
+			redirectPath += "?" + ctx.Req.URL.RawQuery
 		}
-
-		redirectLink := ctx.Req.RequestURI[:repoNameindex]
-		redirectLink += strings.Replace(ctx.Req.RequestURI[repoNameindex:], ".wiki", "/wiki", 1)
-		ctx.Redirect(redirectLink)
+		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 		return
 	}
 
