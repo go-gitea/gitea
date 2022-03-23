@@ -55,7 +55,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = ctx.Perm().CanWriteToBranch(ctx.user, ctx.branchName) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = ctx.userPerm.CanWriteToBranch(ctx.user, ctx.branchName) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode

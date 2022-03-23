@@ -1468,7 +1468,7 @@ func SetAllowEdits(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || !pr.Issue.IsPoster(ctx.User.ID) {
+	if !ctx.IsSigned || !pr.Issue.IsPoster(ctx.Doer.ID) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}

@@ -616,7 +616,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// update allow edits
-	if pr.Issue.IsPoster(ctx.User.ID) && form.AllowMaintainerEdit != nil {
+	if pr.Issue.IsPoster(ctx.Doer.ID) && form.AllowMaintainerEdit != nil {
 		err = models.UpdateAllowEdits(pr, *form.AllowMaintainerEdit)
 		if err != nil {
 			ctx.ServerError("UpdateAllowEdits", err)

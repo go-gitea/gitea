@@ -184,7 +184,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(ctx *context.APIContext, branch string) bool {
-	return ctx.Repo.Permission.CanWriteToBranch(ctx.User, branch) &&
+	return ctx.Repo.Permission.CanWriteToBranch(ctx.Doer, branch) &&
 		!ctx.Repo.Repository.IsMirror &&
 		!ctx.Repo.Repository.IsArchived
 }
