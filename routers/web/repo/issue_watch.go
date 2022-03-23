@@ -53,5 +53,5 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }
