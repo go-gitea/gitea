@@ -39,7 +39,7 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplWebAuthn)
+	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
 
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
@@ -166,5 +166,5 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]string{"redirect": redirect})
+	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
 }

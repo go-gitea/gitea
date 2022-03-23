@@ -424,7 +424,7 @@
 					</div>
 				</p>
 			{{else}}
-				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
+				<p>{{.i18n.Tr "repo.issues.due_date_not_set"}}</p>
 			{{end}}
 
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}

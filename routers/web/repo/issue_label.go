@@ -39,7 +39,7 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(db.DefaultContext, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+	if err := models.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
 		if models.IsErrIssueLabelTemplateLoad(err) {
 			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
@@ -82,8 +82,8 @@ func RetrieveLabels(ctx *context.Context) {
 			ctx.ServerError("GetOrgByName", err)
 			return
 		}
-		if ctx.User != nil {
-			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		if ctx.Doer != nil {
+			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
@@ -169,7 +169,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	switch action := ctx.FormString("action"); action {
 	case "clear":
 		for _, issue := range issues {
-			if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
+			if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}
@@ -198,14 +198,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 
 		if action == "attach" {
 			for _, issue := range issues {
-				if err = issue_service.AddLabel(issue, ctx.User, label); err != nil {
+				if err = issue_service.AddLabel(issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
-				if err = issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
+				if err = issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}

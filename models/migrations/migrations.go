@@ -378,6 +378,8 @@ var migrations = []Migration{
 	// Gitea 1.16.2 ends at v211
 
 	// v211 -> v212
+	NewMigration("Create ForeignReference table", createForeignReferenceTable),
+	// v122 -> v212
 	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
 }
 

@@ -393,7 +393,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.User.ID,
+			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		}
 	}
@@ -404,7 +404,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoF
 	}
 	opts.Content = string(content)
 
-	return files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.User, opts)
+	return files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 }
 
 // DeleteFile Delete a file in a repository
@@ -450,7 +450,7 @@ func DeleteFile(ctx *context.APIContext) {
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.User.ID,
+			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
 		return
@@ -491,7 +491,7 @@ func DeleteFile(ctx *context.APIContext) {
 		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
 	}
 
-	if fileResponse, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if fileResponse, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
@@ -548,7 +548,7 @@ func GetContents(ctx *context.APIContext) {
 
 	if !canReadFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.User.ID,
+			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
 		return

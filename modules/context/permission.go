@@ -59,7 +59,7 @@ func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 				if ctx.IsSigned {
 					log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 						"User in Repo has Permissions: %-+v",
-						ctx.User,
+						ctx.Doer,
 						unitType,
 						ctx.Repo.Repository,
 						ctx.Repo.Permission)
@@ -90,7 +90,7 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 			var args []interface{}
 			if ctx.IsSigned {
 				format = "Permission Denied: User %-v cannot read ["
-				args = append(args, ctx.User)
+				args = append(args, ctx.Doer)
 			} else {
 				format = "Permission Denied: Anonymous user cannot read ["
 			}

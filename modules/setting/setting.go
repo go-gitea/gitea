@@ -89,13 +89,15 @@ var (
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
 	AppDataPath string
+	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
+	// It maps to ini:"LOCAL_ROOT_URL"
+	LocalURL string
 
 	// Server settings
 	Protocol             Scheme
 	Domain               string
 	HTTPAddr             string
 	HTTPPort             string
-	LocalURL             string
 	RedirectOtherPort    bool
 	PortToRedirect       string
 	OfflineMode          bool
@@ -164,7 +166,7 @@ var (
 		Domain:                        "",
 		Port:                          22,
 		ServerCiphers:                 []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
-		ServerKeyExchanges:            []string{"curve25519-sha256@libssh.org", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha1"},
+		ServerKeyExchanges:            []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
 		ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
 		KeygenPath:                    "ssh-keygen",
 		MinimumKeySizeCheck:           true,
@@ -747,6 +749,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()

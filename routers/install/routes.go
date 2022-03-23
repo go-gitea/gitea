@@ -41,9 +41,9 @@ func installRecovery() func(next http.Handler) http.Handler {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 						log.Error("%s", combinedErr)
 						if setting.IsProd {
-							http.Error(w, http.StatusText(500), 500)
+							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 						} else {
-							http.Error(w, combinedErr, 500)
+							http.Error(w, combinedErr, http.StatusInternalServerError)
 						}
 					}
 				}()
@@ -66,7 +66,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
-					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))
+					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
 					}

@@ -22,7 +22,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -35,7 +35,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL())
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -56,7 +56,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	err = models.CreateIssueDependency(ctx.User, issue, dep)
+	err = models.CreateIssueDependency(ctx.Doer, issue, dep)
 	if err != nil {
 		if models.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
@@ -81,7 +81,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -115,7 +115,7 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
+	if err = models.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
 		if models.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return
@@ -125,5 +125,5 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }

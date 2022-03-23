@@ -8,11 +8,13 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -533,4 +535,36 @@ func TestCorrectIssueStats(t *testing.T) {
 	// Now check the values.
 	assert.NoError(t, err)
 	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
+}
+
+func TestIssueForeignReference(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue)
+	assert.NotEqualValues(t, issue.Index, issue.ID) // make sure they are different to avoid false positive
+
+	// it is fine for an issue to not have a foreign reference
+	err := issue.LoadAttributes()
+	assert.NoError(t, err)
+	assert.Nil(t, issue.ForeignReference)
+
+	var foreignIndex int64 = 12345
+	_, err = GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
+	assert.True(t, foreignreference.IsErrLocalIndexNotExist(err))
+
+	_, err = db.GetEngine(db.DefaultContext).Insert(&foreignreference.ForeignReference{
+		LocalIndex:   issue.Index,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		RepoID:       issue.RepoID,
+		Type:         foreignreference.TypeIssue,
+	})
+	assert.NoError(t, err)
+
+	err = issue.LoadAttributes()
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, issue.ForeignReference.ForeignIndex, strconv.FormatInt(foreignIndex, 10))
+
+	found, err := GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
+	assert.NoError(t, err)
+	assert.EqualValues(t, found.Index, issue.Index)
 }

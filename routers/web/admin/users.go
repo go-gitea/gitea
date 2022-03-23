@@ -63,7 +63,7 @@ func Users(ctx *context.Context) {
 	}
 
 	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
-		Actor: ctx.User,
+		Actor: ctx.Doer,
 		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
@@ -171,6 +171,9 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+		case user_model.IsErrEmailCharIsNotSupported(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
@@ -188,7 +191,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
 	if form.SendNotify {
@@ -376,7 +379,7 @@ func EditUserPost(ctx *context.Context) {
 	u.Visibility = form.Visibility
 
 	// skip self Prohibit Login
-	if ctx.User.ID == u.ID {
+	if ctx.Doer.ID == u.ID {
 		u.ProhibitLogin = false
 	} else {
 		u.ProhibitLogin = form.ProhibitLogin
@@ -386,7 +389,8 @@ func EditUserPost(ctx *context.Context) {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
-		} else if user_model.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 		} else {
@@ -394,7 +398,7 @@ func EditUserPost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
@@ -425,7 +429,7 @@ func DeleteUser(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Account deleted by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account deleted by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
