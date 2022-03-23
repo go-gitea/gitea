@@ -61,7 +61,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+		mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
