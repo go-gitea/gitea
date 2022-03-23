@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -175,8 +174,6 @@ func (ctx *Context) HasValue(name string) bool {
 	return ok
 }
 
-var precedingSlashesRE = regexp.MustCompile(`^/[\\/]+`)
-
 // RedirectToFirst redirects to first not empty URL
 func (ctx *Context) RedirectToFirst(location ...string) {
 	for _, loc := range location {
@@ -184,7 +181,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 			continue
 		}
 
-		if precedingSlashesRE.MatchString(loc) {
+		if len(loc) > 1 && loc[0] == '/' && (loc[1] == '/' || loc[1] == '\\') {
 			continue
 		}
 
