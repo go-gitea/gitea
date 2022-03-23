@@ -69,7 +69,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
 	if err := git.NewCommand(ctx, gitArgs...).
-		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+		SetDescription(fmt.Sprintf("Mirror.runSyncTest: %s", m.Repo.FullName())).
 		RunWithContext(&git.RunContext{
 			Timeout: timeout,
 			Dir:     newRepoPath,
@@ -87,7 +87,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 
 		// Now check if the error is a resolve reference due to broken reference
 		if strings.Contains(stderr, "unable to resolve reference") && strings.Contains(stderr, "reference broken") {
-			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
+			log.Warn("SyncMirrorsTest [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 
 			// Attempt prune
@@ -97,7 +97,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 				stderrBuilder.Reset()
 				stdoutBuilder.Reset()
 				if err = git.NewCommand(ctx, gitArgs...).
-					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+					SetDescription(fmt.Sprintf("Mirror.runSyncTest: %s", m.Repo.FullName())).
 					RunWithContext(&git.RunContext{
 						Timeout: timeout,
 						Dir:     newRepoPath,
@@ -117,7 +117,7 @@ func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string,
 
 		// If there is still an error (or there always was an error)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+			log.Error("SyncMirrorsTest [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 			desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", newRepoPath, stderrMessage)
 			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
