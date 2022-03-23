@@ -58,24 +58,13 @@ func getGitCommandStdoutStderr(ctx context.Context, m *repo_model.Mirror, gitArg
 	return stdoutRepoCommitCount, stderrRepoCommitCount, nil
 }
 
-// detect user can update the mirror
-func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string) (bool, error) {
-	repoPath := m.Repo.RepoPath()
-	newRepoPath := fmt.Sprintf("%s_update", repoPath)
+// sync new repo mirror
+func syncRepoMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string, newRepoPath string) (bool, error) {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
-
-	//do copy directory recursive
-	err := util.CopyDir(repoPath, newRepoPath)
-	defer util.RemoveAll(newRepoPath)
-	if err != nil {
-		log.Error("GetMirrorCanUpdate [repo: %-v]: CopyDirectory Error %v", m.Repo, err)
-		return false, err
-	}
 	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, newRepoPath, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 	}
-
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
 	if err := git.NewCommand(ctx, gitArgs...).
@@ -135,7 +124,28 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 			return false, nil
 		}
 	}
+	return false, nil
+}
 
+// detect user can update the mirror
+func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string) (bool, error) {
+	repoPath := m.Repo.RepoPath()
+	newRepoPath := fmt.Sprintf("%s_update", repoPath)
+
+	//do copy directory recursive
+	err := util.CopyDir(repoPath, newRepoPath)
+	defer util.RemoveAll(newRepoPath)
+	if err != nil {
+		log.Error("GetMirrorCanUpdate [repo: %-v]: CopyDirectory Error %v", m.Repo, err)
+		return false, err
+	}
+	syncStatus, err := syncRepoMirror(ctx, m, gitArgs, newRepoPath)
+	if err != nil {
+		return false, err
+	}
+	if !syncStatus {
+		return false, nil
+	}
 	gitCommitCountArgs := []string{"rev-list", "HEAD", "--count"}
 	stdoutNewRepoCommitCount, _, err := getGitCommandStdoutStderr(ctx, m, gitCommitCountArgs, newRepoPath)
 	if err != nil {
