@@ -447,7 +447,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
 		originalRepoName := ctx.Params(":reponame")
 		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
-		redirectRepoName = redirectRepoName + originalRepoName[len(redirectRepoName)+5:]
+		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
 		redirectPath := strings.Replace(
 			ctx.Req.URL.EscapedPath(),
 			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
