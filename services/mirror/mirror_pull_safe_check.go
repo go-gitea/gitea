@@ -59,7 +59,7 @@ func getGitCommandStdoutStderr(ctx context.Context, m *repo_model.Mirror, gitArg
 }
 
 // detect user can update the mirror
-func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string) (error, bool) {
+func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []string) (bool, error) {
 	repoPath := m.Repo.RepoPath()
 	newRepoPath := fmt.Sprintf("%s_update", repoPath)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -69,7 +69,7 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 	defer util.RemoveAll(newRepoPath)
 	if err != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: CopyDirectory Error %v", m.Repo, err)
-		return err, false
+		return false, err
 	}
 	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, newRepoPath, m.GetRemoteName())
 	if remoteErr != nil {
@@ -132,52 +132,52 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
-			return nil, false
+			return false, nil
 		}
 	}
 
 	gitCommitCountArgs := []string{"rev-list", "HEAD", "--count"}
 	stdoutNewRepoCommitCount, _, err := getGitCommandStdoutStderr(ctx, m, gitCommitCountArgs, newRepoPath)
 	if err != nil {
-		return err, false
+		return false, err
 	}
 	stdoutNewRepoCommitCount = strings.TrimSpace(stdoutNewRepoCommitCount)
 	stdoutRepoCommitCount, _, err := getGitCommandStdoutStderr(ctx, m, gitCommitCountArgs, repoPath)
 	if err != nil {
-		return err, false
+		return false, err
 	}
 	stdoutRepoCommitCount = strings.TrimSpace(stdoutRepoCommitCount)
 	var repoCommitCount, newRepoCommitCount int64
 	if i, err := strconv.ParseInt(stdoutRepoCommitCount, 10, 64); err == nil {
 		repoCommitCount = i
 	} else {
-		return err, false
+		return false, err
 	}
 	if i, err := strconv.ParseInt(stdoutNewRepoCommitCount, 10, 64); err == nil {
 		newRepoCommitCount = i
 	} else {
-		return err, false
+		return false, err
 	}
 	if repoCommitCount > newRepoCommitCount {
-		return nil, false
+		return false, nil
 	} else if repoCommitCount == newRepoCommitCount {
 		// noting to happen
-		return nil, true
+		return true, nil
 	} else {
 		//compare commit id
 		gitNewRepoLastCommitIdArgs := []string{"log", "-1", fmt.Sprintf("--skip=%d", newRepoCommitCount-newRepoCommitCount), "--format=\"%H\""}
 		stdoutNewRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitNewRepoLastCommitIdArgs, newRepoPath)
 		if err != nil {
-			return err, false
+			return false, err
 		}
 		gitRepoLastCommitIdArgs := []string{"log", "--format=\"%H\"", "-n", "1"}
 		stdoutRepoCommitId, _, err := getGitCommandStdoutStderr(ctx, m, gitRepoLastCommitIdArgs, repoPath)
 		if err != nil {
-			return err, false
+			return false, err
 		}
 		if stdoutNewRepoCommitId != stdoutRepoCommitId {
-			return fmt.Errorf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitId), false
+			return false, fmt.Errorf("Old repo commit id: %s not match new repo id: %s", stdoutRepoCommitId, stdoutNewRepoCommitId)
 		}
 	}
-	return nil, true
+	return true, nil
 }

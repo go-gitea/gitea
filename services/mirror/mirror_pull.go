@@ -206,7 +206,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	// detect can safe mirror
-	err, canUpdate := detectCanUpdateMirror(ctx, m, gitArgs)
+	canUpdate, err := detectCanUpdateMirror(ctx, m, gitArgs)
 	if err != nil {
 		log.Error("CreateRepositoryNotice: %v", err)
 		return nil, false
