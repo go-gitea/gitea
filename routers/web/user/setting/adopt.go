@@ -28,7 +28,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.FormString("id")
 	action := ctx.FormString("action")
 
-	ctxUser := ctx.User
+	ctxUser := ctx.Doer
 	root := user_model.UserPath(ctxUser.LowerName)
 
 	// check not a repo

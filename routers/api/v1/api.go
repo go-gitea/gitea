@@ -103,7 +103,7 @@ func sudo() func(ctx *context.APIContext) {
 		}
 
 		if len(sudo) > 0 {
-			if ctx.IsSigned && ctx.User.IsAdmin {
+			if ctx.IsSigned && ctx.Doer.IsAdmin {
 				user, err := user_model.GetUserByName(sudo)
 				if err != nil {
 					if user_model.IsErrUserNotExist(err) {
@@ -113,8 +113,8 @@ func sudo() func(ctx *context.APIContext) {
 					}
 					return
 				}
-				log.Trace("Sudo from (%s) to: %s", ctx.User.Name, user.Name)
-				ctx.User = user
+				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
+				ctx.Doer = user
 			} else {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only administrators allowed to sudo.",
@@ -136,8 +136,8 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-			owner = ctx.User
+		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+			owner = ctx.Doer
 		} else {
 			owner, err = user_model.GetUserByName(userName)
 			if err != nil {
@@ -178,7 +178,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -307,7 +307,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			return
 		}
 
-		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -334,7 +334,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 		}
 
 		orgID := ctx.Org.Team.OrgID
-		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		isOwner, err := models.IsOrganizationOwner(orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -342,11 +342,11 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsTeamMember", err)
 			return
 		} else if !isTeamMember {
-			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			} else if isOrgMember {
@@ -376,7 +376,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
+		if isMember, err := models.IsOrganizationMember(orgID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			return
 		} else if !isMember {
@@ -392,7 +392,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 
 func reqGitHook() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.User.CanEditGitHook() {
+		if !ctx.Doer.CanEditGitHook() {
 			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
 			return
 		}
@@ -463,7 +463,7 @@ func mustEnableIssues(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypeIssues,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -486,7 +486,7 @@ func mustAllowPulls(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -510,7 +510,7 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypeIssues,
 					unit.TypePullRequests,
 					ctx.Repo.Repository,
