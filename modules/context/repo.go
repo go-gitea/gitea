@@ -440,6 +440,26 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Repo.Owner = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
+	// redirect link to wiki
+	if strings.HasSuffix(repoName, ".wiki") {
+		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
+		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
+		originalRepoName := ctx.Params(":reponame")
+		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
+		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
+		redirectPath := strings.Replace(
+			ctx.Req.URL.EscapedPath(),
+			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
+			1,
+		)
+		if ctx.Req.URL.RawQuery != "" {
+			redirectPath += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+		return
+	}
+
 	// Get repository.
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 	if err != nil {
