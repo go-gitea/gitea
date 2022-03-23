@@ -74,7 +74,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	cnt, _ := models.GetOrganizationCount(db.DefaultContext, ctxUser)
+	cnt, _ := models.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 
 	var uid int64
@@ -730,7 +730,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(ctx, uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

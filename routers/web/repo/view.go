@@ -884,7 +884,7 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}
-		if err = models.UpdateRepoSize(db.DefaultContext, ctx.Repo.Repository); err != nil {
+		if err = models.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
@@ -1017,7 +1017,7 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(db.DefaultContext); err != nil {
+		if err = fork.GetOwner(ctx); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}
