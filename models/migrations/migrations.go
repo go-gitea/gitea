@@ -379,7 +379,7 @@ var migrations = []Migration{
 
 	// v211 -> v212
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
-	// v122 -> v212
+	// v212 -> v213
 	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
 }
 
