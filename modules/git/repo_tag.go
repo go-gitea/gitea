@@ -129,7 +129,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	go func() {
 		err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").RunWithContext(rc)
 		if err != nil {
-			stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		}
 		_ = stdoutWriter.Close()
 	}()
