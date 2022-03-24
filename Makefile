@@ -25,7 +25,7 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.18.x
-MIN_GO_VERSION_STR := $(shell cat go.mod | grep -Eo '^go\s+[0-9]+\.[0-9.]+' | cut -d' ' -f2)
+MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2)
 MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' '))
 MIN_NODE_VERSION := 012017000
 
