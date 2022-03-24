@@ -4,6 +4,37 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.5](https://github.com/go-gitea/gitea/releases/tag/1.16.5) - 2022-03-23
+
+* BREAKING
+  * Bump to build with go1.18 (#19120 et al) (#19127)
+* SECURITY
+  * Prevent redirect to Host (2) (#19175) (#19186)
+  * Try to prevent autolinking of displaynames by email readers (#19169) (#19183)
+  * Clean paths when looking in Storage (#19124) (#19179)
+  * Do not send notification emails to inactive users (#19131) (#19139)
+  * Do not send activation email if manual confirm is set (#19119) (#19122)
+* ENHANCEMENTS
+  * Use the new/choose link for New Issue on project page (#19172) (#19176)
+* BUGFIXES
+  * Fix showing issues in your repositories (#18916) (#19191)
+  * Fix compare link in active feeds for new branch (#19149) (#19185)
+  * Redirect .wiki/* ui link to /wiki (#18831) (#19184)
+  * Ensure deploy keys with write access can push (#19010) (#19182)
+  * Ensure that setting.LocalURL always has a trailing slash (#19171) (#19177)
+  * Cleanup protected branches when deleting users & teams (#19158) (#19174)
+  * Use IterateBufferSize whilst querying repositories during adoption check (#19140) (#19160)
+  * Fix NPE /repos/issues/search when not signed in (#19154) (#19155)
+  * Use custom favicon when viewing static files if it exists (#19130) (#19152)
+  * Fix the editor height in review box (#19003) (#19147)
+  * Ensure isSSH is set whenever DISABLE_HTTP_GIT is set (#19028) (#19146)
+  * Fix wrong scopes caused by empty scope input (#19029) (#19145)
+  * Make migrations SKIP_TLS_VERIFY apply to git too (#19132) (#19141)
+  * Handle email address not exist (#19089) (#19121)
+* MISC
+  * Update json-iterator to allow compilation with go1.18 (#18644) (#19100)
+  * Update golang.org/x/crypto (#19097) (#19098)
+
 ## [1.16.4](https://github.com/go-gitea/gitea/releases/tag/v1.16.4) - 2022-03-14
 
 * SECURITY
