@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
+
 	"github.com/stretchr/testify/require"
 )
 
