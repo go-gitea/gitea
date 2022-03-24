@@ -8,6 +8,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
@@ -119,13 +120,22 @@ const (
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
 
-	stdout, err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").RunInDir(repo.Path)
-	if err != nil {
-		return nil, 0, err
-	}
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer stdoutReader.Close()
+	defer stdoutWriter.Close()
+	stderr := strings.Builder{}
+	rc := &RunContext{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr, Timeout: -1}
+
+	go func() {
+		err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").RunWithContext(rc)
+		if err != nil {
+			stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
+		}
+		stdoutWriter.Close()
+	}()
 
 	var tags []*Tag
-	parser := forEachRefFmt.Parser(strings.NewReader(stdout))
+	parser := forEachRefFmt.Parser(stdoutReader)
 	for {
 		ref := parser.Next()
 		if ref == nil {
