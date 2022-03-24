@@ -7,13 +7,17 @@ package admin
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/pprof/profile"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -35,10 +39,11 @@ import (
 )
 
 const (
-	tplDashboard base.TplName = "admin/dashboard"
-	tplConfig    base.TplName = "admin/config"
-	tplMonitor   base.TplName = "admin/monitor"
-	tplQueue     base.TplName = "admin/queue"
+	tplDashboard  base.TplName = "admin/dashboard"
+	tplConfig     base.TplName = "admin/config"
+	tplMonitor    base.TplName = "admin/monitor"
+	tplStacktrace base.TplName = "admin/stacktrace"
+	tplQueue      base.TplName = "admin/queue"
 )
 
 var sysStatus struct {
@@ -329,7 +334,40 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Processes"] = process.GetManager().Processes(true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+
+	reader, writer := io.Pipe()
+	defer reader.Close()
+	go func() {
+		err := pprof.Lookup("goroutine").WriteTo(writer, 0)
+		writer.CloseWithError(err)
+	}()
+	p, err := profile.Parse(reader)
+	jP, _ := json.MarshalIndent(p, "", "  ")
+	log.Info("%v, %v", string(jP), err)
+
 	ctx.HTML(http.StatusOK, tplMonitor)
+}
+
+// GoroutineStacktrace show admin monitor goroutines page
+func GoroutineStacktrace(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+
+	reader, writer := io.Pipe()
+	defer reader.Close()
+	go func() {
+		err := pprof.Lookup("goroutine").WriteTo(writer, 0)
+		writer.CloseWithError(err)
+	}()
+	p, err := profile.Parse(reader)
+	if err != nil {
+		ctx.ServerError("GoroutineStacktrace", err)
+		return
+	}
+	ctx.Data["Profile"] = p
+
+	ctx.HTML(http.StatusOK, tplStacktrace)
 }
 
 // MonitorCancel cancels a process
