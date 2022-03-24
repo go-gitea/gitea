@@ -116,7 +116,7 @@ func NewLabel(ctx *context.Context) {
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(db.DefaultContext, l); err != nil {
+	if err := models.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
