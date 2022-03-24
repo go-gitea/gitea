@@ -132,7 +132,7 @@ func (g *Manager) RunAtTerminate(terminate func()) {
 }
 
 // RunAtShutdown creates a go-routine to run the provided function at shutdown
-func (g *Manager) RunAtShutdown(done context.Context, shutdown func()) {
+func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.toRunAtShutdown = append(g.toRunAtShutdown,
@@ -143,7 +143,7 @@ func (g *Manager) RunAtShutdown(done context.Context, shutdown func()) {
 				}
 			}()
 			select {
-			case <-done.Done():
+			case <-ctx.Done():
 				return
 			default:
 				shutdown()

@@ -82,7 +82,7 @@ func (g *Manager) start() {
 
 	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
 	pprof.SetGoroutineLabels(g.doneCtx)
-	defer pprof.SetGoroutineLabels(ctx)
+	defer pprof.SetGoroutineLabels(g.ctx)
 
 	// Make channels
 	g.shutdownRequested = make(chan struct{})
