@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -287,7 +286,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
-	if err := models.UpdateRepoSize(db.DefaultContext, m.Repo); err != nil {
+	if err := models.UpdateRepoSize(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo, err)
 	}
 

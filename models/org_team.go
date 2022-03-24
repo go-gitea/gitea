@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -776,8 +777,45 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	if err := t.removeAllRepositories(ctx); err != nil {
-		return err
+	// update branch protections
+	{
+		protections := make([]*ProtectedBranch, 0, 10)
+		err := sess.In("repo_id",
+			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
+			Find(&protections)
+		if err != nil {
+			return fmt.Errorf("findProtectedBranches: %v", err)
+		}
+		for _, p := range protections {
+			var matched1, matched2, matched3 bool
+			if len(p.WhitelistTeamIDs) != 0 {
+				p.WhitelistTeamIDs, matched1 = util.RemoveIDFromList(
+					p.WhitelistTeamIDs, t.ID)
+			}
+			if len(p.ApprovalsWhitelistTeamIDs) != 0 {
+				p.ApprovalsWhitelistTeamIDs, matched2 = util.RemoveIDFromList(
+					p.ApprovalsWhitelistTeamIDs, t.ID)
+			}
+			if len(p.MergeWhitelistTeamIDs) != 0 {
+				p.MergeWhitelistTeamIDs, matched3 = util.RemoveIDFromList(
+					p.MergeWhitelistTeamIDs, t.ID)
+			}
+			if matched1 || matched2 || matched3 {
+				if _, err = sess.ID(p.ID).Cols(
+					"whitelist_team_i_ds",
+					"merge_whitelist_team_i_ds",
+					"approvals_whitelist_team_i_ds",
+				).Update(p); err != nil {
+					return fmt.Errorf("updateProtectedBranches: %v", err)
+				}
+			}
+		}
+	}
+
+	if !t.IncludesAllRepositories {
+		if err := t.removeAllRepositories(ctx); err != nil {
+			return err
+		}
 	}
 
 	// Delete team-user.

@@ -184,7 +184,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(file, ctx.User.ID, release.RepoID, releaseID, filename, setting.Repository.Release.AllowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.Doer.ID, release.RepoID, releaseID, filename, setting.Repository.Release.AllowedTypes)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.Error(http.StatusBadRequest, "DetectContentType", err)

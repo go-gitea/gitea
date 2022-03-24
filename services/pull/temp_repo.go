@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -38,10 +37,10 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.BaseRepoID,
 		}
-	} else if err := pr.HeadRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err := pr.HeadRepo.GetOwner(ctx); err != nil {
 		log.Error("HeadRepo.GetOwner: %v", err)
 		return "", fmt.Errorf("HeadRepo.GetOwner: %v", err)
-	} else if err := pr.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err := pr.BaseRepo.GetOwner(ctx); err != nil {
 		log.Error("BaseRepo.GetOwner: %v", err)
 		return "", fmt.Errorf("BaseRepo.GetOwner: %v", err)
 	}
