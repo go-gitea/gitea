@@ -152,12 +152,12 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 		return nil, 0, fmt.Errorf("GetTagInfos: parse output: %w", err)
 	}
 
+	sortTagsByTime(tags)
 	tagsTotal := len(tags)
 	if page != 0 {
 		tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
 	}
-	// TODO shouldn't be necessary since we're running with '--sort'?
-	sortTagsByTime(tags)
+
 	return tags, tagsTotal, nil
 }
 
