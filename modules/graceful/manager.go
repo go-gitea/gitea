@@ -191,7 +191,7 @@ func (g *Manager) doShutdown() {
 		g.doTerminate()
 		g.WaitForTerminate()
 		g.lock.Lock()
-		g.doneCtxCancel()
+		g.managerCtxCancel()
 		g.lock.Unlock()
 	}()
 }
@@ -223,7 +223,7 @@ func (g *Manager) doTerminate() {
 	default:
 		log.Warn("Terminating")
 		g.terminateCtxCancel()
-		atTerminateCtx := pprof.WithLabels(g.doneCtx, pprof.Labels("graceful-lifecycle", "post-terminate"))
+		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "post-terminate"))
 		pprof.SetGoroutineLabels(atTerminateCtx)
 
 		for _, fn := range g.toRunAtTerminate {
@@ -313,20 +313,20 @@ func (g *Manager) InformCleanup() {
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
-	return g.doneCtx.Done()
+	return g.managerCtx.Done()
 }
 
 // Err allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Err() error {
-	return g.doneCtx.Err()
+	return g.managerCtx.Err()
 }
 
 // Value allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Value(key interface{}) interface{} {
-	return g.doneCtx.Value(key)
+	return g.managerCtx.Value(key)
 }
 
 // Deadline returns nil as there is no fixed Deadline for the manager, it allows the manager to be viewed as a context.Context
 func (g *Manager) Deadline() (deadline time.Time, ok bool) {
-	return g.doneCtx.Deadline()
+	return g.managerCtx.Deadline()
 }

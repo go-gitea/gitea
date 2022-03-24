@@ -41,11 +41,11 @@ type Manager struct {
 	shutdownCtx            context.Context
 	hammerCtx              context.Context
 	terminateCtx           context.Context
-	doneCtx                context.Context
+	managerCtx             context.Context
 	shutdownCtxCancel      context.CancelFunc
 	hammerCtxCancel        context.CancelFunc
 	terminateCtxCancel     context.CancelFunc
-	doneCtxCancel          context.CancelFunc
+	managerCtxCancel       context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
@@ -72,16 +72,16 @@ func (g *Manager) start() {
 	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
 	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
 	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
-	g.doneCtx, g.doneCtxCancel = context.WithCancel(g.ctx)
+	g.managerCtx, g.managerCtxCancel = context.WithCancel(g.ctx)
 
 	// Next add pprof labels to these contexts
 	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
 	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
 	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
-	g.doneCtx = pprof.WithLabels(g.doneCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
 
 	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
-	pprof.SetGoroutineLabels(g.doneCtx)
+	pprof.SetGoroutineLabels(g.managerCtx)
 	defer pprof.SetGoroutineLabels(g.ctx)
 
 	// Make channels
