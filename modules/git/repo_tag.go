@@ -131,7 +131,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 		if err != nil {
 			stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		}
-		stdoutWriter.Close()
+		_ = stdoutWriter.Close()
 	}()
 
 	var tags []*Tag
