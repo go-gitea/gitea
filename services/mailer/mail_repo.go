@@ -31,6 +31,10 @@ func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_mode
 
 		langMap := make(map[string][]string)
 		for _, user := range users {
+			if !user.IsActive {
+				// don't send emails to inactive users
+				continue
+			}
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
@@ -69,8 +73,9 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Language":    locale.Language(),
 		"Destination": destination,
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {

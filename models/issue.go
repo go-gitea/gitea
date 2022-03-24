@@ -15,6 +15,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -67,11 +68,12 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment `xorm:"-"`
-	Comments         []*Comment               `xorm:"-"`
-	Reactions        ReactionList             `xorm:"-"`
-	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*user_model.User       `xorm:"-"`
+	Attachments      []*repo_model.Attachment           `xorm:"-"`
+	Comments         []*Comment                         `xorm:"-"`
+	Reactions        ReactionList                       `xorm:"-"`
+	TotalTrackedTime int64                              `xorm:"-"`
+	Assignees        []*user_model.User                 `xorm:"-"`
+	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -271,6 +273,29 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
+	if issue.ForeignReference != nil {
+		return nil
+	}
+	reference := &foreignreference.ForeignReference{
+		RepoID:     issue.RepoID,
+		LocalIndex: issue.Index,
+		Type:       foreignreference.TypeIssue,
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return err
+	} else if !has {
+		return foreignreference.ErrForeignIndexNotExist{
+			RepoID:     issue.RepoID,
+			LocalIndex: issue.Index,
+			Type:       foreignreference.TypeIssue,
+		}
+	}
+	issue.ForeignReference = reference
+	return nil
+}
+
 func (issue *Issue) loadMilestone(e db.Engine) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
@@ -330,6 +355,10 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
+	}
+
+	if err = issue.loadForeignReference(ctx); err != nil && !foreignreference.IsErrForeignIndexNotExist(err) {
+		return err
 	}
 
 	return issue.loadReactions(ctx)
@@ -1110,6 +1139,26 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
+// GetIssueByForeignIndex returns raw issue by foreign ID
+func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
+	reference := &foreignreference.ForeignReference{
+		RepoID:       repoID,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		Type:         foreignreference.TypeIssue,
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, foreignreference.ErrLocalIndexNotExist{
+			RepoID:       repoID,
+			ForeignIndex: foreignIndex,
+			Type:         foreignreference.TypeIssue,
+		}
+	}
+	return GetIssueByIndex(repoID, reference.LocalIndex)
+}
+
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
 func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	issue, err := GetIssueByIndex(repoID, index)
@@ -1554,6 +1603,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeYourRepositories
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1698,6 +1748,7 @@ type UserIssueStatsOptions struct {
 	IssueIDs   []int64
 	IsArchived util.OptionalBool
 	LabelIDs   []int64
+	RepoCond   builder.Cond
 	Org        *Organization
 	Team       *Team
 }
@@ -1714,6 +1765,9 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
 	}
 
 	if opts.UserID > 0 {
@@ -1736,7 +1790,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	switch opts.FilterMode {
-	case FilterModeAll:
+	case FilterModeAll, FilterModeYourRepositories:
 		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
@@ -2075,6 +2129,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&IssueDependency{},
 		&IssueAssignees{},
 		&IssueUser{},
+		&Notification{},
 		&Reaction{},
 		&IssueWatch{},
 		&Stopwatch{},

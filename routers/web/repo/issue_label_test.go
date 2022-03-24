@@ -36,7 +36,7 @@ func TestInitializeLabels(t *testing.T) {
 	test.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
-	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		RepoID: 2,
 		Name:   "enhancement",
@@ -82,7 +82,7 @@ func TestNewLabel(t *testing.T) {
 		Color: "#abcdef",
 	})
 	NewLabel(ctx)
-	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		Name:  "newlabel",
 		Color: "#abcdef",
@@ -101,7 +101,7 @@ func TestUpdateLabel(t *testing.T) {
 		Color: "#abcdef",
 	})
 	UpdateLabel(ctx)
-	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		ID:    2,
 		Name:  "newnameforlabel",

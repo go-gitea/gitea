@@ -268,7 +268,7 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 	count := 0
 
 	err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(RepoUnit),
 		builder.Gt{
 			"id": 0,
