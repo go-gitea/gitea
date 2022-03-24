@@ -25,9 +25,12 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.18.x
+
 MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2)
 MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' '))
-MIN_NODE_VERSION := 012017000
+
+MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p')
+MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' '))
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.4.0
@@ -209,6 +212,7 @@ go-check:
 		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
 		exit 1; \
 	fi
+	@echo "checked whether go matches min version: $(MIN_GO_VERSION_STR)"
 
 .PHONY: git-check
 git-check:
@@ -226,6 +230,7 @@ node-check:
 		echo "Gitea requires Node.js $(MIN_NODE_VER_FMT) or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
 		exit 1; \
 	fi
+	@echo "checked nodejs matches min version: $(MIN_NODE_VERSION_STR)"
 
 .PHONY: clean-all
 clean-all: clean
