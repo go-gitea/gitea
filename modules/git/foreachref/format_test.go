@@ -58,11 +58,9 @@ func TestFormat_Flag(t *testing.T) {
 	for _, test := range tests {
 		tc := test // don't close over loop variable
 		t.Run(tc.name, func(t *testing.T) {
-
 			gotFlag := tc.givenFormat.Flag()
 
 			require.Equal(t, tc.wantFlag, gotFlag, "unexpected for-each-ref --format string. wanted: '%s', got: '%s'", tc.wantFlag, gotFlag)
-
 		})
 	}
 }
