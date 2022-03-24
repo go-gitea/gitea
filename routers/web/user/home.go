@@ -151,7 +151,7 @@ func Dashboard(ctx *context.Context) {
 func Milestones(ctx *context.Context) {
 	if unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -323,7 +323,7 @@ func Milestones(ctx *context.Context) {
 func Pulls(ctx *context.Context) {
 	if unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Pull request overview page not available as it is globally disabled.")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -336,7 +336,7 @@ func Pulls(ctx *context.Context) {
 func Issues(ctx *context.Context) {
 	if unit.TypeIssues.UnitGlobalDisabled() {
 		log.Debug("Issues overview page not available as it is globally disabled.")
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -362,7 +362,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var (
 		viewType   string
 		sortType   = ctx.FormString("sort")
-		filterMode = models.FilterModeAll
+		filterMode int
 	)
 
 	// --------------------------------------------------------------------------------
@@ -388,8 +388,10 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		filterMode = models.FilterModeMention
 	case "review_requested":
 		filterMode = models.FilterModeReviewRequested
-	case "your_repositories": // filterMode already set to All
+	case "your_repositories":
+		fallthrough
 	default:
+		filterMode = models.FilterModeYourRepositories
 		viewType = "your_repositories"
 	}
 
@@ -419,6 +421,30 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		User:       ctx.Doer,
 	}
 
+	// Search all repositories which
+	//
+	// As user:
+	// - Owns the repository.
+	// - Have collaborator permissions in repository.
+	//
+	// As org:
+	// - Owns the repository.
+	//
+	// As team:
+	// - Team org's owns the repository.
+	// - Team has read permission to repository.
+	repoOpts := &models.SearchRepoOptions{
+		Actor:      ctx.Doer,
+		OwnerID:    ctx.Doer.ID,
+		Private:    true,
+		AllPublic:  false,
+		AllLimited: false,
+	}
+
+	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+		repoOpts.TeamID = ctx.Org.Team.ID
+	}
+
 	switch filterMode {
 	case models.FilterModeAll:
 	case models.FilterModeAssign:
@@ -429,6 +455,19 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
+	case models.FilterModeYourRepositories:
+		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
+			// Fixes a issue whereby the user's ID would be used
+			// to check if it's in the team(which possible isn't the case).
+			opts.User = nil
+		}
+		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
+		if err != nil {
+			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
+			return
+		}
+
+		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -560,8 +599,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if len(repoIDs) > 0 {
-			statsOpts.RepoIDs = repoIDs
+		if filterMode == models.FilterModeYourRepositories {
+			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
+		}
+		// Detect when we only should search by team.
+		if opts.User == nil {
+			statsOpts.UserID = 0
 		}
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
