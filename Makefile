@@ -25,7 +25,8 @@ HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
 XGO_VERSION := go-1.18.x
-MIN_GO_VERSION := 001017000
+MIN_GO_VERSION_STR := $(shell cat go.mod | grep -Eo '^go\s+[0-9]+\.[0-9.]+' | cut -d' ' -f2)
+MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' '))
 MIN_NODE_VERSION := 012017000
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
@@ -205,7 +206,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.17 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
