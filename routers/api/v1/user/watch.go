@@ -61,7 +61,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	user := GetUserByParams(ctx)
-	private := user.ID == ctx.User.ID
+	private := user.ID == ctx.Doer.ID
 	repos, total, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
@@ -91,7 +91,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, total, err := getWatchedRepos(ctx.User, true, utils.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(ctx.Doer, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
@@ -123,7 +123,7 @@ func IsWatching(ctx *context.APIContext) {
 	//   "404":
 	//     description: User is not watching this repo or repo do not exist
 
-	if repo_model.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsWatching(ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
@@ -157,7 +157,7 @@ func Watch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
 
-	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -192,7 +192,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := repo_model.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return

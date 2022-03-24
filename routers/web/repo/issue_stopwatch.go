@@ -23,16 +23,16 @@ func IssueStopwatch(c *context.Context) {
 
 	var showSuccessMessage bool
 
-	if !models.StopwatchExists(c.User.ID, issue.ID) {
+	if !models.StopwatchExists(c.Doer.ID, issue.ID) {
 		showSuccessMessage = true
 	}
 
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(c.User, issue); err != nil {
+	if err := models.CreateOrStopIssueStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -51,12 +51,12 @@ func CancelStopwatch(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := models.CancelStopwatch(c.User, issue); err != nil {
+	if err := models.CancelStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
 	}
@@ -87,7 +87,7 @@ func GetActiveStopwatch(c *context.Context) {
 		return
 	}
 
-	_, sw, err := models.HasUserStopwatch(c.User.ID)
+	_, sw, err := models.HasUserStopwatch(c.Doer.ID)
 	if err != nil {
 		c.ServerError("HasUserStopwatch", err)
 		return

@@ -127,7 +127,7 @@ func CherryPickPost(ctx *context.Context) {
 
 	// First lets try the simple plain read-tree -m approach
 	opts.Content = sha
-	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.User, form.Revert, opts); err != nil {
+	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Doer, form.Revert, opts); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
 			branchErr := err.(models.ErrBranchAlreadyExists)
@@ -164,7 +164,7 @@ func CherryPickPost(ctx *context.Context) {
 		opts.Content = buf.String()
 		ctx.Data["FileContent"] = opts.Content
 
-		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
+		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
 			if models.IsErrBranchAlreadyExists(err) {
 				// User has specified a branch that already exists
 				branchErr := err.(models.ErrBranchAlreadyExists)

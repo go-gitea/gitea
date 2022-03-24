@@ -92,7 +92,7 @@ func ListUserTeams(ctx *context.APIContext) {
 
 	teams, count, err := models.GetUserTeams(&models.GetUserTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		UserID:      ctx.User.ID,
+		UserID:      ctx.Doer.ID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
@@ -368,11 +368,11 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	isMember, err := models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID)
+	isMember, err := models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.Doer.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 		return
-	} else if !isMember && !ctx.User.IsAdmin {
+	} else if !isMember && !ctx.Doer.IsAdmin {
 		ctx.NotFound()
 		return
 	}
@@ -385,7 +385,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(ctx.Org.Team.Members))
 	for i, member := range ctx.Org.Team.Members {
-		members[i] = convert.ToUser(member, ctx.User)
+		members[i] = convert.ToUser(member, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
@@ -430,7 +430,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.Doer))
 }
 
 // AddTeamMember api for add a member to a team
@@ -540,7 +540,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(team.Repos))
 	for i, repo := range team.Repos {
-		access, err := models.AccessLevel(ctx.User, repo)
+		access, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
@@ -599,7 +599,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -649,7 +649,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
+	if access, err := models.AccessLevel(ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {

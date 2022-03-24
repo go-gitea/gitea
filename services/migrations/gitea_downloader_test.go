@@ -25,7 +25,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}
 
 	resp, err := http.Get("https://gitea.com/gitea")
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
 

@@ -36,7 +36,7 @@ func TestUserDeleteAccount(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	assertUserDeleted(t, 8)
 	unittest.CheckConsistencyFor(t, &user_model.User{})
@@ -51,7 +51,7 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
 		"_csrf": csrf,
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// user should not have been deleted, because the user still owns repos
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

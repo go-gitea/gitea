@@ -107,7 +107,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,

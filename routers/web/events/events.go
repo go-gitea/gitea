@@ -43,7 +43,7 @@ func Events(ctx *context.Context) {
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 
-	uid := ctx.User.ID
+	uid := ctx.Doer.ID
 
 	messageChan := eventsource.GetManager().Register(uid)
 
@@ -75,7 +75,7 @@ loop:
 			}
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
@@ -112,7 +112,7 @@ loop:
 
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
