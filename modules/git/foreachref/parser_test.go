@@ -5,7 +5,6 @@
 package foreachref_test
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
+	"code.gitea.io/gitea/modules/json"
 	"github.com/stretchr/testify/require"
 )
 
@@ -176,8 +176,6 @@ func Test(t *testing.T) {
 			wantErr:     true,
 			expectedErr: errors.New("unexpected number of reference fields: wanted 2, was 3"),
 		},
-
-		// TODO errors: unexpected order of fields in input
 
 		{
 			name: "must fail input fields don't match expected format",
