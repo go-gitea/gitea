@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git/foreachref"
 	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/require"
 )
 
