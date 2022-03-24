@@ -5,9 +5,12 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 // Event represents a logging event
@@ -34,6 +37,7 @@ type EventLogger interface {
 
 // ChannelledLog represents a cached channel to a LoggerProvider
 type ChannelledLog struct {
+	parent         string
 	name           string
 	provider       string
 	queue          chan *Event
@@ -44,9 +48,10 @@ type ChannelledLog struct {
 }
 
 // NewChannelledLog a new logger instance with given logger provider and config.
-func NewChannelledLog(name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
+func NewChannelledLog(parent, name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
 	if log, ok := providers[provider]; ok {
 		l := &ChannelledLog{
+			parent: parent,
 			queue:  make(chan *Event, bufferLength),
 			flush:  make(chan bool),
 			close:  make(chan bool),
@@ -66,6 +71,8 @@ func NewChannelledLog(name, provider, config string, bufferLength int64) (*Chann
 
 // Start processing the ChannelledLog
 func (l *ChannelledLog) Start() {
+	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s.%s(%s)", l.parent, l.name, l.provider), process.SystemProcessType)
+	defer cancel()
 	for {
 		select {
 		case event, ok := <-l.queue:
@@ -277,6 +284,9 @@ func (m *MultiChannelledLog) Start() {
 		m.rwmutex.Unlock()
 		return
 	}
+	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", m.name), process.SystemProcessType)
+	defer cancel()
+
 	m.started = true
 	m.rwmutex.Unlock()
 	paused := false

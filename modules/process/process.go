@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+var (
+	SystemProcessType  = "system"
+	RequestProcessType = "request"
+	NormalProcessType  = "normal"
+)
+
 // Process represents a working process inheriting from Gitea.
 type Process struct {
 	PID         IDType // Process ID, not system one.
@@ -17,6 +23,7 @@ type Process struct {
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
+	Type        string
 
 	lock     sync.Mutex
 	children []*Process

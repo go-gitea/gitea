@@ -16,7 +16,7 @@
 						<div class="df ac">
 							<div class="content f1">
 								<details><summary>
-								<div class="dif header ml-3">{{if index .Label "process-description"}}<span class="icon mr-3">{{svg "octicon-terminal" 16 }}</span><div class="mr-3">{{index (index .Label "process-description") 0}} ({{index (index .Label "pid") 0 }})</div>{{else}}<span class="icon mr-3">{{svg "octicon-cpu" 16 }}</span><div class="mr-3"><code>{{(index (index .Location (Subtract (len .Location) 1)).Line 0).Function.Name}}</code></div>{{end}}{{if gt (index .Value 0) 1}}<div class="mr-3"> * {{index .Value 0}}</div>{{end}}</div>
+								<div class="dif header ml-3" style="max-width: 95%">{{if index .Label "process-description"}}<span class="icon mr-3">{{if eq (index (index .Label "process-type") 0) "request"}}{{svg "octicon-globe" 16 }}{{else if eq (index (index .Label "process-type") 0) "system"}}{{svg "octicon-cpu" 16 }}{{else}}{{svg "octicon-terminal" 16 }}{{end}}</span><div class="mr-3">{{index (index .Label "process-description") 0}}</div>{{else}}<span class="icon mr-3">{{svg "octicon-code" 16 }}</span><div class="mr-3"><code>{{(index (index .Location (Subtract (len .Location) 1)).Line 0).Function.Name}}</code></div>{{end}}{{if gt (index .Value 0) 1}}<div class="mr-3"> * {{index .Value 0}}</div>{{end}}</div>
 									{{range $key, $value := .Label}}
 										{{if ne $key "process-description" }}
 										<div class="ui label">{{$key}}<div class="detail">{{index $value 0}}</div></div>

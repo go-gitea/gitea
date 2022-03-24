@@ -335,16 +335,6 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 
-	reader, writer := io.Pipe()
-	defer reader.Close()
-	go func() {
-		err := pprof.Lookup("goroutine").WriteTo(writer, 0)
-		writer.CloseWithError(err)
-	}()
-	p, err := profile.Parse(reader)
-	jP, _ := json.MarshalIndent(p, "", "  ")
-	log.Info("%v, %v", string(jP), err)
-
 	ctx.HTML(http.StatusOK, tplMonitor)
 }
 
@@ -358,7 +348,7 @@ func GoroutineStacktrace(ctx *context.Context) {
 	defer reader.Close()
 	go func() {
 		err := pprof.Lookup("goroutine").WriteTo(writer, 0)
-		writer.CloseWithError(err)
+		_ = writer.CloseWithError(err)
 	}()
 	p, err := profile.Parse(reader)
 	if err != nil {
