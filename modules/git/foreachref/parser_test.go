@@ -18,7 +18,7 @@ import (
 
 type refSlice = []map[string]string
 
-func Test(t *testing.T) {
+func TestParser(t *testing.T) {
 	tests := []struct {
 		name string
 
