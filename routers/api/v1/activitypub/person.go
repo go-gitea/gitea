@@ -35,6 +35,9 @@ func Person(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ActivityPub"
 
 	user := user.GetUserByParamsName(ctx, "username")
+	if user == nil {
+	    return
+	}
 	username := ctx.Params("username")
 
 	person := streams.NewActivityStreamsPerson()

@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/modules/activitypub"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -99,7 +100,7 @@ func fetch(iri *url.URL) (b []byte, err error) {
 	if err != nil {
 		return
 	}
-	req.Header.Add("Date", fmt.Sprintf("%s GMT", clock.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05")))
+	req.Header.Add("Date", fmt.Sprintf("%s GMT", clock.Now().UTC().Format(time.RFC1123)))
 	var resp *http.Response
 	client := &http.Client{}
 	resp, err = client.Do(req)

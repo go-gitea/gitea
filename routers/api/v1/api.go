@@ -599,9 +599,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
-				m.Group("/user/{username}", func() {
-					m.Get("", activitypub.Person)
-				})
+				m.Get("/user/{username}", activitypub.Person)
 				m.Post("/user/{username}/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
 			})
 		}
