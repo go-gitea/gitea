@@ -17,7 +17,7 @@ func addPRReviewedFiles(x *xorm.Engine) error {
 		UserID      int64                        `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
 		ViewedFiles map[string]pulls.ViewedState `xorm:"TEXT JSON"`
 		CommitSHA   string                       `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-		PullID      int64                        `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+		PullID      int64                        `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"`
 		UpdatedUnix timeutil.TimeStamp           `xorm:"updated"`
 	}
 

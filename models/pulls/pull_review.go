@@ -21,10 +21,10 @@ const (
 type PRReview struct {
 	ID          int64                  `xorm:"pk autoincr"`
 	UserID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-	ViewedFiles map[string]ViewedState `xorm:"TEXT JSON"`                         // Stores for each of the changed files of a PR whether they have been viewed, changed, or not viewed
-	CommitSHA   string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
-	PullID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"` // Which PR was the review on?
-	UpdatedUnix timeutil.TimeStamp     `xorm:"updated"`                           // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
+	ViewedFiles map[string]ViewedState `xorm:"TEXT JSON"`                                   // Stores for each of the changed files of a PR whether they have been viewed, changed, or not viewed
+	CommitSHA   string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"`           // Which commit was the head commit for the review?
+	PullID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
+	UpdatedUnix timeutil.TimeStamp     `xorm:"updated"`                                     // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
 
 func init() {

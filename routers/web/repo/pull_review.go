@@ -288,7 +288,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		headCommitSHA = pull.HeadCommitID
 	}
 
-	if err := pulls.UpdateReview(ctx.User.ID, pull.ID, headCommitSHA, updatedFiles); err != nil {
+	if err := pulls.UpdateReview(ctx.Doer.ID, pull.ID, headCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }
