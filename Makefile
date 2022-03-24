@@ -212,7 +212,7 @@ go-check:
 		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
 		exit 1; \
 	fi
-	@echo "checked whether go matches min version: $(MIN_GO_VERSION_STR)"
+	@echo "checked go matches min version: $(MIN_GO_VERSION_STR)"
 
 .PHONY: git-check
 git-check:
