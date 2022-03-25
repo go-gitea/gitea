@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -165,6 +167,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Indexer
 	go func() {
+		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "IssueIndexer", process.SystemProcessType, true)
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var populate bool
@@ -193,11 +196,13 @@ func InitIssueIndexer(syncReindex bool) {
 				if issueIndexer != nil {
 					issueIndexer.Close()
 				}
+				finished()
 				log.Info("PID: %d Issue Indexer closed", os.Getpid())
 			})
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
 			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(func())) {
+				pprof.SetGoroutineLabels(ctx)
 				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 				if err != nil {
 					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
@@ -208,10 +213,12 @@ func InitIssueIndexer(syncReindex bool) {
 				}
 				populate = !exist
 				holder.set(issueIndexer)
+				atTerminate(finished)
 			})
 		case "db":
 			issueIndexer := &DBIndexer{}
 			holder.set(issueIndexer)
+			graceful.GetManager().RunAtTerminate(finished)
 		default:
 			holder.cancel()
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
@@ -272,6 +279,8 @@ func InitIssueIndexer(syncReindex bool) {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer(ctx context.Context) {
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "PopulateIssueIndexer", process.SystemProcessType, true)
+	defer finished()
 	for page := 1; ; page++ {
 		select {
 		case <-ctx.Done():
