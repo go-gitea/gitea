@@ -380,7 +380,7 @@ var migrations = []Migration{
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
 
 	// v212 -> v213
-	NewMigration("Add new safe mirror option", addColorColToMirror),
+	NewMigration("Add safe mirrors", addEnableSafeMirrorColToMirror),
 }
 
 // GetCurrentDBVersion returns the current db version

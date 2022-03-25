@@ -45,10 +45,10 @@ func getGitCommandStdoutStderr(ctx context.Context, m *repo_model.Mirror, gitArg
 		stderrMessage := sanitizer.Replace(stderr)
 		stdoutMessage := sanitizer.Replace(stdout)
 		log.Error("CreateRepositoryNotice: %v", err)
-		desc := fmt.Sprintf("Failed to get mirror repository can update '%s': %s", newRepoPath, stderrMessage)
-		log.Error("GetMirrorCanUpdate [repo: %-v]: failed to get mirror repository can update:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+		log.Error("getGitCommandStdoutStderr [repo: %-v]: failed to check if mirror can be updated:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+		desc := fmt.Sprintf("Failed to check if mirror '%s' can be updated: %s", newRepoPath, stderrMessage)
 		if err = admin_model.CreateRepositoryNotice(desc); err != nil {
-			log.Error("GetMirrorCanUpdateNotice: %v", err)
+			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
 	stdoutRepoCommitCount := stdoutBuilder.String()
@@ -137,6 +137,13 @@ func detectCanUpdateMirror(ctx context.Context, m *repo_model.Mirror, gitArgs []
 
 	// do copy directory recursive
 	err := util.CopyDir(repoPath, newRepoPath)
+	defer func() {
+		// delete the temp directory
+		errDelete := util.RemoveAll(newRepoPath)
+		if errDelete != nil {
+			log.Error("DeleteRepositoryTempDirectoryError: %v", errDelete)
+		}
+	}()
 	if err != nil {
 		log.Error("GetMirrorCanUpdate [repo: %-v]: CopyDirectory Error %v", m.Repo, err)
 		return false, err

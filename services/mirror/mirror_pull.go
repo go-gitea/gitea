@@ -190,7 +190,6 @@ func pruneBrokenReferences(ctx context.Context,
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
-	safeMirror := m.EnableSafeMirror
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
@@ -205,21 +204,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
 	}
 
-	if safeMirror {
+	if m.EnableSafeMirror {
 		// detect can safe mirror
 		canUpdate, err := detectCanUpdateMirror(ctx, m, gitArgs)
-		newRepoPath := fmt.Sprintf("%s_update", repoPath)
-		// delete the temp directory
-		errDelete := util.RemoveAll(newRepoPath)
-		if errDelete != nil {
-			log.Error("DeleteRepositoryTempDirectoryError: %v", errDelete)
-		}
 		if err != nil {
 			log.Error("CheckRepositoryCanSafeMirrorError: %v", err)
 		}
 		// can not safe mirror
 		if !canUpdate {
-			log.Error("CheckSyncMirrors [repo: %-v]: can not safe mirror...", m.Repo)
+			log.Error("CheckSyncMirrors [repo: %-v]: cannot sync safe mirror...", m.Repo)
 			return nil, false
 		}
 	}
