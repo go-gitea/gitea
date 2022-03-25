@@ -6,12 +6,14 @@ package queue
 
 import (
 	"context"
+	"fmt"
 	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -23,6 +25,7 @@ type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
+	baseCtxFinished    process.FinishedFunc
 	paused             chan struct{}
 	resumed            chan struct{}
 	cond               *sync.Cond
@@ -45,6 +48,7 @@ var (
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
 type WorkerPoolConfiguration struct {
+	Name         string
 	QueueLength  int
 	BatchLength  int
 	BlockTimeout time.Duration
@@ -55,12 +59,13 @@ type WorkerPoolConfiguration struct {
 
 // NewWorkerPool creates a new worker pool
 func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPool {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Queue: %s", config.Name), process.SystemProcessType, false)
 
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
+		baseCtxFinished:    finished,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		resumed:            closedChan,
