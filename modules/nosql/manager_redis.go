@@ -61,7 +61,7 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 	}
 
 	opts := getRedisOptions(uri)
-	tlsConfig := getRedisTlsOptions(uri)
+	tlsConfig := getRedisTLSOptions(uri)
 
 	clientName := uri.Query()["clientname"]
 
@@ -220,7 +220,7 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 
 // getRedisTlsOptions parses RedisUri TLS configuration parameters and converts them to the go TLS configuration
 // equivalent fields.
-func getRedisTlsOptions(uri *url.URL) *tls.Config {
+func getRedisTLSOptions(uri *url.URL) *tls.Config {
 	tlsConfig := &tls.Config{}
 
 	skipverify := uri.Query()["skipverify"]
