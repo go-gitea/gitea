@@ -102,6 +102,8 @@ var (
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
+	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
+
 	waitChannel := make(chan time.Duration)
 
 	// Create the Queue
@@ -167,7 +169,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Indexer
 	go func() {
-		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, true)
+		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var populate bool
@@ -258,6 +260,7 @@ func InitIssueIndexer(syncReindex bool) {
 		}
 	} else if setting.Indexer.StartupTimeout > 0 {
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			timeout := setting.Indexer.StartupTimeout
 			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime

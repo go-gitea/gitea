@@ -7,15 +7,20 @@ package cron
 
 import (
 	"context"
+	"runtime/pprof"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/sync"
 
 	"github.com/gogs/cron"
 )
 
-var c = cron.New()
+var (
+	c           = cron.New()
+	cronContext context.Context
+)
 
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
@@ -23,7 +28,9 @@ var taskStatusTable = sync.NewStatusTable()
 // NewContext begins cron tasks
 // Each cron task is run within the shutdown context as a running server
 // AtShutdown the cron server is stopped
-func NewContext() {
+func NewContext(original context.Context) {
+	defer pprof.SetGoroutineLabels(original)
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
 	initExtendedTasks()
 
@@ -42,6 +49,7 @@ func NewContext() {
 		lock.Lock()
 		started = false
 		lock.Unlock()
+		finished()
 	})
 }
 
