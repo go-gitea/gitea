@@ -3,12 +3,12 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="registry-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.registry"}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="conan remote add gitea {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conan">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>conan remote add gitea {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/conan</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="conan install --remote=gitea {{.PackageDescriptor.Package.Name}}/{{.PackageDescriptor.Version.Version}}">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.conan.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>conan install --remote=gitea {{.PackageDescriptor.Package.Name}}/{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.conan.documentation" | Safe}}</label>

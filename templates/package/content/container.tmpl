@@ -3,15 +3,15 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="pull-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.container.pull"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.container.pull"}}</label>
 				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
-					<input id="pull-input" type="text" readonly="readonly" value="helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}">
+				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{else}}
 					{{$seperator := ":"}}
 					{{if not .PackageDescriptor.Metadata.IsTagged}}
 						{{$seperator = "@"}}
 					{{end}}
-					<input id="oci-pull-input" type="text" readonly="readonly" value="docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$seperator}}{{.PackageDescriptor.Version.LowerVersion}}">
+					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$seperator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{end}}
 			</div>
 			<div class="field">
@@ -25,9 +25,9 @@
 			<div class="ui form">
 			{{range $arch, $digest := .PackageDescriptor.Metadata.MultiArch}}
 				<div class="field">
-					<label for="{{$arch}}-input">{{svg "octicon-terminal"}} {{$arch}}</label>
+					<label>{{svg "octicon-terminal"}} {{$arch}}</label>
 					{{if eq $.PackageDescriptor.Metadata.Type "oci"}}
-						<input id="{{$arch}}-input" type="text" readonly="readonly" value="docker pull {{$.RegistryHost}}/{{$.PackageDescriptor.Owner.LowerName}}/{{$.PackageDescriptor.Package.LowerName}}@{{$digest}}">
+					<div class="markup"><pre class="code-block"><code>docker pull {{$.RegistryHost}}/{{$.PackageDescriptor.Owner.LowerName}}/{{$.PackageDescriptor.Package.LowerName}}@{{$digest}}</code></pre></div>
 					{{end}}
 				</div>
 			{{end}}

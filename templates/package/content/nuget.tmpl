@@ -3,12 +3,12 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="registry-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.registry"}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="dotnet nuget add source --name Gitea --username your_username --password your_token {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.registry"}}</label>
+				<div class="markup"><pre class="code-block"><code>dotnet nuget add source --name Gitea --username your_username --password your_token {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/nuget/index.json</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="dotnet add package --source Gitea --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.nuget.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>dotnet add package --source Gitea --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.nuget.documentation" | Safe}}</label>

@@ -3,8 +3,8 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.pypi.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="pip install --extra-index-url {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple {{.PackageDescriptor.Package.Name}}">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.pypi.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>pip install --extra-index-url {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple {{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.pypi.documentation" | Safe}}</label>

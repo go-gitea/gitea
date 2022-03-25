@@ -3,18 +3,18 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.composer.registry" | Safe}}</label>
-				<textarea id="registry-input" readonly="readonly" rows="7">{
+				<label>{{svg "octicon-code"}} {{.i18n.Tr "packages.composer.registry" | Safe}}</label>
+				<div class="markup"><pre class="code-block"><code>{
 	"repositories": [{
 			"type": "composer",
 			"url": "{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/composer"
 		}
 	]
-}</textarea>
+}</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.composer.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="composer require {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}}">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.composer.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>composer require {{.PackageDescriptor.Package.Name}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.composer.documentation" | Safe}}</label>

@@ -3,41 +3,41 @@
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.maven.registry" | Safe}}</label>
-				<textarea id="registry-input" readonly="readonly" rows="18"><repositories>
-	<repository>
-		<id>gitea</id>
-		<url>{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven</url>
-	</repository>
-</repositories>
+				<label>{{svg "octicon-code"}} {{.i18n.Tr "packages.maven.registry" | Safe}}</label>
+				<div class="markup"><pre class="code-block"><code>&lt;repositories&gt;
+	&lt;repository&gt;
+		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;url&gt;{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
+	&lt;/repository&gt;
+&lt;/repositories&gt;
 
-<distributionManagement>
-	<repository>
-		<id>gitea</id>
-		<url>{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven</url>
-	</repository>
+&lt;distributionManagement&gt;
+	&lt;repository&gt;
+		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;url&gt;{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
+	&lt;/repository&gt;
 
-	<snapshotRepository>
-		<id>gitea</id>
-		<url>{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven</url>
-	</snapshotRepository>
-</distributionManagement></textarea>
+	&lt;snapshotRepository&gt;
+		&lt;id&gt;gitea&lt;/id&gt;
+		&lt;url&gt;{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven&lt;/url&gt;
+	&lt;/snapshotRepository&gt;
+&lt;/distributionManagement&gt;</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="pom-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.maven.install" | Safe}}</label>
-				<textarea id="pom-input" readonly="readonly" rows="5"><dependency>
-	<groupId>{{.PackageDescriptor.Metadata.GroupID}}</groupId>
-	<artifactId>{{.PackageDescriptor.Metadata.ArtifactID}}</artifactId>
-	<version>{{.PackageDescriptor.Version.Version}}</version>
-</dependency></textarea>
+				<label>{{svg "octicon-code"}} {{.i18n.Tr "packages.maven.install" | Safe}}</label>
+				<div class="markup"><pre class="code-block"><code>&lt;dependency&gt;
+	&lt;groupId&gt;{{.PackageDescriptor.Metadata.GroupID}}&lt;/groupId&gt;
+	&lt;artifactId&gt;{{.PackageDescriptor.Metadata.ArtifactID}}&lt;/artifactId&gt;
+	&lt;version&gt;{{.PackageDescriptor.Version.Version}}&lt;/version&gt;
+&lt;/dependency&gt;</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.maven.install2"}}</label>
-				<input id="command-input" type="text" readonly="readonly" value="mvn install">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.maven.install2"}}</label>
+				<div class="markup"><pre class="code-block"><code>mvn install</code></pre></div>
 			</div>
 			<div class="field">
-				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.maven.download"}}</label>
-				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -DremoteRepositories={{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven -Dartifact={{.PackageDescriptor.Metadata.GroupID}}:{{.PackageDescriptor.Metadata.ArtifactID}}:{{.PackageDescriptor.Version.Version}}">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.maven.download"}}</label>
+				<div class="markup"><pre class="code-block"><code>mvn dependency:get -DremoteRepositories={{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/maven -Dartifact={{.PackageDescriptor.Metadata.GroupID}}:{{.PackageDescriptor.Metadata.ArtifactID}}:{{.PackageDescriptor.Version.Version}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.maven.documentation" | Safe}}</label>
