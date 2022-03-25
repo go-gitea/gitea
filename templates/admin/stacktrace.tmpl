@@ -4,43 +4,15 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.monitor.stacktrace"}}
+			{{.i18n.Tr "admin.monitor.stacktrace"}}: {{.i18n.Tr "admin.monitor.goroutines" .GoroutineCount}}
 			<div class="ui right">
 				<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/monitor">{{.i18n.Tr "admin.monitor"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui relaxed divided list">
-				{{range .Profile.Sample}}
-					<div class="item">
-						<div class="df ac">
-							<div class="content f1">
-								<details><summary>
-								<div class="dif header ml-3" style="max-width: 95%">{{if index .Label "process-description"}}<span class="icon mr-3">{{if eq (index (index .Label "process-type") 0) "request"}}{{svg "octicon-globe" 16 }}{{else if eq (index (index .Label "process-type") 0) "system"}}{{svg "octicon-cpu" 16 }}{{else}}{{svg "octicon-terminal" 16 }}{{end}}</span><div class="mr-3">{{index (index .Label "process-description") 0}}</div>{{else}}<span class="icon mr-3">{{svg "octicon-code" 16 }}</span><div class="mr-3"><code>{{(index (index .Location (Subtract (len .Location) 1)).Line 0).Function.Name}}</code></div>{{end}}{{if gt (index .Value 0) 1}}<div class="mr-3"> * {{index .Value 0}}</div>{{end}}</div>
-									{{range $key, $value := .Label}}
-										{{if ne $key "process-description" }}
-										<div class="ui label">{{$key}}<div class="detail">{{index $value 0}}</div></div>
-										{{end}}
-									{{end}}
-								</summary>
-
-								<div class="list">
-									{{range .Location}}
-										<div class="item df ac">
-											<span class="icon mr-4">{{svg "octicon-dot-fill" 16 }}</span>
-											<div class="content f1">
-												<div class="header"><code>{{(index .Line 0).Function.Name}}</code></div>
-												<div class="description"><code>{{(index .Line 0).Function.Filename}}:{{(index .Line 0).Line}}</code></div>
-											</div>
-										</div>
-									{{end}}
-								</div>
-								</details>
-							</div>
-							<div>
-							</div>
-						</div>
-					</div>
+				{{range .ProcessStacks}}
+					{{template "admin/stacktrace-row" dict "Process" . "root" $}}
 				{{end}}
 			</div>
 		</div>

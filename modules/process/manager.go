@@ -30,6 +30,18 @@ var (
 	DefaultContext = context.Background()
 )
 
+// DescriptionPProfLabel is a label set on goroutines that have a process attached
+const DescriptionPProfLabel = "process-description"
+
+// PIDPProfLabel is a label set on goroutines that have a process attached
+const PIDPProfLabel = "pid"
+
+// PPIDPProfLabel is a label set on goroutines that have a process attached
+const PPIDPProfLabel = "ppid"
+
+// ProcessTypePProfLabel is a label set on goroutines that have a process attached
+const ProcessTypePProfLabel = "process-type"
+
 // IDType is a pid type
 type IDType string
 
@@ -148,7 +160,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
-	pprofCtx := pprof.WithLabels(ctx, pprof.Labels("process-description", description, "ppid", string(parentPID), "pid", string(pid), "process-type", processType))
+	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
 	pprof.SetGoroutineLabels(pprofCtx)
 
 	return pprofCtx, pid, finished
@@ -206,12 +218,12 @@ func (pm *Manager) Cancel(pid IDType) {
 }
 
 // Processes gets the processes in a thread safe manner
-func (pm *Manager) Processes(onlyRoots bool) []*Process {
+func (pm *Manager) Processes(onlyRoots, noSystem bool, runInLock func()) []*Process {
 	pm.mutex.Lock()
 	processes := make([]*Process, 0, len(pm.processes))
 	if onlyRoots {
 		for _, process := range pm.processes {
-			if process.Type == SystemProcessType {
+			if noSystem && process.Type == SystemProcessType {
 				continue
 			}
 			if parent, has := pm.processes[process.ParentPID]; !has || parent.Type == SystemProcessType {
@@ -220,8 +232,14 @@ func (pm *Manager) Processes(onlyRoots bool) []*Process {
 		}
 	} else {
 		for _, process := range pm.processes {
+			if noSystem && process.Type == SystemProcessType {
+				continue
+			}
 			processes = append(processes, process)
 		}
+	}
+	if runInLock != nil {
+		runInLock()
 	}
 	pm.mutex.Unlock()
 
