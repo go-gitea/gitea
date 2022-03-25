@@ -13,7 +13,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -228,7 +227,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -282,7 +281,7 @@ func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind w
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -334,7 +333,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -377,7 +376,7 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -429,7 +428,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -484,7 +483,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -527,7 +526,7 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -587,7 +586,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -630,7 +629,7 @@ func FeishuHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -674,7 +673,7 @@ func WechatworkHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -727,7 +726,7 @@ func PackagistHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -1243,7 +1242,7 @@ func TestWebhook(ctx *context.Context) {
 	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByID: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -1287,10 +1286,10 @@ func TestWebhook(ctx *context.Context) {
 	}
 	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 

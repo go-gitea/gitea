@@ -389,6 +389,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
+		"DotEscape":   DotEscape,
 	}}
 }
 
@@ -640,6 +641,11 @@ func Escape(raw string) string {
 // JSEscape escapes a JS string
 func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
+}
+
+// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
+func DotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // Sha1 returns sha1 sum of string

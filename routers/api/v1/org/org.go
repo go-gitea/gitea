@@ -346,7 +346,7 @@ func Edit(ctx *context.APIContext) {
 	if form.RepoAdminChangeTeamAccess != nil {
 		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
 	}
-	if err := user_model.UpdateUserCols(db.DefaultContext, org.AsUser(),
+	if err := user_model.UpdateUserCols(ctx, org.AsUser(),
 		"full_name", "description", "website", "location",
 		"visibility", "repo_admin_change_team_access",
 	); err != nil {

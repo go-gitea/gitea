@@ -16,7 +16,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -463,7 +462,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 				log.Error("Unable to update nonce: %v", err)
 			}
 		}
-		ctx.Redirect(redirect.String(), 302)
+		ctx.Redirect(redirect.String())
 		return
 	}
 
@@ -545,7 +544,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
@@ -753,7 +752,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	if redirectURI == "" {
 		log.Warn("Authorization failed: %v", authErr.ErrorDescription)
 		ctx.Data["Error"] = authErr
-		ctx.HTML(400, tplGrantError)
+		ctx.HTML(http.StatusBadRequest, tplGrantError)
 		return
 	}
 	redirect, err := url.Parse(redirectURI)
@@ -766,7 +765,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("error_description", authErr.ErrorDescription)
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // SignInOAuth handles the OAuth2 login buttons
@@ -1021,7 +1020,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			cols = append(cols, "is_admin", "is_restricted")
 		}
 
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, cols...); err != nil {
+		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -1048,7 +1047,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 	changed := setUserGroupClaims(source, u, &gothUser)
 	if changed {
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_restricted"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}

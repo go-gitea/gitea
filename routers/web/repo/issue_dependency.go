@@ -35,7 +35,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL())
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -125,5 +125,5 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }

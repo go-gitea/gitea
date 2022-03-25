@@ -18,7 +18,7 @@ const tplSearch base.TplName = "repo/search"
 // Search render repository search page
 func Search(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(ctx.Repo.RepoLink, 302)
+		ctx.Redirect(ctx.Repo.RepoLink)
 		return
 	}
 	language := ctx.FormTrim("l")

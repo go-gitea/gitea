@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,7 +255,7 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
 	}
@@ -273,7 +272,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = templateRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
@@ -336,12 +335,12 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(db.DefaultContext); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return
 	}
@@ -442,6 +441,26 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Repo.Owner = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.ContextUser = owner
+
+	// redirect link to wiki
+	if strings.HasSuffix(repoName, ".wiki") {
+		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
+		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
+		originalRepoName := ctx.Params(":reponame")
+		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
+		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
+		redirectPath := strings.Replace(
+			ctx.Req.URL.EscapedPath(),
+			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
+			1,
+		)
+		if ctx.Req.URL.RawQuery != "" {
+			redirectPath += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+		return
+	}
 
 	// Get repository.
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
