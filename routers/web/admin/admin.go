@@ -471,7 +471,7 @@ func GoroutineStacktrace(ctx *context.Context) {
 			processStack, ok = pidMap[""]
 			if !ok {
 				processStack = &ProcessStack{
-					Description: "(unknown)",
+					Description: "(unbound)",
 					Type:        "code",
 				}
 				pidMap[processStack.PID] = processStack
@@ -490,7 +490,7 @@ func GoroutineStacktrace(ctx *context.Context) {
 				stack.Entry = append(stack.Entry, entry)
 			}
 		}
-		stack.Description = "(others)"
+		stack.Description = "(unknown)"
 		if len(stack.Entry) > 0 {
 			stack.Description = stack.Entry[len(stack.Entry)-1].Function
 		}
