@@ -26,7 +26,7 @@ func (m *Manager) Init() {
 
 // Run runs the manager within a provided context
 func (m *Manager) Run(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "EventSource", process.SystemProcessType)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "EventSource", process.SystemProcessType, true)
 	defer finished()
 
 	then := timeutil.TimeStampNow().Add(-2)

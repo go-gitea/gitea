@@ -71,7 +71,7 @@ func NewChannelledLog(parent, name, provider, config string, bufferLength int64)
 
 // Start processing the ChannelledLog
 func (l *ChannelledLog) Start() {
-	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s.%s(%s)", l.parent, l.name, l.provider), process.SystemProcessType)
+	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s.%s(%s)", l.parent, l.name, l.provider), process.SystemProcessType, true)
 	defer cancel()
 	for {
 		select {
@@ -284,7 +284,7 @@ func (m *MultiChannelledLog) Start() {
 		m.rwmutex.Unlock()
 		return
 	}
-	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", m.name), process.SystemProcessType)
+	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", m.name), process.SystemProcessType, true)
 	defer cancel()
 
 	m.started = true

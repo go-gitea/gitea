@@ -113,7 +113,7 @@ func (g *Manager) start(ctx context.Context) {
 }
 
 func (g *Manager) handleSignals(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Graceful: HandleSignals", process.SystemProcessType)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Graceful: HandleSignals", process.SystemProcessType, true)
 	defer finished()
 
 	signalChannel := make(chan os.Signal, 1)

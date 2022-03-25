@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -299,6 +300,7 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 		p.numberOfWorkers++
 		p.lock.Unlock()
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			p.doWork(ctx)
 
 			p.lock.Lock()

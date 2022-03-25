@@ -81,7 +81,7 @@ func GetManager() *Manager {
 func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	ctx, cancel = context.WithCancel(parent)
 
-	ctx, pid, finished := pm.Add(ctx, description, cancel, NormalProcessType)
+	ctx, pid, finished := pm.Add(ctx, description, cancel, NormalProcessType, true)
 
 	return &Context{
 		Context: ctx,
@@ -97,10 +97,10 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddTypedContext(parent context.Context, description, processType string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
+func (pm *Manager) AddTypedContext(parent context.Context, description, processType string, currentlyRunning bool) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	ctx, cancel = context.WithCancel(parent)
 
-	ctx, pid, finished := pm.Add(ctx, description, cancel, processType)
+	ctx, pid, finished := pm.Add(ctx, description, cancel, processType, currentlyRunning)
 
 	return &Context{
 		Context: ctx,
@@ -119,7 +119,7 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	ctx, pid, finshed := pm.Add(ctx, description, cancel, NormalProcessType)
+	ctx, pid, finshed := pm.Add(ctx, description, cancel, NormalProcessType, true)
 
 	return &Context{
 		Context: ctx,
@@ -128,7 +128,7 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 }
 
 // Add create a new process
-func (pm *Manager) Add(ctx context.Context, description string, cancel context.CancelFunc, processType string) (context.Context, IDType, FinishedFunc) {
+func (pm *Manager) Add(ctx context.Context, description string, cancel context.CancelFunc, processType string, currentlyRunning bool) (context.Context, IDType, FinishedFunc) {
 	parentPID := GetParentPID(ctx)
 
 	pm.mutex.Lock()
@@ -148,10 +148,18 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 		Type:        processType,
 	}
 
-	finished := func() {
-		cancel()
-		pm.remove(process)
-		pprof.SetGoroutineLabels(ctx)
+	var finished FinishedFunc
+	if currentlyRunning {
+		finished = func() {
+			cancel()
+			pm.remove(process)
+			pprof.SetGoroutineLabels(ctx)
+		}
+	} else {
+		finished = func() {
+			cancel()
+			pm.remove(process)
+		}
 	}
 
 	if parent != nil {
@@ -161,7 +169,9 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 	pm.mutex.Unlock()
 
 	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
-	pprof.SetGoroutineLabels(pprofCtx)
+	if currentlyRunning {
+		pprof.SetGoroutineLabels(pprofCtx)
+	}
 
 	return pprofCtx, pid, finished
 }

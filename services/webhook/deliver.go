@@ -205,7 +205,7 @@ func DeliverHooks(ctx context.Context) {
 		return
 	default:
 	}
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "DeliverHooks", process.SystemProcessType)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "DeliverHooks", process.SystemProcessType, true)
 	defer finished()
 	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
