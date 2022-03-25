@@ -7,6 +7,7 @@ package nosql
 import (
 	"crypto/tls"
 	"path"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -141,57 +142,68 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 		}
 	}
 
-	switch uri.Scheme {
-	case "redis+sentinels":
-		fallthrough
-	case "rediss+sentinel":
-		opts.TLSConfig = tlsConfig
-		fallthrough
-	case "redis+sentinel":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
-			}
-		}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		pprof.SetGoroutineLabels(m.ctx)
 
-		client.UniversalClient = redis.NewFailoverClient(opts.Failover())
-	case "redis+clusters":
-		fallthrough
-	case "rediss+cluster":
-		opts.TLSConfig = tlsConfig
-		fallthrough
-	case "redis+cluster":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
+		switch uri.Scheme {
+		case "redis+sentinels":
+			fallthrough
+		case "rediss+sentinel":
+			opts.TLSConfig = tlsConfig
+			fallthrough
+		case "redis+sentinel":
+			if uri.Host != "" {
+				opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
 			}
-		}
-		client.UniversalClient = redis.NewClusterClient(opts.Cluster())
-	case "redis+socket":
-		simpleOpts := opts.Simple()
-		simpleOpts.Network = "unix"
-		simpleOpts.Addr = path.Join(uri.Host, uri.Path)
-		client.UniversalClient = redis.NewClient(simpleOpts)
-	case "rediss":
-		opts.TLSConfig = tlsConfig
-		fallthrough
-	case "redis":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
+			if uri.Path != "" {
+				if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
+					opts.DB = db
+				}
 			}
+
+			client.UniversalClient = redis.NewFailoverClient(opts.Failover()).WithContext(m.ctx)
+		case "redis+clusters":
+			fallthrough
+		case "rediss+cluster":
+			opts.TLSConfig = tlsConfig
+			fallthrough
+		case "redis+cluster":
+			if uri.Host != "" {
+				opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
+			}
+			if uri.Path != "" {
+				if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
+					opts.DB = db
+				}
+			}
+			client.UniversalClient = redis.NewClusterClient(opts.Cluster()).WithContext(m.ctx)
+		case "redis+socket":
+			simpleOpts := opts.Simple()
+			simpleOpts.Network = "unix"
+			simpleOpts.Addr = path.Join(uri.Host, uri.Path)
+			client.UniversalClient = redis.NewClient(simpleOpts).WithContext(m.ctx)
+		case "rediss":
+			opts.TLSConfig = tlsConfig
+			fallthrough
+		case "redis":
+			if uri.Host != "" {
+				opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
+			}
+			if uri.Path != "" {
+				if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
+					opts.DB = db
+				}
+			}
+			client.UniversalClient = redis.NewClient(opts.Simple()).WithContext(m.ctx)
+		default:
+			return
 		}
-		client.UniversalClient = redis.NewClient(opts.Simple())
-	default:
+	}()
+	<-done
+
+	if client.UniversalClient == nil {
 		return nil
 	}
 

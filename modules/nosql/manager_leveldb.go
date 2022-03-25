@@ -7,6 +7,7 @@ package nosql
 import (
 	"fmt"
 	"path"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -163,20 +164,30 @@ func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
 		}
 	}
 
+	// Now because we want associate any goroutines created by this call to the main nosqldb context we need to
+	// wrap the openFile within a goroutine which we can label nicely.
 	var err error
-	db.db, err = leveldb.OpenFile(dataDir, opts)
-	if err != nil {
-		if !errors.IsCorrupted(err) {
-			if strings.Contains(err.Error(), "resource temporarily unavailable") {
-				return nil, fmt.Errorf("unable to lock level db at %s: %w", dataDir, err)
-			}
-
-			return nil, fmt.Errorf("unable to open level db at %s: %w", dataDir, err)
-		}
-		db.db, err = leveldb.RecoverFile(dataDir, opts)
+	done := make(chan struct{})
+	go func() {
+		pprof.SetGoroutineLabels(m.ctx)
+		defer close(done)
+		db.db, err = leveldb.OpenFile(dataDir, opts)
 		if err != nil {
-			return nil, err
+			if !errors.IsCorrupted(err) {
+				if strings.Contains(err.Error(), "resource temporarily unavailable") {
+					err = fmt.Errorf("unable to lock level db at %s: %w", dataDir, err)
+					return
+				}
+
+				err = fmt.Errorf("unable to open level db at %s: %w", dataDir, err)
+				return
+			}
+			db.db, err = leveldb.RecoverFile(dataDir, opts)
 		}
+	}()
+	<-done
+	if err != nil {
+		return nil, err
 	}
 
 	for _, name := range db.name {
