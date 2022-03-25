@@ -17,10 +17,7 @@ import (
 	"github.com/gogs/cron"
 )
 
-var (
-	c           = cron.New()
-	cronContext context.Context
-)
+var c = cron.New()
 
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
