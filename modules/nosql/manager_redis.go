@@ -65,7 +65,7 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 
 	clientName := uri.Query()["clientname"]
 
-	if nil != clientName && 0 < len(clientName) {
+	if clientName != nil && len(clientName) > 0 {
 		client.name = append(client.name, clientName[0])
 	}
 
@@ -225,20 +225,20 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	skipverify := uri.Query()["skipverify"]
 
-	if nil != skipverify && 0 < len(skipverify) {
+	if skipverify != nil && len(skipverify) > 0 {
 		skipverify, err := strconv.ParseBool(skipverify[0])
 
-		if nil != err {
+		if err != nil {
 			tlsConfig.InsecureSkipVerify = skipverify
 		}
 	}
 
 	insecureskipverify := uri.Query()["insecureskipverify"]
 
-	if nil != insecureskipverify && 0 < len(insecureskipverify) {
+	if insecureskipverify != nil && len(insecureskipverify) > 0 {
 		insecureskipverify, err := strconv.ParseBool(insecureskipverify[0])
 
-		if nil != err {
+		if err != nil {
 			tlsConfig.InsecureSkipVerify = insecureskipverify
 		}
 	}
