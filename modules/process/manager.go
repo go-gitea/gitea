@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"sync"
@@ -66,11 +67,9 @@ func GetManager() *Manager {
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
 func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
-	parentPID := GetParentPID(parent)
-
 	ctx, cancel = context.WithCancel(parent)
 
-	pid, finished := pm.Add(parentPID, description, cancel)
+	ctx, pid, finished := pm.Add(ctx, description, cancel)
 
 	return &Context{
 		Context: ctx,
@@ -87,11 +86,9 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
-	parentPID := GetParentPID(parent)
-
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	pid, finshed := pm.Add(parentPID, description, cancel)
+	ctx, pid, finshed := pm.Add(ctx, description, cancel)
 
 	return &Context{
 		Context: ctx,
@@ -100,7 +97,9 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 }
 
 // Add create a new process
-func (pm *Manager) Add(parentPID IDType, description string, cancel context.CancelFunc) (IDType, FinishedFunc) {
+func (pm *Manager) Add(ctx context.Context, description string, cancel context.CancelFunc) (context.Context, IDType, FinishedFunc) {
+	parentPID := GetParentPID(ctx)
+
 	pm.mutex.Lock()
 	start, pid := pm.nextPID()
 
@@ -120,6 +119,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	finished := func() {
 		cancel()
 		pm.remove(process)
+		pprof.SetGoroutineLabels(ctx)
 	}
 
 	if parent != nil {
@@ -128,7 +128,10 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
-	return pid, finished
+	pprofCtx := pprof.WithLabels(ctx, pprof.Labels("process-description", description, "ppid", string(parentPID), "pid", string(pid)))
+	pprof.SetGoroutineLabels(pprofCtx)
+
+	return pprofCtx, pid, finished
 }
 
 // nextPID will return the next available PID. pm.mutex should already be locked.
