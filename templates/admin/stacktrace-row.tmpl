@@ -58,7 +58,7 @@
 	{{if .Process.Children}}
 		<div class="divided list">
 			{{range .Process.Children}}
-				{{template "admin/process-row" dict "Process" . "root" $.root}}
+				{{template "admin/stacktrace-row" dict "Process" . "root" $.root}}
 			{{end}}
 		</div>
 	{{end}}

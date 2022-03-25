@@ -449,9 +449,9 @@ func GoroutineStacktrace(ctx *context.Context) {
 				if value, ok := sample.Label[process.DescriptionPProfLabel]; ok && len(value) == 1 {
 					description = value[0] + " " + description
 				}
-				ptype := process.SystemProcessType
+				ptype := "code"
 				if value, ok := sample.Label[process.ProcessTypePProfLabel]; ok && len(value) == 1 {
-					ptype = value[0]
+					stack.Labels = append(stack.Labels, &Label{Name: process.ProcessTypePProfLabel, Value: value[0]})
 				}
 				processStack = &ProcessStack{
 					PID:         pid,
@@ -461,8 +461,10 @@ func GoroutineStacktrace(ctx *context.Context) {
 				}
 
 				pidMap[processStack.PID] = processStack
-				if parent, ok := pidMap[processStack.ParentPID]; ok {
-					parent.Children = append(parent.Children, processStack)
+				if processStack.ParentPID != "" {
+					if parent, ok := pidMap[processStack.ParentPID]; ok {
+						parent.Children = append(parent.Children, processStack)
+					}
 				}
 			}
 		}
