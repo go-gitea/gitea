@@ -26,7 +26,7 @@ var (
 	_ = handleSignIn
 
 	// SharedSession the session auth should only be used by web, but now both web and API/v1
-	// will use it. We can remvoe this after Web removed dependent API/v1
+	// will use it. We can remove this after Web removed dependent API/v1
 	SharedSession = &Session{}
 )
 
