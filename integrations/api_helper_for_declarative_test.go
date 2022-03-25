@@ -231,26 +231,7 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 		if ctx.ExpectedCode != 0 {
 			expected = ctx.ExpectedCode
 		}
-		resp := ctx.Session.MakeRequest(t, req, expected)
-
-		decoder := json.NewDecoder(resp.Body)
-		pr := api.PullRequest{}
-		err := decoder.Decode(&pr)
-		return pr, err
-	}
-}
-
-func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
-	return func(t *testing.T) (api.PullRequest, error) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
-			owner, repo, index, ctx.Token)
-		req := NewRequest(t, http.MethodGet, urlStr)
-
-		expected := http.StatusOK
-		if ctx.ExpectedCode != 0 {
-			expected = ctx.ExpectedCode
-		}
-		resp := MakeRequest(t, req, expected)
+		resp := ctx.MakeRequest(t, req, expected)
 
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}

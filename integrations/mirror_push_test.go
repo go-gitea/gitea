@@ -97,7 +97,7 @@ func doCreatePushMirror(ctx TestContext, address, username, password string) fun
 	}
 }
 
-func doRemovePushMirror(ctx APITestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
+func doRemovePushMirror(ctx TestContext, address, username, password string, pushMirrorID int) func(t *testing.T) {
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
 

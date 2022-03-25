@@ -16,3 +16,9 @@ type Store interface {
 	Set(interface{}, interface{}) error
 	Delete(interface{}) error
 }
+
+// RegenerateSession regenerates the underlying session and returns the new store
+func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, error) {
+	s, err := session.RegenerateSession(resp, req)
+	return s, err
+}

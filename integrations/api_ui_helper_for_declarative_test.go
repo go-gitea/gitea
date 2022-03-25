@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
+
 	"github.com/stretchr/testify/assert"
 )
 

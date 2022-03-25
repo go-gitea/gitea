@@ -52,7 +52,7 @@ func TestAPIListReleases(t *testing.T) {
 
 	// test filter
 	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		var comment = link.String()
+		comment := link.String()
 		if len(msgAndArgs) > 0 {
 			comment = msgAndArgs[0]
 		}

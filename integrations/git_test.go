@@ -428,7 +428,7 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 	}
 }
 
-func doProtectBranch(ctx TestContext, branch string, userToWhitelist string, unprotectedFilePatterns string) func(t *testing.T) {
+func doProtectBranch(ctx TestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))

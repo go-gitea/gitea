@@ -19,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
-
-	"gitea.com/go-chi/session"
 )
 
 // APIContext is a specific context for API service

@@ -17,12 +17,12 @@ import (
 
 // APIUIContexter returns apicontext as middleware
 func APIUIContexter() func(http.Handler) http.Handler {
-	var csrfOpts = getCsrfOpts()
+	csrfOpts := getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var locale = middleware.Locale(w, req)
-			var ctx = APIContext{
+			locale := middleware.Locale(w, req)
+			ctx := APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
 					Data:    map[string]interface{}{},

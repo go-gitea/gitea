@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,76 +57,99 @@ func TestAPIUISearchRepo(t *testing.T) {
 		name, requestURL string
 		expectedResults
 	}{
-		{name: "RepositoriesMax50", requestURL: "/api/ui/repos/search?limit=50&private=false", expectedResults: expectedResults{
-			nil:   {count: 30},
-			user:  {count: 30},
-			user2: {count: 30}},
+		{
+			name: "RepositoriesMax50", requestURL: "/api/ui/repos/search?limit=50&private=false", expectedResults: expectedResults{
+				nil:   {count: 30},
+				user:  {count: 30},
+				user2: {count: 30},
+			},
 		},
-		{name: "RepositoriesMax10", requestURL: "/api/ui/repos/search?limit=10&private=false", expectedResults: expectedResults{
-			nil:   {count: 10},
-			user:  {count: 10},
-			user2: {count: 10}},
+		{
+			name: "RepositoriesMax10", requestURL: "/api/ui/repos/search?limit=10&private=false", expectedResults: expectedResults{
+				nil:   {count: 10},
+				user:  {count: 10},
+				user2: {count: 10},
+			},
 		},
-		{name: "RepositoriesDefault", requestURL: "/api/ui/repos/search?default&private=false", expectedResults: expectedResults{
-			nil:   {count: 10},
-			user:  {count: 10},
-			user2: {count: 10}},
+		{
+			name: "RepositoriesDefault", requestURL: "/api/ui/repos/search?default&private=false", expectedResults: expectedResults{
+				nil:   {count: 10},
+				user:  {count: 10},
+				user2: {count: 10},
+			},
 		},
-		{name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/ui/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
-			nil:   {count: 7, repoName: "big_test_"},
-			user:  {count: 7, repoName: "big_test_"},
-			user2: {count: 7, repoName: "big_test_"}},
+		{
+			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/ui/repos/search?q=%s&private=false", "big_test_"), expectedResults: expectedResults{
+				nil:   {count: 7, repoName: "big_test_"},
+				user:  {count: 7, repoName: "big_test_"},
+				user2: {count: 7, repoName: "big_test_"},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
-			nil:   {count: 5},
-			user:  {count: 9, includesPrivate: true},
-			user2: {count: 6, includesPrivate: true}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
+				nil:   {count: 5},
+				user:  {count: 9, includesPrivate: true},
+				user2: {count: 6, includesPrivate: true},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 2, includesPrivate: true},
-			user2: {count: 2, includesPrivate: true},
-			user4: {count: 1}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 2, includesPrivate: true},
+				user2: {count: 2, includesPrivate: true},
+				user4: {count: 1},
+			},
 		},
-		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
-			nil:   {count: 1},
-			user:  {count: 4, includesPrivate: true},
-			user2: {count: 3, includesPrivate: true},
-			user3: {count: 4, includesPrivate: true}},
+		{
+			name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
+				nil:   {count: 1},
+				user:  {count: 4, includesPrivate: true},
+				user2: {count: 3, includesPrivate: true},
+				user3: {count: 4, includesPrivate: true},
+			},
 		},
-		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
-			nil:   {count: 1, repoOwnerID: orgUser.ID},
-			user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
-			user2: {count: 1, repoOwnerID: orgUser.ID}},
+		{
+			name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
+				nil:   {count: 1, repoOwnerID: orgUser.ID},
+				user:  {count: 2, repoOwnerID: orgUser.ID, includesPrivate: true},
+				user2: {count: 1, repoOwnerID: orgUser.ID},
+			},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser4", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d", user4.ID), expectedResults: expectedResults{
 			nil:   {count: 3},
 			user:  {count: 4, includesPrivate: true},
-			user4: {count: 7, includesPrivate: true}}},
+			user4: {count: 7, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeSource", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s", user4.ID, "source"), expectedResults: expectedResults{
 			nil:   {count: 0},
 			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true}}},
+			user4: {count: 1, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeFork/Exclusive", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "fork"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s", user4.ID, "mirror"), expectedResults: expectedResults{
 			nil:   {count: 2},
 			user:  {count: 2},
-			user4: {count: 4, includesPrivate: true}}},
+			user4: {count: 4, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeMirror/Exclusive", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s&exclusive=1", user4.ID, "mirror"), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 1},
-			user4: {count: 2, includesPrivate: true}}},
+			user4: {count: 2, includesPrivate: true},
+		}},
 		{name: "RepositoriesAccessibleAndRelatedToUser4/SearchModeCollaborative", requestURL: fmt.Sprintf("/api/ui/repos/search?uid=%d&mode=%s", user4.ID, "collaborative"), expectedResults: expectedResults{
 			nil:   {count: 0},
 			user:  {count: 1, includesPrivate: true},
-			user4: {count: 1, includesPrivate: true}}},
+			user4: {count: 1, includesPrivate: true},
+		}},
 	}
 
 	for _, testCase := range testCases {

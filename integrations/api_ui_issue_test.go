@@ -11,6 +11,7 @@ import (
 	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,7 +59,7 @@ func TestAPIUISearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "15", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10) //there are more but 10 is page item limit
+	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
 
 	query.Add("limit", "20")
 	link.RawQuery = query.Encode()
