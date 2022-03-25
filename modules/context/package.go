@@ -14,7 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-// Package contains owner, access mode and optional the package
+// Package contains owner, access mode and optional the package descriptor
 type Package struct {
 	Owner      *user_model.User
 	AccessMode perm.AccessMode
@@ -54,12 +54,15 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		ctx.Package.AccessMode = perm.AccessModeOwner
 	} else {
 		if ctx.Package.Owner.IsOrganization() {
-			if ctx.Doer != nil && models.HasOrgOrUserVisible(ctx.Package.Owner, ctx.Doer) {
-				var err error
-				ctx.Package.AccessMode, err = models.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
-				if err != nil {
-					errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
-					return
+			if models.HasOrgOrUserVisible(ctx.Package.Owner, ctx.Doer) {
+				ctx.Package.AccessMode = perm.AccessModeRead
+				if ctx.Doer != nil {
+					var err error
+					ctx.Package.AccessMode, err = models.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
+					if err != nil {
+						errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
+						return
+					}
 				}
 			}
 		} else {
