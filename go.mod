@@ -5,8 +5,8 @@ go 1.17
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
-	gitea.com/gitea/gliderlabs-ssh v0.0.0-20220304124244-0214a860fad6
-	gitea.com/gitea/go-crypto v0.0.0-20220304121443-e812292233de
+	gitea.com/gitea/gliderlabs-ssh v0.0.0-20220325210844-b53dd11d9536
+	gitea.com/gitea/go-crypto v0.0.0-20220325193035-0bf7b22f0acf
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
