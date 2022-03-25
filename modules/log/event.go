@@ -7,6 +7,7 @@ package log
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -37,7 +38,8 @@ type EventLogger interface {
 
 // ChannelledLog represents a cached channel to a LoggerProvider
 type ChannelledLog struct {
-	parent         string
+	ctx            context.Context
+	finished       context.CancelFunc
 	name           string
 	provider       string
 	queue          chan *Event
@@ -48,10 +50,10 @@ type ChannelledLog struct {
 }
 
 // NewChannelledLog a new logger instance with given logger provider and config.
-func NewChannelledLog(parent, name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
+func NewChannelledLog(parent context.Context, name, provider, config string, bufferLength int64) (*ChannelledLog, error) {
 	if log, ok := providers[provider]; ok {
+
 		l := &ChannelledLog{
-			parent: parent,
 			queue:  make(chan *Event, bufferLength),
 			flush:  make(chan bool),
 			close:  make(chan bool),
@@ -63,6 +65,7 @@ func NewChannelledLog(parent, name, provider, config string, bufferLength int64)
 		}
 		l.name = name
 		l.provider = provider
+		l.ctx, _, l.finished = process.GetManager().AddTypedContext(parent, fmt.Sprintf("Logger: %s(%s)", l.name, l.provider), process.SystemProcessType, false)
 		go l.Start()
 		return l, nil
 	}
@@ -71,8 +74,8 @@ func NewChannelledLog(parent, name, provider, config string, bufferLength int64)
 
 // Start processing the ChannelledLog
 func (l *ChannelledLog) Start() {
-	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s.%s(%s)", l.parent, l.name, l.provider), process.SystemProcessType, true)
-	defer cancel()
+	pprof.SetGoroutineLabels(l.ctx)
+	defer l.finished()
 	for {
 		select {
 		case event, ok := <-l.queue:
@@ -147,6 +150,8 @@ func (l *ChannelledLog) GetName() string {
 
 // MultiChannelledLog represents a cached channel to a LoggerProvider
 type MultiChannelledLog struct {
+	ctx             context.Context
+	finished        context.CancelFunc
 	name            string
 	bufferLength    int64
 	queue           chan *Event
@@ -163,7 +168,11 @@ type MultiChannelledLog struct {
 
 // NewMultiChannelledLog a new logger instance with given logger provider and config.
 func NewMultiChannelledLog(name string, bufferLength int64) *MultiChannelledLog {
+	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", name), process.SystemProcessType, false)
+
 	m := &MultiChannelledLog{
+		ctx:             ctx,
+		finished:        finished,
 		name:            name,
 		queue:           make(chan *Event, bufferLength),
 		flush:           make(chan bool),
@@ -284,8 +293,8 @@ func (m *MultiChannelledLog) Start() {
 		m.rwmutex.Unlock()
 		return
 	}
-	_, _, cancel := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Logger: %s", m.name), process.SystemProcessType, true)
-	defer cancel()
+	pprof.SetGoroutineLabels(m.ctx)
+	defer m.finished()
 
 	m.started = true
 	m.rwmutex.Unlock()
