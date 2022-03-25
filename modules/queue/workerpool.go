@@ -483,6 +483,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 }
 
 func (p *WorkerPool) doWork(ctx context.Context) {
+	pprof.SetGoroutineLabels(ctx)
 	delay := time.Millisecond * 300
 
 	// Create a common timer - we will use this elsewhere
