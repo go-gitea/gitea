@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHack16834(t *testing.T) {
+func TestUserSettings(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	pub, priv, err := GetKeyPair(user1)
