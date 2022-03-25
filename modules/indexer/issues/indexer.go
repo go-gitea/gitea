@@ -167,7 +167,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Indexer
 	go func() {
-		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "IssueIndexer", process.SystemProcessType, true)
+		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, true)
 		start := time.Now()
 		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var populate bool
@@ -279,7 +279,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer(ctx context.Context) {
-	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "PopulateIssueIndexer", process.SystemProcessType, true)
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: PopulateIssueIndexer", process.SystemProcessType, true)
 	defer finished()
 	for page := 1; ; page++ {
 		select {
