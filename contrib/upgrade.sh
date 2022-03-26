@@ -11,6 +11,33 @@
 #   upgrade.sh 1.15.10
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
+# apply variables from environment
+: "${giteabin:="/usr/local/bin/gitea"}"
+: "${giteahome:="/var/lib/gitea"}"
+: "${giteaconf:="/etc/gitea/app.ini"}"
+: "${giteauser:="git"}"
+: "${sudocmd:="sudo"}"
+: "${arch:="linux-amd64"}"
+: "${service_start:="$sudocmd systemctl start gitea"}"
+: "${service_stop:="$sudocmd systemctl stop gitea"}"
+: "${service_status:="$sudocmd systemctl status gitea"}"
+: "${backupopts:=""}" # see `gitea dump --help` for available options
+
+function giteacmd {
+  if [[ $sudocmd = "su" ]]; then
+    "$sudocmd" - "$giteauser" -c "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
+  else
+    "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
+  fi
+}
+
+function require {
+  for exe in "$@"; do
+    command -v "$exe" &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
+  done
+}
+
+# parse command line arguments
 while true; do
   case "$1" in
     -v | --version ) ver="$2"; shift 2 ;;
@@ -23,13 +50,6 @@ done
 
 # exit once any command fails. this means that each step should be idempotent!
 set -euo pipefail
-
-function require {
-  for exe in "$@"; do
-    command -v "$exe" &>/dev/null || (echo "missing dependency '$exe'"; exit 1)
-  done
-}
-
 
 require curl xz sha256sum gpg
 
@@ -45,28 +65,6 @@ if [[ -f /etc/os-release ]]; then
     require systemctl
   fi
 fi
-
-
-# apply variables from environment
-: "${giteabin:="/usr/local/bin/gitea"}"
-: "${giteahome:="/var/lib/gitea"}"
-: "${giteaconf:="/etc/gitea/app.ini"}"
-: "${giteauser:="git"}"
-: "${sudocmd:="sudo"}"
-: "${arch:="linux-amd64"}"
-: "${service_start:="$sudocmd systemctl start gitea"}"
-: "${service_stop:="$sudocmd systemctl stop gitea"}"
-: "${service_status:="$sudocmd systemctl status gitea"}"
-: "${backupopts:=""}" # see `gitea dump --help` for available options
-
-
-function giteacmd {
-  if [[ $sudocmd = "su" ]]; then
-    "$sudocmd" - "$giteauser" -c "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
-  else
-    "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
-  fi
-}
 
 # select version to install
 if [[ -z "${ver:-}" ]]; then
