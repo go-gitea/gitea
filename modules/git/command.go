@@ -35,7 +35,7 @@ const DefaultLocale = "C"
 type Command struct {
 	name          string
 	args          []string
-	urlArgInts    []int
+	urlArgIndexes []int
 	parentContext context.Context
 	desc          string
 }
@@ -94,7 +94,7 @@ func (c *Command) AddArguments(args ...string) *Command {
 
 // AddURLArgument adds an argument which is a url which means password should be shadow when display in UI
 func (c *Command) AddURLArgument(arg string) *Command {
-	c.urlArgInts = append(c.urlArgInts, len(c.args))
+	c.urlArgIndexes = append(c.urlArgIndexes, len(c.args))
 	c.args = append(c.args, arg)
 	return c
 }
@@ -151,8 +151,8 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if desc == "" {
 		args := make([]string, len(c.args))
 		copy(args, c.args)
-		for _, i := range c.urlArgInts {
-			args[i] = util.NewStringURLSanitizer(args[i], true).Replace(args[i])
+		for _, urlArgIndex := range c.urlArgIndexes {
+			args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
 		}
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
 	}
