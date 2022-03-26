@@ -70,9 +70,11 @@ require curl xz sha256sum "$sudocmd"
 if [[ -z "${giteaversion:-}" ]]; then
   require jq
   giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
+  echo "Latest available version is $giteaversion"
 fi
 
 # confirm update
+echo "Checking currently installed version..."
 current=$(giteacmd --version | cut -d ' ' -f 3)
 [[ "$current" == "$giteaversion" ]] && echo "$current is already installed, stopping." && exit 1
 if [[ -z "${no_confirm:-}"  ]]; then
@@ -108,8 +110,9 @@ chown "$giteauser" "$binname"
 chmod +x "$binname"
 
 # stop gitea, create backup, replace binary, restart gitea
-echo "Stopping gitea at $(date)"
+echo "Flushing gitea queues at $(date)"
 giteacmd manager flush-queues
+echo "Stopping gitea at $(date)"
 $service_stop
 echo "Creating backup in $giteahome"
 giteacmd dump $backupopts
