@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -113,15 +114,11 @@ func UpdateMirror(m *Mirror) error {
 	return updateMirror(db.GetEngine(db.DefaultContext), m)
 }
 
-func touchMirror(e db.Engine, m *Mirror) error {
-	m.UpdatedUnix = timeutil.TimeStampNow()
-	_, err := e.ID(m.ID).Cols("updated_unix").Update(m)
-	return err
-}
-
 // TouchMirror updates the mirror updatedUnix
-func TouchMirror(m *Mirror) error {
-	return touchMirror(db.GetEngine(db.DefaultContext), m)
+func TouchMirror(ctx context.Context, m *Mirror) error {
+	m.UpdatedUnix = timeutil.TimeStampNow()
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
 }
 
 // DeleteMirrorByRepoID deletes a mirror by repoID
