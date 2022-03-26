@@ -72,6 +72,13 @@ func (l *MultiChannelledLogger) Log(skip int, level Level, format string, v ...i
 	if len(v) > 0 {
 		msg = ColorSprintf(format, v...)
 	}
+	labels := getGoroutineLabels()
+	if labels != nil {
+		pid, ok := labels["pid"]
+		if ok {
+			msg = "[" + ColorString(FgHiYellow) + pid + ColorString(Reset) + "] " + msg
+		}
+	}
 	stack := ""
 	if l.GetStacktraceLevel() <= level {
 		stack = Stack(skip + 1)
