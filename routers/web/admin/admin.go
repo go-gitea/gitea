@@ -7,13 +7,10 @@ package admin
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"runtime"
-	"runtime/pprof"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +32,6 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/go-chi/session"
-	"github.com/google/pprof/profile"
 )
 
 const (
@@ -344,176 +340,13 @@ func GoroutineStacktrace(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 
-	var stacks *profile.Profile
-	processes := process.GetManager().Processes(false, false, func() {
-		reader, writer := io.Pipe()
-		defer reader.Close()
-		go func() {
-			err := pprof.Lookup("goroutine").WriteTo(writer, 0)
-			_ = writer.CloseWithError(err)
-		}()
-		var err error
-		stacks, err = profile.Parse(reader)
-		if err != nil {
-			ctx.ServerError("GoroutineStacktrace", err)
-			return
-		}
-	})
-	if ctx.Written() {
+	processStacks, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	if err != nil {
+		ctx.ServerError("GoroutineStacktrace", err)
 		return
 	}
 
-	type StackEntry struct {
-		Function string
-		File     string
-		Line     int
-	}
-
-	type Label struct {
-		Name  string
-		Value string
-	}
-
-	type Stack struct {
-		Count       int64
-		Description string
-		Labels      []*Label
-		Entry       []*StackEntry
-	}
-
-	type ProcessStack struct {
-		PID         process.IDType
-		ParentPID   process.IDType
-		Description string
-		Start       time.Time
-		Type        string
-
-		Children []*ProcessStack
-		Stacks   []*Stack
-	}
-
-	// Now earlier we sorted by process time so we know that we should not have children before parents
-	pidMap := map[process.IDType]*ProcessStack{}
-	processStacks := make([]*ProcessStack, 0, len(processes))
-	for _, process := range processes {
-		pStack := &ProcessStack{
-			PID:         process.PID,
-			ParentPID:   process.ParentPID,
-			Description: process.Description,
-			Start:       process.Start,
-			Type:        process.Type,
-		}
-
-		pidMap[process.PID] = pStack
-		if parent, ok := pidMap[process.ParentPID]; ok {
-			parent.Children = append(parent.Children, pStack)
-		} else {
-			processStacks = append(processStacks, pStack)
-		}
-	}
-
-	goroutineCount := int64(0)
-
-	// Now walk through the "Sample" slice in the goroutines stack
-	for _, sample := range stacks.Sample {
-		stack := &Stack{}
-
-		// Add the labels
-		for name, value := range sample.Label {
-			if name == process.DescriptionPProfLabel || name == process.PIDPProfLabel || name == process.PPIDPProfLabel || name == process.ProcessTypePProfLabel {
-				continue
-			}
-			if len(value) != 1 {
-				// Unexpected...
-				log.Error("Label: %s in goroutine stack with unexpected number of values: %v", name, value)
-				continue
-			}
-
-			stack.Labels = append(stack.Labels, &Label{Name: name, Value: value[0]})
-		}
-
-		stack.Count = sample.Value[0]
-		goroutineCount += stack.Count
-
-		// Now get the processStack for this goroutine sample
-		var processStack *ProcessStack
-		if pidvalue, ok := sample.Label[process.PIDPProfLabel]; ok && len(pidvalue) == 1 {
-			pid := process.IDType(pidvalue[0])
-			processStack, ok = pidMap[pid]
-			if !ok && pid != "" {
-				ppid := process.IDType("")
-				if value, ok := sample.Label[process.PPIDPProfLabel]; ok && len(value) == 1 {
-					ppid = process.IDType(value[0])
-				}
-				description := "(missing process)"
-				if value, ok := sample.Label[process.DescriptionPProfLabel]; ok && len(value) == 1 {
-					description = value[0] + " " + description
-				}
-				ptype := "code"
-				if value, ok := sample.Label[process.ProcessTypePProfLabel]; ok && len(value) == 1 {
-					stack.Labels = append(stack.Labels, &Label{Name: process.ProcessTypePProfLabel, Value: value[0]})
-				}
-				processStack = &ProcessStack{
-					PID:         pid,
-					ParentPID:   ppid,
-					Description: description,
-					Type:        ptype,
-				}
-
-				pidMap[processStack.PID] = processStack
-				if processStack.ParentPID != "" {
-					if parent, ok := pidMap[processStack.ParentPID]; ok {
-						parent.Children = append(parent.Children, processStack)
-					}
-				}
-			}
-		}
-		if processStack == nil {
-			var ok bool
-			processStack, ok = pidMap[""]
-			if !ok {
-				processStack = &ProcessStack{
-					Description: "(unbound)",
-					Type:        "code",
-				}
-				pidMap[processStack.PID] = processStack
-				processStacks = append(processStacks, processStack)
-			}
-		}
-
-		// Now walk through the locations...
-		for _, location := range sample.Location {
-			for _, line := range location.Line {
-				entry := &StackEntry{
-					Function: line.Function.Name,
-					File:     line.Function.Filename,
-					Line:     int(line.Line),
-				}
-				stack.Entry = append(stack.Entry, entry)
-			}
-		}
-		stack.Description = "(unknown)"
-		if len(stack.Entry) > 0 {
-			stack.Description = stack.Entry[len(stack.Entry)-1].Function
-		}
-
-		processStack.Stacks = append(processStack.Stacks, stack)
-	}
-
-	// Now finally re-sort the processstacks so the newest processes are at the top
-	after := func(processStacks []*ProcessStack) func(i, j int) bool {
-		return func(i, j int) bool {
-			left, right := processStacks[i], processStacks[j]
-			return left.Start.After(right.Start)
-		}
-	}
-	sort.Slice(processStacks, after(processStacks))
-	for _, processStack := range processStacks {
-		sort.Slice(processStack.Children, after(processStack.Children))
-	}
-
 	ctx.Data["ProcessStacks"] = processStacks
-	ctx.Data["Profile"] = stacks
 
 	ctx.Data["GoroutineCount"] = goroutineCount
 

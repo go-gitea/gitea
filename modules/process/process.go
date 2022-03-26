@@ -16,8 +16,8 @@ var (
 	NormalProcessType  = "normal"
 )
 
-// Process represents a working process inheriting from Gitea.
-type Process struct {
+// process represents a working process inheriting from Gitea.
+type process struct {
 	PID         IDType // Process ID, not system one.
 	ParentPID   IDType
 	Description string
@@ -26,26 +26,26 @@ type Process struct {
 	Type        string
 
 	lock     sync.Mutex
-	children []*Process
+	children []*process
 }
 
 // Children gets the children of the process
 // Note: this function will behave nicely even if p is nil
-func (p *Process) Children() (children []*Process) {
+func (p *process) Children() (children []*process) {
 	if p == nil {
 		return
 	}
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	children = make([]*Process, len(p.children))
+	children = make([]*process, len(p.children))
 	copy(children, p.children)
 	return children
 }
 
 // AddChild adds a child process
 // Note: this function will behave nicely even if p is nil
-func (p *Process) AddChild(child *Process) {
+func (p *process) AddChild(child *process) {
 	if p == nil {
 		return
 	}
@@ -57,7 +57,7 @@ func (p *Process) AddChild(child *Process) {
 
 // RemoveChild removes a child process
 // Note: this function will behave nicely even if p is nil
-func (p *Process) RemoveChild(process *Process) {
+func (p *process) RemoveChild(process *process) {
 	if p == nil {
 		return
 	}
@@ -70,4 +70,21 @@ func (p *Process) RemoveChild(process *Process) {
 			return
 		}
 	}
+}
+
+// ToProcess converts a process to a externally usable Process
+func (p *process) ToProcess(children bool) *Process {
+	process := &Process{
+		PID:         p.PID,
+		ParentPID:   p.ParentPID,
+		Description: p.Description,
+		Start:       p.Start,
+		Type:        p.Type,
+	}
+	if children {
+		for _, child := range p.Children() {
+			process.Children = append(process.Children, child.ToProcess(children))
+		}
+	}
+	return process
 }

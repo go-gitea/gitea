@@ -6,13 +6,8 @@
 package process
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"io"
-	"os/exec"
 	"runtime/pprof"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -56,14 +51,14 @@ type Manager struct {
 	next     int64
 	lastTime int64
 
-	processes map[IDType]*Process
+	processes map[IDType]*process
 }
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
 	managerInit.Do(func() {
 		manager = &Manager{
-			processes: make(map[IDType]*Process),
+			processes: make(map[IDType]*process),
 			next:      1,
 		}
 	})
@@ -81,12 +76,9 @@ func GetManager() *Manager {
 func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	ctx, cancel = context.WithCancel(parent)
 
-	ctx, pid, finished := pm.Add(ctx, description, cancel, NormalProcessType, true)
+	ctx, _, finished = pm.Add(ctx, description, cancel, NormalProcessType, true)
 
-	return &Context{
-		Context: ctx,
-		pid:     pid,
-	}, cancel, finished
+	return ctx, cancel, finished
 }
 
 // AddTypedContext creates a new context and adds it as a process. Once the process is finished, finished must be called
@@ -100,12 +92,9 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 func (pm *Manager) AddTypedContext(parent context.Context, description, processType string, currentlyRunning bool) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	ctx, cancel = context.WithCancel(parent)
 
-	ctx, pid, finished := pm.Add(ctx, description, cancel, processType, currentlyRunning)
+	ctx, _, finished = pm.Add(ctx, description, cancel, processType, currentlyRunning)
 
-	return &Context{
-		Context: ctx,
-		pid:     pid,
-	}, cancel, finished
+	return ctx, cancel, finished
 }
 
 // AddContextTimeout creates a new context and add it as a process. Once the process is finished, finished must be called
@@ -119,12 +108,9 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	ctx, pid, finshed := pm.Add(ctx, description, cancel, NormalProcessType, true)
+	ctx, _, finshed = pm.Add(ctx, description, cancel, NormalProcessType, true)
 
-	return &Context{
-		Context: ctx,
-		pid:     pid,
-	}, cancel, finshed
+	return ctx, cancel, finshed
 }
 
 // Add create a new process
@@ -139,7 +125,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 		parentPID = ""
 	}
 
-	process := &Process{
+	process := &process{
 		PID:         pid,
 		ParentPID:   parentPID,
 		Description: description,
@@ -173,7 +159,10 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 		pprof.SetGoroutineLabels(pprofCtx)
 	}
 
-	return pprofCtx, pid, finished
+	return &Context{
+		Context: pprofCtx,
+		pid:     pid,
+	}, pid, finished
 }
 
 // nextPID will return the next available PID. pm.mutex should already be locked.
@@ -202,7 +191,7 @@ func (pm *Manager) Remove(pid IDType) {
 	pm.mutex.Unlock()
 }
 
-func (pm *Manager) remove(process *Process) {
+func (pm *Manager) remove(process *process) {
 	pm.mutex.Lock()
 	if p := pm.processes[process.PID]; p == process {
 		delete(pm.processes, process.PID)
@@ -225,124 +214,4 @@ func (pm *Manager) Cancel(pid IDType) {
 	if ok {
 		process.Cancel()
 	}
-}
-
-// Processes gets the processes in a thread safe manner
-func (pm *Manager) Processes(onlyRoots, noSystem bool, runInLock func()) []*Process {
-	pm.mutex.Lock()
-	processes := make([]*Process, 0, len(pm.processes))
-	if onlyRoots {
-		for _, process := range pm.processes {
-			if noSystem && process.Type == SystemProcessType {
-				continue
-			}
-			if parent, has := pm.processes[process.ParentPID]; !has || parent.Type == SystemProcessType {
-				processes = append(processes, process)
-			}
-		}
-	} else {
-		for _, process := range pm.processes {
-			if noSystem && process.Type == SystemProcessType {
-				continue
-			}
-			processes = append(processes, process)
-		}
-	}
-	if runInLock != nil {
-		runInLock()
-	}
-	pm.mutex.Unlock()
-
-	sort.Slice(processes, func(i, j int) bool {
-		left, right := processes[i], processes[j]
-
-		return left.Start.Before(right.Start)
-	})
-
-	return processes
-}
-
-// Exec a command and use the default timeout.
-func (pm *Manager) Exec(desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDir(DefaultContext, -1, "", desc, cmdName, args...)
-}
-
-// ExecTimeout a command and use a specific timeout duration.
-func (pm *Manager) ExecTimeout(timeout time.Duration, desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDir(DefaultContext, timeout, "", desc, cmdName, args...)
-}
-
-// ExecDir a command and use the default timeout.
-func (pm *Manager) ExecDir(ctx context.Context, timeout time.Duration, dir, desc, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDirEnv(ctx, timeout, dir, desc, nil, cmdName, args...)
-}
-
-// ExecDirEnv runs a command in given path and environment variables, and waits for its completion
-// up to the given timeout (or DefaultTimeout if -1 is given).
-// Returns its complete stdout and stderr
-// outputs and an error, if any (including timeout)
-func (pm *Manager) ExecDirEnv(ctx context.Context, timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
-	return pm.ExecDirEnvStdIn(ctx, timeout, dir, desc, env, nil, cmdName, args...)
-}
-
-// ExecDirEnvStdIn runs a command in given path and environment variables with provided stdIN, and waits for its completion
-// up to the given timeout (or DefaultTimeout if -1 is given).
-// Returns its complete stdout and stderr
-// outputs and an error, if any (including timeout)
-func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
-	if timeout == -1 {
-		timeout = 60 * time.Second
-	}
-
-	stdOut := new(bytes.Buffer)
-	stdErr := new(bytes.Buffer)
-
-	ctx, _, finished := pm.AddContextTimeout(ctx, timeout, desc)
-	defer finished()
-
-	cmd := exec.CommandContext(ctx, cmdName, args...)
-	cmd.Dir = dir
-	cmd.Env = env
-	cmd.Stdout = stdOut
-	cmd.Stderr = stdErr
-	if stdIn != nil {
-		cmd.Stdin = stdIn
-	}
-
-	if err := cmd.Start(); err != nil {
-		return "", "", err
-	}
-
-	err := cmd.Wait()
-	if err != nil {
-		err = &Error{
-			PID:         GetPID(ctx),
-			Description: desc,
-			Err:         err,
-			CtxErr:      ctx.Err(),
-			Stdout:      stdOut.String(),
-			Stderr:      stdErr.String(),
-		}
-	}
-
-	return stdOut.String(), stdErr.String(), err
-}
-
-// Error is a wrapped error describing the error results of Process Execution
-type Error struct {
-	PID         IDType
-	Description string
-	Err         error
-	CtxErr      error
-	Stdout      string
-	Stderr      string
-}
-
-func (err *Error) Error() string {
-	return fmt.Sprintf("exec(%s:%s) failed: %v(%v) stdout: %s stderr: %s", err.PID, err.Description, err.Err, err.CtxErr, err.Stdout, err.Stderr)
-}
-
-// Unwrap implements the unwrappable implicit interface for go1.13 Unwrap()
-func (err *Error) Unwrap() error {
-	return err.Err
 }
