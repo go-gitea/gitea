@@ -21,8 +21,8 @@ while true; do
   esac
 done
 
+# exit once any command fails. this means that each step should be idempotent!
 set -euo pipefail
-
 
 function require {
   for exe in "$@"; do
@@ -98,7 +98,7 @@ binurl="https://dl.gitea.io/gitea/${giteaversion}/${binname}.xz"
 echo "Downloading $binurl..."
 curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.sha256,.asc}"
 
-# validate checksum & gpg signature (exit script if error)
+# validate checksum & gpg signature
 sha256sum -c "${binname}.xz.sha256"
 if [[ -z "${ignore_gpg:-}" ]]; then
   gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
@@ -107,7 +107,7 @@ fi
 rm "${binname}".xz.{sha256,asc}
 
 # unpack binary + make executable
-xz --decompress "${binname}.xz"
+xz --decompress --force "${binname}.xz"
 chown "$giteauser" "$binname"
 chmod +x "$binname"
 
