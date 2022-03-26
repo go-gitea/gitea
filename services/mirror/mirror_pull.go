@@ -399,6 +399,10 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
+		if err = repo_model.TouchMirror(m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+			return false
+		}
 		return false
 	}
 
