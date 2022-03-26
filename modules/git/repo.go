@@ -152,7 +152,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments("--", from, to)
+	cmd.AddArguments("--")
+	cmd.AddURLArgument(from)
+	cmd.AddArguments(to)
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -197,7 +199,8 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
-	cmd.AddArguments("--", opts.Remote)
+	cmd.AddArguments("--")
+	cmd.AddURLArgument(opts.Remote)
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
 	}

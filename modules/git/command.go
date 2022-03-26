@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -34,6 +35,7 @@ const DefaultLocale = "C"
 type Command struct {
 	name          string
 	args          []string
+	urlArgInts    []int
 	parentContext context.Context
 	desc          string
 }
@@ -90,6 +92,13 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
+// AddURLArgument adds an argument which is a url which means password should be shadow when display in UI
+func (c *Command) AddURLArgument(arg string) *Command {
+	c.urlArgInts = append(c.urlArgInts, len(c.args))
+	c.args = append(c.args, arg)
+	return c
+}
+
 // RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
@@ -140,7 +149,12 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args, " "), rc.Dir)
+		args := make([]string, len(c.args))
+		copy(args, c.args)
+		for _, i := range c.urlArgInts {
+			args[i] = util.NewStringURLSanitizer(args[i], true).Replace(args[i])
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
 	}
 
 	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
