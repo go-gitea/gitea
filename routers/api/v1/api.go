@@ -89,6 +89,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/services/auth"
+	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -453,6 +454,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				}
 				return
 			}
+			ctx.ContextUser = ctx.Org.Organization.AsUser()
 		}
 
 		if assignTeam {
@@ -648,7 +650,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
 				}, reqBasicOrRevProxyAuth())
-			})
+			}, context_service.UserAssignmentAPI())
 		})
 
 		m.Group("/users", func() {
@@ -665,7 +667,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			})
+			}, context_service.UserAssignmentAPI())
 		}, reqToken())
 
 		m.Group("/user", func() {
@@ -681,7 +683,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
-				m.Combo("/{username}").Get(user.CheckMyFollowing).Put(user.Follow).Delete(user.Unfollow)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckMyFollowing)
+					m.Put("", user.Follow)
+					m.Delete("", user.Unfollow)
+				}, context_service.UserAssignmentAPI())
 			})
 
 			m.Group("/keys", func() {
@@ -1019,14 +1025,14 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/files", packages.ListPackageFiles)
 			})
 			m.Get("/", packages.ListPackages)
-		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
+		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		})
+		}, context_service.UserAssignmentAPI())
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {
@@ -1104,7 +1110,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
-				})
+				}, context_service.UserAssignmentAPI())
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)

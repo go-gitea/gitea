@@ -339,5 +339,4 @@ func newRepository() {
 	}
 
 	RepoArchive.Storage = getStorage("repo-archive", "", nil)
-	Packages.Storage = getStorage("packages", "", nil)
 }

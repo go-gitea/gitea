@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/services/auth"
+	context_service "code.gitea.io/gitea/services/context"
 )
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
@@ -225,7 +226,7 @@ func Routes() *web.Route {
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
 		})
-	}, context.UserAssignment(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }
@@ -390,7 +391,7 @@ func ContainerRoutes() *web.Route {
 
 			ctx.Status(http.StatusNotFound)
 		})
-	}, container.ReqContainerAccess, context.UserAssignment(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+	}, container.ReqContainerAccess, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 
 	return r
 }

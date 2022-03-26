@@ -29,6 +29,8 @@ func newPackages() {
 		log.Fatal("Failed to map Packages settings: %v", err)
 	}
 
+	Packages.Storage = getStorage("packages", "", nil)
+
 	Packages.RegistryHost = Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		Packages.RegistryHost += ":" + HTTPPort

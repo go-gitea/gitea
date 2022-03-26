@@ -64,11 +64,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listGPGKeys(ctx, user.ID, utils.GetListOptions(ctx))
+	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }
 
 // ListMyGPGKeys get the GPG key list of the authenticated user
