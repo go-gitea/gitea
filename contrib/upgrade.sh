@@ -40,7 +40,7 @@ function require {
 # parse command line arguments
 while true; do
   case "$1" in
-    -v | --version ) ver="$2"; shift 2 ;;
+    -v | --version ) giteaversion="$2"; shift 2 ;;
     -y | --yes ) no_confirm="yes"; shift ;;
     --ignore-gpg) ignore_gpg="yes"; shift ;;
     -- ) shift; break ;;
@@ -67,13 +67,10 @@ fi
 require curl xz sha256sum "$sudocmd"
 
 # select version to install
-if [[ -z "${ver:-}" ]]; then
+if [[ -z "${giteaversion:-}" ]]; then
   require jq
   giteaversion=$(curl --connect-timeout 10 -sL https://dl.gitea.io/gitea/version.json | jq -r .latest.version)
-else
-  giteaversion="$ver"
 fi
-
 
 # confirm update
 current=$(giteacmd --version | cut -d ' ' -f 3)
