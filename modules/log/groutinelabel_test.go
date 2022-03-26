@@ -26,7 +26,9 @@ func Test_getGoroutineLabels(t *testing.T) {
 				assert.EqualValues(t, value, currentLabels[key])
 				return true
 			})
-			assert.EqualValues(t, "Test_getGoroutineLabels_child1", currentLabels["Test_getGoroutineLabels"])
+			if assert.NotNil(t, currentLabels) {
+				assert.EqualValues(t, "Test_getGoroutineLabels_child1", currentLabels["Test_getGoroutineLabels"])
+			}
 		})
 	})
 }

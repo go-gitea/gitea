@@ -13,8 +13,8 @@ type labelMap map[string]string
 
 func getGoroutineLabels() map[string]string {
 	l := (*labelMap)(runtime_getProfLabel())
-	if l == nil || *l == nil {
-		return map[string]string{}
+	if l == nil {
+		return nil
 	}
 	return *l
 }
