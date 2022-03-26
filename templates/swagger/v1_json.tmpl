@@ -12087,39 +12087,6 @@
         }
       }
     },
-    "/users/{follower}/following/{followee}": {
-      "get": {
-        "tags": [
-          "user"
-        ],
-        "summary": "Check if one user is following another user",
-        "operationId": "userCheckFollowing",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of following user",
-            "name": "follower",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "username of followed user",
-            "name": "followee",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
     "/users/{username}": {
       "get": {
         "produces": [
@@ -12221,6 +12188,39 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
+          }
+        }
+      }
+    },
+    "/users/{username}/following/{target}": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Check if one user is following another user",
+        "operationId": "userCheckFollowing",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of following user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of followed user",
+            "name": "target",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
