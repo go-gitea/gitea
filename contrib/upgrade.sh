@@ -4,7 +4,6 @@
 # Gitea in place.
 # NOTE: This adds the GPG Signing Key of the Gitea maintainers to the keyring.
 # Depends on: bash, curl, xz, sha256sum. optionally jq, gpg
-# Usage:      [environment vars] upgrade.sh [version]
 #   See section below for available environment vars.
 #   When no version is specified, updates to the latest release.
 # Examples:
@@ -43,8 +42,8 @@ while true; do
     -v | --version ) giteaversion="$2"; shift 2 ;;
     -y | --yes ) no_confirm="yes"; shift ;;
     --ignore-gpg) ignore_gpg="yes"; shift ;;
-    -- ) shift; break ;;
-    * ) break ;;
+    "" | -- ) shift; break ;;
+    * ) echo "Usage:  [<environment vars>] upgrade.sh [-v <version>] [-y] [--ignore-gpg]"; exit 1;; 
   esac
 done
 
