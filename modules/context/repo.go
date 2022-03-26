@@ -439,6 +439,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 	ctx.Repo.Owner = owner
+	ctx.ContextUser = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
 	// redirect link to wiki
