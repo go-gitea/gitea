@@ -3,7 +3,7 @@
 # from dl.gitea.io on linux as systemd service. It performs a backup and updates
 # Gitea in place.
 # NOTE: This adds the GPG Signing Key of the Gitea maintainers to the keyring.
-# Depends on: bash, curl, xz, sha256sum, gpg. optionally jq.
+# Depends on: bash, curl, xz, sha256sum. optionally jq, gpg
 # Usage:      [environment vars] upgrade.sh [version]
 #   See section below for available environment vars.
 #   When no version is specified, updates to the latest release.
@@ -51,8 +51,6 @@ done
 # exit once any command fails. this means that each step should be idempotent!
 set -euo pipefail
 
-require curl xz sha256sum gpg
-
 if [[ -f /etc/os-release ]]; then
   os_release=$(cat /etc/os-release)
 
@@ -65,6 +63,8 @@ if [[ -f /etc/os-release ]]; then
     require systemctl
   fi
 fi
+
+require curl xz sha256sum "$sudocmd"
 
 # select version to install
 if [[ -z "${ver:-}" ]]; then
@@ -99,6 +99,7 @@ curl --connect-timeout 10 --silent --show-error --fail --location -O "$binurl{,.
 # validate checksum & gpg signature
 sha256sum -c "${binname}.xz.sha256"
 if [[ -z "${ignore_gpg:-}" ]]; then
+  require gpg
   gpg --keyserver keys.openpgp.org --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
   gpg --verify "${binname}.xz.asc" "${binname}.xz" || { echo 'Signature does not match'; exit 1; }
 fi
