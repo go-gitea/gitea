@@ -545,7 +545,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
 	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
 	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
-		// at least we had to show one link, so we just show the HTTPS
+		// We have to show at least one link, so we just show the HTTPS
 		cloneButtonShowHTTPS = true
 	}
 	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS

@@ -1,4 +1,4 @@
-<!-- at least there will be one button (by context/repo.go) -->
+<!-- there is always at least one button (by context/repo.go) -->
 {{if $.CloneButtonShowHTTPS}}
 	<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">
 		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
@@ -9,13 +9,13 @@
 		SSH
 	</button>
 {{end}}
-<!-- the value will be update by initRepoCloneLink, the code below is used to avoid UI flicking  -->
+<!-- the value will be updated by initRepoCloneLink, the code below is used to avoid UI flicking  -->
 <input id="repo-clone-url" value="" readonly>
 <script>
 	(() => {
 		const proto = localStorage.getItem('repo-clone-protocol') || 'https';
 		const btn = document.getElementById(`repo-clone-${proto}`);
-		// it's ok if we didn't find the btn here, initRepoCloneLink will take all the work
+		// it's ok if we don't find the btn here, initRepoCloneLink will take care of it
 		document.getElementById('repo-clone-url').value = btn ? btn.getAttribute('data-link') : '';
 	})();
 </script>
