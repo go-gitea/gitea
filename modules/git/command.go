@@ -149,10 +149,15 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	desc := c.desc
 	if desc == "" {
-		args := make([]string, len(c.args))
-		copy(args, c.args)
-		for _, urlArgIndex := range c.urlArgIndexes {
-			args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
+		var args []string
+		if len(c.urlArgIndexes) == 0 {
+			args = c.args
+		} else {
+			args = make([]string, len(c.args))
+			copy(args, c.args)
+			for _, urlArgIndex := range c.urlArgIndexes {
+				args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
+			}
 		}
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
 	}
