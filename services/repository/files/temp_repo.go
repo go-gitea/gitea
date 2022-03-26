@@ -261,7 +261,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		var keyID string
 		var signer *git.Signature
 		if parent != "" {
-			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, "HEAD")
+			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
 		} else {
 			sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 		}
