@@ -53,7 +53,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var err error
 	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if models.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
@@ -68,6 +68,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		return
 	}
 	org := ctx.Org.Organization
+	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
 	teams, err := org.LoadTeams()
