@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -110,19 +109,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	owner, err := user_model.GetUserByName(username)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
-				context.RedirectToUser(ctx, username, redirectUserID)
-			} else {
-				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return
-	}
+	owner := ctx.ContextUser
 	if !owner.IsOrganization() && !owner.IsActive {
 		ctx.PlainText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return

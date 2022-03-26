@@ -99,11 +99,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listUserOrgs(ctx, u)
+	listUserOrgs(ctx, ctx.ContextUser)
 }
 
 // GetUserOrgsPermissions get user permissions in organization
@@ -132,11 +128,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	var u *user_model.User
-	if u = user.GetUserByParams(ctx); u == nil {
-		return
-	}
-
 	var o *user_model.User
 	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
 		return
@@ -144,13 +135,13 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
-	if !models.HasOrgOrUserVisible(o, u) {
+	if !models.HasOrgOrUserVisible(o, ctx.ContextUser) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
 	org := models.OrgFromUser(o)
-	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(u.ID)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
 		return
@@ -169,7 +160,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		op.IsOwner = true
 	}
 
-	op.CanCreateRepository, err = org.CanCreateOrgRepo(u.ID)
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 		return
