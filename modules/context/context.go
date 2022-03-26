@@ -67,8 +67,9 @@ type Context struct {
 	IsSigned    bool
 	IsBasicAuth bool
 
-	Repo *Repository
-	Org  *Organization
+	ContextUser *user_model.User
+	Repo        *Repository
+	Org         *Organization
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
