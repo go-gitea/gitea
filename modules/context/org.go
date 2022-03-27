@@ -53,7 +53,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var err error
 	ctx.Org.Organization, err = organization.GetOrgByName(orgName)
 	if err != nil {
-		if models.IsErrOrgNotExist(err) {
+		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
