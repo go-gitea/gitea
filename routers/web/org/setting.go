@@ -384,7 +384,7 @@ func DeleteApplication(ctx *context.Context) {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
-	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
+	log.Trace("OAuth2 Application deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
