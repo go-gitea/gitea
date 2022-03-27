@@ -68,6 +68,7 @@ func (b *BaseConfig) DoNoticeOnSuccess() bool {
 }
 
 // FormatMessage returns a message for the task
+// Please note the `status` string will be concatenated with `admin.dashboard.cron.` and `admin.dashboard.task.` to provide locale messages. Similarly `name` will be composed with `admin.dashboard.` to provide the locale name for the task.
 func (b *BaseConfig) FormatMessage(locale, name, status, doer string, args ...interface{}) string {
 	realArgs := make([]interface{}, 0, len(args)+2)
 	realArgs = append(realArgs, i18n.Tr(locale, "admin.dashboard."+name))
