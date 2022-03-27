@@ -60,9 +60,8 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	private := user.ID == ctx.Doer.ID
-	repos, total, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
+	private := ctx.ContextUser.ID == ctx.Doer.ID
+	repos, total, err := getWatchedRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
