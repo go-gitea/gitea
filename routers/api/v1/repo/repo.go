@@ -359,15 +359,16 @@ func Generate(ctx *context.APIContext) {
 	}
 
 	opts := models.GenerateRepoOptions{
-		Name:        form.Name,
-		Description: form.Description,
-		Private:     form.Private,
-		GitContent:  form.GitContent,
-		Topics:      form.Topics,
-		GitHooks:    form.GitHooks,
-		Webhooks:    form.Webhooks,
-		Avatar:      form.Avatar,
-		IssueLabels: form.Labels,
+		Name:          form.Name,
+		DefaultBranch: form.DefaultBranch,
+		Description:   form.Description,
+		Private:       form.Private,
+		GitContent:    form.GitContent,
+		Topics:        form.Topics,
+		GitHooks:      form.GitHooks,
+		Webhooks:      form.Webhooks,
+		Avatar:        form.Avatar,
+		IssueLabels:   form.Labels,
 	}
 
 	if !opts.IsValid() {
