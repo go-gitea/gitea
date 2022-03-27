@@ -248,7 +248,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 
 	count, err := models.CountIssues(&models.IssuesOptions{
-		SubscriberID: c.User.ID,
+		SubscriberID: c.Doer.ID,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
 		LabelIDs:     labelIDs,
@@ -262,7 +262,7 @@ func NotificationSubscriptions(c *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},
-		SubscriberID: c.User.ID,
+		SubscriberID: c.Doer.ID,
 		SortType:     sortType,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
@@ -364,11 +364,11 @@ func NotificationWatching(c *context.Context) {
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		},
-		Actor:              c.User,
+		Actor:              c.Doer,
 		Keyword:            c.FormTrim("q"),
 		OrderBy:            orderBy,
 		Private:            c.IsSigned,
-		WatchedByID:        c.User.ID,
+		WatchedByID:        c.Doer.ID,
 		Collaborate:        util.OptionalBoolFalse,
 		TopicOnly:          c.FormBool("topic"),
 		IncludeDescription: setting.UI.SearchRepoDescription,
