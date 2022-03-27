@@ -99,7 +99,7 @@ var issueFullPatternOnce sync.Once
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+			`[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
 	return issueFullPattern
 }
@@ -348,8 +348,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 
 	// Render everything to buf.
 	for _, node := range newNodes {
-		err = html.Render(output, node)
-		if err != nil {
+		if err := html.Render(output, node); err != nil {
 			return &postProcessError{"error rendering processed HTML", err}
 		}
 	}

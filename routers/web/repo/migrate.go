@@ -178,7 +178,7 @@ func MigratePost(ctx *context.Context) {
 
 	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
-		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
+		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}
 	if err != nil {
 		ctx.Data["Err_CloneAddr"] = true
@@ -195,7 +195,7 @@ func MigratePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 		if err != nil {
 			ctx.Data["Err_LFSEndpoint"] = true
 			handleMigrateRemoteAddrError(ctx, err, tpl, form)
@@ -233,13 +233,13 @@ func MigratePost(ctx *context.Context) {
 		opts.Releases = false
 	}
 
-	err = repo_model.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
+	err = repo_model.CheckCreateRepository(ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
-	err = task.MigrateRepository(ctx.User, ctxUser, opts)
+	err = task.MigrateRepository(ctx.Doer, ctxUser, opts)
 	if err == nil {
 		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return

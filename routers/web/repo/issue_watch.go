@@ -20,7 +20,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"
@@ -29,7 +29,7 @@ func IssueWatch(ctx *context.Context) {
 				}
 				log.Trace("Permission Denied: User %-v not the Poster (ID: %d) and cannot read %s in Repo %-v.\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					log.NewColoredIDValue(issue.PosterID),
 					issueType,
 					ctx.Repo.Repository,
@@ -48,10 +48,10 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(ctx.User.ID, issue.ID, watch); err != nil {
+	if err := models.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }

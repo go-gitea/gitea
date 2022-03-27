@@ -48,7 +48,7 @@ func goGet(ctx *context.Context) {
 	</body>
 </html>
 `))
-		ctx.Status(400)
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 	branchName := setting.Repository.DefaultBranch

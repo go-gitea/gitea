@@ -69,9 +69,9 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = ctx.Org.Team.AddMember(ctx.User.ID)
+		err = ctx.Org.Team.AddMember(ctx.Doer.ID)
 	case "leave":
-		err = ctx.Org.Team.RemoveMember(ctx.User.ID)
+		err = ctx.Org.Team.RemoveMember(ctx.Doer.ID)
 		if err != nil {
 			if models.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
@@ -311,6 +311,7 @@ func TeamMembers(ctx *context.Context) {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamMembers)
 }
 
@@ -323,6 +324,7 @@ func TeamRepositories(ctx *context.Context) {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 

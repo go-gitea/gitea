@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -256,7 +255,7 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
 	}
@@ -273,12 +272,12 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = templateRepo.GetOwner(db.DefaultContext); err != nil {
+	} else if err = templateRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(templateRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -336,17 +335,17 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
 func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(db.DefaultContext); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -418,10 +417,12 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
+	repoName = strings.TrimSuffix(repoName, ".rss")
+	repoName = strings.TrimSuffix(repoName, ".atom")
 
 	// Check if the user is the same as the repository owner
-	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-		owner = ctx.User
+	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+		owner = ctx.Doer
 	} else {
 		owner, err = user_model.GetUserByName(userName)
 		if err != nil {
@@ -438,7 +439,28 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 	ctx.Repo.Owner = owner
+	ctx.ContextUser = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
+
+	// redirect link to wiki
+	if strings.HasSuffix(repoName, ".wiki") {
+		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
+		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
+		originalRepoName := ctx.Params(":reponame")
+		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
+		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
+		redirectPath := strings.Replace(
+			ctx.Req.URL.EscapedPath(),
+			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
+			1,
+		)
+		if ctx.Req.URL.RawQuery != "" {
+			redirectPath += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+		return
+	}
 
 	// Get repository.
 	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
@@ -500,14 +522,14 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	canSignedUserFork, err := models.CanUserForkRepo(ctx.User, ctx.Repo.Repository)
+	canSignedUserFork, err := models.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.User, ctx.Repo.Repository)
+	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetForksByUserAndOrgs", err)
 		return
@@ -530,8 +552,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.User.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.User.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.Doer.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -631,7 +653,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -667,8 +689,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 
 		ctx.Data["RepoTransfer"] = repoTransfer
-		if ctx.User != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.User)
+		if ctx.Doer != nil {
+			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.Doer)
 		}
 	}
 
@@ -914,7 +936,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")), ctx.Repo.RepoLink)
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
 
 				ctx.Redirect(path.Join(
 					ctx.Repo.RepoLink,
@@ -948,7 +970,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
-		if !ctx.User.CanEditGitHook() {
+		if !ctx.Doer.CanEditGitHook() {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}

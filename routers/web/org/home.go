@@ -6,6 +6,7 @@ package org
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -23,7 +24,14 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	ctx.SetParams(":org", ctx.Params(":username"))
+	uname := ctx.Params(":username")
+
+	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	ctx.SetParams(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
@@ -31,7 +39,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -105,7 +113,7 @@ func Home(ctx *context.Context) {
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
-		Actor:              ctx.User,
+		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
@@ -120,13 +128,13 @@ func Home(ctx *context.Context) {
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
 
-	if ctx.User != nil {
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+	if ctx.Doer != nil {
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
 
 	members, _, err := models.FindOrgMembers(opts)

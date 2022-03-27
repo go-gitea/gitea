@@ -80,34 +80,34 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
-	if err := NewCommand(repo.Ctx, "rev-list", "--all", "--count", "--max-count=1").
+	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
 		RunWithContext(&RunContext{
 			Timeout: -1,
 			Dir:     repo.Path,
 			Stdout:  &output,
 			Stderr:  &errbuf,
 		}); err != nil {
+		if err.Error() == "exit status 1" && errbuf.String() == "" {
+			return true, nil
+		}
 		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
 	}
 
-	c, err := strconv.Atoi(strings.TrimSpace(output.String()))
-	if err != nil {
-		return true, fmt.Errorf("check empty: convert %s to count failed: %v", output.String(), err)
-	}
-	return c == 0, nil
+	return strings.TrimSpace(output.String()) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout    time.Duration
-	Mirror     bool
-	Bare       bool
-	Quiet      bool
-	Branch     string
-	Shared     bool
-	NoCheckout bool
-	Depth      int
-	Filter     string
+	Timeout       time.Duration
+	Mirror        bool
+	Bare          bool
+	Quiet         bool
+	Branch        string
+	Shared        bool
+	NoCheckout    bool
+	Depth         int
+	Filter        string
+	SkipTLSVerify bool
 }
 
 // Clone clones original repository to target path.
@@ -125,6 +125,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	if opts.SkipTLSVerify {
+		cmd.AddArguments("-c", "http.sslVerify=false")
+	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}

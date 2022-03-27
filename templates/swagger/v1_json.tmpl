@@ -1474,7 +1474,7 @@
           "204": {
             "description": "user is a member"
           },
-          "302": {
+          "303": {
             "description": "redirection to /orgs/{org}/public_members/{username}"
           },
           "404": {
@@ -4960,6 +4960,48 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Issue"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete an issue",
+        "operationId": "issueDelete",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of issue to delete",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -12045,39 +12087,6 @@
         }
       }
     },
-    "/users/{follower}/following/{followee}": {
-      "get": {
-        "tags": [
-          "user"
-        ],
-        "summary": "Check if one user is following another user",
-        "operationId": "userCheckFollowing",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of following user",
-            "name": "follower",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "username of followed user",
-            "name": "followee",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
     "/users/{username}": {
       "get": {
         "produces": [
@@ -12179,6 +12188,39 @@
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
+          }
+        }
+      }
+    },
+    "/users/{username}/following/{target}": {
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Check if one user is following another user",
+        "operationId": "userCheckFollowing",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of following user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of followed user",
+            "name": "target",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -14767,6 +14809,11 @@
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
+        "allow_rebase_update": {
+          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowRebaseUpdate"
+        },
         "allow_squash_merge": {
           "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
           "type": "boolean",
@@ -15364,6 +15411,11 @@
           "description": "include avatar of the template repo",
           "type": "boolean",
           "x-go-name": "Avatar"
+        },
+        "default_branch": {
+          "description": "Default branch of the new repository",
+          "type": "string",
+          "x-go-name": "DefaultBranch"
         },
         "description": {
           "description": "Description of the repository to create",
