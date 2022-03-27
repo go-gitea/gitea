@@ -24,7 +24,7 @@ type BaseConfig struct {
 	Enabled         bool
 	RunAtStart      bool
 	Schedule        string
-	NoSuccessNotice bool
+	NoticeOnSuccess bool
 }
 
 // OlderThanConfig represents a cron task with OlderThan setting
@@ -64,7 +64,7 @@ func (b *BaseConfig) DoRunAtStart() bool {
 
 // DoNoticeOnSuccess returns whether a success notice should be posted
 func (b *BaseConfig) DoNoticeOnSuccess() bool {
-	return !b.NoSuccessNotice
+	return b.NoticeOnSuccess
 }
 
 // FormatMessage returns a message for the task
