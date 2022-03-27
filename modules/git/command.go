@@ -61,7 +61,7 @@ func NewCommandContext(ctx context.Context, args ...string) *Command {
 		name:             GitExecutable,
 		args:             append(cargs, args...),
 		parentContext:    ctx,
-		globalArgsLength: len(globalCommandArgs),
+		globalArgsLength: len(GlobalCommandArgs),
 	}
 }
 
