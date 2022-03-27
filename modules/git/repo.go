@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -152,9 +153,8 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments("--")
-	cmd.AddURLArgument(from)
-	cmd.AddArguments(to)
+	cmd.AddArguments("--", from, to).
+		SetDescription(fmt.Sprintf("clone from %s to %s", util.NewStringURLSanitizer(from, true).Replace(from), to))
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -199,11 +199,12 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
-	cmd.AddArguments("--")
-	cmd.AddURLArgument(opts.Remote)
+	cmd.AddArguments("--", opts.Remote)
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
 	}
+	cmd.SetDescription(fmt.Sprintf("push %s to %s", repoPath, util.NewStringURLSanitizer(opts.Remote, true).Replace(opts.Remote)))
+
 	var outbuf, errbuf strings.Builder
 
 	if opts.Timeout == 0 {

@@ -92,13 +92,6 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// AddURLArgument adds an argument which is a url which means password should be shadow when display in UI
-func (c *Command) AddURLArgument(arg string) *Command {
-	c.urlArgIndexes = append(c.urlArgIndexes, len(c.args))
-	c.args = append(c.args, arg)
-	return c
-}
-
 // RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
@@ -149,13 +142,17 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	desc := c.desc
 	if desc == "" {
-		var args []string
-		if len(c.urlArgIndexes) == 0 {
-			args = c.args
-		} else {
+		args := c.args
+		var argSensitiveURLIndexes []int
+		for i, arg := range c.args {
+			if strings.Index(arg, "://") != -1 && strings.IndexByte(arg, '@') != -1 {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
 			args = make([]string, len(c.args))
 			copy(args, c.args)
-			for _, urlArgIndex := range c.urlArgIndexes {
+			for _, urlArgIndex := range argSensitiveURLIndexes {
 				args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
 			}
 		}

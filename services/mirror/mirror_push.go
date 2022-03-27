@@ -28,8 +28,8 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
-		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName)
-		cmd.AddURLArgument(addr)
+		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr)
+		cmd.SetDescription(fmt.Sprintf("add push remote %s to %s", util.NewStringURLSanitizer(addr, true).Replace(addr), path))
 		if _, err := cmd.RunInDir(path); err != nil {
 			return err
 		}
