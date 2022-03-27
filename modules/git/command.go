@@ -33,10 +33,11 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name          string
-	args          []string
-	parentContext context.Context
-	desc          string
+	name             string
+	args             []string
+	parentContext    context.Context
+	desc             string
+	globalArgsLength int
 }
 
 func (c *Command) String() string {
@@ -52,9 +53,10 @@ func NewCommand(ctx context.Context, args ...string) *Command {
 	cargs := make([]string, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)
 	return &Command{
-		name:          GitExecutable,
-		args:          append(cargs, args...),
-		parentContext: ctx,
+		name:             GitExecutable,
+		args:             append(cargs, args...),
+		parentContext:    ctx,
+		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
@@ -141,7 +143,7 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	desc := c.desc
 	if desc == "" {
-		args := c.args
+		args := c.args[c.globalArgsLength:]
 		var argSensitiveURLIndexes []int
 		for i, arg := range c.args {
 			if strings.Index(arg, "://") != -1 && strings.IndexByte(arg, '@') != -1 {
