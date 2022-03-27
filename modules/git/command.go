@@ -146,7 +146,7 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		args := c.args[c.globalArgsLength:]
 		var argSensitiveURLIndexes []int
 		for i, arg := range c.args {
-			if strings.Index(arg, "://") != -1 && strings.IndexByte(arg, '@') != -1 {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
 				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
 			}
 		}
