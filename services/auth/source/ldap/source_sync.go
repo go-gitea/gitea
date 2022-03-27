@@ -202,7 +202,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
 				usr.IsActive = false
-				err = user_model.UpdateUserCols(db.DefaultContext, usr, "is_active")
+				err = user_model.UpdateUserCols(ctx, usr, "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 				}

@@ -37,7 +37,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
-		UserID:       ctx.User.ID,
+		UserID:       ctx.Doer.ID,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -71,7 +71,7 @@ func OAuthApplicationsEdit(ctx *context.Context) {
 		ID:           ctx.ParamsInt64("id"),
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
-		UserID:       ctx.User.ID,
+		UserID:       ctx.Doer.ID,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return
@@ -94,7 +94,7 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
-	if app.UID != ctx.User.ID {
+	if app.UID != ctx.Doer.ID {
 		ctx.NotFound("Application not found", nil)
 		return
 	}
@@ -119,7 +119,7 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
-	if app.UID != ctx.User.ID {
+	if app.UID != ctx.Doer.ID {
 		ctx.NotFound("Application not found", nil)
 		return
 	}
@@ -129,11 +129,11 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 
 // DeleteOAuth2Application deletes the given oauth2 application
 func DeleteOAuth2Application(ctx *context.Context) {
-	if err := auth.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.User.ID); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
-	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
+	log.Trace("OAuth2 Application deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -143,11 +143,11 @@ func DeleteOAuth2Application(ctx *context.Context) {
 
 // RevokeOAuth2Grant revokes the grant with the given id
 func RevokeOAuth2Grant(ctx *context.Context) {
-	if ctx.User.ID == 0 || ctx.FormInt64("id") == 0 {
+	if ctx.Doer.ID == 0 || ctx.FormInt64("id") == 0 {
 		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
 		return
 	}
-	if err := auth.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.User.ID); err != nil {
+	if err := auth.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}

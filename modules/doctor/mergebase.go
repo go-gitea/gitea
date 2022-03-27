@@ -18,9 +18,9 @@ import (
 	"xorm.io/builder"
 )
 
-func iteratePRs(repo *repo_model.Repository, each func(*repo_model.Repository, *models.PullRequest) error) error {
+func iteratePRs(ctx context.Context, repo *repo_model.Repository, each func(*repo_model.Repository, *models.PullRequest) error) error {
 	return db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(models.PullRequest),
 		builder.Eq{"base_repo_id": repo.ID},
 		func(idx int, bean interface{}) error {
@@ -33,9 +33,9 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 	numRepos := 0
 	numPRs := 0
 	numPRsUpdated := 0
-	err := iterateRepositories(func(repo *repo_model.Repository) error {
+	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		return iteratePRs(repo, func(repo *repo_model.Repository, pr *models.PullRequest) error {
+		return iteratePRs(ctx, repo, func(repo *repo_model.Repository, pr *models.PullRequest) error {
 			numPRs++
 			pr.BaseRepo = repo
 			repoPath := repo.RepoPath()

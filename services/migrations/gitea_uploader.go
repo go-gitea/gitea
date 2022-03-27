@@ -817,7 +817,7 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
-	if err := models.UpdateRepoStats(db.DefaultContext, g.repo.ID); err != nil {
+	if err := models.UpdateRepoStats(g.ctx, g.repo.ID); err != nil {
 		return err
 	}
 

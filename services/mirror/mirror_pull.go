@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -39,7 +38,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	cmd := git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr)
+	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), repoPath))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
+	}
+	_, err = cmd.RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -53,7 +58,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			return err
 		}
 
-		_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		cmd = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath)
+		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(wikiRemotePath, true).Replace(wikiRemotePath), wikiPath))
+		} else {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
+		}
+		_, err = cmd.RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -287,7 +298,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
-	if err := models.UpdateRepoSize(db.DefaultContext, m.Repo); err != nil {
+	if err := models.UpdateRepoSize(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo, err)
 	}
 
@@ -400,6 +411,9 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
+		if err = repo_model.TouchMirror(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+		}
 		return false
 	}
 
