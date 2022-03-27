@@ -143,9 +143,9 @@ func registerCleanupHookTaskTable() {
 func registerCleanupPackages() {
 	RegisterTaskFatal("cleanup_packages", &OlderThanConfig{
 		BaseConfig: BaseConfig{
-			Enabled:         true,
-			RunAtStart:      true,
-			Schedule:        "@midnight",
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
