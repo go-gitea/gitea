@@ -20,7 +20,7 @@ import (
 // buildCondition creates a Like condition if a wildcard is present. Otherwise Eq is used.
 func buildCondition(name, value string) builder.Cond {
 	if strings.Contains(value, "*") {
-		return builder.Like{name, strings.ReplaceAll(value, "*", "%")}
+		return builder.Like{name, strings.ReplaceAll(strings.ReplaceAll(value, "_", "\\_"), "*", "%")}
 	}
 	return builder.Eq{name: value}
 }

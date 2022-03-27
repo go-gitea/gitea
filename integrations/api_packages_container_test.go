@@ -442,28 +442,34 @@ func TestPackageContainer(t *testing.T) {
 				defer PrintCurrentTest(t)()
 
 				cases := []struct {
-					URL      string
-					Expected []string
+					URL          string
+					ExpectedTags []string
+					ExpectedLink string
 				}{
 					{
-						URL:      fmt.Sprintf("%s/tags/list", url),
-						Expected: []string{"latest", "main", "multi"},
+						URL:          fmt.Sprintf("%s/tags/list", url),
+						ExpectedTags: []string{"latest", "main", "multi"},
+						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=multi>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:      fmt.Sprintf("%s/tags/list?n=0", url),
-						Expected: []string{},
+						URL:          fmt.Sprintf("%s/tags/list?n=0", url),
+						ExpectedTags: []string{},
+						ExpectedLink: "",
 					},
 					{
-						URL:      fmt.Sprintf("%s/tags/list?n=2", url),
-						Expected: []string{"latest", "main"},
+						URL:          fmt.Sprintf("%s/tags/list?n=2", url),
+						ExpectedTags: []string{"latest", "main"},
+						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=main&n=2>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:      fmt.Sprintf("%s/tags/list?last=main", url),
-						Expected: []string{"multi"},
+						URL:          fmt.Sprintf("%s/tags/list?last=main", url),
+						ExpectedTags: []string{"multi"},
+						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=multi>; rel="next"`, user.Name, image),
 					},
 					{
-						URL:      fmt.Sprintf("%s/tags/list?n=1&last=latest", url),
-						Expected: []string{"main"},
+						URL:          fmt.Sprintf("%s/tags/list?n=1&last=latest", url),
+						ExpectedTags: []string{"main"},
+						ExpectedLink: fmt.Sprintf(`</v2/%s/%s/tags/list?last=main&n=1>; rel="next"`, user.Name, image),
 					},
 				}
 
@@ -481,7 +487,8 @@ func TestPackageContainer(t *testing.T) {
 					DecodeJSON(t, resp, &tagList)
 
 					assert.Equal(t, user.Name+"/"+image, tagList.Name)
-					assert.Equal(t, c.Expected, tagList.Tags)
+					assert.Equal(t, c.ExpectedTags, tagList.Tags)
+					assert.Equal(t, c.ExpectedLink, resp.Header().Get("Link"))
 				}
 			})
 

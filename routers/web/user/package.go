@@ -102,6 +102,7 @@ func RedirectToLastVersion(ctx *context.Context) {
 	}
 	if len(pvs) == 0 {
 		ctx.NotFound("", err)
+		return
 	}
 
 	pd, err := packages_model.GetPackageDescriptor(ctx, pvs[0])
@@ -143,10 +144,12 @@ func ViewPackageVersion(ctx *context.Context) {
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
+			return
 		}
 	}
 	if err != nil {
 		ctx.ServerError("", err)
+		return
 	}
 
 	ctx.Data["LatestVersions"] = pvs

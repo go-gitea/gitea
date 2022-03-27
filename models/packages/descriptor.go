@@ -137,6 +137,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &pypi.Metadata{}
 	case TypeRubyGems:
 		metadata = &rubygems.Metadata{}
+	default:
+		panic(fmt.Sprintf("unknown package type: %s", string(p.Type)))
 	}
 	if metadata != nil {
 		if err := json.Unmarshal([]byte(pv.MetadataJSON), &metadata); err != nil {

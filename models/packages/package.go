@@ -7,6 +7,7 @@ package packages
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -63,7 +64,7 @@ func (pt Type) Name() string {
 	case TypeRubyGems:
 		return "RubyGems"
 	}
-	return ""
+	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
 
 // SVGName gets the name of the package type svg image
@@ -88,7 +89,7 @@ func (pt Type) SVGName() string {
 	case TypeRubyGems:
 		return "gitea-rubygems"
 	}
-	return ""
+	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
 
 // Package represents a package

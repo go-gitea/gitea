@@ -33,7 +33,7 @@ func addPackageTables(x *xorm.Engine) error {
 		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 		IsInternal    bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-		MetadataJSON  string             `xorm:"TEXT metadata_json"`
+		MetadataJSON  string             `xorm:"metadata_json TEXT"`
 		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 	}
 

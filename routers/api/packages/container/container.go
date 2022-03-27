@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -578,10 +579,9 @@ func GetTagList(ctx *context.Context) {
 		return
 	}
 
-	var n *int
+	n := -1
 	if ctx.FormTrim("n") != "" {
-		val := ctx.FormInt("n")
-		n = &val
+		n = ctx.FormInt("n")
 	}
 	last := ctx.FormTrim("last")
 
@@ -594,6 +594,16 @@ func GetTagList(ctx *context.Context) {
 	type TagList struct {
 		Name string   `json:"name"`
 		Tags []string `json:"tags"`
+	}
+
+	if len(tags) > 0 {
+		v := url.Values{}
+		if n > 0 {
+			v.Add("n", strconv.Itoa(n))
+		}
+		v.Add("last", tags[len(tags)-1])
+
+		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/%s/%s/tags/list?%s>; rel="next"`, ctx.Package.Owner.LowerName, image, v.Encode()))
 	}
 
 	jsonResponse(ctx, http.StatusOK, TagList{

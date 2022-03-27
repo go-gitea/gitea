@@ -117,7 +117,12 @@ func GetManifestVersions(ctx context.Context, opts *BlobSearchOptions) ([]*packa
 
 // GetImageTags gets a sorted list of the tags of an image
 // The result is suitable for the api call.
-func GetImageTags(ctx context.Context, ownerID int64, image string, n *int, last string) ([]string, error) {
+func GetImageTags(ctx context.Context, ownerID int64, image string, n int, last string) ([]string, error) {
+	// Short circuit: n == 0 should return an empty list
+	if n == 0 {
+		return []string{}, nil
+	}
+
 	var cond builder.Cond = builder.Eq{
 		"package.type":                packages.TypeContainer,
 		"package.owner_id":            ownerID,
@@ -144,10 +149,10 @@ func GetImageTags(ctx context.Context, ownerID int64, image string, n *int, last
 		Asc("package_version.lower_version")
 
 	var tags []string
-	if n != nil && *n >= 0 {
-		sess = sess.Limit(*n)
+	if n > 0 {
+		sess = sess.Limit(n)
 
-		tags = make([]string, 0, *n)
+		tags = make([]string, 0, n)
 	} else {
 		tags = make([]string, 0, 10)
 	}
