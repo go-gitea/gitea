@@ -35,7 +35,6 @@ const DefaultLocale = "C"
 type Command struct {
 	name          string
 	args          []string
-	urlArgIndexes []int
 	parentContext context.Context
 	desc          string
 }
