@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -488,18 +489,13 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
-	if err := organization.AddOrgUser(team.OrgID, userID); err != nil {
-		return err
-	}
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	// Get team and its repositories.
-	if err := team.GetRepositoriesCtx(ctx); err != nil {
+	if err := AddOrgUser(ctx, team.OrgID, userID); err != nil {
 		return err
 	}
 
@@ -518,15 +514,48 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	team.NumMembers++
 
 	// Give access to team repositories.
-	for _, repo := range team.Repos {
-		if err := recalculateUserAccess(ctx, repo, userID); err != nil {
-			return err
-		}
-		if setting.Service.AutoWatchNewRepos {
-			if err = repo_model.WatchRepoCtx(ctx, userID, repo.ID, true); err != nil {
-				return err
+	// update exist access if mode become bigger
+	subQuery := builder.Select("repo_id").From("team_repo").
+		Where(builder.Eq{"team_id": team.ID})
+
+	if _, err := sess.Where("user_id=?", userID).
+		In("repo_id", subQuery).
+		And("mode < ?", team.AccessMode).
+		SetExpr("mode", team.AccessMode).
+		Update(new(Access)); err != nil {
+		return fmt.Errorf("update user accesses: %v", err)
+	}
+
+	// for not exist access
+	var repoIDs []int64
+	accessSubQuery := builder.Select("repo_id").From("access").Where(builder.Eq{"user_id": userID})
+	if err := sess.SQL(subQuery.And(builder.NotIn("repo_id", accessSubQuery))).Find(&repoIDs); err != nil {
+		return fmt.Errorf("select id accesses: %v", err)
+	}
+
+	accesses := make([]*Access, 0, 100)
+	for i, repoID := range repoIDs {
+		accesses = append(accesses, &Access{RepoID: repoID, UserID: userID})
+		if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
+			if err = db.Insert(ctx, accesses); err != nil {
+				return fmt.Errorf("insert new user accesses: %v", err)
 			}
+			accesses = accesses[:0]
 		}
+	}
+
+	// watch could be failed, so run it in a goroutine
+	if setting.Service.AutoWatchNewRepos {
+		if err := team.getRepositories(db.GetEngine(db.DefaultContext)); err != nil {
+			log.Error("getRepositories failed: %v", err)
+		}
+		go func(repos []*repo_model.Repository) {
+			for _, repo := range repos {
+				if err = repo_model.WatchRepoCtx(db.DefaultContext, userID, repo.ID, true); err != nil {
+					log.Error("watch repo failed: %v", err)
+				}
+			}
+		}(team.Repos)
 	}
 
 	return committer.Commit()

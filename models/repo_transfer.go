@@ -297,7 +297,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 
 		if c.ID != newOwner.ID {
-			isMember, err := organization.IsOrganizationMember(ctx, newOwner.ID, c.ID)
+			isMember, err := organization.IsOrganizationMember(ctx, newOwner.ID, c.ID)000 repositories)
 			if err != nil {
 				return fmt.Errorf("IsOrgMember: %v", err)
 			} else if !isMember {
