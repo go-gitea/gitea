@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 // IsObjectExist returns true if given reference exists in the repository.
@@ -82,7 +83,7 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 }
 
 // WalkReferences walks all the references from the repository
-func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) error) (int, error) {
+func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
 	repo := RepositoryFromContext(ctx, repoPath)
 	if repo == nil {
 		var err error
@@ -101,9 +102,42 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) er
 	defer iter.Close()
 
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		err := walkfn(string(ref.Name()))
+		err := walkfn(ref.Hash().String(), string(ref.Name()))
 		i++
 		return err
+	})
+	return i, err
+}
+
+// WalkReferences walks all the references from the repository
+func (repo *Repository) WalkReferences(arg string, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+	i := 0
+	var iter storer.ReferenceIter
+	var err error
+	if arg == "--tags" {
+		iter, err = repo.gogitRepo.Tags()
+	} else {
+		iter, err = repo.gogitRepo.References()
+	}
+	if err != nil {
+		return i, err
+	}
+	defer iter.Close()
+
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if i < skip {
+			i++
+			return nil
+		}
+		err := walkfn(ref.Hash().String(), string(ref.Name()))
+		i++
+		if err != nil {
+			return err
+		}
+		if limit != 0 && i >= skip+limit {
+			return storer.ErrStop
+		}
+		return nil
 	})
 	return i, err
 }
