@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+
 	"gitea.com/lunny/levelqueue"
 )
 
