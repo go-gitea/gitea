@@ -77,7 +77,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 	return nil
 }
 
-// Open the repository
+// Init the repository
 func (t *TemporaryUploadRepository) Init() error {
 	if err := git.InitRepository(t.ctx, t.basePath, false); err != nil {
 		return err
@@ -261,7 +261,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		var keyID string
 		var signer *git.Signature
 		if parent != "" {
-			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, "HEAD")
+			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
 		} else {
 			sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
 		}
