@@ -86,7 +86,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
-		if ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID {
+		if ctx.Doer.IsAdmin || ctx.Doer.ID == keys[i].OwnerID {
 			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
 		}
 	}
@@ -119,7 +119,7 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
 
-	listPublicKeys(ctx, ctx.User)
+	listPublicKeys(ctx, ctx.Doer)
 }
 
 // ListPublicKeys list the given user's public keys
@@ -151,11 +151,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listPublicKeys(ctx, user)
+	listPublicKeys(ctx, ctx.ContextUser)
 }
 
 // GetPublicKey get a public key
@@ -190,8 +186,8 @@ func GetPublicKey(ctx *context.APIContext) {
 
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
-	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
 }
@@ -211,8 +207,8 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 	}
 	apiLink := composePublicKeysAPILink()
 	apiKey := convert.ToPublicKey(apiLink, key)
-	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
-		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
+	if ctx.Doer.IsAdmin || ctx.Doer.ID == key.OwnerID {
+		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Doer)
 	}
 	ctx.JSON(http.StatusCreated, apiKey)
 }
@@ -238,7 +234,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.CreateKeyOption)
-	CreateUserPublicKey(ctx, *form, ctx.User.ID)
+	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
 }
 
 // DeletePublicKey delete one public key
@@ -272,7 +268,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
 	}
 
-	if err := asymkey_service.DeletePublicKey(ctx.User, id); err != nil {
+	if err := asymkey_service.DeletePublicKey(ctx.Doer, id); err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if asymkey_model.IsErrKeyAccessDenied(err) {

@@ -53,7 +53,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var err error
 	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if models.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
@@ -68,6 +68,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		return
 	}
 	org := ctx.Org.Organization
+	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
 	teams, err := org.LoadTeams()
@@ -77,14 +78,14 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["OrgTeams"] = teams
 
 	// Admin has super access.
-	if ctx.IsSigned && ctx.User.IsAdmin {
+	if ctx.IsSigned && ctx.Doer.IsAdmin {
 		ctx.Org.IsOwner = true
 		ctx.Org.IsMember = true
 		ctx.Org.IsTeamMember = true
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -96,12 +97,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
+			ctx.Org.IsMember, err = org.IsOrgMember(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.User.ID)
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -133,7 +134,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		if ctx.Org.IsOwner {
 			shouldSeeAllTeams = true
 		} else {
-			teams, err := org.GetUserTeams(ctx.User.ID)
+			teams, err := org.GetUserTeams(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -152,7 +153,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 				return
 			}
 		} else {
-			ctx.Org.Teams, err = org.GetUserTeams(ctx.User.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
