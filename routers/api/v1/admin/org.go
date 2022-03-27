@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -45,11 +44,8 @@ func CreateOrg(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
@@ -67,7 +63,7 @@ func CreateOrg(ctx *context.APIContext) {
 		Visibility:  visibility,
 	}
 
-	if err := models.CreateOrganization(org, u); err != nil {
+	if err := models.CreateOrganization(org, ctx.ContextUser); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -107,7 +103,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
