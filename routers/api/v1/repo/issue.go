@@ -1029,7 +1029,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 			continue
 		}
 
-		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.User)
+		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1195,7 +1195,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 			continue
 		}
 
-		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.User)
+		perm, err := models.GetUserRepoPermission(&depMeta.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1325,7 +1325,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	}
 
 	if t == models.DependencyTypeBlockedBy {
-		perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+		perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1342,13 +1342,13 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			}
 		}
 
-		err = models.CreateIssueDependency(ctx.User, issue, dep)
+		err = models.CreateIssueDependency(ctx.Doer, issue, dep)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 			return
 		}
 	} else {
-		perm, err := models.GetUserRepoPermission(repo, ctx.User)
+		perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1365,7 +1365,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			}
 		}
 
-		err = models.CreateIssueDependency(ctx.User, dep, issue)
+		err = models.CreateIssueDependency(ctx.Doer, dep, issue)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 			return
@@ -1412,7 +1412,7 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.User)
+	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
@@ -1429,7 +1429,7 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		}
 	}
 
-	err = models.RemoveIssueDependency(ctx.User, issue, dep, t)
+	err = models.RemoveIssueDependency(ctx.Doer, issue, dep, t)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 		return
