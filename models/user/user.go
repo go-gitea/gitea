@@ -599,6 +599,7 @@ var (
 		"pulls",
 		"raw",
 		"repo",
+		"repo-avatars",
 		"robots.txt",
 		"search",
 		"serviceworker.js",
