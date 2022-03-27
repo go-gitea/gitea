@@ -61,13 +61,13 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	stopwatches, err := models.GetUserStopwatches(c.User.ID, db.ListOptions{})
+	stopwatches, err := models.GetUserStopwatches(c.Doer.ID, db.ListOptions{})
 	if err != nil {
 		c.ServerError("GetUserStopwatches", err)
 		return
 	}
 	if len(stopwatches) == 0 {
-		eventsource.GetManager().SendMessage(c.User.ID, &eventsource.Event{
+		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
 			Name: "stopwatches",
 			Data: "{}",
 		})
