@@ -153,8 +153,13 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b", opts.Branch)
 	}
-	cmd.AddArguments("--", from, to).
-		SetDescription(fmt.Sprintf("clone from %s to %s", util.NewStringURLSanitizer(from, true).Replace(from), to))
+	cmd.AddArguments("--", from, to)
+
+	if strings.Contains(from, "://") && strings.Contains(from, "@") {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.NewStringURLSanitizer(from, true).Replace(from), to, opts.Shared, opts.Mirror, opts.Depth))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, from, to, opts.Shared, opts.Mirror, opts.Depth))
+	}
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -203,6 +208,12 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
 	}
+	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.NewStringURLSanitizer(opts.Remote, true).Replace(opts.Remote), opts.Force, opts.Mirror))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
+	}
+
 	cmd.SetDescription(fmt.Sprintf("push %s to %s", repoPath, util.NewStringURLSanitizer(opts.Remote, true).Replace(opts.Remote)))
 
 	var outbuf, errbuf strings.Builder

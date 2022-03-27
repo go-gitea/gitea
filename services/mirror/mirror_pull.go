@@ -39,7 +39,11 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	cmd := git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr)
-	cmd.SetDescription(fmt.Sprintf("add fetch remote %s to %s", util.NewStringURLSanitizer(addr, true).Replace(addr), repoPath))
+	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), repoPath))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
+	}
 	_, err = cmd.RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
@@ -55,7 +59,11 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		}
 
 		cmd = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath)
-		cmd.SetDescription(fmt.Sprintf("add fetch remote %s to %s", util.NewStringURLSanitizer(wikiRemotePath, true).Replace(wikiRemotePath), wikiPath))
+		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(wikiRemotePath, true).Replace(wikiRemotePath), wikiPath))
+		} else {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
+		}
 		_, err = cmd.RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err

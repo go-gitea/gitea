@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -29,6 +30,12 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
 		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr)
+		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), path))
+		} else {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
+		}
+
 		cmd.SetDescription(fmt.Sprintf("add push remote %s to %s", util.NewStringURLSanitizer(addr, true).Replace(addr), path))
 		if _, err := cmd.RunInDir(path); err != nil {
 			return err
