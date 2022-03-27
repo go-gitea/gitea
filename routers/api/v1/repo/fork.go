@@ -58,7 +58,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User, fork)
+		access, err := models.AccessLevel(ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
@@ -106,7 +106,7 @@ func CreateFork(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
-		forker = ctx.User
+		forker = ctx.Doer
 	} else {
 		org, err := models.GetOrgByName(*form.Organization)
 		if err != nil {
@@ -117,7 +117,7 @@ func CreateFork(ctx *context.APIContext) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
@@ -135,7 +135,7 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx.Doer, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,

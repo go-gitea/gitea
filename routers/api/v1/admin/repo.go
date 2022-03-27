@@ -9,7 +9,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
-	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 // CreateRepo api for creating a repository
@@ -42,11 +41,8 @@ func CreateRepo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.CreateRepoOption)
-	owner := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 
-	repo.CreateUserRepo(ctx, owner, *form)
+	form := web.GetForm(ctx).(*api.CreateRepoOption)
+
+	repo.CreateUserRepo(ctx, ctx.ContextUser, *form)
 }

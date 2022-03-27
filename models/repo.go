@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -123,7 +122,8 @@ func NewRepoContext() {
 	loadRepoConfig()
 	unit.LoadUnitConfig()
 
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", LocalCopyPath())
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
@@ -150,27 +150,56 @@ func getRepoAssignees(ctx context.Context, repo *repo_model.Repository) (_ []*us
 	}
 
 	e := db.GetEngine(ctx)
-	accesses := make([]*Access, 0, 10)
-	if err = e.
+	userIDs := make([]int64, 0, 10)
+	if err = e.Table("access").
 		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
-		Find(&accesses); err != nil {
+		Select("user_id").
+		Find(&userIDs); err != nil {
 		return nil, err
 	}
 
+	additionalUserIDs := make([]int64, 0, 10)
+	if err = e.Table("team_user").
+		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
+		Where("`team_repo`.repo_id = ? AND `team_unit`.access_mode >= ?", repo.ID, perm.AccessModeWrite).
+		Distinct("`team_user`.uid").
+		Select("`team_user`.uid").
+		Find(&additionalUserIDs); err != nil {
+		return nil, err
+	}
+
+	uidMap := map[int64]bool{}
+	i := 0
+	for _, uid := range userIDs {
+		if uidMap[uid] {
+			continue
+		}
+		uidMap[uid] = true
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+	userIDs = append(userIDs, additionalUserIDs...)
+
+	for _, uid := range additionalUserIDs {
+		if uidMap[uid] {
+			continue
+		}
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(accesses)+1)
-	if len(accesses) > 0 {
-		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
-			userIDs[i] = accesses[i].UserID
-		}
-
+	users := make([]*user_model.User, 0, len(userIDs)+1)
+	if len(userIDs) > 0 {
 		if err = e.In("id", userIDs).Find(&users); err != nil {
 			return nil, err
 		}
 	}
-	if !repo.Owner.IsOrganization() {
+	if !repo.Owner.IsOrganization() && !uidMap[repo.OwnerID] {
 		users = append(users, repo.Owner)
 	}
 
@@ -189,42 +218,44 @@ func getReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		return nil, err
 	}
 
-	var users []*user_model.User
-	e := db.GetEngine(ctx)
+	cond := builder.And(builder.Neq{"`user`.id": posterID})
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
-		if err := e.
-			SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
-				repo.ID, perm.AccessModeRead,
-				doerID, posterID).
-			Find(&users); err != nil {
-			return nil, err
+
+		cond = cond.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").Where(
+				builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead}),
+			),
+		))
+
+		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
+			// as private *user* repos don't generate an entry in the `access` table,
+			// the owner of a private repo needs to be explicitly added.
+			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
 		}
 
-		return users, nil
+	} else {
+		// This is a "public" repository:
+		// Any user that has read access, is a watcher or organization member can be requested to review
+		cond = cond.And(builder.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead})),
+		).Or(builder.In("`user`.id",
+			builder.Select("user_id").From("watch").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
+		).Or(builder.In("`user`.id",
+			builder.Select("uid").From("org_user").
+				Where(builder.Eq{"org_id": repo.OwnerID}),
+		)))))
 	}
 
-	// This is a "public" repository:
-	// Any user that has read access, is a watcher or organization member can be requested to review
-	if err := e.
-		SQL("SELECT * FROM `user` WHERE id IN ( "+
-			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? "+
-			"UNION "+
-			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
-			"UNION "+
-			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
-			") AND id NOT IN (?, ?) ORDER BY name",
-			repo.ID, perm.AccessModeRead,
-			repo.ID, repo_model.WatchModeNormal, repo_model.WatchModeAuto,
-			repo.OwnerID,
-			doerID, posterID).
-		Find(&users); err != nil {
-		return nil, err
-	}
-
-	return users, nil
+	users := make([]*user_model.User, 0, 8)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
 }
 
 // GetReviewers get all users can be requested to review:
@@ -492,7 +523,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge},
+				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge, AllowRebaseUpdate: true},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
@@ -927,28 +958,28 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Remove archives
-	for i := range archivePaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	for _, archive := range archivePaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects
-	for i := range lfsPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	for _, lfsObj := range lfsPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
 	// Remove issue attachment files.
-	for i := range attachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	for _, attachment := range attachmentPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
 	}
 
 	// Remove release attachment files.
-	for i := range releaseAttachments {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	for _, releaseAttachment := range releaseAttachments {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
 	}
 
 	// Remove attachment with no issue_id and release_id.
-	for i := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+	for _, newAttachment := range newAttachmentPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {

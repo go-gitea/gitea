@@ -69,7 +69,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 		return err
 	}
 
-	mentions, err := pull.FindAndUpdateIssueMentions(db.DefaultContext, pull.Poster, pull.Content)
+	mentions, err := pull.FindAndUpdateIssueMentions(ctx, pull.Poster, pull.Content)
 	if err != nil {
 		return err
 	}

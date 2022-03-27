@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -24,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -65,11 +68,12 @@ type Issue struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
-	Attachments      []*repo_model.Attachment `xorm:"-"`
-	Comments         []*Comment               `xorm:"-"`
-	Reactions        ReactionList             `xorm:"-"`
-	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*user_model.User       `xorm:"-"`
+	Attachments      []*repo_model.Attachment           `xorm:"-"`
+	Comments         []*Comment                         `xorm:"-"`
+	Reactions        ReactionList                       `xorm:"-"`
+	TotalTrackedTime int64                              `xorm:"-"`
+	Assignees        []*user_model.User                 `xorm:"-"`
+	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -269,6 +273,29 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
+	if issue.ForeignReference != nil {
+		return nil
+	}
+	reference := &foreignreference.ForeignReference{
+		RepoID:     issue.RepoID,
+		LocalIndex: issue.Index,
+		Type:       foreignreference.TypeIssue,
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return err
+	} else if !has {
+		return foreignreference.ErrForeignIndexNotExist{
+			RepoID:     issue.RepoID,
+			LocalIndex: issue.Index,
+			Type:       foreignreference.TypeIssue,
+		}
+	}
+	issue.ForeignReference = reference
+	return nil
+}
+
 func (issue *Issue) loadMilestone(e db.Engine) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
@@ -328,6 +355,10 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
+	}
+
+	if err = issue.loadForeignReference(ctx); err != nil && !foreignreference.IsErrForeignIndexNotExist(err) {
+		return err
 	}
 
 	return issue.loadReactions(ctx)
@@ -1108,6 +1139,26 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	return issue, nil
 }
 
+// GetIssueByForeignIndex returns raw issue by foreign ID
+func GetIssueByForeignIndex(ctx context.Context, repoID, foreignIndex int64) (*Issue, error) {
+	reference := &foreignreference.ForeignReference{
+		RepoID:       repoID,
+		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+		Type:         foreignreference.TypeIssue,
+	}
+	has, err := db.GetEngine(ctx).Get(reference)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, foreignreference.ErrLocalIndexNotExist{
+			RepoID:       repoID,
+			ForeignIndex: foreignIndex,
+			Type:         foreignreference.TypeIssue,
+		}
+	}
+	return GetIssueByIndex(repoID, reference.LocalIndex)
+}
+
 // GetIssueWithAttrsByIndex returns issue by index in a repository.
 func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	issue, err := GetIssueByIndex(repoID, index)
@@ -1552,6 +1603,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeYourRepositories
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1696,6 +1748,7 @@ type UserIssueStatsOptions struct {
 	IssueIDs   []int64
 	IsArchived util.OptionalBool
 	LabelIDs   []int64
+	RepoCond   builder.Cond
 	Org        *Organization
 	Team       *Team
 }
@@ -1712,6 +1765,9 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+	if opts.RepoCond != nil {
+		cond = cond.And(opts.RepoCond)
 	}
 
 	if opts.UserID > 0 {
@@ -1734,7 +1790,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	switch opts.FilterMode {
-	case FilterModeAll:
+	case FilterModeAll, FilterModeYourRepositories:
 		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
@@ -1988,6 +2044,119 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	}
 
 	return committer.Commit()
+}
+
+// DeleteIssue deletes the issue
+func DeleteIssue(issue *Issue) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteIssue(ctx, issue); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func deleteInIssue(e db.Engine, issueID int64, beans ...interface{}) error {
+	for _, bean := range beans {
+		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deleteIssue(ctx context.Context, issue *Issue) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+		return err
+	}
+
+	if issue.IsPull {
+		if _, err := e.ID(issue.RepoID).Decr("num_pulls").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_pulls").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := e.ID(issue.RepoID).Decr("num_issues").Update(new(repo_model.Repository)); err != nil {
+			return err
+		}
+		if issue.IsClosed {
+			if _, err := e.ID(issue.RepoID).Decr("num_closed_issues").Update(new(repo_model.Repository)); err != nil {
+				return err
+			}
+		}
+	}
+
+	// delete actions assigned to this issue
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issue.ID})
+	if _, err := e.In("comment_id", subQuery).Delete(&Action{}); err != nil {
+		return err
+	}
+
+	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").
+		Delete(&Action{}); err != nil {
+		return err
+	}
+
+	// find attachments related to this issue and remove them
+	var attachments []*repo_model.Attachment
+	if err := e.In("issue_id", issue.ID).Find(&attachments); err != nil {
+		return err
+	}
+
+	for i := range attachments {
+		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
+	}
+
+	// delete all database data still assigned to this issue
+	if err := deleteInIssue(e, issue.ID,
+		&issues.ContentHistory{},
+		&Comment{},
+		&IssueLabel{},
+		&IssueDependency{},
+		&IssueAssignees{},
+		&IssueUser{},
+		&Notification{},
+		&Reaction{},
+		&IssueWatch{},
+		&Stopwatch{},
+		&TrackedTime{},
+		&ProjectIssue{},
+		&repo_model.Attachment{},
+		&PullRequest{},
+	); err != nil {
+		return err
+	}
+
+	// References to this issue in other issues
+	if _, err := e.In("ref_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	// Delete dependencies for issues in other repositories
+	if _, err := e.In("dependency_id", issue.ID).Delete(&IssueDependency{}); err != nil {
+		return err
+	}
+
+	// delete from dependent issues
+	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.

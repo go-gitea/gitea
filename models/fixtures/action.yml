@@ -3,7 +3,7 @@
   user_id: 2
   op_type: 12 # close issue
   act_user_id: 2
-  repo_id: 2
+  repo_id: 2 # private
   is_private: true
   created_unix: 1603228283
 
@@ -12,7 +12,7 @@
   user_id: 3
   op_type: 2 # rename repo
   act_user_id: 2
-  repo_id: 3
+  repo_id: 3 # private
   is_private: true
   content: oldRepoName
 
@@ -21,7 +21,7 @@
   user_id: 11
   op_type: 1 # create repo
   act_user_id: 11
-  repo_id: 9
+  repo_id: 9 # public
   is_private: false
 
 -
@@ -29,7 +29,7 @@
   user_id: 16
   op_type: 12 # close issue
   act_user_id: 16
-  repo_id: 22
+  repo_id: 22 # private
   is_private: true
   created_unix: 1603267920
 
@@ -37,7 +37,7 @@
   user_id: 10
   op_type: 1 # create repo
   act_user_id: 10
-  repo_id: 6
+  repo_id: 6 # private
   is_private: true
   created_unix: 1603010100
 
@@ -45,7 +45,7 @@
   user_id: 10
   op_type: 1 # create repo
   act_user_id: 10
-  repo_id: 7
+  repo_id: 7 # private
   is_private: true
   created_unix: 1603011300
 
@@ -53,6 +53,6 @@
   user_id: 10
   op_type: 1 # create repo
   act_user_id: 10
-  repo_id: 8
+  repo_id: 8 # public
   is_private: false
   created_unix: 1603011540 # grouped with id:7
