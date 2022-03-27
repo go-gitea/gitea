@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -142,7 +143,21 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args[c.globalArgsLength:], " "), rc.Dir)
+		args := c.args[c.globalArgsLength:]
+		var argSensitiveURLIndexes []int
+		for i, arg := range c.args {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
+			args = make([]string, len(c.args))
+			copy(args, c.args)
+			for _, urlArgIndex := range argSensitiveURLIndexes {
+				args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
+			}
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
 	}
 
 	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
