@@ -146,7 +146,6 @@ func registerCleanupPackages() {
 			Enabled:         true,
 			RunAtStart:      true,
 			Schedule:        "@midnight",
-			NoSuccessNotice: true,
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
