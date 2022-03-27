@@ -278,23 +278,25 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags(0, 0)
-	if err != nil {
-		return fmt.Errorf("unable to GetTags in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
-	}
-	for _, tagName := range tags {
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
-			}
+
+	_, err := gitRepo.WalkReferences("--tags", 0, 0, func(sha1, refname string) error {
+		tagName := strings.TrimPrefix(refname, git.TagPrefix)
+		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+			return nil
 		}
-	}
-	return nil
+
+		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+		}
+
+		return nil
+	})
+	return err
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName string) error {
-	tag, err := gitRepo.GetTag(tagName)
+func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
 	}

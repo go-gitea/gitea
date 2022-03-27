@@ -159,6 +159,20 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 	return tag, nil
 }
 
+// GetTagWithID returns a Git tag by given name.
+func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
+	id, err := NewIDFromString(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err := repo.getTag(id, name)
+	if err != nil {
+		return nil, err
+	}
+	return tag, nil
+}
+
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
