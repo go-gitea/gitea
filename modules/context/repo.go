@@ -441,7 +441,6 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Repo.Owner = owner
 	ctx.ContextUser = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
-	ctx.ContextUser = owner
 
 	// redirect link to wiki
 	if strings.HasSuffix(repoName, ".wiki") {
