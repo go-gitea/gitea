@@ -92,6 +92,10 @@ var (
 				Name:  "json",
 				Usage: "Output as json",
 			},
+			cli.StringFlag{
+				Name:  "cancel",
+				Usage: "Process PID to cancel. (Only available for non-system processes.)",
+			},
 		},
 	}
 )
@@ -146,7 +150,7 @@ func runProcesses(c *cli.Context) error {
 	defer cancel()
 
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("no-children"), c.Bool("requests-only"), c.Bool("stacktraces"), c.Bool("json"))
+	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("no-children"), c.Bool("requests-only"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)

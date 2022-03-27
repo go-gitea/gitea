@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
+	"time"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -18,6 +20,13 @@ import (
 
 // Processes prints out the processes
 func Processes(ctx *context.PrivateContext) {
+	pid := ctx.FormString("cancel-pid")
+	if pid != "" {
+		process_module.GetManager().Cancel(process_module.IDType(pid))
+		runtime.Gosched()
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	flat := ctx.FormBool("flat")
 	requestsOnly := ctx.FormBool("requests-only")
 	stacktraces := ctx.FormBool("stacktraces")

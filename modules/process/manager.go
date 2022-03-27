@@ -211,7 +211,7 @@ func (pm *Manager) Cancel(pid IDType) {
 	pm.mutex.Lock()
 	process, ok := pm.processes[pid]
 	pm.mutex.Unlock()
-	if ok {
+	if ok && process.Type != SystemProcessType {
 		process.Cancel()
 	}
 }
