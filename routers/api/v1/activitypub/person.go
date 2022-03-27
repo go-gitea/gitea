@@ -36,7 +36,7 @@ func Person(ctx *context.APIContext) {
 
 	user := user.GetUserByParamsName(ctx, "username")
 	if user == nil {
-	    return
+		return
 	}
 	username := ctx.Params("username")
 
