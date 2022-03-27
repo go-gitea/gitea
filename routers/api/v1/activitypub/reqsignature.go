@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/modules/activitypub"
 	gitea_context "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -89,21 +90,17 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 }
 
 func fetch(iri *url.URL) (b []byte, err error) {
-	var req *http.Request
-	req, err = http.NewRequest(http.MethodGet, iri.String(), nil)
-	if err != nil {
-		return
-	}
-	req.Header.Add("Accept", activitypub.ActivityStreamsContentType)
-	req.Header.Add("Accept-Charset", "utf-8")
+	var req *httplib.Request
+	req = httplib.NewRequest(iri.String(), http.MethodGet)
+	req.Header("Accept", activitypub.ActivityStreamsContentType)
+	req.Header("Accept-Charset", "utf-8")
 	clock, err := activitypub.NewClock()
 	if err != nil {
 		return
 	}
-	req.Header.Add("Date", fmt.Sprintf("%s GMT", clock.Now().UTC().Format(time.RFC1123)))
+	req.Header("Date", fmt.Sprintf("%s GMT", clock.Now().UTC().Format(time.RFC1123)))
 	var resp *http.Response
-	client := &http.Client{}
-	resp, err = client.Do(req)
+	resp, err = req.Response()
 	if err != nil {
 		return
 	}
