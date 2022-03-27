@@ -101,7 +101,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			var message string
 			var status string
 			if db.IsErrCancelled(err) {
-				status = "aborted"
+				status = "cancelled"
 				message = err.(db.ErrCancelled).Message
 			} else {
 				status = "error"
@@ -114,7 +114,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			t.LastDoer = doerName
 			t.lock.Unlock()
 
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "aborted", doerName, message)); err != nil {
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
