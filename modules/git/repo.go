@@ -213,9 +213,6 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	} else {
 		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
-
-	cmd.SetDescription(fmt.Sprintf("push %s to %s", repoPath, util.NewStringURLSanitizer(opts.Remote, true).Replace(opts.Remote)))
-
 	var outbuf, errbuf strings.Builder
 
 	if opts.Timeout == 0 {

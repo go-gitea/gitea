@@ -35,8 +35,6 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
 		}
-
-		cmd.SetDescription(fmt.Sprintf("add push remote %s to %s", util.NewStringURLSanitizer(addr, true).Replace(addr), path))
 		if _, err := cmd.RunInDir(path); err != nil {
 			return err
 		}
