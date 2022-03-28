@@ -80,6 +80,12 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
+	if git.CheckGitVersionAtLeast("2.18") == nil {
+		if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(repoPath); err != nil {
+			return repo, fmt.Errorf("unable to write commit-graph: %w", err)
+		}
+	}
+
 	if opts.Wiki {
 		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
@@ -99,6 +105,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				if err := util.RemoveAll(wikiPath); err != nil {
 					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
+			}
+		}
+		if git.CheckGitVersionAtLeast("2.18") == nil {
+			if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(wikiPath); err != nil {
+				return repo, fmt.Errorf("unable to write commit-graph: %w", err)
 			}
 		}
 	}
