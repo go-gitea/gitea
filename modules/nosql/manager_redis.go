@@ -227,7 +227,6 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(skipverify) > 0 {
 		skipverify, err := strconv.ParseBool(skipverify)
-
 		if err != nil {
 			tlsConfig.InsecureSkipVerify = skipverify
 		}
@@ -237,7 +236,6 @@ func getRedisTLSOptions(uri *url.URL) *tls.Config {
 
 	if len(insecureskipverify) > 0 {
 		insecureskipverify, err := strconv.ParseBool(insecureskipverify)
-
 		if err != nil {
 			tlsConfig.InsecureSkipVerify = insecureskipverify
 		}
