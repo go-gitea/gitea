@@ -867,7 +867,7 @@ func (m *webhookNotifier) NotifyPackageDelete(doer *user_model.User, pd *package
 
 func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
 	if pd.Repository == nil {
-		// TODO
+		// TODO https://github.com/go-gitea/gitea/pull/17940
 		return
 	}
 
