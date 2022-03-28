@@ -161,6 +161,7 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	return tags, tagsTotal, nil
 }
 
+// parseTagRef parses a tag from a 'git for-each-ref'-produced reference.
 func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 	tag = &Tag{
 		Type: ref["objecttype"],
@@ -194,11 +195,16 @@ func parseTagRef(ref map[string]string) (tag *Tag, err error) {
 	if pgpStart >= 0 {
 		tag.Message = tag.Message[0:pgpStart]
 	}
-	tag.Signature = &CommitGPGSignature{
-		Signature: ref["contents:signature"],
-		// TODO: don't know what to do about Payload. Is it relevant in
-		// this context?
-		Payload: "",
+
+	// annotated tag with GPG signature
+	if tag.Type == "tag" && ref["contents:signature"] != "" {
+		payload := fmt.Sprintf("object %s\ntype commit\ntag %s\ntagger %s\n\n%s",
+			tag.Object, tag.Name, ref["creator"], tag.Message)
+		payload = strings.TrimSpace(payload) + "\n"
+		tag.Signature = &CommitGPGSignature{
+			Signature: ref["contents:signature"],
+			Payload:   payload,
+		}
 	}
 
 	return tag, nil
