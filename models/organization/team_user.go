@@ -43,13 +43,13 @@ func GetTeamUsersByTeamID(ctx context.Context, teamID int64) ([]*TeamUser, error
 func GetTeamMembers(ctx context.Context, teamID int64) (_ []*user_model.User, err error) {
 	teamUsers, err := GetTeamUsersByTeamID(ctx, teamID)
 	if err != nil {
-		return nil, fmt.Errorf("get team-users: %v", err)
+		return nil, fmt.Errorf("GetTeamUsersByTeamID: %v", err)
 	}
 	members := make([]*user_model.User, len(teamUsers))
 	for i, teamUser := range teamUsers {
 		member, err := user_model.GetUserByIDCtx(ctx, teamUser.UID)
 		if err != nil {
-			return nil, fmt.Errorf("get user '%d': %v", teamUser.UID, err)
+			return nil, fmt.Errorf("GetUserByIDCtx[id: %d]: %v", teamUser.UID, err)
 		}
 		members[i] = member
 	}

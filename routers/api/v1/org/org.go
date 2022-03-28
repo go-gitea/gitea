@@ -295,7 +295,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Organization"
 
-	if !organization.HasOrgOrUserVisible(db.DefaultContext, ctx.Org.Organization.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}

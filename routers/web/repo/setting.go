@@ -956,7 +956,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if organization.HasTeamRepo(db.DefaultContext, ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
+	if organization.HasTeamRepo(ctx, ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return

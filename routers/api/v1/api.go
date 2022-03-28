@@ -71,7 +71,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -311,7 +310,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			return
 		}
 
-		isOwner, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, ctx.Doer.ID)
+		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -338,7 +337,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 		}
 
 		orgID := ctx.Org.Team.OrgID
-		isOwner, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, ctx.Doer.ID)
+		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -346,11 +345,11 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isTeamMember, err := organization.IsTeamMember(db.DefaultContext, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
+		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsTeamMember", err)
 			return
 		} else if !isTeamMember {
-			isOrgMember, err := organization.IsOrganizationMember(db.DefaultContext, orgID, ctx.Doer.ID)
+			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			} else if isOrgMember {
@@ -380,7 +379,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isMember, err := organization.IsOrganizationMember(db.DefaultContext, orgID, ctx.Doer.ID); err != nil {
+		if isMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			return
 		} else if !isMember {

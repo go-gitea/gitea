@@ -10,7 +10,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -370,7 +369,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	isMember, err := organization.IsOrganizationMember(db.DefaultContext, ctx.Org.Team.OrgID, ctx.Doer.ID)
+	isMember, err := organization.IsOrganizationMember(ctx, ctx.Org.Team.OrgID, ctx.Doer.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 		return
@@ -424,7 +423,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		return
 	}
 	teamID := ctx.ParamsInt64("teamid")
-	isTeamMember, err := organization.IsUserInTeams(db.DefaultContext, u.ID, []int64{teamID})
+	isTeamMember, err := organization.IsUserInTeams(ctx, u.ID, []int64{teamID})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserInTeams", err)
 		return

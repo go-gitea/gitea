@@ -104,7 +104,7 @@ func Dashboard(ctx *context.Context) {
 		if ctx.Org.Team != nil {
 			env = organization.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = organization.AccessibleReposEnv(db.DefaultContext, organization.OrgFromUser(ctxUser), ctx.Doer.ID)
+			env, err = organization.AccessibleReposEnv(ctx, organization.OrgFromUser(ctxUser), ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
