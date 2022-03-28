@@ -59,7 +59,7 @@ func SanitizeCredentialURLs(s string) string {
 				break sepLoop // if it is an invalid char for URL (eg: space, '/', and others), stop the loop
 			}
 		}
-		// if there is '@', and the string is lie "s://u@h", then hide the "u" part
+		// if there is '@', and the string is like "s://u@h", then hide the "u" part
 		if sepAtPos != -1 && (schemeSepPos >= 4 && unicode.IsLetter(rune(bs[schemeSepPos-4]))) && sepAtPos-schemeSepPos > 0 && sepEndPos-sepAtPos > 0 {
 			out = append(out, bs[:schemeSepPos]...)
 			out = append(out, userPlaceholder...)
