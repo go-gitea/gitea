@@ -35,7 +35,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
 		}
-		if _, err := cmd.RunInDir(path); err != nil {
+		if err := cmd.RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {
 			return err
 		}
 		if err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunWithContext(&git.RunContext{Dir: path, Timeout: -1}); err != nil {

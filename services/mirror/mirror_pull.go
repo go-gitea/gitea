@@ -44,7 +44,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	} else {
 		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
 	}
-	_, err = cmd.RunInDir(repoPath)
+	err = cmd.RunWithContext(&git.RunContext{Dir: repoPath, Timeout: -1})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -64,7 +64,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
 		}
-		_, err = cmd.RunInDir(wikiPath)
+		err = cmd.RunWithContext(&git.RunContext{Dir: wikiPath, Timeout: -1})
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
