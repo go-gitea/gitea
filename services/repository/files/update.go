@@ -225,7 +225,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		} else {
 			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
 			if err != nil {
-				return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %v", err)
 			}
 			opts.LastCommitID = lastCommitID.String()
 
