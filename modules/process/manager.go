@@ -51,15 +51,15 @@ type Manager struct {
 	next     int64
 	lastTime int64
 
-	processes map[IDType]*process
+	processMap map[IDType]*process
 }
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
 	managerInit.Do(func() {
 		manager = &Manager{
-			processes: make(map[IDType]*process),
-			next:      1,
+			processMap: make(map[IDType]*process),
+			next:       1,
 		}
 	})
 	return manager
@@ -120,7 +120,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 	pm.mutex.Lock()
 	start, pid := pm.nextPID()
 
-	parent := pm.processes[parentPID]
+	parent := pm.processMap[parentPID]
 	if parent == nil {
 		parentPID = ""
 	}
@@ -148,10 +148,7 @@ func (pm *Manager) Add(ctx context.Context, description string, cancel context.C
 		}
 	}
 
-	if parent != nil {
-		parent.AddChild(process)
-	}
-	pm.processes[pid] = process
+	pm.processMap[pid] = process
 	pm.mutex.Unlock()
 
 	pprofCtx := pprof.WithLabels(ctx, pprof.Labels(DescriptionPProfLabel, description, PPIDPProfLabel, string(parentPID), PIDPProfLabel, string(pid), ProcessTypePProfLabel, processType))
@@ -187,29 +184,22 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 // Remove a process from the ProcessManager.
 func (pm *Manager) Remove(pid IDType) {
 	pm.mutex.Lock()
-	delete(pm.processes, pid)
+	delete(pm.processMap, pid)
 	pm.mutex.Unlock()
 }
 
 func (pm *Manager) remove(process *process) {
 	pm.mutex.Lock()
-	if p := pm.processes[process.PID]; p == process {
-		delete(pm.processes, process.PID)
+	defer pm.mutex.Unlock()
+	if p := pm.processMap[process.PID]; p == process {
+		delete(pm.processMap, process.PID)
 	}
-	parent := pm.processes[process.ParentPID]
-	pm.mutex.Unlock()
-
-	if parent == nil {
-		return
-	}
-
-	parent.RemoveChild(process)
 }
 
 // Cancel a process in the ProcessManager.
 func (pm *Manager) Cancel(pid IDType) {
 	pm.mutex.Lock()
-	process, ok := pm.processes[pid]
+	process, ok := pm.processMap[pid]
 	pm.mutex.Unlock()
 	if ok && process.Type != SystemProcessType {
 		process.Cancel()

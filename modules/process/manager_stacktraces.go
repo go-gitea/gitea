@@ -48,28 +48,60 @@ type Process struct {
 }
 
 // Processes gets the processes in a thread safe manner
-func (pm *Manager) Processes(onlyRoots, noSystem bool) []*Process {
+func (pm *Manager) Processes(flat, noSystem bool) ([]*Process, int) {
 	pm.mutex.Lock()
-	processes := make([]*Process, 0, len(pm.processes))
-	if onlyRoots {
-		for _, process := range pm.processes {
+	processCount := len(pm.processMap)
+	processes := make([]*Process, 0, len(pm.processMap))
+	if flat {
+		for _, process := range pm.processMap {
 			if noSystem && process.Type == SystemProcessType {
 				continue
 			}
-			if parent, has := pm.processes[process.ParentPID]; !has ||
-				(noSystem && parent.Type == SystemProcessType) {
-				processes = append(processes, process.ToProcess(true))
-			}
+			processes = append(processes, process.toProcess())
 		}
 	} else {
-		for _, process := range pm.processes {
-			if noSystem && process.Type == SystemProcessType {
+		// We need our own processMap
+		processMap := map[IDType]*Process{}
+		for _, internalProcess := range pm.processMap {
+			process, ok := processMap[internalProcess.PID]
+			if !ok {
+				process = internalProcess.toProcess()
+				processMap[process.PID] = process
+			}
+
+			// Check its parent
+			if process.ParentPID == "" {
+				processes = append(processes, process)
 				continue
 			}
-			processes = append(processes, process.ToProcess(false))
+
+			internalParentProcess, ok := pm.processMap[internalProcess.ParentPID]
+			if ok {
+				parentProcess, ok := processMap[process.ParentPID]
+				if !ok {
+					parentProcess = internalParentProcess.toProcess()
+					processMap[parentProcess.PID] = parentProcess
+				}
+				parentProcess.Children = append(parentProcess.Children, process)
+				continue
+			}
+
+			processes = append(processes, process)
 		}
 	}
 	pm.mutex.Unlock()
+
+	if !flat && noSystem {
+		for i := 0; i < len(processes); i++ {
+			process := processes[i]
+			if process.Type != SystemProcessType {
+				continue
+			}
+			processes[len(processes)-1], processes[i] = processes[i], processes[len(processes)-1]
+			processes = append(processes[:len(processes)-1], process.Children...)
+			i--
+		}
+	}
 
 	// Sort by process' start time. Oldest process appears first.
 	sort.Slice(processes, func(i, j int) bool {
@@ -78,21 +110,21 @@ func (pm *Manager) Processes(onlyRoots, noSystem bool) []*Process {
 		return left.Start.Before(right.Start)
 	})
 
-	return processes
+	return processes, processCount
 }
 
 // ProcessStacktraces gets the processes and stacktraces in a thread safe manner
-func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int64, error) {
+func (pm *Manager) ProcessStacktraces(flat, noSystem bool) ([]*Process, int, int64, error) {
 	var stacks *profile.Profile
 	var err error
-	var processes []*Process
 
-	// We cannot use the process pidmaps here because we will release the mutex ...
-	pidMap := map[IDType]*Process{}
-	numberOfRoots := 0 // This is simply a guesstimate to create the number of processes we need if we're not doing flat trees
+	// We cannot use the pm.ProcessMap here because we will release the mutex ...
+	processMap := map[IDType]*Process{}
+	processCount := 0
 
 	// Lock the manager
 	pm.mutex.Lock()
+	processCount = len(pm.processMap)
 
 	// Add a defer to unlock in case there is a panic
 	unlocked := false
@@ -102,18 +134,41 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 		}
 	}()
 
-	// Now if we're doing a flat process list we can simply create the processes list here
+	processes := make([]*Process, 0, len(pm.processMap))
 	if flat {
-		processes = make([]*Process, 0, len(pm.processes))
-	}
-	for _, internalProcess := range pm.processes {
-		process := internalProcess.ToProcess(false)
-
-		if process.ParentPID == "" {
-			numberOfRoots++
+		for _, internalProcess := range pm.processMap {
+			process := internalProcess.toProcess()
+			processMap[process.PID] = process
+			if noSystem && internalProcess.Type == SystemProcessType {
+				continue
+			}
+			processes = append(processes, process)
 		}
-		pidMap[internalProcess.PID] = process
-		if flat {
+	} else {
+		for _, internalProcess := range pm.processMap {
+			process, ok := processMap[internalProcess.PID]
+			if !ok {
+				process = internalProcess.toProcess()
+				processMap[process.PID] = process
+			}
+
+			// Check its parent
+			if process.ParentPID == "" {
+				processes = append(processes, process)
+				continue
+			}
+
+			internalParentProcess, ok := pm.processMap[internalProcess.ParentPID]
+			if ok {
+				parentProcess, ok := processMap[process.ParentPID]
+				if !ok {
+					parentProcess = internalParentProcess.toProcess()
+					processMap[parentProcess.PID] = parentProcess
+				}
+				parentProcess.Children = append(parentProcess.Children, process)
+				continue
+			}
+
 			processes = append(processes, process)
 		}
 	}
@@ -129,24 +184,12 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 	}()
 	stacks, err = profile.Parse(reader)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, 0, err
 	}
 
 	// Unlock the mutex
 	pm.mutex.Unlock()
 	unlocked = true
-
-	// Now if we're not after a flat list of all processes we need to grab all of the roots and set them up
-	if !flat {
-		processes = make([]*Process, 0, numberOfRoots)
-		for _, process := range pidMap {
-			if parent, ok := pidMap[process.ParentPID]; ok {
-				parent.Children = append(parent.Children, process)
-			} else {
-				processes = append(processes, process)
-			}
-		}
-	}
 
 	goroutineCount := int64(0)
 
@@ -168,7 +211,7 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 			// This is because the underlying representation is a map[string]string
 			if len(value) != 1 {
 				// Unexpected...
-				return nil, 0, fmt.Errorf("label: %s in goroutine stack with unexpected number of values: %v", name, value)
+				return nil, 0, 0, fmt.Errorf("label: %s in goroutine stack with unexpected number of values: %v", name, value)
 			}
 
 			stack.Labels = append(stack.Labels, &Label{Name: name, Value: value[0]})
@@ -186,7 +229,7 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 			pid := IDType(pidvalue[0])
 
 			// Now try to get the process from our map
-			process, ok = pidMap[pid]
+			process, ok = processMap[pid]
 			if !ok && pid != "" {
 				// This means that no process has been found in the process map - but there was a process PID
 				// Therefore this goroutine belongs to a dead process and it has escaped control of the process as it
@@ -207,7 +250,7 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 				}
 
 				// override the type of the process to "code" but add the old type as a label on the first stack
-				ptype := "code"
+				ptype := NoneProcessType
 				if value, ok := sample.Label[ProcessTypePProfLabel]; ok && len(value) == 1 {
 					stack.Labels = append(stack.Labels, &Label{Name: ProcessTypePProfLabel, Value: value[0]})
 				}
@@ -219,10 +262,10 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 				}
 
 				// Now add the dead process back to the map and tree so we don't go back through this again.
-				pidMap[process.PID] = process
+				processMap[process.PID] = process
 				added := false
 				if process.ParentPID != "" && !flat {
-					if parent, ok := pidMap[process.ParentPID]; ok {
+					if parent, ok := processMap[process.ParentPID]; ok {
 						parent.Children = append(parent.Children, process)
 						added = true
 					}
@@ -236,14 +279,14 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 		if process == nil {
 			// This means that the sample we're looking has no PID label
 			var ok bool
-			process, ok = pidMap[""]
+			process, ok = processMap[""]
 			if !ok {
 				// this is the first time we've come acrross an unassociated goroutine so create a "process" to hold them
 				process = &Process{
 					Description: "(unassociated)",
-					Type:        "code",
+					Type:        NoneProcessType,
 				}
-				pidMap[process.PID] = process
+				processMap[process.PID] = process
 				processes = append(processes, process)
 			}
 		}
@@ -275,25 +318,17 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 		process.Stacks = append(process.Stacks, stack)
 	}
 
-	// restrict to only show roots which represent requests
-	if onlyRequests {
-		var requestStacks []*Process
-		i := len(processes) - 1
-		for i >= 0 {
-			processStack := processes[i]
-			if processStack.Type == RequestProcessType {
-				requestStacks = append(requestStacks, processStack)
-				i--
+	// restrict to not show system processes
+	if noSystem {
+		for i := 0; i < len(processes); i++ {
+			process := processes[i]
+			if process.Type != SystemProcessType && process.Type != NoneProcessType {
 				continue
 			}
-			if len(processStack.Children) > 0 {
-				processes = append(processes[:i], processStack.Children...)
-				i = len(processes) - 1
-				continue
-			}
+			processes[len(processes)-1], processes[i] = processes[i], processes[len(processes)-1]
+			processes = append(processes[:len(processes)-1], process.Children...)
 			i--
 		}
-		processes = requestStacks
 	}
 
 	// Now finally re-sort the processes. Newest process appears first
@@ -316,5 +351,5 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 		}
 	}
 
-	return processes, goroutineCount, err
+	return processes, processCount, goroutineCount, err
 }

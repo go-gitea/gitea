@@ -77,12 +77,12 @@ var (
 				Name: "debug",
 			},
 			cli.BoolFlag{
-				Name:  "no-children",
+				Name:  "flat",
 				Usage: "Show processes as flat table rather than as tree",
 			},
 			cli.BoolFlag{
-				Name:  "requests-only",
-				Usage: "Only show request processes",
+				Name:  "no-system",
+				Usage: "Do not show system proceses",
 			},
 			cli.BoolFlag{
 				Name:  "stacktraces",
@@ -150,7 +150,7 @@ func runProcesses(c *cli.Context) error {
 	defer cancel()
 
 	setup("manager", c.Bool("debug"))
-	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("no-children"), c.Bool("requests-only"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
+	statusCode, msg := private.Processes(ctx, os.Stdout, c.Bool("flat"), c.Bool("no-system"), c.Bool("stacktraces"), c.Bool("json"), c.String("cancel"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)

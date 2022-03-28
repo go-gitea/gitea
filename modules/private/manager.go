@@ -192,8 +192,8 @@ func RemoveLogger(ctx context.Context, group, name string) (int, string) {
 }
 
 // Processes return the current processes from this gitea instance
-func Processes(ctx context.Context, out io.Writer, flat, onlyRequests, stacktraces, json bool, cancel string) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&requests-only=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, onlyRequests, stacktraces, json, url.QueryEscape(cancel))
+func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))
 
 	req := newInternalRequest(ctx, reqURL, "GET")
 	resp, err := req.Response()

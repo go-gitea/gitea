@@ -28,15 +28,16 @@ func Processes(ctx *context.PrivateContext) {
 	}
 
 	flat := ctx.FormBool("flat")
-	requestsOnly := ctx.FormBool("requests-only")
+	noSystem := ctx.FormBool("no-system")
 	stacktraces := ctx.FormBool("stacktraces")
 	json := ctx.FormBool("json")
 
 	var processes []*process_module.Process
-	count := int64(0)
+	goroutineCount := int64(0)
+	processCount := 0
 	var err error
 	if stacktraces {
-		processes, count, err = process_module.GetManager().ProcessStacktraces(flat, requestsOnly)
+		processes, processCount, goroutineCount, err = process_module.GetManager().ProcessStacktraces(flat, noSystem)
 		if err != nil {
 			log.Error("Unable to get stacktrace: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -45,12 +46,13 @@ func Processes(ctx *context.PrivateContext) {
 			return
 		}
 	} else {
-		processes = process_module.GetManager().Processes(!flat, requestsOnly)
+		processes, processCount = process_module.GetManager().Processes(flat, noSystem)
 	}
 
 	if json {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"TotalNumberOfGoroutines": count,
+			"TotalNumberOfGoroutines": goroutineCount,
+			"TotalNumberOfProcesses":  processCount,
 			"Processes":               processes,
 		})
 		return
@@ -59,7 +61,7 @@ func Processes(ctx *context.PrivateContext) {
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	ctx.Resp.WriteHeader(http.StatusOK)
 
-	if err := writeProcesses(ctx.Resp, processes, count, "", flat); err != nil {
+	if err := writeProcesses(ctx.Resp, processes, processCount, goroutineCount, "", flat); err != nil {
 		log.Error("Unable to write out process stacktrace: %v", err)
 		if !ctx.Written() {
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -70,13 +72,13 @@ func Processes(ctx *context.PrivateContext) {
 	}
 }
 
-func writeProcesses(out io.Writer, processes []*process_module.Process, numberOfGoroutines int64, indent string, flat bool) error {
-	if numberOfGoroutines > 0 {
-		if _, err := fmt.Fprintf(out, "%sNumber of goroutines: %d\n", indent, numberOfGoroutines); err != nil {
+func writeProcesses(out io.Writer, processes []*process_module.Process, processCount int, goroutineCount int64, indent string, flat bool) error {
+	if goroutineCount > 0 {
+		if _, err := fmt.Fprintf(out, "%sTotal Number of Goroutines: %d\n", indent, goroutineCount); err != nil {
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(out, "%sProcess: %d\n", indent, len(processes)); err != nil {
+	if _, err := fmt.Fprintf(out, "%sTotal Number of Processes: %d\n", indent, processCount); err != nil {
 		return err
 	}
 	if len(processes) > 0 {
