@@ -497,14 +497,19 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 }
 
 // GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks() ([]*Webhook, error) {
-	return getSystemWebhooks(db.GetEngine(db.DefaultContext))
+func GetSystemWebhooks(isActive util.OptionalBool) ([]*Webhook, error) {
+	return getSystemWebhooks(db.GetEngine(db.DefaultContext), isActive)
 }
 
-func getSystemWebhooks(e db.Engine) ([]*Webhook, error) {
+func getSystemWebhooks(e db.Engine, isActive util.OptionalBool) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
+	if isActive.IsNone() {
+		return webhooks, e.
+			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+			Find(&webhooks)
+	}
 	return webhooks, e.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }
 
