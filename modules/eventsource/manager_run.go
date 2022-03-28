@@ -65,6 +65,20 @@ loop:
 				}
 			}
 
+			now := timeutil.TimeStampNow().Add(-2)
+
+			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
+			if err != nil {
+				log.Error("Unable to get UIDcounts: %v", err)
+			}
+			for _, uidCount := range uidCounts {
+				m.SendMessage(uidCount.UserID, &Event{
+					Name: "notification-count",
+					Data: uidCount,
+				})
+			}
+			then = now
+
 			if setting.Service.EnableTimetracking {
 				usersStopwatches, err := models.GetUIDsAndStopwatch()
 				if err != nil {
@@ -89,20 +103,6 @@ loop:
 					})
 				}
 			}
-
-			now := timeutil.TimeStampNow().Add(-2)
-
-			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
-			if err != nil {
-				log.Error("Unable to get UIDcounts: %v", err)
-			}
-			for _, uidCount := range uidCounts {
-				m.SendMessage(uidCount.UserID, &Event{
-					Name: "notification-count",
-					Data: uidCount,
-				})
-			}
-			then = now
 		}
 	}
 	m.UnregisterAll()
