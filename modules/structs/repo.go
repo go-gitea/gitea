@@ -201,6 +201,8 @@ type GenerateRepoOption struct {
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Default branch of the new repository
+	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
