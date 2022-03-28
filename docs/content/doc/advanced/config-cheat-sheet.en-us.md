@@ -921,6 +921,13 @@ Default templates for project boards:
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
 - `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
+#### Cron -  Delete all old system notices from database ('cron.delete_old_system_notices')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
+- `OLDER_THAN`: **@every 8760h**: any system notice older than this expression will be deleted from database.
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
