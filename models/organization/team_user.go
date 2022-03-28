@@ -66,7 +66,7 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 	if opts.PageSize > 0 && opts.Page > -1 {
 		sess = sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
 	}
-	if err := sess.OrderBy("CONCAT(full_name, name) ASC").Find(&members); err != nil {
+	if err := sess.OrderBy("full_name, name").Find(&members); err != nil {
 		return nil, err
 	}
 	return members, nil
