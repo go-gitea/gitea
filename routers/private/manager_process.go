@@ -45,7 +45,7 @@ func Processes(ctx *context.PrivateContext) {
 			return
 		}
 	} else {
-		processes = process_module.GetManager().Processes(!flat, requestsOnly, func() {})
+		processes = process_module.GetManager().Processes(!flat, requestsOnly, nil)
 	}
 
 	if json {

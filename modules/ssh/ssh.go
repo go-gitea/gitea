@@ -320,7 +320,7 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	}
 
 	go func() {
-		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: SSH", process.SystemProcessType, true)
+		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
 		defer finished()
 		listen(&srv)
 	}()

@@ -74,6 +74,7 @@ func (pm *Manager) Processes(onlyRoots, noSystem bool, runInLock func()) []*Proc
 	}
 	pm.mutex.Unlock()
 
+	// Sort by process' start time. Oldest process appears first.
 	sort.Slice(processes, func(i, j int) bool {
 		left, right := processes[i], processes[j]
 
@@ -228,8 +229,7 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 				continue
 			}
 			if len(processStack.Children) > 0 {
-				processStacks = processStacks[:i]
-				processStacks = append(processStacks, processStack.Children...)
+				processStacks = append(processStacks[:i], processStack.Children...)
 				i = len(processStacks) - 1
 				continue
 			}
