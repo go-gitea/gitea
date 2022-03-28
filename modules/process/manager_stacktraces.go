@@ -136,7 +136,7 @@ func (pm *Manager) ProcessStacktraces(flat, onlyRequests bool) ([]*Process, int6
 	pm.mutex.Unlock()
 	unlocked = true
 
-	// Now if we're not after a flat list of all procesess we need to grab all of the roots and set them up
+	// Now if we're not after a flat list of all processes we need to grab all of the roots and set them up
 	if !flat {
 		processes = make([]*Process, 0, numberOfRoots)
 		for _, process := range pidMap {
