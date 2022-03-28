@@ -133,16 +133,22 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 
 	if opts.VersionID != 0 {
 		cond = cond.And(builder.Eq{"package_file.version_id": opts.VersionID})
-	} else if opts.OwnerID != 0 && opts.PackageType != "" && opts.PackageType != "all" {
+	} else if opts.OwnerID != 0 || (opts.PackageType != "" && opts.PackageType != "all") {
+		var versionCond builder.Cond = builder.Eq{
+			"package_version.is_internal": false,
+		}
+		if opts.OwnerID != 0 {
+			versionCond = versionCond.And(builder.Eq{"package.owner_id": opts.OwnerID})
+		}
+		if opts.PackageType != "" && opts.PackageType != "all" {
+			versionCond = versionCond.And(builder.Eq{"package.type": opts.PackageType})
+		}
+
 		in := builder.
 			Select("package_version.id").
 			From("package_version").
 			Join("INNER", "package", "package.id = package_version.package_id").
-			Where(builder.Eq{
-				"package.owner_id":            opts.OwnerID,
-				"package.type":                opts.PackageType,
-				"package_version.is_internal": false,
-			})
+			Where(versionCond)
 
 		cond = cond.And(builder.In("package_file.version_id", in))
 	}
