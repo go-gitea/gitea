@@ -63,10 +63,10 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 	opts := getRedisOptions(uri)
 	tlsConfig := getRedisTLSOptions(uri)
 
-	clientName := uri.Query()["clientname"]
+	clientName := uri.Query().Get("clientname")
 
-	if clientName != nil && len(clientName) > 0 {
-		client.name = append(client.name, clientName[0])
+	if len(clientName) > 0 {
+		client.name = append(client.name, clientName)
 	}
 
 	switch uri.Scheme {
@@ -223,20 +223,20 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 func getRedisTLSOptions(uri *url.URL) *tls.Config {
 	tlsConfig := &tls.Config{}
 
-	skipverify := uri.Query()["skipverify"]
+	skipverify := uri.Query().Get("skipverify")
 
-	if skipverify != nil && len(skipverify) > 0 {
-		skipverify, err := strconv.ParseBool(skipverify[0])
+	if len(skipverify) > 0 {
+		skipverify, err := strconv.ParseBool(skipverify)
 
 		if err != nil {
 			tlsConfig.InsecureSkipVerify = skipverify
 		}
 	}
 
-	insecureskipverify := uri.Query()["insecureskipverify"]
+	insecureskipverify := uri.Query().Get("insecureskipverify")
 
-	if insecureskipverify != nil && len(insecureskipverify) > 0 {
-		insecureskipverify, err := strconv.ParseBool(insecureskipverify[0])
+	if len(insecureskipverify) > 0 {
+		insecureskipverify, err := strconv.ParseBool(insecureskipverify)
 
 		if err != nil {
 			tlsConfig.InsecureSkipVerify = insecureskipverify
