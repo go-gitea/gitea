@@ -149,6 +149,8 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		t.Delivered = time.Now().UnixNano()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
+		} else if !w.IsActive {
+			log.Trace("Hook delivery skipped as webhook is inactive: %s", t.UUID)
 		} else {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
@@ -171,6 +173,10 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	if setting.DisableWebhooks {
 		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
+	}
+
+	if !w.IsActive {
+		return nil
 	}
 
 	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
