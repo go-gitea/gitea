@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"xorm.io/builder"
 )
 
 // TeamRepo represents an team-repository relation.
@@ -39,8 +40,11 @@ type SearchTeamRepoOptions struct {
 func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*repo_model.Repository, error) {
 	sess := db.GetEngine(ctx)
 	if opts.TeamID > 0 {
-		sess = sess.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-			Where("team_repo.team_id=?", opts.TeamID)
+		sess = sess.In("id",
+			builder.Select("repo_id").
+				From("team_repo").
+				Where(builder.Eq{"team_id = ?": opts.TeamID}),
+		)
 	}
 	if opts.PageSize > 0 {
 		sess.Limit(opts.PageSize, opts.Page*opts.PageSize)

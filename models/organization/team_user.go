@@ -47,7 +47,7 @@ type SearchMembersOptions struct {
 func (opts SearchMembersOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.TeamID > 0 {
-		cond = cond.And(builder.Eq{"team_user.team_id": opts.TeamID})
+		cond = cond.And(builder.Eq{"": opts.TeamID})
 	}
 	return cond
 }
@@ -55,14 +55,18 @@ func (opts SearchMembersOptions) ToConds() builder.Cond {
 // GetTeamMembers returns all members in given team of organization.
 func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_model.User, error) {
 	var members []*user_model.User
-	sess := db.GetEngine(ctx).
-		Join("INNER", "team_user", "team_user.uid=user.id").
-		Asc("full_name + name").
-		Where(opts)
+	sess := db.GetEngine(ctx)
+	if opts.TeamID > 0 {
+		sess = sess.In("id",
+			builder.Select("uid").
+				From("team_user").
+				Where(builder.Eq{"team_id = ?": opts.TeamID}),
+		)
+	}
 	if opts.PageSize > 0 && opts.Page > -1 {
 		sess = sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
 	}
-	if err := sess.Find(&members); err != nil {
+	if err := sess.Asc("full_name + name").Find(&members); err != nil {
 		return nil, err
 	}
 	return members, nil
