@@ -127,7 +127,11 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("PackageMetadata", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", root)
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, "does-not-exist"))
+		req = addTokenAuthHeader(req, token)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", root)
 		req = addTokenAuthHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 

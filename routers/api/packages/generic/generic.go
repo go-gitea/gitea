@@ -145,6 +145,8 @@ func DeletePackage(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func sanitizeParameters(ctx *context.Context) (string, string, string, error) {

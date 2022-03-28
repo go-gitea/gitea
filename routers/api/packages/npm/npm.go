@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -38,22 +37,18 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 
 // packageNameFromParams gets the package name from the url parameters
 // Variations: /name/, /@scope/name/, /@scope%2Fname/
-func packageNameFromParams(ctx *context.Context) (string, error) {
+func packageNameFromParams(ctx *context.Context) string {
 	scope := ctx.Params("scope")
 	id := ctx.Params("id")
 	if scope != "" {
-		return fmt.Sprintf("@%s/%s", scope, id), nil
+		return fmt.Sprintf("@%s/%s", scope, id)
 	}
-	return url.QueryUnescape(id)
+	return id
 }
 
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.Context) {
-	packageName, err := packageNameFromParams(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
@@ -81,11 +76,7 @@ func PackageMetadata(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.Context) {
-	packageName, err := packageNameFromParams(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
@@ -174,11 +165,7 @@ func UploadPackage(ctx *context.Context) {
 
 // ListPackageTags returns all tags for a package
 func ListPackageTags(ctx *context.Context) {
-	packageName, err := packageNameFromParams(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
@@ -203,11 +190,7 @@ func ListPackageTags(ctx *context.Context) {
 
 // AddPackageTag adds a tag to the package
 func AddPackageTag(ctx *context.Context) {
-	packageName, err := packageNameFromParams(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
@@ -238,11 +221,7 @@ func AddPackageTag(ctx *context.Context) {
 
 // DeletePackageTag deletes a package tag
 func DeletePackageTag(ctx *context.Context) {
-	packageName, err := packageNameFromParams(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
+	packageName := packageNameFromParams(ctx)
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
 	if err != nil {
