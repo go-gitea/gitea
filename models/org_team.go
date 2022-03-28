@@ -397,16 +397,16 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 // DeleteTeam deletes given team.
 // It's caller's responsibility to assign organization ID.
 func DeleteTeam(t *organization.Team) error {
-	if err := t.GetRepositories(&organization.SearchTeamOptions{}); err != nil {
-		return err
-	}
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
+
+	if err := t.GetRepositoriesCtx(ctx); err != nil {
+		return err
+	}
 
 	if err := t.GetMembersCtx(ctx); err != nil {
 		return err
@@ -492,16 +492,16 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
-	// Get team and its repositories.
-	if err := team.GetRepositories(&organization.SearchTeamOptions{}); err != nil {
-		return err
-	}
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	// Get team and its repositories.
+	if err := team.GetRepositoriesCtx(ctx); err != nil {
+		return err
+	}
 
 	sess := db.GetEngine(ctx)
 

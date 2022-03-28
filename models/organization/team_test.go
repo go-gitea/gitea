@@ -42,7 +42,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetRepositories(&SearchTeamOptions{}))
+		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			unittest.AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -57,7 +57,7 @@ func TestTeam_GetMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetMembers(&SearchMembersOptions{}))
+		assert.NoError(t, team.GetMembersCtx(db.DefaultContext))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: member.ID, TeamID: teamID})
@@ -126,7 +126,9 @@ func TestGetTeamMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		members, err := GetTeamMembers(db.DefaultContext, teamID)
+		members, err := GetTeamMembers(db.DefaultContext, &SearchMembersOptions{
+			TeamID: teamID,
+		})
 		assert.NoError(t, err)
 		assert.Len(t, members, team.NumMembers)
 		for _, member := range members {

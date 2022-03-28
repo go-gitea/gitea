@@ -243,11 +243,14 @@ func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *org
 		return
 	}
 
-	if err = reviewer.GetMembers(&organization.SearchMembersOptions{}); err != nil {
+	members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+		TeamID: reviewer.ID,
+	})
+	if err != nil {
 		return
 	}
 
-	for _, member := range reviewer.Members {
+	for _, member := range members {
 		if member.ID == comment.Issue.PosterID {
 			continue
 		}

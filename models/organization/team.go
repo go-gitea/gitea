@@ -96,11 +96,6 @@ type SearchTeamOptions struct {
 	IncludeDesc bool
 }
 
-// SearchMembersOptions holds the search options
-type SearchMembersOptions struct {
-	db.ListOptions
-}
-
 // SearchTeam search for teams. Caller is responsible to check permissions.
 func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	if opts.Page <= 0 {
@@ -224,38 +219,22 @@ func (t *Team) IsMember(userID int64) bool {
 }
 
 // GetRepositoriesCtx returns paginated repositories in team of organization.
-func (t *Team) GetRepositoriesCtx(ctx context.Context) error {
+func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
 	if t.Repos != nil {
 		return nil
 	}
-	return db.GetEngine(ctx).Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
-		Where("team_repo.team_id=?", t.ID).
-		OrderBy("repository.name").
-		Find(&t.Repos)
-}
-
-// GetRepositories returns paginated repositories in team of organization.
-func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
-	if opts.Page == 0 {
-		return t.GetRepositoriesCtx(db.DefaultContext)
-	}
-
-	return t.GetRepositoriesCtx(db.WithPaginator(db.DefaultContext, opts))
+	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
+		TeamID: t.ID,
+	})
+	return
 }
 
 // GetMembersCtx returns paginated members in team of organization.
 func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
-	t.Members, err = GetTeamMembers(ctx, t.ID)
+	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
+		TeamID: t.ID,
+	})
 	return err
-}
-
-// GetMembers returns paginated members in team of organization.
-func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
-	if opts.Page == 0 {
-		return t.GetMembersCtx(db.DefaultContext)
-	}
-
-	return t.GetMembersCtx(db.WithPaginator(db.DefaultContext, opts))
 }
 
 // UnitEnabled returns if the team has the given unit type enabled

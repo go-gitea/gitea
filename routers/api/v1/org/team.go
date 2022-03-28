@@ -378,14 +378,17 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Org.Team.GetMembers(&organization.SearchMembersOptions{
+	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
 		ListOptions: utils.GetListOptions(ctx),
-	}); err != nil {
+		TeamID:      ctx.Org.Team.ID,
+	})
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
+
 	members := make([]*api.User, len(ctx.Org.Team.Members))
-	for i, member := range ctx.Org.Team.Members {
+	for i, member := range teamMembers {
 		members[i] = convert.ToUser(member, ctx.Doer)
 	}
 
@@ -534,13 +537,16 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	team := ctx.Org.Team
-	if err := team.GetRepositories(&organization.SearchTeamOptions{
+	teamRepos, err := organization.GetTeamRepositories(ctx, &organization.SearchTeamRepoOptions{
 		ListOptions: utils.GetListOptions(ctx),
-	}); err != nil {
+		TeamID:      team.ID,
+	})
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+		return
 	}
 	repos := make([]*api.Repository, len(team.Repos))
-	for i, repo := range team.Repos {
+	for i, repo := range teamRepos {
 		access, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)

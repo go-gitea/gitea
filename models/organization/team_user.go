@@ -6,11 +6,10 @@ package organization
 
 import (
 	"context"
-	"fmt"
-	"sort"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"xorm.io/builder"
 )
 
 // TeamUser represents an team-user relation.
@@ -39,23 +38,33 @@ func GetTeamUsersByTeamID(ctx context.Context, teamID int64) ([]*TeamUser, error
 		Find(&teamUsers)
 }
 
+// SearchMembersOptions holds the search options
+type SearchMembersOptions struct {
+	db.ListOptions
+	TeamID int64
+}
+
+func (opts SearchMembersOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.TeamID > 0 {
+		cond = cond.And(builder.Eq{"team_user.team_id": opts.TeamID})
+	}
+	return cond
+}
+
 // GetTeamMembers returns all members in given team of organization.
-func GetTeamMembers(ctx context.Context, teamID int64) (_ []*user_model.User, err error) {
-	teamUsers, err := GetTeamUsersByTeamID(ctx, teamID)
-	if err != nil {
-		return nil, fmt.Errorf("GetTeamUsersByTeamID: %v", err)
+func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_model.User, error) {
+	var members []*user_model.User
+	sess := db.GetEngine(ctx).
+		Join("INNER", "team_user", "team_user.uid=user.id").
+		Asc("full_name + name").
+		Where(opts)
+	if opts.PageSize > 0 && opts.Page > -1 {
+		sess = sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
 	}
-	members := make([]*user_model.User, len(teamUsers))
-	for i, teamUser := range teamUsers {
-		member, err := user_model.GetUserByIDCtx(ctx, teamUser.UID)
-		if err != nil {
-			return nil, fmt.Errorf("GetUserByIDCtx[id: %d]: %v", teamUser.UID, err)
-		}
-		members[i] = member
+	if err := sess.Find(&members); err != nil {
+		return nil, err
 	}
-	sort.Slice(members, func(i, j int) bool {
-		return members[i].DisplayName() < members[j].DisplayName()
-	})
 	return members, nil
 }
 
