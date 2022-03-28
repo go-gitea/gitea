@@ -244,13 +244,3 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 	username = replaceSeparators(username, cfg)
 	return username
 }
-
-// specialInit registers the SSPI auth method as the last method in the list.
-// The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
-// fails (or if negotiation should continue), which would prevent other authentication methods
-// to execute at all.
-func specialInit() {
-	if auth.IsSSPIEnabled() {
-		Register(&SSPI{})
-	}
-}
