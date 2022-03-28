@@ -11,8 +11,10 @@ import (
 	"encoding/pem"
 	"fmt"
 	"net/http"
+	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-fed/activity/pub"
@@ -84,7 +86,11 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 
 	c = &Client{
 		clock:       clock,
-		client:      &http.Client{},
+		client:      &http.Client{
+			Transport: &http.Transport{
+				Proxy: proxy.Proxy(),
+			},
+		},
 		algs:        algos,
 		digestAlg:   httpsig.DigestAlgorithm(setting.Federation.DigestAlgorithm),
 		getHeaders:  setting.Federation.GetHeaders,
@@ -106,7 +112,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
-	req.Header.Add("Date", fmt.Sprintf("%s GMT", c.clock.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05")))
+	req.Header.Add("Date", fmt.Sprintf("%s GMT", c.clock.Now().UTC().Format(time.RFC1123)))
 
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, 60)
 	if err != nil {
