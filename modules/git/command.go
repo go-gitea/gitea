@@ -154,7 +154,7 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 			args = make([]string, len(c.args))
 			copy(args, c.args)
 			for _, urlArgIndex := range argSensitiveURLIndexes {
-				args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
+				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
 			}
 		}
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)

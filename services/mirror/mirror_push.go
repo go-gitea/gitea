@@ -31,7 +31,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	addRemoteAndConfig := func(addr, path string) error {
 		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr)
 		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), path))
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), path))
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
 		}
@@ -147,7 +147,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
 			lfsClient := lfs.NewClient(endpoint, nil)
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				return util.NewURLSanitizedError(err, remoteAddr, true)
+				return util.SanitizeErrorCredentialURLs(err)
 			}
 		}
 
@@ -161,7 +161,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 
-			return util.NewURLSanitizedError(err, remoteAddr, true)
+			return util.SanitizeErrorCredentialURLs(err)
 		}
 
 		return nil
