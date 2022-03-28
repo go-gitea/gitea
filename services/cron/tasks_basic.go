@@ -28,10 +28,9 @@ func registerUpdateMirrorTask() {
 
 	RegisterTaskFatal("update_mirrors", &UpdateMirrorTaskConfig{
 		BaseConfig: BaseConfig{
-			Enabled:         true,
-			RunAtStart:      false,
-			Schedule:        "@every 10m",
-			NoSuccessNotice: true,
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		PullLimit: 50,
 		PushLimit: 50,
