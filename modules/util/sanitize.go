@@ -35,7 +35,7 @@ var schemeSep = []byte("://")
 func SanitizeCredentialURLs(s string) string {
 	bs := util.StringToReadOnlyBytes(s)
 	schemeSepPos := bytes.Index(bs, schemeSep)
-	if schemeSepPos == -1 || bytes.IndexByte(bs, '@') == -1 {
+	if schemeSepPos == -1 || bytes.IndexByte(bs[schemeSepPos:], '@') == -1 {
 		return s // fast return if there is no URL scheme or no userinfo
 	}
 	out := make([]byte, 0, len(bs)+len(userPlaceholder))
