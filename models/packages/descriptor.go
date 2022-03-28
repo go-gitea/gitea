@@ -127,6 +127,8 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 		metadata = &conan.Metadata{}
 	case TypeContainer:
 		metadata = &container.Metadata{}
+	case TypeGeneric:
+		// generic packages have no metadata
 	case TypeNuGet:
 		metadata = &nuget.Metadata{}
 	case TypeNpm:
