@@ -563,6 +563,26 @@ func bind(obj interface{}) http.HandlerFunc {
 	})
 }
 
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+func buildAuthGroup() *auth.Group {
+	group := auth.NewGroup(
+		&auth.OAuth2{},
+		&auth.Basic{},      // FIXME: this should be removed once we don't allow basic auth in API
+		auth.SharedSession, // FIXME: this should be removed once all UI don't reference API/v1, see https://github.com/go-gitea/gitea/pull/16052
+	)
+	if setting.Service.EnableReverseProxyAuth {
+		group.Add(&auth.ReverseProxy{})
+	}
+	specialAdd(group)
+
+	return group
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	m := web.NewRoute()
@@ -583,8 +603,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	}
 	m.Use(context.APIContexter())
 
+	group := buildAuthGroup()
+	if err := group.Init(); err != nil {
+		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
+	}
+
 	// Get user from session if logged in.
-	m.Use(context.APIAuth(auth.NewGroup(auth.Methods()...)))
+	m.Use(context.APIAuth(group))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
