@@ -43,12 +43,20 @@ func TestSanitizeCredentialURLs(t *testing.T) {
 			"ftp://x/@",
 		},
 		{
-			"ftp://@x/@", // test multiple @ chars
+			"ftp://u@x/@", // test multiple @ chars
 			"ftp://" + userPlaceholder + "@x/@",
 		},
 		{
-			"😊ftp://@x😊", // test unicode
+			"😊ftp://u@x😊", // test unicode
 			"😊ftp://" + userPlaceholder + "@x😊",
+		},
+		{
+			"://@",
+			"://@",
+		},
+		{
+			"s://u@h", // the minimal pattern to be sanitized
+			"s://" + userPlaceholder + "@h",
 		},
 		{
 			"URLs in log https://u:b@h and https://u:b@h:80/, with https://h.com and u@h.com",
