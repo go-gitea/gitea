@@ -3,8 +3,7 @@ import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
-import {htmlEscape} from 'escape-goat';
-import {showGlobalErrorMessageHtml} from '../bootstrap.js';
+import {showGlobalErrorMessage} from '../bootstrap.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -359,8 +358,6 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl)) {
     return;
   }
-  showGlobalErrorMessageHtml(`
-Your ROOT_URL in app.ini is ${htmlEscape(appUrl)} but you are visiting ${htmlEscape(curUrl)}<br />
-You should set ROOT_URL correctly, otherwise the web may not work correctly.
-`);
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
+You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }

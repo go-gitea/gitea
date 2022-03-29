@@ -7,11 +7,12 @@ import {joinPaths} from './utils.js';
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = joinPaths(window?.config?.assetUrlPrefix ?? '/', '/');
 
-export function showGlobalErrorMessageHtml(msgHtml) {
+export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
   if (!pageContent) return;
   const el = document.createElement('div');
-  el.innerHTML = `<div class="ui container negative message center aligned js-global-error">${msgHtml}</div>`;
+  el.innerHTML = `<div class="ui container negative message center aligned js-global-error" style="white-space: pre-line;"></div>`;
+  el.childNodes[0].textContent = msg;
   pageContent.prepend(el.childNodes[0]);
 }
 
@@ -19,12 +20,12 @@ export function showGlobalErrorMessageHtml(msgHtml) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
-  showGlobalErrorMessageHtml(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
+  showGlobalErrorMessage(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 
 function initGlobalErrorHandler() {
   if (!window.config) {
-    showGlobalErrorMessageHtml(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
+    showGlobalErrorMessage(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
 
   // we added an event handler for window error at the very beginning of <script> of page head
