@@ -533,7 +533,6 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
-	Git   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
