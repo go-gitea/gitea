@@ -58,7 +58,7 @@ func (err ErrUserHasOrgs) Error() string {
 	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
-// ErrUserOwnPackages represents a "UserOwnPackages" kind of error.
+// ErrUserOwnPackages notifies that the user (still) owns the packages.
 type ErrUserOwnPackages struct {
 	UID int64
 }

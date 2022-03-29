@@ -7,11 +7,11 @@
 				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
 				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{else}}
-					{{$seperator := ":"}}
+					{{$separator := ":"}}
 					{{if not .PackageDescriptor.Metadata.IsTagged}}
-						{{$seperator = "@"}}
+						{{$separator = "@"}}
 					{{end}}
-					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$seperator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
 				{{end}}
 			</div>
 			<div class="field">

@@ -5,8 +5,9 @@
 			<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
 			{{if eq .PackageDescriptor.Package.Type "container"}}
 			<select class="ui dropdown" name="tagged">
-				<option value="tagged" {{if or (eq .Tagged "") (eq .Tagged "tagged")}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.tagged"}}</option>
-				<option value="untagged" {{if eq .Tagged "untagged"}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.untagged"}}</option>
+				{{$isTagged := or (eq .Tagged "") (eq .Tagged "tagged")}}
+				<option value="tagged" {{if $isTagged}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.tagged"}}</option>
+				<option value="untagged" {{if not $isTagged}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.untagged"}}</option>
 			</select>
 			{{end}}
 			<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>

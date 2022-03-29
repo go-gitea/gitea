@@ -31,15 +31,18 @@ The following package managers are currently supported:
 | [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
 | [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
-| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm` |
+| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn` |
 | [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
-| [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem` |
+| [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}}) | Python | `pip`, `twine` |
+| [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
+
+**The following paragraphs only apply if Packages are not globally disabled!**
 
 ## View packages
 
 You can view the packages of a repository on the repository page.
 
-1. Go to the repoistory.
+1. Go to the repository.
 1. Go to **Packages** in the navigation bar.
 
 To view more details about a package, select the name of the package.

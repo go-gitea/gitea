@@ -79,7 +79,7 @@ conan install --remote={remote} {recipe}
 | Parameter | Description |
 | ----------| ----------- |
 | `remote`  | The remote name. |
-| `recipe`  | The recipe to upload. |
+| `recipe`  | The recipe to download. |
 
 For example:
 
