@@ -4,7 +4,10 @@
 package pulls
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -13,18 +16,31 @@ type ViewedState uint8
 
 const (
 	Unviewed   ViewedState = iota
-	HasChanged             // cannot be set from the UI/ API
+	HasChanged             // cannot be set from the UI/ API, only internally
 	Viewed
 )
 
+func (viewedState ViewedState) String() string {
+	switch viewedState {
+	case Unviewed:
+		return "unviewed"
+	case HasChanged:
+		return "has-changed"
+	case Viewed:
+		return "viewed"
+	default:
+		return fmt.Sprintf("unknown(value=%d)", viewedState)
+	}
+}
+
 // PRReview stores for a user - PR - commit combination which files the user has already viewed
 type PRReview struct {
-	ID          int64                  `xorm:"pk autoincr"`
-	UserID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-	ViewedFiles map[string]ViewedState `xorm:"TEXT JSON"`                                   // Stores for each of the changed files of a PR whether they have been viewed, changed, or not viewed
-	CommitSHA   string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"`           // Which commit was the head commit for the review?
-	PullID      int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
-	UpdatedUnix timeutil.TimeStamp     `xorm:"updated"`                                     // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
+	ID           int64                  `xorm:"pk autoincr"`
+	UserID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL TEXT JSON"`                          // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
+	CommitSHA    string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"`           // Which commit was the head commit for the review?
+	PullID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
+	UpdatedUnix  timeutil.TimeStamp     `xorm:"updated"`                                     // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
 
 func init() {
@@ -42,22 +58,24 @@ func GetReview(userID, pullID int64, commitSHA string) (*PRReview, bool, error) 
 
 // UpdateReview updates the given review inside the database, regardless of whether it existed before or not
 // The given map of files with their viewed state will be merged with the previous review, if present
-func UpdateReview(userID, pullID int64, commitSHA string, viewedFiles map[string]ViewedState) error {
+func UpdateReview(userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) error {
+	log.Trace("Updating review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, updatedFiles)
+
 	review, exists, err := GetReview(userID, pullID, commitSHA)
 	if err != nil {
 		return err
 	}
 
 	if exists {
-		review.ViewedFiles = mergeFiles(review.ViewedFiles, viewedFiles)
+		review.UpdatedFiles = mergeFiles(review.UpdatedFiles, updatedFiles)
 	} else if previousReview, err := getNewestReviewApartFrom(userID, pullID, commitSHA); err != nil {
 		return err
 
 		// Overwrite the viewed files of the previous review if present
 	} else if previousReview != nil {
-		review.ViewedFiles = mergeFiles(previousReview.ViewedFiles, viewedFiles)
+		review.UpdatedFiles = mergeFiles(previousReview.UpdatedFiles, updatedFiles)
 	} else {
-		review.ViewedFiles = viewedFiles
+		review.UpdatedFiles = updatedFiles
 	}
 
 	// Insert or Update review

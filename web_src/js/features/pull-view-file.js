@@ -1,8 +1,10 @@
 import {setFileFolding} from './file-fold.js';
 
-const prReview = window.config.pageData.prReview || {};
+const {csrfToken, pageData} = window.config;
+const prReview = pageData.prReview || {};
 const viewedStyleClass = 'viewed-file-checked-form';
 const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all "Viewed" checkbox forms can be found
+
 
 // Refreshes the summary of viewed files if present
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
@@ -34,7 +36,7 @@ export function initViewedCheckboxListenerFor(element) {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('change', () => {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -51,12 +53,14 @@ export function initViewedCheckboxListenerFor(element) {
 
       // Unfortunately, using an actual form causes too many problems, hence we have to emulate the form
       const data = new FormData();
-      data.append('_headCommitSHA', form.getAttribute('data-headcommit'));
-      data.append('_csrf', form.querySelector('input[name=_csrf]').getAttribute('value'));
+      const headCommitSHA = form.getAttribute('data-headcommit');
+      if (headCommitSHA) data.append('_headCommitSHA', headCommitSHA);
+      data.append('_csrf', csrfToken);
       data.append(checkbox.getAttribute('name'), this.checked);
-      const request = new XMLHttpRequest();
-      request.open('POST', form.getAttribute('data-link'));
-      request.send(data);
+      fetch(form.getAttribute('data-link'), {
+        method: 'POST',
+        body: data,
+      });
 
       // Fold the file accordingly
       const parentBox = form.closest('.diff-file-header');

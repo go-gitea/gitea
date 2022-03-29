@@ -1521,7 +1521,7 @@ func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Re
 		return nil, err
 	}
 	review, err := pulls.GetNewestReview(userID, pull.ID)
-	if err != nil || review == nil || review.ViewedFiles == nil {
+	if err != nil || review == nil || review.UpdatedFiles == nil {
 		return diff, err
 	}
 
@@ -1534,7 +1534,7 @@ func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Re
 	filesChangedSinceLastDiff := make(map[string]pulls.ViewedState)
 outer:
 	for _, diffFile := range diff.Files {
-		fileViewedState := review.ViewedFiles[diffFile.GetDiffFileName()]
+		fileViewedState := review.UpdatedFiles[diffFile.GetDiffFileName()]
 
 		// Check whether it was previously checked whether the file has changed since the last review
 		if fileViewedState == pulls.HasChanged {

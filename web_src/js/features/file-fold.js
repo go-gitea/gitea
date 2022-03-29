@@ -8,7 +8,7 @@ import {svg} from '../svg.js';
 //
 export function setFileFolding(fileContentBox, foldArrow, newFold) {
   foldArrow.innerHTML = svg(`octicon-chevron-${newFold ? 'right' : 'down'}`, 18);
-  fileContentBox.setAttribute('data-folded', String(newFold));
+  fileContentBox.setAttribute('data-folded', newFold);
 }
 
 // Like `setFileFolding`, except that it automatically inverts the current file folding state.
