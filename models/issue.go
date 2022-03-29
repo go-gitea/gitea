@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -1238,9 +1239,9 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
-	Org            *Organization    // issues permission scope
-	Team           *Team            // issues permission scope
-	User           *user_model.User // issues permission scope
+	Org            *organization.Organization // issues permission scope
+	Team           *organization.Team         // issues permission scope
+	User           *user_model.User           // issues permission scope
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1401,7 +1402,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
@@ -1749,8 +1750,8 @@ type UserIssueStatsOptions struct {
 	IsArchived util.OptionalBool
 	LabelIDs   []int64
 	RepoCond   builder.Cond
-	Org        *Organization
-	Team       *Team
+	Org        *organization.Organization
+	Team       *organization.Team
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -2296,7 +2297,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_
 	}
 
 	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
-		teams := make([]*Team, 0, len(mentionTeams))
+		teams := make([]*organization.Team, 0, len(mentionTeams))
 		if err := db.GetEngine(ctx).
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Where("team_repo.repo_id=?", issue.Repo.ID).
@@ -2316,7 +2317,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
 				}
-				has, err := db.GetEngine(ctx).Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				has, err := db.GetEngine(ctx).Get(&organization.TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
 				if err != nil {
 					return nil, fmt.Errorf("get team units (%d): %v", team.ID, err)
 				}

@@ -16,6 +16,7 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -50,7 +51,7 @@ func DeleteUser(u *user_model.User) error {
 	}
 
 	// Check membership of organization.
-	count, err = models.GetOrganizationCount(ctx, u)
+	count, err = organization.GetOrganizationCount(ctx, u)
 	if err != nil {
 		return fmt.Errorf("GetOrganizationCount: %v", err)
 	} else if count > 0 {

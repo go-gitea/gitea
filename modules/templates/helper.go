@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -569,7 +570,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Organization:
+	case *organization.Organization:
 		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
