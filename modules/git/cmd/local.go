@@ -88,7 +88,7 @@ func (c *LocalCommand) Run(opts *RunOpts) error {
 				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
 			}
 		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.service.GitExecutable, strings.Join(args, " "), opts.Dir)
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.args[0], strings.Join(args, " "), opts.Dir)
 	}
 
 	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
