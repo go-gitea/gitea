@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -748,14 +749,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := getProjects(sess, ProjectSearchOptions{
+	projects, _, err := project_model.GetProjectsCtx(ctx, project_model.SearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
 		return fmt.Errorf("get projects: %v", err)
 	}
 	for i := range projects {
-		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+		if err := project_model.DeleteProjectByIDCtx(ctx, projects[i].ID); err != nil {
 			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -106,7 +107,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
-	stats.Counter.Project, _ = e.Count(new(Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(ProjectBoard))
+	stats.Counter.Project, _ = e.Count(new(project_model.Project))
+	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
 	return
 }
