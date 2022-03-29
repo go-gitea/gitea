@@ -409,7 +409,6 @@ func WikiPost(ctx *context.Context) {
 
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	switch ctx.FormString("action") {
@@ -474,7 +473,6 @@ func Wiki(ctx *context.Context) {
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
@@ -519,7 +517,6 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
@@ -624,7 +621,6 @@ func WikiRaw(ctx *context.Context) {
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
@@ -640,7 +636,6 @@ func NewWiki(ctx *context.Context) {
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -676,7 +671,6 @@ func NewWikiPost(ctx *context.Context) {
 
 // EditWiki render wiki modify page
 func EditWiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
@@ -696,7 +690,6 @@ func EditWiki(ctx *context.Context) {
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)

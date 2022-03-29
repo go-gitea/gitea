@@ -9,7 +9,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -18,12 +20,199 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/unknwon/com"
 )
+
+var (
+	// Gitignores contains the gitiginore files
+	Gitignores []string
+
+	// Licenses contains the license files
+	Licenses []string
+
+	// Readmes contains the readme files
+	Readmes []string
+
+	// LabelTemplates contains the label template files and the list of labels for each file
+	LabelTemplates map[string]string
+)
+
+// ErrIssueLabelTemplateLoad represents a "ErrIssueLabelTemplateLoad" kind of error.
+type ErrIssueLabelTemplateLoad struct {
+	TemplateFile  string
+	OriginalError error
+}
+
+// IsErrIssueLabelTemplateLoad checks if an error is a ErrIssueLabelTemplateLoad.
+func IsErrIssueLabelTemplateLoad(err error) bool {
+	_, ok := err.(ErrIssueLabelTemplateLoad)
+	return ok
+}
+
+func (err ErrIssueLabelTemplateLoad) Error() string {
+	return fmt.Sprintf("Failed to load label template file '%s': %v", err.TemplateFile, err.OriginalError)
+}
+
+// GetRepoInitFile returns repository init files
+func GetRepoInitFile(tp, name string) ([]byte, error) {
+	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
+	relPath := path.Join("options", tp, cleanedName)
+
+	// Use custom file when available.
+	customPath := path.Join(setting.CustomPath, relPath)
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
+		return os.ReadFile(customPath)
+	}
+
+	switch tp {
+	case "readme":
+		return options.Readme(cleanedName)
+	case "gitignore":
+		return options.Gitignore(cleanedName)
+	case "license":
+		return options.License(cleanedName)
+	case "label":
+		return options.Labels(cleanedName)
+	default:
+		return []byte{}, fmt.Errorf("Invalid init file type")
+	}
+}
+
+// GetLabelTemplateFile loads the label template file by given name,
+// then parses and returns a list of name-color pairs and optionally description.
+func GetLabelTemplateFile(name string) ([][3]string, error) {
+	data, err := GetRepoInitFile("label", name)
+	if err != nil {
+		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
+	}
+
+	lines := strings.Split(string(data), "\n")
+	list := make([][3]string, 0, len(lines))
+	for i := 0; i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+		if len(line) == 0 {
+			continue
+		}
+
+		parts := strings.SplitN(line, ";", 2)
+
+		fields := strings.SplitN(parts[0], " ", 2)
+		if len(fields) != 2 {
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
+		}
+
+		color := strings.Trim(fields[0], " ")
+		if len(color) == 6 {
+			color = "#" + color
+		}
+		if !models.LabelColorPattern.MatchString(color) {
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
+		}
+
+		var description string
+
+		if len(parts) > 1 {
+			description = strings.TrimSpace(parts[1])
+		}
+
+		fields[1] = strings.TrimSpace(fields[1])
+		list = append(list, [3]string{fields[1], color, description})
+	}
+
+	return list, nil
+}
+
+func loadLabels(labelTemplate string) ([]string, error) {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	labels := make([]string, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = list[i][0]
+	}
+	return labels, nil
+}
+
+// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
+func LoadLabelsFormatted(labelTemplate string) (string, error) {
+	labels, err := loadLabels(labelTemplate)
+	return strings.Join(labels, ", "), err
+}
+
+// LoadRepoConfig loads the repository config
+func LoadRepoConfig() {
+	// Load .gitignore and license files and readme templates.
+	types := []string{"gitignore", "license", "readme", "label"}
+	typeFiles := make([][]string, 4)
+	for i, t := range types {
+		files, err := options.Dir(t)
+		if err != nil {
+			log.Fatal("Failed to get %s files: %v", t, err)
+		}
+		customPath := path.Join(setting.CustomPath, "options", t)
+		isDir, err := util.IsDir(customPath)
+		if err != nil {
+			log.Fatal("Failed to get custom %s files: %v", t, err)
+		}
+		if isDir {
+			customFiles, err := util.StatDir(customPath)
+			if err != nil {
+				log.Fatal("Failed to get custom %s files: %v", t, err)
+			}
+
+			for _, f := range customFiles {
+				if !util.IsStringInSlice(f, files, true) {
+					files = append(files, f)
+				}
+			}
+		}
+		typeFiles[i] = files
+	}
+
+	Gitignores = typeFiles[0]
+	Licenses = typeFiles[1]
+	Readmes = typeFiles[2]
+	LabelTemplatesFiles := typeFiles[3]
+	sort.Strings(Gitignores)
+	sort.Strings(Licenses)
+	sort.Strings(Readmes)
+	sort.Strings(LabelTemplatesFiles)
+
+	// Load label templates
+	LabelTemplates = make(map[string]string)
+	for _, templateFile := range LabelTemplatesFiles {
+		labels, err := LoadLabelsFormatted(templateFile)
+		if err != nil {
+			log.Error("Failed to load labels: %v", err)
+		}
+		LabelTemplates[templateFile] = labels
+	}
+
+	// Filter out invalid names and promote preferred licenses.
+	sortedLicenses := make([]string, 0, len(Licenses))
+	for _, name := range setting.Repository.PreferredLicenses {
+		if util.IsStringInSlice(name, Licenses, true) {
+			sortedLicenses = append(sortedLicenses, name)
+		}
+	}
+	for _, name := range Licenses {
+		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
+			sortedLicenses = append(sortedLicenses, name)
+		}
+	}
+	Licenses = sortedLicenses
+}
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
@@ -48,7 +237,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	}
 
 	// README
-	data, err := models.GetRepoInitFile("readme", opts.Readme)
+	data, err := GetRepoInitFile("readme", opts.Readme)
 	if err != nil {
 		return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.Readme, err)
 	}
@@ -71,7 +260,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		var buf bytes.Buffer
 		names := strings.Split(opts.Gitignores, ",")
 		for _, name := range names {
-			data, err = models.GetRepoInitFile("gitignore", name)
+			data, err = GetRepoInitFile("gitignore", name)
 			if err != nil {
 				return fmt.Errorf("GetRepoInitFile[%s]: %v", name, err)
 			}
@@ -89,7 +278,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 
 	// LICENSE
 	if len(opts.License) > 0 {
-		data, err = models.GetRepoInitFile("license", opts.License)
+		data, err = GetRepoInitFile("license", opts.License)
 		if err != nil {
 			return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.License, err)
 		}
@@ -255,5 +444,33 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
+	return nil
+}
+
+// InitializeLabels adds a label set to a repository using a template
+func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg bool) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return err
+	}
+
+	labels := make([]*models.Label, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = &models.Label{
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+		}
+		if isOrg {
+			labels[i].OrgID = id
+		} else {
+			labels[i].RepoID = id
+		}
+	}
+	for _, label := range labels {
+		if err = models.NewLabel(ctx, label); err != nil {
+			return err
+		}
+	}
 	return nil
 }

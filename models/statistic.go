@@ -8,6 +8,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -47,7 +48,7 @@ type IssueByRepositoryCount struct {
 func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers()
-	stats.Counter.Org = CountOrganizations()
+	stats.Counter.Org = organization.CountOrganizations()
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo = repo_model.CountRepositories(true)
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
@@ -103,7 +104,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Milestone, _ = e.Count(new(Milestone))
 	stats.Counter.Label, _ = e.Count(new(Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
-	stats.Counter.Team, _ = e.Count(new(Team))
+	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(Project))
 	stats.Counter.ProjectBoard, _ = e.Count(new(ProjectBoard))

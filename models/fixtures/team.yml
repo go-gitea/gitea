@@ -6,6 +6,7 @@
   authorize: 4 # owner
   num_repos: 3
   num_members: 1
+  can_create_org_repo: true
 
 -
   id: 2
@@ -15,6 +16,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 2
+  can_create_org_repo: false
 
 -
   id: 3
@@ -24,6 +26,7 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  can_create_org_repo: true
 
 -
   id: 4
@@ -33,6 +36,7 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  can_create_org_repo: true
 
 -
   id: 5
@@ -42,6 +46,7 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 2
+  can_create_org_repo: true
 
 -
   id: 6
@@ -51,6 +56,7 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 1
+  can_create_org_repo: true
 
 -
   id: 7
@@ -60,6 +66,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 1
+  can_create_org_repo: false
 
 -
   id: 8
@@ -69,6 +76,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 1
+  can_create_org_repo: false
 
 -
   id: 9
@@ -78,6 +86,7 @@
   authorize: 1 # read
   num_repos: 1
   num_members: 2
+  can_create_org_repo: false
 
 -
   id: 10
@@ -87,6 +96,7 @@
   authorize: 1 # owner
   num_repos: 0
   num_members: 1
+  can_create_org_repo: false
 
 -
   id: 11
@@ -96,6 +106,7 @@
   authorize: 1 # read
   num_repos: 0
   num_members: 0
+  can_create_org_repo: false
 
 -
   id: 12

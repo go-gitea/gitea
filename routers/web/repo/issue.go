@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -471,7 +472,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
 	IsTeam    bool
-	Team      *models.Team
+	Team      *organization.Team
 	User      *user_model.User
 	Review    *models.Review
 	CanChange bool
@@ -504,7 +505,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		pullReviews         []*repoReviewerSelection
 		reviewersResult     []*repoReviewerSelection
 		teamReviewersResult []*repoReviewerSelection
-		teamReviewers       []*models.Team
+		teamReviewers       []*organization.Team
 		reviewers           []*user_model.User
 	)
 
@@ -586,7 +587,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err = item.Review.LoadReviewerTeam(); err != nil {
-					if models.IsErrTeamNotExist(err) {
+					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
 					ctx.ServerError("LoadReviewerTeam", err)
@@ -1965,9 +1966,9 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			team, err := models.GetTeamByID(-reviewID)
+			team, err := organization.GetTeamByID(-reviewID)
 			if err != nil {
-				ctx.ServerError("models.GetTeamByID", err)
+				ctx.ServerError("GetTeamByID", err)
 				return
 			}
 
@@ -2702,8 +2703,8 @@ func handleTeamMentions(ctx *context.Context) {
 
 	var isAdmin bool
 	var err error
-	var teams []*models.Team
-	org := models.OrgFromUser(ctx.Repo.Owner)
+	var teams []*organization.Team
+	org := organization.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.Doer.IsAdmin {
 		isAdmin = true
