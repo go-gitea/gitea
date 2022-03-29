@@ -17,16 +17,16 @@ import (
 
 // CamoEncode encodes a lnk to fit with the go-camo and camo proxy links
 func CamoEncode(link string) string {
-	if strings.HasPrefix(link, setting.CamoServerURL) {
+	if strings.HasPrefix(link, setting.Camo.ServerURL) {
 		return link
 	}
 
-	mac := hmac.New(sha1.New, []byte(setting.CamoHMACKey))
+	mac := hmac.New(sha1.New, []byte(setting.Camo.HMACKey))
 	_, _ = mac.Write([]byte(link)) // hmac does not return errors
 	macSum := b64encode(mac.Sum(nil))
 	encodedURL := b64encode([]byte(link))
 
-	return util.URLJoin(setting.CamoServerURL, macSum, encodedURL)
+	return util.URLJoin(setting.Camo.ServerURL, macSum, encodedURL)
 }
 
 func b64encode(data []byte) string {
@@ -34,10 +34,10 @@ func b64encode(data []byte) string {
 }
 
 func camoHandleLink(link string) string {
-	if setting.CamoEnabled {
+	if setting.Camo.Enabled {
 		lnkURL, err := url.Parse(link)
 		if err == nil && lnkURL.IsAbs() && !strings.HasPrefix(link, setting.AppURL) &&
-			(setting.CamoAllways || lnkURL.Scheme != "https") {
+			(setting.Camo.Allways || lnkURL.Scheme != "https") {
 			return CamoEncode(link)
 		}
 	}

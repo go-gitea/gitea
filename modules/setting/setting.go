@@ -196,10 +196,13 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
-	CamoEnabled                        bool
-	CamoServerURL                      string
-	CamoHMACKey                        string
-	CamoAllways                        bool
+
+	Camo = struct {
+		Enabled   bool
+		ServerURL string `ini:"SERVER_URL"`
+		HMACKey   string `ini:"HMAC_KEY"`
+		Allways   bool
+	}{}
 
 	// UI settings
 	UI = struct {
@@ -918,17 +921,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	CamoServerURL = sec.Key("CAMO_SERVER_URL").MustString("")
-	CamoHMACKey = sec.Key("CAMO_HMAC_KEY").MustString("")
-	CamoAllways = sec.Key("CAMO_ALLWAYS").MustBool(false)
-	if CamoServerURL != "" {
-		if CamoHMACKey == "" {
-			log.Error("CAMO_SERVER_URL is set but CAMO_HMAC_KEY is empty, skip media proxy settings")
-		} else {
-			CamoEnabled = true
-		}
-	}
-
 	InternalToken = loadInternalToken(sec)
 	if InstallLock && InternalToken == "" {
 		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
@@ -1034,6 +1026,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
+	} else if err = Cfg.Section("camo").MapTo(&Camo); err != nil {
+		log.Fatal("Failed to map Camo settings: %v", err)
+	}
+
+	if Camo.Enabled {
+		if Camo.ServerURL == "" || Camo.HMACKey == "" {
+			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
+		}
 	}
 
 	u := *appURL
