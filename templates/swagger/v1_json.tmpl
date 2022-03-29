@@ -13127,6 +13127,9 @@
           "type": "string",
           "x-go-name": "SHA"
         },
+        "stats": {
+          "$ref": "#/definitions/CommitStats"
+        },
         "url": {
           "type": "string",
           "x-go-name": "URL"
@@ -13178,6 +13181,28 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CommitStats": {
+      "description": "CommitStats is statistics for a RepoCommit",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17137,6 +17162,9 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
