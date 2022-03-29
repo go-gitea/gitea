@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package project
 
 import (
 	"testing"
@@ -14,33 +14,33 @@ import (
 )
 
 func TestIsProjectTypeValid(t *testing.T) {
-	const UnknownType ProjectType = 15
+	const UnknownType Type = 15
 
 	cases := []struct {
-		typ   ProjectType
+		typ   Type
 		valid bool
 	}{
-		{ProjectTypeIndividual, false},
-		{ProjectTypeRepository, true},
-		{ProjectTypeOrganization, false},
+		{TypeIndividual, false},
+		{TypeRepository, true},
+		{TypeOrganization, false},
 		{UnknownType, false},
 	}
 
 	for _, v := range cases {
-		assert.Equal(t, v.valid, IsProjectTypeValid(v.typ))
+		assert.Equal(t, v.valid, IsTypeValid(v.typ))
 	}
 }
 
 func TestGetProjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	projects, _, err := GetProjects(ProjectSearchOptions{RepoID: 1})
+	projects, _, err := GetProjects(SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
 	assert.Len(t, projects, 1)
 
-	projects, _, err = GetProjects(ProjectSearchOptions{RepoID: 3})
+	projects, _, err = GetProjects(SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
 
 	// 1 value for this repo exists in the fixtures
@@ -51,8 +51,8 @@ func TestProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project := &Project{
-		Type:        ProjectTypeRepository,
-		BoardType:   ProjectBoardTypeBasicKanban,
+		Type:        TypeRepository,
+		BoardType:   BoardTypeBasicKanban,
 		Title:       "New Project",
 		RepoID:      1,
 		CreatedUnix: timeutil.TimeStampNow(),

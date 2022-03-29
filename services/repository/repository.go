@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -48,14 +48,14 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		return err
 	}
 
-	return packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, repo.ID)
+	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
 func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			if ok, err := models.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {
+			if ok, err := organization.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
 				return nil, fmt.Errorf("cannot push-create repository for org")
@@ -78,5 +78,6 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 
 // NewContext start repository service
 func NewContext() error {
+	repo_module.LoadRepoConfig()
 	return initPushQueue()
 }

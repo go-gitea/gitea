@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
@@ -54,11 +54,11 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		ctx.Package.AccessMode = perm.AccessModeOwner
 	} else {
 		if ctx.Package.Owner.IsOrganization() {
-			if models.HasOrgOrUserVisible(ctx.Package.Owner, ctx.Doer) {
+			if organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
 				ctx.Package.AccessMode = perm.AccessModeRead
 				if ctx.Doer != nil {
 					var err error
-					ctx.Package.AccessMode, err = models.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
+					ctx.Package.AccessMode, err = organization.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
 					if err != nil {
 						errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
 						return
