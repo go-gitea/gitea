@@ -85,7 +85,7 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 // WalkReferences walks all the references from the repository
 // refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
-	repo, err = OpenRepositoryCtx(ctx, repoPath)
+	repo, err := OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return 0, err
 	}
