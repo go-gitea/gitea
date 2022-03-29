@@ -45,7 +45,7 @@ import {
   initGlobalButtons,
   initGlobalCommon,
   initGlobalDropzone,
-  initGlobalEnterQuickSubmit,
+  initGlobalEnterQuickSubmit, initGlobalErrorHandler,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
@@ -85,6 +85,7 @@ $.fn.checkbox.settings.enableEnterKey = false;
 initVueEnv();
 
 $(document).ready(() => {
+  initGlobalErrorHandler();
   initGlobalCommon();
 
   initGlobalButtonClickOnEnter();

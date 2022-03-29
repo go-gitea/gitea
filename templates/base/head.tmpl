@@ -17,6 +17,7 @@
 {{end}}
 	<script>
 		<!-- /* eslint-disable */ -->
+		window.addEventListener('error', function(e) {window._globalHandlerErrors = window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 		window.config = {
 			appVer: '{{AppVer}}',
 			appUrl: '{{AppUrl}}',

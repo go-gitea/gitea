@@ -345,6 +345,26 @@ export function initGlobalButtons() {
   });
 }
 
+function showErrorMessageHtml(msgHtml) {
+  const $pageContent = $('.page-content');
+  if (!$pageContent.length) {
+    return;
+  }
+  const $tip = $(`<div class="ui container negative message center aligned">${msgHtml}</div>`);
+  $($pageContent[0]).prepend($tip);
+}
+
+function processWindowErrorEvent(e) {
+  showErrorMessageHtml(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
+}
+
+export function initGlobalErrorHandler() {
+  for (const e of window._globalHandlerErrors || []) {
+    processWindowErrorEvent(e);
+  }
+  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
+}
+
 /**
  * Too many users set their ROOT_URL to wrong value, and it causes a lot of problems:
  *   * Cross-origin API request without correct cookie
@@ -358,13 +378,8 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl)) {
     return;
   }
-  const $pageContent = $('.page-content');
-  if (!$pageContent.length) {
-    return;
-  }
-  const $tip = $(`<div class="ui container negative message center aligned">
-    Your ROOT_URL in app.ini is ${htmlEscape(appUrl)} but you are visiting ${htmlEscape(curUrl)}<br />
-    You should set ROOT_URL correctly, otherwise the web may not work correctly.
-  </div>`);
-  $($pageContent[0]).prepend($tip);
+  showErrorMessageHtml(`
+Your ROOT_URL in app.ini is ${htmlEscape(appUrl)} but you are visiting ${htmlEscape(curUrl)}<br />
+You should set ROOT_URL correctly, otherwise the web may not work correctly.
+`);
 }
