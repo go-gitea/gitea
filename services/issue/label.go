@@ -12,7 +12,7 @@ import (
 
 // ClearLabels clears all of an issue's labels
 func ClearLabels(issue *models.Issue, doer *user_model.User) (err error) {
-	if err = issue.ClearLabels(doer); err != nil {
+	if err = models.ClearIssueLabels(issue, doer); err != nil {
 		return
 	}
 
@@ -73,7 +73,7 @@ func ReplaceLabels(issue *models.Issue, doer *user_model.User, labels []*models.
 		return err
 	}
 
-	if err := issue.ReplaceLabels(labels, doer); err != nil {
+	if err := models.ReplaceIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 
