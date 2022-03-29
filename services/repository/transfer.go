@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,7 +22,7 @@ import (
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*models.Team) error {
+func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
 	if err := repo.GetOwner(db.DefaultContext); err != nil {
 		return err
 	}
@@ -46,7 +47,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 
 	for _, team := range teams {
-		if err := team.AddRepository(newRepo); err != nil {
+		if err := models.AddRepository(team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -81,7 +82,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, ne
 
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
-func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*models.Team) error {
+func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
 	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 
 	// If new owner is an org and user can create repos he can transfer directly too
 	if newOwner.IsOrganization() {
-		allowed, err := models.CanCreateOrgRepo(newOwner.ID, doer.ID)
+		allowed, err := organization.CanCreateOrgRepo(newOwner.ID, doer.ID)
 		if err != nil {
 			return err
 		}
