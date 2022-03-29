@@ -320,7 +320,7 @@ func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int
 			owner, repo, index, ctx.Token)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField:      "doAPIMergePullRequest Merge",
-			Do:                     string(models.MergeStyleMerge),
+			Do:                     string(repo_model.MergeStyleMerge),
 			MergeWhenChecksSucceed: true,
 		})
 
