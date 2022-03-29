@@ -138,7 +138,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			t.Parallel()
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, wikiName, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
@@ -183,7 +183,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
@@ -207,7 +207,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
@@ -220,7 +220,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
@@ -283,7 +283,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	err = git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(tmpDir)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 

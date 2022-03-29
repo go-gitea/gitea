@@ -69,7 +69,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 			return fmt.Errorf("Clone: %v %s", err, stderr)
 		}
 	}
-	gitRepo, err := git.OpenRepositoryCtx(t.ctx, t.basePath)
+	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (t *TemporaryUploadRepository) Init() error {
 	if err := git.InitRepository(t.ctx, t.basePath, false); err != nil {
 		return err
 	}
-	gitRepo, err := git.OpenRepositoryCtx(t.ctx, t.basePath)
+	gitRepo, err := git.OpenRepository(t.ctx, t.basePath)
 	if err != nil {
 		return err
 	}

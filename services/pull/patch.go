@@ -69,7 +69,7 @@ func TestPatch(pr *models.PullRequest) error {
 		}
 	}()
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}

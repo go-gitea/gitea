@@ -88,7 +88,7 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refn
 	repo := RepositoryFromContext(ctx, repoPath)
 	if repo == nil {
 		var err error
-		repo, err = OpenRepositoryCtx(ctx, repoPath)
+		repo, err = OpenRepository(ctx, repoPath)
 		if err != nil {
 			return 0, err
 		}
