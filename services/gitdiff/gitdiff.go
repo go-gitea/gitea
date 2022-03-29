@@ -1563,7 +1563,12 @@ outer:
 	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
 	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		go pulls.UpdateReview(review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff) //nolint
+		go func() {
+			err := pulls.UpdateReview(review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+			if err != nil {
+				log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
+			}
+		}()
 	}
 
 	return diff, err
