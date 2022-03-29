@@ -560,7 +560,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			labels = append(labels, orgLabels...)
 		}
 
-		if err = issue.ReplaceLabels(labels, ctx.Doer); err != nil {
+		if err = models.ReplaceIssueLabels(issue, labels, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
 		}

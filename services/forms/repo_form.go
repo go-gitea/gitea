@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -499,7 +500,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -507,7 +508,7 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 	UID       int64 `binding:"Required"`
 }
 

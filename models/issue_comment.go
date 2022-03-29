@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -208,8 +209,8 @@ type Comment struct {
 	RemovedLabels    []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
-	OldProject       *Project `xorm:"-"`
-	Project          *Project `xorm:"-"`
+	OldProject       *project_model.Project `xorm:"-"`
+	Project          *project_model.Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
@@ -473,7 +474,7 @@ func (c *Comment) LoadLabel() error {
 // LoadProject if comment.Type is CommentTypeProject, then load project.
 func (c *Comment) LoadProject() error {
 	if c.OldProjectID > 0 {
-		var oldProject Project
+		var oldProject project_model.Project
 		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
 		if err != nil {
 			return err
@@ -483,7 +484,7 @@ func (c *Comment) LoadProject() error {
 	}
 
 	if c.ProjectID > 0 {
-		var project Project
+		var project project_model.Project
 		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
 		if err != nil {
 			return err
@@ -861,7 +862,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(ctx); err != nil {
+		if err = updateIssueClosedNum(ctx, opts.Issue); err != nil {
 			return err
 		}
 	}
