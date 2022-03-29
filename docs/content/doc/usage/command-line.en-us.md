@@ -505,8 +505,8 @@ Manage running server operations:
               - `--subject value`, `-S value`: Subject header of sent emails
   - `processes`: Display Gitea processes and goroutine information
     - Options:
-      - `--no-children`: Show processes as flat table rather than as tree
-      - `--requests-only`: Only show request processes
+      - `--flat`: Show processes as flat table rather than as tree
+      - `--no-system`: Do not show system processes
       - `--stacktraces`: Show stacktraces for goroutines associated with processes
       - `--json`: Output as json
       - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
