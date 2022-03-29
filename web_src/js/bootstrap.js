@@ -27,7 +27,7 @@ function initGlobalErrorHandler() {
     showGlobalErrorMessageHtml(`Gitea JavaScript code couldn't run correctly, please check your custom templates`);
   }
 
-  // we added an event handler for window error at the very beginning of head.tmpl
+  // we added an event handler for window error at the very beginning of <script> of page head
   // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
   // then in this init, we can collect all error events and show them
   for (const e of window._globalHandlerErrors || []) {
