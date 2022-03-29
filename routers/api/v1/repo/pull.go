@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -743,129 +744,117 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if pr.Issue.IsClosed {
-		ctx.NotFound()
-		return
-	}
+	// TODO: move into service_branchprotection
+	{ // check if pull is mergable
+		if pr.Issue.IsClosed {
+			ctx.NotFound()
+			return
+		}
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
-		return
-	}
-	if !allowedMerge {
-		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		return
-	}
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
+			return
+		}
+		if !allowedMerge {
+			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+			return
+		}
 
-	if pr.HasMerged {
-		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-		return
-	}
+		if pr.HasMerged {
+			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+			return
+		}
 
-	// handle manually-merged mark
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
-			if models.IsErrInvalidMergeStyle(err) {
-				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
+		// handle manually-merged mark
+		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
+			if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+				if models.IsErrInvalidMergeStyle(err) {
+					ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
+					return
+				}
+				if strings.Contains(err.Error(), "Wrong commit ID") {
+					ctx.JSON(http.StatusConflict, err)
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
 				return
 			}
-			if strings.Contains(err.Error(), "Wrong commit ID") {
-				ctx.JSON(http.StatusConflict, err)
+			ctx.Status(http.StatusOK)
+			return
+		}
+
+		if !pr.CanAutoMerge() {
+			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+			return
+		}
+
+		if pr.IsWorkInProgress() {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
+			return
+		}
+
+		if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
+			if !models.IsErrNotAllowedToMerge(err) {
+				ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
 				return
 			}
-			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
-			return
-		}
-		ctx.Status(http.StatusOK)
-		return
-	}
-
-	if !pr.CanAutoMerge() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
-		return
-	}
-
-	if pr.IsWorkInProgress() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		return
-	}
-
-	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if !models.IsErrNotAllowedToMerge(err) {
-			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
-			return
-		}
-		if form.ForceMerge != nil && *form.ForceMerge {
-			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+			if form.ForceMerge != nil && *form.ForceMerge {
+				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
+					ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+					return
+				} else if !isRepoAdmin {
+					ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
+				}
+			} else {
+				ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
 				return
-			} else if !isRepoAdmin {
-				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
 			}
-		} else {
-			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+		}
+
+		if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.Doer); err != nil {
+			if !asymkey_service.IsErrWontSign(err) {
+				ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
+				return
+			}
+			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
 			return
 		}
-	}
-
-	if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.Doer); err != nil {
-		if !asymkey_service.IsErrWontSign(err) {
-			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
-			return
-		}
-		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
-		return
-	}
-
-	if len(form.Do) == 0 {
-		form.Do = string(repo_model.MergeStyleMerge)
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-			message = pr.GetDefaultMergeMessage()
+	{ // Set defaults if not given
+		if len(form.Do) == 0 {
+			form.Do = string(repo_model.MergeStyleMerge)
 		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-			message = pr.GetDefaultSquashMessage()
+
+		if len(message) == 0 {
+			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
+				message = pr.GetDefaultMergeMessage()
+			}
+			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
+				message = pr.GetDefaultSquashMessage()
+			}
+		}
+
+		form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+		if len(form.MergeMessageField) > 0 {
+			message += "\n\n" + form.MergeMessageField
 		}
 	}
 
-	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	if len(form.MergeMessageField) > 0 {
-		message += "\n\n" + form.MergeMessageField
-	}
-
-	{ // TODO comibine new func
-		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pr)
+	if form.MergeWhenChecksSucceed {
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetPullRequestCommitStatusState", err)
-			return
-		}
-		if form.MergeWhenChecksSucceed && !lastCommitStatus.IsSuccess() {
-			if err := models.ScheduleAutoMerge(
-				ctx.Doer,
-				pr.ID,
-				repo_model.MergeStyle(form.Do),
-				message,
-			); err != nil {
-				if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
-					ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
+			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
+				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
 				return
 			}
-
-			ctx.Status(http.StatusCreated)
+			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
 			return
-		}
-
-		// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
-		// scheduled before, hence we can remove it without checking for its existence.
-		if err := models.RemoveScheduledPullRequestMerge(ctx.Doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
-			ctx.ServerError("RemoveScheduledPullRequestMerge", err)
+		} else if scheduled {
+			// nothing more to do ...
+			ctx.Status(http.StatusCreated)
 			return
 		}
 	}

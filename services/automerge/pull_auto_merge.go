@@ -15,38 +15,59 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	pullservice "code.gitea.io/gitea/services/pull"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // This package merges a previously scheduled pull request on successful status check.
 // It is a separate package to avoid cyclic dependencies.
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
-func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) (err error) {
-	branches, err := git.GetBranchNamesForSha(ctx, sha, repo.RepoPath())
+func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
+	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *models.PullRequest) bool {
+		return !pr.HasMerged && pr.CanAutoMerge()
+	})
 	if err != nil {
-		return
+		return err
 	}
 
-	for _, branch := range branches {
+	for _, pr := range pulls {
+		go handlePull(pr, sha)
+	}
+
+	return nil
+}
+
+func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*models.PullRequest) bool) (map[int64]*models.PullRequest, error) {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	refs, err := gitRepo.GetRefsBySha(sha, "")
+	if err != nil {
+		return nil, err
+	}
+
+	pulls := make(map[int64]*models.PullRequest)
+
+	for _, ref := range refs {
 		// If the branch starts with "pull/*" we know we're dealing with a fork.
 		// In that case, head and base branch are not in the same repo and we need to do some extra work
 		// to get the pull request for this branch.
 		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
 		// use that to get the pr.
-		pulls := make(map[int64]*models.PullRequest)
-		err = nil // Could be filled with an error from an earlier run
-		if strings.HasPrefix(branch, "refs/pull/") {
+		if strings.HasPrefix(ref, git.PullPrefix) {
+			parts := strings.Split(ref[len(git.PullPrefix):], "/")
 
-			parts := strings.Split(branch, "/")
-
-			if len(parts) < 3 {
+			// e.g. 'refs/pull/1/head' would be []string{"1", "head"}
+			if len(parts) != 2 {
 				continue
 			}
 
 			prIndex, err := strconv.ParseInt(parts[2], 10, 64)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			p, err := models.GetPullRequestByIndexCtx(ctx, repo.ID, prIndex)
@@ -55,40 +76,35 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 				if models.IsErrPullRequestNotExist(err) {
 					continue
 				}
-				return err
+				return nil, err
 			}
-			pulls[p.ID] = p
-		} else {
-			prs, err := models.GetPullRequestsByHeadBranch(ctx, branch, repo, models.PullRequestStatusMergeable)
+
+			if filter(p) {
+				pulls[p.ID] = p
+			}
+
+		} else if strings.HasPrefix(ref, git.BranchPrefix) {
+			prs, err := models.GetPullRequestsByHeadBranch(ctx, ref[len(git.BranchPrefix):], repo)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
 					continue
 				}
-				return err
+				return nil, err
 			}
-			for i := range prs {
-				pulls[prs[i].ID] = prs[i]
+			for _, pr := range prs {
+				if filter(pr) {
+					pulls[pr.ID] = pr
+				}
 			}
-		}
-
-		for _, pr := range pulls {
-			go handlePull(pr, sha)
 		}
 	}
-	return nil
+
+	return pulls, nil
 }
 
 // TODO: queue
 func handlePull(pr *models.PullRequest, sha string) {
-	if pr.HasMerged {
-		return
-	}
-	if pr.Status != models.PullRequestStatusMergeable || pr.Issue == nil || pr.Issue.IsClosed {
-		log.Trace("Automerge skip pull [%d], status: %v, closed: %b", pr.ID, pr.Status, pr.Issue == nil || pr.Issue.IsClosed)
-		return
-	}
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		log.Error(err.Error())
@@ -130,7 +146,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 	}
 
 	// Check if all checks succeeded
-	pass, err := pullservice.IsPullCommitStatusPass(ctx, pr)
+	pass, err := pull_service.IsPullCommitStatusPass(ctx, pr)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -140,6 +156,8 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 
+	// TODO: evaluate all protected branch rules
+
 	// Merge if all checks succeeded
 	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
@@ -147,25 +165,24 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
-		log.Error(err.Error())
-		return
+	var baseGitRepo *git.Repository
+	if pr.BaseRepoID == pr.HeadRepoID {
+		baseGitRepo = headGitRepo
+	} else {
+		if err = pr.LoadBaseRepo(); err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+		defer baseGitRepo.Close()
 	}
 
-	baseGitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	defer baseGitRepo.Close()
-
-	if err := pullservice.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	// Remove the schedule from the db
-	if err := models.RemoveScheduledPullRequestMerge(nil, scheduledPRM.PullID, false); err != nil {
+	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
 		log.Error(err.Error())
 		return
 	}

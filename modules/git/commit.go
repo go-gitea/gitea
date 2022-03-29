@@ -17,8 +17,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/hashicorp/go-version"
 )
 
 // Commit represents a git commit.
@@ -420,27 +418,6 @@ func (c *Commit) GetTagName() (string, error) {
 	}
 
 	return strings.TrimSpace(data), nil
-}
-
-var version27, _ = version.NewVersion("2.7")
-
-// GetRefsBySha returns all references prefix that belong to a sha commit hash
-func GetRefsBySha(ctx context.Context, sha, prefix, repoPath string) ([]string, error) {
-	gitRepo, err := OpenRepositoryCtx(ctx, repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
-	}
-	defer gitRepo.Close()
-
-	var revList []string
-	_, err = gitRepo.WalkReferences("", 0, 0, func(walkSha, refname string) error {
-		if walkSha == sha && strings.HasPrefix(refname, prefix) {
-			revList = append(revList, refname)
-		}
-		return nil
-	})
-
-	return revList, err
 }
 
 // CommitFileStatus represents status of files in a commit.

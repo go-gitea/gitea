@@ -686,10 +686,10 @@ func (pr *PullRequest) IsSameRepo() bool {
 }
 
 // GetPullRequestsByHeadBranch returns all prs by head branch
-// Since there could be multiple prs to the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepo *repo_model.Repository, status PullRequestStatus) ([]*PullRequest, error) {
+// Since there could be multiple prs with the same head branch, this function returns a slice of prs
+func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepo *repo_model.Repository) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	if err := db.GetEngine(ctx).Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
+	if err := db.GetEngine(ctx).Where("head_branch = ? AND head_repo_id = ?", headBranch, headRepo.ID).
 		Desc("id").
 		Find(prs); err != nil {
 		return nil, err
