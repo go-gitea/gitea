@@ -1542,7 +1542,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("Find: %v", err)
 	}
-	if len(countsSlice) < 1 {
+	if len(countsSlice) == 0 {
 		return 0, nil
 	}
 	return countsSlice[0].Count, nil
