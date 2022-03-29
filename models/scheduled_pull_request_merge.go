@@ -5,19 +5,23 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // ScheduledPullRequestMerge represents a pull request scheduled for merging when checks succeed
 type ScheduledPullRequestMerge struct {
-	ID          int64              `xorm:"pk autoincr"`
-	PullID      int64              `xorm:"BIGINT"`
-	DoerID      int64              `xorm:"BIGINT"`
-	Doer        *User              `xorm:"-"`
-	MergeStyle  MergeStyle         `xorm:"varchar(50)"`
-	Message     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	ID          int64                 `xorm:"pk autoincr"`
+	PullID      int64                 `xorm:"BIGINT"`
+	DoerID      int64                 `xorm:"BIGINT"`
+	Doer        *user_model.User      `xorm:"-"`
+	MergeStyle  repo_model.MergeStyle `xorm:"varchar(50)"`
+	Message     string                `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp    `xorm:"created"`
 }
 
 func init() {
@@ -25,21 +29,21 @@ func init() {
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
-func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message string) error {
-	sess := db.NewSession(db.DefaultContext)
-	if err := sess.Begin(); err != nil {
+func ScheduleAutoMerge(doer *user_model.User, pullID int64, style repo_model.MergeStyle, message string) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	defer sess.Close()
+	defer committer.Close()
 
 	// Check if we already have a merge scheduled for that pull request
-	if exists, _, err := getScheduledPullRequestMergeByPullID(sess, pullID); err != nil {
+	if exists, _, err := GetScheduledPullRequestMergeByPullID(ctx, pullID); err != nil {
 		return err
 	} else if exists {
 		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
-	if _, err := sess.Insert(&ScheduledPullRequestMerge{
+	if _, err := db.GetEngine(ctx).Insert(&ScheduledPullRequestMerge{
 		DoerID:     doer.ID,
 		PullID:     pullID,
 		MergeStyle: style,
@@ -48,31 +52,27 @@ func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message strin
 		return err
 	}
 
-	pr, err := getPullRequestByID(sess, pullID)
+	pr, err := getPullRequestByID(db.GetEngine(ctx), pullID)
 	if err != nil {
 		return err
 	}
 
-	if _, err := createAutoMergeComment(sess, CommentTypePRScheduledToAutoMerge, pr, doer); err != nil {
+	if _, err := createAutoMergeComment(ctx, CommentTypePRScheduledToAutoMerge, pr, doer); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetScheduledPullRequestMergeByPullID gets a scheduled pull request merge by pull request id
-func GetScheduledPullRequestMergeByPullID(pullID int64) (bool, *ScheduledPullRequestMerge, error) {
-	return getScheduledPullRequestMergeByPullID(db.GetEngine(db.DefaultContext), pullID)
-}
-
-func getScheduledPullRequestMergeByPullID(e db.Engine, pullID int64) (bool, *ScheduledPullRequestMerge, error) {
+func GetScheduledPullRequestMergeByPullID(ctx context.Context, pullID int64) (bool, *ScheduledPullRequestMerge, error) {
 	scheduledPRM := &ScheduledPullRequestMerge{}
-	exists, err := e.Where("pull_id = ?", pullID).Get(scheduledPRM)
+	exists, err := db.GetEngine(ctx).Where("pull_id = ?", pullID).Get(scheduledPRM)
 	if err != nil || !exists {
 		return false, nil, err
 	}
 
-	doer, err := getUserByID(e, scheduledPRM.DoerID)
+	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		return false, nil, err
 	}
@@ -82,37 +82,37 @@ func getScheduledPullRequestMergeByPullID(e db.Engine, pullID int64) (bool, *Sch
 }
 
 // RemoveScheduledPullRequestMerge cancels a previously scheduled pull request
-func RemoveScheduledPullRequestMerge(doer *User, pullID int64, comment bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	if err := sess.Begin(); err != nil {
+func RemoveScheduledPullRequestMerge(doer *user_model.User, pullID int64, comment bool) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	defer sess.Close()
+	defer committer.Close()
 
-	exist, scheduledPRM, err := getScheduledPullRequestMergeByPullID(sess, pullID)
+	exist, scheduledPRM, err := GetScheduledPullRequestMergeByPullID(ctx, pullID)
 	if err != nil {
 		return err
 	} else if !exist {
 		return ErrNotExist{ID: pullID}
 	}
 
-	if _, err := sess.ID(scheduledPRM.ID).Delete(&ScheduledPullRequestMerge{}); err != nil {
+	if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&ScheduledPullRequestMerge{}); err != nil {
 		return err
 	}
 
 	// if pull got merged we dont need to add a "auto-merge canceled comment"
 	if !comment || doer == nil {
-		return sess.Commit()
+		return committer.Commit()
 	}
 
-	pr, err := getPullRequestByID(sess, pullID)
+	pr, err := getPullRequestByID(db.GetEngine(ctx), pullID)
 	if err != nil {
 		return err
 	}
 
-	if _, err := createAutoMergeComment(sess, CommentTypePRUnScheduledToAutoMerge, pr, doer); err != nil {
+	if _, err := createAutoMergeComment(ctx, CommentTypePRUnScheduledToAutoMerge, pr, doer); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

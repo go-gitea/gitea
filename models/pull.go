@@ -130,7 +130,8 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadHeadRepo(ctx context.Context) (err error) {
+// LoadHeadRepoCtx loads the head repository
+func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
 			if pr.BaseRepo != nil {
@@ -153,7 +154,7 @@ func (pr *PullRequest) loadHeadRepo(ctx context.Context) (err error) {
 
 // LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
-	return pr.loadHeadRepo(db.DefaultContext)
+	return pr.LoadHeadRepoCtx(db.DefaultContext)
 }
 
 // LoadBaseRepo loads the target repository
@@ -678,7 +679,7 @@ func (pr *PullRequest) IsSameRepo() bool {
 
 // GetPullRequestsByHeadBranch returns all prs by head branch
 // Since there could be multiple prs to the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(headBranch string, headRepo *Repository, status PullRequestStatus) ([]*PullRequest, error) {
+func GetPullRequestsByHeadBranch(headBranch string, headRepo *repo_model.Repository, status PullRequestStatus) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
 	if err := db.GetEngine(db.DefaultContext).Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
 		Desc("id").

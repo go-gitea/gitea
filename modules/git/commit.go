@@ -425,14 +425,15 @@ func (c *Commit) GetTagName() (string, error) {
 var version27, _ = version.NewVersion("2.7")
 
 // GetBranchNamesForSha returns all branches with the ref/* prefix that belong to a sha commit hash
-func GetBranchNamesForSha(sha string, repoPath string) ([]string, error) {
-	r, err := OpenRepository(repoPath)
+func GetBranchNamesForSha(ctx context.Context, sha, repoPath string) ([]string, error) {
+	gitRepo, err := OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
-	defer r.Close()
+	defer gitRepo.Close()
+
 	commitID := MustIDFromString(sha)
-	tree := NewTree(r, commitID)
+	tree := NewTree(gitRepo, commitID)
 	commit := &Commit{
 		Tree: *tree,
 		ID:   commitID,
@@ -440,22 +441,20 @@ func GetBranchNamesForSha(sha string, repoPath string) ([]string, error) {
 
 	var branchNames []string
 	if gitVersion.Compare(version27) < 0 {
-		data, err := NewCommand(
+		data, err := NewCommand(ctx,
 			"name-ref",
 			"--refs='refs/heads/*'",
 			commit.ID.String(),
-		).
-			RunInDirBytes(commit.repo.Path)
+		).RunInDirBytes(commit.repo.Path)
 		if err != nil {
 			return nil, err
 		}
 
-		dataPulls, err := NewCommand(
+		dataPulls, err := NewCommand(ctx,
 			"name-ref",
 			"--refs='refs/pull/*'",
 			commit.ID.String(),
-		).
-			RunInDirBytes(commit.repo.Path)
+		).RunInDirBytes(commit.repo.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -477,13 +476,12 @@ func GetBranchNamesForSha(sha string, repoPath string) ([]string, error) {
 		return branchNames, nil
 	}
 
-	data, err := NewCommand(
+	data, err := NewCommand(ctx,
 		"for-each-ref",
 		"--points-at="+commit.ID.String(),
 		"refs/heads",
 		"refs/pull",
-	).
-		RunInDirBytes(commit.repo.Path)
+	).RunInDirBytes(commit.repo.Path)
 	if err != nil {
 		return nil, err
 	}

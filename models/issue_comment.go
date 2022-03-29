@@ -1468,16 +1468,16 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	return nil
 }
 
-func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest, doer *User) (comment *Comment, err error) {
-	if err = pr.loadIssue(sess); err != nil {
+func createAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+	if err = pr.loadIssue(db.GetEngine(ctx)); err != nil {
 		return
 	}
 
-	if err = pr.loadBaseRepo(sess); err != nil {
+	if err = pr.loadBaseRepo(ctx); err != nil {
 		return
 	}
 
-	comment, err = createComment(sess, &CreateCommentOptions{
+	comment, err = createComment(ctx, &CreateCommentOptions{
 		Type:  typ,
 		Doer:  doer,
 		Repo:  pr.BaseRepo,
