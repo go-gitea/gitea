@@ -83,6 +83,7 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 }
 
 // WalkReferences walks all the references from the repository
+// refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
 func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
 	repo := RepositoryFromContext(ctx, repoPath)
 	if repo == nil {
@@ -110,13 +111,16 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refn
 }
 
 // WalkReferences walks all the references from the repository
-func (repo *Repository) WalkReferences(arg string, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	i := 0
 	var iter storer.ReferenceIter
 	var err error
-	if arg == "--tags" {
+	switch arg {
+	case ObjectTag:
 		iter, err = repo.gogitRepo.Tags()
-	} else {
+	case ObjectBranch:
+		iter, err = repo.gogitRepo.Branches()
+	default:
 		iter, err = repo.gogitRepo.References()
 	}
 	if err != nil {

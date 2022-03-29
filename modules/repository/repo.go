@@ -290,7 +290,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 		}
 	}
 
-	_, err := gitRepo.WalkReferences("--tags", 0, 0, func(sha1, refname string) error {
+	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
 		tagName := strings.TrimPrefix(refname, git.TagPrefix)
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
 			return nil
