@@ -20,6 +20,7 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -268,7 +269,7 @@ func GetReviewers(repo *repo_model.Repository, doerID, posterID int64) ([]*user_
 }
 
 // GetReviewerTeams get all teams can be requested to review
-func GetReviewerTeams(repo *repo_model.Repository) ([]*Team, error) {
+func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error) {
 	if err := repo.GetOwner(db.DefaultContext); err != nil {
 		return nil, err
 	}
@@ -276,7 +277,7 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*Team, error) {
 		return nil, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +314,7 @@ func CanUserForkRepo(user *user_model.User, repo *repo_model.Repository) (bool, 
 	if repo.OwnerID != user.ID && !repo_model.HasForkedRepo(user.ID, repo.ID) {
 		return true, nil
 	}
-	ownedOrgs, err := GetOrgsCanCreateRepoByUserID(user.ID)
+	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(user.ID)
 	if err != nil {
 		return false, err
 	}
@@ -372,7 +373,7 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
+		isOwner, err := organization.OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -550,19 +551,19 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		teams, err := organization.FindOrgTeams(ctx, u.ID)
 		if err != nil {
 			return fmt.Errorf("loadTeams: %v", err)
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := t.addRepository(ctx, repo); err != nil {
+				if err := addRepository(ctx, t, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
 				}
 			}
 		}
 
-		if isAdmin, err := isUserRepoAdmin(db.GetEngine(ctx), repo, doer); err != nil {
+		if isAdmin, err := isUserRepoAdmin(ctx, repo, doer); err != nil {
 			return fmt.Errorf("isUserRepoAdmin: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
@@ -768,14 +769,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		teams, err := OrgFromUser(org).loadTeams(sess)
+		teams, err := organization.FindOrgTeams(ctx, org.ID)
 		if err != nil {
 			return err
 		}
 		for _, t := range teams {
-			if !t.hasRepository(sess, repoID) {
+			if !hasRepository(ctx, t, repoID) {
 				continue
-			} else if err = t.removeRepository(ctx, repo, false); err != nil {
+			} else if err = removeRepository(ctx, t, repo, false); err != nil {
 				return err
 			}
 		}
@@ -1326,7 +1327,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := isUserRepoAdmin(sess, repo, doer)
+		has, err := isUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

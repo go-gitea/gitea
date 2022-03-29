@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -57,14 +58,14 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 
 	if !ctx.Doer.IsAdmin {
-		orgsAvailable := []*models.Organization{}
+		orgsAvailable := []*organization.Organization{}
 		for i := 0; i < len(orgs); i++ {
 			if orgs[i].CanCreateRepo() {
 				orgsAvailable = append(orgsAvailable, orgs[i])
@@ -96,7 +97,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		return nil
 	}
 	if !ctx.Doer.IsAdmin {
-		canCreate, err := models.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
+		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
