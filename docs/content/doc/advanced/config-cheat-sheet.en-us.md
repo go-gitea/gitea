@@ -517,7 +517,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 
 ## Camo (`camo`)
 
-- `ENABLED`: **false**: If camo is enabled
+- `ENABLED`: **false**: Enable media proxy, we support images only at the moment.
 - `SERVER_URL`: **<empty>**: url of camo server, it **is required** if camo is enabled.
 - `HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding urls, it **is required** if camo is enabled.
 - `ALLWAYS`: **false**: Set to true to use camo for https too lese only non https urls are proxyed
