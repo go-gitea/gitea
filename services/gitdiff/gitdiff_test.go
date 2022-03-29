@@ -6,6 +6,7 @@
 package gitdiff
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -690,7 +691,7 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository("./testdata/academic-module")
+	gitRepo, err := git.OpenRepository(context.Background(), "./testdata/academic-module")
 	if !assert.NoError(t, err) {
 		return
 	}

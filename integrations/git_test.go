@@ -624,7 +624,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.openRepository(dstPath)
 		if !assert.NoError(t, err) {
 			return
 		}

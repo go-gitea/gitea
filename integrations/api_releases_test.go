@@ -167,7 +167,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.openRepository(repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

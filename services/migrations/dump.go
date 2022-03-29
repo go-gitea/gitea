@@ -182,7 +182,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepository(g.ctx, g.gitPath())
 	return err
 }
 

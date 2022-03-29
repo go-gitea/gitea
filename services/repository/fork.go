@@ -146,7 +146,7 @@ func ForkRepository(doer, owner *user_model.User, opts ForkRepoOptions) (_ *repo
 		log.Error("Copy language stat from oldRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	if err != nil {
 		log.Error("Open created git repository failed: %v", err)
 	} else {

@@ -887,7 +887,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 				return
@@ -981,7 +981,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepositoryCtx(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = git.OpenRepository(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
