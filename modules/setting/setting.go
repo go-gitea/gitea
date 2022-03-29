@@ -198,6 +198,7 @@ var (
 	SuccessfulTokensCacheSize          int
 	CamoServerURL                      string
 	CamoHMACKey                        string
+	CamoAllways                        bool
 
 	// UI settings
 	UI = struct {
@@ -914,9 +915,15 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
 	CamoServerURL = sec.Key("CAMO_SERVER_URL").MustString("")
 	CamoHMACKey = sec.Key("CAMO_HMAC_KEY").MustString("")
-	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+	CamoAllways = sec.Key("CAMO_ALLWAYS").MustBool(false)
+	if CamoServerURL != "" && CamoHMACKey == "" {
+		log.Error("CAMO_SERVER_URL is set but CAMO_HMAC_KEY is empty, skip media proxy settings")
+		CamoServerURL = ""
+	}
 
 	InternalToken = loadInternalToken(sec)
 	if InstallLock && InternalToken == "" {

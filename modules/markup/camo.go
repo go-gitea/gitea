@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -16,7 +16,7 @@ import (
 
 // CamoEncode encodes a lnk to fit with the go-camo and camo proxy links
 func CamoEncode(link string) string {
-	if strings.HasPrefix(link, setting.CamoServerURL) || len(setting.CamoHMACKey) == 0 {
+	if strings.HasPrefix(link, setting.CamoServerURL) {
 		return link
 	}
 

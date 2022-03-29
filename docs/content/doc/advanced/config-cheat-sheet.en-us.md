@@ -516,6 +516,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
 - `CAMO_SERVER_URL`: **<empty>**: If you would like to use a camo proxy to proxy images from rendered content, set the camo server url here
 - `CAMO_HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding urls
+- `CAMO_ALLWAYS`: **false**: Set to true to use camo for https too lese only non https urls are proxyed
 
 ## OpenID (`openid`)
 
