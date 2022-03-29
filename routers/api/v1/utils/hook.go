@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -164,7 +163,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return nil, false
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateWebhook", err)
 		return nil, false
 	}

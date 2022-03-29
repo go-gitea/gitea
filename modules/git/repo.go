@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -98,15 +99,16 @@ func (repo *Repository) IsEmpty() (bool, error) {
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout    time.Duration
-	Mirror     bool
-	Bare       bool
-	Quiet      bool
-	Branch     string
-	Shared     bool
-	NoCheckout bool
-	Depth      int
-	Filter     string
+	Timeout       time.Duration
+	Mirror        bool
+	Bare          bool
+	Quiet         bool
+	Branch        string
+	Shared        bool
+	NoCheckout    bool
+	Depth         int
+	Filter        string
+	SkipTLSVerify bool
 }
 
 // Clone clones original repository to target path.
@@ -124,6 +126,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	if opts.SkipTLSVerify {
+		cmd.AddArguments("-c", "http.sslVerify=false")
+	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -149,6 +154,12 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		cmd.AddArguments("-b", opts.Branch)
 	}
 	cmd.AddArguments("--", from, to)
+
+	if strings.Contains(from, "://") && strings.Contains(from, "@") {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.NewStringURLSanitizer(from, true).Replace(from), to, opts.Shared, opts.Mirror, opts.Depth))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, from, to, opts.Shared, opts.Mirror, opts.Depth))
+	}
 
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
@@ -196,6 +207,11 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	cmd.AddArguments("--", opts.Remote)
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
+	}
+	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.NewStringURLSanitizer(opts.Remote, true).Replace(opts.Remote), opts.Force, opts.Mirror))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
 	}
 	var outbuf, errbuf strings.Builder
 

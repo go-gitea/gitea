@@ -47,11 +47,23 @@ func NewContext() {
 
 // TaskTableRow represents a task row in the tasks table
 type TaskTableRow struct {
-	Name      string
-	Spec      string
-	Next      time.Time
-	Prev      time.Time
-	ExecTimes int64
+	Name        string
+	Spec        string
+	Next        time.Time
+	Prev        time.Time
+	Status      string
+	LastMessage string
+	LastDoer    string
+	ExecTimes   int64
+	task        *Task
+}
+
+func (t *TaskTableRow) FormatLastMessage(locale string) string {
+	if t.Status == "finished" {
+		return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer)
+	}
+
+	return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer, t.LastMessage)
 }
 
 // TaskTable represents a table of tasks
@@ -80,11 +92,15 @@ func ListTasks() TaskTable {
 		}
 		task.lock.Lock()
 		tTable = append(tTable, &TaskTableRow{
-			Name:      task.Name,
-			Spec:      spec,
-			Next:      next,
-			Prev:      prev,
-			ExecTimes: task.ExecTimes,
+			Name:        task.Name,
+			Spec:        spec,
+			Next:        next,
+			Prev:        prev,
+			ExecTimes:   task.ExecTimes,
+			LastMessage: task.LastMessage,
+			Status:      task.Status,
+			LastDoer:    task.LastDoer,
+			task:        task,
 		})
 		task.lock.Unlock()
 	}

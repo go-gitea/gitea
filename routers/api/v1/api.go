@@ -71,6 +71,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -87,6 +88,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/services/auth"
+	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -103,7 +105,7 @@ func sudo() func(ctx *context.APIContext) {
 		}
 
 		if len(sudo) > 0 {
-			if ctx.IsSigned && ctx.User.IsAdmin {
+			if ctx.IsSigned && ctx.Doer.IsAdmin {
 				user, err := user_model.GetUserByName(sudo)
 				if err != nil {
 					if user_model.IsErrUserNotExist(err) {
@@ -113,8 +115,8 @@ func sudo() func(ctx *context.APIContext) {
 					}
 					return
 				}
-				log.Trace("Sudo from (%s) to: %s", ctx.User.Name, user.Name)
-				ctx.User = user
+				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
+				ctx.Doer = user
 			} else {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only administrators allowed to sudo.",
@@ -136,8 +138,8 @@ func repoAssignment() func(ctx *context.APIContext) {
 		)
 
 		// Check if the user is the same as the repository owner.
-		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-			owner = ctx.User
+		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+			owner = ctx.Doer
 		} else {
 			owner, err = user_model.GetUserByName(userName)
 			if err != nil {
@@ -156,6 +158,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 		ctx.Repo.Owner = owner
+		ctx.ContextUser = owner
 
 		// Get repository.
 		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
@@ -178,7 +181,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -307,7 +310,7 @@ func reqOrgOwnership() func(ctx *context.APIContext) {
 			return
 		}
 
-		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -334,7 +337,7 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 		}
 
 		orgID := ctx.Org.Team.OrgID
-		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
+		isOwner, err := organization.IsOrganizationOwner(ctx, orgID, ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
@@ -342,11 +345,11 @@ func reqTeamMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
+		if isTeamMember, err := organization.IsTeamMember(ctx, orgID, ctx.Org.Team.ID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsTeamMember", err)
 			return
 		} else if !isTeamMember {
-			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
+			isOrgMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			} else if isOrgMember {
@@ -376,7 +379,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		}
 
-		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
+		if isMember, err := organization.IsOrganizationMember(ctx, orgID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			return
 		} else if !isMember {
@@ -392,7 +395,7 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 
 func reqGitHook() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if !ctx.User.CanEditGitHook() {
+		if !ctx.Doer.CanEditGitHook() {
 			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
 			return
 		}
@@ -425,9 +428,9 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 
 		var err error
 		if assignOrg {
-			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
+			ctx.Org.Organization, err = organization.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
-				if models.IsErrOrgNotExist(err) {
+				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
 						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
@@ -441,12 +444,13 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				}
 				return
 			}
+			ctx.ContextUser = ctx.Org.Organization.AsUser()
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = models.GetTeamByID(ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx.ParamsInt64(":teamid"))
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
 				} else {
 					ctx.Error(http.StatusInternalServerError, "GetTeamById", err)
@@ -463,7 +467,7 @@ func mustEnableIssues(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypeIssues,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -486,7 +490,7 @@ func mustAllowPulls(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
@@ -510,7 +514,7 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					unit.TypeIssues,
 					unit.TypePullRequests,
 					ctx.Repo.Repository,
@@ -560,6 +564,26 @@ func bind(obj interface{}) http.HandlerFunc {
 	})
 }
 
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+func buildAuthGroup() *auth.Group {
+	group := auth.NewGroup(
+		&auth.OAuth2{},
+		&auth.Basic{},      // FIXME: this should be removed once we don't allow basic auth in API
+		auth.SharedSession, // FIXME: this should be removed once all UI don't reference API/v1, see https://github.com/go-gitea/gitea/pull/16052
+	)
+	if setting.Service.EnableReverseProxyAuth {
+		group.Add(&auth.ReverseProxy{})
+	}
+	specialAdd(group)
+
+	return group
+}
+
 // Routes registers all v1 APIs routes to web application.
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	m := web.NewRoute()
@@ -580,8 +604,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	}
 	m.Use(context.APIContexter())
 
+	group := buildAuthGroup()
+	if err := group.Init(); err != nil {
+		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
+	}
+
 	// Get user from session if logged in.
-	m.Use(context.APIAuth(auth.NewGroup(auth.Methods()...)))
+	m.Use(context.APIAuth(group))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
@@ -636,7 +665,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
 				}, reqBasicOrRevProxyAuth())
-			})
+			}, context_service.UserAssignmentAPI())
 		})
 
 		m.Group("/users", func() {
@@ -653,7 +682,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/starred", user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			})
+			}, context_service.UserAssignmentAPI())
 		}, reqToken())
 
 		m.Group("/user", func() {
@@ -669,7 +698,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			m.Get("/followers", user.ListMyFollowers)
 			m.Group("/following", func() {
 				m.Get("", user.ListMyFollowing)
-				m.Combo("/{username}").Get(user.CheckMyFollowing).Put(user.Follow).Delete(user.Unfollow)
+				m.Group("/{username}", func() {
+					m.Get("", user.CheckMyFollowing)
+					m.Put("", user.Follow)
+					m.Delete("", user.Unfollow)
+				}, context_service.UserAssignmentAPI())
 			})
 
 			m.Group("/keys", func() {
@@ -1005,7 +1038,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		})
+		}, context_service.UserAssignmentAPI())
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {
@@ -1083,7 +1116,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/orgs", org.ListUserOrgs)
 					m.Post("/orgs", bind(api.CreateOrgOption{}), admin.CreateOrg)
 					m.Post("/repos", bind(api.CreateRepoOption{}), admin.CreateRepo)
-				})
+				}, context_service.UserAssignmentAPI())
 			})
 			m.Group("/unadopted", func() {
 				m.Get("", admin.ListUnadoptedRepositories)

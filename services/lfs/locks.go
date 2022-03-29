@@ -52,7 +52,7 @@ func GetListLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have pull access to list locks",
 		})
 		return
@@ -139,7 +139,7 @@ func PostLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to create locks",
 		})
 		return
@@ -164,13 +164,13 @@ func PostLockHandler(ctx *context.Context) {
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
 	lock, err := models.CreateLFSLock(repository, &models.LFSLock{
 		Path:    req.Path,
-		OwnerID: ctx.User.ID,
+		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -187,7 +187,7 @@ func PostLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		log.Error("Unable to CreateLFSLock in repository %-v at %s for user %-v: Error: %v", repository, req.Path, ctx.User, err)
+		log.Error("Unable to CreateLFSLock in repository %-v at %s for user %-v: Error: %v", repository, req.Path, ctx.Doer, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "internal server error : Internal Server Error",
 		})
@@ -206,7 +206,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to verify locks",
 		})
 		return
@@ -249,7 +249,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
 	for _, l := range lockList {
-		if l.OwnerID == ctx.User.ID {
+		if l.OwnerID == ctx.Doer.ID {
 			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(l))
 		} else {
 			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))
@@ -272,7 +272,7 @@ func UnLockHandler(ctx *context.Context) {
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to delete locks",
 		})
 		return
@@ -297,11 +297,11 @@ func UnLockHandler(ctx *context.Context) {
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
-	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.User, req.Force)
+	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
 		if models.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
@@ -310,7 +310,7 @@ func UnLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.ParamsInt64("lid"), ctx.User, req.Force, err)
+		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.ParamsInt64("lid"), ctx.Doer, req.Force, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to delete lock : Internal Server Error",
 		})

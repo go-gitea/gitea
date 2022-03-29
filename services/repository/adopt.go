@@ -79,7 +79,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}
@@ -339,6 +339,13 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		}
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
+		if len(repoNamesToCheck) > setting.Database.IterateBufferSize {
+			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+				return err
+			}
+			repoNamesToCheck = repoNamesToCheck[:0]
+
+		}
 		return filepath.SkipDir
 	}); err != nil {
 		return nil, 0, err

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -213,9 +214,9 @@ type Comment struct {
 	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
 	RemovedAssignee  bool
-	Assignee         *user_model.User `xorm:"-"`
-	AssigneeTeamID   int64            `xorm:"NOT NULL DEFAULT 0"`
-	AssigneeTeam     *Team            `xorm:"-"`
+	Assignee         *user_model.User   `xorm:"-"`
+	AssigneeTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam     *organization.Team `xorm:"-"`
 	ResolveDoerID    int64
 	ResolveDoer      *user_model.User `xorm:"-"`
 	OldTitle         string
@@ -581,8 +582,8 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 		}
 
 		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = GetTeamByID(c.AssigneeTeamID)
-			if err != nil && !IsErrTeamNotExist(err) {
+			c.AssigneeTeam, err = organization.GetTeamByID(c.AssigneeTeamID)
+			if err != nil && !organization.IsErrTeamNotExist(err) {
 				return err
 			}
 		}
@@ -1163,7 +1164,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
 			return err
 		}
 	}
