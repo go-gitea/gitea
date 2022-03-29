@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +56,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := models.OrgFromUser(u).GetOwnerTeam()
+		t, err := organization.OrgFromUser(u).GetOwnerTeam()
 		if err != nil {
 			return nil, err
 		}
@@ -80,6 +81,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		return repo, err
+	}
+
 	if opts.Wiki {
 		wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
 		wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
@@ -101,6 +106,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				}
 			}
 		}
+		if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			return repo, err
+		}
 	}
 
 	if repo.OwnerID == u.ID {
@@ -118,7 +126,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -278,23 +286,25 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags(0, 0)
-	if err != nil {
-		return fmt.Errorf("unable to GetTags in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
-	}
-	for _, tagName := range tags {
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
-			}
+
+	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
+		tagName := strings.TrimPrefix(refname, git.TagPrefix)
+		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+			return nil
 		}
-	}
-	return nil
+
+		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+		}
+
+		return nil
+	})
+	return err
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName string) error {
-	tag, err := gitRepo.GetTag(tagName)
+func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
 	}

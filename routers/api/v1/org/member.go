@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
@@ -19,19 +20,19 @@ import (
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
-	opts := &models.FindOrgMembersOpts{
+	opts := &organization.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	count, err := models.CountOrgMembers(opts)
+	count, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	members, _, err := models.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -190,7 +191,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	is, err := models.IsPublicMembership(ctx.Org.Organization.ID, userToCheck.ID)
+	is, err := organization.IsPublicMembership(ctx.Org.Organization.ID, userToCheck.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsPublicMembership", err)
 		return
@@ -234,7 +235,7 @@ func PublicizeMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Cannot publicize another member")
 		return
 	}
-	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToPublicize.ID, true)
+	err := organization.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToPublicize.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
@@ -274,7 +275,7 @@ func ConcealMember(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Cannot conceal another member")
 		return
 	}
-	err := models.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToConceal.ID, false)
+	err := organization.ChangeOrgUserStatus(ctx.Org.Organization.ID, userToConceal.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ChangeOrgUserStatus", err)
 		return
@@ -308,8 +309,8 @@ func DeleteMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := ctx.Org.Organization.RemoveMember(member.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
+	if err := models.RemoveOrgUser(ctx.Org.Organization.ID, member.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RemoveOrgUser", err)
 	}
 	ctx.Status(http.StatusNoContent)
 }

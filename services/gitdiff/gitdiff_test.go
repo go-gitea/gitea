@@ -690,7 +690,7 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository("./testdata/academic-module")
+	gitRepo, err := git.OpenRepository(git.DefaultContext, "./testdata/academic-module")
 	if !assert.NoError(t, err) {
 		return
 	}

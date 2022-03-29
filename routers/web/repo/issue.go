@@ -19,6 +19,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -335,9 +337,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := models.GetProjects(models.ProjectSearchOptions{
+		projects, _, err := project_model.GetProjects(project_model.SearchOptions{
 			RepoID:   repo.ID,
-			Type:     models.ProjectTypeRepository,
+			Type:     project_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
 		})
 		if err != nil {
@@ -445,22 +447,22 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 
-	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     models.ProjectTypeRepository,
+		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     models.ProjectTypeRepository,
+		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -471,7 +473,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
 	IsTeam    bool
-	Team      *models.Team
+	Team      *organization.Team
 	User      *user_model.User
 	Review    *models.Review
 	CanChange bool
@@ -504,7 +506,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		pullReviews         []*repoReviewerSelection
 		reviewersResult     []*repoReviewerSelection
 		teamReviewersResult []*repoReviewerSelection
-		teamReviewers       []*models.Team
+		teamReviewers       []*organization.Team
 		reviewers           []*user_model.User
 	)
 
@@ -586,7 +588,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err = item.Review.LoadReviewerTeam(); err != nil {
-					if models.IsErrTeamNotExist(err) {
+					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
 					ctx.ServerError("LoadReviewerTeam", err)
@@ -813,7 +815,7 @@ func NewIssue(ctx *context.Context) {
 
 	projectID := ctx.FormInt64("project")
 	if projectID > 0 {
-		project, err := models.GetProjectByID(projectID)
+		project, err := project_model.GetProjectByID(projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
@@ -925,7 +927,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	if form.ProjectID > 0 {
-		p, err := models.GetProjectByID(form.ProjectID)
+		p, err := project_model.GetProjectByID(form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
@@ -1412,7 +1414,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			ghostProject := &models.Project{
+			ghostProject := &project_model.Project{
 				ID:    -1,
 				Title: ctx.Tr("repo.issues.deleted_project"),
 			}
@@ -1965,9 +1967,9 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			team, err := models.GetTeamByID(-reviewID)
+			team, err := organization.GetTeamByID(-reviewID)
 			if err != nil {
-				ctx.ServerError("models.GetTeamByID", err)
+				ctx.ServerError("GetTeamByID", err)
 				return
 			}
 
@@ -2593,7 +2595,7 @@ func updateAttachments(item interface{}, files []string) error {
 	if len(files) > 0 {
 		switch content := item.(type) {
 		case *models.Issue:
-			err = content.UpdateAttachments(files)
+			err = models.UpdateIssueAttachments(content.ID, files)
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
@@ -2702,8 +2704,8 @@ func handleTeamMentions(ctx *context.Context) {
 
 	var isAdmin bool
 	var err error
-	var teams []*models.Team
-	org := models.OrgFromUser(ctx.Repo.Owner)
+	var teams []*organization.Team
+	org := organization.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.Doer.IsAdmin {
 		isAdmin = true

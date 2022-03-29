@@ -15,7 +15,7 @@ import (
 
 func TestRepository_GetTags(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -44,7 +44,7 @@ func TestRepository_GetTag(t *testing.T) {
 	}
 	defer util.RemoveAll(clonedPath)
 
-	bareRepo1, err := OpenRepository(clonedPath)
+	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -149,7 +149,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 	}
 	defer util.RemoveAll(clonedPath)
 
-	bareRepo1, err := OpenRepository(clonedPath)
+	bareRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return

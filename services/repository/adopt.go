@@ -79,7 +79,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}
@@ -123,7 +123,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	repo.IsEmpty = false
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}

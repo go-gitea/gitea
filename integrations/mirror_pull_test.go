@@ -52,7 +52,7 @@ func TestMirrorPull(t *testing.T) {
 	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

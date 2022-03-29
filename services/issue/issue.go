@@ -28,7 +28,7 @@ func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func ChangeTitle(issue *models.Issue, doer *user_model.User, title string) (err 
 	oldTitle := issue.Title
 	issue.Title = title
 
-	if err = issue.ChangeTitle(doer, oldTitle); err != nil {
+	if err = models.ChangeIssueTitle(issue, doer, oldTitle); err != nil {
 		return
 	}
 
@@ -63,7 +63,7 @@ func ChangeIssueRef(issue *models.Issue, doer *user_model.User, ref string) erro
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issue.ChangeRef(doer, oldRef); err != nil {
+	if err := models.ChangeIssueRef(issue, doer, oldRef); err != nil {
 		return err
 	}
 
