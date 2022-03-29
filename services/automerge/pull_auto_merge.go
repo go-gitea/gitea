@@ -84,6 +84,10 @@ func handlePull(pr *models.PullRequest, sha string) {
 	if pr.HasMerged {
 		return
 	}
+	if pr.Status != models.PullRequestStatusMergeable || pr.Issue == nil || pr.Issue.IsClosed {
+		log.Trace("Automerge skip pull [%d], status: %v, closed: %b", pr.ID, pr.Status, pr.Issue == nil || pr.Issue.IsClosed)
+		return
+	}
 
 	ctx, committer, err := db.TxContext()
 	if err != nil {
