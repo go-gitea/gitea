@@ -68,13 +68,29 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 }
 
 // WalkReferences walks all the references from the repository
-func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) error) (int, error) {
+func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
 	return walkShowRef(ctx, repoPath, "", 0, 0, walkfn)
+}
+
+// WalkReferences walks all the references from the repository
+// refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
+func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+	var arg string
+	switch refType {
+	case ObjectTag:
+		arg = "--tags"
+	case ObjectBranch:
+		arg = "--heads"
+	default:
+		arg = ""
+	}
+
+	return walkShowRef(repo.Ctx, repo.Path, arg, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
 func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
-	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(branchName string) error {
+	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, prefix)
 		branchNames = append(branchNames, branchName)
 
@@ -83,7 +99,7 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 	return
 }
 
-func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(string) error) (countAll int, err error) {
+func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -125,11 +141,7 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 	for limit == 0 || i < skip+limit {
 		// The output of show-ref is simply a list:
 		// <sha> SP <ref> LF
-		_, err := bufReader.ReadSlice(' ')
-		for err == bufio.ErrBufferFull {
-			// This shouldn't happen but we'll tolerate it for the sake of peace
-			_, err = bufReader.ReadSlice(' ')
-		}
+		sha, err := bufReader.ReadString(' ')
 		if err == io.EOF {
 			return i, nil
 		}
@@ -149,7 +161,12 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 		if len(branchName) > 0 {
 			branchName = branchName[:len(branchName)-1]
 		}
-		err = walkfn(branchName)
+
+		if len(sha) > 0 {
+			sha = sha[:len(sha)-1]
+		}
+
+		err = walkfn(sha, branchName)
 		if err != nil {
 			return i, err
 		}

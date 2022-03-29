@@ -200,6 +200,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
+
 	gitArgs := []string{"remote", "update"}
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
@@ -262,7 +263,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	output := stderrBuilder.String()
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
+	}
+
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -343,6 +348,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
 				return nil, false
+			}
+
+			if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 			}
 		}
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)

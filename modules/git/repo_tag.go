@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -32,69 +31,6 @@ func (repo *Repository) CreateTag(name, revision string) error {
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
 	_, err := NewCommandContext(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
 	return err
-}
-
-func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
-	t, ok := repo.tagCache.Get(tagID.String())
-	if ok {
-		log.Debug("Hit cache: %s", tagID)
-		tagClone := *t.(*Tag)
-		tagClone.Name = name // This is necessary because lightweight tags may have same id
-		return &tagClone, nil
-	}
-
-	tp, err := repo.GetTagType(tagID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the commit ID and tag ID (may be different for annotated tag) for the returned tag object
-	commitIDStr, err := repo.GetTagCommitID(name)
-	if err != nil {
-		// every tag should have a commit ID so return all errors
-		return nil, err
-	}
-	commitID, err := NewIDFromString(commitIDStr)
-	if err != nil {
-		return nil, err
-	}
-
-	// If type is "commit, the tag is a lightweight tag
-	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(commitIDStr)
-		if err != nil {
-			return nil, err
-		}
-		tag := &Tag{
-			Name:    name,
-			ID:      tagID,
-			Object:  commitID,
-			Type:    tp,
-			Tagger:  commit.Committer,
-			Message: commit.Message(),
-		}
-
-		repo.tagCache.Set(tagID.String(), tag)
-		return tag, nil
-	}
-
-	// The tag is an annotated tag with a message.
-	data, err := NewCommandContext(repo.Ctx, "cat-file", "-p", tagID.String()).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	tag, err := parseTagData(data)
-	if err != nil {
-		return nil, err
-	}
-
-	tag.Name = name
-	tag.ID = tagID
-	tag.Type = tp
-
-	repo.tagCache.Set(tagID.String(), tag)
-	return tag, nil
 }
 
 // GetTagNameBySHA returns the name of a tag from its tag object SHA or commit SHA
@@ -159,6 +95,20 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 	return tag, nil
 }
 
+// GetTagWithID returns a Git tag by given name and ID
+func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
+	id, err := NewIDFromString(idStr)
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err := repo.getTag(id, name)
+	if err != nil {
+		return nil, err
+	}
+	return tag, nil
+}
+
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
@@ -190,19 +140,6 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	}
 	sortTagsByTime(tags)
 	return tags, tagsTotal, nil
-}
-
-// GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
-func (repo *Repository) GetTagType(id SHA1) (string, error) {
-	// Get tag type
-	stdout, err := NewCommandContext(repo.Ctx, "cat-file", "-t", id.String()).RunInDir(repo.Path)
-	if err != nil {
-		return "", err
-	}
-	if len(stdout) == 0 {
-		return "", ErrNotExist{ID: id.String()}
-	}
-	return strings.TrimSpace(stdout), nil
 }
 
 // GetAnnotatedTag returns a Git tag by its SHA, must be an annotated tag
