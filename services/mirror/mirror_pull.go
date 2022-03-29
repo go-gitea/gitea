@@ -277,10 +277,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	output := stderrBuilder.String()
 
-	if git.CheckGitVersionAtLeast("2.18") == nil {
-		if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(repoPath); err != nil {
-			log.Error("SyncMirrors [repo: %-v]: Unable to write commit-graph Error %v", m.Repo, err)
-		}
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
@@ -376,10 +374,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				return nil, false
 			}
 
-			if git.CheckGitVersionAtLeast("2.18") == nil {
-				if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(wikiPath); err != nil {
-					log.Error("SyncMirrors [repo: %-v]: Unable to write commit-graph Error %v", m.Repo, err)
-				}
+			if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 			}
 		}
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)

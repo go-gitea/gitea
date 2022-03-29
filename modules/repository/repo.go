@@ -80,10 +80,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
-	if git.CheckGitVersionAtLeast("2.18") == nil {
-		if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(repoPath); err != nil {
-			return repo, fmt.Errorf("unable to write commit-graph: %w", err)
-		}
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		return repo, err
 	}
 
 	if opts.Wiki {
@@ -107,10 +105,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 				}
 			}
 		}
-		if git.CheckGitVersionAtLeast("2.18") == nil {
-			if _, err := git.NewCommand(ctx, "commit-graph", "write").RunInDir(wikiPath); err != nil {
-				return repo, fmt.Errorf("unable to write commit-graph: %w", err)
-			}
+		if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			return repo, err
 		}
 	}
 
