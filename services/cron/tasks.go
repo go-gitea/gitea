@@ -29,11 +29,14 @@ var (
 
 // Task represents a Cron task
 type Task struct {
-	lock      sync.Mutex
-	Name      string
-	config    Config
-	fun       func(context.Context, *user_model.User, Config) error
-	ExecTimes int64
+	lock        sync.Mutex
+	Name        string
+	config      Config
+	fun         func(context.Context, *user_model.User, Config) error
+	Status      string
+	LastMessage string
+	LastDoer    string
+	ExecTimes   int64
 }
 
 // DoRunAtStart returns if this task should run at the start
@@ -86,24 +89,45 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
 		pm := process.GetManager()
-		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(t.Name, "process", doer))
+		doerName := ""
+		if doer != nil && doer.ID != -1 {
+			doerName = doer.Name
+		}
+
+		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage("en-US", t.Name, "process", doerName))
 		defer finished()
 
 		if err := t.fun(ctx, doer, config); err != nil {
+			var message string
+			var status string
 			if db.IsErrCancelled(err) {
-				message := err.(db.ErrCancelled).Message
-				if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
-					log.Error("CreateNotice: %v", err)
-				}
-				return
+				status = "cancelled"
+				message = err.(db.ErrCancelled).Message
+			} else {
+				status = "error"
+				message = err.Error()
 			}
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "error", doer, err)); err != nil {
+
+			t.lock.Lock()
+			t.LastMessage = message
+			t.Status = status
+			t.LastDoer = doerName
+			t.lock.Unlock()
+
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
 		}
+
+		t.lock.Lock()
+		t.Status = "finished"
+		t.LastMessage = ""
+		t.LastDoer = doerName
+		t.lock.Unlock()
+
 		if config.DoNoticeOnSuccess() {
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "finished", doer)); err != nil {
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "finished", doerName)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}
