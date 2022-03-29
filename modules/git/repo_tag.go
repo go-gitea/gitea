@@ -95,7 +95,7 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 	return tag, nil
 }
 
-// GetTagWithID returns a Git tag by given name.
+// GetTagWithID returns a Git tag by given name and ID
 func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 	id, err := NewIDFromString(idStr)
 	if err != nil {
