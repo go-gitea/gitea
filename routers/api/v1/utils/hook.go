@@ -246,17 +246,28 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.ChooseEvents = true
 	w.Create = util.IsStringInSlice(string(webhook.HookEventCreate), form.Events, true)
 	w.Push = util.IsStringInSlice(string(webhook.HookEventPush), form.Events, true)
-	w.PullRequest = util.IsStringInSlice(string(webhook.HookEventPullRequest), form.Events, true)
 	w.Create = util.IsStringInSlice(string(webhook.HookEventCreate), form.Events, true)
 	w.Delete = util.IsStringInSlice(string(webhook.HookEventDelete), form.Events, true)
 	w.Fork = util.IsStringInSlice(string(webhook.HookEventFork), form.Events, true)
-	w.Issues = util.IsStringInSlice(string(webhook.HookEventIssues), form.Events, true)
-	w.IssueComment = util.IsStringInSlice(string(webhook.HookEventIssueComment), form.Events, true)
-	w.Push = util.IsStringInSlice(string(webhook.HookEventPush), form.Events, true)
-	w.PullRequest = util.IsStringInSlice(string(webhook.HookEventPullRequest), form.Events, true)
 	w.Repository = util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
+
+	// Issues
+	w.Issues = issuesHook(form.Events, "issues_only")
+	w.IssueAssign = issuesHook(form.Events, string(webhook.HookEventIssueAssign))
+	w.IssueLabel = issuesHook(form.Events, string(webhook.HookEventIssueLabel))
+	w.IssueMilestone = issuesHook(form.Events, string(webhook.HookEventIssueMilestone))
+	w.IssueComment = issuesHook(form.Events, string(webhook.HookEventIssueComment))
+
+	// Pull requests
+	w.PullRequest = pullHook(form.Events, "pull_request_only")
+	w.PullRequestAssign = pullHook(form.Events, string(webhook.HookEventPullRequestAssign))
+	w.PullRequestLabel = pullHook(form.Events, string(webhook.HookEventPullRequestLabel))
+	w.PullRequestMilestone = pullHook(form.Events, string(webhook.HookEventPullRequestMilestone))
+	w.PullRequestComment = pullHook(form.Events, string(webhook.HookEventPullRequestComment))
+	w.PullRequestReview = pullHook(form.Events, "pull_request_review")
+	w.PullRequestSync = pullHook(form.Events, string(webhook.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
