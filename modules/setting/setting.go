@@ -197,6 +197,13 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 
+	Camo = struct {
+		Enabled   bool
+		ServerURL string `ini:"SERVER_URL"`
+		HMACKey   string `ini:"HMAC_KEY"`
+		Allways   bool
+	}{}
+
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
@@ -1019,6 +1026,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
+	} else if err = Cfg.Section("camo").MapTo(&Camo); err != nil {
+		log.Fatal("Failed to map Camo settings: %v", err)
+	}
+
+	if Camo.Enabled {
+		if Camo.ServerURL == "" || Camo.HMACKey == "" {
+			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
+		}
 	}
 
 	u := *appURL

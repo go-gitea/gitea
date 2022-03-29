@@ -21,7 +21,7 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
-	starredRepos, err := models.GetStarredRepos(user.ID, private, listOptions)
+	starredRepos, err := repo_model.GetStarredRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}

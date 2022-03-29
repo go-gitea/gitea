@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -231,7 +232,7 @@ func TestAddTeamPost(t *testing.T) {
 		Type:      user_model.UserTypeOrganization,
 	}
 
-	team := &models.Team{
+	team := &organization.Team{
 		ID:    11,
 		OrgID: 26,
 	}
@@ -255,7 +256,7 @@ func TestAddTeamPost(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.True(t, team.HasRepository(re.ID))
+	assert.True(t, models.HasRepository(team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.Empty(t, ctx.Flash.ErrorMsg)
 }
@@ -271,7 +272,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 		Type:      user_model.UserTypeOrganization,
 	}
 
-	team := &models.Team{
+	team := &organization.Team{
 		ID:    11,
 		OrgID: 26,
 	}
@@ -295,7 +296,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.False(t, team.HasRepository(re.ID))
+	assert.False(t, models.HasRepository(team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
@@ -311,7 +312,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 		Type:      user_model.UserTypeOrganization,
 	}
 
-	team := &models.Team{
+	team := &organization.Team{
 		ID:    11,
 		OrgID: 26,
 	}
@@ -336,7 +337,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	AddTeamPost(ctx)
 
 	AddTeamPost(ctx)
-	assert.True(t, team.HasRepository(re.ID))
+	assert.True(t, models.HasRepository(team, re.ID))
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
@@ -385,7 +386,7 @@ func TestDeleteTeam(t *testing.T) {
 		Type:      user_model.UserTypeOrganization,
 	}
 
-	team := &models.Team{
+	team := &organization.Team{
 		ID:    2,
 		OrgID: 3,
 	}
@@ -409,5 +410,5 @@ func TestDeleteTeam(t *testing.T) {
 
 	DeleteTeam(ctx)
 
-	assert.False(t, team.HasRepository(re.ID))
+	assert.False(t, models.HasRepository(team, re.ID))
 }
