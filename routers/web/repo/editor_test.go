@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -68,7 +67,7 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
-	gitRepo, _ := git.OpenRepository(context.Background(), repo.RepoPath())
+	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedTreePath := ""

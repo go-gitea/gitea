@@ -5,7 +5,6 @@
 package wiki
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -284,7 +283,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	err = git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(context.Background(), tmpDir)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
