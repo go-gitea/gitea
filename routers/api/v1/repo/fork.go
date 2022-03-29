@@ -136,7 +136,7 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.Doer, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,
