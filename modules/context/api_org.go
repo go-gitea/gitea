@@ -10,6 +10,6 @@ import (
 
 // APIOrganization contains organization and team
 type APIOrganization struct {
-	Organization *models.User
+	Organization *models.Organization
 	Team         *models.Team
 }

@@ -10,10 +10,11 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -61,21 +62,19 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
+	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
 	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
-	defer gitRepo.Close()
-	commit, err := gitRepo.GetCommit(identifier)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(identifier)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "gitRepo.GetCommit", err)
 		return
 	}
 
-	json, err := toCommit(ctx, ctx.Repo.Repository, commit, nil)
+	json, err := convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, nil)
 	if err != nil {
-		ctx.ServerError("toCommit", err)
+		ctx.Error(http.StatusInternalServerError, "toCommit", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, json)
@@ -103,13 +102,17 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: SHA or branch to start listing commits from (usually 'master')
 	//   type: string
+	// - name: path
+	//   in: query
+	//   description: filepath of a file/dir
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results
+	//   description: page size of results (ignored if used with 'path')
 	//   type: integer
 	// responses:
 	//   "200":
@@ -127,186 +130,157 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
-	defer gitRepo.Close()
-
 	listOptions := utils.GetListOptions(ctx)
 	if listOptions.Page <= 0 {
 		listOptions.Page = 1
 	}
 
-	if listOptions.PageSize > git.CommitsRangeSize {
-		listOptions.PageSize = git.CommitsRangeSize
+	if listOptions.PageSize > setting.Git.CommitsRangeSize {
+		listOptions.PageSize = setting.Git.CommitsRangeSize
 	}
 
-	sha := ctx.Query("sha")
+	sha := ctx.FormString("sha")
+	path := ctx.FormString("path")
 
-	var baseCommit *git.Commit
-	if len(sha) == 0 {
-		// no sha supplied - use default branch
-		head, err := gitRepo.GetHEADBranch()
+	var (
+		commitsCountTotal int64
+		commits           []*git.Commit
+		err               error
+	)
+
+	if len(path) == 0 {
+		var baseCommit *git.Commit
+		if len(sha) == 0 {
+			// no sha supplied - use default branch
+			head, err := ctx.Repo.GitRepo.GetHEADBranch()
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetHEADBranch", err)
+				return
+			}
+
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(head.Name)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
+			}
+		} else {
+			// get commit specified by sha
+			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetCommit", err)
+				return
+			}
+		}
+
+		// Total commit count
+		commitsCountTotal, err = baseCommit.CommitsCount()
 		if err != nil {
-			ctx.ServerError("GetHEADBranch", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommitsCount", err)
 			return
 		}
 
-		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
+		// Query commits
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
 		if err != nil {
-			ctx.ServerError("GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "CommitsByRange", err)
 			return
 		}
 	} else {
-		// get commit specified by sha
-		baseCommit, err = gitRepo.GetCommit(sha)
+		if len(sha) == 0 {
+			sha = ctx.Repo.Repository.DefaultBranch
+		}
+
+		commitsCountTotal, err = ctx.Repo.GitRepo.FileCommitsCount(sha, path)
 		if err != nil {
-			ctx.ServerError("GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "FileCommitsCount", err)
+			return
+		} else if commitsCountTotal == 0 {
+			ctx.NotFound("FileCommitsCount", nil)
 			return
 		}
-	}
 
-	// Total commit count
-	commitsCountTotal, err := baseCommit.CommitsCount()
-	if err != nil {
-		ctx.ServerError("GetCommitsCount", err)
-		return
+		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(sha, path, listOptions.Page)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
+			return
+		}
 	}
 
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
 
-	// Query commits
-	commits, err := baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
-	if err != nil {
-		ctx.ServerError("CommitsByRange", err)
-		return
-	}
+	userCache := make(map[string]*user_model.User)
 
-	userCache := make(map[string]*models.User)
-
-	apiCommits := make([]*api.Commit, commits.Len())
-
-	i := 0
-	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		commit := commitPointer.Value.(*git.Commit)
-
+	apiCommits := make([]*api.Commit, len(commits))
+	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = toCommit(ctx, ctx.Repo.Repository, commit, userCache)
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, ctx.Repo.GitRepo, commit, userCache)
 		if err != nil {
-			ctx.ServerError("toCommit", err)
+			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
 		}
-
-		i++
 	}
 
-	// kept for backwards compatibility
-	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
-	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
-	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
-
 	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
+	ctx.SetTotalCountHeader(commitsCountTotal)
+
+	// kept for backwards compatibility
+	ctx.RespHeader().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.RespHeader().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.RespHeader().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
+	ctx.RespHeader().Set("X-PageCount", strconv.Itoa(pageCount))
+	ctx.RespHeader().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
-func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
-
-	var apiAuthor, apiCommitter *api.User
-
-	// Retrieve author and committer information
-
-	var cacheAuthor *models.User
-	var ok bool
-	if userCache == nil {
-		cacheAuthor = ((*models.User)(nil))
-		ok = false
-	} else {
-		cacheAuthor, ok = userCache[commit.Author.Email]
-	}
-
-	if ok {
-		apiAuthor = cacheAuthor.APIFormat()
-	} else {
-		author, err := models.GetUserByEmail(commit.Author.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
-			return nil, err
-		} else if err == nil {
-			apiAuthor = author.APIFormat()
-			if userCache != nil {
-				userCache[commit.Author.Email] = author
-			}
+// DownloadCommitDiffOrPatch render a commit's raw diff or patch
+func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.{diffType} repository repoDownloadCommitDiffOrPatch
+	// ---
+	// summary: Get a commit's diff or patch
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// - name: diffType
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if err := git.GetRawDiff(
+		ctx,
+		repoPath,
+		ctx.Params(":sha"),
+		git.RawDiffType(ctx.Params(":diffType")),
+		ctx.Resp,
+	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(ctx.Params(":sha"))
+			return
 		}
+		ctx.Error(http.StatusInternalServerError, "DownloadCommitDiffOrPatch", err)
+		return
 	}
-
-	var cacheCommitter *models.User
-	if userCache == nil {
-		cacheCommitter = ((*models.User)(nil))
-		ok = false
-	} else {
-		cacheCommitter, ok = userCache[commit.Committer.Email]
-	}
-
-	if ok {
-		apiCommitter = cacheCommitter.APIFormat()
-	} else {
-		committer, err := models.GetUserByEmail(commit.Committer.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
-			return nil, err
-		} else if err == nil {
-			apiCommitter = committer.APIFormat()
-			if userCache != nil {
-				userCache[commit.Committer.Email] = committer
-			}
-		}
-	}
-
-	// Retrieve parent(s) of the commit
-	apiParents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i < commit.ParentCount(); i++ {
-		sha, _ := commit.ParentID(i)
-		apiParents[i] = &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + sha.String(),
-			SHA: sha.String(),
-		}
-	}
-
-	return &api.Commit{
-		CommitMeta: &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
-			SHA: commit.ID.String(),
-		},
-		HTMLURL: repo.HTMLURL() + "/commit/" + commit.ID.String(),
-		RepoCommit: &api.RepoCommit{
-			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
-			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
-				},
-				Date: commit.Author.When.Format(time.RFC3339),
-			},
-			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
-				},
-				Date: commit.Committer.When.Format(time.RFC3339),
-			},
-			Message: commit.Message(),
-			Tree: &api.CommitMeta{
-				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
-				SHA: commit.ID.String(),
-			},
-		},
-		Author:    apiAuthor,
-		Committer: apiCommitter,
-		Parents:   apiParents,
-	}, nil
 }

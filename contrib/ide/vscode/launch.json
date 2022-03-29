@@ -7,10 +7,10 @@
       "request": "launch",
       "mode": "debug",
       "buildFlags": "",
-      "port": 2345,
-      "host": "127.0.0.1",
       "program": "${workspaceRoot}/main.go",
-      "env": {},
+      "env": {
+        "GITEA_WORK_DIR": "${workspaceRoot}",
+      },
       "args": ["web"],
       "showLog": true
     },
@@ -19,11 +19,11 @@
       "type": "go",
       "request": "launch",
       "mode": "debug",
-      "buildFlags": "-tags=\"sqlite sqlite_unlock_notify\"",
-      "port": 2345,
-      "host": "127.0.0.1",
+      "buildFlags": "-tags='sqlite sqlite_unlock_notify'",
       "program": "${workspaceRoot}/main.go",
-      "env": {},
+      "env": {
+        "GITEA_WORK_DIR": "${workspaceRoot}",
+      },
       "args": ["web"],
       "showLog": true
     }

@@ -6,10 +6,11 @@ package log
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // Level is the level of the logger
@@ -71,6 +72,16 @@ func (l Level) String() string {
 		return s
 	}
 	return "info"
+}
+
+// Color returns the color string for this Level
+func (l Level) Color() *[]byte {
+	color, ok := levelToColor[l]
+	if ok {
+		return &(color)
+	}
+	none := levelToColor[NONE]
+	return &none
 }
 
 // MarshalJSON takes a Level and turns it into text

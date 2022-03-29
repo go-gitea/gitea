@@ -33,3 +33,11 @@
   num_issues: 1
   num_closed_issues: 0
   
+-
+  id: 5
+  repo_id: 10
+  org_id: 0
+  name: pull-test-label
+  color: '#000000'
+  num_issues: 0
+  num_closed_issues: 0

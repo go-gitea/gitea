@@ -1,24 +1,24 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	directories = make(directorySet)
-)
+var directories = make(directorySet)
 
 // Dir returns all files from bindata or custom directory.
 func Dir(name string) ([]string, error) {
@@ -26,15 +26,15 @@ func Dir(name string) ([]string, error) {
 		return directories.Get(name), nil
 	}
 
-	var (
-		result []string
-	)
+	var result []string
 
 	customDir := path.Join(setting.CustomPath, "options", name)
-
-	if com.IsDir(customDir) {
-		files, err := com.StatDir(customDir, true)
-
+	isDir, err := util.IsDir(customDir)
+	if err != nil {
+		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %v", err)
+	}
+	if isDir {
+		files, err := util.StatDir(customDir, true)
 		if err != nil {
 			return []string{}, fmt.Errorf("Failed to read custom directory. %v", err)
 		}
@@ -43,7 +43,6 @@ func Dir(name string) ([]string, error) {
 	}
 
 	files, err := AssetDir(name)
-
 	if err != nil {
 		return []string{}, fmt.Errorf("Failed to read embedded directory. %v", err)
 	}
@@ -64,7 +63,7 @@ func AssetDir(dirName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var results = make([]string, 0, len(files))
+	results := make([]string, 0, len(files))
 	for _, file := range files {
 		results = append(results, file.Name())
 	}
@@ -100,8 +99,12 @@ func Labels(name string) ([]byte, error) {
 func fileFromDir(name string) ([]byte, error) {
 	customPath := path.Join(setting.CustomPath, "options", name)
 
-	if com.IsFile(customPath) {
-		return ioutil.ReadFile(customPath)
+	isFile, err := util.IsFile(customPath)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
+	}
+	if isFile {
+		return os.ReadFile(customPath)
 	}
 
 	f, err := Assets.Open(name)
@@ -110,7 +113,7 @@ func fileFromDir(name string) ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func Asset(name string) ([]byte, error) {
@@ -119,12 +122,12 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
+	results := make([]string, 0, len(realFS))
 	for k := range realFS {
 		results = append(results, k[1:])
 	}

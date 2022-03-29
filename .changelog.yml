@@ -15,23 +15,27 @@ groups:
     labels:
       - kind/breaking
   -
-    name: FEATURES
-    labels:
-      - kind/feature
-  -
     name: SECURITY
     labels:
       - kind/security
   -
-    name: BUGFIXES
+    name: FEATURES
     labels:
-      - kind/bug
+      - kind/feature
+  -
+    name: API
+    labels:
+      - kind/api
   -
     name: ENHANCEMENTS
     labels:
       - kind/enhancement
       - kind/refactor
       - kind/ui
+  -
+    name: BUGFIXES
+    labels:
+      - kind/bug
   -
     name: TESTING
     labels:

@@ -4,20 +4,20 @@
 
 package structs
 
-// CommitStatusState holds the state of a Status
+// CommitStatusState holds the state of a CommitStatus
 // It can be "pending", "success", "error", "failure", and "warning"
 type CommitStatusState string
 
 const (
-	// CommitStatusPending is for when the Status is Pending
+	// CommitStatusPending is for when the CommitStatus is Pending
 	CommitStatusPending CommitStatusState = "pending"
-	// CommitStatusSuccess is for when the Status is Success
+	// CommitStatusSuccess is for when the CommitStatus is Success
 	CommitStatusSuccess CommitStatusState = "success"
-	// CommitStatusError is for when the Status is Error
+	// CommitStatusError is for when the CommitStatus is Error
 	CommitStatusError CommitStatusState = "error"
-	// CommitStatusFailure is for when the Status is Failure
+	// CommitStatusFailure is for when the CommitStatus is Failure
 	CommitStatusFailure CommitStatusState = "failure"
-	// CommitStatusWarning is for when the Status is Warning
+	// CommitStatusWarning is for when the CommitStatus is Warning
 	CommitStatusWarning CommitStatusState = "warning"
 )
 

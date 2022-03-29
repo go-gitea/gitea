@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -60,11 +61,11 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // AddIssueLabels add labels for an issue
-func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
+func AddIssueLabels(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/labels issue issueAddLabel
 	// ---
 	// summary: Add a label to an issue
@@ -99,12 +100,13 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, labels, err := prepareForReplaceOrAdd(ctx, form)
+	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
 	}
 
-	if err = issue_service.AddLabels(issue, ctx.User, labels); err != nil {
+	if err = issue_service.AddLabels(issue, ctx.Doer, labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddLabels", err)
 		return
 	}
@@ -115,7 +117,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // DeleteIssueLabel delete a label for an issue
@@ -181,7 +183,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
+	if err := issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueLabel", err)
 		return
 	}
@@ -190,7 +192,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 }
 
 // ReplaceIssueLabels replace labels for an issue
-func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
+func ReplaceIssueLabels(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/labels issue issueReplaceLabels
 	// ---
 	// summary: Replace an issue's labels
@@ -224,13 +226,13 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//     "$ref": "#/responses/LabelList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	issue, labels, err := prepareForReplaceOrAdd(ctx, form)
+	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
 	}
 
-	if err := issue_service.ReplaceLabels(issue, ctx.User, labels); err != nil {
+	if err := issue_service.ReplaceLabels(issue, ctx.Doer, labels); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ReplaceLabels", err)
 		return
 	}
@@ -241,7 +243,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
 // ClearIssueLabels delete all the labels for an issue
@@ -289,7 +291,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
+	if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ClearLabels", err)
 		return
 	}

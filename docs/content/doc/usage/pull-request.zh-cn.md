@@ -3,7 +3,7 @@ date: "2018-06-01T19:00:00+02:00"
 title: "使用：Pull Request"
 slug: "pull-request"
 weight: 13
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

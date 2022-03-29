@@ -10,8 +10,13 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -46,25 +51,27 @@ func ListForks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	forks, err := ctx.Repo.Repository.GetForks(utils.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.User, fork)
+		access, err := models.AccessLevel(ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		apiForks[i] = fork.APIFormat(access)
+		apiForks[i] = convert.ToRepo(fork, access)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
 	ctx.JSON(http.StatusOK, apiForks)
 }
 
 // CreateFork create a fork of a repo
-func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
+func CreateFork(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/forks repository createFork
 	// ---
 	// summary: Fork a repository
@@ -90,13 +97,16 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateForkOption)
 	repo := ctx.Repo.Repository
-	var forker *models.User // user/org that will own the fork
+	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
-		forker = ctx.User
+		forker = ctx.Doer
 	} else {
 		org, err := models.GetOrgByName(*form.Organization)
 		if err != nil {
@@ -107,23 +117,38 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 			}
 			return
 		}
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
-			ctx.ServerError("IsOrgMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember", err)
 			return
 		} else if !isMember {
 			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 			return
 		}
-		forker = org
+		forker = org.AsUser()
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
+	var name string
+	if form.Name == nil {
+		name = repo.Name
+	} else {
+		name = *form.Name
+	}
+
+	fork, err := repo_service.ForkRepository(ctx.Doer, forker, repo_service.ForkRepoOptions{
+		BaseRepo:    repo,
+		Name:        name,
+		Description: repo.Description,
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		if repo_model.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusConflict, "ForkRepository", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
+		}
 		return
 	}
 
-	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, fork.APIFormat(models.AccessModeOwner))
+	// TODO change back to 201
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, perm.AccessModeOwner))
 }

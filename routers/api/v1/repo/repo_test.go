@@ -8,21 +8,23 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoEdit(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := true
@@ -53,30 +55,34 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
+	apiCtx := &context.APIContext{Context: ctx, Org: nil}
+	web.SetForm(apiCtx, &opts)
+	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	models.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, models.Cond("name = ? AND is_archived = 1", *opts.Name))
+	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
 }
 
 func TestRepoEditNameChange(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
 		Name: &name,
 	}
 
-	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
+	apiCtx := &context.APIContext{Context: ctx, Org: nil}
+	web.SetForm(apiCtx, &opts)
+	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, models.Cond("name = ?", opts.Name))
+	}, unittest.Cond("name = ?", opts.Name))
 }

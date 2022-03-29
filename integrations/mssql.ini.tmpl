@@ -10,19 +10,28 @@ PASSWD   = {{TEST_MSSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-mssql/issues.bleve
+ISSUE_INDEXER_PATH = integrations/gitea-integration-mssql/indexers/issues.bleve
+ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mssql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mssql/repos.bleve
+REPO_INDEXER_PATH = integrations/gitea-integration-mssql/indexers/repos.bleve
+
+[queue]
+TYPE = immediate
 
 [queue.code_indexer]
+TYPE = immediate
+
+[queue.push_update]
 TYPE = immediate
 
 [repository]
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mssql/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-mssql
-LOCAL_WIKI_PATH = tmp/local-wiki-mssql
+LOCAL_COPY_PATH = integrations/gitea-integration-mssql/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = integrations/gitea-integration-mssql/tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none
@@ -36,14 +45,13 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-mssql/data/lfs-mssql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mssql/data
 BUILTIN_SSH_SERVER_USER = git
 
 [attachment]
-PATH = integrations/gitea-integration-mssql/data
+PATH = integrations/gitea-integration-mssql/data/attachments
 
 [mailer]
 ENABLED = true
@@ -52,6 +60,7 @@ FROM = mssql-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -73,11 +82,10 @@ PROVIDER_CONFIG = integrations/gitea-integration-mssql/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = mssql-log
-REDIRECT_MACARON_LOG = true
+ROOT_PATH            = {{REPO_TEST_DIR}}mssql-log
 ROUTER               = ,
-MACARON              = ,
 XORM                 = file
+ENABLE_SSH_LOG       = true
 
 [log.test]
 LEVEL                = Info
@@ -87,6 +95,10 @@ COLORIZE             = true
 LEVEL                = Debug
 
 [security]
+DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+
+[lfs]
+PATH = integrations/gitea-integration-mssql/data/lfs

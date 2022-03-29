@@ -75,7 +75,7 @@ func createReviewsForCodeComments(x *xorm.Engine) error {
 		RefRepoID    int64 `xorm:"index"` // Repo where the referencing
 		RefIssueID   int64 `xorm:"index"`
 		RefCommentID int64 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-		RefAction    int   `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+		RefAction    int   `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 		RefIsPull    bool
 	}
 
@@ -83,7 +83,7 @@ func createReviewsForCodeComments(x *xorm.Engine) error {
 		return err
 	}
 
-	var updateComment = func(comments []*Comment) error {
+	updateComment := func(comments []*Comment) error {
 		sess := x.NewSession()
 		defer sess.Close()
 		if err := sess.Begin(); err != nil {
@@ -131,10 +131,10 @@ func createReviewsForCodeComments(x *xorm.Engine) error {
 		return sess.Commit()
 	}
 
-	var start = 0
-	var batchSize = 100
+	start := 0
+	batchSize := 100
 	for {
-		var comments = make([]*Comment, 0, batchSize)
+		comments := make([]*Comment, 0, batchSize)
 		if err := x.Where("review_id = 0 and type = 21").Limit(batchSize, start).Find(&comments); err != nil {
 			return err
 		}

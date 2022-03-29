@@ -9,15 +9,17 @@ import (
 	"bytes"
 	"io"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // CommitFromReader will generate a Commit from a provided reader
-// We will need this to interpret commits from cat-file
-func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) (*Commit, error) {
+// We need this to interpret commits from cat-file or cat-file --batch
+//
+// If used as part of a cat-file --batch stream you need to limit the reader to the correct size
+func CommitFromReader(gitRepo *Repository, sha SHA1, reader io.Reader) (*Commit, error) {
 	commit := &Commit{
-		ID: sha,
+		ID:        sha,
+		Author:    &Signature{},
+		Committer: &Signature{},
 	}
 
 	payloadSB := new(strings.Builder)
@@ -26,26 +28,24 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 	message := false
 	pgpsig := false
 
-	scanner := bufio.NewScanner(reader)
-	// Split by '\n' but include the '\n'
-	scanner.Split(func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if atEOF && len(data) == 0 {
-			return 0, nil, nil
-		}
-		if i := bytes.IndexByte(data, '\n'); i >= 0 {
-			// We have a full newline-terminated line.
-			return i + 1, data[0 : i+1], nil
-		}
-		// If we're at EOF, we have a final, non-terminated line. Return it.
-		if atEOF {
-			return len(data), data, nil
-		}
-		// Request more data.
-		return 0, nil, nil
-	})
+	bufReader, ok := reader.(*bufio.Reader)
+	if !ok {
+		bufReader = bufio.NewReader(reader)
+	}
 
-	for scanner.Scan() {
-		line := scanner.Bytes()
+readLoop:
+	for {
+		line, err := bufReader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				if message {
+					_, _ = messageSB.Write(line)
+				}
+				_, _ = payloadSB.Write(line)
+				break readLoop
+			}
+			return nil, err
+		}
 		if pgpsig {
 			if len(line) > 0 && line[0] == ' ' {
 				_, _ = signatureSB.Write(line[1:])
@@ -72,10 +72,10 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 
 			switch string(split[0]) {
 			case "tree":
-				commit.Tree = *NewTree(gitRepo, plumbing.NewHash(string(data)))
+				commit.Tree = *NewTree(gitRepo, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "parent":
-				commit.Parents = append(commit.Parents, plumbing.NewHash(string(data)))
+				commit.Parents = append(commit.Parents, MustIDFromString(string(data)))
 				_, _ = payloadSB.Write(line)
 			case "author":
 				commit.Author = &Signature{}
@@ -92,10 +92,10 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 			}
 		} else {
 			_, _ = messageSB.Write(line)
+			_, _ = payloadSB.Write(line)
 		}
 	}
 	commit.CommitMessage = messageSB.String()
-	_, _ = payloadSB.WriteString(commit.CommitMessage)
 	commit.Signature = &CommitGPGSignature{
 		Signature: signatureSB.String(),
 		Payload:   payloadSB.String(),
@@ -104,5 +104,5 @@ func CommitFromReader(gitRepo *Repository, sha plumbing.Hash, reader io.Reader) 
 		commit.Signature = nil
 	}
 
-	return commit, scanner.Err()
+	return commit, nil
 }

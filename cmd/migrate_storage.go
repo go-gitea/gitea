@@ -7,9 +7,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -30,9 +34,9 @@ var CmdMigrateStorage = cli.Command{
 			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
 		},
 		cli.StringFlag{
-			Name:  "store, s",
-			Value: "local",
-			Usage: "New storage type, local or minio",
+			Name:  "storage, s",
+			Value: "",
+			Usage: "New storage type: local (default) or minio",
 		},
 		cli.StringFlag{
 			Name:  "path, p",
@@ -77,7 +81,7 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return models.IterateAttachment(func(attach *models.Attachment) error {
+	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
@@ -90,21 +94,40 @@ func migrateLFS(dstStorage storage.ObjectStorage) error {
 	})
 }
 
+func migrateAvatars(dstStorage storage.ObjectStorage) error {
+	return user_model.IterateUser(func(user *user_model.User) error {
+		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
+		return err
+	})
+}
+
+func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
+	return repo_model.IterateRepository(func(repo *repo_model.Repository) error {
+		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
+		return err
+	})
+}
+
 func runMigrateStorage(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
-	setting.InitDBConfig()
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 
-	if err := models.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
+
+	goCtx := context.Background()
 
 	if err := storage.Init(); err != nil {
 		return err
@@ -112,34 +135,40 @@ func runMigrateStorage(ctx *cli.Context) error {
 
 	var dstStorage storage.ObjectStorage
 	var err error
-	switch ctx.String("store") {
-	case "local":
+	switch strings.ToLower(ctx.String("storage")) {
+	case "":
+		fallthrough
+	case string(storage.LocalStorageType):
 		p := ctx.String("path")
 		if p == "" {
-			log.Fatal("Path must be given when store is loal")
+			log.Fatal("Path must be given when storage is loal")
 			return nil
 		}
-		dstStorage, err = storage.NewLocalStorage(p)
-	case "minio":
+		dstStorage, err = storage.NewLocalStorage(
+			goCtx,
+			storage.LocalStorageConfig{
+				Path: p,
+			})
+	case string(storage.MinioStorageType):
 		dstStorage, err = storage.NewMinioStorage(
-			context.Background(),
-			ctx.String("minio-endpoint"),
-			ctx.String("minio-access-key-id"),
-			ctx.String("minio-secret-access-key"),
-			ctx.String("minio-bucket"),
-			ctx.String("minio-location"),
-			ctx.String("minio-base-path"),
-			ctx.Bool("minio-use-ssl"),
-		)
+			goCtx,
+			storage.MinioStorageConfig{
+				Endpoint:        ctx.String("minio-endpoint"),
+				AccessKeyID:     ctx.String("minio-access-key-id"),
+				SecretAccessKey: ctx.String("minio-secret-access-key"),
+				Bucket:          ctx.String("minio-bucket"),
+				Location:        ctx.String("minio-location"),
+				BasePath:        ctx.String("minio-base-path"),
+				UseSSL:          ctx.Bool("minio-use-ssl"),
+			})
 	default:
-		return fmt.Errorf("Unsupported attachments store type: %s", ctx.String("store"))
+		return fmt.Errorf("Unsupported storage type: %s", ctx.String("storage"))
 	}
-
 	if err != nil {
 		return err
 	}
 
-	tp := ctx.String("type")
+	tp := strings.ToLower(ctx.String("type"))
 	switch tp {
 	case "attachments":
 		if err := migrateAttachments(dstStorage); err != nil {
@@ -149,11 +178,19 @@ func runMigrateStorage(ctx *cli.Context) error {
 		if err := migrateLFS(dstStorage); err != nil {
 			return err
 		}
+	case "avatars":
+		if err := migrateAvatars(dstStorage); err != nil {
+			return err
+		}
+	case "repo-avatars":
+		if err := migrateRepoAvatars(dstStorage); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
 	}
 
-	log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
+	log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
 
 	return nil
 }

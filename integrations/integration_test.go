@@ -8,10 +8,10 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -25,21 +25,24 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
-var mac *macaron.Macaron
+var c *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -58,14 +61,35 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 	}
 }
 
+type NilResponseHashSumRecorder struct {
+	httptest.ResponseRecorder
+	Hash   hash.Hash
+	Length int
+}
+
+func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
+	_, _ = n.Hash.Write(b)
+	n.Length += len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
+	return &NilResponseHashSumRecorder{
+		Hash:             fnv.New32(),
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
+	defer log.Close()
+
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -88,8 +112,10 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	err := models.InitFixtures(
-		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+	err := unittest.InitFixtures(
+		unittest.FixturesOptions{
+			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
@@ -97,7 +123,7 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
-	writerCloser.t = nil
+	writerCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -138,10 +164,14 @@ func initIntegrationTest() {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext()
-	util.RemoveAll(models.LocalCopyPath())
-	setting.CheckLFSVersion()
+	setting.LoadForTest()
+	_ = util.RemoveAll(models.LocalCopyPath())
+	git.CheckLFSVersion()
 	setting.InitDBConfig()
+	if err := storage.Init(); err != nil {
+		fmt.Printf("Init storage failed: %v", err)
+		os.Exit(1)
+	}
 
 	switch {
 	case setting.Database.UseMySQL:
@@ -149,27 +179,27 @@ func initIntegrationTest() {
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
 			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
-			log.Fatalf("db.Query: %v", err)
+			log.Fatal("db.Query: %v", err)
 		}
 		defer dbrows.Close()
 
 		if !dbrows.Next() {
 			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-				log.Fatalf("db.Exec: CREATE DATABASE: %v", err)
+				log.Fatal("db.Exec: CREATE DATABASE: %v", err)
 			}
 		}
 		// Check if we need to setup a specific schema
@@ -183,29 +213,19 @@ func initIntegrationTest() {
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
 		if err != nil {
-			log.Fatalf("db.Query: %v", err)
+			log.Fatal("db.Query: %v", err)
 		}
 		defer schrows.Close()
 
 		if !schrows.Next() {
 			// Create and setup a DB schema
 			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
-				log.Fatalf("db.Exec: CREATE SCHEMA: %v", err)
+				log.Fatal("db.Exec: CREATE SCHEMA: %v", err)
 			}
-		}
-
-		// Make the user's default search path the created schema; this will affect new connections
-		if _, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
-		}
-
-		// Make the current connection's search the created schema
-		if _, err = db.Exec(fmt.Sprintf(`SET search_path = %s`, setting.Database.Schema)); err != nil {
-			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
 		}
 
 	case setting.Database.UseMSSQL:
@@ -213,14 +233,15 @@ func initIntegrationTest() {
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
 			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
-			log.Fatalf("sql.Open: %v", err)
+			log.Fatal("sql.Open: %v", err)
 		}
 		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+			log.Fatal("db.Exec: %v", err)
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit(graceful.GetManager().HammerContext())
+
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {
@@ -230,11 +251,30 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 		ourSkip += skip[0]
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
+
 	return deferFn
 }
 
@@ -290,6 +330,23 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	return resp
 }
 
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
 const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
@@ -323,7 +380,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 		"user_name": userName,
 		"password":  password,
 	})
-	resp = MakeRequest(t, req, http.StatusFound)
+	resp = MakeRequest(t, req, http.StatusSeeOther)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -338,7 +395,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
-//token has to be unique this counter take care of
+// token has to be unique this counter take care of
 var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
@@ -351,7 +408,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -382,6 +439,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
+
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -391,6 +449,9 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	t.Helper()
+	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
+		urlStr = "/" + urlStr
+	}
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
@@ -407,7 +468,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -420,7 +481,20 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	recorder := NewNilResponseHashSumRecorder()
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -456,6 +530,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
+
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
@@ -473,8 +548,26 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 // within a single test this is required
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
 }

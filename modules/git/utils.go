@@ -6,13 +6,16 @@ package git
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
-// ObjectCache provides thread-safe cache opeations.
+// ObjectCache provides thread-safe cache operations.
 type ObjectCache struct {
 	lock  sync.RWMutex
 	cache map[string]interface{}
@@ -68,11 +71,12 @@ func isExist(path string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-func concatenateError(err error, stderr string) error {
+// ConcatenateError concatenats an error with stderr string
+func ConcatenateError(err error, stderr string) error {
 	if len(stderr) == 0 {
 		return err
 	}
-	return fmt.Errorf("%v - %s", err, stderr)
+	return fmt.Errorf("%w - %s", err, stderr)
 }
 
 // RefEndName return the end name of a ref name
@@ -90,7 +94,7 @@ func RefEndName(refStr string) string {
 
 // RefURL returns the absolute URL for a ref in a repository
 func RefURL(repoURL, ref string) string {
-	refName := RefEndName(ref)
+	refName := util.PathEscapeSegments(RefEndName(ref))
 	switch {
 	case strings.HasPrefix(ref, BranchPrefix):
 		return repoURL + "/src/branch/" + refName
@@ -121,7 +125,7 @@ func SplitRefName(refStr string) (string, string) {
 // 0 is false, true
 // Any other integer is true, true
 // Anything else will return false, false
-func ParseBool(value string) (result bool, valid bool) {
+func ParseBool(value string) (result, valid bool) {
 	// Empty strings are true but invalid
 	if len(value) == 0 {
 		return true, false
@@ -139,4 +143,30 @@ func ParseBool(value string) (result bool, valid bool) {
 		return false, false
 	}
 	return intValue != 0, true
+}
+
+// LimitedReaderCloser is a limited reader closer
+type LimitedReaderCloser struct {
+	R io.Reader
+	C io.Closer
+	N int64
+}
+
+// Read implements io.Reader
+func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
+	if l.N <= 0 {
+		_ = l.C.Close()
+		return 0, io.EOF
+	}
+	if int64(len(p)) > l.N {
+		p = p[0:l.N]
+	}
+	n, err = l.R.Read(p)
+	l.N -= int64(n)
+	return
+}
+
+// Close implements io.Closer
+func (l *LimitedReaderCloser) Close() error {
+	return l.C.Close()
 }

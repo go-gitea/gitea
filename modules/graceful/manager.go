@@ -6,6 +6,7 @@ package graceful
 
 import (
 	"context"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -31,7 +32,7 @@ const (
 //
 // If you add an additional place you must increment this number
 // and add a function to call manager.InformCleanup if it's not going to be used
-const numberOfServersToCreate = 3
+const numberOfServersToCreate = 4
 
 // Manager represents the graceful server manager interface
 var manager *Manager
@@ -54,23 +55,21 @@ func InitManager(ctx context.Context) {
 	})
 }
 
-// CallbackWithContext is combined runnable and context to watch to see if the caller has finished
-type CallbackWithContext func(ctx context.Context, callback func())
+// WithCallback is a runnable to call when the caller has finished
+type WithCallback func(callback func())
 
 // RunnableWithShutdownFns is a runnable with functions to run at shutdown and terminate
 // After the callback to atShutdown is called and is complete, the main function must return.
 // Similarly the callback function provided to atTerminate must return once termination is complete.
 // Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
 // - users must therefore be careful to only call these as necessary.
-// If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
-type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, func()))
+type RunnableWithShutdownFns func(atShutdown, atTerminate func(func()))
 
 // RunWithShutdownFns takes a function that has both atShutdown and atTerminate callbacks
 // After the callback to atShutdown is called and is complete, the main function must return.
 // Similarly the callback function provided to atTerminate must return once termination is complete.
 // Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
 // - users must therefore be careful to only call these as necessary.
-// If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
 func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
@@ -80,43 +79,21 @@ func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 			g.doShutdown()
 		}
 	}()
-	run(func(ctx context.Context, atShutdown func()) {
-		go func() {
-			select {
-			case <-g.IsShutdown():
+	run(func(atShutdown func()) {
+		g.lock.Lock()
+		defer g.lock.Unlock()
+		g.toRunAtShutdown = append(g.toRunAtShutdown,
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Critical("PANIC during RunWithShutdownFns: %v\nStacktrace: %s", err, log.Stack(2))
+						g.doShutdown()
+					}
+				}()
 				atShutdown()
-			case <-ctx.Done():
-				return
-			}
-		}()
-	}, func(ctx context.Context, atTerminate func()) {
-		g.RunAtTerminate(ctx, atTerminate)
-	})
-}
-
-// RunnableWithShutdownChan is a runnable with functions to run at shutdown and terminate.
-// After the atShutdown channel is closed, the main function must return once shutdown is complete.
-// (Optionally IsHammer may be waited for instead however, this should be avoided if possible.)
-// The callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atTerminate function will create a go-routine that will wait till terminate - users must therefore be careful to only call this as necessary.
-type RunnableWithShutdownChan func(atShutdown <-chan struct{}, atTerminate CallbackWithContext)
-
-// RunWithShutdownChan takes a function that has channel to watch for shutdown and atTerminate callbacks
-// After the atShutdown channel is closed, the main function must return once shutdown is complete.
-// (Optionally IsHammer may be waited for instead however, this should be avoided if possible.)
-// The callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atTerminate function will create a go-routine that will wait till terminate - users must therefore be careful to only call this as necessary.
-func (g *Manager) RunWithShutdownChan(run RunnableWithShutdownChan) {
-	g.runningServerWaitGroup.Add(1)
-	defer g.runningServerWaitGroup.Done()
-	defer func() {
-		if err := recover(); err != nil {
-			log.Critical("PANIC during RunWithShutdownChan: %v\nStacktrace: %s", err, log.Stack(2))
-			g.doShutdown()
-		}
-	}()
-	run(g.IsShutdown(), func(ctx context.Context, atTerminate func()) {
-		g.RunAtTerminate(ctx, atTerminate)
+			})
+	}, func(atTerminate func()) {
+		g.RunAtTerminate(atTerminate)
 	})
 }
 
@@ -132,64 +109,75 @@ func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 			g.doShutdown()
 		}
 	}()
-	run(g.ShutdownContext())
+	ctx := g.ShutdownContext()
+	pprof.SetGoroutineLabels(ctx) // We don't have a label to restore back to but I think this is fine
+	run(ctx)
 }
 
 // RunAtTerminate adds to the terminate wait group and creates a go-routine to run the provided function at termination
-func (g *Manager) RunAtTerminate(ctx context.Context, terminate func()) {
+func (g *Manager) RunAtTerminate(terminate func()) {
 	g.terminateWaitGroup.Add(1)
-	go func() {
-		defer g.terminateWaitGroup.Done()
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
-			}
-		}()
-		select {
-		case <-g.IsTerminate():
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtTerminate = append(g.toRunAtTerminate,
+		func() {
+			defer g.terminateWaitGroup.Done()
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
 			terminate()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
 
 // RunAtShutdown creates a go-routine to run the provided function at shutdown
 func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtShutdown = append(g.toRunAtShutdown,
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				shutdown()
 			}
-		}()
-		select {
-		case <-g.IsShutdown():
-			shutdown()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
 
 // RunAtHammer creates a go-routine to run the provided function at shutdown
-func (g *Manager) RunAtHammer(ctx context.Context, hammer func()) {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
-			}
-		}()
-		select {
-		case <-g.IsHammer():
+func (g *Manager) RunAtHammer(hammer func()) {
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtHammer = append(g.toRunAtHammer,
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
 			hammer()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
+
 func (g *Manager) doShutdown() {
 	if !g.setStateTransition(stateRunning, stateShuttingDown) {
+		g.DoImmediateHammer()
 		return
 	}
 	g.lock.Lock()
-	close(g.shutdown)
+	g.shutdownCtxCancel()
+	atShutdownCtx := pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "post-shutdown"))
+	pprof.SetGoroutineLabels(atShutdownCtx)
+	for _, fn := range g.toRunAtShutdown {
+		go fn()
+	}
 	g.lock.Unlock()
 
 	if setting.GracefulHammerTime >= 0 {
@@ -203,7 +191,7 @@ func (g *Manager) doShutdown() {
 		g.doTerminate()
 		g.WaitForTerminate()
 		g.lock.Lock()
-		close(g.done)
+		g.managerCtxCancel()
 		g.lock.Unlock()
 	}()
 }
@@ -212,10 +200,15 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	time.Sleep(d)
 	g.lock.Lock()
 	select {
-	case <-g.hammer:
+	case <-g.hammerCtx.Done():
 	default:
 		log.Warn("Setting Hammer condition")
-		close(g.hammer)
+		g.hammerCtxCancel()
+		atHammerCtx := pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "post-hammer"))
+		pprof.SetGoroutineLabels(atHammerCtx)
+		for _, fn := range g.toRunAtHammer {
+			go fn()
+		}
 	}
 	g.lock.Unlock()
 }
@@ -226,10 +219,16 @@ func (g *Manager) doTerminate() {
 	}
 	g.lock.Lock()
 	select {
-	case <-g.terminate:
+	case <-g.terminateCtx.Done():
 	default:
 		log.Warn("Terminating")
-		close(g.terminate)
+		g.terminateCtxCancel()
+		atTerminateCtx := pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "post-terminate"))
+		pprof.SetGoroutineLabels(atTerminateCtx)
+
+		for _, fn := range g.toRunAtTerminate {
+			go fn()
+		}
 	}
 	g.lock.Unlock()
 }
@@ -242,7 +241,7 @@ func (g *Manager) IsChild() bool {
 // IsShutdown returns a channel which will be closed at shutdown.
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 func (g *Manager) IsShutdown() <-chan struct{} {
-	return g.shutdown
+	return g.shutdownCtx.Done()
 }
 
 // IsHammer returns a channel which will be closed at hammer
@@ -250,14 +249,14 @@ func (g *Manager) IsShutdown() <-chan struct{} {
 // Servers running within the running server wait group should respond to IsHammer
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
-	return g.hammer
+	return g.hammerCtx.Done()
 }
 
 // IsTerminate returns a channel which will be closed at terminate
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 // IsTerminate will only close once all running servers have stopped
 func (g *Manager) IsTerminate() <-chan struct{} {
-	return g.terminate
+	return g.terminateCtx.Done()
 }
 
 // ServerDone declares a running server done and subtracts one from the
@@ -314,25 +313,20 @@ func (g *Manager) InformCleanup() {
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
-	return g.done
+	return g.managerCtx.Done()
 }
 
-// Err allows the manager to be viewed as a context.Context done at Terminate, it returns ErrTerminate
+// Err allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Err() error {
-	select {
-	case <-g.Done():
-		return ErrTerminate
-	default:
-		return nil
-	}
+	return g.managerCtx.Err()
 }
 
-// Value allows the manager to be viewed as a context.Context done at Terminate, it has no values
+// Value allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Value(key interface{}) interface{} {
-	return nil
+	return g.managerCtx.Value(key)
 }
 
 // Deadline returns nil as there is no fixed Deadline for the manager, it allows the manager to be viewed as a context.Context
 func (g *Manager) Deadline() (deadline time.Time, ok bool) {
-	return
+	return g.managerCtx.Deadline()
 }

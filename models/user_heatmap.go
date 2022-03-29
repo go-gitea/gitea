@@ -5,6 +5,8 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -16,43 +18,54 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUser(user, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, nil, doer)
+}
+
+// GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
+func GetUserHeatmapDataByUserTeam(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(user, team, doer)
+}
+
+func getUserHeatmapData(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if user.KeepActivityPrivate {
+	if !activityReadable(user, doer) {
 		return hdata, nil
 	}
 
-	var groupBy string
-	var groupByName = "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
+	// Group by 15 minute intervals which will allow the client to accurately shift the timestamp to their timezone.
+	// The interval is based on the fact that there are timezones such as UTC +5:30 and UTC +12:45.
+	groupBy := "created_unix / 900 * 900"
+	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
-	case setting.Database.UseSQLite3:
-		groupBy = "strftime('%s', strftime('%Y-%m-%d', created_unix, 'unixepoch'))"
 	case setting.Database.UseMySQL:
-		groupBy = "UNIX_TIMESTAMP(DATE(FROM_UNIXTIME(created_unix)))"
-	case setting.Database.UsePostgreSQL:
-		groupBy = "extract(epoch from date_trunc('day', to_timestamp(created_unix)))"
+		groupBy = "created_unix DIV 900 * 900"
 	case setting.Database.UseMSSQL:
-		groupBy = "datediff(SECOND, '19700101', dateadd(DAY, 0, datediff(day, 0, dateadd(s, created_unix, '19700101'))))"
 		groupByName = groupBy
 	}
 
-	sess := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
-		Table("action").
-		Where("user_id = ?", user.ID).
-		And("created_unix > ?", (timeutil.TimeStampNow() - 31536000))
-
-	// * Heatmaps for individual users only include actions that the user themself
-	//   did.
-	// * For organizations actions by all users that were made in owned
-	//   repositories are counted.
-	if user.Type == UserTypeIndividual {
-		sess = sess.And("act_user_id = ?", user.ID)
+	cond, err := activityQueryCondition(GetFeedsOptions{
+		RequestedUser:  user,
+		RequestedTeam:  team,
+		Actor:          doer,
+		IncludePrivate: true, // don't filter by private, as we already filter by repo access
+		IncludeDeleted: true,
+		// * Heatmaps for individual users only include actions that the user themself did.
+		// * For organizations actions by all users that were made in owned
+		//   repositories are counted.
+		OnlyPerformedBy: !user.IsOrganization(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	err := sess.GroupBy(groupByName).
+	return hdata, db.GetEngine(db.DefaultContext).
+		Select(groupBy+" AS timestamp, count(user_id) as contributions").
+		Table("action").
+		Where(cond).
+		And("created_unix > ?", timeutil.TimeStampNow()-31536000).
+		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
-
-	return hdata, err
 }

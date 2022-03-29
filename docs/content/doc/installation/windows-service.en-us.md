@@ -3,7 +3,7 @@ date: "2016-12-21T15:00:00-02:00"
 title: "Register as a Windows Service"
 slug: "windows-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -27,7 +27,7 @@ COMPUTERNAME is whatever the response is from `echo %COMPUTERNAME%` on the comma
 
 ## Use absolute paths
 
-If you use sqlite3, change the `PATH` to include the full path:
+If you use SQLite3, change the `PATH` to include the full path:
 
 ```
 [database]

@@ -12,6 +12,8 @@ import (
 type StopWatch struct {
 	// swagger:strfmt date-time
 	Created       time.Time `json:"created"`
+	Seconds       int64     `json:"seconds"`
+	Duration      string    `json:"duration"`
 	IssueIndex    int64     `json:"issue_index"`
 	IssueTitle    string    `json:"issue_title"`
 	RepoOwnerName string    `json:"repo_owner_name"`

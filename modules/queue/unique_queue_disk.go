@@ -5,6 +5,10 @@
 package queue
 
 import (
+	"context"
+
+	"code.gitea.io/gitea/modules/nosql"
+
 	"gitea.com/lunny/levelqueue"
 )
 
@@ -14,7 +18,9 @@ const LevelUniqueQueueType Type = "unique-level"
 // LevelUniqueQueueConfiguration is the configuration for a LevelUniqueQueue
 type LevelUniqueQueueConfiguration struct {
 	ByteFIFOQueueConfiguration
-	DataDir string
+	DataDir          string
+	ConnectionString string
+	QueueName        string
 }
 
 // LevelUniqueQueue implements a disk library queue
@@ -34,7 +40,12 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	}
 	config := configInterface.(LevelUniqueQueueConfiguration)
 
-	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.DataDir)
+	if len(config.ConnectionString) == 0 {
+		config.ConnectionString = config.DataDir
+	}
+	config.WaitOnEmpty = true
+
+	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {
 		return nil, err
 	}
@@ -51,32 +62,44 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	return queue, nil
 }
 
-var _ (UniqueByteFIFO) = &LevelUniqueQueueByteFIFO{}
+var _ UniqueByteFIFO = &LevelUniqueQueueByteFIFO{}
 
 // LevelUniqueQueueByteFIFO represents a ByteFIFO formed from a LevelUniqueQueue
 type LevelUniqueQueueByteFIFO struct {
-	internal *levelqueue.UniqueQueue
+	internal   *levelqueue.UniqueQueue
+	connection string
 }
 
 // NewLevelUniqueQueueByteFIFO creates a new ByteFIFO formed from a LevelUniqueQueue
-func NewLevelUniqueQueueByteFIFO(dataDir string) (*LevelUniqueQueueByteFIFO, error) {
-	internal, err := levelqueue.OpenUnique(dataDir)
+func NewLevelUniqueQueueByteFIFO(connection, prefix string) (*LevelUniqueQueueByteFIFO, error) {
+	db, err := nosql.GetManager().GetLevelDB(connection)
+	if err != nil {
+		return nil, err
+	}
+
+	internal, err := levelqueue.NewUniqueQueue(db, []byte(prefix), []byte(prefix+"-unique"), false)
 	if err != nil {
 		return nil, err
 	}
 
 	return &LevelUniqueQueueByteFIFO{
-		internal: internal,
+		connection: connection,
+		internal:   internal,
 	}, nil
 }
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
-func (fifo *LevelUniqueQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (fifo *LevelUniqueQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
 	return fifo.internal.LPushFunc(data, fn)
 }
 
+// PushBack pushes data to the top of the fifo
+func (fifo *LevelUniqueQueueByteFIFO) PushBack(ctx context.Context, data []byte) error {
+	return fifo.internal.RPush(data)
+}
+
 // Pop pops data from the start of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Pop() ([]byte, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
 	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
@@ -85,18 +108,20 @@ func (fifo *LevelUniqueQueueByteFIFO) Pop() ([]byte, error) {
 }
 
 // Len returns the length of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Len() int64 {
+func (fifo *LevelUniqueQueueByteFIFO) Len(ctx context.Context) int64 {
 	return fifo.internal.Len()
 }
 
 // Has returns whether the fifo contains this data
-func (fifo *LevelUniqueQueueByteFIFO) Has(data []byte) (bool, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
 	return fifo.internal.Has(data)
 }
 
 // Close this fifo
 func (fifo *LevelUniqueQueueByteFIFO) Close() error {
-	return fifo.internal.Close()
+	err := fifo.internal.Close()
+	_ = nosql.GetManager().CloseLevelDB(fifo.connection)
+	return err
 }
 
 func init() {

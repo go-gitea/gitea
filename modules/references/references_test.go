@@ -5,6 +5,7 @@
 package references
 
 import (
+	"regexp"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -29,8 +30,27 @@ type testResult struct {
 	TimeLog        string
 }
 
-func TestFindAllIssueReferences(t *testing.T) {
+func TestConvertFullHTMLReferencesToShortRefs(t *testing.T) {
+	re := regexp.MustCompile(`(\s|^|\(|\[)` +
+		regexp.QuoteMeta("https://ourgitea.com/git/") +
+		`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
+		`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	test := `this is a https://ourgitea.com/git/owner/repo/issues/123456789, foo
+https://ourgitea.com/git/owner/repo/pulls/123456789
+  And https://ourgitea.com/git/owner/repo/pulls/123
+`
+	expect := `this is a owner/repo#123456789, foo
+owner/repo!123456789
+  And owner/repo!123
+`
 
+	contentBytes := []byte(test)
+	convertFullHTMLReferencesToShortRefs(re, &contentBytes)
+	result := string(contentBytes)
+	assert.EqualValues(t, expect, result)
+}
+
+func TestFindAllIssueReferences(t *testing.T) {
 	fixtures := []testFixture{
 		{
 			"Simply closes: #29 yes",
@@ -107,6 +127,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"This http://gitea.com:3000/user4/repo5/pulls/202 yes. http://gitea.com:3000/user4/repo5/pulls/203 no",
+			[]testResult{
+				{202, "user4", "repo5", "202", true, XRefActionNone, nil, nil, ""},
+				{203, "user4", "repo5", "203", true, XRefActionNone, nil, nil, ""},
+			},
+		},
+		{
 			"This http://GiTeA.COM:3000/user4/repo6/pulls/205 yes.",
 			[]testResult{
 				{205, "user4", "repo6", "205", true, XRefActionNone, nil, nil, ""},
@@ -167,6 +194,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 			"This user3/repo4#200, yes.",
 			[]testResult{
 				{200, "user3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil, ""},
+			},
+		},
+		{
+			"Merge pull request '#12345 My fix for a bug' (!1337) from feature-branch into main",
+			[]testResult{
+				{12345, "", "", "12345", false, XRefActionNone, &RefSpan{Start: 20, End: 26}, nil, ""},
+				{1337, "", "", "1337", true, XRefActionNone, &RefSpan{Start: 46, End: 51}, nil, ""},
 			},
 		},
 		{
@@ -297,6 +331,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		{"@gitea.", "@gitea"},
 		{"@gitea,", "@gitea"},
 		{"@gitea;", "@gitea"},
+		{"@gitea/team1;", "@gitea/team1"},
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -312,6 +347,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@gitea?this",
 		"@gitea,this",
 		"@gitea;this",
+		"@gitea/team1/more",
 	}
 
 	for _, testCase := range trueTestCases {
@@ -444,7 +480,7 @@ func TestParseCloseKeywords(t *testing.T) {
 		{",$!", "", ""},
 		{"1234", "", ""},
 	} {
-		// The patern only needs to match the part that precedes the reference.
+		// The pattern only needs to match the part that precedes the reference.
 		// getCrossReference() takes care of finding the reference itself.
 		pat := makeKeywordsPat([]string{test.pattern})
 		if test.expected == "" {

@@ -1,0 +1,65 @@
+#user-heatmap {
+  width: 100%;
+  text-align: center;
+  position: relative;
+  min-height: 125px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > svg {
+    width: 100%;
+  }
+
+  svg:not(:root) {
+    overflow: inherit;
+    padding: 0 !important;
+  }
+
+  text {
+    fill: currentcolor !important;
+  }
+
+  .total-contributions {
+    font-size: 11px;
+    position: absolute;
+    bottom: 0;
+    left: 25px;
+  }
+
+  @media @mediaLgAndDown {
+    & {
+      min-height: 105px;
+    }
+    .total-contributions {
+      left: 21px;
+    }
+  }
+
+  @media (max-width: 1000px) {
+    & {
+      min-height: 80px;
+    }
+    .total-contributions {
+      font-size: 10px;
+      left: 17px;
+      bottom: -4px;
+    }
+  }
+}
+
+.user.profile #user-heatmap {
+  min-height: 135px;
+}
+
+@media @mediaLgAndDown {
+  .user.profile #user-heatmap {
+    min-height: 115px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .user.profile #user-heatmap {
+    min-height: 90px;
+  }
+}

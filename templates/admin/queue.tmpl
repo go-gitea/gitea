@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin monitor">
+<div class="page-content admin monitor">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -15,6 +15,7 @@
 						<th>{{.i18n.Tr "admin.monitor.queue.exemplar"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberinqueue"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -24,6 +25,7 @@
 						<td>{{.Queue.ExemplarType}}</td>
 						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
+						<td>{{$sum := .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -92,6 +94,35 @@
 				</div>
 			</form>
 		</div>
+		{{if .Queue.Pausable}}
+			{{if .Queue.IsPaused}}
+				<h4 class="ui top attached header">
+					{{.i18n.Tr "admin.monitor.queue.pool.resume.title"}}
+				</h4>
+				<div class="ui attached segment">
+					<p>{{.i18n.Tr "admin.monitor.queue.pool.resume.desc"}}</p>
+					<form method="POST" action="{{.Link}}/resume">
+						{{$.CsrfTokenHtml}}
+						<div class="ui form">
+							<button class="ui submit button">{{.i18n.Tr "admin.monitor.queue.pool.resume.submit"}}</button>
+						</div>
+					</form>
+				</div>
+			{{else}}
+				<h4 class="ui top attached header">
+					{{.i18n.Tr "admin.monitor.queue.pool.pause.title"}}
+				</h4>
+				<div class="ui attached segment">
+					<p>{{.i18n.Tr "admin.monitor.queue.pool.pause.desc"}}</p>
+					<form method="POST" action="{{.Link}}/pause">
+						{{$.CsrfTokenHtml}}
+						<div class="ui form">
+							<button class="ui submit button">{{.i18n.Tr "admin.monitor.queue.pool.pause.submit"}}</button>
+						</div>
+					</form>
+				</div>
+			{{end}}
+		{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.monitor.queue.pool.flush.title"}}
 		</h4>
@@ -126,11 +157,11 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}{{if .IsFlusher}}<i class="icon sync-alternate" title="{{.i18n.Tr "admin.monitor.queue.flush"}}"></i>{{end}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{.i18n.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
-							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><i class="close icon text red" title="{{$.i18n.Tr "remove"}}"></i></a>
+							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><span class="text red" title="{{$.i18n.Tr "remove"}}">{{svg "octicon-trash"}}</span></a>
 						</td>
 					</tr>
 					{{else}}
@@ -152,7 +183,7 @@
 </div>
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="close icon"></i>
+		{{svg "octicon-x" 16 "close inside"}}
 		{{.i18n.Tr "admin.monitor.queue.pool.cancel"}}
 	</div>
 	<div class="content">

@@ -5,21 +5,22 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // FlushQueues flushes all the Queues
-func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
+func FlushQueues(ctx *context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.FlushOptions)
 	if opts.NonBlocking {
 		// Save the hammer ctx here - as a new one is created each time you call this.
 		baseCtx := graceful.GetManager().HammerContext()
@@ -29,62 +30,63 @@ func FlushQueues(ctx *macaron.Context, opts private.FlushOptions) {
 				log.Error("Flushing request timed-out with error: %v", err)
 			}
 		}()
-		ctx.JSON(http.StatusAccepted, map[string]interface{}{
-			"err": "Flushing",
+		ctx.JSON(http.StatusAccepted, private.Response{
+			Err: "Flushing",
 		})
 		return
 	}
-	err := queue.GetManager().FlushAll(ctx.Req.Request.Context(), opts.Timeout)
+	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
 	if err != nil {
-		ctx.JSON(http.StatusRequestTimeout, map[string]interface{}{
-			"err": fmt.Sprintf("%v", err),
+		ctx.JSON(http.StatusRequestTimeout, private.Response{
+			Err: fmt.Sprintf("%v", err),
 		})
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // PauseLogging pauses logging
-func PauseLogging(ctx *macaron.Context) {
+func PauseLogging(ctx *context.PrivateContext) {
 	log.Pause()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ResumeLogging resumes logging
-func ResumeLogging(ctx *macaron.Context) {
+func ResumeLogging(ctx *context.PrivateContext) {
 	log.Resume()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // ReleaseReopenLogging releases and reopens logging files
-func ReleaseReopenLogging(ctx *macaron.Context) {
+func ReleaseReopenLogging(ctx *context.PrivateContext) {
 	if err := log.ReleaseReopen(); err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Sprintf("Error during release and reopen: %v", err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Error during release and reopen: %v", err),
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // RemoveLogger removes a logger
-func RemoveLogger(ctx *macaron.Context) {
+func RemoveLogger(ctx *context.PrivateContext) {
 	group := ctx.Params("group")
 	name := ctx.Params("name")
 	ok, err := log.GetLogger(group).DelLogger(name)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Sprintf("Failed to remove logger: %s %s %v", group, name, err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Failed to remove logger: %s %s %v", group, name, err),
 		})
 		return
 	}
 	if ok {
 		setting.RemoveSubLogDescription(group, name)
 	}
-	ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("Removed %s %s", group, name)))
+	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", group, name))
 }
 
 // AddLogger adds a logger
-func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
+func AddLogger(ctx *context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.LoggerOptions)
 	if len(opts.Group) == 0 {
 		opts.Group = log.DEFAULT
 	}
@@ -131,8 +133,8 @@ func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Sprintf("Failed to marshal log configuration: %v %v", opts.Config, err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Failed to marshal log configuration: %v %v", opts.Config, err),
 		})
 		return
 	}
@@ -140,8 +142,8 @@ func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
 
 	if err := log.NewNamedLogger(opts.Group, bufferLen, opts.Name, opts.Mode, config); err != nil {
 		log.Error("Failed to create new named logger: %s %v", config, err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": fmt.Sprintf("Failed to create new named logger: %s %v", config, err),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Failed to create new named logger: %s %v", config, err),
 		})
 		return
 	}
@@ -152,5 +154,5 @@ func AddLogger(ctx *macaron.Context, opts private.LoggerOptions) {
 		Config:   config,
 	})
 
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }

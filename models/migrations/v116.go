@@ -9,7 +9,6 @@ import (
 )
 
 func extendTrackedTimes(x *xorm.Engine) error {
-
 	type TrackedTime struct {
 		Time    int64 `xorm:"NOT NULL"`
 		Deleted bool  `xorm:"NOT NULL DEFAULT false"`

@@ -5,21 +5,27 @@
 package code
 
 import (
+	"bufio"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
@@ -27,20 +33,26 @@ import (
 
 const (
 	esRepoIndexerLatestVersion = 1
+	// multi-match-types, currently only 2 types are used
+	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
+	esMultiMatchTypeBestFields   = "best_fields"
+	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
-var (
-	_ Indexer = &ElasticSearchIndexer{}
-)
+var _ Indexer = &ElasticSearchIndexer{}
 
 // ElasticSearchIndexer implements Indexer interface
 type ElasticSearchIndexer struct {
-	client           *elastic.Client
-	indexerAliasName string
+	client               *elastic.Client
+	indexerAliasName     string
+	available            bool
+	availabilityCallback func(bool)
+	stopTimer            chan struct{}
+	lock                 sync.RWMutex
 }
 
 type elasticLogger struct {
-	*log.Logger
+	log.Logger
 }
 
 func (l elasticLogger) Printf(format string, args ...interface{}) {
@@ -74,9 +86,28 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 	indexer := &ElasticSearchIndexer{
 		client:           client,
 		indexerAliasName: indexerName,
+		available:        true,
+		stopTimer:        make(chan struct{}),
 	}
-	exists, err := indexer.init()
 
+	ticker := time.NewTicker(10 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				indexer.checkAvailability()
+			case <-indexer.stopTimer:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	exists, err := indexer.init()
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, !exists, err
 }
 
@@ -90,6 +121,7 @@ const (
 				},
 				"content": {
 					"type": "text",
+					"term_vector": "with_positions_offsets",
 					"index": true
 				},
 				"commit_id": {
@@ -115,17 +147,17 @@ func (b *ElasticSearchIndexer) realIndexerName() string {
 
 // Init will initialize the indexer
 func (b *ElasticSearchIndexer) init() (bool, error) {
-	ctx := context.Background()
+	ctx := graceful.GetManager().HammerContext()
 	exists, err := b.client.IndexExists(b.realIndexerName()).Do(ctx)
 	if err != nil {
-		return false, err
+		return false, b.checkError(err)
 	}
 	if !exists {
-		var mapping = defaultMapping
+		mapping := defaultMapping
 
 		createIndex, err := b.client.CreateIndex(b.realIndexerName()).BodyString(mapping).Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !createIndex.Acknowledged {
 			return false, fmt.Errorf("create index %s with %s failed", b.realIndexerName(), mapping)
@@ -135,7 +167,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	// check version
 	r, err := b.client.Aliases().Do(ctx)
 	if err != nil {
-		return false, err
+		return false, b.checkError(err)
 	}
 
 	realIndexerNames := r.IndicesByAlias(b.indexerAliasName)
@@ -144,10 +176,10 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 			Add(b.realIndexerName(), b.indexerAliasName).
 			Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("")
+			return false, fmt.Errorf("create alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
 		}
 	} else if len(realIndexerNames) >= 1 && realIndexerNames[0] < b.realIndexerName() {
 		log.Warn("Found older gitea indexer named %s, but we will create a new one %s and keep the old NOT DELETED. You can delete the old version after the upgrade succeed.",
@@ -157,42 +189,73 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 			Add(b.realIndexerName(), b.indexerAliasName).
 			Do(ctx)
 		if err != nil {
-			return false, err
+			return false, b.checkError(err)
 		}
 		if !res.Acknowledged {
-			return false, fmt.Errorf("")
+			return false, fmt.Errorf("change alias %s to index %s failed", b.indexerAliasName, b.realIndexerName())
 		}
 	}
 
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+// SetAvailabilityChangeCallback sets callback that will be triggered when availability changes
+func (b *ElasticSearchIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	b.availabilityCallback = callback
+}
+
+// Ping checks if elastic is available
+func (b *ElasticSearchIndexer) Ping() bool {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	return b.available
+}
+
+func (b *ElasticSearchIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return nil, fmt.Errorf("misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return nil, err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
 	if err != nil {
 		return nil, err
-	} else if !base.IsTextFile(fileContents) {
+	}
+
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	if err != nil {
+		return nil, err
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil, nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return nil, err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 
 	return []elastic.BulkableRequest{
@@ -209,7 +272,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 	}, nil
 }
 
-func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repository) elastic.BulkableRequest {
+func (b *ElasticSearchIndexer) addDelete(filename string, repo *repo_model.Repository) elastic.BulkableRequest {
 	id := filenameIndexerID(repo.ID, filename)
 	return elastic.NewBulkDeleteRequest().
 		Index(b.indexerAliasName).
@@ -217,16 +280,28 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
-	for _, update := range changes.Updates {
-		updateReqs, err := b.addUpdate(sha, update, repo)
-		if err != nil {
+	if len(changes.Updates) > 0 {
+		// Now because of some insanity with git cat-file not immediately failing if not run in a valid git directory we need to run git rev-parse first!
+		if err := git.EnsureValidGitRepository(git.DefaultContext, repo.RepoPath()); err != nil {
+			log.Error("Unable to open git repo: %s for %-v: %v", repo.RepoPath(), repo, err)
 			return err
 		}
-		if len(updateReqs) > 0 {
-			reqs = append(reqs, updateReqs...)
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			updateReqs, err := b.addUpdate(ctx, batchWriter, batchReader, sha, update, repo)
+			if err != nil {
+				return err
+			}
+			if len(updateReqs) > 0 {
+				reqs = append(reqs, updateReqs...)
+			}
 		}
+		cancel()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -237,8 +312,8 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 		_, err := b.client.Bulk().
 			Index(b.indexerAliasName).
 			Add(reqs...).
-			Do(context.Background())
-		return err
+			Do(ctx)
+		return b.checkError(err)
 	}
 	return nil
 }
@@ -247,8 +322,24 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 	_, err := b.client.DeleteByQuery(b.indexerAliasName).
 		Query(elastic.NewTermsQuery("repo_id", repoID)).
-		Do(context.Background())
-	return err
+		Do(graceful.GetManager().HammerContext())
+	return b.checkError(err)
+}
+
+// indexPos find words positions for start and the following end on content. It will
+// return the beginning position of the first start and the ending position of the
+// first end following the start string.
+// If not found any of the positions, it will return -1, -1.
+func indexPos(content, start, end string) (int, int) {
+	startIdx := strings.Index(content, start)
+	if startIdx < 0 {
+		return -1, -1
+	}
+	endIdx := strings.Index(content[startIdx+len(start):], end)
+	if endIdx < 0 {
+		return -1, -1
+	}
+	return startIdx, startIdx + len(start) + endIdx + len(end)
 }
 
 func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
@@ -260,25 +351,19 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		var startIndex, endIndex int = -1, -1
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
-			var subStr = make([]rune, 0, len(kw))
-			startIndex = strings.IndexFunc(c[0], func(r rune) bool {
-				if len(subStr) >= len(kw) {
-					subStr = subStr[1:]
-				}
-				subStr = append(subStr, r)
-				return strings.EqualFold(kw, string(subStr))
-			})
-			if startIndex > -1 {
-				endIndex = startIndex + len(kw)
-			} else {
-				panic(fmt.Sprintf("1===%#v", hit.Highlight))
+			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
+			// now we should find the positions. But how to avoid html content which contains the
+			// <em> and </em> tags? If elastic search has handled that?
+			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
+			if startIndex == -1 {
+				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
 		repoID, fileName := parseIndexerID(hit.Id)
-		var res = make(map[string]interface{})
+		res := make(map[string]interface{})
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -293,7 +378,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
 			Language:    language,
 			StartIndex:  startIndex,
-			EndIndex:    endIndex,
+			EndIndex:    endIndex - 9, // remove the length <em></em> since we give Content the original data
 			Color:       enry.GetColor(language),
 		})
 	}
@@ -319,12 +404,17 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
+func (b *ElasticSearchIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	searchType := esMultiMatchTypeBestFields
+	if isMatch {
+		searchType = esMultiMatchTypePhrasePrefix
+	}
+
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
-		var repoStrs = make([]interface{}, 0, len(repoIDs))
+		repoStrs := make([]interface{}, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
 			repoStrs = append(repoStrs, repoID)
 		}
@@ -347,12 +437,17 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 			Index(b.indexerAliasName).
 			Aggregation("language", aggregation).
 			Query(query).
-			Highlight(elastic.NewHighlight().Field("content")).
+			Highlight(
+				elastic.NewHighlight().
+					Field("content").
+					NumOfFragments(0). // return all highting content on fragments
+					HighlighterType("fvh"),
+			).
 			Sort("repo_id", true).
 			From(start).Size(pageSize).
-			Do(context.Background())
+			Do(ctx)
 		if err != nil {
-			return 0, nil, nil, err
+			return 0, nil, nil, b.checkError(err)
 		}
 
 		return convertResult(searchResult, kw, pageSize)
@@ -364,21 +459,26 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 		Aggregation("language", aggregation).
 		Query(query).
 		Size(0). // We only needs stats information
-		Do(context.Background())
+		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, b.checkError(err)
 	}
 
 	query = query.Must(langQuery)
 	searchResult, err := b.client.Search().
 		Index(b.indexerAliasName).
 		Query(query).
-		Highlight(elastic.NewHighlight().Field("content")).
+		Highlight(
+			elastic.NewHighlight().
+				Field("content").
+				NumOfFragments(0). // return all highting content on fragments
+				HighlighterType("fvh"),
+		).
 		Sort("repo_id", true).
 		From(start).Size(pageSize).
-		Do(context.Background())
+		Do(ctx)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, b.checkError(err)
 	}
 
 	total, hits, _, err := convertResult(searchResult, kw, pageSize)
@@ -387,4 +487,51 @@ func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string,
 }
 
 // Close implements indexer
-func (b *ElasticSearchIndexer) Close() {}
+func (b *ElasticSearchIndexer) Close() {
+	select {
+	case <-b.stopTimer:
+	default:
+		close(b.stopTimer)
+	}
+}
+
+func (b *ElasticSearchIndexer) checkError(err error) error {
+	var opErr *net.OpError
+	if !(elastic.IsConnErr(err) || (errors.As(err, &opErr) && (opErr.Op == "dial" || opErr.Op == "read"))) {
+		return err
+	}
+
+	b.setAvailability(false)
+
+	return err
+}
+
+func (b *ElasticSearchIndexer) checkAvailability() {
+	if b.Ping() {
+		return
+	}
+
+	// Request cluster state to check if elastic is available again
+	_, err := b.client.ClusterState().Do(graceful.GetManager().ShutdownContext())
+	if err != nil {
+		b.setAvailability(false)
+		return
+	}
+
+	b.setAvailability(true)
+}
+
+func (b *ElasticSearchIndexer) setAvailability(available bool) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+
+	if b.available == available {
+		return
+	}
+
+	b.available = available
+	if b.availabilityCallback != nil {
+		// Call the callback from within the lock to ensure that the ordering remains correct
+		b.availabilityCallback(b.available)
+	}
+}

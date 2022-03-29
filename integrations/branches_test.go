@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
 )
@@ -57,10 +56,12 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(button).Attr("data-url")
-	assert.True(t, exists, "The template has changed")
+	if !assert.True(t, exists, "The template has changed") {
+		t.Skip()
+	}
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": getCsrf(t, htmlDoc.doc),
+		"_csrf": htmlDoc.GetCSRF(),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
@@ -69,11 +70,5 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	req = NewRequest(t, "GET", "/user2/repo1/branches")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
-	return NewHTMLParser(t, resp.Body), url.Query()["name"][0]
-}
-
-func getCsrf(t *testing.T, doc *goquery.Document) string {
-	csrf, exists := doc.Find("meta[name=\"_csrf\"]").Attr("content")
-	assert.True(t, exists)
-	return csrf
+	return NewHTMLParser(t, resp.Body), url.Query().Get("name")
 }

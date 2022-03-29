@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,14 +7,13 @@ package git
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/unknwon/com"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.
@@ -23,10 +23,8 @@ var hookNames = []string{
 	"post-receive",
 }
 
-var (
-	// ErrNotValidHook error when a git hook is not valid
-	ErrNotValidHook = errors.New("not a valid Git hook")
-)
+// ErrNotValidHook error when a git hook is not valid
+var ErrNotValidHook = errors.New("not a valid Git hook")
 
 // IsValidHookName returns true if given name is a valid Git hook.
 func IsValidHookName(name string) bool {
@@ -58,14 +56,14 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
 	if isFile(h.path) {
-		data, err := ioutil.ReadFile(h.path)
+		data, err := os.ReadFile(h.path)
 		if err != nil {
 			return nil, err
 		}
 		h.IsActive = true
 		h.Content = string(data)
 	} else if isFile(samplePath) {
-		data, err := ioutil.ReadFile(samplePath)
+		data, err := os.ReadFile(samplePath)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +94,7 @@ func (h *Hook) Update() error {
 		return err
 	}
 
-	err := ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
+	err := os.WriteFile(h.path, []byte(strings.ReplaceAll(h.Content, "\r", "")), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -127,9 +125,14 @@ const (
 
 // SetUpdateHook writes given content to update hook of the repository.
 func SetUpdateHook(repoPath, content string) (err error) {
-	log("Setting update hook: %s", repoPath)
+	log.Debug("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
-	if com.IsExist(hookPath) {
+	isExist, err := util.IsExist(hookPath)
+	if err != nil {
+		log.Debug("Unable to check if %s exists. Error: %v", hookPath, err)
+		return err
+	}
+	if isExist {
 		err = util.Remove(hookPath)
 	} else {
 		err = os.MkdirAll(path.Dir(hookPath), os.ModePerm)
@@ -137,5 +140,5 @@ func SetUpdateHook(repoPath, content string) (err error) {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(hookPath, []byte(content), 0777)
+	return os.WriteFile(hookPath, []byte(content), 0o777)
 }

@@ -17,6 +17,8 @@ type FileOptions struct {
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`
 	Dates     CommitDateOptions `json:"dates"`
+	// Add a Signed-off-by trailer by the committer at the end of the commit log message.
+	Signoff bool `json:"signoff"`
 }
 
 // CreateFileOptions options for creating files
@@ -46,6 +48,14 @@ type UpdateFileOptions struct {
 	Content string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
+}
+
+// ApplyDiffPatchFileOptions options for applying a diff patch
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type ApplyDiffPatchFileOptions struct {
+	DeleteFileOptions
+	// required: true
+	Content string `json:"content"`
 }
 
 // FileLinksResponse contains the links for a repo's file

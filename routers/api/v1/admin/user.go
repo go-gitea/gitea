@@ -9,29 +9,38 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
-func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
+func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName string) {
 	if sourceID == 0 {
 		return
 	}
 
-	source, err := models.GetLoginSourceByID(sourceID)
+	source, err := auth.GetSourceByID(sourceID)
 	if err != nil {
-		if models.IsErrLoginSourceNotExist(err) {
+		if auth.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLoginSourceByID", err)
+			ctx.Error(http.StatusInternalServerError, "auth.GetSourceByID", err)
 		}
 		return
 	}
@@ -42,7 +51,7 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 }
 
 // CreateUser create a user
-func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
+func CreateUser(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users admin adminCreateUser
 	// ---
 	// summary: Create a user
@@ -65,20 +74,22 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	u := &models.User{
+	form := web.GetForm(ctx).(*api.CreateUserOption)
+
+	u := &user_model.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
 		Email:              form.Email,
 		Passwd:             form.Password,
 		MustChangePassword: true,
 		IsActive:           true,
-		LoginType:          models.LoginPlain,
+		LoginType:          auth.Plain,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
 	}
 
-	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
+	parseAuthSource(ctx, u, form.SourceID, form.LoginName)
 	if ctx.Written() {
 		return
 	}
@@ -87,7 +98,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
-	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	pwned, err := password.IsPwned(ctx, form.Password)
 	if pwned {
 		if err != nil {
 			log.Error(err.Error())
@@ -96,29 +107,39 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
-	if err := models.CreateUser(u); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrEmailAlreadyUsed(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+
+	var overwriteDefault *user_model.CreateUserOverwriteOptions
+	if form.Visibility != "" {
+		overwriteDefault = &user_model.CreateUserOverwriteOptions{
+			Visibility: api.VisibilityModes[form.Visibility],
+		}
+	}
+
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) ||
+			user_model.IsErrEmailAlreadyUsed(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
+			user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateUser", err)
 		}
 		return
 	}
-	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.Doer))
 }
 
 // EditUser api for modifying a user's information
-func EditUser(ctx *context.APIContext, form api.EditUserOption) {
+func EditUser(ctx *context.APIContext) {
 	// swagger:operation PATCH /admin/users/{username} admin adminEditUser
 	// ---
 	// summary: Edit an existing user
@@ -144,23 +165,24 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	u := user.GetUserByParams(ctx)
+	form := web.GetForm(ctx).(*api.EditUserOption)
+
+	parseAuthSource(ctx, ctx.ContextUser, form.SourceID, form.LoginName)
 	if ctx.Written() {
 		return
 	}
 
-	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
-	if ctx.Written() {
-		return
-	}
-
-	if len(form.Password) > 0 {
+	if len(form.Password) != 0 {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Error(http.StatusBadRequest, "PasswordTooShort", fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
+			return
+		}
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		pwned, err := password.IsPwned(ctx, form.Password)
 		if pwned {
 			if err != nil {
 				log.Error(err.Error())
@@ -169,55 +191,91 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
+		if ctx.ContextUser.Salt, err = user_model.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = ctx.ContextUser.SetPassword(form.Password); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
 	}
 
 	if form.MustChangePassword != nil {
-		u.MustChangePassword = *form.MustChangePassword
+		ctx.ContextUser.MustChangePassword = *form.MustChangePassword
 	}
 
-	u.LoginName = form.LoginName
-	u.FullName = form.FullName
-	u.Email = form.Email
-	u.Website = form.Website
-	u.Location = form.Location
+	ctx.ContextUser.LoginName = form.LoginName
+
+	if form.FullName != nil {
+		ctx.ContextUser.FullName = *form.FullName
+	}
+	var emailChanged bool
+	if form.Email != nil {
+		email := strings.TrimSpace(*form.Email)
+		if len(email) == 0 {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
+			return
+		}
+
+		if err := user_model.ValidateEmail(email); err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+
+		emailChanged = !strings.EqualFold(ctx.ContextUser.Email, email)
+		ctx.ContextUser.Email = email
+	}
+	if form.Website != nil {
+		ctx.ContextUser.Website = *form.Website
+	}
+	if form.Location != nil {
+		ctx.ContextUser.Location = *form.Location
+	}
+	if form.Description != nil {
+		ctx.ContextUser.Description = *form.Description
+	}
 	if form.Active != nil {
-		u.IsActive = *form.Active
+		ctx.ContextUser.IsActive = *form.Active
+	}
+	if len(form.Visibility) != 0 {
+		ctx.ContextUser.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
-		u.IsAdmin = *form.Admin
+		ctx.ContextUser.IsAdmin = *form.Admin
 	}
 	if form.AllowGitHook != nil {
-		u.AllowGitHook = *form.AllowGitHook
+		ctx.ContextUser.AllowGitHook = *form.AllowGitHook
 	}
 	if form.AllowImportLocal != nil {
-		u.AllowImportLocal = *form.AllowImportLocal
+		ctx.ContextUser.AllowImportLocal = *form.AllowImportLocal
 	}
 	if form.MaxRepoCreation != nil {
-		u.MaxRepoCreation = *form.MaxRepoCreation
+		ctx.ContextUser.MaxRepoCreation = *form.MaxRepoCreation
 	}
 	if form.AllowCreateOrganization != nil {
-		u.AllowCreateOrganization = *form.AllowCreateOrganization
+		ctx.ContextUser.AllowCreateOrganization = *form.AllowCreateOrganization
 	}
 	if form.ProhibitLogin != nil {
-		u.ProhibitLogin = *form.ProhibitLogin
+		ctx.ContextUser.ProhibitLogin = *form.ProhibitLogin
+	}
+	if form.Restricted != nil {
+		ctx.ContextUser.IsRestricted = *form.Restricted
 	}
 
-	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+	if err := user_model.UpdateUser(ctx.ContextUser, emailChanged); err != nil {
+		if user_model.IsErrEmailAlreadyUsed(err) ||
+			user_model.IsErrEmailCharIsNotSupported(err) ||
+			user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 		}
 		return
 	}
-	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
 }
 
 // DeleteUser api for deleting a user
@@ -241,17 +299,12 @@ func DeleteUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
+	if ctx.ContextUser.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
 		return
 	}
 
-	if u.IsOrganization() {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", u.Name))
-		return
-	}
-
-	if err := models.DeleteUser(u); err != nil {
+	if err := user_service.DeleteUser(ctx.ContextUser); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -260,13 +313,13 @@ func DeleteUser(ctx *context.APIContext) {
 		}
 		return
 	}
-	log.Trace("Account deleted by admin(%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Account deleted by admin(%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
 
 // CreatePublicKey api for creating a public key to a user
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/keys admin adminCreatePublicKey
 	// ---
 	// summary: Add a public key on behalf of a user
@@ -292,11 +345,9 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	user.CreateUserPublicKey(ctx, form, u.ID)
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
+
+	user.CreateUserPublicKey(ctx, *form, ctx.ContextUser.ID)
 }
 
 // DeleteUserPublicKey api for deleting a user's public key
@@ -326,27 +377,22 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrKeyNotExist(err) {
+	if err := asymkey_service.DeletePublicKey(ctx.ContextUser, ctx.ParamsInt64(":id")); err != nil {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if models.IsErrKeyAccessDenied(err) {
+		} else if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUserPublicKey", err)
 		}
 		return
 	}
-	log.Trace("Key deleted by admin(%s): %s", ctx.User.Name, u.Name)
+	log.Trace("Key deleted by admin(%s): %s", ctx.Doer.Name, ctx.ContextUser.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
 
-//GetAllUsers API for getting information of all the users
+// GetAllUsers API for getting information of all the users
 func GetAllUsers(ctx *context.APIContext) {
 	// swagger:operation GET /admin/users admin adminGetAllUsers
 	// ---
@@ -370,9 +416,10 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:        models.UserTypeIndividual,
-		OrderBy:     models.SearchOrderByAlphabetically,
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
+		Type:        user_model.UserTypeIndividual,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 	})
 	if err != nil {
@@ -382,11 +429,10 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.Doer)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &results)
 }

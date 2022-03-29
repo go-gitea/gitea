@@ -3,7 +3,7 @@ date: "2020-07-06T16:00:00+02:00"
 title: "Usage: Push Options"
 slug: "push-options"
 weight: 15
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

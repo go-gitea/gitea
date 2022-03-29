@@ -6,9 +6,11 @@
 package log
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/smtp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 type smtpWriter struct {
@@ -57,7 +59,7 @@ func NewSMTPLogger() LoggerProvider {
 func (log *SMTPLogger) Init(jsonconfig string) error {
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&smtpWriter{
 		owner: log,
@@ -91,6 +93,11 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 		log.RecipientAddresses,
 		mailmsg,
 	)
+}
+
+// Content returns the content accumulated in the content provider
+func (log *SMTPLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
 }
 
 // Flush when log should be flushed

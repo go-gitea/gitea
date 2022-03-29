@@ -14,7 +14,6 @@ import (
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-
 	currentRepo, err := git.OpenRepository(".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
@@ -22,7 +21,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 	defer currentRepo.Close()
 
 	for i := 0; i < b.N; i++ {
-		graph, err := GetCommitGraph(currentRepo, 1, 0)
+		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}
@@ -34,7 +33,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 }
 
 func BenchmarkParseCommitString(b *testing.B) {
-	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Kjell Kvinge|kjell@kvinge.biz|4e61bac|Add route for graph"
+	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|Add route for graph"
 
 	parser := &Parser{}
 	parser.Reset()
@@ -44,7 +43,7 @@ func BenchmarkParseCommitString(b *testing.B) {
 		if err := parser.AddLineToGraph(graph, 0, []byte(testString)); err != nil {
 			b.Error("could not parse teststring")
 		}
-		if graph.Flows[1].Commits[0].Author != "Kjell Kvinge" {
+		if graph.Flows[1].Commits[0].Rev != "4e61bacab44e9b4730e44a6615d04098dd3a8eaf" {
 			b.Error("Did not get expected data")
 		}
 	}
@@ -55,11 +54,10 @@ func BenchmarkParseGlyphs(b *testing.B) {
 	parser.Reset()
 	tgBytes := []byte(testglyphs)
 	tg := tgBytes
-	idx := bytes.Index(tg, []byte("\n"))
 	for i := 0; i < b.N; i++ {
 		parser.Reset()
 		tg = tgBytes
-		idx = bytes.Index(tg, []byte("\n"))
+		idx := bytes.Index(tg, []byte("\n"))
 		for idx > 0 {
 			parser.ParseGlyphs(tg[:idx])
 			tg = tg[idx+1:]
@@ -244,7 +242,7 @@ func TestParseGlyphs(t *testing.T) {
 }
 
 func TestCommitStringParsing(t *testing.T) {
-	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Author|user@mail.something|4e61bac|"
+	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|"
 	tests := []struct {
 		shouldPass    bool
 		testName      string
@@ -256,7 +254,6 @@ func TestCommitStringParsing(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		t.Run(test.testName, func(t *testing.T) {
 			testString := fmt.Sprintf("%s%s", dataFirstPart, test.commitMessage)
 			idx := strings.Index(testString, "DATA:")

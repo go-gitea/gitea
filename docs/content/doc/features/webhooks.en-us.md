@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Webhooks"
 slug: "webhooks"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -15,7 +15,7 @@ menu:
 
 # Webhooks
 
-Gitea supports web hooks for repository events. This can be configured in the settings
+Gitea supports webhooks for repository events. This can be configured in the settings
 page `/:username/:reponame/settings/hooks` by a repository admin. Webhooks can also be configured on a per-organization and whole system basis.
 All event pushes are POST requests. The methods currently supported are:
 
@@ -27,8 +27,12 @@ All event pushes are POST requests. The methods currently supported are:
 - Telegram
 - Microsoft Teams
 - Feishu
+- Wechatwork
+- Packagist
 
 ### Event information
+
+**WARNING**: The `secret` field in the payload is deprecated as of Gitea 1.13.0 and will be removed in 1.14.0: https://github.com/go-gitea/gitea/issues/11755
 
 The following is an example of event information that will be sent by Gitea to
 a Payload URL:
@@ -166,7 +170,7 @@ if (empty($header_signature)) {
 $payload_signature = hash_hmac('sha256', $payload, $secret_key, false);
 
 // check payload signature against header signature
-if ($header_signature != $payload_signature) {
+if ($header_signature !== $payload_signature) {
     error_log('FAILED - payload signature');
     exit();
 }

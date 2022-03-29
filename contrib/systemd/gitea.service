@@ -3,14 +3,23 @@ Description=Gitea (Git with a cup of tea)
 After=syslog.target
 After=network.target
 ###
-# Don't forget to add the database service requirements
+# Don't forget to add the database service dependencies
 ###
 #
-#Requires=mysql.service
-#Requires=mariadb.service
-#Requires=postgresql.service
-#Requires=memcached.service
-#Requires=redis.service
+#Wants=mysql.service
+#After=mysql.service
+#
+#Wants=mariadb.service
+#After=mariadb.service
+#
+#Wants=postgresql.service
+#After=postgresql.service
+#
+#Wants=memcached.service
+#After=memcached.service
+#
+#Wants=redis.service
+#After=redis.service
 #
 ###
 # If using socket activation for main http/s
@@ -57,6 +66,12 @@ WorkingDirectory=/var/lib/gitea/
 ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
 Restart=always
 Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
+# If you install Git to directory prefix other than default PATH (which happens
+# for example if you install other versions of Git side-to-side with
+# distribution version), uncomment below line and add that prefix to PATH
+# Don't forget to place git-lfs binary on the PATH below if you want to enable
+# Git LFS support
+#Environment=PATH=/path/to/git/bin:/bin:/sbin:/usr/bin:/usr/sbin
 # If you want to bind Gitea to a port below 1024, uncomment
 # the two values below, or use socket activation to pass Gitea its ports as above
 ###

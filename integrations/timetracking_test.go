@@ -19,15 +19,16 @@ func TestViewTimetrackingControls(t *testing.T) {
 	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", true)
-	//user2/repo1
+	// user2/repo1
 }
 
 func TestNotViewTimetrackingControls(t *testing.T) {
 	defer prepareTestEnv(t)()
 	session := loginUser(t, "user5")
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
-	//user2/repo1
+	// user2/repo1
 }
+
 func TestViewTimetrackingControlsDisabled(t *testing.T) {
 	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
@@ -40,8 +41,8 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	htmlDoc.AssertElement(t, ".timetrack .start-add .start", canTrackTime)
-	htmlDoc.AssertElement(t, ".timetrack .start-add .add-time", canTrackTime)
+	htmlDoc.AssertElement(t, ".timetrack .issue-start-time", canTrackTime)
+	htmlDoc.AssertElement(t, ".timetrack .issue-add-time", canTrackTime)
 
 	req = NewRequestWithValues(t, "POST", path.Join(user, repo, "issues", issue, "times", "stopwatch", "toggle"), map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
@@ -56,8 +57,8 @@ func testViewTimetrackingControls(t *testing.T, session *TestSession, user, repo
 		events := htmlDoc.doc.Find(".event > span.text")
 		assert.Contains(t, events.Last().Text(), "started working")
 
-		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .stop", true)
-		htmlDoc.AssertElement(t, ".timetrack .stop-cancel .cancel", true)
+		htmlDoc.AssertElement(t, ".timetrack .issue-stop-time", true)
+		htmlDoc.AssertElement(t, ".timetrack .issue-cancel-time", true)
 
 		// Sleep for 1 second to not get wrong order for stopping timer
 		time.Sleep(time.Second)

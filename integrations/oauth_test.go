@@ -5,9 +5,12 @@
 package integrations
 
 import (
-	"encoding/json"
+	"bytes"
+	"io"
+	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -19,20 +22,20 @@ func TestNoClientID(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	ctx := loginUser(t, "user2")
-	ctx.MakeRequest(t, req, 400)
+	ctx.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestLoginRedirect(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
-	assert.Contains(t, MakeRequest(t, req, 302).Body.String(), "/user/login")
+	assert.Contains(t, MakeRequest(t, req, http.StatusSeeOther).Body.String(), "/user/login")
 }
 
 func TestShowAuthorize(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", defaultAuthorize)
 	ctx := loginUser(t, "user4")
-	resp := ctx.MakeRequest(t, req, 200)
+	resp := ctx.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	htmlDoc.AssertElement(t, "#authorize-app", true)
@@ -43,7 +46,7 @@ func TestRedirectWithExistingGrant(t *testing.T) {
 	defer prepareTestEnv(t)()
 	req := NewRequest(t, "GET", defaultAuthorize)
 	ctx := loginUser(t, "user1")
-	resp := ctx.MakeRequest(t, req, 302)
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
 	u, err := resp.Result().Location()
 	assert.NoError(t, err)
 	assert.Equal(t, "thestate", u.Query().Get("state"))
@@ -60,7 +63,7 @@ func TestAccessTokenExchange(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	resp := MakeRequest(t, req, 200)
+	resp := MakeRequest(t, req, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -68,6 +71,7 @@ func TestAccessTokenExchange(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -83,7 +87,7 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	resp := MakeRequest(t, req, 200)
+	resp := MakeRequest(t, req, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -91,6 +95,7 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -105,7 +110,7 @@ func TestAccessTokenExchangeJSON(t *testing.T) {
 		"redirect_uri":  "a",
 		"code":          "authcode",
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
@@ -119,7 +124,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 	// invalid client secret
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -129,7 +134,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 	// invalid redirect uri
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -139,7 +144,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 	// invalid authorization code
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -149,7 +154,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code":          "???",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 	// invalid grant_type
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "???",
@@ -159,7 +164,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	MakeRequest(t, req, 400)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
@@ -171,7 +176,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OjRNSzhOYTZSNTVzbWRDWTBXdUNDdW1aNmhqUlBuR1k1c2FXVlJISGpKaUE9")
-	resp := MakeRequest(t, req, 200)
+	resp := MakeRequest(t, req, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -179,6 +184,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -191,7 +197,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OmJsYWJsYQ==")
-	resp = MakeRequest(t, req, 400)
+	resp = MakeRequest(t, req, http.StatusBadRequest)
 
 	// missing header
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -200,7 +206,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	resp = MakeRequest(t, req, 400)
+	resp = MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestRefreshTokenInvalidation(t *testing.T) {
@@ -213,7 +219,7 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	resp := MakeRequest(t, req, 200)
+	resp := MakeRequest(t, req, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -221,6 +227,7 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 
 	// test without invalidation
@@ -233,11 +240,21 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"redirect_uri":  "a",
 		"refresh_token": parsed.RefreshToken,
 	})
-	MakeRequest(t, refreshReq, 200)
-	MakeRequest(t, refreshReq, 200)
+
+	bs, err := io.ReadAll(refreshReq.Body)
+	assert.NoError(t, err)
+
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, refreshReq, http.StatusOK)
+
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, refreshReq, http.StatusOK)
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
-	MakeRequest(t, refreshReq, 200)
-	MakeRequest(t, refreshReq, 400)
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, refreshReq, http.StatusOK)
+
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
+	MakeRequest(t, refreshReq, http.StatusBadRequest)
 }

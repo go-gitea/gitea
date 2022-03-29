@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetThread get notification by ID
@@ -39,12 +40,12 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil {
+	if err := n.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, n.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotificationThread(n))
 }
 
 // ReadThread mark notification as read by ID
@@ -70,7 +71,7 @@ func ReadThread(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThread"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -81,17 +82,21 @@ func ReadThread(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+	notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.Status(http.StatusResetContent)
+	if err = notif.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(notif))
 }
 
 func getThread(ctx *context.APIContext) *models.Notification {
@@ -104,7 +109,7 @@ func getThread(ctx *context.APIContext) *models.Notification {
 		}
 		return nil
 	}
-	if n.UserID != ctx.User.ID && !ctx.User.IsAdmin {
+	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "GetNotificationByID", fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}

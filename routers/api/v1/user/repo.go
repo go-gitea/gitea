@@ -6,16 +6,18 @@ package user
 
 import (
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
+func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
 	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{
@@ -29,21 +31,25 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 		return
 	}
 
+	if err := repos.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		return
+	}
+
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := models.AccessLevel(ctx.User, repos[i])
+		access, err := models.AccessLevel(ctx.Doer, repos[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
-			apiRepos = append(apiRepos, repos[i].APIFormat(access))
+		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
+			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
@@ -72,19 +78,15 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 	private := ctx.IsSigned
-	listUserRepos(ctx, user, private)
+	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
 // ListMyRepos - list the repositories you own or have access to.
 func ListMyRepos(ctx *context.APIContext) {
 	// swagger:operation GET /user/repos user userCurrentListRepos
 	// ---
-	// summary: List the repos that the authenticated user owns or has access to
+	// summary: List the repos that the authenticated user owns
 	// produces:
 	// - application/json
 	// parameters:
@@ -102,8 +104,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
-		Actor:              ctx.User,
-		OwnerID:            ctx.User.ID,
+		Actor:              ctx.Doer,
+		OwnerID:            ctx.Doer.ID,
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
@@ -117,20 +119,19 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
+		if err = repo.GetOwner(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
+		accessMode, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}
-		results[i] = repo.APIFormat(accessMode)
+		results[i] = convert.ToRepo(repo, accessMode)
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &results)
 }
 
@@ -159,5 +160,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

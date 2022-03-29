@@ -5,10 +5,13 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -113,9 +116,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := models.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx.Params(":user"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -124,9 +127,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	//only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", nil)
+	// only admin and user for itself can change subscription
+	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 
@@ -194,7 +197,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := models.CheckIssueWatch(ctx.User, issue)
+	watching, err := models.CheckIssueWatch(ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -266,16 +269,27 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	var userIDs = make([]int64, 0, len(iwl))
+	userIDs := make([]int64, 0, len(iwl))
 	for _, iw := range iwl {
 		userIDs = append(userIDs, iw.UserID)
 	}
 
-	users, err := models.GetUsersByIDs(userIDs)
+	users, err := user_model.GetUsersByIDs(userIDs)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
 		return
 	}
+	apiUsers := make([]*api.User, 0, len(users))
+	for _, v := range users {
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
+	}
 
-	ctx.JSON(http.StatusOK, users.APIFormat())
+	count, err := models.CountIssueWatchers(issue.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, apiUsers)
 }

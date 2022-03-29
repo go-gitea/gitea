@@ -36,6 +36,13 @@ type swaggerResponseCommentList struct {
 	Body []api.Comment `json:"body"`
 }
 
+// TimelineList
+// swagger:response TimelineList
+type swaggerResponseTimelineList struct {
+	// in:body
+	Body []api.TimelineComment `json:"body"`
+}
+
 // Label
 // swagger:response Label
 type swaggerResponseLabel struct {
@@ -83,6 +90,13 @@ type swaggerResponseTrackedTimeList struct {
 type swaggerIssueDeadline struct {
 	// in:body
 	Body api.IssueDeadline `json:"body"`
+}
+
+// IssueTemplates
+// swagger:response IssueTemplates
+type swaggerIssueTemplates struct {
+	// in:body
+	Body []api.IssueTemplate `json:"body"`
 }
 
 // StopWatch

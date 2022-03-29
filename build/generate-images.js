@@ -1,12 +1,13 @@
-#!/usr/bin/env node
-'use strict';
+import imageminZopfli from 'imagemin-zopfli';
+import {optimize} from 'svgo';
+import {fabric} from 'fabric';
+import fs from 'fs';
+import {resolve, dirname} from 'path';
+import {fileURLToPath} from 'url';
 
-const imageminZopfli = require('imagemin-zopfli');
-const {fabric} = require('fabric');
-const {DOMParser, XMLSerializer} = require('xmldom');
-const {readFile, writeFile} = require('fs').promises;
-const {resolve} = require('path');
-const Svgo = require('svgo');
+const {readFile, writeFile} = fs.promises;
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const logoFile = resolve(__dirname, '../assets/logo.svg');
 
 function exit(err) {
   if (err) console.error(err);
@@ -21,41 +22,21 @@ function loadSvg(svg) {
   });
 }
 
-async function generateSvgFavicon(svg, outputFile) {
-  const svgo = new Svgo({
-    plugins: [
-      {removeDimensions: true},
-      {
-        addAttributesToSVGElement: {
-          attributes: [
-            {'width': '32'},
-            {'height': '32'},
-          ],
+async function generate(svg, outputFile, {size, bg}) {
+  if (outputFile.endsWith('.svg')) {
+    const {data} = optimize(svg, {
+      plugins: [
+        'preset-default',
+        'removeDimensions',
+        {
+          name: 'addAttributesToSVGElement',
+          params: {attributes: [{width: size}, {height: size}]}
         },
-      },
-    ],
-  });
-
-  const {data} = await svgo.optimize(svg);
-  await writeFile(outputFile, data);
-}
-
-async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
-  const parser = new DOMParser();
-  const serializer = new XMLSerializer();
-  const document = parser.parseFromString(svg);
-
-  if (removeDetail) {
-    for (const el of Array.from(document.getElementsByTagName('g') || [])) {
-      for (const attribute of Array.from(el.attributes || [])) {
-        if (attribute.name === 'class' && attribute.value === 'detail-remove') {
-          el.parentNode.removeChild(el);
-        }
-      }
-    }
+      ],
+    });
+    await writeFile(outputFile, data);
+    return;
   }
-
-  svg = serializer.serializeToString(document);
 
   const {objects, options} = await loadSvg(svg);
   const canvas = new fabric.Canvas();
@@ -86,15 +67,17 @@ async function generate(svg, outputFile, {size, bg, removeDetail} = {}) {
 }
 
 async function main() {
-  const svg = await readFile(resolve(__dirname, '../assets/logo.svg'), 'utf8');
-  await generateSvgFavicon(svg, resolve(__dirname, '../public/img/favicon.svg'));
-  await generate(svg, resolve(__dirname, '../public/img/gitea-lg.png'), {size: 880});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-512.png'), {size: 512});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-192.png'), {size: 192});
-  await generate(svg, resolve(__dirname, '../public/img/gitea-sm.png'), {size: 120});
-  await generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200});
-  await generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180, removeDetail: true});
-  await generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true});
+  const gitea = process.argv.slice(2).includes('gitea');
+  const svg = await readFile(logoFile, 'utf8');
+
+  await Promise.all([
+    generate(svg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
+    generate(svg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
+    generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
+    generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
+    generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
+    gitea && generate(svg, resolve(__dirname, '../public/img/gitea.svg'), {size: 32}),
+  ]);
 }
 
 main().then(exit).catch(exit);

@@ -6,7 +6,7 @@ package pprof
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"runtime"
 	"runtime/pprof"
 
@@ -15,7 +15,7 @@ import (
 
 // DumpMemProfileForUsername dumps a memory profile at pprofDataPath as memprofile_<username>_<temporary id>
 func DumpMemProfileForUsername(pprofDataPath, username string) error {
-	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("memprofile_%s_", username))
+	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("memprofile_%s_", username))
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func DumpMemProfileForUsername(pprofDataPath, username string) error {
 // DumpCPUProfileForUsername dumps a CPU profile at pprofDataPath as cpuprofile_<username>_<temporary id>
 //  it returns the stop function which stops, writes and closes the CPU profile file
 func DumpCPUProfileForUsername(pprofDataPath, username string) (func(), error) {
-	f, err := ioutil.TempFile(pprofDataPath, fmt.Sprintf("cpuprofile_%s_", username))
+	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("cpuprofile_%s_", username))
 	if err != nil {
 		return nil, err
 	}

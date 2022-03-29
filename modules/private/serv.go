@@ -5,26 +5,29 @@
 package private
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // KeyAndOwner is the response from ServNoCommand
 type KeyAndOwner struct {
-	Key   *models.PublicKey `json:"key"`
-	Owner *models.User      `json:"user"`
+	Key   *asymkey_model.PublicKey `json:"key"`
+	Owner *user_model.User         `json:"user"`
 }
 
 // ServNoCommand returns information about the provided key
-func ServNoCommand(keyID int64) (*models.PublicKey, *models.User, error) {
+func ServNoCommand(ctx context.Context, keyID int64) (*asymkey_model.PublicKey, *user_model.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/none/%d",
 		keyID)
-	resp, err := newInternalRequest(reqURL, "GET").Response()
+	resp, err := newInternalRequest(ctx, reqURL, "GET").Response()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -43,9 +46,9 @@ func ServNoCommand(keyID int64) (*models.PublicKey, *models.User, error) {
 // ServCommandResults are the results of a call to the private route serv
 type ServCommandResults struct {
 	IsWiki      bool
-	IsDeployKey bool
-	KeyID       int64
-	KeyName     string
+	DeployKeyID int64
+	KeyID       int64  // public key
+	KeyName     string // this field is ambiguous, it can be the name of DeployKey, or the name of the PublicKey
 	UserName    string
 	UserEmail   string
 	UserID      int64
@@ -57,7 +60,6 @@ type ServCommandResults struct {
 // ErrServCommand is an error returned from ServCommmand.
 type ErrServCommand struct {
 	Results    ServCommandResults
-	Type       string
 	Err        string
 	StatusCode int
 }
@@ -73,7 +75,7 @@ func IsErrServCommand(err error) bool {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(keyID int64, ownerName, repoName string, mode models.AccessMode, verbs ...string) (*ServCommandResults, error) {
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verbs ...string) (*ServCommandResults, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s?mode=%d",
 		keyID,
 		url.PathEscape(ownerName),
@@ -85,11 +87,12 @@ func ServCommand(keyID int64, ownerName, repoName string, mode models.AccessMode
 		}
 	}
 
-	resp, err := newInternalRequest(reqURL, "GET").Response()
+	resp, err := newInternalRequest(ctx, reqURL, "GET").Response()
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		var errServCommand ErrServCommand
 		if err := json.NewDecoder(resp.Body).Decode(&errServCommand); err != nil {
@@ -103,5 +106,4 @@ func ServCommand(keyID int64, ownerName, repoName string, mode models.AccessMode
 		return nil, err
 	}
 	return &results, nil
-
 }

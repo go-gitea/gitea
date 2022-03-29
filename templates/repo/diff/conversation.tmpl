@@ -1,0 +1,55 @@
+{{$resolved := (index .comments 0).IsResolved}}
+{{$resolveDoer := (index .comments 0).ResolveDoer}}
+{{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
+<div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
+	{{if $resolved}}
+		<div class="ui attached header resolved-placeholder df ac sb">
+			<div class="ui grey text">
+				{{svg "octicon-check" 16 "icon mr-2"}}
+				<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+			</div>
+			<div>
+				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated df ac">
+					{{svg "octicon-unfold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+				</button>
+				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated df ac">
+					{{svg "octicon-fold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+				</button>
+			</div>
+		</div>
+	{{end}}
+	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">
+		<div class="comment-list">
+			<ui class="ui comments">
+				{{template "repo/diff/comments" dict "root" $ "comments" .comments}}
+			</ui>
+		</div>
+		<div class="df je ac fw mt-3">
+			<div class="ui buttons mr-2">
+				<button class="ui icon tiny basic button previous-conversation">
+					{{svg "octicon-arrow-up" 12 "icon"}} {{$.i18n.Tr "repo.issues.previous"}}
+				</button>
+				<button class="ui icon tiny basic button next-conversation">
+					{{svg "octicon-arrow-down" 12 "icon"}} {{$.i18n.Tr "repo.issues.next"}}
+				</button>
+			</div>
+			{{if and $.CanMarkConversation $isNotPending}}
+				<button class="ui icon tiny basic button resolve-conversation" data-origin="diff" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index .comments 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+					{{if $resolved}}
+						{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
+					{{end}}
+				</button>
+			{{end}}
+			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+				<button class="comment-form-reply ui green tiny labeled icon button ml-2 mr-0">
+					{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.i18n.Tr "repo.diff.comment.reply"}}
+				</button>
+			{{end}}
+		</div>
+		{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index .comments 0).ReviewID "root" $ "comment" (index .comments 0)}}
+	</div>
+</div>
