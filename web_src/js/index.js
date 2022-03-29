@@ -1,4 +1,5 @@
-import './publicpath.js';
+// bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
+import './bootstrap.js';
 
 import $ from 'jquery';
 import {initVueEnv} from './components/VueComponentLoader.js';
@@ -45,7 +46,7 @@ import {
   initGlobalButtons,
   initGlobalCommon,
   initGlobalDropzone,
-  initGlobalEnterQuickSubmit, initGlobalErrorHandler,
+  initGlobalEnterQuickSubmit,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
@@ -83,9 +84,7 @@ $.fn.tab.settings.silent = true;
 $.fn.checkbox.settings.enableEnterKey = false;
 
 initVueEnv();
-
 $(document).ready(() => {
-  initGlobalErrorHandler();
   initGlobalCommon();
 
   initGlobalButtonClickOnEnter();

@@ -4,6 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {htmlEscape} from 'escape-goat';
+import {showGlobalErrorMessageHtml} from '../bootstrap.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -343,34 +344,6 @@ export function initGlobalButtons() {
       window.location.href = $this.attr('data-done-url');
     });
   });
-}
-
-function showGlobalErrorMessageHtml(msgHtml) {
-  const $pageContent = $('.page-content');
-  if (!$pageContent.length) {
-    return;
-  }
-  // here we use a specialized CSS class "js-global-error", then end users still have a chance to hide these error messages by customized CSS styles.
-  const $tip = $(`<div class="ui container negative message center aligned js-global-error">${msgHtml}</div>`);
-  $($pageContent[0]).prepend($tip);
-}
-
-/**
- * @param {ErrorEvent} e
- */
-function processWindowErrorEvent(e) {
-  showGlobalErrorMessageHtml(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
-}
-
-export function initGlobalErrorHandler() {
-  // we added an event handler for window error at the very beginning of head.tmpl
-  // the handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before this init
-  // then in this init, we can collect all error events and show them
-  for (const e of window._globalHandlerErrors || []) {
-    processWindowErrorEvent(e);
-  }
-  // then, change _globalHandlerErrors to an object with push method, to process further error events directly
-  window._globalHandlerErrors = {'push': (e) => processWindowErrorEvent(e)};
 }
 
 /**
