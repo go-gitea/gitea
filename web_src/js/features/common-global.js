@@ -345,12 +345,13 @@ export function initGlobalButtons() {
   });
 }
 
-function showErrorMessageHtml(msgHtml) {
+function showGlobalErrorMessageHtml(msgHtml) {
   const $pageContent = $('.page-content');
   if (!$pageContent.length) {
     return;
   }
-  const $tip = $(`<div class="ui container negative message center aligned">${msgHtml}</div>`);
+  // here we use a specialized CSS class "js-global-error", then end users still have a chance to hide these error messages by customized CSS styles.
+  const $tip = $(`<div class="ui container negative message center aligned js-global-error">${msgHtml}</div>`);
   $($pageContent[0]).prepend($tip);
 }
 
@@ -358,7 +359,7 @@ function showErrorMessageHtml(msgHtml) {
  * @param {ErrorEvent} e
  */
 function processWindowErrorEvent(e) {
-  showErrorMessageHtml(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
+  showGlobalErrorMessageHtml(`JavaScript error: ${e.message} (${e.filename} @ ${e.lineno}:${e.colno}). Open browser console to see more details.`);
 }
 
 export function initGlobalErrorHandler() {
@@ -385,7 +386,7 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl)) {
     return;
   }
-  showErrorMessageHtml(`
+  showGlobalErrorMessageHtml(`
 Your ROOT_URL in app.ini is ${htmlEscape(appUrl)} but you are visiting ${htmlEscape(curUrl)}<br />
 You should set ROOT_URL correctly, otherwise the web may not work correctly.
 `);
