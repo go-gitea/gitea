@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/rand"
@@ -624,7 +625,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		gitRepo, err := git.openRepository(dstPath)
+		gitRepo, err := git.OpenRepository(context.Background(), dstPath)
 		if !assert.NoError(t, err) {
 			return
 		}

@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -105,7 +106,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(context.Background(), repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -167,7 +168,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.openRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(context.Background(), repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

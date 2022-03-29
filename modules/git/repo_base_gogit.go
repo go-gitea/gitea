@@ -35,8 +35,8 @@ type Repository struct {
 	Ctx context.Context
 }
 
-// openRepository opens the repository at the given path.
-func openRepository(repoPath string) (*Repository, error) {
+// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
+func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
 	return OpenRepository(DefaultContext, repoPath)
 }
 
