@@ -26,7 +26,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
-	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")

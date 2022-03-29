@@ -858,7 +858,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(ctx); err != nil {
+		if err = updateIssueClosedNum(ctx, opts.Issue); err != nil {
 			return err
 		}
 	}

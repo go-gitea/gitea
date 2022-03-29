@@ -2595,7 +2595,7 @@ func updateAttachments(item interface{}, files []string) error {
 	if len(files) > 0 {
 		switch content := item.(type) {
 		case *models.Issue:
-			err = content.UpdateAttachments(files)
+			err = models.UpdateIssueAttachments(content.ID, files)
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
