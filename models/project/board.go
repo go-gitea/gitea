@@ -61,7 +61,8 @@ func (Board) TableName() string {
 // NumIssues return counter of all issues assigned to the board
 func (b *Board) NumIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_board_id=?", b.ID).
+		Where("project_id=?", b.ProjectID).
+		And("project_board_id=?", b.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
 		Count()

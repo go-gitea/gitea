@@ -39,13 +39,6 @@ const (
 	TypeOrganization
 )
 
-// __________                   __               __
-// \______   \_______  ____    |__| ____   _____/  |_  ______
-//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
-//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
-//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
-//                         \______|    \/     \/          \/
-
 // ErrProjectNotExist represents a "ProjectNotExist" kind of error.
 type ErrProjectNotExist struct {
 	ID     int64
