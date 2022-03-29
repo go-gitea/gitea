@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -90,7 +91,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := models.OrgFromUser(repoOwner).IsOwnedBy(ctx.Doer.ID)
+			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return

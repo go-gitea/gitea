@@ -42,11 +42,11 @@ func TestNewLabels(t *testing.T) {
 		{RepoID: 4, Name: "labelName4", Color: "ABCDEF"},
 		{RepoID: 5, Name: "labelName5", Color: "DEF"},
 	}
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: ""}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: ""}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
 	for _, label := range labels {
 		unittest.AssertNotExistsBean(t, label)
 	}
