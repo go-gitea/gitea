@@ -38,7 +38,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*models.PullRequest) bool) (map[int64]*models.PullRequest, error) {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 
-	headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -174,7 +174,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 			return
 		}
 
-		baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error(err.Error())
 			return

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,7 +59,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 
 func TestGetRefsBySha(t *testing.T) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepository(bareRepo5Path)
+	bareRepo5, err := OpenRepository(git.DefaultContext, bareRepo5Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +86,7 @@ func TestGetRefsBySha(t *testing.T) {
 
 func BenchmarkGetRefsBySha(b *testing.B) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepository(bareRepo5Path)
+	bareRepo5, err := OpenRepository(git.DefaultContext, bareRepo5Path)
 	if err != nil {
 		b.Fatal(err)
 	}
