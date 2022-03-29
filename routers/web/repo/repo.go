@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/web"
@@ -129,10 +130,10 @@ func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
-	ctx.Data["Gitignores"] = models.Gitignores
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.Data["Licenses"] = models.Licenses
-	ctx.Data["Readmes"] = models.Readmes
+	ctx.Data["Gitignores"] = repo_module.Gitignores
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["Licenses"] = repo_module.Licenses
+	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
@@ -197,10 +198,10 @@ func CreatePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
-	ctx.Data["Gitignores"] = models.Gitignores
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.Data["Licenses"] = models.Licenses
-	ctx.Data["Readmes"] = models.Readmes
+	ctx.Data["Gitignores"] = repo_module.Gitignores
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["Licenses"] = repo_module.Licenses
+	ctx.Data["Readmes"] = repo_module.Readmes
 
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()

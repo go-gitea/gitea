@@ -74,5 +74,6 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 
 // NewContext start repository service
 func NewContext() error {
+	repo_module.LoadRepoConfig()
 	return initPushQueue()
 }

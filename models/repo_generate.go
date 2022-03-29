@@ -110,7 +110,7 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
 		}
-		if err := newLabel(db.GetEngine(ctx), generateLabel); err != nil {
+		if err := db.Insert(ctx, generateLabel); err != nil {
 			return err
 		}
 	}

@@ -33,7 +33,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := models.GetLabelTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
@@ -100,7 +100,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err = InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
 				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %v", err)

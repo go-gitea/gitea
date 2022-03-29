@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -28,7 +27,6 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
@@ -37,90 +35,11 @@ import (
 	"xorm.io/builder"
 )
 
-var (
-	// Gitignores contains the gitiginore files
-	Gitignores []string
-
-	// Licenses contains the license files
-	Licenses []string
-
-	// Readmes contains the readme files
-	Readmes []string
-
-	// LabelTemplates contains the label template files and the list of labels for each file
-	LabelTemplates map[string]string
-
-	// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
-	ItemsPerPage = 40
-)
-
-// loadRepoConfig loads the repository config
-func loadRepoConfig() {
-	// Load .gitignore and license files and readme templates.
-	types := []string{"gitignore", "license", "readme", "label"}
-	typeFiles := make([][]string, 4)
-	for i, t := range types {
-		files, err := options.Dir(t)
-		if err != nil {
-			log.Fatal("Failed to get %s files: %v", t, err)
-		}
-		customPath := path.Join(setting.CustomPath, "options", t)
-		isDir, err := util.IsDir(customPath)
-		if err != nil {
-			log.Fatal("Failed to get custom %s files: %v", t, err)
-		}
-		if isDir {
-			customFiles, err := util.StatDir(customPath)
-			if err != nil {
-				log.Fatal("Failed to get custom %s files: %v", t, err)
-			}
-
-			for _, f := range customFiles {
-				if !util.IsStringInSlice(f, files, true) {
-					files = append(files, f)
-				}
-			}
-		}
-		typeFiles[i] = files
-	}
-
-	Gitignores = typeFiles[0]
-	Licenses = typeFiles[1]
-	Readmes = typeFiles[2]
-	LabelTemplatesFiles := typeFiles[3]
-	sort.Strings(Gitignores)
-	sort.Strings(Licenses)
-	sort.Strings(Readmes)
-	sort.Strings(LabelTemplatesFiles)
-
-	// Load label templates
-	LabelTemplates = make(map[string]string)
-	for _, templateFile := range LabelTemplatesFiles {
-		labels, err := LoadLabelsFormatted(templateFile)
-		if err != nil {
-			log.Error("Failed to load labels: %v", err)
-		}
-		LabelTemplates[templateFile] = labels
-	}
-
-	// Filter out invalid names and promote preferred licenses.
-	sortedLicenses := make([]string, 0, len(Licenses))
-	for _, name := range setting.Repository.PreferredLicenses {
-		if util.IsStringInSlice(name, Licenses, true) {
-			sortedLicenses = append(sortedLicenses, name)
-		}
-	}
-	for _, name := range Licenses {
-		if !util.IsStringInSlice(name, setting.Repository.PreferredLicenses, true) {
-			sortedLicenses = append(sortedLicenses, name)
-		}
-	}
-	Licenses = sortedLicenses
-}
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+var ItemsPerPage = 40
 
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
-	loadRepoConfig()
 	unit.LoadUnitConfig()
 
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
@@ -439,35 +358,6 @@ type CreateRepoOptions struct {
 	Status         repo_model.RepositoryStatus
 	TrustModel     repo_model.TrustModelType
 	MirrorInterval string
-}
-
-// GetRepoInitFile returns repository init files
-func GetRepoInitFile(tp, name string) ([]byte, error) {
-	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
-	relPath := path.Join("options", tp, cleanedName)
-
-	// Use custom file when available.
-	customPath := path.Join(setting.CustomPath, relPath)
-	isFile, err := util.IsFile(customPath)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
-	}
-	if isFile {
-		return os.ReadFile(customPath)
-	}
-
-	switch tp {
-	case "readme":
-		return options.Readme(cleanedName)
-	case "gitignore":
-		return options.Gitignore(cleanedName)
-	case "license":
-		return options.License(cleanedName)
-	case "label":
-		return options.Labels(cleanedName)
-	default:
-		return []byte{}, fmt.Errorf("Invalid init file type")
-	}
 }
 
 // CreateRepository creates a repository for the user/organization.

@@ -703,22 +703,6 @@ func (err ErrIssueIsClosed) Error() string {
 	return fmt.Sprintf("issue is closed [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
 }
 
-// ErrIssueLabelTemplateLoad represents a "ErrIssueLabelTemplateLoad" kind of error.
-type ErrIssueLabelTemplateLoad struct {
-	TemplateFile  string
-	OriginalError error
-}
-
-// IsErrIssueLabelTemplateLoad checks if an error is a ErrIssueLabelTemplateLoad.
-func IsErrIssueLabelTemplateLoad(err error) bool {
-	_, ok := err.(ErrIssueLabelTemplateLoad)
-	return ok
-}
-
-func (err ErrIssueLabelTemplateLoad) Error() string {
-	return fmt.Sprintf("Failed to load label template file '%s': %v", err.TemplateFile, err.OriginalError)
-}
-
 // ErrNewIssueInsert is used when the INSERT statement in newIssue fails
 type ErrNewIssueInsert struct {
 	OriginalError error
