@@ -5,8 +5,8 @@
 package db
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // Source is a password authentication service
@@ -24,11 +24,11 @@ func (source *Source) ToDB() ([]byte, error) {
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *user_model.User, login, password string) (*user_model.User, error) {
 	return Authenticate(user, login, password)
 }
 
 func init() {
-	login.RegisterTypeConfig(login.NoType, &Source{})
-	login.RegisterTypeConfig(login.Plain, &Source{})
+	auth.RegisterTypeConfig(auth.NoType, &Source{})
+	auth.RegisterTypeConfig(auth.Plain, &Source{})
 }

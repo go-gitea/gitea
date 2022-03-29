@@ -1,0 +1,32 @@
+.markup .code-block {
+  position: relative;
+}
+
+.markup .code-copy {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  padding: 9px;
+  visibility: hidden;
+  animation: fadeout .2s both;
+}
+
+/* adjustments for comment content having only 14px font size */
+.repository.view.issue .comment-list .comment .markup .code-copy {
+  right: 5px;
+  padding: 8px;
+}
+
+/* can not use regular transparent button colors for hover and active states because
+   we need opaque colors here as code can appear behind the button */
+.markup .code-copy:hover {
+  background: var(--color-secondary) !important;
+}
+.markup .code-copy:active {
+  background: var(--color-secondary-dark-1) !important;
+}
+
+.markup .code-block:hover .code-copy {
+  visibility: visible;
+  animation: fadein .2s both;
+}

@@ -14,16 +14,16 @@
 			{{range .Teams}}
 				<div class="column">
 					<div class="ui top attached header">
-						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName}}"><strong>{{.Name}}</strong></a>
+						<a class="text black" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.Name}}</strong></a>
 						<div class="ui right">
 							{{if .IsMember $.SignedUser.ID}}
 								<form>
 									<button class="ui red tiny button delete-button" data-modal-id="leave-team"
-										data-url="{{$.OrgLink}}/teams/{{.LowerName}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
+										data-url="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
 										data-name="{{.Name}}">{{$.i18n.Tr "org.teams.leave"}}</button>
 								</form>
 							{{else if $.IsOrganizationOwner}}
-								<form method="post" action="{{$.OrgLink}}/teams/{{.LowerName}}/action/join">
+								<form method="post" action="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/action/join">
 									{{$.CsrfTokenHtml}}
 									<button type="submit" class="ui blue small button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
 								</form>

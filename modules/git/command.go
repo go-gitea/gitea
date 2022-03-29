@@ -17,11 +17,12 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
-	// GlobalCommandArgs global command args for external package setting
-	GlobalCommandArgs []string
+	// globalCommandArgs global command args for external package setting
+	globalCommandArgs []string
 
 	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
@@ -32,10 +33,11 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name          string
-	args          []string
-	parentContext context.Context
-	desc          string
+	name             string
+	args             []string
+	parentContext    context.Context
+	desc             string
+	globalArgsLength int
 }
 
 func (c *Command) String() string {
@@ -46,19 +48,15 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(args ...string) *Command {
-	return NewCommandContext(DefaultContext, args...)
-}
-
-// NewCommandContext creates and returns a new Git Command based on given command and arguments.
-func NewCommandContext(ctx context.Context, args ...string) *Command {
-	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+func NewCommand(ctx context.Context, args ...string) *Command {
+	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return &Command{
-		name:          GitExecutable,
-		args:          append(cargs, args...),
-		parentContext: ctx,
+		name:             GitExecutable,
+		args:             append(cargs, args...),
+		parentContext:    ctx,
+		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
@@ -143,8 +141,27 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		log.Debug("%s: %v", rc.Dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
-	defer cancel()
+	desc := c.desc
+	if desc == "" {
+		args := c.args[c.globalArgsLength:]
+		var argSensitiveURLIndexes []int
+		for i, arg := range c.args {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
+			args = make([]string, len(c.args))
+			copy(args, c.args)
+			for _, urlArgIndex := range argSensitiveURLIndexes {
+				args[urlArgIndex] = util.NewStringURLSanitizer(args[urlArgIndex], true).Replace(args[urlArgIndex])
+			}
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
+	}
+
+	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
+	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	if rc.Env == nil {
@@ -158,12 +175,10 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		// avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_TERMINAL_PROMPT=0",
+		// ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
-	// TODO: verify if this is still needed in golang 1.15
-	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
 	cmd.Dir = rc.Dir
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr
@@ -171,13 +186,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
-	desc := c.desc
-	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
-	}
-	pid := process.GetManager().Add(desc, cancel)
-	defer process.GetManager().Remove(pid)
 
 	if rc.PipelineFunc != nil {
 		err := rc.PipelineFunc(ctx, cancel)
@@ -279,4 +287,20 @@ func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) Run() (string, error) {
 	return c.RunTimeout(-1)
+}
+
+// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
+func AllowLFSFiltersArgs() []string {
+	// Now here we should explicitly allow lfs filters to run
+	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	j := 0
+	for _, arg := range globalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	return filteredLFSGlobalArgs[:j]
 }

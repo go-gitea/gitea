@@ -1,4 +1,5 @@
-const {csrf} = window.config;
+import $ from 'jquery';
+const {csrfToken} = window.config;
 
 export function initCompReactionSelector(parent) {
   let reactions = '';
@@ -20,7 +21,7 @@ export function initCompReactionSelector(parent) {
       type: 'POST',
       url,
       data: {
-        _csrf: csrf,
+        _csrf: csrfToken,
         content: $(this).data('content')
       }
     }).done((resp) => {

@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -35,7 +36,7 @@ func ToRelease(r *models.Release) *api.Release {
 }
 
 // ToReleaseAttachment converts models.Attachment to api.Attachment
-func ToReleaseAttachment(a *models.Attachment) *api.Attachment {
+func ToReleaseAttachment(a *repo_model.Attachment) *api.Attachment {
 	return &api.Attachment{
 		ID:            a.ID,
 		Name:          a.Name,

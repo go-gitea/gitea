@@ -18,7 +18,7 @@ import (
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
 func AddCacheControlToHeader(h http.Header, d time.Duration) {
-	if setting.IsProd() {
+	if setting.IsProd {
 		h.Set("Cache-Control", "private, max-age="+strconv.Itoa(int(d.Seconds())))
 	} else {
 		h.Set("Cache-Control", "no-store")

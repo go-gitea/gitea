@@ -59,5 +59,4 @@ func TestSanitizeNonEscape(t *testing.T) {
 	if strings.Contains(string(output), "<script>") {
 		t.Errorf("un-escaped <script> in output: %q", output)
 	}
-
 }

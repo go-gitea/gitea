@@ -45,13 +45,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
+								<a href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.archived"}}</span>
 								{{end}}
@@ -82,7 +82,7 @@
 							<td>{{.NumStars}}</td>
 							<td>{{.NumForks}}</td>
 							<td>{{.NumIssues}}</td>
-							<td>{{SizeFmt .Size}}</td>
+							<td>{{FileSize .Size}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>

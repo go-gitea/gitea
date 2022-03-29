@@ -5,11 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-
-	"xorm.io/xorm"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -20,6 +20,7 @@ type ProjectIssue struct {
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+	Sorting        int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -121,7 +122,9 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
@@ -129,33 +132,34 @@ func (p *Project) NumOpenIssues() int {
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
 		return err
 	}
 
-	if err := addUpdateIssueProject(sess, issue, doer, newProjectID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
 		return err
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(ctx); err != nil {
 		return err
 	}
 
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,
@@ -181,33 +185,34 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 // |_|   |_|  \___// |\___|\___|\__|____/ \___/ \__,_|_|  \__,_|
 //               |__/
 
-// MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectBoard(board *ProjectBoard, sortedIssueIDs map[int64]int64) error {
+	return db.WithTx(func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	var pis ProjectIssue
-	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
-	if err != nil {
-		return err
-	}
+		issueIDs := make([]int64, 0, len(sortedIssueIDs))
+		for _, issueID := range sortedIssueIDs {
+			issueIDs = append(issueIDs, issueID)
+		}
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
+		if err != nil {
+			return err
+		}
+		if int(count) != len(sortedIssueIDs) {
+			return fmt.Errorf("all issues have to be added to a project first")
+		}
 
-	if !has {
-		return fmt.Errorf("issue has to be added to a project first")
-	}
-
-	pis.ProjectBoardID = board.ID
-	if _, err := sess.ID(pis.ID).Cols("project_board_id").Update(&pis); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+		for sorting, issueID := range sortedIssueIDs {
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {
-	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0, sorting = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
 }

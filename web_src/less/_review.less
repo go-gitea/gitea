@@ -16,6 +16,17 @@
   }
 }
 
+.lines-escape a.toggle-escape-button::before {
+  visibility: visible;
+  content: '⚠️';
+  font-family: var(--fonts-emoji);
+  color: var(--color-red);
+}
+
+.repository .diff-file-box .code-diff td.lines-escape {
+  padding-left: 0 !important;
+}
+
 .diff-file-box .lines-code:hover .ui.button.add-code-comment {
   opacity: 1;
 }
@@ -184,6 +195,13 @@ a.blob-excerpt {
 a.blob-excerpt:hover {
   background: var(--color-primary);
   color: #fff;
+}
+
+// See the comment of createCommentEasyMDE() for the review editor
+// EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code
+#review-box .CodeMirror-scroll {
+  min-height: 80px;
+  max-height: calc(100vh - 360px);
 }
 
 @media @mediaSm {

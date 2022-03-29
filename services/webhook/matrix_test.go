@@ -7,7 +7,7 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -134,7 +134,7 @@ func TestMatrixPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(MatrixPayloadUnsafe)
-		pl, err := d.Review(p, models.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &MatrixPayloadUnsafe{}, pl)
@@ -184,9 +184,9 @@ func TestMatrixJSONPayload(t *testing.T) {
 }
 
 func TestMatrixHookRequest(t *testing.T) {
-	w := &models.Webhook{}
+	w := &webhook_model.Webhook{}
 
-	h := &models.HookTask{
+	h := &webhook_model.HookTask{
 		PayloadContent: `{
   "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
   "msgtype": "m.notice",

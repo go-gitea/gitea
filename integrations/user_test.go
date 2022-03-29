@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -33,10 +33,10 @@ func TestRenameUsername(t *testing.T) {
 		"email":    "user2@example.com",
 		"language": "en-US",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	db.AssertExistsAndLoadBean(t, &models.User{Name: "newUsername"})
-	db.AssertNotExistsBean(t, &models.User{Name: "user2"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
@@ -67,7 +67,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 			i18n.Tr("en", "form.alpha_dash_dot_error"),
 		)
 
-		db.AssertNotExistsBean(t, &models.User{Name: invalidUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
 	}
 }
 
@@ -103,7 +103,7 @@ func TestRenameReservedUsername(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		resp := session.MakeRequest(t, req, http.StatusFound)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
@@ -113,21 +113,22 @@ func TestRenameReservedUsername(t *testing.T) {
 			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
 		)
 
-		db.AssertNotExistsBean(t, &models.User{Name: reservedUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
 
 func TestExportUserGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
-	//Export empty key list
+	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO
 -----END PGP PUBLIC KEY BLOCK-----
 `)
-	//Import key
-	//User1 <user1@example.com>
+	// Import key
+	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session)
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -161,7 +162,7 @@ GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =DDXw
 -----END PGP PUBLIC KEY BLOCK-----
 `)
-	//Export new key
+	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xsBNBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
@@ -200,6 +201,6 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	t.Logf("Testing username %s export gpg keys", user)
 	req := NewRequest(t, "GET", "/"+user+".gpg")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	//t.Log(resp.Body.String())
+	// t.Log(resp.Body.String())
 	assert.Equal(t, expected, resp.Body.String())
 }

@@ -72,6 +72,13 @@ func (l *MultiChannelledLogger) Log(skip int, level Level, format string, v ...i
 	if len(v) > 0 {
 		msg = ColorSprintf(format, v...)
 	}
+	labels := getGoroutineLabels()
+	if labels != nil {
+		pid, ok := labels["pid"]
+		if ok {
+			msg = "[" + ColorString(FgHiYellow) + pid + ColorString(Reset) + "] " + msg
+		}
+	}
 	stack := ""
 	if l.GetStacktraceLevel() <= level {
 		stack = Stack(skip + 1)
@@ -80,7 +87,7 @@ func (l *MultiChannelledLogger) Log(skip int, level Level, format string, v ...i
 }
 
 // SendLog sends a log event at the provided level with the information given
-func (l *MultiChannelledLogger) SendLog(level Level, caller, filename string, line int, msg string, stack string) error {
+func (l *MultiChannelledLogger) SendLog(level Level, caller, filename string, line int, msg, stack string) error {
 	if l.GetLevel() > level {
 		return nil
 	}

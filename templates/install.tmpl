@@ -13,22 +13,22 @@
 				<form class="ui form" action="{{AppSubUrl}}/" method="post">
 					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
-					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
+					<p>{{.i18n.Tr "install.require_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
 						<label>{{.i18n.Tr "install.db_type"}}</label>
 						<div class="ui selection database type dropdown">
-							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbOption}}">
-							<div class="text">{{.CurDbOption}}</div>
+							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbType}}">
+							<div class="text">{{.CurDbType}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								{{range .DbOptions}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{range .DbTypeNames}}
+									<div class="item" data-value="{{.type}}">{{.name}}</div>
 								{{end}}
 							</div>
 						</div>
 					</div>
 
-					<div id="sql_settings" class="{{if or (eq .CurDbOption "SQLite3")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="common-host">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{.i18n.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -48,7 +48,7 @@
 						</div>
 					</div>
 
-					<div id="pgsql_settings" class="{{if not (eq .CurDbOption "PostgreSQL")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label>{{.i18n.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -69,7 +69,7 @@
 						</div>
 					</div>
 
-					<div id="mysql_settings" class="{{if not (eq .CurDbOption "MySQL")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="mysql">
 						<div class="inline required field">
 							<label>{{.i18n.Tr "install.charset"}}</label>
 							<div class="ui selection database type dropdown">
@@ -83,13 +83,37 @@
 						</div>
 					</div>
 
-					<div id="sqlite_settings" class="{{if not (or (eq .CurDbOption "SQLite3") (eq .CurDbOption "TiDB"))}}hide{{end}}">
+					<div class="hide" data-db-setting-for="sqlite3">
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{.i18n.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">
 							<span class="help">{{.i18n.Tr "install.sqlite_helper" | Safe}}</span>
 						</div>
 					</div>
+
+					{{if .Err_DbInstalledBefore}}
+					<div>
+						<p class="reinstall-message">{{.i18n.Tr "install.reinstall_confirm_message"}}</p>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_1"}}</label>
+								<input name="reinstall_confirm_first" type="checkbox">
+							</div>
+						</div>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_2"}}</label>
+								<input name="reinstall_confirm_second" type="checkbox">
+							</div>
+						</div>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_3"}}</label>
+								<input name="reinstall_confirm_third" type="checkbox">
+							</div>
+						</div>
+					</div>
+					{{end}}
 
 					<!-- General Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.general_title"}}</h4>
@@ -186,73 +210,73 @@
 						</summary>
 						<div class="inline field">
 							<div class="ui checkbox" id="offline-mode">
-								<label class="poping up" data-content="{{.i18n.Tr "install.offline_mode_popup"}}"><strong>{{.i18n.Tr "install.offline_mode"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.offline_mode_popup"}}"><strong>{{.i18n.Tr "install.offline_mode"}}</strong></label>
 								<input name="offline_mode" type="checkbox" {{if .offline_mode}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="disable-gravatar">
-								<label class="poping up" data-content="{{.i18n.Tr "install.disable_gravatar_popup"}}"><strong>{{.i18n.Tr "install.disable_gravatar"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.disable_gravatar_popup"}}"><strong>{{.i18n.Tr "install.disable_gravatar"}}</strong></label>
 								<input name="disable_gravatar" type="checkbox" {{if .disable_gravatar}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="federated-avatar-lookup">
-								<label class="poping up" data-content="{{.i18n.Tr "install.federated_avatar_lookup_popup"}}"><strong>{{.i18n.Tr "install.federated_avatar_lookup"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.federated_avatar_lookup_popup"}}"><strong>{{.i18n.Tr "install.federated_avatar_lookup"}}</strong></label>
 								<input name="enable_federated_avatar" type="checkbox" {{if .enable_federated_avatar}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-openid-signin">
-								<label class="poping up" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
 								<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="disable-registration">
-								<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
 								<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="allow-only-external-registration">
-								<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
 								<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-openid-signup">
-								<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
 								<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox" id="enable-captcha">
-								<label class="poping up" data-content="{{.i18n.Tr "install.enable_captcha_popup"}}"><strong>{{.i18n.Tr "install.enable_captcha"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.enable_captcha_popup"}}"><strong>{{.i18n.Tr "install.enable_captcha"}}</strong></label>
 								<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="poping up" data-content="{{.i18n.Tr "install.require_sign_in_view_popup"}}"><strong>{{.i18n.Tr "install.require_sign_in_view"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.require_sign_in_view_popup"}}"><strong>{{.i18n.Tr "install.require_sign_in_view"}}</strong></label>
 								<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="poping up" data-content="{{.i18n.Tr "install.default_keep_email_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_email_private"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.default_keep_email_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_email_private"}}</strong></label>
 								<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="poping up" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
 								<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
 							</div>
 						</div>
 						<div class="inline field">
 							<div class="ui checkbox">
-								<label class="poping up" data-content="{{.i18n.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.i18n.Tr "install.default_enable_timetracking"}}</strong></label>
+								<label class="tooltip" data-content="{{.i18n.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.i18n.Tr "install.default_enable_timetracking"}}</strong></label>
 								<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
 							</div>
 						</div>

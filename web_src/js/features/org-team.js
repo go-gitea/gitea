@@ -1,4 +1,6 @@
-const {AppSubUrl} = window.config;
+import $ from 'jquery';
+
+const {appSubUrl} = window.config;
 
 export function initOrgTeamSettings() {
   // Change team access mode
@@ -18,7 +20,7 @@ export function initOrgTeamSearchRepoBox() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${AppSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${appSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {

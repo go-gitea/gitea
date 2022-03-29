@@ -5,8 +5,8 @@
 package explore
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,13 +27,13 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
-	if ctx.User != nil {
+	if ctx.Doer != nil {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
-	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Actor:       ctx.User,
-		Type:        models.UserTypeOrganization,
+	RenderUserSearch(ctx, &user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
+		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
 	}, tplExploreOrganizations)

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session)
 
-		var org = api.CreateOrgOption{
+		org := api.CreateOrgOption{
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
 			Description: "This organization created by admin for user2",
@@ -43,7 +43,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 		assert.Equal(t, org.Location, apiOrg.Location)
 		assert.Equal(t, org.Visibility, apiOrg.Visibility)
 
-		db.AssertExistsAndLoadBean(t, &models.User{
+		unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name:      org.UserName,
 			LowerName: strings.ToLower(org.UserName),
 			FullName:  org.FullName,
@@ -56,7 +56,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session)
 
-		var org = api.CreateOrgOption{
+		org := api.CreateOrgOption{
 			UserName:    "user2_org",
 			FullName:    "User2's organization",
 			Description: "This organization created by admin for user2",
@@ -74,7 +74,7 @@ func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
 	token := getTokenForLoggedInUser(t, session)
-	var org = api.CreateOrgOption{
+	org := api.CreateOrgOption{
 		UserName:    "user2_org",
 		FullName:    "User2's organization",
 		Description: "This organization created by admin for user2",

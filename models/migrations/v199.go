@@ -5,19 +5,10 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addRemoteVersionTable(x *xorm.Engine) error {
-	type RemoteVersion struct {
-		ID      int64  `xorm:"pk autoincr"`
-		Version string `xorm:"VARCHAR(50)"`
-	}
-
-	if err := x.Sync2(new(RemoteVersion)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
+func addRemoteVersionTableNoop(x *xorm.Engine) error {
+	// we used to use a table `remote_version` to store information for updater, now we use `AppState`, so this migration task is a no-op now.
 	return nil
 }

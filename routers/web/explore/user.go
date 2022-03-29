@@ -8,8 +8,8 @@ import (
 	"bytes"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,26 +25,24 @@ const (
 // UserSearchDefaultSortType is the default sort type for user search
 const UserSearchDefaultSortType = "alphabetically"
 
-var (
-	nullByte = []byte{0x00}
-)
+var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)
 }
 
 // RenderUserSearch render user search page
-func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplName base.TplName) {
+func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName base.TplName) {
 	opts.Page = ctx.FormInt("page")
 	if opts.Page <= 1 {
 		opts.Page = 1
 	}
 
 	var (
-		users   []*models.User
+		users   []*user_model.User
 		count   int64
 		err     error
-		orderBy models.SearchOrderBy
+		orderBy db.SearchOrderBy
 	)
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
@@ -69,7 +67,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		users, count, err = models.SearchUsers(opts)
+		users, count, err = user_model.SearchUsers(opts)
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
 			return
@@ -78,12 +76,15 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
-	ctx.Data["UsersTwoFaStatus"] = models.UserList(users).GetTwoFaStatus()
+	ctx.Data["UsersTwoFaStatus"] = user_model.UserList(users).GetTwoFaStatus()
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	for paramKey, paramVal := range opts.ExtraParamStrings {
+		pager.AddParamString(paramKey, paramVal)
+	}
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplName)
@@ -100,9 +101,9 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Actor:       ctx.User,
-		Type:        models.UserTypeIndividual,
+	RenderUserSearch(ctx, &user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
+		Type:        user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    util.OptionalBoolTrue,
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},

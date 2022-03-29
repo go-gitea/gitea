@@ -3,8 +3,8 @@
 		{{.i18n.Tr "repo.settings.recent_deliveries"}}
 		{{if .Permission.IsAdmin}}
 			<div class="ui right">
-				<button class="ui teal tiny button poping up" id="test-delivery" data-content=
-				"{{.i18n.Tr "repo.settings.webhook.test_delivery_desc"}}" data-variation="inverted tiny" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.i18n.Tr "repo.settings.webhook.test_delivery"}}</button>
+				<button class="ui teal tiny button tooltip" id="test-delivery" data-content=
+				"{{.i18n.Tr "repo.settings.webhook.test_delivery_desc"}}" data-link="{{.Link}}/test" data-redirect="{{.Link}}">{{.i18n.Tr "repo.settings.webhook.test_delivery"}}</button>
 			</div>
 		{{end}}
 	</h4>
@@ -40,6 +40,14 @@
 									<span class="ui label">N/A</span>
 								{{end}}
 							</a>
+							{{if or $.Permission.IsAdmin $.IsOrganizationOwner $.PageIsAdmin}}
+							<div class="right menu">
+								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
+									{{$.CsrfTokenHtml}}
+									<button class="ui tiny button tooltip" data-content="{{$.i18n.Tr "repo.settings.webhook.replay.description"}}" data-variation="inverted tiny">{{svg "octicon-sync"}}</button>
+								</form>
+							</div>
+							{{end}}
 						</div>
 						<div class="ui bottom attached tab segment active" data-tab="request-{{.ID}}">
 							{{if .RequestInfo}}

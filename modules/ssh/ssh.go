@@ -17,11 +17,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -171,9 +172,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := models.SearchPublicKeyByContentExact(principal)
+			pkey, err := asymkey_model.SearchPublicKeyByContentExact(principal)
 			if err != nil {
-				if models.IsErrKeyNotExist(err) {
+				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
 					continue principalLoop
 				}
@@ -231,9 +232,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
-	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	pkey, err := asymkey_model.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
-		if models.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			if log.IsWarn() {
 				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
@@ -262,9 +263,9 @@ func sshConnectionFailed(conn net.Conn, err error) {
 }
 
 // Listen starts a SSH server listens on given port.
-func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
+func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
-		Addr:             fmt.Sprintf("%s:%d", host, port),
+		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
@@ -317,7 +318,6 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	}
 
 	go listen(&srv)
-
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
@@ -330,7 +330,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -351,7 +351,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	public := gossh.MarshalAuthorizedKey(pub)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

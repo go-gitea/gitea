@@ -6,6 +6,7 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -244,7 +245,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + ctx.Params(":action"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone
@@ -263,7 +264,7 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
-	milestone, err := models.GetMilestoneByID(milestoneID)
+	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("GetMilestoneByID", err)

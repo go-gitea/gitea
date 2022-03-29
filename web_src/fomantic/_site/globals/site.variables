@@ -6,3 +6,4 @@
 @useCustomScrollbars: false;
 @disabledOpacity: var(--opacity-disabled);
 @variationPopupTooltip: false;
+@linkHoverUnderline: underline;

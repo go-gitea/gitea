@@ -8,24 +8,25 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/repofiles"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func getDeleteRepoFileOptions(repo *models.Repository) *repofiles.DeleteRepoFileOptions {
-	return &repofiles.DeleteRepoFileOptions{
+func getDeleteRepoFileOptions(repo *repo_model.Repository) *files_service.DeleteRepoFileOptions {
+	return &files_service.DeleteRepoFileOptions{
 		LastCommitID: "",
 		OldBranch:    repo.DefaultBranch,
 		NewBranch:    repo.DefaultBranch,
 		TreePath:     "README.md",
 		Message:      "Deletes README.md",
 		SHA:          "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  "Bob Smith",
 			Email: "bob@smith.com",
 		},
@@ -67,7 +68,7 @@ func TestDeleteRepoFile(t *testing.T) {
 
 func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -76,11 +77,11 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 	opts := getDeleteRepoFileOptions(repo)
 
 	t.Run("Delete README.md file", func(t *testing.T) {
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
@@ -92,7 +93,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		expectedError := "repository file does not exist [path: " + opts.TreePath + "]"
 		assert.EqualError(t, err, expectedError)
@@ -106,7 +107,7 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 
 func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -116,13 +117,13 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 	opts := getDeleteRepoFileOptions(repo)
 	opts.OldBranch = ""
 	opts.NewBranch = ""
 
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.NoError(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
 		assert.NotNil(t, fileResponse)
@@ -136,7 +137,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 
 func TestDeleteRepoFileErrors(t *testing.T) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -146,12 +147,12 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 
 	t.Run("Bad branch", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.OldBranch = "bad_branch"
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Error(t, err)
 		assert.Nil(t, fileResponse)
 		expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
@@ -162,7 +163,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		origSHA := opts.SHA
 		opts.SHA = "bad_sha"
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
@@ -172,7 +173,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("New branch already exists", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.NewBranch = "develop"
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "branch already exists [name: " + opts.NewBranch + "]"
@@ -182,7 +183,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("TreePath is empty:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.TreePath = ""
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "path contains a malformed path component [path: ]"
@@ -192,7 +193,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	t.Run("TreePath is a git directory:", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
 		opts.TreePath = ".git"
-		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.DeleteRepoFile(git.DefaultContext, repo, doer, opts)
 		assert.Nil(t, fileResponse)
 		assert.Error(t, err)
 		expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"

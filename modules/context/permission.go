@@ -5,7 +5,7 @@
 package context
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -20,7 +20,7 @@ func RequireRepoAdmin() func(ctx *Context) {
 }
 
 // RequireRepoWriter returns a middleware for requiring repository write to the specify unitType
-func RequireRepoWriter(unitType models.UnitType) func(ctx *Context) {
+func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWrite(unitType) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
@@ -30,7 +30,7 @@ func RequireRepoWriter(unitType models.UnitType) func(ctx *Context) {
 }
 
 // RequireRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
-func RequireRepoWriterOr(unitTypes ...models.UnitType) func(ctx *Context) {
+func RequireRepoWriterOr(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
 			if ctx.Repo.CanWrite(unitType) {
@@ -42,14 +42,14 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) func(ctx *Context) {
 }
 
 // RequireRepoReader returns a middleware for requiring repository read to the specify unitType
-func RequireRepoReader(unitType models.UnitType) func(ctx *Context) {
+func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
 			if log.IsTrace() {
 				if ctx.IsSigned {
 					log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 						"User in Repo has Permissions: %-+v",
-						ctx.User,
+						ctx.Doer,
 						unitType,
 						ctx.Repo.Repository,
 						ctx.Repo.Permission)
@@ -68,7 +68,7 @@ func RequireRepoReader(unitType models.UnitType) func(ctx *Context) {
 }
 
 // RequireRepoReaderOr returns a middleware for requiring repository write to one of the unit permission
-func RequireRepoReaderOr(unitTypes ...models.UnitType) func(ctx *Context) {
+func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
 			if ctx.Repo.CanRead(unitType) {
@@ -80,7 +80,7 @@ func RequireRepoReaderOr(unitTypes ...models.UnitType) func(ctx *Context) {
 			var args []interface{}
 			if ctx.IsSigned {
 				format = "Permission Denied: User %-v cannot read ["
-				args = append(args, ctx.User)
+				args = append(args, ctx.Doer)
 			} else {
 				format = "Permission Denied: Anonymous user cannot read ["
 			}

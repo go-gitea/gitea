@@ -81,23 +81,22 @@ Here's how to run the test suite:
 |``make lint-frontend`` | lint frontend files  |
 |``make lint-backend``  | lint backend files   |
 
-- run test code (Suggest run in linux)  
+- run test code (Suggest run in Linux)  
 
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
 |``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for sqlite |  
-|[More detail message about integrations](integrations/README.md)  |
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |  
+|[More details about integrations](integrations/README.md)  |
 
 ## Vendoring
 
-We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
+We manage dependencies via [Go Modules](https://golang.org/cmd/go/#hdr-Module_maintenance), more details: [go mod](https://go.dev/ref/mod).
 
-Pull requests should only include `vendor/` updates if they are part of
+Pull requests should only include `go.mod`, `go.sum` updates if they are part of
 the same change, be it a bugfix or a feature addition.
 
-The `vendor/` update needs to be justified as part of the PR description,
+The `go.mod`, `go.sum` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
 
@@ -106,7 +105,7 @@ You can find more information on how to get started with it on the [Modules Wiki
 ## Translation
 
 We do all translation work inside [Crowdin](https://crowdin.com/project/gitea).
-The only translation that is maintained in this git repository is
+The only translation that is maintained in this Git repository is
 [`en_US.ini`](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini)
 and is synced regularly to Crowdin. Once a translation has reached
 A SATISFACTORY PERCENTAGE it will be synced back into this repo and
@@ -135,6 +134,15 @@ Some of the key points:
   if that is not related to your PR, please make *another* PR for that.
 * Split big pull requests into multiple small ones. An incremental change
   will be faster to review than a huge PR.
+* Use the first comment as a summary explainer of your PR and you should keep this up-to-date as the PR evolves.
+
+If your PR could cause a breaking change you must add a BREAKING section to this comment e.g.:
+
+```
+## :warning: BREAKING :warning:
+```
+
+To explain how this could affect users and how to mitigate these changes.
 
 ## Styleguide
 
@@ -142,8 +150,8 @@ For imports you should use the following format (_without_ the comments)
 ```go
 import (
   // stdlib
-  "encoding/json"
   "fmt"
+  "math"
 
   // local packages
   "code.gitea.io/gitea/models"
@@ -157,7 +165,7 @@ import (
 
 ## Design guideline
 
-To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
+To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The Gitea code is divided into the following parts:
 
 - **integration:** Integrations tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
@@ -204,13 +212,74 @@ In general, HTTP methods are chosen as follows:
  * **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Objects (e.g. User) to something (e.g. Org-Team)
  * **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
 
-
 An endpoint which changes/edits an object expects all fields to be optional (except ones to identify the object, which are required).
-
 ### Endpoints returning lists should
  * support pagination (`page` & `limit` options in query)
  * set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
+## Large Character Comments
+
+Throughout the codebase there are large-text comments for sections of code, e.g.:
+
+```go
+// __________            .__               
+// \______   \ _______  _|__| ______  _  __
+//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
+//  |    |   \  ___/\   /|  \  ___/\     / 
+//  |____|_  /\___  >\_/ |__|\___  >\/\_/  
+//         \/     \/             \/        
+```
+
+These were created using the `figlet` tool with the `graffiti` font.
+
+A simple way of creating these is to use the following:
+
+```bash
+figlet -f graffiti Review | sed  -e's+^+// +' - | xclip -sel clip -in
+```
+
+## Backports and Frontports
+
+Occasionally backports of PRs are required.
+
+The backported PR title should be:
+
+```
+Title of backported PR (#ORIGINAL_PR_NUMBER)
+```
+
+The first two lines of the summary of the backporting PR should be:
+
+```
+Backport #ORIGINAL_PR_NUMBER
+
+```
+
+with the rest of the summary matching the original PR. Similarly for frontports
+
+---
+
+The below is a script that may be helpful in creating backports. YMMV.
+
+```bash
+#!/bin/sh
+PR="$1"
+SHA="$2"
+VERSION="$3"
+
+if [ -z "$SHA" ]; then
+    SHA=$(gh api /repos/go-gitea/gitea/pulls/$PR -q '.merge_commit_sha')
+fi
+
+if [ -z "$VERSION" ]; then
+    VERSION="v1.16"
+fi
+
+echo git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
+git checkout origin/release/"$VERSION" -b backport-$PR-$VERSION
+git cherry-pick $SHA && git commit --amend && git push zeripath backport-$PR-$VERSION && xdg-open https://github.com/go-gitea/gitea/compare/release/"$VERSION"...zeripath:backport-$PR-$VERSION
+
+```
 
 ## Developer Certificate of Origin (DCO)
 
@@ -223,7 +292,7 @@ Additionally you could add a line at the end of your commit message.
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-If you set your `user.name` and `user.email` git configs, you can add the
+If you set your `user.name` and `user.email` Git configs, you can add the
 line to the end of your commit automatically with `git commit -s`.
 
 We assume in good faith that the information you provide is legally binding.
@@ -268,7 +337,7 @@ to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
 For security reasons, Maintainers should use 2FA for their accounts and
-if possible provide gpg signed commits.
+if possible provide GPG signed commits.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
@@ -299,6 +368,11 @@ and lead the development of Gitea.
 To honor the past owners, here's the history of the owners and the time
 they served:
 
+* 2022-01-01 ~ 2022-12-31 - https://github.com/go-gitea/gitea/issues/17872
+  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+  * [Andrew Thornton](https://gitea.com/zeripath) <art27@cantab.net>
+
 * 2021-01-01 ~ 2021-12-31 - https://github.com/go-gitea/gitea/issues/13801
   * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
   * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
@@ -326,13 +400,13 @@ they served:
 
 ## Versions
 
-Gitea has the `master` branch as a tip branch and has version branches
+Gitea has the `main` branch as a tip branch and has version branches
 such as `release/v0.9`. `release/v0.9` is a release branch and we will
 tag `v0.9.0` for binary download. If `v0.9.0` has bugs, we will accept
 pull requests on the `release/v0.9` branch and publish a `v0.9.1` tag,
-after bringing the bug fix also to the master branch.
+after bringing the bug fix also to the main branch.
 
-Since the `master` branch is a tip version, if you wish to use Gitea
+Since the `main` branch is a tip version, if you wish to use Gitea
 in production, please download the latest release tag version. All the
 branches will be protected via GitHub, all the PRs to every branch must
 be reviewed by two maintainers and must pass the automatic tests.
@@ -340,22 +414,26 @@ be reviewed by two maintainers and must pass the automatic tests.
 ## Releasing Gitea
 
 * Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
-* If this is a big version first you have to create PR for changelog on branch `master` with PRs with label `changelog` and after it has been merged do following steps:
+* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+* If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
   * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
   * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
 * If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
 * Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
-* If needed send PR for changelog on branch `master`.
+* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
+* If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
 * Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
+* Verify all release assets were correctly published through CI on dl.gitea.io and GitHub releases. Once ACKed:
+  * bump the version of https://dl.gitea.io/gitea/version.json
+  * merge the blog post PR
+  * announce the release in discord `#announcements`
 
 ## Copyright
 
 Code that you contribute should use the standard copyright header:
 
 ```
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 ```

@@ -1,10 +1,10 @@
+import $ from 'jquery';
+import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 
-import 'jquery.are-you-sure';
-
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -62,9 +62,8 @@ export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
-      .addClass('poping up')
+      .addClass('tooltip')
       .attr('data-content', $(this).attr('title'))
-      .attr('data-variation', 'inverted tiny')
       .attr('title', '');
   });
 
@@ -88,7 +87,7 @@ export function initGlobalCommon() {
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
-      $('.poping.up').popup('hide');
+      $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
@@ -104,8 +103,17 @@ export function initGlobalCommon() {
   $('.ui.progress').progress({
     showActivity: false
   });
-  $('.poping.up').popup();
-  $('.top.menu .poping.up').popup({
+
+  // init popups
+  $('.tooltip').each((_, el) => {
+    const $el = $(el);
+    const attr = $el.attr('data-variation');
+    const attrs = attr ? attr.split(' ') : [];
+    const variations = new Set([...attrs, 'inverted', 'tiny']);
+    $el.attr('data-variation', [...variations].join(' ')).popup();
+  });
+
+  $('.top.menu .tooltip').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
         return false;
@@ -119,24 +127,29 @@ export function initGlobalCommon() {
     $($(this).data('target')).slideToggle(100);
   });
 
-  // make table <tr> element clickable like a link
-  $('tr[data-href]').on('click', function () {
-    window.location = $(this).data('href');
-  });
-
-  // make table <td> element clickable like a link
-  $('td[data-href]').click(function () {
-    window.location = $(this).data('href');
+  // make table <tr> and <td> elements clickable like a link
+  $('tr[data-href], td[data-href]').on('click', function (e) {
+    const href = $(this).data('href');
+    if (e.target.nodeName === 'A') {
+      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      // ctrl+click or meta+click opens a new window in modern browsers
+      window.open(href);
+    } else {
+      window.location = href;
+    }
   });
 }
 
-export async function initGlobalDropzone() {
+export function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
-    await createDropzone(el, {
+    const _promise = createDropzone(el, {
       url: $dropzone.data('upload-url'),
-      headers: {'X-Csrf-Token': csrf},
+      headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
       acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
@@ -159,7 +172,7 @@ export async function initGlobalDropzone() {
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: file.uuid,
-              _csrf: csrf,
+              _csrf: csrfToken,
             });
           }
         });
@@ -194,11 +207,11 @@ export function initGlobalLinkActions() {
         }
 
         const postData = {
-          _csrf: csrf,
+          _csrf: csrfToken,
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
@@ -232,7 +245,7 @@ export function initGlobalLinkActions() {
         }
 
         $.post($this.data('url'), {
-          _csrf: csrf,
+          _csrf: csrfToken,
           id: $this.data('id')
         }).done((data) => {
           window.location.href = data.redirect;
@@ -247,7 +260,7 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const redirect = $this.data('redirect');
     $.post($this.data('url'), {
-      _csrf: csrf
+      _csrf: csrfToken
     }).done((data) => {
       if (data.redirect) {
         window.location.href = data.redirect;
@@ -270,7 +283,7 @@ export function initGlobalLinkActions() {
   $('.undo-button').on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       id: $this.data('id')
     }).done((data) => {
       window.location.href = data.redirect;
@@ -283,13 +296,39 @@ export function initGlobalButtons() {
     $($(this).data('panel')).show();
   });
 
-  $('.hide-panel.button').on('click', function () {
-    $($(this).data('panel')).hide();
+  $('.hide-panel.button').on('click', function (event) {
+    // a `.hide-panel.button` can hide a panel, by `data-panel="selector"` or `data-panel-closest="selector"`
+    event.preventDefault();
+    let sel = $(this).attr('data-panel');
+    if (sel) {
+      $(sel).hide();
+      return;
+    }
+    sel = $(this).attr('data-panel-closest');
+    if (sel) {
+      $(this).closest(sel).hide();
+      return;
+    }
+    // should never happen, otherwise there is a bug in code
+    alert('Nothing to hide');
   });
 
-  $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+  $('.show-modal').on('click', function () {
+    const modalDiv = $($(this).attr('data-modal'));
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith('data-modal-')) {
+        continue;
+      }
+      const id = attrib.name.substring(11);
+      const target = modalDiv.find(`#${id}`);
+      if (target.is('input')) {
+        target.val(attrib.value);
+      } else {
+        target.text(attrib.value);
+      }
+    }
+    modalDiv.modal('show');
+    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
@@ -297,10 +336,10 @@ export function initGlobalButtons() {
 
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
-    $.post($this.data('request-url'), {
-      _csrf: csrf
+    $.post($this.attr('data-request-url'), {
+      _csrf: csrfToken
     }).done(() => {
-      window.location.href = $this.data('done-url');
+      window.location.href = $this.attr('data-done-url');
     });
   });
 }

@@ -5,19 +5,19 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 )
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID          int64      `xorm:"pk autoincr"`
-		PullID      int64      `xorm:"BIGINT"`
-		DoerID      int64      `xorm:"BIGINT"`
-		MergeStyle  MergeStyle `xorm:"varchar(50)"`
-		Message     string     `xorm:"TEXT"`
-		CreatedUnix int64      `xorm:"created"`
+func addTableAppState(x *xorm.Engine) error {
+	type AppState struct {
+		ID       string `xorm:"pk varchar(200)"`
+		Revision int64
+		Content  string `xorm:"LONGTEXT"`
 	}
-
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	if err := x.Sync2(new(AppState)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return nil
 }

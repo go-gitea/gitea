@@ -17,7 +17,7 @@ import (
 )
 
 // CustomProviderNewFn creates a goth.Provider using a custom url mapping
-type CustomProviderNewFn func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error)
+type CustomProviderNewFn func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error)
 
 // CustomProvider is a GothProvider that has CustomURL features
 type CustomProvider struct {
@@ -35,7 +35,7 @@ func (c *CustomProvider) CustomURLSettings() *CustomURLSettings {
 func (c *CustomProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
 	custom := c.customURLSettings.OverrideWith(source.CustomURLMapping)
 
-	return c.newFn(source.ClientID, source.ClientSecret, callbackURL, custom)
+	return c.newFn(source.ClientID, source.ClientSecret, callbackURL, custom, source.Scopes)
 }
 
 // NewCustomProvider is a constructor function for custom providers
@@ -60,8 +60,7 @@ func init() {
 			ProfileURL: availableAttribute(github.ProfileURL),
 			EmailURL:   availableAttribute(github.EmailURL),
 		},
-		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
-			scopes := []string{}
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
 			if setting.OAuth2Client.EnableAutoRegistration {
 				scopes = append(scopes, "user:email")
 			}
@@ -73,8 +72,9 @@ func init() {
 			AuthURL:    availableAttribute(gitlab.AuthURL),
 			TokenURL:   availableAttribute(gitlab.TokenURL),
 			ProfileURL: availableAttribute(gitlab.ProfileURL),
-		}, func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
-			return gitlab.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, "read_user"), nil
+		}, func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			scopes = append(scopes, "read_user")
+			return gitlab.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
 		}))
 
 	RegisterGothProvider(NewCustomProvider(
@@ -83,8 +83,8 @@ func init() {
 			AuthURL:    requiredAttribute(gitea.AuthURL),
 			ProfileURL: requiredAttribute(gitea.ProfileURL),
 		},
-		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
-			return gitea.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL), nil
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			return gitea.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
 		}))
 
 	RegisterGothProvider(NewCustomProvider(
@@ -93,25 +93,31 @@ func init() {
 			AuthURL:    requiredAttribute(nextcloud.AuthURL),
 			ProfileURL: requiredAttribute(nextcloud.ProfileURL),
 		},
-		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
-			return nextcloud.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL), nil
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			return nextcloud.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, scopes...), nil
 		}))
 
 	RegisterGothProvider(NewCustomProvider(
 		"mastodon", "Mastodon", &CustomURLSettings{
 			AuthURL: requiredAttribute(mastodon.InstanceURL),
 		},
-		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
-			return mastodon.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL), nil
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			return mastodon.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, scopes...), nil
 		}))
 
 	RegisterGothProvider(NewCustomProvider(
 		"azureadv2", "Azure AD v2", &CustomURLSettings{
 			Tenant: requiredAttribute("organizations"),
 		},
-		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping, scopes []string) (goth.Provider, error) {
+			azureScopes := make([]azureadv2.ScopeType, len(scopes))
+			for i, scope := range scopes {
+				azureScopes[i] = azureadv2.ScopeType(scope)
+			}
+
 			return azureadv2.New(clientID, secret, callbackURL, azureadv2.ProviderOptions{
 				Tenant: azureadv2.TenantType(custom.Tenant),
+				Scopes: azureScopes,
 			}), nil
 		},
 	))

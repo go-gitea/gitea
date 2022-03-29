@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -125,8 +126,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["Stats"] = models.GetStatistic()
-	ctx.Data["NeedUpdate"] = models.GetNeedUpdate()
-	ctx.Data["RemoteVersion"] = models.GetRemoteVersion()
+	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
+	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
@@ -148,7 +149,7 @@ func DashboardPost(ctx *context.Context) {
 	if form.Op != "" {
 		task := cron.GetTask(form.Op)
 		if task != nil {
-			go task.RunWithUser(ctx.User, nil)
+			go task.RunWithUser(ctx.Doer, nil)
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
@@ -208,7 +209,7 @@ func shadowPassword(provider, cfgItem string) string {
 	case "redis":
 		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
-		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		// root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
 		if atIdx > 0 {
 			colonIdx := strings.Index(cfgItem[:atIdx], ":")
@@ -325,7 +326,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes()
+	ctx.Data["Processes"] = process.GetManager().Processes(true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(http.StatusOK, tplMonitor)
@@ -333,8 +334,8 @@ func Monitor(ctx *context.Context) {
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
-	pid := ctx.ParamsInt64("pid")
-	process.GetManager().Cancel(pid)
+	pid := ctx.Params("pid")
+	process.GetManager().Cancel(process.IDType(pid))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
@@ -345,7 +346,7 @@ func Queue(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
@@ -360,7 +361,7 @@ func WorkerCancel(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	pid := ctx.ParamsInt64("pid")
@@ -376,7 +377,7 @@ func Flush(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
@@ -393,12 +394,36 @@ func Flush(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
+// Pause pauses a queue
+func Pause(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Pause()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
+// Resume resumes a queue
+func Resume(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Resume()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
 // AddWorkers adds workers to a worker group
 func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	number := ctx.FormInt("number")
@@ -428,7 +453,7 @@ func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {

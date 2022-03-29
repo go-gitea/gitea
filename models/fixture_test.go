@@ -9,21 +9,21 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestFixtureGeneration(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(gen func() (string, error), name string) {
 		expected, err := gen()
 		if !assert.NoError(t, err) {
 			return
 		}
-		bytes, err := os.ReadFile(filepath.Join(db.FixturesDir(), name+".yml"))
+		bytes, err := os.ReadFile(filepath.Join(unittest.FixturesDir(), name+".yml"))
 		if !assert.NoError(t, err) {
 			return
 		}

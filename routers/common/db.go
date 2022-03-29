@@ -25,7 +25,7 @@ func InitDBEngine(ctx context.Context) (err error) {
 		default:
 		}
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
-		if err = db.NewEngine(ctx, migrations.Migrate); err == nil {
+		if err = db.InitEngineWithMigration(ctx, migrations.Migrate); err == nil {
 			break
 		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
