@@ -61,7 +61,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comment.Content)
+		mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -248,7 +248,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +258,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, codeComment := range comments {
-				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
 				if err != nil {
 					return nil, nil, err
 				}
