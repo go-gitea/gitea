@@ -196,6 +196,7 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	CamoEnabled                        bool
 	CamoServerURL                      string
 	CamoHMACKey                        string
 	CamoAllways                        bool
@@ -920,9 +921,12 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	CamoServerURL = sec.Key("CAMO_SERVER_URL").MustString("")
 	CamoHMACKey = sec.Key("CAMO_HMAC_KEY").MustString("")
 	CamoAllways = sec.Key("CAMO_ALLWAYS").MustBool(false)
-	if CamoServerURL != "" && CamoHMACKey == "" {
-		log.Error("CAMO_SERVER_URL is set but CAMO_HMAC_KEY is empty, skip media proxy settings")
-		CamoServerURL = ""
+	if CamoServerURL != "" {
+		if CamoHMACKey == "" {
+			log.Error("CAMO_SERVER_URL is set but CAMO_HMAC_KEY is empty, skip media proxy settings")
+		} else {
+			CamoEnabled = true
+		}
 	}
 
 	InternalToken = loadInternalToken(sec)

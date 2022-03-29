@@ -386,7 +386,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
-				if setting.CamoServerURL != "" {
+				if setting.CamoEnabled {
 					lnkURL, err := url.Parse(attr.Val)
 					if err != nil && lnkURL.IsAbs() && !strings.HasPrefix(attr.Val, setting.AppURL) &&
 						(setting.CamoAllways || lnkURL.Scheme != "https") {
