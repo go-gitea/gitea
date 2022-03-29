@@ -134,24 +134,34 @@ func TestHasPreviousCommit(t *testing.T) {
 	assert.False(t, selfNot)
 }
 
-func TestGetBranchNamesForSha(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+func TestGetRefsBySha(t *testing.T) {
+	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
 
-	branches, err := GetBranchNamesForSha(context.Background(), "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", bareRepo1Path)
+	// do not exist
+	branches, err := GetRefsBySha(context.Background(), "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", "", bareRepo5Path)
 	assert.NoError(t, err)
 	assert.Len(t, branches, 0)
 
-	branches, err = GetBranchNamesForSha(context.Background(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2", bareRepo1Path)
+	// refs/pull/1/head
+	branches, err = GetRefsBySha(context.Background(), "c83380d7056593c51a699d12b9c00627bd5743e9", PullPrefix, bareRepo5Path)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"refs/heads/master"}, branches)
+	assert.EqualValues(t, []string{"refs/pull/1/head"}, branches)
 
-	branches, err = GetBranchNamesForSha(context.Background(), "2839944139e0de9737a044f78b0e4b40d989a9e3", bareRepo1Path)
+	branches, err = GetRefsBySha(context.Background(), "d8e0bbb45f200e67d9a784ce55bd90821af45ebd", BranchPrefix, bareRepo5Path)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"refs/heads/branch1"}, branches)
+	assert.EqualValues(t, []string{"refs/heads/master", "refs/heads/master-clone"}, branches)
 
-	branches, err = GetBranchNamesForSha(context.Background(), "5c80b0245c1c6f8343fa418ec374b13b5d4ee658", bareRepo1Path)
+	branches, err = GetRefsBySha(context.Background(), "58a4bcc53ac13e7ff76127e0fb518b5262bf09af", BranchPrefix, bareRepo5Path)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []string{"refs/heads/branch2"}, branches)
+	assert.EqualValues(t, []string{"refs/heads/test-patch-1"}, branches)
+}
+
+func BenchmarkGetRefsBySha(b *testing.B) {
+	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
+	_, _ = GetRefsBySha(context.Background(), "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", "", bareRepo5Path)
+	_, _ = GetRefsBySha(context.Background(), "d8e0bbb45f200e67d9a784ce55bd90821af45ebd", "", bareRepo5Path)
+	_, _ = GetRefsBySha(context.Background(), "c83380d7056593c51a699d12b9c00627bd5743e9", "", bareRepo5Path)
+	_, _ = GetRefsBySha(context.Background(), "58a4bcc53ac13e7ff76127e0fb518b5262bf09af", "", bareRepo5Path)
 }
 
 func TestParseCommitFileStatus(t *testing.T) {

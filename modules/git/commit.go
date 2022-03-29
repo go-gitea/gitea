@@ -424,76 +424,23 @@ func (c *Commit) GetTagName() (string, error) {
 
 var version27, _ = version.NewVersion("2.7")
 
-// GetBranchNamesForSha returns all branches with the ref/* prefix that belong to a sha commit hash
-func GetBranchNamesForSha(ctx context.Context, sha, repoPath string) ([]string, error) {
+// GetRefsBySha returns all references prefix that belong to a sha commit hash
+func GetRefsBySha(ctx context.Context, sha, prefix, repoPath string) ([]string, error) {
 	gitRepo, err := OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
-	commitID := MustIDFromString(sha)
-	tree := NewTree(gitRepo, commitID)
-	commit := &Commit{
-		Tree: *tree,
-		ID:   commitID,
-	}
-
-	var branchNames []string
-	if gitVersion.Compare(version27) < 0 {
-		data, err := NewCommand(ctx,
-			"name-ref",
-			"--refs='refs/heads/*'",
-			commit.ID.String(),
-		).RunInDirBytes(commit.repo.Path)
-		if err != nil {
-			return nil, err
+	var revList []string
+	_, err = gitRepo.WalkReferences("", 0, 0, func(walkSha, refname string) error {
+		if walkSha == sha && strings.HasPrefix(refname, prefix) {
+			revList = append(revList, refname)
 		}
+		return nil
+	})
 
-		dataPulls, err := NewCommand(ctx,
-			"name-ref",
-			"--refs='refs/pull/*'",
-			commit.ID.String(),
-		).RunInDirBytes(commit.repo.Path)
-		if err != nil {
-			return nil, err
-		}
-
-		namesRawPull := strings.Split(string(dataPulls), "\n")
-
-		namesRaw := strings.Split(string(data), "\n")
-		namesRaw = append(namesRaw, namesRawPull...)
-		for _, s := range namesRaw {
-			s = strings.TrimSpace(s)
-			if s == "" {
-				continue
-			}
-			// The names from this other way don't have "refs/" prepended before them, so we just add it to make the
-			// result of the function always the same. This still opens the door for invalid branches, but at least
-			// it minimizes them by only affecting users with an old git version.
-			branchNames = append(branchNames, strings.Trim("refs/"+strings.Split(strings.Split(s, " ")[1], "~")[0], "\n"))
-		}
-		return branchNames, nil
-	}
-
-	data, err := NewCommand(ctx,
-		"for-each-ref",
-		"--points-at="+commit.ID.String(),
-		"refs/heads",
-		"refs/pull",
-	).RunInDirBytes(commit.repo.Path)
-	if err != nil {
-		return nil, err
-	}
-	namesRaw := strings.Split(string(data), "\n")
-	for _, s := range namesRaw {
-		s = strings.TrimSpace(s)
-		if s == "" {
-			continue
-		}
-		branchNames = append(branchNames, strings.Trim(strings.Split(strings.Split(s, " ")[1], "\t")[1], "\n"))
-	}
-	return branchNames, nil
+	return revList, err
 }
 
 // CommitFileStatus represents status of files in a commit.
