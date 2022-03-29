@@ -212,7 +212,7 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks()
+	systemHooks, err := webhook_model.GetSystemWebhooks(util.OptionalBoolTrue)
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %v", err)
 	}
