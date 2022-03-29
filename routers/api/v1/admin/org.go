@@ -8,8 +8,8 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -52,7 +52,7 @@ func CreateOrg(ctx *context.APIContext) {
 		visibility = api.VisibilityModes[form.Visibility]
 	}
 
-	org := &models.Organization{
+	org := &organization.Organization{
 		Name:        form.UserName,
 		FullName:    form.FullName,
 		Description: form.Description,
@@ -63,7 +63,7 @@ func CreateOrg(ctx *context.APIContext) {
 		Visibility:  visibility,
 	}
 
-	if err := models.CreateOrganization(org, ctx.ContextUser); err != nil {
+	if err := organization.CreateOrganization(org, ctx.ContextUser); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -115,7 +115,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(users))
 	for i := range users {
-		orgs[i] = convert.ToOrganization(models.OrgFromUser(users[i]))
+		orgs[i] = convert.ToOrganization(organization.OrgFromUser(users[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

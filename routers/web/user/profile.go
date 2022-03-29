@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -40,7 +41,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !models.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
@@ -91,7 +92,7 @@ func Profile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
 
-	orgs, err := models.FindOrgs(models.FindOrgOptions{
+	orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 		UserID:         ctx.ContextUser.ID,
 		IncludePrivate: showPrivate,
 	})
@@ -101,7 +102,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
-	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.Doer)
+	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
 
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
