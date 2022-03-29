@@ -10,7 +10,7 @@ const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all 
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
   const viewedFilesMeter = document.getElementById('viewed-files-summary');
-  if (viewedFilesMeter) viewedFilesMeter.setAttribute('value', prReview.numberOfViewedFiles);
+  viewedFilesMeter?.setAttribute('value', prReview.numberOfViewedFiles);
   const summaryLabel = document.getElementById('viewed-files-summary-label');
   if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
     .replace('%[1]d', prReview.numberOfViewedFiles)
@@ -36,7 +36,7 @@ export function initViewedCheckboxListenerFor(element) {
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found
     const checkbox = form.querySelector('input[type=checkbox]');
-    checkbox.addEventListener('change', () => {
+    checkbox.addEventListener('change', function() {
       // Mark the file as viewed visually - will especially change the background
       if (this.checked) {
         form.classList.add(viewedStyleClass);
@@ -49,7 +49,7 @@ export function initViewedCheckboxListenerFor(element) {
       // Update viewed-files summary and remove "has changed" label if present
       refreshViewedFilesSummary();
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
-      if (hasChangedLabel) hasChangedLabel.parentNode.removeChild(hasChangedLabel);
+      hasChangedLabel?.parentNode.removeChild(hasChangedLabel);
 
       // Unfortunately, using an actual form causes too many problems, hence we have to emulate the form
       const data = new FormData();
