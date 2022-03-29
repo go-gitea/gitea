@@ -60,7 +60,7 @@ func GetTeamMembers(ctx context.Context, opts *SearchMembersOptions) ([]*user_mo
 		sess = sess.In("id",
 			builder.Select("uid").
 				From("team_user").
-				Where(builder.Eq{"team_id = ?": opts.TeamID}),
+				Where(builder.Eq{"team_id": opts.TeamID}),
 		)
 	}
 	if opts.PageSize > 0 && opts.Page > -1 {

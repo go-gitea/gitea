@@ -43,7 +43,7 @@ func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*r
 		sess = sess.In("id",
 			builder.Select("repo_id").
 				From("team_repo").
-				Where(builder.Eq{"team_id = ?": opts.TeamID}),
+				Where(builder.Eq{"team_id": opts.TeamID}),
 		)
 	}
 	if opts.PageSize > 0 {
