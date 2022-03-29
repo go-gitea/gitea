@@ -8,6 +8,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -30,4 +31,15 @@ func CamoEncode(link string) string {
 
 func b64encode(data []byte) string {
 	return strings.TrimRight(base64.URLEncoding.EncodeToString(data), "=")
+}
+
+func camoHandleLink(link string) string {
+	if setting.CamoEnabled {
+		lnkURL, err := url.Parse(link)
+		if err == nil && lnkURL.IsAbs() && !strings.HasPrefix(link, setting.AppURL) &&
+			(setting.CamoAllways || lnkURL.Scheme != "https") {
+			return CamoEncode(link)
+		}
+	}
+	return link
 }

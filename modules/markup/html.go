@@ -386,13 +386,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
-				if setting.CamoEnabled {
-					lnkURL, err := url.Parse(attr.Val)
-					if err != nil && lnkURL.IsAbs() && !strings.HasPrefix(attr.Val, setting.AppURL) &&
-						(setting.CamoAllways || lnkURL.Scheme != "https") {
-						attr.Val = CamoEncode(attr.Val)
-					}
-				}
+				attr.Val = camoHandleLink(attr.Val)
 				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
