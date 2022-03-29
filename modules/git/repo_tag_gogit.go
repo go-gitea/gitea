@@ -58,14 +58,15 @@ func (repo *Repository) GetTags(skip, limit int) ([]string, error) {
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id SHA1) (string, error) {
 	// Get tag type
-	stdout, err := NewCommand(repo.Ctx, "cat-file", "-t", id.String()).RunInDir(repo.Path)
+	obj, err := repo.gogitRepo.Object(plumbing.AnyObject, id)
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return "", &ErrNotExist{ID: id.String()}
+		}
 		return "", err
 	}
-	if len(stdout) == 0 {
-		return "", ErrNotExist{ID: id.String()}
-	}
-	return strings.TrimSpace(stdout), nil
+
+	return obj.Type().String(), nil
 }
 
 func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
@@ -114,6 +115,10 @@ func (repo *Repository) getTag(tagID SHA1, name string) (*Tag, error) {
 
 	gogitTag, err := repo.gogitRepo.TagObject(tagID)
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return nil, &ErrNotExist{ID: tagID.String()}
+		}
+
 		return nil, err
 	}
 
