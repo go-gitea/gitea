@@ -121,7 +121,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 		mergeCommit = commitID[:40]
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}

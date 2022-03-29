@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	stdCtx "context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -167,7 +168,7 @@ func TestAPICreateFile(t *testing.T) {
 			url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 			req := NewRequestWithJSON(t, "POST", url, &createFileOptions)
 			resp := session.MakeRequest(t, req, http.StatusCreated)
-			gitRepo, _ := git.OpenRepository(repo1.RepoPath())
+			gitRepo, _ := git.OpenRepository(stdCtx.Background(), repo1.RepoPath())
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath)
 			var fileResponse api.FileResponse
@@ -286,7 +287,7 @@ func TestAPICreateFile(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
 		resp = session.MakeRequest(t, req, http.StatusCreated)
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}).(*repo_model.Repository) // public repo
-		gitRepo, _ := git.OpenRepository(emptyRepo.RepoPath())
+		gitRepo, _ := git.OpenRepository(stdCtx.Background(), emptyRepo.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
 		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath)
 		DecodeJSON(t, resp, &fileResponse)

@@ -247,7 +247,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, fromRepo.RepoPath())
+	fromGitRepo, err := git.OpenRepository(git.DefaultContext, fromRepo.RepoPath())
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -290,7 +290,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, forkRepo.RepoPath())
+	forkGitRepo, err := git.OpenRepository(git.DefaultContext, forkRepo.RepoPath())
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)

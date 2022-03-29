@@ -228,7 +228,7 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
+	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
 		BaseRepo:    forkRepo,
 		Name:        form.RepoName,
 		Description: form.Description,
@@ -419,7 +419,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	if pull.BaseRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 		baseGitRepo = ctx.Repo.GitRepo
 	} else {
-		baseGitRepo, err := git.OpenRepositoryCtx(ctx, pull.BaseRepo.RepoPath())
+		baseGitRepo, err := git.OpenRepository(ctx, pull.BaseRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -471,7 +471,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := git.OpenRepositoryCtx(ctx, pull.HeadRepo.RepoPath())
+		headGitRepo, err := git.OpenRepository(ctx, pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -1094,7 +1094,7 @@ func MergePullRequest(ctx *context.Context) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 				return
@@ -1325,7 +1325,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitBaseRepo = ctx.Repo.GitRepo
 	} else {
 		// If not just open it
-		gitBaseRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		gitBaseRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 			return
@@ -1340,7 +1340,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitRepo = ctx.Repo.GitRepo
 	} else if pr.BaseRepoID != pr.HeadRepoID {
 		// Otherwise just load it up
-		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+		gitRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 			return

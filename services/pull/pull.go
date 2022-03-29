@@ -83,7 +83,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 	}
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepositoryCtx(prCtx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func checkForInvalidation(ctx context.Context, requests models.PullRequestList, 
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %v", err)
 	}
@@ -352,7 +352,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *models.PullRequest, oldCom
 		return false, fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -752,7 +752,7 @@ func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (ma
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepositoryCtx(ctx, issue.Repo.RepoPath())
+			gitRepo, err = git.OpenRepository(ctx, issue.Repo.RepoPath())
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue

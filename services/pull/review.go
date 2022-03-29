@@ -127,7 +127,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
 	}
 	defer closer.Close()
 

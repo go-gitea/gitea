@@ -238,7 +238,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
@@ -333,7 +333,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := git.OpenRepository(path)
+		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,
