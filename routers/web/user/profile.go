@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -216,10 +217,10 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
-			Type:     models.ProjectTypeIndividual,
+			Type:     project_model.TypeIndividual,
 		})
 		if err != nil {
 			ctx.ServerError("GetProjects", err)
