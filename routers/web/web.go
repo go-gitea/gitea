@@ -984,6 +984,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
+			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
 		})
 
 		m.Group("/wiki", func() {
