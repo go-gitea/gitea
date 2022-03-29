@@ -15,7 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// CamoEncode encodes a lnk to fit with the go-camo and camo proxy links
+// CamoEncode encodes a lnk to fit with the go-camo and camo proxy links. The purposes of camo-proxy are:
+// 1. Allow accessing "http://" images on a HTTPS site by using the "https://" URLs provided by camo-proxy.
+// 2. Hide the visitor's real IP (protect privacy) when accessing external images.
 func CamoEncode(link string) string {
 	if strings.HasPrefix(link, setting.Camo.ServerURL) {
 		return link
