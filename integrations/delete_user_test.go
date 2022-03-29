@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,9 +22,9 @@ func assertUserDeleted(t *testing.T, userID int64) {
 	unittest.AssertNotExistsBean(t, &user_model.Follow{FollowID: userID})
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: userID})
 	unittest.AssertNotExistsBean(t, &models.Access{UserID: userID})
-	unittest.AssertNotExistsBean(t, &models.OrgUser{UID: userID})
+	unittest.AssertNotExistsBean(t, &organization.OrgUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &models.IssueUser{UID: userID})
-	unittest.AssertNotExistsBean(t, &models.TeamUser{UID: userID})
+	unittest.AssertNotExistsBean(t, &organization.TeamUser{UID: userID})
 	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID})
 }
 
