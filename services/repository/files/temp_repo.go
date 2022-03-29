@@ -77,6 +77,19 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 	return nil
 }
 
+// Init the repository
+func (t *TemporaryUploadRepository) Init() error {
+	if err := git.InitRepository(t.ctx, t.basePath, false); err != nil {
+		return err
+	}
+	gitRepo, err := git.OpenRepositoryCtx(t.ctx, t.basePath)
+	if err != nil {
+		return err
+	}
+	t.gitRepo = gitRepo
+	return nil
+}
+
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
 	if _, err := git.NewCommand(t.ctx, "read-tree", "HEAD").RunInDir(t.basePath); err != nil {
@@ -209,12 +222,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(author, committer *user_model.User, treeHash, message string, signoff bool) (string, error) {
-	return t.CommitTreeWithDate(author, committer, treeHash, message, signoff, time.Now(), time.Now())
+func (t *TemporaryUploadRepository) CommitTree(parent string, author, committer *user_model.User, treeHash, message string, signoff bool) (string, error) {
+	return t.CommitTreeWithDate(parent, author, committer, treeHash, message, signoff, time.Now(), time.Now())
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_model.User, treeHash, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, committer *user_model.User, treeHash, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -235,11 +248,23 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
-	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
+	var args []string
+	if parent != "" {
+		args = []string{"commit-tree", treeHash, "-p", parent}
+	} else {
+		args = []string{"commit-tree", treeHash}
+	}
 
 	// Determine if we should sign
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, "HEAD")
+		var sign bool
+		var keyID string
+		var signer *git.Signature
+		if parent != "" {
+			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
+		} else {
+			sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
+		}
 		if sign {
 			args = append(args, "-S"+keyID)
 			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {

@@ -7,6 +7,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -132,4 +133,14 @@ func DeleteNoticesByIDs(ids []int64) error {
 		In("id", ids).
 		Delete(new(Notice))
 	return err
+}
+
+// DeleteOldSystemNotices deletes all old system notices from database.
+func DeleteOldSystemNotices(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Notice{})
+	return
 }
