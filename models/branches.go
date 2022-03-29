@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -94,7 +95,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		return false
 	}
 
-	in, err := IsUserInTeams(userID, protectBranch.WhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -117,7 +118,7 @@ func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permis
 		return false
 	}
 
-	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -149,7 +150,7 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return true, nil
 	}
 
-	inTeam, err := isUserInTeams(db.GetEngine(ctx), user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
+	inTeam, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		return false, err
 	}
@@ -471,7 +472,7 @@ func updateTeamWhitelist(repo *repo_model.Repository, currentWhitelist, newWhite
 		return currentWhitelist, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}

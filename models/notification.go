@@ -11,6 +11,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -151,7 +152,7 @@ func CreateRepoTransferNotification(doer, newOwner *user_model.User, repo *repo_
 	var notify []*Notification
 
 	if newOwner.IsOrganization() {
-		users, err := getUsersWhoCanCreateOrgRepo(db.GetEngine(ctx), newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil || len(users) == 0 {
 			return err
 		}
