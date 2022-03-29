@@ -513,6 +513,11 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 
 // GetPullRequestByIndex returns a pull request by the given index
 func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
+	return GetPullRequestByIndexCtx(db.DefaultContext, repoID, index)
+}
+
+// GetPullRequestByIndexCtx returns a pull request by the given index
+func GetPullRequestByIndexCtx(ctx context.Context, repoID, index int64) (*PullRequest, error) {
 	if index < 1 {
 		return nil, ErrPullRequestNotExist{}
 	}
@@ -521,17 +526,17 @@ func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 		Index:      index,
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).Get(pr)
+	has, err := db.GetEngine(ctx).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
 	}
 
-	if err = pr.LoadAttributes(); err != nil {
+	if err = pr.loadAttributes(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.loadIssue(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
 
@@ -550,8 +555,8 @@ func getPullRequestByID(e db.Engine, id int64) (*PullRequest, error) {
 }
 
 // GetPullRequestByID returns a pull request by given ID.
-func GetPullRequestByID(id int64) (*PullRequest, error) {
-	return getPullRequestByID(db.GetEngine(db.DefaultContext), id)
+func GetPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
+	return getPullRequestByID(db.GetEngine(ctx), id)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
@@ -679,9 +684,9 @@ func (pr *PullRequest) IsSameRepo() bool {
 
 // GetPullRequestsByHeadBranch returns all prs by head branch
 // Since there could be multiple prs to the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(headBranch string, headRepo *repo_model.Repository, status PullRequestStatus) ([]*PullRequest, error) {
+func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepo *repo_model.Repository, status PullRequestStatus) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	if err := db.GetEngine(db.DefaultContext).Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
+	if err := db.GetEngine(ctx).Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
 		Desc("id").
 		Find(prs); err != nil {
 		return nil, err

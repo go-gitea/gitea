@@ -159,12 +159,12 @@ func TestGetPullRequestByIndex(t *testing.T) {
 
 func TestGetPullRequestByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByID(1)
+	pr, err := GetPullRequestByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.ID)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	_, err = GetPullRequestByID(9223372036854775807)
+	_, err = GetPullRequestByID(db.DefaultContext, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }

@@ -137,11 +137,5 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	// Only protected branches have required contexts, so if the target branch is not protected, this would fail.
-	var requiredContexts []string
-	if pr.ProtectedBranch != nil {
-		requiredContexts = pr.ProtectedBranch.StatusCheckContexts
-	}
-
-	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
+	return MergeRequiredContextsCommitStatus(commitStatuses, pr.ProtectedBranch.StatusCheckContexts), nil
 }

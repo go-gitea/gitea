@@ -49,7 +49,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 				return err
 			}
 
-			p, err := models.GetPullRequestByIndex(repo.ID, prIndex)
+			p, err := models.GetPullRequestByIndexCtx(ctx, repo.ID, prIndex)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
@@ -59,7 +59,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 			}
 			pulls[p.ID] = p
 		} else {
-			prs, err := models.GetPullRequestsByHeadBranch(branch, repo, models.PullRequestStatusMergeable)
+			prs, err := models.GetPullRequestsByHeadBranch(ctx, branch, repo, models.PullRequestStatusMergeable)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
