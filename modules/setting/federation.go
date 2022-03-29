@@ -4,7 +4,11 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/log"
+import (
+	"code.gitea.io/gitea/modules/log"
+
+	"github.com/go-fed/httpsig"
+)
 
 // Federation settings
 var (
@@ -26,5 +30,8 @@ var (
 func newFederationService() {
 	if err := Cfg.Section("federation").MapTo(&Federation); err != nil {
 		log.Fatal("Failed to map Federation settings: %v", err)
+	} else if !httpsig.IsSupportedDigestAlgorithm(Federation.DigestAlgorithm) {
+		log.Fatal("unsupported digest algorithm: %s", Federation.DigestAlgorithm)
+		return
 	}
 }

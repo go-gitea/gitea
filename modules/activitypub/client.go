@@ -61,9 +61,6 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 		return
 	} else if err = containsRequiredHTTPHeaders(http.MethodPost, setting.Federation.PostHeaders); err != nil {
 		return
-	} else if !httpsig.IsSupportedDigestAlgorithm(setting.Federation.DigestAlgorithm) {
-		err = fmt.Errorf("unsupported digest algorithm: %s", setting.Federation.DigestAlgorithm)
-		return
 	}
 	algos := make([]httpsig.Algorithm, len(setting.Federation.Algorithms))
 	for i, algo := range setting.Federation.Algorithms {
@@ -85,8 +82,8 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 	}
 
 	c = &Client{
-		clock:       clock,
-		client:      &http.Client{
+		clock: clock,
+		client: &http.Client{
 			Transport: &http.Transport{
 				Proxy: proxy.Proxy(),
 			},
