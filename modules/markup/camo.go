@@ -5,7 +5,6 @@
 package markup
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
@@ -16,18 +15,17 @@ import (
 )
 
 // CamoEncode encodes a lnk to fit with the go-camo and camo proxy links
-func CamoEncode(link []byte) []byte {
-	if bytes.HasPrefix(link, []byte(setting.CamoServerURL)) || len(setting.CamoHMACKey) == 0 {
+func CamoEncode(link string) string {
+	if strings.HasPrefix(link, setting.CamoServerURL) || len(setting.CamoHMACKey) == 0 {
 		return link
 	}
 
-	hmacKey := []byte(setting.CamoHMACKey)
-	mac := hmac.New(sha1.New, hmacKey)
-	_, _ = mac.Write(link) // hmac does not return errors
+	mac := hmac.New(sha1.New, []byte(setting.CamoHMACKey))
+	_, _ = mac.Write([]byte(link)) // hmac does not return errors
 	macSum := b64encode(mac.Sum(nil))
-	encodedURL := b64encode(link)
+	encodedURL := b64encode([]byte(link))
 
-	return []byte(util.URLJoin(setting.CamoServerURL, macSum, encodedURL))
+	return util.URLJoin(setting.CamoServerURL, macSum, encodedURL)
 }
 
 func b64encode(data []byte) string {
