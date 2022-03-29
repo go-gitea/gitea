@@ -270,6 +270,10 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 }
 
 func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+	// 1. checkConflicts resets the conflict status - therefore - reset the conflict status
+	pr.ConflictedFiles = nil
+
+	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
 	conflict, _, err := AttemptThreeWayMerge(ctx,
 		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
@@ -290,16 +294,14 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 			pr.Status = models.PullRequestStatusEmpty
-			pr.ConflictedFiles = []string{}
-			pr.ChangedProtectedFiles = []string{}
 		}
 
 		return false, nil
 	}
 
-	// OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
+	// 3. OK read-tree has failed so we need to try a different thing - this might actually succeed where the above fails due to whitespace handling.
 
-	// 1. Create a plain patch from head to base
+	// 3a. Create a plain patch from head to base
 	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
@@ -322,34 +324,29 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	patchPath := tmpPatchFile.Name()
 	tmpPatchFile.Close()
 
-	// 1a. if the size of that patch is 0 - there can be no conflicts!
+	// 3b. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = models.PullRequestStatusEmpty
-		pr.ConflictedFiles = []string{}
-		pr.ChangedProtectedFiles = []string{}
 		return false, nil
 	}
 
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
 
-	// 2. preset the pr.Status as checking (this is not save at present)
-	pr.Status = models.PullRequestStatusChecking
-
-	// 3. Read the base branch in to the index of the temporary repository
+	// 4. Read the base branch in to the index of the temporary repository
 	_, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
 
-	// 4. Now get the pull request configuration to check if we need to ignore whitespace
+	// 5. Now get the pull request configuration to check if we need to ignore whitespace
 	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}
 	prConfig := prUnit.PullRequestsConfig()
 
-	// 5. Prepare the arguments to apply the patch against the index
+	// 6. Prepare the arguments to apply the patch against the index
 	args := []string{"apply", "--check", "--cached"}
 	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
@@ -360,9 +357,8 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 		is3way = true
 	}
 	args = append(args, patchPath)
-	pr.ConflictedFiles = make([]string, 0, 5)
 
-	// 6. Prep the pipe:
+	// 7. Prep the pipe:
 	//   - Here we could do the equivalent of:
 	//  `git apply --check --cached patch_file > conflicts`
 	//     Then iterate through the conflicts. However, that means storing all the conflicts
@@ -380,7 +376,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 		_ = stderrWriter.Close()
 	}()
 
-	// 7. Run the check command
+	// 8. Run the check command
 	conflict = false
 	err = git.NewCommand(gitRepo.Ctx, args...).
 		RunWithContext(&git.RunContext{
@@ -448,7 +444,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 			},
 		})
 
-	// 8. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
+	// 9. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
 	if err != nil {
 		if conflict {
 			pr.Status = models.PullRequestStatusConflict
@@ -518,6 +514,11 @@ func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string
 
 // checkPullFilesProtection check if pr changed protected files and save results
 func checkPullFilesProtection(pr *models.PullRequest, gitRepo *git.Repository) error {
+	if pr.Status == models.PullRequestStatusEmpty {
+		pr.ChangedProtectedFiles = nil
+		return nil
+	}
+
 	if err := pr.LoadProtectedBranch(); err != nil {
 		return err
 	}
