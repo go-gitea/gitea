@@ -100,9 +100,7 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 
 // NewRequest function
 func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) {
-	byteCopy := make([]byte, len(b))
-	copy(byteCopy, b)
-	buf := bytes.NewBuffer(byteCopy)
+	buf := bytes.NewBuffer(b)
 	req, err = http.NewRequest(http.MethodPost, to, buf)
 	if err != nil {
 		return
