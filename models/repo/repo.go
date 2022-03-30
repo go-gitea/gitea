@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	reservedRepoNames    = []string{".", ".."}
+	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 

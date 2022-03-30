@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -43,8 +44,11 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 		notification.NotifyDeleteRepository(doer, repo)
 	}
 
-	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
-	return err
+	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
+		return err
+	}
+
+	return packages_model.UnlinkRepositoryFromAllPackages(ctx, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace

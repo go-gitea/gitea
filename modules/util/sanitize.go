@@ -32,7 +32,7 @@ const userPlaceholder = "sanitized-credential"
 
 var schemeSep = []byte("://")
 
-// SanitizeCredentialURLs remove all credentials in URLs for the input string: "https://user:pass@domain.com" => "https://sanitized-credential@domain.com"
+// SanitizeCredentialURLs remove all credentials in URLs (starting with "scheme://") for the input string: "https://user:pass@domain.com" => "https://sanitized-credential@domain.com"
 func SanitizeCredentialURLs(s string) string {
 	bs := util.StringToReadOnlyBytes(s)
 	schemeSepPos := bytes.Index(bs, schemeSep)
