@@ -1,0 +1,25 @@
+<div class="header-wrapper">
+	<div class="ui container">
+		<div class="repo-header">
+			<div class="repo-title-wrap df fc">
+				<div class="repo-title">
+					{{avatar .ContextUser 32}}
+					<a href="{{.ContextUser.HTMLURL}}">{{.ContextUser.Name}}</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="ui tabs container">
+		<div class="ui tabular stackable menu navbar">
+			<a class="item" href="{{.ContextUser.HomeLink}}">
+				{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
+			</a>
+			{{if (not .UnitPackagesGlobalDisabled)}}
+				<a href="{{.ContextUser.HTMLURL}}/-/packages" class="{{if .IsPackagesPage}}active{{end}} item">
+					{{svg "octicon-package"}} {{.i18n.Tr "packages.title"}}
+				</a>
+			{{end}}
+		</div>
+	</div>
+	<div class="ui tabs divider"></div>
+</div>
