@@ -184,12 +184,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	cmd.Stdin = rc.Stdin
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr
-	if cmd.Stdout == nil {
-		cmd.Stdout = io.Discard
-	}
-	if cmd.Stderr == nil {
-		cmd.Stderr = io.Discard
-	}
 	if err := cmd.Start(); err != nil {
 		return err
 	}
