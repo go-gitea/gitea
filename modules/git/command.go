@@ -94,32 +94,6 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutEnvFullPipeline(env, timeout, dir, stdout, stderr, nil)
-}
-
-// RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
-func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutEnvFullPipelineFunc(env, timeout, dir, stdout, stderr, stdin, nil)
-}
-
-// RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
-func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	return c.RunWithContext(&RunContext{
-		Env:          env,
-		Timeout:      timeout,
-		Dir:          dir,
-		Stdout:       stdout,
-		Stderr:       stderr,
-		Stdin:        stdin,
-		PipelineFunc: fn,
-	})
-}
-
 // RunContext represents parameters to run the command
 type RunContext struct {
 	Env            []string
@@ -181,9 +155,9 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	)
 
 	cmd.Dir = rc.Dir
-	cmd.Stdin = rc.Stdin
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr
+	cmd.Stdin = rc.Stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
