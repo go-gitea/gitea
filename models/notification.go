@@ -520,7 +520,7 @@ func (nl NotificationList) getPendingRepoIDs() []int64 {
 			ids[notification.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return db.KeysInt64(ids)
 }
 
 // LoadRepos loads repositories from database
@@ -596,7 +596,7 @@ func (nl NotificationList) getPendingIssueIDs() []int64 {
 			ids[notification.IssueID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return db.KeysInt64(ids)
 }
 
 // LoadIssues loads issues from database
@@ -682,7 +682,7 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 			ids[notification.CommentID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return db.KeysInt64(ids)
 }
 
 // LoadComments loads comments from database

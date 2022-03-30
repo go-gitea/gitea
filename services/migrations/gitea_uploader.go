@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -392,7 +393,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 		// add reactions
 		for _, reaction := range issue.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -448,7 +449,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		// add reactions
 		for _, reaction := range comment.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -646,7 +647,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// add reactions
 	for _, reaction := range pr.Reactions {
-		res := models.Reaction{
+		res := issues_model.Reaction{
 			Type:        reaction.Content,
 			CreatedUnix: timeutil.TimeStampNow(),
 		}

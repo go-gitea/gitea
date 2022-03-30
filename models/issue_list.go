@@ -32,7 +32,7 @@ func (issues IssueList) getRepoIDs() []int64 {
 			repoIDs[issue.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(repoIDs)
+	return db.KeysInt64(repoIDs)
 }
 
 func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
@@ -83,7 +83,7 @@ func (issues IssueList) getPosterIDs() []int64 {
 			posterIDs[issue.PosterID] = struct{}{}
 		}
 	}
-	return keysInt64(posterIDs)
+	return db.KeysInt64(posterIDs)
 }
 
 func (issues IssueList) loadPosters(e db.Engine) error {
@@ -189,7 +189,7 @@ func (issues IssueList) getMilestoneIDs() []int64 {
 			ids[issue.MilestoneID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return db.KeysInt64(ids)
 }
 
 func (issues IssueList) loadMilestones(e db.Engine) error {

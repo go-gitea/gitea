@@ -22,7 +22,7 @@ func (actions ActionList) getUserIDs() []int64 {
 			userIDs[action.ActUserID] = struct{}{}
 		}
 	}
-	return keysInt64(userIDs)
+	return db.KeysInt64(userIDs)
 }
 
 func (actions ActionList) loadUsers(e db.Engine) (map[int64]*user_model.User, error) {
@@ -52,7 +52,7 @@ func (actions ActionList) getRepoIDs() []int64 {
 			repoIDs[action.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(repoIDs)
+	return db.KeysInt64(repoIDs)
 }
 
 func (actions ActionList) loadRepositories(e db.Engine) error {

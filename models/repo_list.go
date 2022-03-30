@@ -62,7 +62,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := e.
 		Where("id > 0").
-		In("id", keysInt64(set)).
+		In("id", db.KeysInt64(set)).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
