@@ -206,8 +206,7 @@ func (r *runError) Stderr() string {
 }
 
 func bytesToString(b []byte) string {
-	// that's what Golang's strings.Builder.String() does (go/src/builder.go)
-	return *(*string)(unsafe.Pointer(&b))
+	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
 // RunWithContextString run the command with context and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
