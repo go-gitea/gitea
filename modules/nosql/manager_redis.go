@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-redis/redis/v8"
 )
 
@@ -76,15 +78,6 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 		opts.TLSConfig = tlsConfig
 		fallthrough
 	case "redis+sentinel":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
-			}
-		}
-
 		client.UniversalClient = redis.NewFailoverClient(opts.Failover())
 	case "redis+clusters":
 		fallthrough
@@ -92,14 +85,6 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 		opts.TLSConfig = tlsConfig
 		fallthrough
 	case "redis+cluster":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
-			}
-		}
 		client.UniversalClient = redis.NewClusterClient(opts.Cluster())
 	case "redis+socket":
 		simpleOpts := opts.Simple()
@@ -110,14 +95,6 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 		opts.TLSConfig = tlsConfig
 		fallthrough
 	case "redis":
-		if uri.Host != "" {
-			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
-		}
-		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
-				opts.DB = db
-			}
-		}
 		client.UniversalClient = redis.NewClient(opts.Simple())
 	default:
 		return nil
@@ -212,6 +189,22 @@ func getRedisOptions(uri *url.URL) *redis.UniversalOptions {
 			opts.SentinelUsername = v[0]
 		case "sentinelpassword":
 			opts.SentinelPassword = v[0]
+		}
+	}
+
+	if uri.Host != "" {
+		opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
+	}
+
+	// A redis connection string uses the path section of the URI in two different ways. In a TCP-based connection, the
+	// path will be a database index to automatically have the client SELECT. In a Unix socket connection, it will be the
+	// file path. We only want to try to coerce this to the database index when we're not expecting a file path so that
+	// the error log stays clean.
+	if uri.Path != "" && uri.Scheme != "redis+socket" {
+		if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
+			opts.DB = db
+		} else {
+			log.Error("Provided database identifier '%s' is not a valid integer. Gitea will ignore this option.", uri.Path)
 		}
 	}
 
