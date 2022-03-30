@@ -925,27 +925,10 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	// TODO: move func to propergate defaults into own func
-	message := strings.TrimSpace(form.MergeTitleField)
-	{ // Set defaults if not given
-		if len(message) == 0 {
-			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-				message = pr.GetDefaultMergeMessage()
-			}
-			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleRebaseMerge {
-				message = pr.GetDefaultMergeMessage()
-			}
-			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-				message = pr.GetDefaultSquashMessage()
-			}
-		}
-		form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-		if len(form.MergeMessageField) > 0 {
-			message += "\n\n" + form.MergeMessageField
-		}
-	}
+	// set defaults to propagate needed fields
+	form.SetDefaults(pr)
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
