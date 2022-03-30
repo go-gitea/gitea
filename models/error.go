@@ -58,6 +58,21 @@ func (err ErrUserHasOrgs) Error() string {
 	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
+// ErrUserOwnPackages notifies that the user (still) owns the packages.
+type ErrUserOwnPackages struct {
+	UID int64
+}
+
+// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
+func IsErrUserOwnPackages(err error) bool {
+	_, ok := err.(ErrUserOwnPackages)
+	return ok
+}
+
+func (err ErrUserOwnPackages) Error() string {
+	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
+}
+
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |
