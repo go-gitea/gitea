@@ -7,8 +7,6 @@ package activitypub
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/go-fed/activity/pub"
 )
 
@@ -25,5 +23,5 @@ func NewClock() (c *Clock, err error) {
 
 // Now function
 func (c *Clock) Now() time.Time {
-	return time.Now().In(setting.DefaultUILocation)
+	return time.Now().Local()
 }
