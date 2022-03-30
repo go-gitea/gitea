@@ -56,6 +56,10 @@ and shows a link to the repository on the package site (as well as a link to the
 
 N.B.: These access restrictions are [subject to change](https://github.com/go-gitea/gitea/issues/19270), where more finegrained control will be added via a dedicated organization team permission,.
 
+## Create or upload a package
+
+This depends on the type of package. Check out the sub-page for a specific package manager for instructions.
+
 ## View packages
 
 You can view the packages of a repository on the repository page.
