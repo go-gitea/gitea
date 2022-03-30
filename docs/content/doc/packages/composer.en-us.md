@@ -22,7 +22,7 @@ Publish [Composer](https://getcomposer.org/) packages for your user or organizat
 
 ## Requirements
 
-To work with the Composer package registry, you can use [Composer](hhttps://getcomposer.org/download/) to consume and a HTTP upload client like `curl` to publish packages.
+To work with the Composer package registry, you can use [Composer](https://getcomposer.org/download/) to consume and a HTTP upload client like `curl` to publish packages.
 
 ## Publish a package
 
@@ -60,7 +60,7 @@ curl --user your_username:your_password_or_token \
      https://gitea.example.com/api/packages/testuser/composer?version=1.0.3
 ```
 
-The server reponds with the following HTTP Status codes.
+The server responds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
