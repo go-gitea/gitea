@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/branchprotection"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -746,16 +745,16 @@ func MergePullRequest(ctx *context.APIContext) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	force := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := branchprotection.Check(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
-		if branchprotection.IsErrIsClosed(err) {
+	if err := pull_service.CheckPullProtection(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+		if pull_service.IsErrIsClosed(err) {
 			ctx.NotFound()
-		} else if branchprotection.IsErrUserNotAllowedToMerge(err) {
+		} else if pull_service.IsErrUserNotAllowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		} else if branchprotection.IsErrHasMerged(err) {
+		} else if pull_service.IsErrHasMerged(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-		} else if branchprotection.IsErrIsWorkInProgress(err) {
+		} else if pull_service.IsErrIsWorkInProgress(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		} else if branchprotection.IsErrNotMergableState(err) {
+		} else if pull_service.IsErrNotMergableState(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
 		} else if models.IsErrNotAllowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)

@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/branchprotection"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -867,8 +866,8 @@ func MergePullRequest(ctx *context.Context) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := branchprotection.Check(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
-		if branchprotection.IsErrIsClosed(err) {
+	if err := pull_service.CheckPullProtection(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+		if pull_service.IsErrIsClosed(err) {
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
 				ctx.Redirect(issue.Link())
@@ -876,16 +875,16 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
 				ctx.Redirect(issue.Link())
 			}
-		} else if branchprotection.IsErrUserNotAllowedToMerge(err) {
+		} else if pull_service.IsErrUserNotAllowedToMerge(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
 			ctx.Redirect(issue.Link())
-		} else if branchprotection.IsErrHasMerged(err) {
+		} else if pull_service.IsErrHasMerged(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
 			ctx.Redirect(issue.Link())
-		} else if branchprotection.IsErrIsWorkInProgress(err) {
+		} else if pull_service.IsErrIsWorkInProgress(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
 			ctx.Redirect(issue.Link())
-		} else if branchprotection.IsErrNotMergableState(err) {
+		} else if pull_service.IsErrNotMergableState(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
 			ctx.Redirect(issue.Link())
 		} else if models.IsErrNotAllowedToMerge(err) {
@@ -894,7 +893,7 @@ func MergePullRequest(ctx *context.Context) {
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.Flash.Error(err.Error()) // has not translation ...
 			ctx.Redirect(issue.Link())
-		} else if branchprotection.IsErrDependenciesLeft(err) {
+		} else if pull_service.IsErrDependenciesLeft(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 			ctx.Redirect(issue.Link())
 		} else {
