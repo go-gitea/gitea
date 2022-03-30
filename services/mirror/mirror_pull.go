@@ -38,7 +38,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 		return err
 	}
 
-	_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	cmd := git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", addr)
+	if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), repoPath))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, addr, repoPath))
+	}
+	_, err = cmd.RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -52,7 +58,13 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 			return err
 		}
 
-		_, err = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		cmd = git.NewCommand(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath)
+		if strings.Contains(wikiRemotePath, "://") && strings.Contains(wikiRemotePath, "@") {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, util.NewStringURLSanitizer(wikiRemotePath, true).Replace(wikiRemotePath), wikiPath))
+		} else {
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=fetch %s [repo_path: %s]", remoteName, wikiRemotePath, wikiPath))
+		}
+		_, err = cmd.RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -192,6 +204,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
+
 	gitArgs := []string{"remote", "update"}
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
@@ -264,7 +277,11 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	output := stderrBuilder.String()
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -356,6 +373,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 				}
 				return nil, false
 			}
+
+			if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+				log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
+			}
 		}
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
@@ -399,6 +420,9 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
+		if err = repo_model.TouchMirror(ctx, m); err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to TouchMirror: %v", m.Repo, err)
+		}
 		return false
 	}
 
@@ -414,7 +438,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = git.OpenRepositoryCtx(ctx, m.Repo.RepoPath())
+		gitRepo, err = git.OpenRepository(ctx, m.Repo.RepoPath())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 			return false

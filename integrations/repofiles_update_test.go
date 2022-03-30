@@ -202,7 +202,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -238,7 +238,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -273,7 +273,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -323,7 +323,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)

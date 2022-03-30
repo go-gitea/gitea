@@ -8,8 +8,8 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -25,17 +25,17 @@ func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
 
-	opts := models.FindOrgOptions{
+	opts := organization.FindOrgOptions{
 		ListOptions:    listOptions,
 		UserID:         u.ID,
 		IncludePrivate: showPrivate,
 	}
-	orgs, err := models.FindOrgs(opts)
+	orgs, err := organization.FindOrgs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
 		return
 	}
-	maxResults, err := models.CountOrgs(opts)
+	maxResults, err := organization.CountOrgs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
 		return
@@ -99,11 +99,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listUserOrgs(ctx, u)
+	listUserOrgs(ctx, ctx.ContextUser)
 }
 
 // GetUserOrgsPermissions get user permissions in organization
@@ -132,11 +128,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	var u *user_model.User
-	if u = user.GetUserByParams(ctx); u == nil {
-		return
-	}
-
 	var o *user_model.User
 	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
 		return
@@ -144,13 +135,13 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
-	if !models.HasOrgOrUserVisible(o, u) {
+	if !organization.HasOrgOrUserVisible(ctx, o, ctx.ContextUser) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
-	org := models.OrgFromUser(o)
-	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(u.ID)
+	org := organization.OrgFromUser(o)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
 		return
@@ -169,7 +160,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		op.IsOwner = true
 	}
 
-	op.CanCreateRepository, err = org.CanCreateOrgRepo(u.ID)
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx.ContextUser.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
 		return
@@ -221,7 +212,7 @@ func GetAll(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
 	for i := range publicOrgs {
-		orgs[i] = convert.ToOrganization(models.OrgFromUser(publicOrgs[i]))
+		orgs[i] = convert.ToOrganization(organization.OrgFromUser(publicOrgs[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -261,7 +252,7 @@ func Create(ctx *context.APIContext) {
 		visibility = api.VisibilityModes[form.Visibility]
 	}
 
-	org := &models.Organization{
+	org := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
 		Description:               form.Description,
@@ -272,7 +263,7 @@ func Create(ctx *context.APIContext) {
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := models.CreateOrganization(org, ctx.Doer); err != nil {
+	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) ||
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
@@ -304,7 +295,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Organization"
 
-	if !models.HasOrgOrUserVisible(ctx.Org.Organization.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}

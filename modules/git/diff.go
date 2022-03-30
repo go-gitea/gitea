@@ -51,7 +51,7 @@ func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io
 func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
 	}
 	defer closer.Close()
 

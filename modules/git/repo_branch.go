@@ -89,7 +89,7 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 // GetBranchesByPath returns a branch by it's path
 // if limit = 0 it will not limit
 func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Branch, int, error) {
-	gitRepo, err := OpenRepositoryCtx(ctx, path)
+	gitRepo, err := OpenRepository(ctx, path)
 	if err != nil {
 		return nil, 0, err
 	}
