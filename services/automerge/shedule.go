@@ -22,7 +22,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.
 
 	// we dont need to schedule
 	if lastCommitStatus.IsSuccess() {
-		return true, nil
+		return false, nil
 	}
 
 	return true, models.ScheduleAutoMerge(doer, pull.ID, style, message)

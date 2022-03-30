@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
+	"code.gitea.io/gitea/services/branchprotection"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -724,13 +725,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
-	err = pr.LoadIssue()
-	if err != nil {
+	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -744,82 +744,46 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	// TODO: move into service_branchprotection
-	{ // check if pull is mergable
-		if pr.Issue.IsClosed {
+	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	force := form.ForceMerge != nil && *form.ForceMerge
+
+	if err := branchprotection.Check(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+		if branchprotection.IsErrIsClosed(err) {
 			ctx.NotFound()
-			return
-		}
-
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
-			return
-		}
-		if !allowedMerge {
+		} else if branchprotection.IsErrUserNotAllowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-			return
-		}
-
-		if pr.HasMerged {
+		} else if branchprotection.IsErrHasMerged(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-			return
-		}
-
-		// handle manually-merged mark
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-			if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
-				if models.IsErrInvalidMergeStyle(err) {
-					ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
-					return
-				}
-				if strings.Contains(err.Error(), "Wrong commit ID") {
-					ctx.JSON(http.StatusConflict, err)
-					return
-				}
-				ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
-				return
-			}
-			ctx.Status(http.StatusOK)
-			return
-		}
-
-		if !pr.CanAutoMerge() {
-			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
-			return
-		}
-
-		if pr.IsWorkInProgress() {
+		} else if branchprotection.IsErrIsWorkInProgress(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-			return
-		}
-
-		if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-			if !models.IsErrNotAllowedToMerge(err) {
-				ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
-				return
-			}
-			if form.ForceMerge != nil && *form.ForceMerge {
-				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-					ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
-					return
-				} else if !isRepoAdmin {
-					ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
-				}
-			} else {
-				ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
-				return
-			}
-		}
-
-		if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.Doer); err != nil {
-			if !asymkey_service.IsErrWontSign(err) {
-				ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
-				return
-			}
+		} else if branchprotection.IsErrNotMergableState(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+		} else if models.IsErrNotAllowedToMerge(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		} else {
+			ctx.InternalServerError(err)
+		}
+		return
+	}
+
+	// handle manually-merged mark
+	if manuallMerge {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+			if models.IsErrInvalidMergeStyle(err) {
+				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
+				return
+			}
+			if strings.Contains(err.Error(), "Wrong commit ID") {
+				ctx.JSON(http.StatusConflict, err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
 			return
 		}
+		ctx.Status(http.StatusOK)
+		return
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
