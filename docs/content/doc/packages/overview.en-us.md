@@ -20,24 +20,6 @@ The Package Registry can be used as a public or private registry for common pack
 
 {{< toc >}}
 
-## Repository-Packages
-A package always belongs to an owner (a user or organisation), not a repo.
-To link an (already uploaded) package to a repository, open the settings page
-on that package and choose a repository to link this package to.
-The entire package will be linked, not just a single version.
-
-Linking a package results in showing that package in the repository's package list,
-and shows a link to the repository on the package site (as well as a link to the repo issues).
-
-## Access Restrictions
-
-| Package owner type | User | Organization |
-|--------------------|------|--------------|
-| **read** access    | public, if user is marked not private, otherwise user only | public, if org is public, otherwise org members only |
-| **write** access   | owner only | org members with admin or write access to the org |
-
-N.B.: These access restrictions are [subject to change](https://github.com/go-gitea/gitea/issues/19270), where more finegrained control will be added via a dedicated organization team permission,.
-
 ## Supported package managers
 
 The following package managers are currently supported:
@@ -55,6 +37,24 @@ The following package managers are currently supported:
 | [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem`, `Bundler` |
 
 **The following paragraphs only apply if Packages are not globally disabled!**
+
+## Repository-Packages
+A package always belongs to an owner (a user or organisation), not a repo.
+To link an (already uploaded) package to a repository, open the settings page
+on that package and choose a repository to link this package to.
+The entire package will be linked, not just a single version.
+
+Linking a package results in showing that package in the repository's package list,
+and shows a link to the repository on the package site (as well as a link to the repo issues).
+
+## Access Restrictions
+
+| Package owner type | User | Organization |
+|--------------------|------|--------------|
+| **read** access    | public, if user is marked not private, otherwise user only | public, if org is public, otherwise org members only |
+| **write** access   | owner only | org members with admin or write access to the org |
+
+N.B.: These access restrictions are [subject to change](https://github.com/go-gitea/gitea/issues/19270), where more finegrained control will be added via a dedicated organization team permission,.
 
 ## View packages
 
