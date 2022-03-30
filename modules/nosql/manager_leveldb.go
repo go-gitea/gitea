@@ -51,7 +51,31 @@ func (m *Manager) CloseLevelDB(connection string) error {
 }
 
 // GetLevelDB gets a levelDB for a particular connection
-func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
+func (m *Manager) GetLevelDB(connection string) (db *leveldb.DB, err error) {
+	// Because we want associate any goroutines created by this call to the main nosqldb context we need to
+	// wrap this in a goroutine labelled with the nosqldb context
+	done := make(chan struct{})
+	var recovered interface{}
+	go func() {
+		defer func() {
+			recovered = recover()
+			if recovered != nil {
+				log.Critical("PANIC during GetLevelDB: %v\nStacktrace: %s", recovered, log.Stack(2))
+			}
+			close(done)
+		}()
+		pprof.SetGoroutineLabels(m.ctx)
+
+		db, err = m.getLevelDB(connection)
+	}()
+	<-done
+	if recovered != nil {
+		panic(recovered)
+	}
+	return
+}
+
+func (m *Manager) getLevelDB(connection string) (*leveldb.DB, error) {
 	// Convert the provided connection description to the common format
 	uri := ToLevelDBURI(connection)
 
@@ -164,28 +188,21 @@ func (m *Manager) GetLevelDB(connection string) (*leveldb.DB, error) {
 		}
 	}
 
-	// Now because we want associate any goroutines created by this call to the main nosqldb context we need to
-	// wrap the openFile within a goroutine which we can label nicely.
 	var err error
-	done := make(chan struct{})
-	go func() {
-		pprof.SetGoroutineLabels(m.ctx)
-		defer close(done)
-		db.db, err = leveldb.OpenFile(dataDir, opts)
-		if err != nil {
-			if !errors.IsCorrupted(err) {
-				if strings.Contains(err.Error(), "resource temporarily unavailable") {
-					err = fmt.Errorf("unable to lock level db at %s: %w", dataDir, err)
-					return
-				}
-
-				err = fmt.Errorf("unable to open level db at %s: %w", dataDir, err)
-				return
+	db.db, err = leveldb.OpenFile(dataDir, opts)
+	if err != nil {
+		if !errors.IsCorrupted(err) {
+			if strings.Contains(err.Error(), "resource temporarily unavailable") {
+				err = fmt.Errorf("unable to lock level db at %s: %w", dataDir, err)
+				return nil, err
 			}
-			db.db, err = leveldb.RecoverFile(dataDir, opts)
+
+			err = fmt.Errorf("unable to open level db at %s: %w", dataDir, err)
+			return nil, err
 		}
-	}()
-	<-done
+		db.db, err = leveldb.RecoverFile(dataDir, opts)
+	}
+
 	if err != nil {
 		return nil, err
 	}
