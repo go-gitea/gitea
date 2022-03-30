@@ -55,6 +55,10 @@ func TestSanitizeCredentialURLs(t *testing.T) {
 			"://@",
 		},
 		{
+			"//u:p@h", // do not process URLs without explicit scheme, they are not treated as "valid" URLs because there is no scheme context in string
+			"//u:p@h",
+		},
+		{
 			"s://u@h", // the minimal pattern to be sanitized
 			"s://" + userPlaceholder + "@h",
 		},
