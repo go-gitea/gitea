@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -87,6 +88,7 @@ func TestIssueReactionCount(t *testing.T) {
 	ghost := user_model.NewGhostUser()
 
 	var issueID int64 = 2
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	addReaction(t, user1.ID, issueID, 0, "heart")
 	addReaction(t, user2.ID, issueID, 0, "heart")
@@ -101,6 +103,8 @@ func TestIssueReactionCount(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, reactionsList, 7)
+	_, err = reactionsList.LoadUsers(db.DefaultContext, repo)
+	assert.NoError(t, err)
 
 	reactions := reactionsList.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
