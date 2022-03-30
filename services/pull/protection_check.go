@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // CheckPullProtection check if the pull mergable based on all conditions (branch protection, merge options, ...)
@@ -56,7 +57,7 @@ func CheckPullProtection(ctx context.Context, doer *user_model.User, perm *model
 		}
 	}
 
-	if _, err := IsSignedIfRequired(pr, doer); err != nil {
+	if _, err := isSignedIfRequired(pr, doer); err != nil {
 		return err
 	}
 
@@ -67,4 +68,19 @@ func CheckPullProtection(ctx context.Context, doer *user_model.User, perm *model
 	}
 
 	return nil
+}
+
+// isSignedIfRequired check if merge will be signed if required
+func isSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, error) {
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, _, err := asymkey_service.SignMerge(pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
 }
