@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -148,7 +148,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, user4.ID, issue1ID, comment1ID, "+1")
 
 	reactionsList, _, err := FindReactions(db.DefaultContext, FindReactionsOptions{
-		IssueID: issue1ID,
+		IssueID:   issue1ID,
 		CommentID: comment1ID,
 	})
 	assert.NoError(t, err)

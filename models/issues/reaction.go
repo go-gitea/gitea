@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -132,7 +133,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 }
 
 // FindCommentReactions returns a ReactionList of all reactions from an comment
-func FindCommentReactions(issueID int64, commentID int64) (ReactionList, int64, error) {
+func FindCommentReactions(issueID, commentID int64) (ReactionList, int64, error) {
 	return FindReactions(db.DefaultContext, FindReactionsOptions{
 		IssueID:   issueID,
 		CommentID: commentID,
@@ -315,7 +316,7 @@ func (list ReactionList) getUserIDs() []int64 {
 			userIDs[reaction.UserID] = struct{}{}
 		}
 	}
-	return db.KeysInt64(userIDs)
+	return container.KeysInt64(userIDs)
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {
