@@ -70,6 +70,7 @@ type Context struct {
 	ContextUser *user_model.User
 	Repo        *Repository
 	Org         *Organization
+	Package     *Package
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
@@ -331,6 +332,18 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+// SetServeHeaders sets necessary content serve headers
+func (ctx *Context) SetServeHeaders(filename string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+}
+
 // ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
 	modTime := time.Now()
@@ -340,14 +353,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 			modTime = v
 		}
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
 }
 
@@ -359,29 +365,39 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	} else {
 		name = path.Base(file)
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
 // ServeStream serves file via io stream
 func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	_, err := io.Copy(ctx.Resp, rd)
 	if err != nil {
 		ctx.ServerError("Download file failed", err)
 	}
+}
+
+// UploadStream returns the request body or the first form file
+// Only form files need to get closed.
+func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err error) {
+	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
+			return nil, false, err
+		}
+		if ctx.Req.MultipartForm.File == nil {
+			return nil, false, http.ErrMissingFile
+		}
+		for _, files := range ctx.Req.MultipartForm.File {
+			if len(files) > 0 {
+				r, err := files[0].Open()
+				return r, true, err
+			}
+		}
+		return nil, false, http.ErrMissingFile
+	}
+	return ctx.Req.Body, false, nil
 }
 
 // Error returned an error to web browser

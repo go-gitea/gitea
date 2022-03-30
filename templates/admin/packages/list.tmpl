@@ -1,0 +1,97 @@
+{{template "base/head" .}}
+<div class="page-content admin user">
+	{{template "admin/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.packages.package_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}}, {{.i18n.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}})
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form ignore-dirty">
+				<div class="ui fluid action input">
+					<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+					<select class="ui dropdown" name="type">
+						<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
+						<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
+						<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
+						<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
+						<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
+						<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
+						<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
+						<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
+						<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
+						<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
+						<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+					</select>
+					<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+				</div>
+			</form>
+		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>{{.i18n.Tr "admin.packages.owner"}}</th>
+						<th>{{.i18n.Tr "admin.packages.type"}}</th>
+						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+							{{.i18n.Tr "admin.packages.name"}}
+							{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+						</th>
+						<th data-sortt-asc="highestversion" data-sortt-desc="lowestversion">
+							{{.i18n.Tr "admin.packages.version"}}
+							{{SortArrow "highestversion" "lowestversion" .SortType false}}
+						</th>
+						<th>{{.i18n.Tr "admin.packages.creator"}}</th>
+						<th>{{.i18n.Tr "admin.packages.repository"}}</th>
+						<th>{{.i18n.Tr "admin.packages.size"}}</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">
+							{{.i18n.Tr "admin.packages.published"}}
+							{{SortArrow "oldest" "newest" .SortType true}}
+						</th>
+						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .PackageDescriptors}}
+						<tr>
+							<td>{{.Version.ID}}</td>
+							<td>
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
+								{{if .Owner.Visibility.IsPrivate}}
+									<span class="text gold">{{svg "octicon-lock"}}</span>
+								{{end}}
+							</td>
+							<td>{{.Package.Type.Name}}</td>
+							<td class="text truncate email">{{.Package.Name}}</td>
+							<td><a href="{{.FullWebLink}}" class="text truncate email">{{.Version.Version}}</a></td>
+							<td><a href="{{.Creator.HomeLink}}">{{.Creator.Name}}</a></td>
+							<td>
+							{{if .Repository}}
+								<a href="{{.Repository.Link}}">{{.Repository.Name}}</a>
+							{{end}}
+							</td>
+							<td>{{FileSize .CalculateBlobSize}}</td>
+							<td><span title="{{.Version.CreatedUnix.FormatLong}}">{{.Version.CreatedUnix.FormatShort}}</span></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.Version.ID}}" data-name="{{.Package.Name}}" data-data-version="{{.Version.Version}}">{{svg "octicon-trash"}}</a></td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		{{svg "octicon-trash"}}
+		{{.i18n.Tr "packages.settings.delete"}}
+	</div>
+	<div class="content">
+		{{.i18n.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>
+{{template "base/footer" .}}
