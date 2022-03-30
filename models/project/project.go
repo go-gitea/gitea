@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package project
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -19,24 +20,55 @@ import (
 type (
 	// ProjectsConfig is used to identify the type of board that is being created
 	ProjectsConfig struct {
-		BoardType   ProjectBoardType
+		BoardType   BoardType
 		Translation string
 	}
 
-	// ProjectType is used to identify the type of project in question and ownership
-	ProjectType uint8
+	// Type is used to identify the type of project in question and ownership
+	Type uint8
 )
 
 const (
-	// ProjectTypeIndividual is a type of project board that is owned by an individual
-	ProjectTypeIndividual ProjectType = iota + 1
+	// TypeIndividual is a type of project board that is owned by an individual
+	TypeIndividual Type = iota + 1
 
-	// ProjectTypeRepository is a project that is tied to a repository
-	ProjectTypeRepository
+	// TypeRepository is a project that is tied to a repository
+	TypeRepository
 
-	// ProjectTypeOrganization is a project that is tied to an organisation
-	ProjectTypeOrganization
+	// TypeOrganization is a project that is tied to an organisation
+	TypeOrganization
 )
+
+// ErrProjectNotExist represents a "ProjectNotExist" kind of error.
+type ErrProjectNotExist struct {
+	ID     int64
+	RepoID int64
+}
+
+// IsErrProjectNotExist checks if an error is a ErrProjectNotExist
+func IsErrProjectNotExist(err error) bool {
+	_, ok := err.(ErrProjectNotExist)
+	return ok
+}
+
+func (err ErrProjectNotExist) Error() string {
+	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
+}
+
+// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
+type ErrProjectBoardNotExist struct {
+	BoardID int64
+}
+
+// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
+func IsErrProjectBoardNotExist(err error) bool {
+	_, ok := err.(ErrProjectBoardNotExist)
+	return ok
+}
+
+func (err ErrProjectBoardNotExist) Error() string {
+	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+}
 
 // Project represents a project board
 type Project struct {
@@ -46,8 +78,8 @@ type Project struct {
 	RepoID      int64  `xorm:"INDEX"`
 	CreatorID   int64  `xorm:"NOT NULL"`
 	IsClosed    bool   `xorm:"INDEX"`
-	BoardType   ProjectBoardType
-	Type        ProjectType
+	BoardType   BoardType
+	Type        Type
 
 	RenderedContent string `xorm:"-"`
 
@@ -63,37 +95,39 @@ func init() {
 // GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
 	return []ProjectsConfig{
-		{ProjectBoardTypeNone, "repo.projects.type.none"},
-		{ProjectBoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
-		{ProjectBoardTypeBugTriage, "repo.projects.type.bug_triage"},
+		{BoardTypeNone, "repo.projects.type.none"},
+		{BoardTypeBasicKanban, "repo.projects.type.basic_kanban"},
+		{BoardTypeBugTriage, "repo.projects.type.bug_triage"},
 	}
 }
 
-// IsProjectTypeValid checks if a project type is valid
-func IsProjectTypeValid(p ProjectType) bool {
+// IsTypeValid checks if a project type is valid
+func IsTypeValid(p Type) bool {
 	switch p {
-	case ProjectTypeRepository:
+	case TypeRepository:
 		return true
 	default:
 		return false
 	}
 }
 
-// ProjectSearchOptions are options for GetProjects
-type ProjectSearchOptions struct {
+// SearchOptions are options for GetProjects
+type SearchOptions struct {
 	RepoID   int64
 	Page     int
 	IsClosed util.OptionalBool
 	SortType string
-	Type     ProjectType
+	Type     Type
 }
 
 // GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(opts ProjectSearchOptions) ([]*Project, int64, error) {
-	return getProjects(db.GetEngine(db.DefaultContext), opts)
+func GetProjects(opts SearchOptions) ([]*Project, int64, error) {
+	return GetProjectsCtx(db.DefaultContext, opts)
 }
 
-func getProjects(e db.Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
+// GetProjectsCtx returns a list of all projects that have been created in the repository
+func GetProjectsCtx(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+	e := db.GetEngine(ctx)
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}
@@ -135,11 +169,11 @@ func getProjects(e db.Engine, opts ProjectSearchOptions) ([]*Project, int64, err
 
 // NewProject creates a new Project
 func NewProject(p *Project) error {
-	if !IsProjectBoardTypeValid(p.BoardType) {
-		p.BoardType = ProjectBoardTypeNone
+	if !IsBoardTypeValid(p.BoardType) {
+		p.BoardType = BoardTypeNone
 	}
 
-	if !IsProjectTypeValid(p.Type) {
+	if !IsTypeValid(p.Type) {
 		return errors.New("project type is not valid")
 	}
 
@@ -157,7 +191,7 @@ func NewProject(p *Project) error {
 		return err
 	}
 
-	if err := createBoardsForProjectsType(db.GetEngine(ctx), p); err != nil {
+	if err := createBoardsForProjectsType(ctx, p); err != nil {
 		return err
 	}
 
@@ -200,7 +234,7 @@ func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 		builder.Eq{
 			"`num_projects`": builder.Select("count(*)").From("`project`").
 				Where(builder.Eq{"`project`.`repo_id`": repoID}.
-					And(builder.Eq{"`project`.`type`": ProjectTypeRepository})),
+					And(builder.Eq{"`project`.`type`": TypeRepository})),
 		}).From("`repository`").Where(builder.Eq{"id": repoID})); err != nil {
 		return err
 	}
@@ -209,7 +243,7 @@ func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 		builder.Eq{
 			"`num_closed_projects`": builder.Select("count(*)").From("`project`").
 				Where(builder.Eq{"`project`.`repo_id`": repoID}.
-					And(builder.Eq{"`project`.`type`": ProjectTypeRepository}).
+					And(builder.Eq{"`project`.`type`": TypeRepository}).
 					And(builder.Eq{"`project`.`is_closed`": true})),
 		}).From("`repository`").Where(builder.Eq{"id": repoID})); err != nil {
 		return err
@@ -224,18 +258,17 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	p := new(Project)
 
-	has, err := sess.ID(projectID).Where("repo_id = ?", repoID).Get(p)
+	has, err := db.GetEngine(ctx).ID(projectID).Where("repo_id = ?", repoID).Get(p)
 	if err != nil {
 		return err
 	} else if !has {
 		return ErrProjectNotExist{ID: projectID, RepoID: repoID}
 	}
 
-	if err := changeProjectStatus(sess, p, isClosed); err != nil {
+	if err := changeProjectStatus(ctx, p, isClosed); err != nil {
 		return err
 	}
 
@@ -250,16 +283,17 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 	}
 	defer committer.Close()
 
-	if err := changeProjectStatus(db.GetEngine(ctx), p, isClosed); err != nil {
+	if err := changeProjectStatus(ctx, p, isClosed); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func changeProjectStatus(e db.Engine, p *Project, isClosed bool) error {
+func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 	p.IsClosed = isClosed
 	p.ClosedDateUnix = timeutil.TimeStampNow()
+	e := db.GetEngine(ctx)
 	count, err := e.ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
 	if err != nil {
 		return err
@@ -279,14 +313,16 @@ func DeleteProjectByID(id int64) error {
 	}
 	defer committer.Close()
 
-	if err := deleteProjectByID(db.GetEngine(ctx), id); err != nil {
+	if err := DeleteProjectByIDCtx(ctx, id); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func deleteProjectByID(e db.Engine, id int64) error {
+// DeleteProjectByIDCtx deletes a project from a repository.
+func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
+	e := db.GetEngine(ctx)
 	p, err := getProjectByID(e, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
@@ -299,7 +335,7 @@ func deleteProjectByID(e db.Engine, id int64) error {
 		return err
 	}
 
-	if err := deleteProjectBoardByProjectID(e, id); err != nil {
+	if err := deleteBoardByProjectID(e, id); err != nil {
 		return err
 	}
 

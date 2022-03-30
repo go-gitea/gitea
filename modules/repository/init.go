@@ -430,7 +430,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return fmt.Errorf("openRepository: %v", err)
 		}

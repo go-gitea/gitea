@@ -44,9 +44,9 @@ func HasForkedRepo(ownerID, repoID int64) bool {
 }
 
 // GetUserFork return user forked repository from this repository, if not forked return nil
-func GetUserFork(repoID, userID int64) (*Repository, error) {
+func GetUserFork(ctx context.Context, repoID, userID int64) (*Repository, error) {
 	var forkedRepo Repository
-	has, err := db.GetEngine(db.DefaultContext).Where("fork_id = ?", repoID).And("owner_id = ?", userID).Get(&forkedRepo)
+	has, err := db.GetEngine(ctx).Where("fork_id = ?", repoID).And("owner_id = ?", userID).Get(&forkedRepo)
 	if err != nil {
 		return nil, err
 	}

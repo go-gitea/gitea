@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -246,8 +247,8 @@ func CanUserForkRepo(user *user_model.User, repo *repo_model.Repository) (bool, 
 }
 
 // FindUserOrgForks returns the forked repositories for one user from a repository
-func FindUserOrgForks(repoID, userID int64) ([]*repo_model.Repository, error) {
-	var cond builder.Cond = builder.And(
+func FindUserOrgForks(ctx context.Context, repoID, userID int64) ([]*repo_model.Repository, error) {
+	cond := builder.And(
 		builder.Eq{"fork_id": repoID},
 		builder.In("owner_id",
 			builder.Select("org_id").
@@ -257,23 +258,23 @@ func FindUserOrgForks(repoID, userID int64) ([]*repo_model.Repository, error) {
 	)
 
 	var repos []*repo_model.Repository
-	return repos, db.GetEngine(db.DefaultContext).Table("repository").Where(cond).Find(&repos)
+	return repos, db.GetEngine(ctx).Table("repository").Where(cond).Find(&repos)
 }
 
 // GetForksByUserAndOrgs return forked repos of the user and owned orgs
-func GetForksByUserAndOrgs(user *user_model.User, repo *repo_model.Repository) ([]*repo_model.Repository, error) {
+func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *repo_model.Repository) ([]*repo_model.Repository, error) {
 	var repoList []*repo_model.Repository
 	if user == nil {
 		return repoList, nil
 	}
-	forkedRepo, err := repo_model.GetUserFork(repo.ID, user.ID)
+	forkedRepo, err := repo_model.GetUserFork(ctx, repo.ID, user.ID)
 	if err != nil {
 		return repoList, err
 	}
 	if forkedRepo != nil {
 		repoList = append(repoList, forkedRepo)
 	}
-	orgForks, err := FindUserOrgForks(repo.ID, user.ID)
+	orgForks, err := FindUserOrgForks(ctx, repo.ID, user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -748,14 +749,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := getProjects(sess, ProjectSearchOptions{
+	projects, _, err := project_model.GetProjectsCtx(ctx, project_model.SearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
 		return fmt.Errorf("get projects: %v", err)
 	}
 	for i := range projects {
-		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
+		if err := project_model.DeleteProjectByIDCtx(ctx, projects[i].ID); err != nil {
 			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
 	}

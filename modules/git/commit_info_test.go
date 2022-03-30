@@ -112,7 +112,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -123,7 +123,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		assert.NoError(t, err)
 	}
 	defer util.RemoveAll(clonedPath)
-	clonedRepo1, err := OpenRepository(clonedPath)
+	clonedRepo1, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -156,7 +156,7 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		}
 		defer util.RemoveAll(repoPath)
 
-		if repo, err = OpenRepository(repoPath); err != nil {
+		if repo, err = openRepositoryWithDefaultContext(repoPath); err != nil {
 			b.Fatal(err)
 		}
 		defer repo.Close()

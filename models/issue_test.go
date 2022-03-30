@@ -34,7 +34,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 		for i, labelID := range labelIDs {
 			labels[i] = unittest.AssertExistsAndLoadBean(t, &Label{ID: labelID, RepoID: repo.ID}).(*Label)
 		}
-		assert.NoError(t, issue.ReplaceLabels(labels, doer))
+		assert.NoError(t, ReplaceIssueLabels(issue, labels, doer))
 		unittest.AssertCount(t, &IssueLabel{IssueID: issueID}, len(labelIDs))
 		for _, labelID := range labelIDs {
 			unittest.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issueID, LabelID: labelID})
@@ -116,7 +116,7 @@ func TestIssue_ClearLabels(t *testing.T) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
 		issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID}).(*user_model.User)
-		assert.NoError(t, issue.ClearLabels(doer))
+		assert.NoError(t, ClearIssueLabels(issue, doer))
 		unittest.AssertNotExistsBean(t, &IssueLabel{IssueID: test.issueID})
 	}
 }
@@ -459,7 +459,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 		r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: o.ID, LowerName: repo}).(*repo_model.Repository)
 		issue := &Issue{RepoID: r.ID}
 		d := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: doer}).(*user_model.User)
-		resolved, err := issue.ResolveMentionsByVisibility(db.DefaultContext, d, mentions)
+		resolved, err := ResolveIssueMentionsByVisibility(db.DefaultContext, issue, d, mentions)
 		assert.NoError(t, err)
 		ids := make([]int64, len(resolved))
 		for i, user := range resolved {
