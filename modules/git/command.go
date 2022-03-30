@@ -226,7 +226,7 @@ func (c *Command) RunWithContextString(rc *RunContext) (stdout, stderr string, r
 func (c *Command) RunWithContextBytes(rc *RunContext) (stdout, stderr []byte, runErr RunError) {
 	if rc.Stdout != nil || rc.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
-		panic("stdout and stderr field must be nil when using RunWithContextStd")
+		panic("stdout and stderr field must be nil when using RunWithContextBytes")
 	}
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
