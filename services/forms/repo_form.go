@@ -582,6 +582,32 @@ func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// SetDefaults for options who n
+func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) {
+	if len(f.Do) == 0 {
+		f.Do = "merge"
+	}
+
+	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
+	if len(f.MergeTitleField) == 0 {
+		switch f.Do {
+		case "merge":
+			f.MergeTitleField = pr.GetDefaultMergeMessage()
+		case "rebase-merge":
+			f.MergeTitleField = pr.GetDefaultMergeMessage()
+		case "squash":
+			f.MergeTitleField = pr.GetDefaultSquashMessage()
+
+		}
+	}
+
+	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
+	if len(f.MergeMessageField) > 0 {
+		f.MergeTitleField += "\n\n" + f.MergeMessageField
+		f.MergeMessageField = ""
+	}
+}
+
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
 	Origin         string `binding:"Required;In(timeline,diff)"`
