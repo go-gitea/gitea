@@ -206,7 +206,7 @@ func (r *runError) Stderr() string {
 }
 
 func bytesToString(b []byte) string {
-	// that's what Golang's strings.Buffer does
+	// that's what Golang's strings.Builder.String() does (go/src/builder.go)
 	return *(*string)(unsafe.Pointer(&b))
 }
 
