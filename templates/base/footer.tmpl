@@ -22,7 +22,7 @@
 		<script src='https://hcaptcha.com/1/api.js' async></script>
 	{{end}}
 {{end}}
-	<script src="{{AssetUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
+	<script src="{{AssetUrlPrefix}}/js/index.js?v={{MD5 AppVer}}" onerror="alert('Failed to load asset files from ' + this.src + ', please make sure the asset files can be accessed and the ROOT_URL setting in app.ini is correct.')"></script>
 {{template "custom/footer" .}}
 </body>
 </html>
