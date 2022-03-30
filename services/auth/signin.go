@@ -32,12 +32,12 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		if err != nil {
 			return nil, nil, err
 		}
-		if !emailAddress.IsActivated {
-			return nil, nil, user_model.ErrEmailAddressNotExist{
-				Email: username,
-			}
-		}
 		if has {
+			if !emailAddress.IsActivated {
+				return nil, nil, user_model.ErrEmailAddressNotExist{
+					Email: username,
+				}
+			}
 			user = &user_model.User{ID: emailAddress.UID}
 		}
 	} else {
