@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -161,7 +162,16 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
+		"RenderMarkdownToHtml": func(input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
