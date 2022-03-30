@@ -378,6 +378,8 @@ var migrations = []Migration{
 
 	// v211 -> v212
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
+	// v212 -> v213
+	NewMigration("Add package tables", addPackageTables),
 }
 
 // GetCurrentDBVersion returns the current db version

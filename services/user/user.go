@@ -17,6 +17,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -56,6 +57,13 @@ func DeleteUser(u *user_model.User) error {
 		return fmt.Errorf("GetOrganizationCount: %v", err)
 	} else if count > 0 {
 		return models.ErrUserHasOrgs{UID: u.ID}
+	}
+
+	// Check ownership of packages.
+	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
+		return fmt.Errorf("HasOwnerPackages: %v", err)
+	} else if ownsPackages {
+		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
 	if err := models.DeleteUser(ctx, u); err != nil {
@@ -111,7 +119,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		}
 		if err := DeleteUser(u); err != nil {
 			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) {
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
 			}
 			return err

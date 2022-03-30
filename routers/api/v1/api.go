@@ -72,6 +72,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -84,6 +85,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -189,6 +191,15 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		if !ctx.Repo.HasAccess() {
 			ctx.NotFound()
+			return
+		}
+	}
+}
+
+func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			ctx.Error(http.StatusForbidden, "reqPackageAccess", "user should have specific permission or be a site admin")
 			return
 		}
 	}
@@ -1032,6 +1043,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
+
+		m.Group("/packages/{username}", func() {
+			m.Group("/{type}/{name}/{version}", func() {
+				m.Get("", packages.GetPackage)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
+				m.Get("/files", packages.ListPackageFiles)
+			})
+			m.Get("/", packages.ListPackages)
+		}, context_service.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

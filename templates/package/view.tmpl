@@ -1,0 +1,94 @@
+{{template "base/head" .}}
+<div class="page-content repository view issue packages">
+	{{template "user/overview/header" .}}
+	<div class="ui container">
+		<div>
+			<div class="ui stackable grid">
+				<div class="sixteen wide column title">
+					<div class="issue-title">
+						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+					</div>
+					<div>
+						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n.Lang}}
+						{{if .PackageDescriptor.Repository}}
+							{{.i18n.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+						{{else}}
+							{{.i18n.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
+						{{end}}
+					</div>
+					<div class="ui divider"></div>
+				</div>
+				<div class="twelve wide column">
+					{{template "package/content/composer" .}}
+					{{template "package/content/conan" .}}
+					{{template "package/content/container" .}}
+					{{template "package/content/generic" .}}
+					{{template "package/content/nuget" .}}
+					{{template "package/content/npm" .}}
+					{{template "package/content/maven" .}}
+					{{template "package/content/pypi" .}}
+					{{template "package/content/rubygems" .}}
+				</div>
+				<div class="four wide column">
+					<div class="ui segment metas">
+						<strong>{{.i18n.Tr "packages.details"}}</strong>
+						<div class="ui relaxed list">
+							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
+							{{if .PackageDescriptor.Repository}}
+							<div class="item">{{svg "octicon-repo" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
+							{{end}}
+							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
+							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+							{{template "package/metadata/composer" .}}
+							{{template "package/metadata/conan" .}}
+							{{template "package/metadata/container" .}}
+							{{template "package/metadata/generic" .}}
+							{{template "package/metadata/nuget" .}}
+							{{template "package/metadata/npm" .}}
+							{{template "package/metadata/maven" .}}
+							{{template "package/metadata/pypi" .}}
+							{{template "package/metadata/rubygems" .}}
+						</div>
+						{{if not (eq .PackageDescriptor.Package.Type "container")}}
+							<div class="ui divider"></div>
+							<strong>{{.i18n.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
+							<div class="ui relaxed list">
+							{{range .PackageDescriptor.Files}}
+								<div class="item">
+									<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
+									<span class="text small file-size">{{FileSize .Blob.Size}}</span>
+								</div>
+							{{end}}
+							</div>
+						{{end}}
+						{{if .LatestVersions}}
+							<div class="ui divider"></div>
+							<strong>{{.i18n.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
+							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.i18n.Tr "packages.versions.view_all"}}</a>
+							<div class="ui relaxed list">
+							{{range .LatestVersions}}
+								<div class="item">
+									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+									<span class="text small">{{$.i18n.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
+								</div>
+							{{end}}
+							</div>
+						{{end}}
+						{{if or .CanWritePackages .PackageDescriptor.Repository}}
+							<div class="ui divider"></div>
+							<div class="ui relaxed list">
+								{{if .PackageDescriptor.Repository}}
+								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}/issues">{{.i18n.Tr "repo.issues"}}</a></div>
+								{{end}}
+								{{if .CanWritePackages}}
+								<div class="item">{{svg "octicon-tools" 16 "mr-3"}} <a href="{{.Link}}/settings">{{.i18n.Tr "repo.settings"}}</a></div>
+								{{end}}
+							</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
