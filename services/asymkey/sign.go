@@ -195,7 +195,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepositoryCtx(ctx, repoWikiPath)
+			gitRepo, err := git.OpenRepository(ctx, repoWikiPath)
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -248,7 +248,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
+			gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -322,7 +322,7 @@ Loop:
 			}
 		case baseSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -338,7 +338,7 @@ Loop:
 			}
 		case headSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -354,7 +354,7 @@ Loop:
 			}
 		case commitsSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
+				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}

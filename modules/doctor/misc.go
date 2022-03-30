@@ -88,7 +88,7 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+		r, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}

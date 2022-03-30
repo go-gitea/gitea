@@ -31,7 +31,7 @@ func TestAPIGitTags(t *testing.T) {
 	git.NewCommand(git.DefaultContext, "config", "user.name", user.Name).RunInDir(repo.RepoPath())
 	git.NewCommand(git.DefaultContext, "config", "user.email", user.Email).RunInDir(repo.RepoPath())
 
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit("master")

@@ -64,7 +64,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := SHA1{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 
@@ -109,7 +109,7 @@ empty commit`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := OpenRepository(bareRepo1Path)
+	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 
 	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
