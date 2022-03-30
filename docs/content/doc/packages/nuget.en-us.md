@@ -83,7 +83,7 @@ https://gitea.example.com/api/packages/{owner}/nuget/symbols
 
 For example:
 
-```shell
+```
 https://gitea.example.com/api/packages/testuser/nuget/symbols
 ```
 
