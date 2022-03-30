@@ -79,8 +79,7 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 		return
 	}
 	pubKeyPem := pkPemProp.Get()
-	var block *pem.Block
-	block, _ = pem.Decode([]byte(pubKeyPem))
+	block, _ := pem.Decode([]byte(pubKeyPem))
 	if block == nil || block.Type != "PUBLIC KEY" {
 		err = fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
 		return
@@ -90,8 +89,7 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 }
 
 func fetch(iri *url.URL) (b []byte, err error) {
-	var req *httplib.Request
-	req = httplib.NewRequest(iri.String(), http.MethodGet)
+	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", activitypub.ActivityStreamsContentType)
 	req.Header("Accept-Charset", "utf-8")
 	clock, err := activitypub.NewClock()
@@ -99,8 +97,7 @@ func fetch(iri *url.URL) (b []byte, err error) {
 		return
 	}
 	req.Header("Date", fmt.Sprintf("%s GMT", clock.Now().UTC().Format(time.RFC1123)))
-	var resp *http.Response
-	resp, err = req.Response()
+	resp, err := req.Response()
 	if err != nil {
 		return
 	}
@@ -118,20 +115,17 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	r := ctx.Req
 
 	// 1. Figure out what key we need to verify
-	var v httpsig.Verifier
-	v, err = httpsig.NewVerifier(r)
+	v, err := httpsig.NewVerifier(r)
 	if err != nil {
 		return
 	}
 	ID := v.KeyId()
-	var idIRI *url.URL
-	idIRI, err = url.Parse(ID)
+	idIRI, err := url.Parse(ID)
 	if err != nil {
 		return
 	}
 	// 2. Fetch the public key of the other actor
-	var b []byte
-	b, err = fetch(idIRI)
+	b, err := fetch(idIRI)
 	if err != nil {
 		return
 	}

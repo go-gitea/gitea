@@ -14,7 +14,6 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-fed/activity/pub"
@@ -35,8 +34,7 @@ func TestActivityPubPerson(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "@context")
 		var m map[string]interface{}
-		err := json.Unmarshal(resp.Body.Bytes(), &m)
-		assert.Equal(t, err, nil)
+		DecodeJSON(t, resp, &m)
 
 		var person vocab.ActivityStreamsPerson
 		resolver, _ := streams.NewJSONResolver(func(c context.Context, p vocab.ActivityStreamsPerson) error {
@@ -44,8 +42,8 @@ func TestActivityPubPerson(t *testing.T) {
 			return nil
 		})
 		ctx := context.Background()
-		err = resolver.Resolve(ctx, m)
-		assert.Equal(t, err, nil)
+		err := resolver.Resolve(ctx, m)
+		assert.NoError(t, err)
 		assert.Equal(t, "Person", person.GetTypeName())
 		assert.Equal(t, username, person.GetActivityStreamsName().Begin().GetXMLSchemaString())
 		keyID := person.GetJSONLDId().GetIRI().String()
@@ -124,10 +122,10 @@ func TestActivityPubPersonInbox(t *testing.T) {
 		// Signed request succeeds
 		resp, err := c.Post([]byte{}, user2inboxurl)
 		assert.NoError(t, err)
-		assert.Equal(t, 204, resp.StatusCode)
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 		// Unsigned request fails
 		req := NewRequest(t, "POST", user2inboxurl)
-		MakeRequest(t, req, 500)
+		MakeRequest(t, req, http.StatusInternalServerError)
 	})
 }

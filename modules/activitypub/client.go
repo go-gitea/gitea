@@ -23,7 +23,7 @@ import (
 
 const (
 	// ActivityStreamsContentType const
-	ActivityStreamsContentType = "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""
+	ActivityStreamsContentType = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
 )
 
 func containsRequiredHTTPHeaders(method string, headers []string) error {
@@ -31,13 +31,13 @@ func containsRequiredHTTPHeaders(method string, headers []string) error {
 	for _, header := range headers {
 		hasRequestTarget = hasRequestTarget || header == httpsig.RequestTarget
 		hasDate = hasDate || header == "Date"
-		hasDigest = method == "GET" || hasDigest || header == "Digest"
+		hasDigest = hasDigest || header == "Digest"
 	}
 	if !hasRequestTarget {
 		return fmt.Errorf("missing http header for %s: %s", method, httpsig.RequestTarget)
 	} else if !hasDate {
 		return fmt.Errorf("missing http header for %s: Date", method)
-	} else if !hasDigest {
+	} else if !hasDigest && method != http.MethodGet {
 		return fmt.Errorf("missing http header for %s: Digest", method)
 	}
 	return nil

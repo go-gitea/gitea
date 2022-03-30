@@ -78,6 +78,7 @@ func Person(ctx *context.APIContext) {
 	publicKeyPemProp := streams.NewW3IDSecurityV1PublicKeyPemProperty()
 	if publicKeyPem, err := activitypub.GetPublicKey(user); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
+		return
 	} else {
 		publicKeyPemProp.Set(publicKeyPem)
 	}
@@ -86,8 +87,10 @@ func Person(ctx *context.APIContext) {
 	publicKeyProp.AppendW3IDSecurityV1PublicKey(publicKeyType)
 	person.SetW3IDSecurityV1PublicKey(publicKeyProp)
 
-	var jsonmap map[string]interface{}
-	jsonmap, _ = streams.Serialize(person)
+	jsonmap, err := streams.Serialize(person)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+	}
 	ctx.JSON(http.StatusOK, jsonmap)
 }
 
