@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
@@ -30,6 +31,13 @@ func DeleteOrganization(org *organization.Organization) error {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {
 		return models.ErrUserOwnRepos{UID: org.ID}
+	}
+
+	// Check ownership of packages.
+	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
+		return fmt.Errorf("HasOwnerPackages: %v", err)
+	} else if ownsPackages {
+		return models.ErrUserOwnPackages{UID: org.ID}
 	}
 
 	if err := organization.DeleteOrganization(ctx, org); err != nil {
