@@ -108,10 +108,10 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		needsRollback = true
 
 		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
-		if stdout, err := git.NewCommand(txCtx,
+		if stdout, _, err := git.NewCommand(txCtx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
-			RunInDirTimeout(10*time.Minute, ""); err != nil {
+			RunWithContextBytes(&git.RunContext{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %v", err)
 		}
