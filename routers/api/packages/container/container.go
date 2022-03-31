@@ -367,7 +367,7 @@ func GetBlob(ctx *context.Context) {
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	s, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -506,7 +506,7 @@ func GetManifest(ctx *context.Context) {
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(manifest.Blob.HashSHA256))
+	s, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
