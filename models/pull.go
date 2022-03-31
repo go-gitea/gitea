@@ -407,7 +407,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
-	if err := pr.Issue.loadRepo(ctx); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 

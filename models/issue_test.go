@@ -132,7 +132,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, updateIssueCols(db.DefaultContext, issue, "name"))
+	assert.NoError(t, UpdateIssueCols(db.DefaultContext, issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)

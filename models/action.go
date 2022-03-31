@@ -243,7 +243,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 

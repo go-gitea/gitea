@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -405,12 +406,12 @@ func ListIssues(ctx *context.APIContext) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if !models.IsErrMilestoneNotExist(err) {
+			if !issues_model.IsErrMilestoneNotExist(err) {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
 				return
 			}
@@ -418,12 +419,12 @@ func ListIssues(ctx *context.APIContext) {
 			if err != nil {
 				continue
 			}
-			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)

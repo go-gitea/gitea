@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -209,8 +210,8 @@ type Comment struct {
 	Project          *project_model.Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
+	OldMilestone     *issues_model.Milestone `xorm:"-"`
+	Milestone        *issues_model.Milestone `xorm:"-"`
 	TimeID           int64
 	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
@@ -358,7 +359,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -387,7 +388,7 @@ func (c *Comment) APIURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -408,7 +409,7 @@ func (c *Comment) IssueURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -424,7 +425,7 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -495,7 +496,7 @@ func (c *Comment) LoadProject() error {
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
-		var oldMilestone Milestone
+		var oldMilestone issues_model.Milestone
 		has, err := db.GetEngine(db.DefaultContext).ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
@@ -505,7 +506,7 @@ func (c *Comment) LoadMilestone() error {
 	}
 
 	if c.MilestoneID > 0 {
-		var milestone Milestone
+		var milestone issues_model.Milestone
 		has, err := db.GetEngine(db.DefaultContext).ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
@@ -574,7 +575,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 			return err
 		}
 
-		if err = c.Issue.LoadRepo(); err != nil {
+		if err = c.Issue.LoadRepo(db.DefaultContext); err != nil {
 			return err
 		}
 
@@ -717,7 +718,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext)
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -761,7 +762,8 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 	return err
 }
 
-func createComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+// CreateCommentCtx creates comment with context
+func CreateCommentCtx(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
@@ -863,7 +865,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 	}
 	// update the issue's updated_unix column
-	return updateIssueCols(ctx, opts.Issue, "updated_unix")
+	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
 func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
@@ -884,7 +886,7 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -895,7 +897,7 @@ func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Is
 		Issue:   issue,
 		Content: content,
 	}
-	comment, err := createComment(ctx, opts)
+	comment, err := CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -908,7 +910,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -920,7 +922,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	if _, err = createComment(ctx, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return
 	}
 
@@ -931,7 +933,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	}
-	_, err = createComment(ctx, opts)
+	_, err = CreateCommentCtx(ctx, opts)
 	return
 }
 
@@ -981,7 +983,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	}
 	defer committer.Close()
 
-	comment, err = createComment(ctx, opts)
+	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -1230,7 +1232,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
