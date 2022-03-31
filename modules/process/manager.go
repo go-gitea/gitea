@@ -86,6 +86,10 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
+	if timeout <= 0 {
+		// it's meaningless to use timeout <= 0, and it must be a bug! so we must panic here to tell developers to make the timeout correct
+		panic("the timeout must be greater than zero, otherwise the context will be cancelled immediately")
+	}
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
 	ctx, pid, finshed := pm.Add(ctx, description, cancel)
@@ -239,7 +243,7 @@ func (pm *Manager) ExecDirEnv(ctx context.Context, timeout time.Duration, dir, d
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
 func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
-	if timeout == -1 {
+	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}
 

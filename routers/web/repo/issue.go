@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -2349,9 +2350,9 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateIssueReaction(ctx.Doer, issue, form.Content)
+		reaction, err := issues_model.CreateIssueReaction(ctx.Doer.ID, issue.ID, form.Content)
 		if err != nil {
-			if models.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}
@@ -2367,7 +2368,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteIssueReaction(ctx.Doer, issue, form.Content); err != nil {
+		if err := issues_model.DeleteIssueReaction(ctx.Doer.ID, issue.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteIssueReaction", err)
 			return
 		}
@@ -2451,9 +2452,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateCommentReaction(ctx.Doer, comment.Issue, comment, form.Content)
+		reaction, err := issues_model.CreateCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
 		if err != nil {
-			if models.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}
@@ -2469,7 +2470,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteCommentReaction(ctx.Doer, comment.Issue, comment, form.Content); err != nil {
+		if err := issues_model.DeleteCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
