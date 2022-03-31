@@ -252,7 +252,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	res, err := vars.Expand(string(data), match)
 	if err != nil {
 		// here we could just log the error and continue the rendering
-		log.Error("unable to expand template vars for repo README: %s, err: %s", opts.Readme, err.Error())
+		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
 	}
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(res), 0o644); err != nil {

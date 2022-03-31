@@ -1114,7 +1114,7 @@ func ViewIssue(ctx *context.Context) {
 				metas["index"] = ctx.Params(":index")
 				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
-					log.Error("unable to expand template vars for issue url. issue: %s, err: %s", metas["index"], err.Error())
+					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
 					ctx.ServerError("Expand", err)
 					return
 				}

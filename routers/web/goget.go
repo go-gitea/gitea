@@ -84,7 +84,7 @@ func goGet(ctx *context.Context) {
 		"Insecure":       insecure,
 	})
 	if err != nil {
-		log.Error("error occurs when rendering goget response: %v", err.Error())
+		log.Error("error occurs when rendering goget response: %v", err)
 		ctx.Error(http.StatusInternalServerError, "failed to render goget content")
 		return
 	}
