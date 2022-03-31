@@ -189,10 +189,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	// Switch off LFS process (set required, clean and smudge here also)
 	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("git config [filter.lfs.process -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -202,10 +201,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -215,10 +213,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -228,10 +225,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -241,10 +237,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git config [core.sparseCheckout -> true ]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("git config [core.sparsecheckout -> true]: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -255,10 +250,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	// Read base branch index
 	if err := git.NewCommand(ctx, "read-tree", "HEAD").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stdout:  &outbuf,
-			Stderr:  &errbuf,
+			Dir:    tmpBasePath,
+			Stdout: &outbuf,
+			Stderr: &errbuf,
 		}); err != nil {
 		log.Error("git read-tree HEAD: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("Unable to read base branch in to the index: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
@@ -316,10 +310,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		// Checkout head branch
 		if err := git.NewCommand(ctx, "checkout", "-b", stagingBranch, trackingBranch).
 			RunWithContext(&git.RunContext{
-				Timeout: -1,
-				Dir:     tmpBasePath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			log.Error("git checkout base prior to merge post staging rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			return "", fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -330,10 +323,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		// Rebase before merging
 		if err := git.NewCommand(ctx, "rebase", baseBranch).
 			RunWithContext(&git.RunContext{
-				Timeout: -1,
-				Dir:     tmpBasePath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
@@ -384,10 +376,9 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		// Checkout base branch again
 		if err := git.NewCommand(ctx, "checkout", baseBranch).
 			RunWithContext(&git.RunContext{
-				Timeout: -1,
-				Dir:     tmpBasePath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			log.Error("git checkout base prior to merge post staging rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			return "", fmt.Errorf("git checkout base prior to merge post staging rebase  [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -430,11 +421,10 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		if signArg == "" {
 			if err := git.NewCommand(ctx, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
 				RunWithContext(&git.RunContext{
-					Env:     env,
-					Timeout: -1,
-					Dir:     tmpBasePath,
-					Stdout:  &outbuf,
-					Stderr:  &errbuf,
+					Env:    env,
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
 				}); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -446,11 +436,10 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 			}
 			if err := git.NewCommand(ctx, "commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
 				RunWithContext(&git.RunContext{
-					Env:     env,
-					Timeout: -1,
-					Dir:     tmpBasePath,
-					Stdout:  &outbuf,
-					Stderr:  &errbuf,
+					Env:    env,
+					Dir:    tmpBasePath,
+					Stdout: &outbuf,
+					Stderr: &errbuf,
 				}); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -516,11 +505,10 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	// Push back to upstream.
 	if err := pushCmd.RunWithContext(&git.RunContext{
-		Env:     env,
-		Timeout: -1,
-		Dir:     tmpBasePath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
+		Env:    env,
+		Dir:    tmpBasePath,
+		Stdout: &outbuf,
+		Stderr: &errbuf,
 	}); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
@@ -550,11 +538,10 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 	if signArg == "" {
 		if err := git.NewCommand(ctx, "commit", "-m", message).
 			RunWithContext(&git.RunContext{
-				Env:     env,
-				Timeout: -1,
-				Dir:     tmpBasePath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Env:    env,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -562,11 +549,10 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 	} else {
 		if err := git.NewCommand(ctx, "commit", signArg, "-m", message).
 			RunWithContext(&git.RunContext{
-				Env:     env,
-				Timeout: -1,
-				Dir:     tmpBasePath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Env:    env,
+				Dir:    tmpBasePath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -578,10 +564,9 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.Command, tmpBasePath string) error {
 	var outbuf, errbuf strings.Builder
 	if err := cmd.RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     tmpBasePath,
-		Stdout:  &outbuf,
-		Stderr:  &errbuf,
+		Dir:    tmpBasePath,
+		Stdout: &outbuf,
+		Stderr: &errbuf,
 	}); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
@@ -617,10 +602,9 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 		// Compute the diff-tree for sparse-checkout
 		if err := git.NewCommand(ctx, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root", baseBranch, headBranch, "--").
 			RunWithContext(&git.RunContext{
-				Timeout: -1,
-				Dir:     repoPath,
-				Stdout:  &outbuf,
-				Stderr:  &errbuf,
+				Dir:    repoPath,
+				Stdout: &outbuf,
+				Stderr: &errbuf,
 			}); err != nil {
 			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, errbuf.String())
 		}

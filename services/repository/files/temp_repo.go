@@ -112,10 +112,9 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 
 	if err := git.NewCommand(t.ctx, cmdArgs...).
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     t.basePath,
-			Stdout:  stdOut,
-			Stderr:  stdErr,
+			Dir:    t.basePath,
+			Stdout: stdOut,
+			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to run git ls-files for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		err = fmt.Errorf("Unable to run git ls-files for temporary repo of: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
@@ -145,11 +144,10 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 
 	if err := git.NewCommand(t.ctx, "update-index", "--remove", "-z", "--index-info").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     t.basePath,
-			Stdin:   stdIn,
-			Stdout:  stdOut,
-			Stderr:  stdErr,
+			Dir:    t.basePath,
+			Stdin:  stdIn,
+			Stdout: stdOut,
+			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
@@ -164,11 +162,10 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 
 	if err := git.NewCommand(t.ctx, "hash-object", "-w", "--stdin").
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     t.basePath,
-			Stdin:   content,
-			Stdout:  stdOut,
-			Stderr:  stdErr,
+			Dir:    t.basePath,
+			Stdin:  content,
+			Stdout: stdOut,
+			Stderr: stdErr,
 		}); err != nil {
 		log.Error("Unable to hash-object to temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
 		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
@@ -301,12 +298,11 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	stderr := new(bytes.Buffer)
 	if err := git.NewCommand(t.ctx, args...).
 		RunWithContext(&git.RunContext{
-			Env:     env,
-			Timeout: -1,
-			Dir:     t.basePath,
-			Stdin:   messageBytes,
-			Stdout:  stdout,
-			Stderr:  stderr,
+			Env:    env,
+			Dir:    t.basePath,
+			Stdin:  messageBytes,
+			Stdout: stdout,
+			Stderr: stderr,
 		}); err != nil {
 		log.Error("Unable to commit-tree in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
 			t.repo.FullName(), t.basePath, err, stdout, stderr)

@@ -149,10 +149,9 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 	if err := NewCommand(repo.Ctx, "diff", "-z", "--name-only", base+separator+head).
 		RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  w,
-			Stderr:  stderr,
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
 		}); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
@@ -160,10 +159,9 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 			w = &lineCountWriter{}
 			stderr.Reset()
 			if err = NewCommand(repo.Ctx, "diff", "-z", "--name-only", base, head).RunWithContext(&RunContext{
-				Timeout: -1,
-				Dir:     repo.Path,
-				Stdout:  w,
-				Stderr:  stderr,
+				Dir:    repo.Path,
+				Stdout: w,
+				Stderr: stderr,
 			}); err == nil {
 				return w.numLines, nil
 			}
@@ -250,9 +248,8 @@ func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, bi
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 	return NewCommand(repo.Ctx, "diff", "-p", base, head).RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  w,
+		Dir:    repo.Path,
+		Stdout: w,
 	})
 }
 
@@ -260,15 +257,13 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 	if CheckGitVersionAtLeast("1.7.7") == nil {
 		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  w,
+			Dir:    repo.Path,
+			Stdout: w,
 		})
 	}
 	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  w,
+		Dir:    repo.Path,
+		Stdout: w,
 	})
 }
 
@@ -277,17 +272,15 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout", base+"..."+head).
 		RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  w,
-			Stderr:  stderr,
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
 		})
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
 		return NewCommand(repo.Ctx, "format-patch", "--binary", "--stdout", base, head).
 			RunWithContext(&RunContext{
-				Timeout: -1,
-				Dir:     repo.Path,
-				Stdout:  w,
+				Dir:    repo.Path,
+				Stdout: w,
 			})
 	}
 	return err
@@ -298,10 +291,9 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 	stderr := new(bytes.Buffer)
 	err := NewCommand(repo.Ctx, "diff", "-p", "--binary", base+"..."+head).
 		RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  w,
-			Stderr:  stderr,
+			Dir:    repo.Path,
+			Stdout: w,
+			Stderr: stderr,
 		})
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
 		return repo.GetDiffBinary(base, head, w)

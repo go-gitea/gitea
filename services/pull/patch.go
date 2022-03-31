@@ -381,9 +381,8 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	conflict = false
 	err = git.NewCommand(gitRepo.Ctx, args...).
 		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stderr:  stderrWriter,
+			Dir:    tmpBasePath,
+			Stderr: stderrWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stderrWriter.Close()

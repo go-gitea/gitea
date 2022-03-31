@@ -83,10 +83,9 @@ func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
 	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
 		RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  &output,
-			Stderr:  &errbuf,
+			Dir:    repo.Path,
+			Stdout: &output,
+			Stderr: &errbuf,
 		}); err != nil {
 		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil

@@ -65,10 +65,9 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	scanner := bufio.NewScanner(stdoutReader)
 
 	if err := graphCmd.RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     r.Path,
-		Stdout:  stdoutWriter,
-		Stderr:  stderr,
+		Dir:    r.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()

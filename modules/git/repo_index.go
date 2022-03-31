@@ -107,11 +107,10 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 		}
 	}
 	return cmd.RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdin:   bytes.NewReader(buffer.Bytes()),
-		Stdout:  stdout,
-		Stderr:  stderr,
+		Dir:    repo.Path,
+		Stdin:  bytes.NewReader(buffer.Bytes()),
+		Stdout: stdout,
+		Stderr: stderr,
 	})
 }
 

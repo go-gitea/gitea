@@ -58,10 +58,9 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 
 	var stderr strings.Builder
 	err := NewCommand(ctx, args...).RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  target,
-		Stderr:  &stderr,
+		Dir:    repo.Path,
+		Stdout: target,
+		Stderr: &stderr,
 	})
 	if err != nil {
 		return ConcatenateError(err, stderr.String())

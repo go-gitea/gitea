@@ -68,11 +68,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	stderr := new(strings.Builder)
 	err = NewCommand(repo.Ctx, args...).RunWithContext(&RunContext{
-		Env:     []string{},
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  stdoutWriter,
-		Stderr:  stderr,
+		Env:    []string{},
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)

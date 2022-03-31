@@ -212,10 +212,9 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
 			prettyLogFormat, "--", file).
 			RunWithContext(&RunContext{
-				Timeout: -1,
-				Dir:     repo.Path,
-				Stdout:  stdoutWriter,
-				Stderr:  &stderr,
+				Dir:    repo.Path,
+				Stdout: stdoutWriter,
+				Stderr: &stderr,
 			})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))

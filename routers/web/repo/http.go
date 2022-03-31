@@ -473,12 +473,11 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	if err := cmd.RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     h.dir,
-		Env:     append(os.Environ(), h.environ...),
-		Stdout:  h.w,
-		Stdin:   reqBody,
-		Stderr:  &stderr,
+		Dir:    h.dir,
+		Env:    append(os.Environ(), h.environ...),
+		Stdout: h.w,
+		Stdin:  reqBody,
+		Stderr: &stderr,
 	}); err != nil {
 		if err.Error() != "signal: killed" {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())

@@ -37,10 +37,9 @@ func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io
 	stderr := new(bytes.Buffer)
 	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R", commitID)
 	if err := cmd.RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repoPath,
-		Stdout:  writer,
-		Stderr:  stderr,
+		Dir:    repoPath,
+		Stdout: writer,
+		Stderr: stderr,
 	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
@@ -98,10 +97,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	stderr := new(bytes.Buffer)
 	cmd := NewCommand(repo.Ctx, args...)
 	if err = cmd.RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  writer,
-		Stderr:  stderr,
+		Dir:    repo.Path,
+		Stdout: writer,
+		Stderr: stderr,
 	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
@@ -302,10 +300,9 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 	// Run `git diff --name-only` to get the names of the changed files
 	err = NewCommand(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
 		RunWithContext(&RunContext{
-			Env:     env,
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  stdoutWriter,
+			Env:    env,
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stdoutWriter.Close()
