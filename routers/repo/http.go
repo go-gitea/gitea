@@ -440,15 +440,7 @@ func (h *serviceHandler) setHeaderCacheForever() {
 
 // sendFile send the provided content from a file
 func (h *serviceHandler) sendFile(contentType, file string) {
-	reqFile := filepath.Join(h.dir, file)
-	rel, err := filepath.Rel(h.dir, reqFile)
-	if err != nil {
-		http.Error(h.w, "Invalid path requested", 500)
-		return
-	} else if rel == ".." || strings.HasPrefix(filepath.ToSlash(rel), "../") {
-		http.NotFound(h.w, h.r)
-		return
-	}
+	reqFile := filepath.Join(h.dir, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:])
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
@@ -637,7 +629,7 @@ func GetTextFile(p string) func(*context.Context) {
 			h.setHeaderNoCache()
 			file := ctx.Params("file")
 			if file != "" {
-				h.sendFile("text/plain", "objects/info/"+path.Clean("/" + file)[1:])
+				h.sendFile("text/plain", "objects/info/"+file)
 			} else {
 				h.sendFile("text/plain", p)
 			}
