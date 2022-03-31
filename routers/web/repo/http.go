@@ -542,7 +542,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
+		refs, _, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunWithContextBytes(&git.RunContext{Env: h.environ, Dir: h.dir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
