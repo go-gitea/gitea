@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/branchprotection"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -156,12 +157,21 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 
-	// TODO: evaluate all protected branch rules
-
 	// Merge if all checks succeeded
 	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
 		log.Error(err.Error())
+		return
+	}
+
+	perm, err := models.GetUserRepoPermissionCtx(ctx, pr.HeadRepo, doer)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+	if err := branchprotection.Check(ctx, doer, &perm, pr, false, false); err != nil {
+		log.Error(err.Error())
+		// TODO: store feedback in still scheduled merge of this run
 		return
 	}
 
