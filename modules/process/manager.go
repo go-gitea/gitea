@@ -106,6 +106,11 @@ func (pm *Manager) AddTypedContext(parent context.Context, description, processT
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
+	if timeout <= 0 {
+		// it's meaningless to use timeout <= 0, and it must be a bug! so we must panic here to tell developers to make the timeout correct
+		panic("the timeout must be greater than zero, otherwise the context will be cancelled immediately")
+	}
+
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
 	ctx, _, finshed = pm.Add(ctx, description, cancel, NormalProcessType, true)

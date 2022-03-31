@@ -36,11 +36,11 @@ func (pm *Manager) ExecDirEnv(ctx context.Context, timeout time.Duration, dir, d
 }
 
 // ExecDirEnvStdIn runs a command in given path and environment variables with provided stdIN, and waits for its completion
-// up to the given timeout (or DefaultTimeout if -1 is given).
+// up to the given timeout (or DefaultTimeout if timeout <= 0 is given).
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
 func (pm *Manager) ExecDirEnvStdIn(ctx context.Context, timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
-	if timeout == -1 {
+	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}
 
