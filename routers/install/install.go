@@ -44,10 +44,8 @@ const (
 
 func getDbTypeNames() []map[string]string {
 	var supportedDbTypeNames []map[string]string // use a slice to keep order
-	if supportedDbTypeNames == nil {
-		for _, t := range setting.SupportedDatabaseTypes {
-			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
-		}
+	for _, t := range setting.SupportedDatabaseTypes {
+		supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
 	}
 	return supportedDbTypeNames
 }
