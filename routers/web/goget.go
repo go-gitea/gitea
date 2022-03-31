@@ -65,8 +65,7 @@ func goGet(ctx *context.Context) {
 	if appURL.Scheme == string(setting.HTTP) {
 		insecure = "--insecure "
 	}
-	ctx.RespHeader().Set("Content-Type", "text/html")
-	ctx.Status(http.StatusOK)
+
 	res, err := vars.Expand(`<!doctype html>
 <html>
 	<head>
@@ -85,17 +84,12 @@ func goGet(ctx *context.Context) {
 		"Insecure":       insecure,
 	})
 	if err != nil {
-		log.Error(err.Error())
-		_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-		ctx.Status(400)
+		log.Error("error occurs when rendering goget response: %v", err.Error())
+		ctx.Error(http.StatusInternalServerError, "failed to render goget content")
 		return
 	}
 
+	ctx.RespHeader().Set("Content-Type", "text/html")
+	ctx.Status(http.StatusOK)
 	_, _ = ctx.Write([]byte(res))
 }
