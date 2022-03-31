@@ -868,7 +868,7 @@ func MergePullRequest(ctx *context.Context) {
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
 	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
-		if pull_service.IsErrIsClosed(err) {
+		if errors.Is(err, pull_service.ErrIsClosed) {
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
 				ctx.Redirect(issue.Link())
@@ -876,16 +876,16 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
 				ctx.Redirect(issue.Link())
 			}
-		} else if pull_service.IsErrUserNotAllowedToMerge(err) {
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
 			ctx.Redirect(issue.Link())
-		} else if pull_service.IsErrHasMerged(err) {
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
 			ctx.Redirect(issue.Link())
-		} else if pull_service.IsErrIsWorkInProgress(err) {
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
 			ctx.Redirect(issue.Link())
-		} else if pull_service.IsErrNotMergableState(err) {
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
 			ctx.Redirect(issue.Link())
 		} else if models.IsErrDisallowedToMerge(err) {
@@ -894,7 +894,7 @@ func MergePullRequest(ctx *context.Context) {
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.Flash.Error(err.Error()) // has not translation ...
 			ctx.Redirect(issue.Link())
-		} else if pull_service.IsErrDependenciesLeft(err) {
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
 			ctx.Redirect(issue.Link())
 		} else {
