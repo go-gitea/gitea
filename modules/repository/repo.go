@@ -150,6 +150,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if !opts.Releases {
+			// note: this will greatly improve release (tag) sync
+			// for pull-mirrors with many tags
+			repo.IsMirror = opts.Mirror
 			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
@@ -254,6 +257,14 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	// optimized procedure for pull-mirrors which saves a lot of time (in
+	// particular for repos with many tags).
+	if repo.IsMirror {
+		return pullMirrorReleaseSync(repo, gitRepo)
+	}
+
 	existingRelTags := make(map[string]struct{})
 	opts := models.FindReleasesOptions{
 		IncludeDrafts: true,
@@ -448,5 +459,54 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		return err
 	}
 
+	return nil
+}
+
+// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// synchronization which overwrites all Releases from the repository tags. This
+// can be relied on since a pull-mirror is always identical to its
+// upstream. Hence, after each sync we want the pull-mirror release set to be
+// identical to the upstream tag set. This is much more efficient for
+// repositories like https://github.com/vim/vim (with over 13000 tags).
+func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
+	if err != nil {
+		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+	err = db.WithTx(func(ctx context.Context) error {
+		//
+		// clear out existing releases
+		//
+		if _, err := db.DeleteByBean(ctx, &models.Release{RepoID: repo.ID}); err != nil {
+			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		}
+		//
+		// make release set identical to upstream tags
+		//
+		for _, tag := range tags {
+			release := models.Release{
+				RepoID:       repo.ID,
+				TagName:      tag.Name,
+				LowerTagName: strings.ToLower(tag.Name),
+				Sha1:         tag.Object.String(),
+				// NOTE: ignored, since NumCommits are unused
+				// for pull-mirrors (only relevant when
+				// displaying releases, IsTag: false)
+				NumCommits:  -1,
+				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				IsTag:       true,
+			}
+			if err := db.Insert(ctx, release); err != nil {
+				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+
+	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
 	return nil
 }
