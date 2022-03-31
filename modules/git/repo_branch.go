@@ -176,15 +176,3 @@ func (repo *Repository) RenameBranch(from, to string) error {
 	_, err := NewCommand(repo.Ctx, "branch", "-m", from, to).RunInDir(repo.Path)
 	return err
 }
-
-// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
-func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
-	var revList []string
-	_, err := walkShowRef(repo.Ctx, repo.Path, "", 0, 0, func(walkSha, refname string) error {
-		if walkSha == sha && strings.HasPrefix(refname, prefix) {
-			revList = append(revList, refname)
-		}
-		return nil
-	})
-	return revList, err
-}

@@ -145,3 +145,16 @@ func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn f
 	})
 	return i, err
 }
+
+// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
+func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+	var revList []string
+	iter, err := repo.gogitRepo.References()
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Hash().String() == sha && strings.HasPrefix(string(ref.Name()), prefix) {
+			revList = append(revList, string(ref.Name()))
+		}
+		return nil
+	})
+	return revList, err
+}
