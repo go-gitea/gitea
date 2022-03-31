@@ -696,29 +696,29 @@ func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtec
 		return err
 	}
 	if !isPass {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Not all required status checks successful",
 		}
 	}
 
 	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
 	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
 	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
 	}
 
 	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
 	}
@@ -728,7 +728,7 @@ func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtec
 	}
 
 	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Changed protected files",
 		}
 	}

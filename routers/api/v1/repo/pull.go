@@ -756,7 +756,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
 		} else if pull_service.IsErrNotMergableState(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
-		} else if models.IsErrNotAllowedToMerge(err) {
+		} else if models.IsErrDisallowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)

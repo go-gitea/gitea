@@ -44,7 +44,7 @@ func CheckPullProtection(ctx context.Context, doer *user_model.User, perm *model
 	}
 
 	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if models.IsErrNotAllowedToMerge(err) {
+		if models.IsErrDisallowedToMerge(err) {
 			if force {
 				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
 					return err

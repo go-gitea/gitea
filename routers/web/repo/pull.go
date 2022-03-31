@@ -887,7 +887,7 @@ func MergePullRequest(ctx *context.Context) {
 		} else if pull_service.IsErrNotMergableState(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
 			ctx.Redirect(issue.Link())
-		} else if models.IsErrNotAllowedToMerge(err) {
+		} else if models.IsErrDisallowedToMerge(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
 			ctx.Redirect(issue.Link())
 		} else if asymkey_service.IsErrWontSign(err) {
