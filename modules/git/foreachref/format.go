@@ -27,6 +27,10 @@ type Format struct {
 	// for each reference. fieldDelim and refDelim should be selected to not
 	// interfere with each other and to not be present in field values.
 	fieldDelim []byte
+	// fieldDelimStr is a string representation of fieldDelim. Used to save
+	// us from repetitive reallocation whenever we need the delimiter as a
+	// string.
+	fieldDelimStr string
 	// refDelim is the character sequence used to separate reference from
 	// each other in the output. fieldDelim and refDelim should be selected
 	// to not interfere with each other and to not be present in field
@@ -38,9 +42,10 @@ type Format struct {
 // git-for-each-ref(1) for available fields.
 func NewFormat(fieldNames ...string) Format {
 	return Format{
-		fieldNames: fieldNames,
-		fieldDelim: nullChar,
-		refDelim:   dualNullChar,
+		fieldNames:    fieldNames,
+		fieldDelim:    nullChar,
+		fieldDelimStr: string(nullChar),
+		refDelim:      dualNullChar,
 	}
 }
 

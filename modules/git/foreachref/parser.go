@@ -35,7 +35,7 @@ func NewParser(r io.Reader, format Format) *Parser {
 	scanner.Split(
 		func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			// Scan until delimiter, marking end of reference.
-			delimIdx := bytes.Index(data, []byte(format.refDelim))
+			delimIdx := bytes.Index(data, format.refDelim)
 			if delimIdx >= 0 {
 				token := data[:delimIdx]
 				advance := delimIdx + len(format.refDelim)
@@ -93,7 +93,7 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 
 	fieldValues := make(map[string]string)
 
-	fields := strings.Split(refBlock, string(p.format.fieldDelim))
+	fields := strings.Split(refBlock, p.format.fieldDelimStr)
 	if len(fields) != len(p.format.fieldNames) {
 		return nil, fmt.Errorf("unexpected number of reference fields: wanted %d, was %d",
 			len(fields), len(p.format.fieldNames))
