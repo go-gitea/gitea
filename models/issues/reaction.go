@@ -177,7 +177,7 @@ func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 	}
 	findOpts := FindReactionsOptions{
 		IssueID:   opts.IssueID,
-		CommentID: opts.CommentID, // reaction to issue only
+		CommentID: opts.CommentID,
 		Reaction:  opts.Type,
 		UserID:    opts.DoerID,
 	}
