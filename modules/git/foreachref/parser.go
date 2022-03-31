@@ -31,19 +31,25 @@ type Parser struct {
 func NewParser(r io.Reader, format Format) *Parser {
 	scanner := bufio.NewScanner(r)
 
+	// in addition to the reference delimiter we specified in the --format,
+	// `git for-each-ref` will always add a newline after every reference.
+	refDelim := make([]byte, 0, len(format.refDelim)+1)
+	refDelim = append(refDelim, format.refDelim...)
+	refDelim = append(refDelim, '\n')
+
 	// Split input into delimiter-separated "reference blocks".
 	scanner.Split(
 		func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 			// Scan until delimiter, marking end of reference.
-			delimIdx := bytes.Index(data, format.refDelim)
+			delimIdx := bytes.Index(data, refDelim)
 			if delimIdx >= 0 {
 				token := data[:delimIdx]
-				advance := delimIdx + len(format.refDelim)
+				advance := delimIdx + len(refDelim)
 				return advance, token, nil
 			}
 			// If we're at EOF, we have a final, non-terminated reference. Return it.
 			if atEOF {
-				return len(data), bytes.TrimSpace(data), nil
+				return len(data), data, nil
 			}
 			// Not yet a full field. Request more data.
 			return 0, nil, nil

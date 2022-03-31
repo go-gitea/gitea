@@ -30,6 +30,8 @@ func TestParser(t *testing.T) {
 		wantErr     bool
 		expectedErr error
 	}{
+		// this would, for example, be the result when running `git
+		// for-each-ref refs/tags` on a repo without tags.
 		{
 			name: "no references on empty input",
 
@@ -39,11 +41,26 @@ func TestParser(t *testing.T) {
 			wantRefs: []map[string]string{},
 		},
 
+		// note: `git for-each-ref` will add a newline between every
+		// reference (in addition to the ref-delimiter we've chosen)
 		{
-			name: "single field requested for each reference",
+			name: "single field requested, single reference in output",
 
 			givenFormat: foreachref.NewFormat("refname:short"),
-			givenInput:  strings.NewReader("refname:short v0.0.1\x00\x00refname:short v0.0.2\x00\x00refname:short v0.0.3\x00\x00"),
+			givenInput:  strings.NewReader("refname:short v0.0.1\x00\x00" + "\n"),
+
+			wantRefs: []map[string]string{
+				{"refname:short": "v0.0.1"},
+			},
+		},
+		{
+			name: "single field requested, multiple references in output",
+
+			givenFormat: foreachref.NewFormat("refname:short"),
+			givenInput: strings.NewReader(
+				"refname:short v0.0.1\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00\x00" + "\n"),
 
 			wantRefs: []map[string]string{
 				{"refname:short": "v0.0.1"},
@@ -53,38 +70,14 @@ func TestParser(t *testing.T) {
 		},
 
 		{
-			name: "input ending without newline",
-
-			givenFormat: foreachref.NewFormat("refname:short"),
-			givenInput:  strings.NewReader("refname:short v0.0.1\x00\x00refname:short v0.0.2\x00\x00"),
-
-			wantRefs: []map[string]string{
-				{"refname:short": "v0.0.1"},
-				{"refname:short": "v0.0.2"},
-			},
-		},
-
-		{
-			name: "input ending with newline",
-
-			givenFormat: foreachref.NewFormat("refname:short"),
-			givenInput:  strings.NewReader("refname:short v0.0.1\x00\x00refname:short v0.0.2\x00\x00\n"),
-
-			wantRefs: []map[string]string{
-				{"refname:short": "v0.0.1"},
-				{"refname:short": "v0.0.2"},
-			},
-		},
-
-		{
 			name: "multiple fields requested for each reference",
 
 			givenFormat: foreachref.NewFormat("refname:short", "objecttype", "objectname"),
 			givenInput: strings.NewReader(
 
-				"refname:short v0.0.1\x00objecttype commit\x00objectname 7b2c5ac9fc04fc5efafb60700713d4fa609b777b\x00\x00" +
-					"refname:short v0.0.2\x00objecttype commit\x00objectname a1f051bc3eba734da4772d60e2d677f47cf93ef4\x00\x00" +
-					"refname:short v0.0.3\x00objecttype commit\x00objectname ef82de70bb3f60c65fb8eebacbb2d122ef517385\x00\x00",
+				"refname:short v0.0.1\x00objecttype commit\x00objectname 7b2c5ac9fc04fc5efafb60700713d4fa609b777b\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00objecttype commit\x00objectname a1f051bc3eba734da4772d60e2d677f47cf93ef4\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00objecttype commit\x00objectname ef82de70bb3f60c65fb8eebacbb2d122ef517385\x00\x00" + "\n",
 			),
 
 			wantRefs: []map[string]string{
@@ -111,9 +104,9 @@ func TestParser(t *testing.T) {
 
 			givenFormat: foreachref.NewFormat("refname:short", "contents", "author"),
 			givenInput: strings.NewReader(
-				"refname:short v0.0.1\x00contents Create new buffer if not present yet (#549)\n\nFixes a nil dereference when ProcessFoo is used\nwith multiple commands.\x00author Foo Bar <foo@bar.com> 1507832733 +0200\x00\x00" +
-					"refname:short v0.0.2\x00contents Update CI config (#651)\n\n\x00author John Doe <john.doe@foo.com> 1521643174 +0000\x00\x00" +
-					"refname:short v0.0.3\x00contents Fixed code sample for bash completion (#687)\n\n\x00author Foo Baz <foo@baz.com> 1524836750 +0200\x00\x00",
+				"refname:short v0.0.1\x00contents Create new buffer if not present yet (#549)\n\nFixes a nil dereference when ProcessFoo is used\nwith multiple commands.\x00author Foo Bar <foo@bar.com> 1507832733 +0200\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00contents Update CI config (#651)\n\n\x00author John Doe <john.doe@foo.com> 1521643174 +0000\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00contents Fixed code sample for bash completion (#687)\n\n\x00author Foo Baz <foo@baz.com> 1524836750 +0200\x00\x00" + "\n",
 			),
 
 			wantRefs: []map[string]string{
@@ -140,9 +133,9 @@ func TestParser(t *testing.T) {
 
 			givenFormat: foreachref.NewFormat("refname:short", "object", "objecttype"),
 			givenInput: strings.NewReader(
-				"refname:short v0.0.1\x00object \x00objecttype commit\x00\x00" +
-					"refname:short v0.0.2\x00object \x00objecttype commit\x00\x00" +
-					"refname:short v0.0.3\x00object \x00objecttype commit\x00\x00",
+				"refname:short v0.0.1\x00object \x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00object \x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00object \x00objecttype commit\x00\x00" + "\n",
 			),
 
 			wantRefs: []map[string]string{
@@ -169,9 +162,9 @@ func TestParser(t *testing.T) {
 
 			givenFormat: foreachref.NewFormat("refname:short", "objecttype", "objectname"),
 			givenInput: strings.NewReader(
-				"refname:short v0.0.1\x00objecttype commit\x00\x00" +
-					"refname:short v0.0.2\x00objecttype commit\x00\x00" +
-					"refname:short v0.0.3\x00objecttype commit\x00\x00",
+				"refname:short v0.0.1\x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00objecttype commit\x00\x00" + "\n",
 			),
 
 			wantErr:     true,
@@ -183,9 +176,9 @@ func TestParser(t *testing.T) {
 
 			givenFormat: foreachref.NewFormat("refname:short", "objectname"),
 			givenInput: strings.NewReader(
-				"refname:short v0.0.1\x00objecttype commit\x00\x00" +
-					"refname:short v0.0.2\x00objecttype commit\x00\x00" +
-					"refname:short v0.0.3\x00objecttype commit\x00\x00",
+				"refname:short v0.0.1\x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.2\x00objecttype commit\x00\x00" + "\n" +
+					"refname:short v0.0.3\x00objecttype commit\x00\x00" + "\n",
 			),
 
 			wantErr:     true,
