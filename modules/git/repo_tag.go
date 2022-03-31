@@ -23,13 +23,13 @@ func IsTagExist(ctx context.Context, repoPath, name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunWithContextString(&RunContext{Dir: repo.Path})
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunWithContextString(&RunContext{Dir: repo.Path})
 	return err
 }
 
@@ -39,7 +39,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunWithContextString(&RunContext{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunWithContextString(&RunContext{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +112,7 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
-	stdout, err := NewCommand(repo.Ctx, "tag").RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "tag").RunWithContextString(&RunContext{Dir: repo.Path})
 	if err != nil {
 		return nil, 0, err
 	}

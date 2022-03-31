@@ -29,7 +29,7 @@ type repoChanges struct {
 }
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
-	stdout, err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
+	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunWithContextString(&git.RunContext{Dir: repo.RepoPath()})
 	if err != nil {
 		return "", err
 	}
@@ -92,8 +92,9 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 // genesisChanges get changes to add repo to the indexer for the first time
 func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
-	stdout, err := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r", revision).
-		RunInDirBytes(repo.RepoPath())
+	var stdout []byte
+	var err error
+	stdout, _, err = git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r", revision).RunWithContextBytes(&git.RunContext{Dir: repo.RepoPath()})
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +104,10 @@ func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision s
 
 // nonGenesisChanges get changes since the previous indexer update
 func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
-	diffCmd := git.NewCommand(ctx, "diff", "--name-status",
-		repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, err := diffCmd.RunInDir(repo.RepoPath())
+	diffCmd := git.NewCommand(ctx, "diff", "--name-status", repo.CodeIndexerStatus.CommitSha, revision)
+	var stdout string
+	var err error
+	stdout, _, err = diffCmd.RunWithContextString(&git.RunContext{Dir: repo.RepoPath()})
 	if err != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
@@ -169,7 +171,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revisio
 
 	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", revision, "--")
 	cmd.AddArguments(updatedFilenames...)
-	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
+	lsTreeStdout, _, err := cmd.RunWithContextBytes(&git.RunContext{Dir: repo.RepoPath()})
 	if err != nil {
 		return nil, err
 	}

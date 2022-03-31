@@ -313,7 +313,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		refs, _, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunWithContextBytes(&git.RunContext{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -397,7 +397,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, err := git.NewCommand(ctx, "config", option).RunInDir(dir)
+	out, _, err := git.NewCommand(ctx, "config", option).RunWithContextString(&git.RunContext{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -512,7 +512,7 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, err := git.NewCommand(ctx, "update-server-info").RunInDirBytes(dir)
+	out, _, err := git.NewCommand(ctx, "update-server-info").RunWithContextBytes(&git.RunContext{Dir: dir})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}

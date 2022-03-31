@@ -159,10 +159,11 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			t.Skip()
 			return
 		}
+		var err error
 		prefix := "lfs-data-file-"
-		_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunInDir(dstPath)
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunWithContextString(&git.RunContext{Dir: dstPath})
 		assert.NoError(t, err)
-		_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunWithContextString(&git.RunContext{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -292,20 +293,20 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunWithContextString(&git.RunContext{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunWithContextString(&git.RunContext{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunWithContextString(&git.RunContext{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunWithContextString(&git.RunContext{Dir: repoPath})
 	assert.NoError(t, err)
 }
 
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunInDir(repoPath) // Push
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunWithContextString(&git.RunContext{Dir: repoPath}) // Push
 	assert.NoError(t, err)
 	return name
 }
@@ -671,7 +672,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			var err error
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -692,7 +694,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -745,7 +747,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			var err error
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -757,7 +760,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}

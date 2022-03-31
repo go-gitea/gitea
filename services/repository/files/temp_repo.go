@@ -52,7 +52,7 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, err := git.NewCommand(t.ctx, "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).Run(); err != nil {
+	if _, _, err := git.NewCommand(t.ctx, "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).RunWithContextString(nil); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
@@ -92,7 +92,7 @@ func (t *TemporaryUploadRepository) Init() error {
 
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
-	if _, err := git.NewCommand(t.ctx, "read-tree", "HEAD").RunInDir(t.basePath); err != nil {
+	if _, _, err := git.NewCommand(t.ctx, "read-tree", "HEAD").RunWithContextString(&git.RunContext{Dir: t.basePath}); err != nil {
 		return fmt.Errorf("SetDefaultIndex: %v", err)
 	}
 	return nil
@@ -179,7 +179,7 @@ func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPath string) error {
-	if _, err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).RunInDir(t.basePath); err != nil {
+	if _, _, err := git.NewCommand(t.ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).RunWithContextString(&git.RunContext{Dir: t.basePath}); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
 			return models.ErrFilePathInvalid{
@@ -195,7 +195,7 @@ func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPat
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (t *TemporaryUploadRepository) WriteTree() (string, error) {
-	stdout, err := git.NewCommand(t.ctx, "write-tree").RunInDir(t.basePath)
+	stdout, _, err := git.NewCommand(t.ctx, "write-tree").RunWithContextString(&git.RunContext{Dir: t.basePath})
 	if err != nil {
 		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %v", t.repo.FullName(), err)
@@ -213,7 +213,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	if ref == "" {
 		ref = "HEAD"
 	}
-	stdout, err := git.NewCommand(t.ctx, "rev-parse", ref).RunInDir(t.basePath)
+	stdout, _, err := git.NewCommand(t.ctx, "rev-parse", ref).RunWithContextString(&git.RunContext{Dir: t.basePath})
 	if err != nil {
 		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)
 		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %v", ref, t.repo.FullName(), err)

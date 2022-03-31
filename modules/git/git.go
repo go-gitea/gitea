@@ -54,7 +54,9 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, err := NewCommand(context.Background(), "version").Run()
+	var stdout string
+	var err error
+	stdout, _, err = NewCommand(context.Background(), "version").RunWithContextString(nil)
 	if err != nil {
 		return err
 	}

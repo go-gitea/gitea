@@ -191,9 +191,10 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 
 	size := update.Size
 
+	var stdout string
+	var err error
 	if !update.Sized {
-		stdout, err := git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).
-			RunInDir(repo.RepoPath())
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunWithContextString(&git.RunContext{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}
@@ -210,7 +211,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 		return err
 	}
 
-	_, _, size, err := git.ReadBatchLine(batchReader)
+	_, _, size, err = git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
 	}

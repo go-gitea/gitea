@@ -40,13 +40,13 @@ func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, stri
 	if tmpRemote != "origin" {
 		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, err := NewCommand(repo.Ctx, "fetch", tmpRemote, base+":"+tmpBaseName).RunInDir(repo.Path)
+		_, _, err := NewCommand(repo.Ctx, "fetch", tmpRemote, base+":"+tmpBaseName).RunWithContextString(&RunContext{Dir: repo.Path})
 		if err == nil {
 			base = tmpBaseName
 		}
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "merge-base", "--", base, head).RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "merge-base", "--", base, head).RunWithContextString(&RunContext{Dir: repo.Path})
 	return strings.TrimSpace(stdout), base, err
 }
 
@@ -93,7 +93,8 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
-			logs, err := NewCommand(repo.Ctx, "log", baseCommitID+separator+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+			var logs []byte
+			logs, _, err = NewCommand(repo.Ctx, "log", baseCommitID+separator+headBranch, prettyLogFormat).RunWithContextBytes(&RunContext{Dir: repo.Path})
 			if err != nil {
 				return nil, err
 			}
@@ -192,7 +193,7 @@ func GetDiffShortStat(ctx context.Context, repoPath string, args ...string) (num
 		"--shortstat",
 	}, args...)
 
-	stdout, err := NewCommand(ctx, args...).RunInDir(repoPath)
+	stdout, _, err := NewCommand(ctx, args...).RunWithContextString(&RunContext{Dir: repoPath})
 	if err != nil {
 		return 0, 0, 0, err
 	}

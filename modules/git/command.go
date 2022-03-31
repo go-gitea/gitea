@@ -106,6 +106,9 @@ type RunContext struct {
 
 // RunWithContext run the command with context
 func (c *Command) RunWithContext(rc *RunContext) error {
+	if rc == nil {
+		rc = &RunContext{}
+	}
 	if rc.Timeout <= 0 {
 		rc.Timeout = defaultCommandExecutionTimeout
 	}
@@ -223,6 +226,9 @@ func (c *Command) RunWithContextString(rc *RunContext) (stdout, stderr string, r
 
 // RunWithContextBytes run the command with context and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunWithContextBytes(rc *RunContext) (stdout, stderr []byte, runErr RunError) {
+	if rc == nil {
+		rc = &RunContext{}
+	}
 	if rc.Stdout != nil || rc.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunWithContextBytes")
@@ -234,37 +240,10 @@ func (c *Command) RunWithContextBytes(rc *RunContext) (stdout, stderr []byte, ru
 	err := c.RunWithContext(rc)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return nil, stderr, &runError{err: err, stderr: string(stderr)}
+		return nil, stderr, &runError{err: err, stderr: bytesToString(stderr)}
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil
-}
-
-// RunInDirBytes executes the command in given directory
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
-	stdout, _, err := c.RunWithContextBytes(&RunContext{Dir: dir})
-	return stdout, err
-}
-
-// RunInDir executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDir(dir string) (string, error) {
-	return c.RunInDirWithEnv(dir, nil)
-}
-
-// RunInDirWithEnv executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
-	stdout, _, err := c.RunWithContextString(&RunContext{Env: env, Dir: dir})
-	return stdout, err
-}
-
-// Run executes the command in default working directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) Run() (string, error) {
-	stdout, _, err := c.RunWithContextString(&RunContext{})
-	return stdout, err
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
