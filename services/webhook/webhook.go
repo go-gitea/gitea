@@ -101,15 +101,15 @@ func getPayloadBranch(p api.Payloader) string {
 	return ""
 }
 
-// SourceContext represents the source of a webhook action. Repository and/or Owner must be set.
-type SourceContext struct {
+// EventSource represents the source of a webhook action. Repository and/or Owner must be set.
+type EventSource struct {
 	Repository *repo_model.Repository
 	Owner      *user_model.User
 }
 
 // PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhook(ctx, w, event, p); err != nil {
+func PrepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+	if err := prepareWebhook(source, w, event, p); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -178,8 +178,8 @@ func prepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_m
 	}
 
 	repoID := int64(0)
-	if ctx.Repository != nil {
-		repoID = ctx.Repository.ID
+	if source.Repository != nil {
+		repoID = source.Repository.ID
 	}
 
 	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
@@ -194,8 +194,8 @@ func prepareWebhook(ctx SourceContext, w *webhook_model.Webhook, event webhook_m
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(ctx, event, p); err != nil {
+func PrepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+	if err := prepareWebhooks(source, event, p); err != nil {
 		return err
 	}
 
@@ -203,14 +203,14 @@ func PrepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api
 	return nil
 }
 
-func prepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api.Payloader) error {
-	owner := ctx.Owner
+func prepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
+	owner := source.Owner
 
 	var ws []*webhook_model.Webhook
 
-	if ctx.Repository != nil {
+	if source.Repository != nil {
 		repoHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
-			RepoID:   ctx.Repository.ID,
+			RepoID:   source.Repository.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
@@ -218,7 +218,7 @@ func prepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api
 		}
 		ws = append(ws, repoHooks...)
 
-		owner = ctx.Repository.MustOwner()
+		owner = source.Repository.MustOwner()
 	}
 
 	// check if owner is an org and append additional webhooks
@@ -245,7 +245,7 @@ func prepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api
 	}
 
 	for _, w := range ws {
-		if err = prepareWebhook(ctx, w, event, p); err != nil {
+		if err = prepareWebhook(source, w, event, p); err != nil {
 			return err
 		}
 	}

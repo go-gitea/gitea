@@ -1284,7 +1284,7 @@ func TestWebhook(ctx *context.Context) {
 		Pusher:     apiUser,
 		Sender:     apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(webhook_service.SourceContext{Repository: ctx.Repo.Repository}, w, webhook.HookEventPush, p); err != nil {
+	if err := webhook_service.PrepareWebhook(webhook_service.EventSource{Repository: ctx.Repo.Repository}, w, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
