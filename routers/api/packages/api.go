@@ -81,15 +81,17 @@ func Routes() *web.Route {
 						r.Get("/digest", conan.RecipeDownloadURLs)
 						r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
 						r.Get("/download_urls", conan.RecipeDownloadURLs)
-						r.Group("/packages", func() {
-							r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
-							r.Group("/{package_reference}", func() {
-								r.Get("", conan.PackageSnapshot)
-								r.Get("/digest", conan.PackageDownloadURLs)
-								r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
-								r.Get("/download_urls", conan.PackageDownloadURLs)
+						if setting.Packages.Enabled {
+							r.Group("/packages", func() {
+								r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
+								r.Group("/{package_reference}", func() {
+									r.Get("", conan.PackageSnapshot)
+									r.Get("/digest", conan.PackageDownloadURLs)
+									r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
+									r.Get("/download_urls", conan.PackageDownloadURLs)
+								})
 							})
-						})
+						}
 					}, conan.ExtractPathParameters)
 				})
 				r.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
@@ -127,26 +129,28 @@ func Routes() *web.Route {
 										r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
 									})
 								})
-								r.Group("/packages", func() {
-									r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-									r.Group("/{package_reference}", func() {
+								if setting.Packages.Enabled {
+									r.Group("/packages", func() {
 										r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-										r.Get("/latest", conan.LatestPackageRevision)
-										r.Group("/revisions", func() {
-											r.Get("", conan.ListPackageRevisions)
-											r.Group("/{package_revision}", func() {
-												r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-												r.Group("/files", func() {
-													r.Get("", conan.ListPackageRevisionFiles)
-													r.Group("/{filename}", func() {
-														r.Get("", conan.DownloadPackageFile)
-														r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
+										r.Group("/{package_reference}", func() {
+											r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+											r.Get("/latest", conan.LatestPackageRevision)
+											r.Group("/revisions", func() {
+												r.Get("", conan.ListPackageRevisions)
+												r.Group("/{package_revision}", func() {
+													r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+													r.Group("/files", func() {
+														r.Get("", conan.ListPackageRevisionFiles)
+														r.Group("/{filename}", func() {
+															r.Get("", conan.DownloadPackageFile)
+															r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
+														})
 													})
 												})
 											})
 										})
 									})
-								})
+								}
 							})
 						})
 					}, conan.ExtractPathParameters)
