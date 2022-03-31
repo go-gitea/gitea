@@ -42,8 +42,8 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
-var supportedDbTypeNames []map[string]string // use a slice to keep order
 func getDbTypeNames() []map[string]string {
+	var supportedDbTypeNames []map[string]string // use a slice to keep order
 	if supportedDbTypeNames == nil {
 		for _, t := range setting.SupportedDatabaseTypes {
 			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
