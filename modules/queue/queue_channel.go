@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync/atomic"
 	"time"
 
@@ -20,7 +21,6 @@ const ChannelQueueType Type = "channel"
 type ChannelQueueConfiguration struct {
 	WorkerPoolConfiguration
 	Workers int
-	Name    string
 }
 
 // ChannelQueue implements Queue
@@ -84,6 +84,7 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 
 // Run starts to run the queue
 func (q *ChannelQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("ChannelQueue: %s Starting", q.name)
@@ -169,6 +170,7 @@ func (q *ChannelQueue) Terminate() {
 	default:
 	}
 	q.terminateCtxCancel()
+	q.baseCtxFinished()
 	log.Debug("ChannelQueue: %s Terminated", q.name)
 }
 
