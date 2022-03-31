@@ -31,7 +31,7 @@ func CheckPullProtection(ctx context.Context, doer *user_model.User, perm *model
 	}
 
 	if manuallMerge {
-		// dont check rules to "auto merge", doer is goint to mark this pull as merged manually
+		// don't check rules to "auto merge", doer is going to mark this pull as merged manually
 		return nil
 	}
 
