@@ -85,7 +85,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 			}
 
 		} else if strings.HasPrefix(ref, git.BranchPrefix) {
-			prs, err := models.GetPullRequestsByHeadBranch(ctx, ref[len(git.BranchPrefix):], repo)
+			prs, err := models.GetPullRequestsByHeadBranch(ctx, ref[len(git.BranchPrefix):], repo.ID)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {

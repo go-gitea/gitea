@@ -20,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // PullRequestType defines pull request type
@@ -687,17 +689,18 @@ func (pr *PullRequest) IsSameRepo() bool {
 
 // GetPullRequestsByHeadBranch returns all prs by head branch
 // Since there could be multiple prs with the same head branch, this function returns a slice of prs
-func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepo *repo_model.Repository) ([]*PullRequest, error) {
+func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepoID int64) ([]*PullRequest, error) {
+	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
 	prs := make([]*PullRequest, 0, 2)
-	if err := db.GetEngine(ctx).Where("head_branch = ? AND head_repo_id = ?", headBranch, headRepo.ID).
-		Desc("id").
-		Find(prs); err != nil {
+	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
+		// Desc("id").
+		Find(&prs); err != nil {
 		return nil, err
 	}
 	if len(prs) == 0 {
 		return nil, ErrPullRequestNotExist{
 			HeadBranch: headBranch,
-			HeadRepoID: headRepo.ID,
+			HeadRepoID: headRepoID,
 		}
 	}
 	return prs, nil
