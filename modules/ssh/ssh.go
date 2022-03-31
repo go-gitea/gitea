@@ -23,7 +23,9 @@ import (
 	"syscall"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -317,7 +319,11 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		}
 	}
 
-	go listen(&srv)
+	go func() {
+		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
+		defer finished()
+		listen(&srv)
+	}()
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.

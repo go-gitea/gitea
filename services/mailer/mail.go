@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"mime"
@@ -77,8 +78,9 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		"Code":              code,
 		"Language":          locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -127,8 +129,9 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		"Email":           email.Email,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -157,8 +160,9 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		"Username":    u.Name,
 		"Language":    locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -190,8 +194,9 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -274,8 +279,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailSubject bytes.Buffer
@@ -414,6 +420,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: models.ActionType(0),

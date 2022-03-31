@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -80,7 +79,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	if err := pr.Issue.LoadRepo(); err != nil {
 		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
@@ -487,7 +486,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	}
 
 	var headUser *user_model.User
-	err = pr.HeadRepo.GetOwner(db.DefaultContext)
+	err = pr.HeadRepo.GetOwner(ctx)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
@@ -661,21 +660,6 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 	return out.String(), nil
 }
 
-// IsSignedIfRequired check if merge will be signed if required
-func IsSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
-		return false, err
-	}
-
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
-		return true, nil
-	}
-
-	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
-
-	return sign, err
-}
-
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
@@ -712,29 +696,29 @@ func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtec
 		return err
 	}
 	if !isPass {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Not all required status checks successful",
 		}
 	}
 
 	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
 	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
 	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
 	}
 
 	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
 	}
@@ -744,7 +728,7 @@ func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtec
 	}
 
 	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
-		return models.ErrNotAllowedToMerge{
+		return models.ErrDisallowedToMerge{
 			Reason: "Changed protected files",
 		}
 	}

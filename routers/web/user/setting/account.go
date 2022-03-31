@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -34,7 +33,7 @@ const (
 func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["Email"] = ctx.User.Email
+	ctx.Data["Email"] = ctx.Doer.Email
 
 	loadAccountData(ctx)
 
@@ -56,7 +55,7 @@ func AccountPost(ctx *context.Context) {
 
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Flash.Error(ctx.Tr("auth.password_too_short", setting.MinPasswordLength))
-	} else if ctx.User.IsPasswordSet() && !ctx.User.ValidatePassword(form.OldPassword) {
+	} else if ctx.Doer.IsPasswordSet() && !ctx.Doer.ValidatePassword(form.OldPassword) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
@@ -71,15 +70,15 @@ func AccountPost(ctx *context.Context) {
 		ctx.Flash.Error(errMsg)
 	} else {
 		var err error
-		if err = ctx.User.SetPassword(form.Password); err != nil {
+		if err = ctx.Doer.SetPassword(form.Password); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, ctx.Doer, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		log.Trace("User password updated: %s", ctx.User.Name)
+		log.Trace("User password updated: %s", ctx.Doer.Name)
 		ctx.Flash.Success(ctx.Tr("settings.change_password_success"))
 	}
 
@@ -99,50 +98,50 @@ func EmailPost(ctx *context.Context) {
 			return
 		}
 
-		log.Trace("Email made primary: %s", ctx.User.Name)
+		log.Trace("Email made primary: %s", ctx.Doer.Name)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
 	// Send activation Email
 	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
-		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
+		if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
 			log.Error("Send activation: activation still pending")
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 
 		id := ctx.FormInt64("id")
-		email, err := user_model.GetEmailAddressByID(ctx.User.ID, id)
+		email, err := user_model.GetEmailAddressByID(ctx.Doer.ID, id)
 		if err != nil {
-			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
+			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.Doer.ID, id, err)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email == nil {
-			log.Warn("Send activation failed: EmailAddress[%d] not found for user: %-v", id, ctx.User)
+			log.Warn("Send activation failed: EmailAddress[%d] not found for user: %-v", id, ctx.Doer)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsActivated {
-			log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
+			log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.Doer)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsPrimary {
-			if ctx.User.IsActive && !setting.Service.RegisterEmailConfirm {
-				log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
+			if ctx.Doer.IsActive && !setting.Service.RegisterEmailConfirm {
+				log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.Doer)
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
 			// Only fired when the primary email is inactive (Wrong state)
-			mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
+			mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 		} else {
-			mailer.SendActivateEmailMail(ctx.User, email)
+			mailer.SendActivateEmailMail(ctx.Doer, email)
 		}
 		address = email.Email
 
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
@@ -155,16 +154,16 @@ func EmailPost(ctx *context.Context) {
 		if !(preference == user_model.EmailNotificationsEnabled ||
 			preference == user_model.EmailNotificationsOnMention ||
 			preference == user_model.EmailNotificationsDisabled) {
-			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
+			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := user_model.SetEmailNotifications(ctx.User, preference); err != nil {
+		if err := user_model.SetEmailNotifications(ctx.Doer, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
 		}
-		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
+		log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
 		ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
@@ -178,7 +177,7 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	email := &user_model.EmailAddress{
-		UID:         ctx.User.ID,
+		UID:         ctx.Doer.ID,
 		Email:       form.Email,
 		IsActivated: !setting.Service.RegisterEmailConfirm,
 	}
@@ -201,8 +200,8 @@ func EmailPost(ctx *context.Context) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		mailer.SendActivateEmailMail(ctx.User, email)
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+		mailer.SendActivateEmailMail(ctx.Doer, email)
+		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
@@ -216,11 +215,11 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
-	log.Trace("Email address deleted: %s", ctx.User.Name)
+	log.Trace("Email address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -233,7 +232,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
+	if _, _, err := auth.UserSignIn(ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 
@@ -244,7 +243,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := user.DeleteUser(ctx.User); err != nil {
+	if err := user.DeleteUser(ctx.Doer); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
@@ -252,17 +251,20 @@ func DeleteAccount(ctx *context.Context) {
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrUserOwnPackages(err):
+			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
 	} else {
-		log.Trace("Account deleted: %s", ctx.User.Name)
+		log.Trace("Account deleted: %s", ctx.Doer.Name)
 		ctx.Redirect(setting.AppSubURL + "/")
 	}
 }
 
 func loadAccountData(ctx *context.Context) {
-	emlist, err := user_model.GetEmailAddresses(ctx.User.ID)
+	emlist, err := user_model.GetEmailAddresses(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
@@ -271,7 +273,7 @@ func loadAccountData(ctx *context.Context) {
 		user_model.EmailAddress
 		CanBePrimary bool
 	}
-	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)
+	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName)
 	emails := make([]*UserEmail, len(emlist))
 	for i, em := range emlist {
 		var email UserEmail
@@ -280,12 +282,12 @@ func loadAccountData(ctx *context.Context) {
 		emails[i] = &email
 	}
 	ctx.Data["Emails"] = emails
-	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
+	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotifications()
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
 		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()
-		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
+		ctx.Data["UserDeleteWithComments"] = ctx.Doer.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
 	}
 }

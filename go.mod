@@ -32,7 +32,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
 	github.com/go-ldap/ldap/v3 v3.4.2
-	github.com/go-redis/redis/v8 v8.11.4
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.29.0
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
@@ -42,6 +42,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/google/go-github/v39 v39.2.0
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/sessions v1.2.1
@@ -84,7 +85,7 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.58.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.4.8
+	github.com/yuin/goldmark v1.4.11
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/yuin/goldmark-meta v1.1.0
 	go.jolheiser.com/hcaptcha v0.0.4

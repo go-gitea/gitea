@@ -87,7 +87,7 @@ func Emails(ctx *context.Context) {
 			emails[i].SearchEmailResult = *baseEmails[i]
 			// Don't let the admin deactivate its own primary email address
 			// We already know the user is admin
-			emails[i].CanChange = ctx.User.ID != emails[i].UID || !emails[i].IsPrimary
+			emails[i].CanChange = ctx.Doer.ID != emails[i].UID || !emails[i].IsPrimary
 		}
 	}
 	ctx.Data["Keyword"] = opts.Keyword

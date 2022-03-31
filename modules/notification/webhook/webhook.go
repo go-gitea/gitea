@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -854,4 +855,34 @@ func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *rep
 
 func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
+}
+
+func (m *webhookNotifier) NotifyPackageCreate(doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	notifyPackage(doer, pd, api.HookPackageCreated)
+}
+
+func (m *webhookNotifier) NotifyPackageDelete(doer *user_model.User, pd *packages_model.PackageDescriptor) {
+	notifyPackage(doer, pd, api.HookPackageDeleted)
+}
+
+func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor, action api.HookPackageAction) {
+	if pd.Repository == nil {
+		// TODO https://github.com/go-gitea/gitea/pull/17940
+		return
+	}
+
+	org := pd.Owner
+	if !org.IsOrganization() {
+		org = nil
+	}
+
+	if err := webhook_services.PrepareWebhooks(pd.Repository, webhook.HookEventPackage, &api.PackagePayload{
+		Action:       action,
+		Repository:   convert.ToRepo(pd.Repository, perm.AccessModeNone),
+		Package:      convert.ToPackage(pd),
+		Organization: convert.ToUser(org, nil),
+		Sender:       convert.ToUser(sender, nil),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
 }

@@ -33,7 +33,7 @@ func TestRenameUsername(t *testing.T) {
 		"email":    "user2@example.com",
 		"language": "en-US",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
@@ -75,23 +75,41 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	reservedUsernames := []string{
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
+		"assets",
 		"attachments",
+		"avatar",
 		"avatars",
+		"captcha",
+		"commits",
+		"debug",
+		"error",
 		"explore",
-		"help",
-		"install",
+		"favicon.ico",
+		"ghost",
 		"issues",
 		"login",
+		"manifest.json",
 		"metrics",
+		"milestones",
+		"new",
 		"notifications",
 		"org",
 		"pulls",
+		"raw",
 		"repo",
-		"template",
-		"user",
+		"repo-avatars",
+		"robots.txt",
 		"search",
+		"serviceworker.js",
+		"ssh_info",
+		"swagger.v1.json",
+		"user",
+		"v2",
 	}
 
 	session := loginUser(t, "user2")
@@ -103,7 +121,7 @@ func TestRenameReservedUsername(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		resp := session.MakeRequest(t, req, http.StatusFound)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)

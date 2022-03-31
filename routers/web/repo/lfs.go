@@ -124,7 +124,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
@@ -217,7 +217,7 @@ func LFSLockFile(ctx *context.Context) {
 
 	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
 		Path:    lockPath,
-		OwnerID: ctx.User.ID,
+		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -237,7 +237,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.User, true)
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -476,7 +476,7 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.Doer, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
@@ -551,7 +551,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i].Oid = oid[:idx]
 		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
-	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
+	if err := models.LFSAutoAssociate(metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
 		return
 	}

@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -135,7 +136,7 @@ func SearchIssues(ctx *context.APIContext) {
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
 		OrderBy: db.SearchOrderByAlphabetically,
-		Actor:   ctx.User,
+		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
@@ -161,9 +162,9 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -247,7 +248,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 		ctxUserID := int64(0)
 		if ctx.IsSigned {
-			ctxUserID = ctx.User.ID
+			ctxUserID = ctx.Doer.ID
 		}
 
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
@@ -597,8 +598,8 @@ func CreateIssue(ctx *context.APIContext) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Repo:         ctx.Repo.Repository,
 		Title:        form.Title,
-		PosterID:     ctx.User.ID,
-		Poster:       ctx.User,
+		PosterID:     ctx.Doer.ID,
+		Poster:       ctx.Doer,
 		Content:      form.Body,
 		Ref:          form.Ref,
 		DeadlineUnix: deadlineUnix,
@@ -651,7 +652,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.ChangeStatus(issue, ctx.User, true); err != nil {
+		if err := issue_service.ChangeStatus(issue, ctx.Doer, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -729,7 +730,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !canWrite {
+	if !issue.IsPoster(ctx.Doer.ID) && !canWrite {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -742,7 +743,7 @@ func EditIssue(ctx *context.APIContext) {
 		issue.Content = *form.Body
 	}
 	if form.Ref != nil {
-		err = issue_service.ChangeIssueRef(issue, ctx.User, *form.Ref)
+		err = issue_service.ChangeIssueRef(issue, ctx.Doer, *form.Ref)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
 			return
@@ -759,7 +760,7 @@ func EditIssue(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 			return
 		}
@@ -780,7 +781,7 @@ func EditIssue(ctx *context.APIContext) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
 			return
@@ -791,7 +792,7 @@ func EditIssue(ctx *context.APIContext) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -808,7 +809,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.Doer)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
@@ -819,11 +820,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+		notification.NotifyIssueChangeTitle(ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
+		notification.NotifyIssueChangeStatus(ctx.Doer, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values
@@ -877,7 +878,7 @@ func DeleteIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if err = issue_service.DeleteIssue(ctx.User, ctx.Repo.GitRepo, issue); err != nil {
+	if err = issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
 		return
 	}
@@ -946,7 +947,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 		return
 	}
