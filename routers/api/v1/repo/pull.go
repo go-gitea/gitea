@@ -785,7 +785,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// set defaults to propagate needed fields
-	form.SetDefaults(pr)
+	if err := form.SetDefaults(pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
+		return
+	}
 
 	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
