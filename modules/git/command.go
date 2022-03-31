@@ -94,8 +94,8 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunContext represents parameters to run the command
-type RunContext struct {
+// RunOpts represents parameters to run the command
+type RunOpts struct {
 	Env            []string
 	Timeout        time.Duration
 	Dir            string
@@ -104,19 +104,19 @@ type RunContext struct {
 	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
-// RunWithContext run the command with context
-func (c *Command) RunWithContext(rc *RunContext) error {
-	if rc == nil {
-		rc = &RunContext{}
+// Run runs the command with the RunOpts
+func (c *Command) Run(opts *RunOpts) error {
+	if opts == nil {
+		opts = &RunOpts{}
 	}
-	if rc.Timeout <= 0 {
-		rc.Timeout = defaultCommandExecutionTimeout
+	if opts.Timeout <= 0 {
+		opts.Timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(rc.Dir) == 0 {
+	if len(opts.Dir) == 0 {
 		log.Debug("%s", c)
 	} else {
-		log.Debug("%s: %v", rc.Dir, c)
+		log.Debug("%s: %v", opts.Dir, c)
 	}
 
 	desc := c.desc
@@ -135,17 +135,17 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
 			}
 		}
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), rc.Dir)
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
+	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if rc.Env == nil {
+	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
-		cmd.Env = rc.Env
+		cmd.Env = opts.Env
 	}
 
 	cmd.Env = append(
@@ -157,16 +157,16 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
-	cmd.Dir = rc.Dir
-	cmd.Stdout = rc.Stdout
-	cmd.Stderr = rc.Stderr
-	cmd.Stdin = rc.Stdin
+	cmd.Dir = opts.Dir
+	cmd.Stdout = opts.Stdout
+	cmd.Stderr = opts.Stderr
+	cmd.Stdin = opts.Stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	if rc.PipelineFunc != nil {
-		err := rc.PipelineFunc(ctx, cancel)
+	if opts.PipelineFunc != nil {
+		err := opts.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
@@ -181,18 +181,18 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	return ctx.Err()
 }
 
-type RunError interface {
+type RunStdError interface {
 	error
 	Stderr() string
 }
 
-type runError struct {
+type runStdError struct {
 	err    error
 	stderr string
 	errMsg string
 }
 
-func (r *runError) Error() string {
+func (r *runStdError) Error() string {
 	// the stderr must be in the returned error text, some code only checks `strings.Contains(err.Error(), "git error")`
 	if r.errMsg == "" {
 		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
@@ -200,11 +200,11 @@ func (r *runError) Error() string {
 	return r.errMsg
 }
 
-func (r *runError) Unwrap() error {
+func (r *runStdError) Unwrap() error {
 	return r.err
 }
 
-func (r *runError) Stderr() string {
+func (r *runStdError) Stderr() string {
 	return r.stderr
 }
 
@@ -212,35 +212,35 @@ func bytesToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
-// RunWithContextString run the command with context and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunWithContextString(rc *RunContext) (stdout, stderr string, runErr RunError) {
-	stdoutBytes, stderrBytes, err := c.RunWithContextBytes(rc)
+// RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
 	stdout = bytesToString(stdoutBytes)
 	stderr = bytesToString(stderrBytes)
 	if err != nil {
-		return stdout, stderr, &runError{err: err, stderr: stderr}
+		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
 	// even if there is no err, there could still be some stderr output, so we just return stdout/stderr as they are
 	return stdout, stderr, nil
 }
 
-// RunWithContextBytes run the command with context and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
-func (c *Command) RunWithContextBytes(rc *RunContext) (stdout, stderr []byte, runErr RunError) {
-	if rc == nil {
-		rc = &RunContext{}
+// RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	if opts == nil {
+		opts = &RunOpts{}
 	}
-	if rc.Stdout != nil || rc.Stderr != nil {
+	if opts.Stdout != nil || opts.Stderr != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
-		panic("stdout and stderr field must be nil when using RunWithContextBytes")
+		panic("stdout and stderr field must be nil when using RunStdBytes")
 	}
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
-	rc.Stdout = stdoutBuf
-	rc.Stderr = stderrBuf
-	err := c.RunWithContext(rc)
+	opts.Stdout = stdoutBuf
+	opts.Stderr = stderrBuf
+	err := c.Run(opts)
 	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return nil, stderr, &runError{err: err, stderr: bytesToString(stderr)}
+		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
 	}
 	// even if there is no err, there could still be some stderr output
 	return stdoutBuf.Bytes(), stderr, nil

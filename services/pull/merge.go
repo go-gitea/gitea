@@ -141,7 +141,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	stagingBranch := "staging"
 
 	if expectedHeadCommitID != "" {
-		trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunWithContextString(&git.RunContext{Dir: tmpBasePath})
+		trackingCommitID, _, err := git.NewCommand(ctx, "show-ref", "--hash", git.BranchPrefix+trackingBranch).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			log.Error("show-ref[%s] --hash refs/heads/trackingn: %v", tmpBasePath, git.BranchPrefix+trackingBranch, err)
 			return "", fmt.Errorf("getDiffTree: %v", err)
@@ -188,7 +188,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	// Switch off LFS process (set required, clean and smudge here also)
 	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -200,7 +200,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -212,7 +212,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -224,7 +224,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -236,7 +236,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	errbuf.Reset()
 
 	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -249,7 +249,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	// Read base branch index
 	if err := git.NewCommand(ctx, "read-tree", "HEAD").
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -309,7 +309,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	case repo_model.MergeStyleRebaseMerge:
 		// Checkout head branch
 		if err := git.NewCommand(ctx, "checkout", "-b", stagingBranch, trackingBranch).
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
 				Stderr: &errbuf,
@@ -322,7 +322,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 		// Rebase before merging
 		if err := git.NewCommand(ctx, "rebase", baseBranch).
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
 				Stderr: &errbuf,
@@ -375,7 +375,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 		// Checkout base branch again
 		if err := git.NewCommand(ctx, "checkout", baseBranch).
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
 				Stderr: &errbuf,
@@ -420,7 +420,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
 			if err := git.NewCommand(ctx, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
-				RunWithContext(&git.RunContext{
+				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -435,7 +435,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}
 			if err := git.NewCommand(ctx, "commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).
-				RunWithContext(&git.RunContext{
+				Run(&git.RunOpts{
 					Env:    env,
 					Dir:    tmpBasePath,
 					Stdout: &outbuf,
@@ -504,7 +504,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	}
 
 	// Push back to upstream.
-	if err := pushCmd.RunWithContext(&git.RunContext{
+	if err := pushCmd.Run(&git.RunOpts{
 		Env:    env,
 		Dir:    tmpBasePath,
 		Stdout: &outbuf,
@@ -537,7 +537,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 	var outbuf, errbuf strings.Builder
 	if signArg == "" {
 		if err := git.NewCommand(ctx, "commit", "-m", message).
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
@@ -548,7 +548,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 		}
 	} else {
 		if err := git.NewCommand(ctx, "commit", signArg, "-m", message).
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Env:    env,
 				Dir:    tmpBasePath,
 				Stdout: &outbuf,
@@ -563,7 +563,7 @@ func commitAndSignNoAuthor(ctx context.Context, pr *models.PullRequest, message,
 
 func runMergeCommand(pr *models.PullRequest, mergeStyle repo_model.MergeStyle, cmd *git.Command, tmpBasePath string) error {
 	var outbuf, errbuf strings.Builder
-	if err := cmd.RunWithContext(&git.RunContext{
+	if err := cmd.Run(&git.RunOpts{
 		Dir:    tmpBasePath,
 		Stdout: &outbuf,
 		Stderr: &errbuf,
@@ -601,7 +601,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 		var outbuf, errbuf strings.Builder
 		// Compute the diff-tree for sparse-checkout
 		if err := git.NewCommand(ctx, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root", baseBranch, headBranch, "--").
-			RunWithContext(&git.RunContext{
+			Run(&git.RunOpts{
 				Dir:    repoPath,
 				Stdout: &outbuf,
 				Stderr: &errbuf,

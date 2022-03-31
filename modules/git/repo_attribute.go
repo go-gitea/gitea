@@ -76,7 +76,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
-	if err := cmd.RunWithContext(&RunContext{
+	if err := cmd.Run(&RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdout: stdOut,
@@ -188,7 +188,7 @@ func (c *CheckAttributeReader) Run() error {
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunWithContext(&RunContext{
+	err := c.cmd.Run(&RunOpts{
 		Env:    c.env,
 		Dir:    c.Repo.Path,
 		Stdin:  c.stdinReader,

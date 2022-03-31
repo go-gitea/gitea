@@ -57,7 +57,7 @@ func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, t
 	)
 
 	var stderr strings.Builder
-	err := NewCommand(ctx, args...).RunWithContext(&RunContext{
+	err := NewCommand(ctx, args...).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: target,
 		Stderr: &stderr,

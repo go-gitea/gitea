@@ -309,7 +309,7 @@ func runHookPostReceive(c *cli.Context) error {
 	defer cancel()
 
 	// First of all run update-server-info no matter what
-	if _, _, err := git.NewCommand(ctx, "update-server-info").RunWithContextString(nil); err != nil {
+	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
 	}
 

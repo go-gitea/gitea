@@ -111,7 +111,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		if stdout, _, err := git.NewCommand(txCtx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
-			RunWithContextBytes(&git.RunContext{Timeout: 10 * time.Minute}); err != nil {
+			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %v", err)
 		}
@@ -122,7 +122,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunWithContextString(&git.RunContext{Dir: repoPath}); err != nil {
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %v", err)
 		}

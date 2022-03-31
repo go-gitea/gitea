@@ -145,7 +145,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	cmd := git.NewCommand(ctx, args...)
-	if err := cmd.RunWithContext(&git.RunContext{
+	if err := cmd.Run(&git.RunOpts{
 		Dir:    t.basePath,
 		Stdout: stdout,
 		Stderr: stderr,

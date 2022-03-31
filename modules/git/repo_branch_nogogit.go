@@ -112,7 +112,7 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 		if arg != "" {
 			args = append(args, arg)
 		}
-		err := NewCommand(ctx, args...).RunWithContext(&RunContext{
+		err := NewCommand(ctx, args...).Run(&RunOpts{
 			Dir:    repoPath,
 			Stdout: stdoutWriter,
 			Stderr: stderrBuilder,

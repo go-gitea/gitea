@@ -86,7 +86,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 
 		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunWithContextString(&git.RunContext{Dir: repoPath}); err != nil {
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}

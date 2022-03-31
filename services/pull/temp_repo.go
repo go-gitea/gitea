@@ -93,7 +93,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 
 	var outbuf, errbuf strings.Builder
 	if err := git.NewCommand(ctx, "remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseRepoPath).
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -108,7 +108,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 	errbuf.Reset()
 
 	if err := git.NewCommand(ctx, "fetch", "origin", "--no-tags", "--", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -123,7 +123,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 	errbuf.Reset()
 
 	if err := git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+baseBranch).
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -146,7 +146,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 	}
 
 	if err := git.NewCommand(ctx, "remote", "add", remoteRepoName, headRepoPath).
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,
@@ -171,7 +171,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 		headBranch = pr.GetGitRefName()
 	}
 	if err := git.NewCommand(ctx, "fetch", "--no-tags", remoteRepoName, headBranch+":"+trackingBranch).
-		RunWithContext(&git.RunContext{
+		Run(&git.RunOpts{
 			Dir:    tmpBasePath,
 			Stdout: &outbuf,
 			Stderr: &errbuf,

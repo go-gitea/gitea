@@ -54,7 +54,7 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, _, runErr := NewCommand(context.Background(), "version").RunWithContextString(nil)
+	stdout, _, runErr := NewCommand(context.Background(), "version").RunStdString(nil)
 	if runErr != nil {
 		return runErr
 	}
@@ -298,5 +298,5 @@ func checkAndRemoveConfig(key, value string) error {
 
 // Fsck verifies the connectivity and validity of the objects in the database
 func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...string) error {
-	return NewCommand(ctx, "fsck").AddArguments(args...).RunWithContext(&RunContext{Timeout: timeout, Dir: repoPath})
+	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

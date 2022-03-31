@@ -231,7 +231,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	// Clone to temporary path and do the init commit.
 	if stdout, _, err := git.NewCommand(ctx, "clone", repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
-		RunWithContextString(&git.RunContext{Dir: "", Env: env}); err != nil {
+		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %v", err)
 	}
@@ -308,7 +308,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	if stdout, _, err := git.NewCommand(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
-		RunWithContextString(&git.RunContext{Dir: tmpPath}); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git add --all: %v", err)
 	}
@@ -345,7 +345,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	if stdout, _, err := git.NewCommand(ctx, args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
-		RunWithContextString(&git.RunContext{Dir: tmpPath, Env: env}); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
 		return fmt.Errorf("git commit: %v", err)
 	}
@@ -356,7 +356,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	if stdout, _, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunWithContextString(&git.RunContext{Dir: tmpPath, Env: models.InternalPushingEnvironment(u, repo)}); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath, Env: models.InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}

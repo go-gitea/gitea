@@ -121,7 +121,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
-		RunWithContextString(&git.RunContext{Dir: repoPath}); err != nil {
+		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
 	}
@@ -241,7 +241,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunWithContextString(&git.RunContext{Dir: repoPath})
+	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}

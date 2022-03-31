@@ -18,7 +18,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
-		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunWithContextString(&RunContext{Dir: repo.Path})
+		res, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify", treeish).RunStdString(&RunOpts{Dir: repo.Path})
 		if err != nil {
 			return err
 		}
@@ -38,7 +38,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := NewCommand(repo.Ctx, "read-tree", id.String()).RunWithContextString(&RunContext{Dir: repo.Path, Env: env})
+	_, _, err := NewCommand(repo.Ctx, "read-tree", id.String()).RunStdString(&RunOpts{Dir: repo.Path, Env: env})
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, _, err := NewCommand(repo.Ctx, "read-tree", "--empty").RunWithContextString(&RunContext{Dir: repo.Path})
+	_, _, err := NewCommand(repo.Ctx, "read-tree", "--empty").RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -81,7 +81,7 @@ func (repo *Repository) LsFiles(filenames ...string) ([]string, error) {
 			cmd.AddArguments(arg)
 		}
 	}
-	res, _, err := cmd.RunWithContextBytes(&RunContext{Dir: repo.Path})
+	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 			buffer.WriteByte('\000')
 		}
 	}
-	return cmd.RunWithContext(&RunContext{
+	return cmd.Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdin:  bytes.NewReader(buffer.Bytes()),
 		Stdout: stdout,
@@ -117,13 +117,13 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 // AddObjectToIndex adds the provided object hash to the index at the provided filename
 func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename string) error {
 	cmd := NewCommand(repo.Ctx, "update-index", "--add", "--replace", "--cacheinfo", mode, object.String(), filename)
-	_, _, err := cmd.RunWithContextString(&RunContext{Dir: repo.Path})
+	_, _, err := cmd.RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	stdout, _, runErr := NewCommand(repo.Ctx, "write-tree").RunWithContextString(&RunContext{Dir: repo.Path})
+	stdout, _, runErr := NewCommand(repo.Ctx, "write-tree").RunStdString(&RunOpts{Dir: repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}

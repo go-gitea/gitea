@@ -53,7 +53,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand(repo.Ctx, "rev-list", "--all").RunWithContext(&git.RunContext{
+		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
 			Dir:    repo.Path,
 			Stdout: revListWriter,
 			Stderr: &stderr,

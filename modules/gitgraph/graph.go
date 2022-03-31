@@ -64,7 +64,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 
 	scanner := bufio.NewScanner(stdoutReader)
 
-	if err := graphCmd.RunWithContext(&git.RunContext{
+	if err := graphCmd.Run(&git.RunOpts{
 		Dir:    r.Path,
 		Stdout: stdoutWriter,
 		Stderr: stderr,

@@ -479,7 +479,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunWithContextString(&git.RunContext{Dir: g.gitPath()})
+					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {

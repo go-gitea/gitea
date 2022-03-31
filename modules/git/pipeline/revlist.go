@@ -25,7 +25,7 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
 	cmd := git.NewCommand(ctx, "rev-list", "--objects", "--all")
-	if err := cmd.RunWithContext(&git.RunContext{
+	if err := cmd.Run(&git.RunOpts{
 		Dir:    basePath,
 		Stdout: revListWriter,
 		Stderr: stderr,
@@ -44,7 +44,7 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
 	cmd := git.NewCommand(ctx, "rev-list", "--objects", headSHA, "--not", baseSHA)
-	if err := cmd.RunWithContext(&git.RunContext{
+	if err := cmd.Run(&git.RunOpts{
 		Dir:    tmpBasePath,
 		Stdout: revListWriter,
 		Stderr: stderr,

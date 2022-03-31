@@ -59,7 +59,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").RunWithContextString(nil)
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
@@ -74,7 +74,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, _, err = cmd.RunWithContextString(&RunContext{Dir: repoPath})
+	_, _, err = cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -82,7 +82,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
 	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
-		RunWithContext(&RunContext{
+		Run(&RunOpts{
 			Dir:    repo.Path,
 			Stdout: &output,
 			Stderr: &errbuf,
@@ -173,7 +173,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.RunWithContext(&RunContext{
+	if err = cmd.Run(&RunOpts{
 		Timeout: opts.Timeout,
 		Env:     envs,
 		Stdout:  io.Discard,
@@ -218,7 +218,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 		opts.Timeout = -1
 	}
 
-	err := cmd.RunWithContext(&RunContext{
+	err := cmd.Run(&RunOpts{
 		Env:     opts.Env,
 		Timeout: opts.Timeout,
 		Dir:     repoPath,
@@ -260,7 +260,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
 	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, _, err := cmd.RunWithContextString(&RunContext{Dir: repoPath})
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -277,7 +277,7 @@ type DivergeObject struct {
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
 	cmd := NewCommand(ctx, "rev-list", "--count", branches)
-	stdout, _, err := cmd.RunWithContextString(&RunContext{Dir: repoPath})
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return -1, err
 	}
@@ -314,23 +314,23 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	defer os.RemoveAll(tmp)
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, _, err = NewCommand(ctx, "init", "--bare").RunWithContextString(&RunContext{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, _, err = NewCommand(ctx, "reset", "--soft", commit).RunWithContextString(&RunContext{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "reset", "--soft", commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, _, err = NewCommand(ctx, "branch", "-m", "bundle").RunWithContextString(&RunContext{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "branch", "-m", "bundle").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunWithContextString(&RunContext{Dir: tmp, Env: env})
+	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

@@ -95,11 +95,11 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 		defer r.Close()
 
 		if autofix {
-			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunWithContextString(&git.RunContext{Dir: r.Path})
+			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunStdString(&git.RunOpts{Dir: r.Path})
 			return err
 		}
 
-		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunWithContextString(&git.RunContext{Dir: r.Path})
+		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunStdString(&git.RunOpts{Dir: r.Path})
 		if err != nil {
 			return err
 		}

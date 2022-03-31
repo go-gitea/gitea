@@ -60,7 +60,7 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunWithContext(&RunContext{
+	err = cmd.Run(&RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdin:  messageBytes,
