@@ -244,7 +244,7 @@ type Comment struct {
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*repo_model.Attachment `xorm:"-"`
-	Reactions   ReactionList             `xorm:"-"`
+	Reactions   issues.ReactionList      `xorm:"-"`
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
@@ -631,11 +631,11 @@ func (c *Comment) LoadTime() error {
 	return err
 }
 
-func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err error) {
+func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, _, err = findReactions(e, FindReactionsOptions{
+	c.Reactions, _, err = issues.FindReactions(ctx, issues.FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})
@@ -643,7 +643,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err e
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
+	if _, err := c.Reactions.LoadUsers(ctx, repo); err != nil {
 		return err
 	}
 	return nil
@@ -651,7 +651,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *repo_model.Repository) (err e
 
 // LoadReactions loads comment reactions
 func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
-	return c.loadReactions(db.GetEngine(db.DefaultContext), repo)
+	return c.loadReactions(db.DefaultContext, repo)
 }
 
 func (c *Comment) loadReview(e db.Engine) (err error) {
@@ -1146,14 +1146,15 @@ func DeleteComment(comment *Comment) error {
 	}
 	defer committer.Close()
 
-	if err := deleteComment(db.GetEngine(ctx), comment); err != nil {
+	if err := deleteComment(ctx, comment); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func deleteComment(e db.Engine, comment *Comment) error {
+func deleteComment(ctx context.Context, comment *Comment) error {
+	e := db.GetEngine(ctx)
 	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
@@ -1177,7 +1178,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 		return err
 	}
 
-	return deleteReaction(e, &ReactionOptions{Comment: comment})
+	return issues.DeleteReaction(ctx, &issues.ReactionOptions{CommentID: comment.ID})
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS

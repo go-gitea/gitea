@@ -765,36 +765,6 @@ func (err ErrPullWasClosed) Error() string {
 	return fmt.Sprintf("Pull request [%d] %d was already closed", err.ID, err.Index)
 }
 
-// ErrForbiddenIssueReaction is used when a forbidden reaction was try to created
-type ErrForbiddenIssueReaction struct {
-	Reaction string
-}
-
-// IsErrForbiddenIssueReaction checks if an error is a ErrForbiddenIssueReaction.
-func IsErrForbiddenIssueReaction(err error) bool {
-	_, ok := err.(ErrForbiddenIssueReaction)
-	return ok
-}
-
-func (err ErrForbiddenIssueReaction) Error() string {
-	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
-}
-
-// ErrReactionAlreadyExist is used when a existing reaction was try to created
-type ErrReactionAlreadyExist struct {
-	Reaction string
-}
-
-// IsErrReactionAlreadyExist checks if an error is a ErrReactionAlreadyExist.
-func IsErrReactionAlreadyExist(err error) bool {
-	_, ok := err.(ErrReactionAlreadyExist)
-	return ok
-}
-
-func (err ErrReactionAlreadyExist) Error() string {
-	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
-}
-
 // __________      .__  .__ __________                                     __
 // \______   \__ __|  | |  |\______   \ ____  ________ __   ____   _______/  |_
 //  |     ___/  |  \  | |  | |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
