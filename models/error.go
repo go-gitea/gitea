@@ -586,18 +586,18 @@ func (err ErrBranchesEqual) Error() string {
 	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
 }
 
-// ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
-type ErrNotAllowedToMerge struct {
+// ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
+type ErrDisallowedToMerge struct {
 	Reason string
 }
 
-// IsErrNotAllowedToMerge checks if an error is an ErrNotAllowedToMerge.
-func IsErrNotAllowedToMerge(err error) bool {
-	_, ok := err.(ErrNotAllowedToMerge)
+// IsErrDisallowedToMerge checks if an error is an ErrDisallowedToMerge.
+func IsErrDisallowedToMerge(err error) bool {
+	_, ok := err.(ErrDisallowedToMerge)
 	return ok
 }
 
-func (err ErrNotAllowedToMerge) Error() string {
+func (err ErrDisallowedToMerge) Error() string {
 	return fmt.Sprintf("not allowed to merge [reason: %s]", err.Reason)
 }
 

@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
-	"code.gitea.io/gitea/services/branchprotection"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -747,18 +746,18 @@ func MergePullRequest(ctx *context.APIContext) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	force := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := branchprotection.Check(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
-		if branchprotection.IsErrIsClosed(err) {
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+		if pull_service.IsErrIsClosed(err) {
 			ctx.NotFound()
-		} else if branchprotection.IsErrUserNotAllowedToMerge(err) {
+		} else if pull_service.IsErrUserNotAllowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		} else if branchprotection.IsErrHasMerged(err) {
+		} else if pull_service.IsErrHasMerged(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-		} else if branchprotection.IsErrIsWorkInProgress(err) {
+		} else if pull_service.IsErrIsWorkInProgress(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		} else if branchprotection.IsErrNotMergableState(err) {
+		} else if pull_service.IsErrNotMergableState(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
-		} else if models.IsErrNotAllowedToMerge(err) {
+		} else if models.IsErrDisallowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
 		} else if asymkey_service.IsErrWontSign(err) {
 			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
@@ -786,29 +785,14 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	message := strings.TrimSpace(form.MergeTitleField)
-	{ // Set defaults if not given
-		if len(form.Do) == 0 {
-			form.Do = string(repo_model.MergeStyleMerge)
-		}
-
-		if len(message) == 0 {
-			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-				message = pr.GetDefaultMergeMessage()
-			}
-			if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-				message = pr.GetDefaultSquashMessage()
-			}
-		}
-
-		form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-		if len(form.MergeMessageField) > 0 {
-			message += "\n\n" + form.MergeMessageField
-		}
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
+		return
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
 				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
@@ -823,7 +807,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 			return
