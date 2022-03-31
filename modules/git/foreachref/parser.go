@@ -93,7 +93,7 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 
 	fieldValues := make(map[string]string)
 
-	fields := strings.Split(refBlock, p.format.fieldDelim)
+	fields := strings.Split(refBlock, string(p.format.fieldDelim))
 	if len(fields) != len(p.format.fieldNames) {
 		return nil, fmt.Errorf("unexpected number of reference fields: wanted %d, was %d",
 			len(fields), len(p.format.fieldNames))

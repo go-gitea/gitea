@@ -11,9 +11,9 @@ import (
 	"strings"
 )
 
-const (
-	nullChar     = "\x00"
-	dualNullChar = "\x00\x00"
+var (
+	nullChar     = []byte("\x00")
+	dualNullChar = []byte("\x00\x00")
 )
 
 // Format supports specifying and parsing an output format for 'git
@@ -26,12 +26,12 @@ type Format struct {
 	// fieldDelim is the character sequence that is used to separate fields
 	// for each reference. fieldDelim and refDelim should be selected to not
 	// interfere with each other and to not be present in field values.
-	fieldDelim string
+	fieldDelim []byte
 	// refDelim is the character sequence used to separate reference from
 	// each other in the output. fieldDelim and refDelim should be selected
 	// to not interfere with each other and to not be present in field
 	// values.
-	refDelim string
+	refDelim []byte
 }
 
 // NewFormat creates a forEachRefFormat using the specified fieldNames. See
@@ -70,7 +70,7 @@ func (f Format) Parser(r io.Reader) *Parser {
 
 // hexEscaped produces hex-escpaed characters from a string. For example, "\n\0"
 // would turn into "%0a%00".
-func (f Format) hexEscaped(delim string) string {
+func (f Format) hexEscaped(delim []byte) string {
 	escaped := ""
 	for i := 0; i < len(delim); i++ {
 		escaped += "%" + hex.EncodeToString([]byte{delim[i]})
