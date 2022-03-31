@@ -86,17 +86,15 @@ func Routes() *web.Route {
 						r.Get("/digest", conan.RecipeDownloadURLs)
 						r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.RecipeUploadURLs)
 						r.Get("/download_urls", conan.RecipeDownloadURLs)
-						if setting.Packages.Enabled {
-							r.Group("/packages", func() {
-								r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
-								r.Group("/{package_reference}", func() {
-									r.Get("", conan.PackageSnapshot)
-									r.Get("/digest", conan.PackageDownloadURLs)
-									r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
-									r.Get("/download_urls", conan.PackageDownloadURLs)
-								})
+						r.Group("/packages", func() {
+							r.Post("/delete", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV1)
+							r.Group("/{package_reference}", func() {
+								r.Get("", conan.PackageSnapshot)
+								r.Get("/digest", conan.PackageDownloadURLs)
+								r.Post("/upload_urls", reqPackageAccess(perm.AccessModeWrite), conan.PackageUploadURLs)
+								r.Get("/download_urls", conan.PackageDownloadURLs)
 							})
-						}
+						})
 					}, conan.ExtractPathParameters)
 				})
 				r.Group("/files/{name}/{version}/{user}/{channel}/{recipe_revision}", func() {
