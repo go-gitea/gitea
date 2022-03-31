@@ -170,19 +170,17 @@ func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList
 
 func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
-		Type:    opts.Type,
-		UserID:  opts.DoerID,
-		IssueID: opts.IssueID,
+		Type:      opts.Type,
+		UserID:    opts.DoerID,
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
 	}
 	findOpts := FindReactionsOptions{
 		IssueID:   opts.IssueID,
-		CommentID: -1, // reaction to issue only
+		CommentID: opts.CommentID, // reaction to issue only
 		Reaction:  opts.Type,
 		UserID:    opts.DoerID,
 	}
-
-	reaction.CommentID = opts.CommentID
-	findOpts.CommentID = opts.CommentID
 
 	existingR, _, err := FindReactions(ctx, findOpts)
 	if err != nil {
