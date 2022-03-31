@@ -28,6 +28,11 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
+		if !setting.Packages.Enabled {
+			ctx.Error(http.StatusNotImplemented)
+			return
+		}
+
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
 			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
@@ -129,28 +134,26 @@ func Routes() *web.Route {
 										r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadRecipeFile)
 									})
 								})
-								if setting.Packages.Enabled {
-									r.Group("/packages", func() {
+								r.Group("/packages", func() {
+									r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+									r.Group("/{package_reference}", func() {
 										r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-										r.Group("/{package_reference}", func() {
-											r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-											r.Get("/latest", conan.LatestPackageRevision)
-											r.Group("/revisions", func() {
-												r.Get("", conan.ListPackageRevisions)
-												r.Group("/{package_revision}", func() {
-													r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
-													r.Group("/files", func() {
-														r.Get("", conan.ListPackageRevisionFiles)
-														r.Group("/{filename}", func() {
-															r.Get("", conan.DownloadPackageFile)
-															r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
-														})
+										r.Get("/latest", conan.LatestPackageRevision)
+										r.Group("/revisions", func() {
+											r.Get("", conan.ListPackageRevisions)
+											r.Group("/{package_revision}", func() {
+												r.Delete("", reqPackageAccess(perm.AccessModeWrite), conan.DeletePackageV2)
+												r.Group("/files", func() {
+													r.Get("", conan.ListPackageRevisionFiles)
+													r.Group("/{filename}", func() {
+														r.Get("", conan.DownloadPackageFile)
+														r.Put("", reqPackageAccess(perm.AccessModeWrite), conan.UploadPackageFile)
 													})
 												})
 											})
 										})
 									})
-								}
+								})
 							})
 						})
 					}, conan.ExtractPathParameters)
