@@ -27,7 +27,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 				// First of all escape the URL RawPath to ensure that all routing is done using a correctly escaped URL
 				req.URL.RawPath = req.URL.EscapedPath()
 
-				ctx, _, finished := process.GetManager().AddContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI))
+				ctx, _, finished := process.GetManager().AddTypedContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI), process.RequestProcessType, true)
 				defer finished()
 				next.ServeHTTP(context.NewResponse(resp), req.WithContext(ctx))
 			})

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -25,6 +26,9 @@ func (m *Manager) Init() {
 
 // Run runs the manager within a provided context
 func (m *Manager) Run(ctx context.Context) {
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: EventSource", process.SystemProcessType, true)
+	defer finished()
+
 	then := timeutil.TimeStampNow().Add(-2)
 	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
 loop:
