@@ -599,22 +599,19 @@ func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// SetDefaults for options who n
-func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) {
-	if len(f.Do) == 0 {
+// SetDefaults if not provided for mergestyle and commit message
+func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+	if f.Do == "" {
 		f.Do = "merge"
 	}
 
 	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
 	if len(f.MergeTitleField) == 0 {
 		switch f.Do {
-		case "merge":
-			f.MergeTitleField = pr.GetDefaultMergeMessage()
-		case "rebase-merge":
-			f.MergeTitleField = pr.GetDefaultMergeMessage()
+		case "merge", "rebase-merge":
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
 		case "squash":
-			f.MergeTitleField = pr.GetDefaultSquashMessage()
-
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
 		}
 	}
 
@@ -623,6 +620,8 @@ func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) {
 		f.MergeTitleField += "\n\n" + f.MergeMessageField
 		f.MergeMessageField = ""
 	}
+
+	return
 }
 
 // CodeCommentForm form for adding code comments for PRs
