@@ -141,7 +141,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	models.NewRepoContext()
 
 	// Booting long running goroutines.
-	cron.NewContext()
+	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
