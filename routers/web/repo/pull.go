@@ -859,7 +859,7 @@ func MergePullRequest(ctx *context.Context) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := pull_service.CheckPullProtection(ctx, ctx.User, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+	if err := pull_service.CheckPullMergable(ctx, ctx.User, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
 		if pull_service.IsErrIsClosed(err) {
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
