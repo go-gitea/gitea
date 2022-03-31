@@ -56,6 +56,7 @@ var (
 			microcmdUserList,
 			microcmdUserChangePassword,
 			microcmdUserDelete,
+			microcmdUserGenerateAccessToken,
 		},
 	}
 
@@ -152,6 +153,27 @@ var (
 			},
 		},
 		Action: runDeleteUser,
+	}
+
+	microcmdUserGenerateAccessToken = cli.Command{
+		Name:  "generate-access-token",
+		Usage: "Generate a access token for a specific user",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username",
+			},
+			cli.StringFlag{
+				Name:  "token-name,t",
+				Usage: "Token name",
+				Value: "gitea-admin",
+			},
+			cli.BoolFlag{
+				Name:  "raw",
+				Usage: "Display only the token value",
+			},
+		},
+		Action: runGenerateAccessToken,
 	}
 
 	subcmdRepoSyncReleases = cli.Command{
@@ -471,7 +493,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -641,6 +663,41 @@ func runDeleteUser(c *cli.Context) error {
 	return user_service.DeleteUser(user)
 }
 
+func runGenerateAccessToken(c *cli.Context) error {
+	if !c.IsSet("username") {
+		return fmt.Errorf("You must provide the username to generate a token for them")
+	}
+
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	user, err := user_model.GetUserByName(c.String("username"))
+	if err != nil {
+		return err
+	}
+
+	t := &models.AccessToken{
+		Name: c.String("token-name"),
+		UID:  user.ID,
+	}
+
+	if err := models.NewAccessToken(t); err != nil {
+		return err
+	}
+
+	if c.Bool("raw") {
+		fmt.Printf("%s\n", t.Token)
+	} else {
+		fmt.Printf("Access token was successfully created: %s\n", t.Token)
+	}
+
+	return nil
+}
+
 func runRepoSyncReleases(_ *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -667,7 +724,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

@@ -128,5 +128,5 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// URI always contains a leading slash, which would result in a double
 	// slash
 	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
-	http.Redirect(w, r, target, http.StatusFound)
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }

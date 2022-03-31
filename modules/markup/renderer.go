@@ -81,6 +81,7 @@ type Renderer interface {
 	Extensions() []string
 	NeedPostProcess() bool
 	SanitizerRules() []setting.MarkupSanitizerRule
+	SanitizerDisabled() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -127,6 +128,12 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
+type nopCloser struct {
+	io.Writer
+}
+
+func (nopCloser) Close() error { return nil }
+
 func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
@@ -136,18 +143,25 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 		_ = pw.Close()
 	}()
 
-	pr2, pw2 := io.Pipe()
-	defer func() {
-		_ = pr2.Close()
-		_ = pw2.Close()
-	}()
+	var pr2 io.ReadCloser
+	var pw2 io.WriteCloser
 
-	wg.Add(1)
-	go func() {
-		err = SanitizeReader(pr2, renderer.Name(), output)
-		_ = pr2.Close()
-		wg.Done()
-	}()
+	if !renderer.SanitizerDisabled() {
+		pr2, pw2 = io.Pipe()
+		defer func() {
+			_ = pr2.Close()
+			_ = pw2.Close()
+		}()
+
+		wg.Add(1)
+		go func() {
+			err = SanitizeReader(pr2, renderer.Name(), output)
+			_ = pr2.Close()
+			wg.Done()
+		}()
+	} else {
+		pw2 = nopCloser{output}
+	}
 
 	wg.Add(1)
 	go func() {

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"sync"
 	"syscall"
 	"time"
@@ -29,11 +30,11 @@ type Manager struct {
 	shutdownCtx            context.Context
 	hammerCtx              context.Context
 	terminateCtx           context.Context
-	doneCtx                context.Context
+	managerCtx             context.Context
 	shutdownCtxCancel      context.CancelFunc
 	hammerCtxCancel        context.CancelFunc
 	terminateCtxCancel     context.CancelFunc
-	doneCtxCancel          context.CancelFunc
+	managerCtxCancel       context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
@@ -58,7 +59,17 @@ func (g *Manager) start(ctx context.Context) {
 	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(ctx)
 	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(ctx)
 	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(ctx)
-	g.doneCtx, g.doneCtxCancel = context.WithCancel(ctx)
+	g.managerCtx, g.managerCtxCancel = context.WithCancel(ctx)
+
+	// Next add pprof labels to these contexts
+	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
+	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
+	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+
+	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
+	pprof.SetGoroutineLabels(g.managerCtx)
+	defer pprof.SetGoroutineLabels(ctx)
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)
@@ -168,8 +179,12 @@ func (g *Manager) DoGracefulRestart() {
 	if setting.GracefulRestartable {
 		log.Info("PID: %d. Forking...", os.Getpid())
 		err := g.doFork()
-		if err != nil && err.Error() != "another process already forked. Ignoring this one" {
-			log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+		if err != nil {
+			if err.Error() == "another process already forked. Ignoring this one" {
+				g.DoImmediateHammer()
+			} else {
+				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+			}
 		}
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())

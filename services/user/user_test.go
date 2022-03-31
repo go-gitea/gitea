@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -36,11 +37,11 @@ func TestDeleteUser(t *testing.T) {
 			return
 		}
 
-		orgUsers := make([]*models.OrgUser, 0, 10)
-		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &models.OrgUser{UID: userID}))
+		orgUsers := make([]*organization.OrgUser, 0, 10)
+		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &organization.OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
 			if err := models.RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
-				assert.True(t, models.IsErrLastOrgOwner(err))
+				assert.True(t, organization.IsErrLastOrgOwner(err))
 				return
 			}
 		}

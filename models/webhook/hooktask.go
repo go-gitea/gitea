@@ -49,6 +49,7 @@ const (
 	HookEventPullRequestSync           HookEventType = "pull_request_sync"
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
+	HookEventPackage                   HookEventType = "package"
 )
 
 // Event returns the HookEventType as an event string

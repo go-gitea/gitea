@@ -522,7 +522,7 @@
   is_restricted: true
   avatar: avatar29
   avatar_email: user30@example.com
-  num_repos: 2
+  num_repos: 3
   is_active: true
   prohibit_login: true
 

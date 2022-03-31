@@ -77,7 +77,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 	opts := getDeleteRepoFileOptions(repo)
 
 	t.Run("Delete README.md file", func(t *testing.T) {
@@ -117,7 +117,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 	opts := getDeleteRepoFileOptions(repo)
 	opts.OldBranch = ""
 	opts.NewBranch = ""
@@ -147,7 +147,7 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	defer ctx.Repo.GitRepo.Close()
 
 	repo := ctx.Repo.Repository
-	doer := ctx.User
+	doer := ctx.Doer
 
 	t.Run("Bad branch", func(t *testing.T) {
 		opts := getDeleteRepoFileOptions(repo)
