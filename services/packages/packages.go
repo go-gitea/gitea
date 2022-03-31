@@ -426,7 +426,7 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(ctx, pv, pf)
+	return GetPackageFileStream(ctx, pf)
 }
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
@@ -436,11 +436,11 @@ func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.Packa
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(ctx, pv, pf)
+	return GetPackageFileStream(ctx, pf)
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, err
@@ -449,7 +449,7 @@ func GetPackageFileStream(ctx context.Context, pv *packages_model.PackageVersion
 	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
 	if err == nil {
 		if pf.IsLead {
-			if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
+			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
 				log.Error("Error incrementing download counter: %v", err)
 			}
 		}

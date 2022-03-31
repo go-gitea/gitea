@@ -376,13 +376,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	pv, err := packages_model.GetVersionByID(ctx, pfs[0].VersionID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	s, _, err := packages_service.GetPackageFileStream(ctx, pv, pfs[0])
+	s, _, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
