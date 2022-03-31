@@ -2,20 +2,52 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
+
+// ErrForbiddenIssueReaction is used when a forbidden reaction was try to created
+type ErrForbiddenIssueReaction struct {
+	Reaction string
+}
+
+// IsErrForbiddenIssueReaction checks if an error is a ErrForbiddenIssueReaction.
+func IsErrForbiddenIssueReaction(err error) bool {
+	_, ok := err.(ErrForbiddenIssueReaction)
+	return ok
+}
+
+func (err ErrForbiddenIssueReaction) Error() string {
+	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
+}
+
+// ErrReactionAlreadyExist is used when a existing reaction was try to created
+type ErrReactionAlreadyExist struct {
+	Reaction string
+}
+
+// IsErrReactionAlreadyExist checks if an error is a ErrReactionAlreadyExist.
+func IsErrReactionAlreadyExist(err error) bool {
+	_, ok := err.(ErrReactionAlreadyExist)
+	return ok
+}
+
+func (err ErrReactionAlreadyExist) Error() string {
+	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
+}
 
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
@@ -29,6 +61,36 @@ type Reaction struct {
 	User             *user_model.User   `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
+
+// LoadUser load user of reaction
+func (r *Reaction) LoadUser() (*user_model.User, error) {
+	if r.User != nil {
+		return r.User, nil
+	}
+	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
+	if err != nil {
+		return nil, err
+	}
+	r.User = user
+	return user, nil
+}
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Reaction) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.UserID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (r *Reaction) GetUserID() int64 { return r.UserID }
+
+// GetExternalName ExternalUserRemappable interface
+func (r *Reaction) GetExternalName() string { return r.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (r *Reaction) GetExternalID() int64 { return r.OriginalAuthorID }
 
 func init() {
 	db.RegisterModel(new(Reaction))
@@ -71,24 +133,25 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 }
 
 // FindCommentReactions returns a ReactionList of all reactions from an comment
-func FindCommentReactions(comment *Comment) (ReactionList, int64, error) {
-	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
-		IssueID:   comment.IssueID,
-		CommentID: comment.ID,
+func FindCommentReactions(issueID, commentID int64) (ReactionList, int64, error) {
+	return FindReactions(db.DefaultContext, FindReactionsOptions{
+		IssueID:   issueID,
+		CommentID: commentID,
 	})
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList, int64, error) {
-	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
+func FindIssueReactions(issueID int64, listOptions db.ListOptions) (ReactionList, int64, error) {
+	return FindReactions(db.DefaultContext, FindReactionsOptions{
 		ListOptions: listOptions,
-		IssueID:     issue.ID,
+		IssueID:     issueID,
 		CommentID:   -1,
 	})
 }
 
-func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, int64, error) {
-	sess := e.
+// FindReactions returns a ReactionList of all reactions from an issue or a comment
+func FindReactions(ctx context.Context, opts FindReactionsOptions) (ReactionList, int64, error) {
+	sess := db.GetEngine(ctx).
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
@@ -105,24 +168,21 @@ func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, int64, 
 	return reactions, count, err
 }
 
-func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
+func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
-		Type:    opts.Type,
-		UserID:  opts.Doer.ID,
-		IssueID: opts.Issue.ID,
+		Type:      opts.Type,
+		UserID:    opts.DoerID,
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
 	}
 	findOpts := FindReactionsOptions{
-		IssueID:   opts.Issue.ID,
-		CommentID: -1, // reaction to issue only
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
 		Reaction:  opts.Type,
-		UserID:    opts.Doer.ID,
-	}
-	if opts.Comment != nil {
-		reaction.CommentID = opts.Comment.ID
-		findOpts.CommentID = opts.Comment.ID
+		UserID:    opts.DoerID,
 	}
 
-	existingR, _, err := findReactions(e, findOpts)
+	existingR, _, err := FindReactions(ctx, findOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +190,7 @@ func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 		return existingR[0], ErrReactionAlreadyExist{Reaction: opts.Type}
 	}
 
-	if _, err := e.Insert(reaction); err != nil {
+	if err := db.Insert(ctx, reaction); err != nil {
 		return nil, err
 	}
 
@@ -139,10 +199,10 @@ func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 
 // ReactionOptions defines options for creating or deleting reactions
 type ReactionOptions struct {
-	Type    string
-	Doer    *user_model.User
-	Issue   *Issue
-	Comment *Comment
+	Type      string
+	DoerID    int64
+	IssueID   int64
+	CommentID int64
 }
 
 // CreateReaction creates reaction for issue or comment.
@@ -157,7 +217,7 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 	}
 	defer committer.Close()
 
-	reaction, err := createReaction(db.GetEngine(ctx), opts)
+	reaction, err := createReaction(ctx, opts)
 	if err != nil {
 		return reaction, err
 	}
@@ -169,86 +229,54 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 }
 
 // CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(doer *user_model.User, issue *Issue, content string) (*Reaction, error) {
+func CreateIssueReaction(doerID, issueID int64, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
-		Type:  content,
-		Doer:  doer,
-		Issue: issue,
+		Type:    content,
+		DoerID:  doerID,
+		IssueID: issueID,
 	})
 }
 
 // CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) (*Reaction, error) {
+func CreateCommentReaction(doerID, issueID, commentID int64, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
-		Type:    content,
-		Doer:    doer,
-		Issue:   issue,
-		Comment: comment,
+		Type:      content,
+		DoerID:    doerID,
+		IssueID:   issueID,
+		CommentID: commentID,
 	})
 }
 
-func deleteReaction(e db.Engine, opts *ReactionOptions) error {
+// DeleteReaction deletes reaction for issue or comment.
+func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 	reaction := &Reaction{
-		Type: opts.Type,
+		Type:      opts.Type,
+		UserID:    opts.DoerID,
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
 	}
-	if opts.Doer != nil {
-		reaction.UserID = opts.Doer.ID
-	}
-	if opts.Issue != nil {
-		reaction.IssueID = opts.Issue.ID
-	}
-	if opts.Comment != nil {
-		reaction.CommentID = opts.Comment.ID
-	}
-	_, err := e.Where("original_author_id = 0").Delete(reaction)
+
+	_, err := db.GetEngine(ctx).Where("original_author_id = 0").Delete(reaction)
 	return err
 }
 
-// DeleteReaction deletes reaction for issue or comment.
-func DeleteReaction(opts *ReactionOptions) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := deleteReaction(db.GetEngine(ctx), opts); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
 // DeleteIssueReaction deletes a reaction on issue.
-func DeleteIssueReaction(doer *user_model.User, issue *Issue, content string) error {
-	return DeleteReaction(&ReactionOptions{
-		Type:  content,
-		Doer:  doer,
-		Issue: issue,
+func DeleteIssueReaction(doerID, issueID int64, content string) error {
+	return DeleteReaction(db.DefaultContext, &ReactionOptions{
+		Type:    content,
+		DoerID:  doerID,
+		IssueID: issueID,
 	})
 }
 
 // DeleteCommentReaction deletes a reaction on comment.
-func DeleteCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) error {
-	return DeleteReaction(&ReactionOptions{
-		Type:    content,
-		Doer:    doer,
-		Issue:   issue,
-		Comment: comment,
+func DeleteCommentReaction(doerID, issueID, commentID int64, content string) error {
+	return DeleteReaction(db.DefaultContext, &ReactionOptions{
+		Type:      content,
+		DoerID:    doerID,
+		IssueID:   issueID,
+		CommentID: commentID,
 	})
-}
-
-// LoadUser load user of reaction
-func (r *Reaction) LoadUser() (*user_model.User, error) {
-	if r.User != nil {
-		return r.User, nil
-	}
-	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
-	if err != nil {
-		return nil, err
-	}
-	r.User = user
-	return user, nil
 }
 
 // ReactionList represents list of reactions
@@ -286,17 +314,26 @@ func (list ReactionList) getUserIDs() []int64 {
 			userIDs[reaction.UserID] = struct{}{}
 		}
 	}
-	return keysInt64(userIDs)
+	return container.KeysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e db.Engine, repo *repo_model.Repository) ([]*user_model.User, error) {
+func valuesUser(m map[int64]*user_model.User) []*user_model.User {
+	values := make([]*user_model.User, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
+}
+
+// LoadUsers loads reactions' all users
+func (list ReactionList) LoadUsers(ctx context.Context, repo *repo_model.Repository) ([]*user_model.User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
 
 	userIDs := list.getUserIDs()
 	userMaps := make(map[int64]*user_model.User, len(userIDs))
-	err := e.
+	err := db.GetEngine(ctx).
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
@@ -313,11 +350,6 @@ func (list ReactionList) loadUsers(e db.Engine, repo *repo_model.Repository) ([]
 		}
 	}
 	return valuesUser(userMaps), nil
-}
-
-// LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers(repo *repo_model.Repository) ([]*user_model.User, error) {
-	return list.loadUsers(db.GetEngine(db.DefaultContext), repo)
 }
 
 // GetFirstUsers returns first reacted user display names separated by comma
@@ -343,20 +375,3 @@ func (list ReactionList) GetMoreUserCount() int {
 	}
 	return len(list) - setting.UI.ReactionMaxUserNum
 }
-
-// RemapExternalUser ExternalUserRemappable interface
-func (r *Reaction) RemapExternalUser(externalName string, externalID, userID int64) error {
-	r.OriginalAuthor = externalName
-	r.OriginalAuthorID = externalID
-	r.UserID = userID
-	return nil
-}
-
-// GetUserID ExternalUserRemappable interface
-func (r *Reaction) GetUserID() int64 { return r.UserID }
-
-// GetExternalName ExternalUserRemappable interface
-func (r *Reaction) GetExternalName() string { return r.OriginalAuthor }
-
-// GetExternalID ExternalUserRemappable interface
-func (r *Reaction) GetExternalID() int64 { return r.OriginalAuthorID }
