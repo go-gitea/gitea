@@ -72,7 +72,7 @@ type Issue struct {
 
 	Attachments      []*repo_model.Attachment           `xorm:"-"`
 	Comments         []*Comment                         `xorm:"-"`
-	Reactions        ReactionList                       `xorm:"-"`
+	Reactions        issues.ReactionList                `xorm:"-"`
 	TotalTrackedTime int64                              `xorm:"-"`
 	Assignees        []*user_model.User                 `xorm:"-"`
 	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
@@ -244,8 +244,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	e := db.GetEngine(ctx)
-	reactions, _, err := findReactions(e, FindReactionsOptions{
+	reactions, _, err := issues.FindReactions(ctx, issues.FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	if err != nil {
@@ -255,7 +254,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).loadUsers(e, issue.Repo); err != nil {
+	if _, err := issues.ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
 		return err
 	}
 
@@ -2111,7 +2110,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 		&IssueAssignees{},
 		&IssueUser{},
 		&Notification{},
-		&Reaction{},
+		&issues.Reaction{},
 		&IssueWatch{},
 		&Stopwatch{},
 		&TrackedTime{},
@@ -2429,7 +2428,7 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&Reaction{}); err != nil {
+		Delete(&issues.Reaction{}); err != nil {
 		return
 	}
 
