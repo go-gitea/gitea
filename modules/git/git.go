@@ -54,11 +54,9 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	var stdout string
-	var err error
-	stdout, _, err = NewCommand(context.Background(), "version").RunWithContextString(nil)
-	if err != nil {
-		return err
+	stdout, _, runErr := NewCommand(context.Background(), "version").RunWithContextString(nil)
+	if runErr != nil {
+		return runErr
 	}
 
 	fields := strings.Fields(stdout)
@@ -76,6 +74,7 @@ func LoadGitVersion() error {
 		versionString = fields[2]
 	}
 
+	var err error
 	gitVersion, err = version.NewVersion(versionString)
 	return err
 }

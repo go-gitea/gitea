@@ -32,9 +32,8 @@ const gitShortEmptySha = "0000000"
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
-	var err error
 	// Remove old remote
-	_, _, err = git.NewCommand(ctx, "remote", "rm", remoteName).RunWithContextString(&git.RunContext{Dir: repoPath})
+	_, _, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunWithContextString(&git.RunContext{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
