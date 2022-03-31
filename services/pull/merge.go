@@ -164,13 +164,13 @@ func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle repo_mod
 	}
 
 	infoPath := filepath.Join(tmpBasePath, ".git", "info")
-	if err := os.MkdirAll(infoPath, 0700); err != nil {
+	if err := os.MkdirAll(infoPath, 0o700); err != nil {
 		log.Error("Unable to create .git/info in %s: %v", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to create .git/info in tmpBasePath: %v", err)
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
-	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
+	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0o600); err != nil {
 		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
@@ -559,21 +559,6 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	return out.String(), nil
-}
-
-// IsSignedIfRequired check if merge will be signed if required
-func IsSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
-		return false, err
-	}
-
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
-		return true, nil
-	}
-
-	sign, _, _, err := asymkey_service.SignMerge(pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
-
-	return sign, err
 }
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
