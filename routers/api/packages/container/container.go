@@ -367,7 +367,7 @@ func GetBlob(ctx *context.Context) {
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(blob.Blob.HashSHA256))
+	s, _, err := packages_service.GetPackageFileStream(ctx, blob.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -506,16 +506,12 @@ func GetManifest(ctx *context.Context) {
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(manifest.Blob.HashSHA256))
+	s, _, err := packages_service.GetPackageFileStream(ctx, manifest.File)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
-
-	if err := packages_model.IncrementDownloadCounter(ctx, manifest.File.VersionID); err != nil {
-		log.Error("Error incrementing download counter: %v", err)
-	}
 
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
