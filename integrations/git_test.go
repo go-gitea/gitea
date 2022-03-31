@@ -159,9 +159,8 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			t.Skip()
 			return
 		}
-		var err error
 		prefix := "lfs-data-file-"
-		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunWithContextString(&git.RunContext{Dir: dstPath})
+		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunWithContext(&git.RunContext{Dir: dstPath})
 		assert.NoError(t, err)
 		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunWithContextString(&git.RunContext{Dir: dstPath})
 		assert.NoError(t, err)
@@ -672,8 +671,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			var err error
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContext(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -747,8 +745,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			var err error
-			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContextString(&git.RunContext{Dir: dstPath})
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunWithContext(&git.RunContext{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}

@@ -124,14 +124,11 @@ func (repo *Repository) AddObjectToIndex(mode string, object SHA1, filename stri
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree() (*Tree, error) {
-	var stdout string
-	var err error
-	stdout, _, err = NewCommand(repo.Ctx, "write-tree").RunWithContextString(&RunContext{Dir: repo.Path})
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "write-tree").RunWithContextString(&RunContext{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
-	var id SHA1
-	id, err = NewIDFromString(strings.TrimSpace(stdout))
+	id, err := NewIDFromString(strings.TrimSpace(stdout))
 	if err != nil {
 		return nil, err
 	}

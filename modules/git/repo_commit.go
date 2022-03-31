@@ -58,14 +58,12 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 		relpath = `\` + relpath
 	}
 
-	var stdout string
-	var err error
-	stdout, _, err = NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, id.String(), "--", relpath).RunWithContextString(&RunContext{Dir: repo.Path})
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, id.String(), "--", relpath).RunWithContextString(&RunContext{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
-	id, err = NewIDFromString(stdout)
+	id, err := NewIDFromString(stdout)
 	if err != nil {
 		return nil, err
 	}
@@ -75,11 +73,9 @@ func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit,
 
 // GetCommitByPath returns the last commit of relative path.
 func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
-	var stdout []byte
-	var err error
-	stdout, _, err = NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, "--", relpath).RunWithContextBytes(&RunContext{Dir: repo.Path})
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "log", "-1", prettyLogFormat, "--", relpath).RunWithContextBytes(&RunContext{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
 	commits, err := repo.parsePrettyFormatLogToList(stdout)
@@ -348,11 +344,9 @@ func (repo *Repository) commitsBefore(id SHA1, limit int) ([]*Commit, error) {
 		cmd.AddArguments(prettyLogFormat, id.String())
 	}
 
-	var stdout []byte
-	var err error
-	stdout, _, err = cmd.RunWithContextBytes(&RunContext{Dir: repo.Path})
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := cmd.RunWithContextBytes(&RunContext{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
 	formattedLog, err := repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))

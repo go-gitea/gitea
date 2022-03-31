@@ -39,11 +39,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	var stdout string
-	var err error
-	stdout, _, err = NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunWithContextString(&RunContext{Dir: repo.Path})
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunWithContextString(&RunContext{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
 	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
