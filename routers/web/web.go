@@ -473,10 +473,12 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/packages", func() {
-			m.Get("", admin.Packages)
-			m.Post("/delete", admin.DeletePackageVersion)
-		})
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", admin.Packages)
+				m.Post("/delete", admin.DeletePackageVersion)
+			})
+		}
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -670,21 +672,23 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignIn)
 
 	m.Group("/{username}/-", func() {
-		m.Group("/packages", func() {
-			m.Get("", user.ListPackages)
-			m.Group("/{type}/{name}", func() {
-				m.Get("", user.RedirectToLastVersion)
-				m.Get("/versions", user.ListPackageVersions)
-				m.Group("/{version}", func() {
-					m.Get("", user.ViewPackageVersion)
-					m.Get("/files/{fileid}", user.DownloadPackageFile)
-					m.Group("/settings", func() {
-						m.Get("", user.PackageSettings)
-						m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
-					}, reqPackageAccess(perm.AccessModeWrite))
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", user.ListPackages)
+				m.Group("/{type}/{name}", func() {
+					m.Get("", user.RedirectToLastVersion)
+					m.Get("/versions", user.ListPackageVersions)
+					m.Group("/{version}", func() {
+						m.Get("", user.ViewPackageVersion)
+						m.Get("/files/{fileid}", user.DownloadPackageFile)
+						m.Group("/settings", func() {
+							m.Get("", user.PackageSettings)
+							m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+						}, reqPackageAccess(perm.AccessModeWrite))
+					})
 				})
-			})
-		}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
@@ -973,7 +977,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
-		m.Get("/packages", repo.Packages)
+		if setting.Packages.Enabled {
+			m.Get("/packages", repo.Packages)
+		}
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
