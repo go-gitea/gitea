@@ -12,61 +12,61 @@ import (
 
 func TestExpandVars(t *testing.T) {
 	kases := []struct {
-		template string
-		maps     map[string]string
-		expected string
-		fail     bool
+		tmpl  string
+		data  map[string]string
+		out   string
+		error bool
 	}{
 		{
-			template: "{a}",
-			maps: map[string]string{
+			tmpl: "{a}",
+			data: map[string]string{
 				"a": "1",
 			},
-			expected: "1",
+			out: "1",
 		},
 		{
-			template: "expand {a}, {b} and {c}, with escaped {#{}",
-			maps: map[string]string{
+			tmpl: "expand {a}, {b} and {c}, with non-var { } {#}",
+			data: map[string]string{
 				"a": "1",
 				"b": "2",
 				"c": "3",
 			},
-			expected: "expand 1, 2 and 3, with escaped {",
+			out: "expand 1, 2 and 3, with non-var { } {#}",
 		},
 		{
-			template: "中文内容 {一}, {二} 和 {三} 中文结尾",
-			maps: map[string]string{
+			tmpl: "中文内容 {一}, {二} 和 {三} 中文结尾",
+			data: map[string]string{
 				"一": "11",
 				"二": "22",
 				"三": "33",
 			},
-			expected: "中文内容 11, 22 和 33 中文结尾",
+			out: "中文内容 11, 22 和 33 中文结尾",
 		},
 		{
-			template: "expand {{a}, {b} and {c}",
-			maps: map[string]string{
+			tmpl: "expand {{a}, {b} and {c}",
+			data: map[string]string{
 				"a": "foo",
 				"b": "bar",
 			},
-			expected: "expand {{a}, bar and {c}",
-			fail:     true,
+			out:   "expand {{a}, bar and {c}",
+			error: true,
 		},
 		{
-			template: "expand } {} and {",
-			expected: "expand } {} and {",
-			fail:     true,
+			tmpl:  "expand } {} and {",
+			out:   "expand } {} and {",
+			error: true,
 		},
 	}
 
 	for _, kase := range kases {
-		t.Run(kase.template, func(t *testing.T) {
-			res, err := Expand(kase.template, kase.maps)
-			if kase.fail {
+		t.Run(kase.tmpl, func(t *testing.T) {
+			res, err := Expand(kase.tmpl, kase.data)
+			if kase.error {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
-			assert.EqualValues(t, kase.expected, res)
+			assert.EqualValues(t, kase.out, res)
 		})
 	}
 }

@@ -7,6 +7,8 @@ package vars
 import (
 	"fmt"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // ErrWrongSyntax represents a wrong syntax with a tempate
@@ -40,9 +42,11 @@ func IsErrNoMatchedVar(err error) bool {
 	return ok
 }
 
-// Expand replaces all variables like {var} to match, if error occurs, the error part doesn't change and is returned as it is.
-// `#' is a reversed char, templates can use `{#{}` to do escape and output char '{'.
+// Expand replaces all variables like {var} to match, if error occurs,
+// the error part doesn't change and is returned as it is.
 func Expand(template string, match map[string]string) (string, error) {
+	// in the future, if necessary, we can introduce some escape-char,
+	// for example: it will use `#' as a reversed char, templates will use `{#{}` to do escape and output char '{'.
 	var buf strings.Builder
 	var err error
 
@@ -84,9 +88,10 @@ func Expand(template string, match map[string]string) (string, error) {
 		} else {
 			// now we get a valid key "{...}"
 			key := part[1 : len(part)-1]
-			if key[0] == '#' {
-				// escaped char
-				buf.WriteString(key[1:])
+			keyFirst, _ := utf8.DecodeRuneInString(key)
+			if unicode.IsSpace(keyFirst) || unicode.IsPunct(keyFirst) || unicode.IsControl(keyFirst) {
+				// the if key doesn't start with a letter, then we do not treat it as a var now
+				buf.WriteString(part)
 			} else {
 				// look up in the map
 				if val, ok := match[key]; ok {
