@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -520,7 +521,7 @@ func (nl NotificationList) getPendingRepoIDs() []int64 {
 			ids[notification.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadRepos loads repositories from database
@@ -596,7 +597,7 @@ func (nl NotificationList) getPendingIssueIDs() []int64 {
 			ids[notification.IssueID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadIssues loads issues from database
@@ -682,7 +683,7 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 			ids[notification.CommentID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadComments loads comments from database
