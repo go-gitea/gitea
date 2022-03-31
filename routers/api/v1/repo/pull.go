@@ -746,15 +746,15 @@ func MergePullRequest(ctx *context.APIContext) {
 	force := form.ForceMerge != nil && *form.ForceMerge
 
 	if err := pull_service.CheckPullMergable(ctx, ctx.User, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
-		if pull_service.IsErrIsClosed(err) {
+		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.NotFound()
-		} else if pull_service.IsErrUserNotAllowedToMerge(err) {
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
 			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		} else if pull_service.IsErrHasMerged(err) {
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
-		} else if pull_service.IsErrIsWorkInProgress(err) {
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		} else if pull_service.IsErrNotMergableState(err) {
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
 		} else if models.IsErrNotAllowedToMerge(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
