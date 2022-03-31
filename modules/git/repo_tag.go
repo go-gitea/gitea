@@ -111,11 +111,6 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 	return tag, nil
 }
 
-const (
-	dualNullChar         = "\x00\x00"
-	forEachRefTagsFormat = `type %(objecttype)%00tag %(refname:short)%00object %(object)%00objectname %(objectname)%00tagger %(creator)%00message %(contents)%00signature %(contents:signature)%00%00`
-)
-
 // GetTagInfos returns all tag infos of the repository.
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
