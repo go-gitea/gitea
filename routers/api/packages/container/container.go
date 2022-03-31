@@ -513,6 +513,10 @@ func GetManifest(ctx *context.Context) {
 	}
 	defer s.Close()
 
+	if err := packages_model.IncrementDownloadCounter(ctx, manifest.File.VersionID); err != nil {
+		log.Error("Error incrementing download counter: %v", err)
+	}
+
 	setResponseHeaders(ctx.Resp, &containerHeaders{
 		ContentDigest: manifest.Properties.GetByName(container_module.PropertyDigest),
 		ContentType:   manifest.Properties.GetByName(container_module.PropertyMediaType),
