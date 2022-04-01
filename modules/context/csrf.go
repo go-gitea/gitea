@@ -22,8 +22,10 @@ import (
 	"encoding/base32"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -215,9 +217,16 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 	}
 
 	x.ID = "0"
-	uid := ctx.Session.Get(opt.SessionKey)
-	if uid != nil {
-		x.ID = util.ToStr(uid)
+	uidAny := ctx.Session.Get(opt.SessionKey)
+	if uidAny != nil {
+		switch uidVal := uidAny.(type) {
+		case string:
+			x.ID = uidVal
+		case int64:
+			x.ID = strconv.FormatInt(uidVal, 10)
+		default:
+			log.Error("invalid uid type in session: %T", uidAny)
+		}
 	}
 
 	needsNew := false
