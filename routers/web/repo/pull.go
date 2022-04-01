@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -858,39 +859,53 @@ func MergePullRequest(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if issue.IsClosed {
-		if issue.IsPull {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
-			ctx.Redirect(issue.Link())
-			return
-		}
-		ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
-		ctx.Redirect(issue.Link())
-		return
-	}
 
 	pr := issue.PullRequest
+	pr.Issue = issue
+	pr.Issue.Repo = ctx.Repo.Repository
+	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("IsUserAllowedToMerge", err)
-		return
-	}
-	if !allowedMerge {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(issue.Link())
-		return
-	}
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+		if errors.Is(err, pull_service.ErrIsClosed) {
+			if issue.IsPull {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+				ctx.Redirect(issue.Link())
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+				ctx.Redirect(issue.Link())
+			}
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrDisallowedToMerge(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.Flash.Error(err.Error()) // has not translation ...
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.Redirect(issue.Link())
+		} else {
+			ctx.ServerError("WebCheck", err)
+		}
 
-	if pr.HasMerged {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-		ctx.Redirect(issue.Link())
 		return
 	}
 
 	// handle manually-merged mark
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+	if manuallMerge {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
@@ -909,72 +924,13 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		ctx.Redirect(issue.Link())
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
-	if pr.IsWorkInProgress() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if !models.IsErrNotAllowedToMerge(err) {
-			ctx.ServerError("Merge PR status", err)
-			return
-		}
-		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-			ctx.ServerError("IsUserRepoAdmin", err)
-			return
-		} else if !isRepoAdmin {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-			ctx.Redirect(issue.Link())
-			return
-		}
-	}
-
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleRebaseMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-			message = pr.GetDefaultSquashMessage()
-		}
-	}
-
-	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	if len(form.MergeMessageField) > 0 {
-		message += "\n\n" + form.MergeMessageField
-	}
-
-	pr.Issue = issue
-	pr.Issue.Repo = ctx.Repo.Repository
-
-	noDeps, err := models.IssueNoDependenciesLeft(issue)
-	if err != nil {
-		return
-	}
-
-	if !noDeps {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	if err = pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())

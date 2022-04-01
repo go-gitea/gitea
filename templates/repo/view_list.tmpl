@@ -62,7 +62,7 @@
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-								{{svg "octicon-file-directory"}}
+								{{svg "octicon-file-directory-fill"}}
 								<a href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
