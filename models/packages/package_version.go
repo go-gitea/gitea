@@ -17,10 +17,8 @@ import (
 	"xorm.io/builder"
 )
 
-var (
-	// ErrDuplicatePackageVersion indicates a duplicated package version error
-	ErrDuplicatePackageVersion = errors.New("Package version does exist already")
-)
+// ErrDuplicatePackageVersion indicates a duplicated package version error
+var ErrDuplicatePackageVersion = errors.New("Package version does exist already")
 
 func init() {
 	db.RegisterModel(new(PackageVersion))
