@@ -9,29 +9,37 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-
-	"github.com/unknwon/com" //nolint:depguard
+	"io"
+	"os"
 )
 
 // CopyFile copies file from source to target path.
 func CopyFile(src, dest string) error {
-	return com.Copy(src, dest)
-}
+	si, err := os.Lstat(src)
+	if err != nil {
+		return err
+	}
 
-// CopyDir copy files recursively from source to target directory.
-// It returns error when error occurs in underlying functions.
-func CopyDir(srcPath, destPath string) error {
-	return com.CopyDir(srcPath, destPath)
-}
+	sr, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sr.Close()
 
-// ToStr converts any interface to string. should be replaced.
-func ToStr(value interface{}, args ...int) string {
-	return com.ToStr(value, args...)
-}
+	dw, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer dw.Close()
 
-// ToSnakeCase converts a string to snake_case. should be replaced.
-func ToSnakeCase(str string) string {
-	return com.ToSnakeCase(str)
+	if _, err = io.Copy(dw, sr); err != nil {
+		return err
+	}
+
+	if err = os.Chtimes(dest, si.ModTime(), si.ModTime()); err != nil {
+		return err
+	}
+	return os.Chmod(dest, si.Mode())
 }
 
 // AESGCMEncrypt (from legacy package): encrypts plaintext with the given key using AES in GCM mode. should be replaced.
