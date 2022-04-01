@@ -345,24 +345,20 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 	defer committer.Close()
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
-		log.Error("hier")
 		return err
 	}
 
 	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
-		log.Error("hier2")
 		return err
 	}
 
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
 	if err != nil {
-		log.Error("hier3")
 		return err
 	}
 
 	for _, pb := range pbs {
 		if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
-			log.Error("hier4")
 			return err
 		}
 	}
