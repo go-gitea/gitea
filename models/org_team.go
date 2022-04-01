@@ -535,7 +535,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 
 	accesses := make([]*Access, 0, 100)
 	for i, repoID := range repoIDs {
-		accesses = append(accesses, &Access{RepoID: repoID, UserID: userID})
+		accesses = append(accesses, &Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
 		if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
 			if err = db.Insert(ctx, accesses); err != nil {
 				return fmt.Errorf("insert new user accesses: %v", err)
