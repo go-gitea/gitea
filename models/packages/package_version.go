@@ -19,8 +19,6 @@ import (
 var (
 	// ErrDuplicatePackageVersion indicates a duplicated package version error
 	ErrDuplicatePackageVersion = errors.New("Package version does exist already")
-	// ErrPackageVersionNotExist indicates a package version not exist error
-	ErrPackageVersionNotExist = errors.New("Package version does not exist")
 )
 
 func init() {
