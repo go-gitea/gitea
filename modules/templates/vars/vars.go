@@ -42,8 +42,8 @@ func IsErrNoMatchedVar(err error) bool {
 	return ok
 }
 
-// Expand replaces all variables like {var} to match, if error occurs,
-// the error part doesn't change and is returned as it is.
+// Expand replaces all variables like {var} to `match`, it always returns the expanded string regardless of errors
+// if error occurs, the error part doesn't change and is returned as it is.
 func Expand(template string, match map[string]string) (string, error) {
 	// in the future, if necessary, we can introduce some escape-char,
 	// for example: it will use `#' as a reversed char, templates will use `{#{}` to do escape and output char '{'.
@@ -67,14 +67,10 @@ func Expand(template string, match map[string]string) (string, error) {
 		posBegin += pos
 		posEnd := posBegin + 1
 		for posEnd < strLen {
-			if template[posEnd] == '#' {
-				// escape char, skip next
-				posEnd += 2
-				continue
-			} else if template[posEnd] == '}' {
+			if template[posEnd] == '}' {
 				posEnd++
 				break
-			}
+			} // in the future, if we need to support escape chars, we can do: if (isEscapeChar) { posEnd+=2 }
 			posEnd++
 		}
 
