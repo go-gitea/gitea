@@ -14,6 +14,7 @@ import (
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -76,7 +77,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
-		&Reaction{UserID: u.ID},
+		&issues.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
@@ -100,14 +101,14 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 			}
 
 			for _, comment := range comments {
-				if err = deleteComment(e, comment); err != nil {
+				if err = deleteComment(ctx, comment); err != nil {
 					return err
 				}
 			}
 		}
 
 		// Delete Reactions
-		if err = deleteReaction(e, &ReactionOptions{Doer: u}); err != nil {
+		if err = issues.DeleteReaction(ctx, &issues.ReactionOptions{DoerID: u.ID}); err != nil {
 			return err
 		}
 	}

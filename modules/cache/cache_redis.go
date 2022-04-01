@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/nosql"
+	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/cache"
 	"github.com/go-redis/redis/v8"
-	"github.com/unknwon/com"
 )
 
 // RedisCacher represents a redis cache adapter implementation.
@@ -29,15 +29,15 @@ type RedisCacher struct {
 func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	key = c.prefix + key
 	if expire == 0 {
-		if err := c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), 0).Err(); err != nil {
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, util.ToStr(val), 0).Err(); err != nil {
 			return err
 		}
 	} else {
-		dur, err := time.ParseDuration(com.ToStr(expire) + "s")
+		dur, err := time.ParseDuration(util.ToStr(expire) + "s")
 		if err != nil {
 			return err
 		}
-		if err = c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), dur).Err(); err != nil {
+		if err = c.c.Set(graceful.GetManager().HammerContext(), key, util.ToStr(val), dur).Err(); err != nil {
 			return err
 		}
 	}

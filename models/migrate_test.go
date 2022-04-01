@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,7 +43,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	label := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 	assert.EqualValues(t, milestone.ID, 1)
-	reaction := &Reaction{
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
@@ -60,7 +61,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		Poster:      owner,
 		IsClosed:    true,
 		Labels:      []*Label{label},
-		Reactions:   []*Reaction{reaction},
+		Reactions:   []*issues_model.Reaction{reaction},
 		ForeignReference: &foreignreference.ForeignReference{
 			ForeignIndex: strconv.FormatInt(foreignIndex, 10),
 			RepoID:       repo.ID,
@@ -75,7 +76,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	err = i.LoadAttributes()
 	assert.NoError(t, err)
 	assert.EqualValues(t, strconv.FormatInt(foreignIndex, 10), i.ForeignReference.ForeignIndex)
-	unittest.AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 
 func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
@@ -91,7 +92,7 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 	_ = issue.LoadRepo()
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
-	reaction := &Reaction{
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
@@ -101,7 +102,7 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		Poster:    owner,
 		IssueID:   issue.ID,
 		Issue:     issue,
-		Reactions: []*Reaction{reaction},
+		Reactions: []*issues_model.Reaction{reaction},
 	}
 
 	err := InsertIssueComments([]*Comment{comment})

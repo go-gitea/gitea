@@ -358,6 +358,9 @@ export function checkAppUrl() {
   if (curUrl.startsWith(appUrl)) {
     return;
   }
+  if (document.querySelector('.page-content.install')) {
+    return; // no need to show the message on the installation page
+  }
   showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
 You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }

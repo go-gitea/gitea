@@ -76,7 +76,7 @@ func TestPatch(pr *models.PullRequest) error {
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
+	pr.MergeBase, _, err = git.NewCommand(ctx, "merge-base", "--", "base", "tracking").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
@@ -166,7 +166,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}
 
 		// Need to get the objects from the object db to attempt to merge
-		root, err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunInDir(tmpBasePath)
+		root, _, err := git.NewCommand(ctx, "unpack-file", file.stage1.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get root object: %s at path: %s for merging. Error: %w", file.stage1.sha, file.stage1.path, err)
 		}
@@ -175,7 +175,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 			_ = util.Remove(filepath.Join(tmpBasePath, root))
 		}()
 
-		base, err := git.NewCommand(ctx, "unpack-file", file.stage2.sha).RunInDir(tmpBasePath)
+		base, _, err := git.NewCommand(ctx, "unpack-file", file.stage2.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get base object: %s at path: %s for merging. Error: %w", file.stage2.sha, file.stage2.path, err)
 		}
@@ -183,7 +183,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		defer func() {
 			_ = util.Remove(base)
 		}()
-		head, err := git.NewCommand(ctx, "unpack-file", file.stage3.sha).RunInDir(tmpBasePath)
+		head, _, err := git.NewCommand(ctx, "unpack-file", file.stage3.sha).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return fmt.Errorf("unable to get head object:%s at path: %s for merging. Error: %w", file.stage3.sha, file.stage3.path, err)
 		}
@@ -193,13 +193,13 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, g
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...
-		_, conflictErr := git.NewCommand(ctx, "merge-file", base, root, head).RunInDir(tmpBasePath)
+		_, _, conflictErr := git.NewCommand(ctx, "merge-file", base, root, head).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if conflictErr != nil {
 			return &errMergeConflict{file.stage2.path}
 		}
 
 		// base now contains the merged data
-		hash, err := git.NewCommand(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunInDir(tmpBasePath)
+		hash, _, err := git.NewCommand(ctx, "hash-object", "-w", "--path", file.stage2.path, base).RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, err := git.NewCommand(ctx, "read-tree", "-m", base, ours, theirs).RunInDir(gitPath); err != nil {
+	if _, _, err := git.NewCommand(ctx, "read-tree", "-m", base, ours, theirs).RunStdString(&git.RunOpts{Dir: gitPath}); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %v", err)
 	}
@@ -282,7 +282,8 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	}
 
 	if !conflict {
-		treeHash, err := git.NewCommand(ctx, "write-tree").RunInDir(tmpBasePath)
+		var treeHash string
+		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
 			return false, err
 		}
@@ -334,7 +335,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
-	_, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
+	_, _, err = git.NewCommand(gitRepo.Ctx, "read-tree", "base").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
@@ -379,10 +380,9 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	// 8. Run the check command
 	conflict = false
 	err = git.NewCommand(gitRepo.Ctx, args...).
-		RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     tmpBasePath,
-			Stderr:  stderrWriter,
+		Run(&git.RunOpts{
+			Dir:    tmpBasePath,
+			Stderr: stderrWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stderrWriter.Close()

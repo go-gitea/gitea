@@ -297,9 +297,9 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 	}
 
 	if delTag {
-		if stdout, err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
+		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
-			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
+			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
 			return fmt.Errorf("git tag -d: %v", err)
 		}
