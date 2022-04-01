@@ -56,6 +56,7 @@ func MirrorSync(ctx *context.APIContext) {
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "MirrorSync", err)
+		return
 	}
 
 	mirror_service.StartToMirror(repo.ID)
