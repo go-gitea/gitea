@@ -7,8 +7,9 @@ package util
 import (
 	"crypto/aes"
 	"crypto/rand"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAESGCMEncrypt(t *testing.T) {
