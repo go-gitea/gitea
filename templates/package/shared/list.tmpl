@@ -1,0 +1,53 @@
+<div class="ui container">
+	{{template "base/alert" .}}
+	<form class="ui form ignore-dirty">
+		<div class="ui fluid action input">
+			<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+			<select class="ui dropdown" name="type">
+				<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
+				<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
+				<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
+				<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
+				<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
+				<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
+				<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
+				<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
+				<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
+				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
+				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+			</select>
+			<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+		</div>
+	</form>
+	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+		{{range .PackageDescriptors}}
+			<li class="item df py-3">
+				<div class="issue-item-main f1 fc df">
+					<div class="issue-item-top-row">
+						<a class="title" href="{{.FullWebLink}}">{{.Package.Name}}</a>
+						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
+					</div>
+					<div class="desc issue-item-bottom-row df ac fw my-1">
+						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n.Lang}}
+						{{if .Repository}}
+							{{$.i18n.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.HTMLURL (.Repository.FullName | Escape) | Safe}}
+						{{else}}
+							{{$.i18n.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+						{{end}}
+					</div>
+				</div>
+			</li>
+		{{else}}
+			{{if not .HasPackages}}
+				<div class="empty center">
+					{{svg "octicon-package" 32}}
+					<h2>{{.i18n.Tr "packages.empty"}}</h2>
+					<p>{{.i18n.Tr "packages.empty.documentation" | Safe}}</p>
+				</div>
+			{{else}}
+				<p>{{.i18n.Tr "packages.filter.no_result"}}</p>
+			{{end}}
+		{{end}}
+		{{template "base/paginate" .}}
+	</div>
+</div>

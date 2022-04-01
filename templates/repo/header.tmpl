@@ -177,6 +177,10 @@
 					</a>
 				{{end}}
 
+				<a href="{{.RepoLink}}/packages" class="{{ if .IsPackagesPage }}active{{end}} item">
+					{{svg "octicon-package"}} {{.i18n.Tr "packages.title"}}
+				</a>
+
 				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}

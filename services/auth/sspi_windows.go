@@ -109,7 +109,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
 
-		err := s.rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
+		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
 		if err != nil {
 			log.Error("%v", err)
 		}
@@ -243,14 +243,4 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 	// as the username can contain several separators: eg. "MICROSOFT\useremail@live.com"
 	username = replaceSeparators(username, cfg)
 	return username
-}
-
-// specialInit registers the SSPI auth method as the last method in the list.
-// The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
-// fails (or if negotiation should continue), which would prevent other authentication methods
-// to execute at all.
-func specialInit() {
-	if auth.IsSSPIEnabled() {
-		Register(&SSPI{})
-	}
 }

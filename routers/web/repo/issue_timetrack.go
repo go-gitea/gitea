@@ -22,7 +22,7 @@ func AddTimeManually(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
@@ -42,7 +42,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	if _, err := models.AddTime(c.User, issue, int64(total.Seconds()), time.Now()); err != nil {
+	if _, err := models.AddTime(c.Doer, issue, int64(total.Seconds()), time.Now()); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}
@@ -56,7 +56,7 @@ func DeleteTime(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
@@ -72,7 +72,7 @@ func DeleteTime(c *context.Context) {
 	}
 
 	// only OP or admin may delete
-	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.User.ID != t.UserID) {
+	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.Doer.ID != t.UserID) {
 		c.Error(http.StatusForbidden, "not allowed")
 		return
 	}

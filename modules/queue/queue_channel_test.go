@@ -34,9 +34,9 @@ func TestChannelQueue(t *testing.T) {
 				BlockTimeout: 1 * time.Second,
 				BoostTimeout: 5 * time.Minute,
 				BoostWorkers: 5,
+				Name:         "TestChannelQueue",
 			},
 			Workers: 0,
-			Name:    "TestChannelQueue",
 		}, &testData{})
 	assert.NoError(t, err)
 

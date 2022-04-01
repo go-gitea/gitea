@@ -49,6 +49,7 @@ if [ -d /etc/ssh ]; then
     SSH_DSA_CERT="${SSH_DSA_CERT:+"HostCertificate "}${SSH_DSA_CERT}" \
     SSH_MAX_STARTUPS="${SSH_MAX_STARTUPS:+"MaxStartups "}${SSH_MAX_STARTUPS}" \
     SSH_MAX_SESSIONS="${SSH_MAX_SESSIONS:+"MaxSessions "}${SSH_MAX_SESSIONS}" \
+    SSH_LOG_LEVEL=${SSH_LOG_LEVEL:-"INFO"} \
     envsubst < /etc/templates/sshd_config > /etc/ssh/sshd_config
 
     chmod 0644 /etc/ssh/sshd_config

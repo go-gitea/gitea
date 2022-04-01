@@ -83,7 +83,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	i.Title = "title2, no mentions"
-	assert.NoError(t, i.ChangeTitle(d, title))
+	assert.NoError(t, ChangeIssueTitle(i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
@@ -98,7 +98,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
-	_, err := i3.ChangeStatus(d, true)
+	_, err := ChangeIssueStatus(i3, d, true)
 	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))

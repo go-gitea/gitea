@@ -229,8 +229,6 @@ func ServCommand(ctx *context.PrivateContext) {
 	var deployKey *asymkey_model.DeployKey
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
-		results.IsDeployKey = true
-
 		var err error
 		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
 		if err != nil {
@@ -248,6 +246,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
+		results.DeployKeyID = deployKey.ID
 		results.KeyName = deployKey.Name
 
 		// FIXME: Deploy keys aren't really the owner of the repo pushing changes
@@ -410,9 +409,9 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 	}
-	log.Debug("Serv Results:\nIsWiki: %t\nIsDeployKey: %t\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
+	log.Debug("Serv Results:\nIsWiki: %t\nDeployKeyID: %d\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
 		results.IsWiki,
-		results.IsDeployKey,
+		results.DeployKeyID,
 		results.KeyID,
 		results.KeyName,
 		results.UserName,
