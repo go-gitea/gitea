@@ -31,13 +31,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
-	"github.com/unknwon/com"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -475,7 +475,7 @@ func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 	}
 
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err = com.AESGCMDecrypt(key, text)
+	text, err = util.AESGCMDecrypt(key, text)
 	return string(text), err == nil
 }
 
@@ -489,7 +489,7 @@ func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int)
 // CookieEncrypt encrypts a given value using the provided secret
 func (ctx *Context) CookieEncrypt(secret, value string) string {
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err := com.AESGCMEncrypt(key, []byte(value))
+	text, err := util.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
