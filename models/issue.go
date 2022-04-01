@@ -1207,7 +1207,7 @@ type IssuesOptions struct {
 	ProjectBoardID     int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
-	LabelIDs           []int64
+	LabelIDs           []int64 // negative IDs exclude the given label
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
 	IncludeMilestones  []string
@@ -1348,14 +1348,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.LabelIDs != nil {
-		for i, labelID := range opts.LabelIDs {
-			if labelID > 0 {
-				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-					fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-			} else {
-				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
-			}
-		}
+		applyLabelIDCondition(sess, opts.LabelIDs)
 	}
 
 	if len(opts.IncludedLabelNames) > 0 {
@@ -1438,6 +1431,27 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+}
+
+func applyLabelIDCondition(sess *xorm.Session, labelIDs []int64) *xorm.Session {
+	includes := make([]int64, 0, len(labelIDs))
+	excludes := make([]int64, 0, len(labelIDs))
+	for _, labelID := range labelIDs {
+		if labelID > 0 {
+			includes = append(includes, labelID)
+		} else {
+			excludes = append(excludes, -labelID)
+		}
+	}
+	if len(includes) > 0 {
+		sess.In("issue.id", builder.Select("issue_id").From("issue_label").
+			Where(builder.In("label_id", includes)))
+	}
+	if len(excludes) > 0 {
+		sess.NotIn("issue.id", builder.Select("issue_id").From("issue_label").
+			Where(builder.In("label_id", excludes)))
+	}
+	return sess
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1664,14 +1678,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
-				for i, labelID := range labelIDs {
-					if labelID > 0 {
-						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
-					} else {
-						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
-					}
-				}
+				applyLabelIDCondition(sess, labelIDs)
 			}
 		}
 
@@ -1757,8 +1764,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := db.GetEngine(db.DefaultContext).Where(cond)
 		if len(opts.LabelIDs) > 0 {
-			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
-				In("issue_label.label_id", opts.LabelIDs)
+			applyLabelIDCondition(s, opts.LabelIDs)
 		}
 		if opts.UserID > 0 || opts.IsArchived != util.OptionalBoolNone {
 			s.Join("INNER", "repository", "issue.repo_id = repository.id")
