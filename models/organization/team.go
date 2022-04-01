@@ -239,15 +239,17 @@ func (t *Team) GetMembersCtx(ctx context.Context) (err error) {
 
 // UnitEnabled returns if the team has the given unit type enabled
 func (t *Team) UnitEnabled(tp unit.Type) bool {
-	return t.unitEnabled(db.DefaultContext, tp)
-}
-
-func (t *Team) unitEnabled(ctx context.Context, tp unit.Type) bool {
-	return t.UnitAccessMode(ctx, tp) > perm.AccessModeNone
+	return t.UnitAccessMode(tp) > perm.AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
-func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode {
+// it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
+func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
+	return t.UnitAccessModeCtx(db.DefaultContext, tp)
+}
+
+// UnitAccessModeCtx returns if the team has the given unit type enabled
+func (t *Team) UnitAccessModeCtx(ctx context.Context, tp unit.Type) perm.AccessMode {
 	if err := t.getUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
