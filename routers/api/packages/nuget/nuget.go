@@ -40,7 +40,7 @@ func ServiceIndex(ctx *context.Context) {
 func SearchService(ctx *context.Context) {
 	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      string(packages_model.TypeNuGet),
+		Type:      packages_model.TypeNuGet,
 		QueryName: ctx.FormTrim("q"),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),

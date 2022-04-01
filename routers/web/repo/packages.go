@@ -35,7 +35,7 @@ func Packages(ctx *context.Context) {
 		OwnerID:   ctx.ContextUser.ID,
 		RepoID:    ctx.Repo.Repository.ID,
 		QueryName: query,
-		Type:      packageType,
+		Type:      packages.Type(packageType),
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)

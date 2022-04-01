@@ -44,7 +44,7 @@ func ListPackages(ctx *context.Context) {
 			Page:     page,
 		},
 		OwnerID:   ctx.ContextUser.ID,
-		Type:      packageType,
+		Type:      packages_model.Type(packageType),
 		QueryName: query,
 	})
 	if err != nil {

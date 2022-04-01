@@ -32,7 +32,7 @@ func Packages(ctx *context.Context) {
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 		QueryName: query,
-		Type:      packageType,
+		Type:      packages_model.Type(packageType),
 		Sort:      sort,
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,

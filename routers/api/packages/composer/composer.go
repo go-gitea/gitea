@@ -63,7 +63,7 @@ func SearchPackages(ctx *context.Context) {
 
 	opts := &packages_model.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      string(packages_model.TypeComposer),
+		Type:      packages_model.TypeComposer,
 		QueryName: ctx.FormTrim("q"),
 		Paginator: &paginator,
 	}
