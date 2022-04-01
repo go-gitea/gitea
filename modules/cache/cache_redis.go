@@ -24,20 +24,22 @@ type RedisCacher struct {
 	occupyMode bool
 }
 
-// asString convert string/int/int64 interface to string. it's only used by the RedisCacher.Put internally
-func asString(v interface{}) string {
+// toStr convert string/int/int64 interface to string. it's only used by the RedisCacher.Put internally
+func toStr(v interface{}) string {
 	if v == nil {
 		return ""
 	}
 	switch v := v.(type) {
 	case string:
 		return v
+	case []byte:
+		return string(v)
 	case int:
 		return strconv.FormatInt(int64(v), 10)
 	case int64:
 		return strconv.FormatInt(v, 10)
 	default:
-		panic("current redis cache doesn't support non-string data type")
+		return fmt.Sprint(v) // as what the old com.ToStr does in most cases
 	}
 }
 
@@ -47,12 +49,12 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	// this function is not well-designed, it only puts string values into cache
 	key = c.prefix + key
 	if expire == 0 {
-		if err := c.c.Set(graceful.GetManager().HammerContext(), key, asString(val), 0).Err(); err != nil {
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, toStr(val), 0).Err(); err != nil {
 			return err
 		}
 	} else {
 		dur := time.Duration(expire) * time.Second
-		if err := c.c.Set(graceful.GetManager().HammerContext(), key, asString(val), dur).Err(); err != nil {
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, toStr(val), dur).Err(); err != nil {
 			return err
 		}
 	}
