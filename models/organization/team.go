@@ -243,6 +243,7 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
+// it is called in templates, should not be replaced by `UnitAccessModeCtx(ctx ...)`
 func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
 	return t.UnitAccessModeCtx(db.DefaultContext, tp)
 }
