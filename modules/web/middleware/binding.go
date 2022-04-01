@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"gitea.com/go-chi/binding"
-	"github.com/unknwon/com"
 )
 
 // Form form binding interface
@@ -22,7 +22,7 @@ type Form interface {
 }
 
 func init() {
-	binding.SetNameMapper(com.ToSnakeCase)
+	binding.SetNameMapper(util.ToSnakeCase)
 }
 
 // AssignForm assign form values back to the template data.
@@ -43,7 +43,7 @@ func AssignForm(form interface{}, data map[string]interface{}) {
 		if fieldName == "-" {
 			continue
 		} else if len(fieldName) == 0 {
-			fieldName = com.ToSnakeCase(field.Name)
+			fieldName = util.ToSnakeCase(field.Name)
 		}
 
 		data[fieldName] = val.Field(i).Interface()
