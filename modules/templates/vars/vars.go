@@ -9,13 +9,14 @@ import (
 	"strings"
 )
 
-// ErrWrongSyntax represents a wrong syntax with a tempate
+// ErrWrongSyntax represents a syntax error within a template
 type ErrWrongSyntax struct {
 	Template string
+	Reason   string
 }
 
 func (err ErrWrongSyntax) Error() string {
-	return fmt.Sprintf("Wrong syntax found in %s", err.Template)
+	return fmt.Sprintf("Wrong syntax found in %s: %s", err.Template, err.Reason)
 }
 
 // IsErrWrongSyntax returns true if the error is ErrWrongSyntax
@@ -52,6 +53,7 @@ func Expand(template string, match map[string]string, subs ...string) (string, e
 			if keyStartPos > -1 {
 				return "", ErrWrongSyntax{
 					Template: template,
+					Reason:   "\"{\" is not allowed to occur again before closing the variable",
 				}
 			}
 			keyStartPos = i
@@ -59,11 +61,13 @@ func Expand(template string, match map[string]string, subs ...string) (string, e
 			if keyStartPos == -1 {
 				return "", ErrWrongSyntax{
 					Template: template,
+					Reason:   "\"}\" can only occur after an opening \"{\"",
 				}
 			}
 			if i-keyStartPos <= 1 {
 				return "", ErrWrongSyntax{
 					Template: template,
+					Reason:   "the empty variable (\"{}\") is not allowed",
 				}
 			}
 
