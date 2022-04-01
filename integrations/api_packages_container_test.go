@@ -535,6 +535,8 @@ func TestPackageContainer(t *testing.T) {
 	}
 
 	t.Run("Cleanup", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		for _, image := range images {
 			_, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_model.UploadVersion)
 			assert.NoError(t, err)
