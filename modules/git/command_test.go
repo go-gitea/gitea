@@ -13,13 +13,13 @@ import (
 
 func TestRunWithContextStd(t *testing.T) {
 	cmd := NewCommand(context.Background(), "--version")
-	stdout, stderr, err := cmd.RunWithContextString(&RunContext{})
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{})
 	assert.NoError(t, err)
 	assert.Empty(t, stderr)
 	assert.Contains(t, stdout, "git version")
 
 	cmd = NewCommand(context.Background(), "--no-such-arg")
-	stdout, stderr, err = cmd.RunWithContextString(&RunContext{})
+	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
 	if assert.Error(t, err) {
 		assert.Equal(t, stderr, err.Stderr())
 		assert.Contains(t, err.Stderr(), "unknown option:")

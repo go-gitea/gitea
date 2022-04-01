@@ -25,13 +25,13 @@ func IsTagExist(ctx context.Context, repoPath, name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "tag", "--", name, revision).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "tag", "-a", "-m", message, "--", name, revision).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
@@ -41,7 +41,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags", "-d").RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +64,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--tags", "--", name).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return "", err
 	}
@@ -119,10 +119,10 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	defer stdoutReader.Close()
 	defer stdoutWriter.Close()
 	stderr := strings.Builder{}
-	rc := &RunContext{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr, Timeout: -1}
+	rc := &RunOpts{Dir: repo.Path, Stdout: stdoutWriter, Stderr: &stderr}
 
 	go func() {
-		err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").RunWithContext(rc)
+		err := NewCommand(repo.Ctx, "for-each-ref", "--format", forEachRefFmt.Flag(), "--sort", "-*creatordate", "refs/tags").Run(rc)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
 		} else {
