@@ -190,7 +190,7 @@ func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]
 // DeletePackagesIfUnreferenced deletes a package if there are no associated versions
 func DeletePackagesIfUnreferenced(ctx context.Context) error {
 	in := builder.
-		Select("package_version.package_id").
+		Select("package.id").
 		From("package").
 		Join("LEFT", "package_version", "package_version.package_id = package.id").
 		Where(builder.Expr("package_version.id IS NULL"))
