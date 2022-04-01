@@ -509,6 +509,20 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 	opts.LabelIDs = labelIDs
 
+	// Labels can also be search for by name. Add them to the LabelID query.
+	labelNameList := ctx.FormString("label-names")
+	if len(labelNameList) != 0 {
+		labelNames := strings.Split(labelNameList, ",")
+		if len(labelNameList) > 0 {
+			labelIDs, err = models.GetAccessibleLabelIDsByName(labelNames, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetAccessibleLabelIDsByName", err)
+				return
+			}
+		}
+		opts.LabelIDs = append(opts.LabelIDs, labelIDs...)
+	}
+
 	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
@@ -664,6 +678,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["SelectLabels"] = selectedLabels
+	ctx.Data["SelectLabelNames"] = labelNameList
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -683,6 +698,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
+	pager.AddParam(ctx, "label-names", "SelectLabelNames")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	ctx.Data["Page"] = pager

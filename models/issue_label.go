@@ -350,6 +350,30 @@ func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(db.GetEngine(db.DefaultContext), repoID, labelID)
 }
 
+// GetAccessibleLabelIDs returns a list of label IDs matching one of the given names,
+// when the given user has access to them via repos or orgs.
+func GetAccessibleLabelIDsByName(names []string, userID int64) ([]int64, error) {
+	return getAccessibleLabelIDsByName(db.GetEngine(db.DefaultContext), names, userID)
+}
+
+func getAccessibleLabelIDsByName(e db.Engine, names []string, userID int64) ([]int64, error) {
+	ids := make([]int64, 0, 10)
+	return ids, e.
+		Table("label").
+		Where(builder.And(
+			builder.In("name", names),
+			// NOTE @perf: the following filters are intended to reduce the returned labels to a manageable set on
+			// instances with many repos/users/orgs. For few labels these extra queries will be a net negative.
+			builder.Or(
+				builder.In("org_id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": userID})),
+				builder.In("repo_id", builder.Select("id").From("repository").Where(builder.Eq{"owner_id": userID})),
+				builder.In("repo_id", builder.Select("repo_id").From("access").Where(builder.Eq{"user_id": userID})),
+			),
+		)).
+		Cols("id").
+		Find(&ids)
+}
+
 // GetLabelsInRepoByIDs returns a list of labels by IDs in given repository,
 // it silently ignores label IDs that do not belong to the repository.
 func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
