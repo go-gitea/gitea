@@ -39,7 +39,6 @@ func asString(v interface{}) string {
 	default:
 		panic("current redis cache doesn't support non-string data type")
 	}
-	return ""
 }
 
 // Put puts value (string type) into cache with key and expire time.
