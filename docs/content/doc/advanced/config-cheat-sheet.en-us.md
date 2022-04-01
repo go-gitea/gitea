@@ -513,7 +513,14 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
-- `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security. 
+- `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
+
+## Camo (`camo`)
+
+- `ENABLED`: **false**: Enable media proxy, we support images only at the moment.
+- `SERVER_URL`: **<empty>**: url of camo server, it **is required** if camo is enabled.
+- `HMAC_KEY`: **<empty>**: Provide the HMAC key for encoding urls, it **is required** if camo is enabled.
+- `ALLWAYS`: **false**: Set to true to use camo for https too lese only non https urls are proxyed
 
 ## OpenID (`openid`)
 
@@ -849,7 +856,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository statistics check.
 
-### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
+#### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
 
 - `ENABLED`: **true**: Enable cleanup hook_task job.
 - `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
@@ -857,6 +864,14 @@ Default templates for project boards:
 - `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
 - `OLDER_THAN`: **168h**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
 - `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
+
+#### Cron - Cleanup expired packages (`cron.cleanup_packages`)
+
+- `ENABLED`: **true**: Enable cleanup expired packages job.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `NOTICE_ON_SUCCESS`: **false**: Notify every time this job runs.
+- `SCHEDULE`: **@midnight**: Cron syntax for the job.
+- `OLDER_THAN`: **24h**: Unreferenced package data created more than OLDER_THAN ago is subject to deletion.
 
 #### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
@@ -1069,6 +1084,11 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Federation (`federation`)
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
+
+## Packages (`packages`)
+
+- `ENABLED`: **true**: Enable/Disable package registry capabilities
+- `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 
 ## Mirror (`mirror`)
 

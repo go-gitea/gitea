@@ -1,40 +1,29 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
-
-//go:build race
-// +build race
 
 package git
 
 import (
 	"context"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestRunInDirTimeoutPipelineNoTimeout(t *testing.T) {
-	maxLoops := 1000
-
-	// 'git --version' does not block so it must be finished before the timeout triggered.
+func TestRunWithContextStd(t *testing.T) {
 	cmd := NewCommand(context.Background(), "--version")
-	for i := 0; i < maxLoops; i++ {
-		if err := cmd.RunInDirTimeoutPipeline(-1, "", nil, nil); err != nil {
-			t.Fatal(err)
-		}
-	}
-}
+	stdout, stderr, err := cmd.RunStdString(&RunOpts{})
+	assert.NoError(t, err)
+	assert.Empty(t, stderr)
+	assert.Contains(t, stdout, "git version")
 
-func TestRunInDirTimeoutPipelineAlwaysTimeout(t *testing.T) {
-	maxLoops := 1000
-
-	// 'git hash-object --stdin' blocks on stdin so we can have the timeout triggered.
-	cmd := NewCommand(context.Background(), "hash-object", "--stdin")
-	for i := 0; i < maxLoops; i++ {
-		if err := cmd.RunInDirTimeoutPipeline(1*time.Microsecond, "", nil, nil); err != nil {
-			if err != context.DeadlineExceeded {
-				t.Fatalf("Testing %d/%d: %v", i, maxLoops, err)
-			}
-		}
+	cmd = NewCommand(context.Background(), "--no-such-arg")
+	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
+	if assert.Error(t, err) {
+		assert.Equal(t, stderr, err.Stderr())
+		assert.Contains(t, err.Stderr(), "unknown option:")
+		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
+		assert.Empty(t, stdout)
 	}
 }

@@ -503,6 +503,13 @@ Manage running server operations:
               - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
               - `--send-to value`, `-s value`: Email address(es) to send to
               - `--subject value`, `-S value`: Subject header of sent emails
+  - `processes`: Display Gitea processes and goroutine information
+    - Options:
+      - `--flat`: Show processes as flat table rather than as tree
+      - `--no-system`: Do not show system processes
+      - `--stacktraces`: Show stacktraces for goroutines associated with processes
+      - `--json`: Output as json
+      - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
 
 ### dump-repo
 

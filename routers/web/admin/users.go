@@ -424,6 +424,11 @@ func DeleteUser(ctx *context.Context) {
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
 			})
+		case models.IsErrUserOwnPackages(err):
+			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
+			})
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}

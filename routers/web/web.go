@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -435,6 +436,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
+			m.Get("/stacktrace", admin.GoroutineStacktrace)
 			m.Post("/cancel/{pid}", admin.MonitorCancel)
 			m.Group("/queue/{qid}", func() {
 				m.Get("", admin.Queue)
@@ -470,6 +472,13 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
+
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", admin.Packages)
+				m.Post("/delete", admin.DeletePackageVersion)
+			})
+		}
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -556,6 +565,14 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
+
+	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+				ctx.NotFound("", nil)
+			}
+		}
+	}
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -653,6 +670,26 @@ func RegisterRoutes(m *web.Route) {
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
+
+	m.Group("/{username}/-", func() {
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", user.ListPackages)
+				m.Group("/{type}/{name}", func() {
+					m.Get("", user.RedirectToLastVersion)
+					m.Get("/versions", user.ListPackageVersions)
+					m.Group("/{version}", func() {
+						m.Get("", user.ViewPackageVersion)
+						m.Get("/files/{fileid}", user.DownloadPackageFile)
+						m.Group("/settings", func() {
+							m.Get("", user.PackageSettings)
+							m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+						}, reqPackageAccess(perm.AccessModeWrite))
+					})
+				})
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}
+	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -940,6 +977,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
+		if setting.Packages.Enabled {
+			m.Get("/packages", repo.Packages)
+		}
+
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
@@ -984,6 +1025,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
+			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
 		})
 
 		m.Group("/wiki", func() {

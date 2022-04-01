@@ -5,9 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -18,7 +20,7 @@ func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	ownerMaps, err := loadOrganizationOwners(db.GetEngine(db.DefaultContext), users, orgID)
+	ownerMaps, err := loadOrganizationOwners(db.DefaultContext, users, orgID)
 	if err == nil {
 		for _, owner := range ownerMaps {
 			results[owner.UID] = true
@@ -27,13 +29,13 @@ func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
 	return results
 }
 
-func loadOrganizationOwners(e db.Engine, users user_model.UserList, orgID int64) (map[int64]*TeamUser, error) {
+func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*organization.TeamUser, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
-	ownerTeam, err := getOwnerTeam(e, orgID)
+	ownerTeam, err := organization.GetOwnerTeam(ctx, orgID)
 	if err != nil {
-		if IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
 			return nil, nil
 		}
@@ -41,8 +43,8 @@ func loadOrganizationOwners(e db.Engine, users user_model.UserList, orgID int64)
 	}
 
 	userIDs := users.GetUserIDs()
-	ownerMaps := make(map[int64]*TeamUser)
-	err = e.In("uid", userIDs).
+	ownerMaps := make(map[int64]*organization.TeamUser)
+	err = db.GetEngine(ctx).In("uid", userIDs).
 		And("org_id=?", orgID).
 		And("team_id=?", ownerTeam.ID).
 		Find(&ownerMaps)

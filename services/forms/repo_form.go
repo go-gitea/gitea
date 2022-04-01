@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -238,6 +239,7 @@ type WebhookForm struct {
 	PullRequestReview    bool
 	PullRequestSync      bool
 	Repository           bool
+	Package              bool
 	Active               bool
 	BranchFilter         string `binding:"GlobPattern"`
 }
@@ -499,7 +501,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -507,7 +509,7 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -595,6 +597,31 @@ type MergePullRequestForm struct {
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// SetDefaults if not provided for mergestyle and commit message
+func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+	if f.Do == "" {
+		f.Do = "merge"
+	}
+
+	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
+	if len(f.MergeTitleField) == 0 {
+		switch f.Do {
+		case "merge", "rebase-merge":
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
+		case "squash":
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+		}
+	}
+
+	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
+	if len(f.MergeMessageField) > 0 {
+		f.MergeTitleField += "\n\n" + f.MergeMessageField
+		f.MergeMessageField = ""
+	}
+
+	return
 }
 
 // CodeCommentForm form for adding code comments for PRs

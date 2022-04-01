@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -67,23 +68,23 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
-		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
 		}
 	}
 
-	var teams []*models.Team
+	var teams []*organization.Team
 	if opts.TeamIDs != nil {
 		if !newOwner.IsOrganization() {
 			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
 			return
 		}
 
-		org := convert.ToOrganization(models.OrgFromUser(newOwner))
+		org := convert.ToOrganization(organization.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
-			team, err := models.GetTeamByID(tID)
+			team, err := organization.GetTeamByID(tID)
 			if err != nil {
 				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
 				return

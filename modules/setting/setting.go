@@ -197,6 +197,13 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 
+	Camo = struct {
+		Enabled   bool
+		ServerURL string `ini:"SERVER_URL"`
+		HMACKey   string `ini:"HMAC_KEY"`
+		Allways   bool
+	}{}
+
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
@@ -205,6 +212,7 @@ var (
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		FeedPagingNum         int
+		PackagesPagingNum     int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -257,6 +265,7 @@ var (
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
+		PackagesPagingNum:   20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -1009,6 +1018,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newPictureService()
 
+	newPackages()
+
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
@@ -1019,6 +1030,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
+	} else if err = Cfg.Section("camo").MapTo(&Camo); err != nil {
+		log.Fatal("Failed to map Camo settings: %v", err)
+	}
+
+	if Camo.Enabled {
+		if Camo.ServerURL == "" || Camo.HMACKey == "" {
+			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
+		}
 	}
 
 	u := *appURL

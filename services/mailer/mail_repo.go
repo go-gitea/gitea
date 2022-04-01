@@ -8,7 +8,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,7 +25,7 @@ func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_mode
 	}
 
 	if newOwner.IsOrganization() {
-		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, newOwner.ID)
 		if err != nil {
 			return err
 		}

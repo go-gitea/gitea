@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -218,7 +219,7 @@ func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
-	opts := models.FindOrgOptions{
+	opts := organization.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
@@ -231,12 +232,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := models.FindOrgs(opts)
+	orgs, err := organization.FindOrgs(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := models.CountOrgs(opts)
+	total, err := organization.CountOrgs(opts)
 	if err != nil {
 		ctx.ServerError("CountOrgs", err)
 		return

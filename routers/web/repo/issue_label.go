@@ -9,9 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -27,7 +29,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplLabels)
 }
 
@@ -39,9 +41,9 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if models.IsErrIssueLabelTemplateLoad(err) {
-			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
+	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+		if repo_module.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
@@ -77,7 +79,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		org, err := models.GetOrgByName(ctx.Repo.Owner.LowerName)
+		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
 		if err != nil {
 			ctx.ServerError("GetOrgByName", err)
 			return
@@ -115,7 +117,7 @@ func NewLabel(ctx *context.Context) {
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(l); err != nil {
+	if err := models.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
@@ -189,7 +191,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			// detach if any issues already have label, otherwise attach
 			action = "attach"
 			for _, issue := range issues {
-				if issue.HasLabel(label.ID) {
+				if models.HasIssueLabel(issue.ID, label.ID) {
 					action = "detach"
 					break
 				}
