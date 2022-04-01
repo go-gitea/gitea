@@ -496,25 +496,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	isShowClosed := ctx.FormString("state") == "closed"
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
-	// Filter repos and count issues in them. Count will be used later.
-	// USING NON-FINAL STATE OF opts FOR A QUERY.
-	var issueCountByRepo map[int64]int64
-	if !forceEmpty {
-		issueCountByRepo, err = models.CountIssuesByRepo(opts)
-		if err != nil {
-			ctx.ServerError("CountIssuesByRepo", err)
-			return
-		}
-	}
-
-	// Make sure page number is at least 1. Will be posted to ctx.Data.
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
-	opts.Page = page
-	opts.PageSize = setting.UI.IssuePagingNum
-
 	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
 	var labelIDs []int64
@@ -534,6 +515,25 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	if len(repoIDs) > 0 {
 		opts.RepoIDs = repoIDs
 	}
+
+	// Filter repos and count issues in them. Count will be used later.
+	// NOTE: this needs to run before pagination is applied to opts!
+	var issueCountByRepo map[int64]int64
+	if !forceEmpty {
+		issueCountByRepo, err = models.CountIssuesByRepo(opts)
+		if err != nil {
+			ctx.ServerError("CountIssuesByRepo", err)
+			return
+		}
+	}
+
+	// Make sure page number is at least 1. Will be posted to ctx.Data.
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	opts.Page = page
+	opts.PageSize = setting.UI.IssuePagingNum
 
 	// ------------------------------
 	// Get issues as defined by opts.
