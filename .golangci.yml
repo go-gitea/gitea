@@ -59,7 +59,6 @@ linters-settings:
       - name: receiver-naming
       - name: time-naming
       - name: unexported-return
-      - name: indent-error-flow
       - name: errorf
       - name: duplicated-imports
       - name: modifies-value-receiver
