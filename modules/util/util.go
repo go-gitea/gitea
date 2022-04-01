@@ -6,6 +6,8 @@ package util
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"math/big"
@@ -217,7 +219,7 @@ func AESGCMEncrypt(key, plaintext []byte) ([]byte, error) {
 
 // AESGCMDecrypt (from unknwon/com): decrypts ciphertext with the given key using AES in GCM mode. should be replaced.
 func AESGCMDecrypt(key, ciphertext []byte) ([]byte, error) {
-		block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}

@@ -181,6 +181,8 @@ func FileURLToPath(u *url.URL) (string, error) {
 // HomeDir returns path of '~'(in Linux) on Windows,
 // it returns error when the variable does not exist.
 func HomeDir() (home string, err error) {
+	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
+	// so at the moment we can not use `user.Current().HomeDir`
 	if isOSWindows() {
 		home = os.Getenv("USERPROFILE")
 		if home == "" {
