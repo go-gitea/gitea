@@ -243,7 +243,7 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key).
 		SetDescription("git.Init(get setting)").
-		Run(&git_cmd.Context{
+		Run(&git_cmd.RunOpts{
 			Timeout: -1,
 			Stdout:  &stdout,
 			Stderr:  &stderr,
@@ -263,7 +263,7 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 
 	if err := NewCommand(DefaultContext, "config", "--global", key, defaultValue).
 		SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
-		Run(&git_cmd.Context{
+		Run(&git_cmd.RunOpts{
 			Timeout: -1,
 			Stderr:  &stderr,
 		}); err != nil {
@@ -281,7 +281,7 @@ func checkAndAddConfig(key, value string) error {
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key).
 		SetDescription("git.Init(get setting)").
-		Run(&git_cmd.Context{
+		Run(&git_cmd.RunOpts{
 			Timeout: -1,
 			Stdout:  &stdout,
 			Stderr:  &stderr,
@@ -294,7 +294,7 @@ func checkAndAddConfig(key, value string) error {
 			stderr.Reset()
 			if err := NewCommand(DefaultContext, "config", "--global", "--add", key, value).
 				SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
-				Run(&git_cmd.Context{
+				Run(&git_cmd.RunOpts{
 					Timeout: -1,
 					Stderr:  &stderr,
 				}); err != nil {
@@ -313,7 +313,7 @@ func checkAndRemoveConfig(key, value string) error {
 	stderr := strings.Builder{}
 	if err := NewCommand(DefaultContext, "config", "--get", key, value).
 		SetDescription("git.Init(get setting)").
-		Run(&git_cmd.Context{
+		Run(&git_cmd.RunOpts{
 			Timeout: -1,
 			Stderr:  &stderr,
 		}); err != nil {
@@ -329,7 +329,7 @@ func checkAndRemoveConfig(key, value string) error {
 	stderr.Reset()
 	if err := NewCommand(DefaultContext, "config", "--global", "--unset-all", key, value).
 		SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
-		Run(&git_cmd.Context{
+		Run(&git_cmd.RunOpts{
 			Timeout: -1,
 			Stderr:  &stderr,
 		}); err != nil {

@@ -10,6 +10,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"code.gitea.io/gitea/modules/git/cmd"
