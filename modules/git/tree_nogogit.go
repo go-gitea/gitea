@@ -81,16 +81,17 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, err := NewCommand(t.repo.Ctx, "ls-tree", "-l", t.ID.String()).RunInDirBytes(t.repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "fatal: not a tree object") {
+	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-l", t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	if runErr != nil {
+		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
 				ID: t.ID.String(),
 			}
 		}
-		return nil, err
+		return nil, runErr
 	}
 
+	var err error
 	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
@@ -104,11 +105,13 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
-	stdout, err := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-l", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
-	if err != nil {
-		return nil, err
+
+	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-l", "-r", t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
+	var err error
 	t.entriesRecursive, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesRecursiveParsed = true
