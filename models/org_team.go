@@ -489,15 +489,15 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return err
 	}
 
+	if err := organization.AddOrgUser(team.OrgID, userID); err != nil {
+		return err
+	}
+
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
-
-	if err := AddOrgUser(ctx, team.OrgID, userID); err != nil {
-		return err
-	}
 
 	sess := db.GetEngine(ctx)
 
@@ -546,7 +546,8 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 
 	// watch could be failed, so run it in a goroutine
 	if setting.Service.AutoWatchNewRepos {
-		if err := team.getRepositories(db.GetEngine(db.DefaultContext)); err != nil {
+		// Get team and its repositories.
+		if err := team.GetRepositoriesCtx(db.DefaultContext); err != nil {
 			log.Error("getRepositories failed: %v", err)
 		}
 		go func(repos []*repo_model.Repository) {
