@@ -22,10 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -250,8 +249,13 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
+	res, err := vars.Expand(string(data), match)
+	if err != nil {
+		// here we could just log the error and continue the rendering
+		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
+	}
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
-		[]byte(com.Expand(string(data), match)), 0o644); err != nil {
+		[]byte(res), 0o644); err != nil {
 		return fmt.Errorf("write README.md: %v", err)
 	}
 
