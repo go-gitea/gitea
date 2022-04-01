@@ -331,7 +331,6 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	s, _, err := packages_service.GetPackageFileStream(
 		ctx,
-		ctx.Package.Descriptor.Version,
 		pf,
 	)
 	if err != nil {

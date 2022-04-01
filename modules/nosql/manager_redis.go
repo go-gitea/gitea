@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net/url"
 	"path"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 
@@ -43,7 +44,31 @@ func (m *Manager) CloseRedisClient(connection string) error {
 }
 
 // GetRedisClient gets a redis client for a particular connection
-func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
+func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClient) {
+	// Because we want associate any goroutines created by this call to the main nosqldb context we need to
+	// wrap this in a goroutine labelled with the nosqldb context
+	done := make(chan struct{})
+	var recovered interface{}
+	go func() {
+		defer func() {
+			recovered = recover()
+			if recovered != nil {
+				log.Critical("PANIC during GetRedisClient: %v\nStacktrace: %s", recovered, log.Stack(2))
+			}
+			close(done)
+		}()
+		pprof.SetGoroutineLabels(m.ctx)
+
+		client = m.getRedisClient(connection)
+	}()
+	<-done
+	if recovered != nil {
+		panic(recovered)
+	}
+	return
+}
+
+func (m *Manager) getRedisClient(connection string) redis.UniversalClient {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	client, ok := m.RedisConnections[connection]
