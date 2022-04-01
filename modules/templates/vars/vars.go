@@ -11,40 +11,28 @@ import (
 	"unicode/utf8"
 )
 
-// ErrWrongSyntax represents a wrong syntax with a tempate
+// ErrWrongSyntax represents a wrong syntax with a template
 type ErrWrongSyntax struct {
 	Template string
 }
 
 func (err ErrWrongSyntax) Error() string {
-	return fmt.Sprintf("Wrong syntax found in %s", err.Template)
+	return fmt.Sprintf("wrong syntax found in %s", err.Template)
 }
 
-// IsErrWrongSyntax returns true if the error is ErrWrongSyntax
-func IsErrWrongSyntax(err error) bool {
-	_, ok := err.(ErrWrongSyntax)
-	return ok
-}
-
-// ErrNoMatchedVar represents an error that no matched vars
-type ErrNoMatchedVar struct {
+// ErrVarMissing represents an error that no matched variable
+type ErrVarMissing struct {
 	Template string
 	Var      string
 }
 
-func (err ErrNoMatchedVar) Error() string {
-	return fmt.Sprintf("No matched variable %s found for %s", err.Var, err.Template)
+func (err ErrVarMissing) Error() string {
+	return fmt.Sprintf("the variable %s is missing for %s", err.Var, err.Template)
 }
 
-// IsErrNoMatchedVar returns true if the error is ErrNoMatchedVar
-func IsErrNoMatchedVar(err error) bool {
-	_, ok := err.(ErrNoMatchedVar)
-	return ok
-}
-
-// Expand replaces all variables like {var} to `match`, it always returns the expanded string regardless of errors
+// Expand replaces all variables like {var} by `vars` map, it always returns the expanded string regardless of errors
 // if error occurs, the error part doesn't change and is returned as it is.
-func Expand(template string, match map[string]string) (string, error) {
+func Expand(template string, vars map[string]string) (string, error) {
 	// in the future, if necessary, we can introduce some escape-char,
 	// for example: it will use `#' as a reversed char, templates will use `{#{}` to do escape and output char '{'.
 	var buf strings.Builder
@@ -90,12 +78,12 @@ func Expand(template string, match map[string]string) (string, error) {
 				buf.WriteString(part)
 			} else {
 				// look up in the map
-				if val, ok := match[key]; ok {
+				if val, ok := vars[key]; ok {
 					buf.WriteString(val)
 				} else {
 					// write the non-existing var as it is
 					buf.WriteString(part)
-					err = ErrNoMatchedVar{Template: template, Var: key}
+					err = ErrVarMissing{Template: template, Var: key}
 				}
 			}
 		}
