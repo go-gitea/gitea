@@ -7,14 +7,13 @@ package web
 import (
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -67,35 +66,37 @@ func goGet(ctx *context.Context) {
 	}
 	ctx.RespHeader().Set("Content-Type", "text/html")
 	ctx.Status(http.StatusOK)
-	res, err := vars.Expand(`<!doctype html>
+	res := os.Expand(`<!doctype html>
 <html>
 	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
+		<meta name="go-import" content="${GoGetImport} git ${CloneLink}">
+		<meta name="go-source" content="${GoGetImport} _ ${GoDocDirectory} ${GoDocFile}">
 	</head>
 	<body>
-		go get {Insecure}{GoGetImport}
+		go get ${Insecure}${GoGetImport}
 	</body>
 </html>
-`, map[string]string{
-		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
-		"CloneLink":      repo_model.ComposeHTTPSCloneURL(ownerName, repoName),
-		"GoDocDirectory": prefix + "{/dir}",
-		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-		"Insecure":       insecure,
+`, func(key string) string {
+		switch key {
+		case "GoGetImport":
+			return context.ComposeGoGetImport(ownerName, trimmedRepoName)
+		case "CloneLink":
+			return repo_model.ComposeHTTPSCloneURL(ownerName, repoName)
+		case "GoDocDirectory":
+			return prefix + "{/dir}"
+		case "GoDocFile":
+			return prefix + "{/dir}/{file}#L{line}"
+		case "Insecure":
+			return insecure
+		default:
+			return `<!doctype html>
+			<html>
+				<body>
+					invalid import path
+				</body>
+			</html>
+			`
+		}
 	})
-	if err != nil {
-		log.Error(err.Error())
-		_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-		ctx.Status(400)
-		return
-	}
-
 	_, _ = ctx.Write([]byte(res))
 }

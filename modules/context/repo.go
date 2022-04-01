@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
@@ -308,17 +307,11 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	res, err := vars.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
-		map[string]string{
-			"GoGetImport": ComposeGoGetImport(username, reponame),
-			"CloneLink":   repo_model.ComposeHTTPSCloneURL(username, reponame),
-		})
-	if err != nil {
-		log.Error(err.Error())
-		ctx.PlainText(http.StatusInternalServerError, "expand vars failed")
-		return
-	}
-	ctx.PlainText(http.StatusOK, res)
+
+	ctx.PlainText(http.StatusOK, fmt.Sprintf(`<meta name="go-import" content="%s git %s">`,
+		ComposeGoGetImport(username, reponame),
+		repo_model.ComposeHTTPSCloneURL(username, reponame),
+	))
 }
 
 // RedirectToRepo redirect to a differently-named repository
