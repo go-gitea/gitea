@@ -10,21 +10,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com" //nolint:depguard
 )
 
-func TestAESGCMEncrypt(t *testing.T) {
-	t.Parallel()
-
-	key := make([]byte, aes.BlockSize)
-	_, err := rand.Read(key)
-	assert.NoError(t, err)
-
-	plaintext := []byte("this will be encrypted")
-	_, err = AESGCMEncrypt(key, plaintext)
-	assert.NoError(t, err)
-}
-
-func TestAESGCMDecrypt(t *testing.T) {
+func TestAESGCM(t *testing.T) {
 	t.Parallel()
 
 	key := make([]byte, aes.BlockSize)
@@ -40,4 +29,9 @@ func TestAESGCMDecrypt(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, plaintext, decrypted)
+
+	// at the moment, we make sure the result is the same as the legacy package, this assertion can be removed in next round refactoring
+	legacy, err := com.AESGCMDecrypt(key, ciphertext)
+	assert.NoError(t, err)
+	assert.Equal(t, legacy, plaintext)
 }
