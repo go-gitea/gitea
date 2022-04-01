@@ -30,7 +30,7 @@
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
 					{{if not (containGeneric $.Content .UUID)}}
-					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+					<a target="_blank" rel="noopener noreferrer" class="js-lightbox" href="{{.DownloadURL}}">
 						<img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
 					</a>
 					{{end}}
@@ -38,5 +38,4 @@
 			{{end -}}
 		</div>
 	{{end}}
-
 </div>
