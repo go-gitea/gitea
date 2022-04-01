@@ -156,6 +156,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 	return nil
 }
 
+// HashObject writes the provided content to the object db and returns its hash
 func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error) {
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
