@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com" //nolint:depguard
 )
 
 func TestAESGCM(t *testing.T) {
@@ -29,9 +28,4 @@ func TestAESGCM(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, plaintext, decrypted)
-
-	// at the moment, we make sure the result is the same as the legacy package, this assertion can be removed in next round refactoring
-	legacy, err := com.AESGCMDecrypt(key, ciphertext)
-	assert.NoError(t, err)
-	assert.Equal(t, legacy, plaintext)
 }
