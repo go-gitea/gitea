@@ -6,15 +6,11 @@ package util
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"errors"
 	"math/big"
 	"strconv"
 	"strings"
-
-	"github.com/unknwon/com" //nolint:depguard
 )
 
 // OptionalBool a boolean that can be "null"
@@ -184,63 +180,4 @@ func ToUpperASCII(s string) string {
 		}
 	}
 	return string(b)
-}
-
-// ToStr (from unknwon/com): should be replaced.
-func ToStr(value interface{}, args ...int) string {
-	return com.ToStr(value, args...)
-}
-
-// ToSnakeCase (from unknwon/com): should be replaced.
-func ToSnakeCase(str string) string {
-	return com.ToSnakeCase(str)
-}
-
-// AESGCMEncrypt (from unknwon/com): encrypts plaintext with the given key using AES in GCM mode. should be replaced.
-func AESGCMEncrypt(key, plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
-	}
-
-	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	return append(nonce, ciphertext...), nil
-}
-
-// AESGCMDecrypt (from unknwon/com): decrypts ciphertext with the given key using AES in GCM mode. should be replaced.
-func AESGCMDecrypt(key, ciphertext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	size := gcm.NonceSize()
-	if len(ciphertext)-size <= 0 {
-		return nil, errors.New("ciphertext is empty")
-	}
-
-	nonce := ciphertext[:size]
-	ciphertext = ciphertext[size:]
-
-	plainText, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return plainText, nil
 }
