@@ -54,6 +54,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
+		IsMirror:                        opts.IsMirror,
 	}
 
 	var rollbackRepo *repo_model.Repository
