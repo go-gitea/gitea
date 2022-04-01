@@ -45,11 +45,10 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 
 	// This is safe as force pushes are already forbidden
 	err = git.NewCommand(repo.Ctx, "rev-list", oldCommitID+"..."+newCommitID).
-		RunWithContext(&git.RunContext{
-			Env:     env,
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  stdoutWriter,
+		Run(&git.RunOpts{
+			Env:    env,
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
@@ -93,11 +92,10 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	hash := git.MustIDFromString(sha)
 
 	return git.NewCommand(repo.Ctx, "cat-file", "commit", sha).
-		RunWithContext(&git.RunContext{
-			Env:     env,
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  stdoutWriter,
+		Run(&git.RunOpts{
+			Env:    env,
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				commit, err := git.CommitFromReader(repo, hash, stdoutReader)

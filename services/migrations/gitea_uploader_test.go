@@ -233,7 +233,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	baseRef := "master"
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false))
-	_, err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+baseRef).RunInDir(fromRepo.RepoPath())
+	err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -257,7 +257,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, err = git.NewCommand(git.DefaultContext, "checkout", "-b", headRef).RunInDir(fromRepo.RepoPath())
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -281,7 +281,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, fromRepo.RepoPath(), forkRepo.RepoPath(), []string{}, git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, err = git.NewCommand(git.DefaultContext, "checkout", "-b", forkHeadRef).RunInDir(forkRepo.RepoPath())
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
