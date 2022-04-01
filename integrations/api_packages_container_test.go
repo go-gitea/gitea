@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -20,6 +21,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/setting"
+	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -531,4 +533,19 @@ func TestPackageContainer(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("Cleanup", func(t *testing.T) {
+		for _, image := range images {
+			_, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_model.UploadVersion)
+			assert.NoError(t, err)
+		}
+
+		err := packages_service.Cleanup(nil, time.Duration(0))
+		assert.NoError(t, err)
+
+		for _, image := range images {
+			_, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_model.UploadVersion)
+			assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+		}
+	})
 }
