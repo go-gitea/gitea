@@ -7,11 +7,37 @@ package util
 import (
 	"crypto/aes"
 	"crypto/rand"
+	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com" //nolint:depguard
 )
+
+func TestCopyFile(t *testing.T) {
+	testContent := []byte("hello")
+
+	tmpDir := os.TempDir()
+	now := time.Now()
+	srcFile := fmt.Sprintf("%s/copy-test-%d-src.txt", tmpDir, now.UnixMicro())
+	dstFile := fmt.Sprintf("%s/copy-test-%d-dst.txt", tmpDir, now.UnixMicro())
+
+	_ = os.Remove(srcFile)
+	_ = os.Remove(dstFile)
+	defer func() {
+		_ = os.Remove(srcFile)
+		_ = os.Remove(dstFile)
+	}()
+
+	err := os.WriteFile(srcFile, testContent, 0o777)
+	assert.NoError(t, err)
+	err = CopyFile(srcFile, dstFile)
+	assert.NoError(t, err)
+	dstContent, err := os.ReadFile(dstFile)
+	assert.NoError(t, err)
+	assert.Equal(t, testContent, dstContent)
+}
 
 func TestAESGCM(t *testing.T) {
 	t.Parallel()
@@ -29,9 +55,4 @@ func TestAESGCM(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, plaintext, decrypted)
-
-	// at the moment, we make sure the result is the same as the legacy package, this assertion can be removed in next round refactoring
-	legacy, err := com.AESGCMDecrypt(key, ciphertext)
-	assert.NoError(t, err)
-	assert.Equal(t, legacy, plaintext)
 }
