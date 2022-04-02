@@ -505,7 +505,8 @@ func SubmitInstall(ctx *context.Context) {
 			IsAdmin: true,
 		}
 		overwriteDefault := &user_model.CreateUserOverwriteOptions{
-			IsActive: new(bool),
+			IsRestricted: util.OptionalBoolFalse,
+			IsActive:     util.OptionalBoolTrue,
 		}
 
 		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
