@@ -28,10 +28,6 @@ var (
 	// If everything works fine, the code for git 1.x could be removed in a separate PR before 1.17 frozen.
 	GitVersionRequired = "2.0.0"
 
-	// GitExecutable is the command name of git
-	// Could be updated to an absolute path while initialization
-	GitExecutable = "git"
-
 	// DefaultContext is the default context to run git commands in
 	// will be overwritten by Init with HammerContext
 	DefaultContext = context.Background()
@@ -82,19 +78,9 @@ func LoadGitVersion() error {
 	return err
 }
 
-// SetExecutablePath changes the path of git executable and checks the file permission and version.
-func SetExecutablePath(path string) error {
-	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
-	if path != "" {
-		GitExecutable = path
-	}
-	absPath, err := exec.LookPath(GitExecutable)
-	if err != nil {
-		return fmt.Errorf("git not found: %w", err)
-	}
-	GitExecutable = absPath
-
-	err = LoadGitVersion()
+// checkGitVersion checks the file permission and version.
+func checkGitVersion() error {
+	err := LoadGitVersion()
 	if err != nil {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
@@ -136,7 +122,7 @@ func VersionInfo() string {
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
-	if err := SetExecutablePath(setting.Git.Path); err != nil {
+	if err := checkGitVersion(); err != nil {
 		return err
 	}
 

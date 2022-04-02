@@ -33,7 +33,7 @@ type WriteCloserError interface {
 func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := NewCommand(ctx, "rev-parse").
-		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
+		SetDescription(fmt.Sprintf("rev-parse [repo_path: %s]", repoPath)).
 		Run(&RunOpts{
 			Dir:    repoPath,
 			Stderr: &stderr,
@@ -69,7 +69,7 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch-check").
-			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			SetDescription(fmt.Sprintf("cat-file --batch-check [repo_path: %s] (%s:%d)", repoPath, filename, line)).
 			Run(&RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,
@@ -119,7 +119,7 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch").
-			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			SetDescription(fmt.Sprintf("cat-file --batch [repo_path: %s] (%s:%d)", repoPath, filename, line)).
 			Run(&RunOpts{
 				Dir:    repoPath,
 				Stdin:  batchStdinReader,

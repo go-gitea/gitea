@@ -14,6 +14,7 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -114,7 +115,7 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	return createBlameReader(ctx, repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
+	return createBlameReader(ctx, repoPath, setting.Git.Path, "blame", commitID, "--porcelain", "--", file)
 }
 
 func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {

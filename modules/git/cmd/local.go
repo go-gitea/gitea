@@ -90,6 +90,7 @@ func (c *LocalCommand) Run(opts *RunOpts) error {
 		}
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.args[0], strings.Join(args, " "), opts.Dir)
 	}
+	desc = fmt.Sprintf("[%s] %s", c.service.GitExecutable, desc)
 
 	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
 	defer finished()
@@ -135,6 +136,10 @@ func (c *LocalCommand) Run(opts *RunOpts) error {
 	return ctx.Err()
 }
 
+// defaultGitExecutable is the command name of git
+// Could be updated to an absolute path while initialization
+const defaultGitExecutable = "git"
+
 // LocalService represents a command service to create local git commands
 type LocalService struct {
 	GitExecutable  string // git binary location
@@ -146,8 +151,17 @@ var _ Service = &LocalService{}
 
 // NewLocalService returns a local service
 func NewLocalService(gitExecutable, repoRootPath string, defaultTimeout time.Duration) *LocalService {
+	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
+	if gitExecutable == "" {
+		gitExecutable = defaultGitExecutable
+	}
+	absPath, err := exec.LookPath(gitExecutable)
+	if err != nil {
+		panic(fmt.Sprintf("Git not found: %v", err))
+	}
+
 	return &LocalService{
-		GitExecutable:  gitExecutable,
+		GitExecutable:  absPath,
 		RepoRootPath:   repoRootPath,
 		defaultTimeout: defaultTimeout,
 	}
