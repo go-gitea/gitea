@@ -68,9 +68,9 @@ func TestSignupEmail(t *testing.T) {
 		wantStatus int
 		wantMsg    string
 	}{
-		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
-		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
-		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
+		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
 		{"exampleUser@example.com", http.StatusSeeOther, ""},
 	}
 
