@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	cwebhook "code.gitea.io/gitea/modules/webhook"
 )
 
 const (
@@ -25,6 +26,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 
 	ctx.Data["PageIsAdminSystemHooks"] = true
 	ctx.Data["PageIsAdminDefaultHooks"] = true
+	ctx.Data["CustomWebhooks"] = cwebhook.Webhooks
 
 	def := make(map[string]interface{}, len(ctx.Data))
 	sys := make(map[string]interface{}, len(ctx.Data))

@@ -163,6 +163,7 @@ const (
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"
 	PACKAGIST  HookType = "packagist"
+	CUSTOM     HookType = "custom"
 )
 
 // HookStatus is the status of a web hook
@@ -177,9 +178,10 @@ const (
 
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
-	OrgID           int64 `xorm:"INDEX"`
+	ID              int64  `xorm:"pk autoincr"`
+	CustomID        string `xorm:"VARCHAR(20) 'custom_id'"`
+	RepoID          int64  `xorm:"INDEX"` // An ID of 0 indicates either a default or system webhook
+	OrgID           int64  `xorm:"INDEX"`
 	IsSystemWebhook bool
 	URL             string `xorm:"url TEXT"`
 	HTTPMethod      string `xorm:"http_method"`

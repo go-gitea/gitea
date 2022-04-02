@@ -1,0 +1,22 @@
+{{if .CustomHook}}
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" .CustomHook.URL .CustomHook.Label | Str2html}}</p>
+	<form class="ui form" action="{{.BaseLink}}/{{.CustomHook.ID}}/{{or .Webhook.ID "new"}}" method="post">
+		{{template "base/disable_form_autofill"}}
+		{{.CsrfTokenHtml}}
+		<div class="field required {{if .Err_DisplayName}}error{{end}}">
+			<label for="display_name">{{.i18n.Tr "repo.settings.webhook.display_name"}}</label>
+			<input id="display_name" name="display_name" value="{{.Webhook.URL}}" required>
+		</div>
+		{{range .CustomHook.Form}}
+		<div class="field {{if .Required}}required{{end}} {{if ne (index $ (printf "Err_%s" .ID)) nil}}error{{end}}">
+			<label for="{{.ID}}">{{.Label}}</label>
+			<input id="{{.ID}}" name="{{.ID}}" type="{{.InputType}}" value="{{if eq .InputType "checkbox"}}true{{else}}{{index $ (printf "CustomHook_%s" .ID)}}{{end}}" {{if and (eq .InputType "checkbox") (eq (printf "%v" (index $ (printf "CustomHook_%s" .ID))) "true")}}checked{{end}} {{if .Default}}placeholder="{{.Default}}" {{end}} {{if .Required}}required{{end}}>
+		</div>
+		{{end}}
+		<div class="field {{if .Err_Secret}}error{{end}}">
+			<label for="secret">{{.i18n.Tr "repo.settings.secret"}}</label>
+			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
+		</div>
+		{{template "repo/settings/webhook/settings" .}}
+	</form>
+{{end}}

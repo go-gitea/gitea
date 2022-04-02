@@ -37,6 +37,11 @@
 				<a class="item" href="{{.BaseLinkNew}}/packagist/new">
 					<img width="20" height="20" src="{{AssetUrlPrefix}}/img/packagist.png">{{.i18n.Tr "repo.settings.web_hook_name_packagist"}}
 				</a>
+				{{range .CustomWebhooks}}
+					<a class="item" href="{{$.BaseLinkNew}}/{{.ID}}/new">
+						<img width="20" height="20" src="{{$.BaseLinkNew}}/{{.ID}}/image">{{.Label}}
+					</a>
+				{{end}}
 			</div>
 		</div>
 	</div>

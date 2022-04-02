@@ -8,32 +8,35 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
 
-var Webhooks map[string]*Webhook
+var Webhooks = make(map[string]*Webhook)
 
 // Webhook is a custom webhook
 type Webhook struct {
-	ID   string   `yaml:"id"`
-	HTTP string   `yaml:"http"`
-	Exec []string `yaml:"exec"`
-	Form []Form   `yaml:"form"`
-	Path string   `yaml:"-"`
+	ID    string   `yaml:"id"`
+	Label string   `yaml:"label"`
+	URL   string   `yaml:"url"`
+	HTTP  string   `yaml:"http"`
+	Exec  []string `yaml:"exec"`
+	Form  []Form   `yaml:"form"`
+	Path  string   `yaml:"-"`
 }
 
 // Image returns a custom webhook image if it exists, else the default image
-func (w *Webhook) Image() ([]byte, error) {
+// Image needs to be CLOSED
+func (w *Webhook) Image() (io.ReadCloser, error) {
 	img, err := os.Open(filepath.Join(w.Path, "image.png"))
 	if err != nil {
 		return nil, fmt.Errorf("could not open custom webhook image: %w", err)
 	}
-	defer img.Close()
 
-	return io.ReadAll(img)
+	return img, nil
 }
 
 // Form is a webhook form
@@ -43,6 +46,22 @@ type Form struct {
 	Type     string `yaml:"type"`
 	Required bool   `yaml:"required"`
 	Default  string `yaml:"default"`
+}
+
+// InputType returns the HTML input type of a Form.Type
+func (f Form) InputType() string {
+	switch f.Type {
+	case "text":
+		return "text"
+	case "secret":
+		return "password"
+	case "number":
+		return "number"
+	case "bool":
+		return "checkbox"
+	default:
+		return "text"
+	}
 }
 
 func (w *Webhook) validate() error {
@@ -94,6 +113,9 @@ func Parse(r io.Reader) (*Webhook, error) {
 func Init(path string) error {
 	dir, err := os.ReadDir(path)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
 		return fmt.Errorf("could not read dir %q: %w", path, err)
 	}
 

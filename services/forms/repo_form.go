@@ -8,6 +8,7 @@ package forms
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/go-chi/binding"
@@ -411,6 +413,56 @@ type NewPackagistHookForm struct {
 // Validate validates the fields
 func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// NewCustomWebhookForm form for creating custom web hook
+type NewCustomWebhookForm struct {
+	DisplayName string `binding:"Required"`
+	Form        map[string]interface{}
+	Secret      string
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewCustomWebhookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	hookType := ctx.Params("type")
+	hook, ok := webhook.Webhooks[hookType]
+	if !ok {
+		return errs
+	}
+	f.Form = make(map[string]interface{})
+	for _, form := range hook.Form {
+		value := ctx.FormString(form.ID)
+		if form.Required && value == "" {
+			ctx.Data["Err_"+form.ID] = true
+			ctx.Data["HasError"] = true
+			ctx.Data["ErrorMsg"] = form.Label + ctx.Tr("form.require_error")
+			errs.Add([]string{form.ID}, binding.ERR_REQUIRED, "Required")
+			continue
+		}
+		if value == "" && form.Default != "" {
+			value = form.Default
+		}
+		switch form.Type {
+		case "number":
+			n, _ := strconv.Atoi(value)
+			f.Form[form.ID] = n
+			ctx.Data["CustomHook_"+form.ID] = n
+		case "bool":
+			b, _ := strconv.ParseBool(value)
+			f.Form[form.ID] = b
+			if b {
+				ctx.Data["CustomHook_"+form.ID] = b
+			}
+		case "text", "secret":
+			fallthrough
+		default:
+			f.Form[form.ID] = value
+			ctx.Data["CustomHook_"+form.ID] = value
+		}
+	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 

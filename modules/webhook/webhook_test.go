@@ -2,9 +2,11 @@ package webhook
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/testdata"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"code.gitea.io/gitea/testdata"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWebhook(t *testing.T) {

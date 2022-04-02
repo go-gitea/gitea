@@ -25,6 +25,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	cwebhook "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/forms"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
@@ -50,6 +51,7 @@ func Webhooks(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Webhooks"] = ws
+	ctx.Data["CustomWebhooks"] = cwebhook.Webhooks
 
 	ctx.HTML(http.StatusOK, tplHooks)
 }
@@ -108,19 +110,21 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 	return nil, errors.New("unable to set OrgRepo context")
 }
 
-func checkHookType(ctx *context.Context) string {
+func checkHookType(ctx *context.Context) (string, bool) {
 	hookType := strings.ToLower(ctx.Params(":type"))
-	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) {
+	_, isCustom := cwebhook.Webhooks[hookType]
+	if !util.IsStringInSlice(hookType, setting.Webhook.Types, true) && !isCustom {
 		ctx.NotFound("checkHookType", nil)
-		return ""
+		return "", false
 	}
-	return hookType
+	return hookType, isCustom
 }
 
 // WebhooksNew render creating webhook page
 func WebhooksNew(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["CustomWebhooks"] = cwebhook.Webhooks
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -139,7 +143,7 @@ func WebhooksNew(ctx *context.Context) {
 		ctx.Data["PageIsSettingsHooksNew"] = true
 	}
 
-	hookType := checkHookType(ctx)
+	hookType, isCustom := checkHookType(ctx)
 	ctx.Data["HookType"] = hookType
 	if ctx.Written() {
 		return
@@ -148,6 +152,9 @@ func WebhooksNew(ctx *context.Context) {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
 		}
+	}
+	if isCustom {
+		ctx.Data["CustomHook"] = cwebhook.Webhooks[hookType]
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
@@ -771,6 +778,13 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
 	case webhook.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
+	case webhook.CUSTOM:
+		ctx.Data["CustomHook"] = cwebhook.Webhooks[w.CustomID]
+		hook := webhook_service.GetCustomHook(w)
+		ctx.Data["Webhook"] = hook
+		for key, val := range hook.Form {
+			ctx.Data["CustomHook_"+key] = val
+		}
 	}
 
 	ctx.Data["History"], err = w.History(1)
