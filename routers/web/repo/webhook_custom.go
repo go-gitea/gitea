@@ -32,6 +32,7 @@ func CustomHooksNewPost(ctx *context.Context) {
 		ctx.ServerError("getOrgRepoCtx", err)
 		return
 	}
+	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	hookType, isCustom := checkHookType(ctx)
 	if !isCustom {

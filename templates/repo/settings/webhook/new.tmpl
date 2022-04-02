@@ -29,8 +29,8 @@
 					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/wechatwork.png">
         {{else if eq .HookType "packagist"}}
 					<img width="26" height="26" src="{{AssetUrlPrefix}}/img/packagist.png">
-        {{else}}
-					<img width="26" height="26" src="./image">{{.Label}}
+        {{else if eq .HookType "custom"}}
+					<img width="26" height="26" src="{{$.BaseLink}}/{{.CustomHook.ID}}/image">
 				{{end}}
 			</div>
 		</h4>
