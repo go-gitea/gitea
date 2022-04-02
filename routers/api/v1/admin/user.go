@@ -111,6 +111,11 @@ func CreateUser(ctx *context.APIContext) {
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive: util.OptionalBoolTrue,
 	}
+
+	if form.Restricted != nil {
+		overwriteDefault.IsRestricted = util.OptionalBoolOf(*form.Restricted)
+	}
+
 	if form.Visibility != "" {
 		visibility := api.VisibilityModes[form.Visibility]
 		overwriteDefault.Visibility = &visibility
