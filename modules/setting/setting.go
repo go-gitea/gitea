@@ -768,7 +768,11 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	appDataPath := sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	AppDataPath, err = filepath.Abs(appDataPath)
+	if err != nil {
+		log.Fatal("Invalid APP_DATA_PATH '%s': %s", appDataPath, err)
+	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
