@@ -115,6 +115,10 @@ var (
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
 			},
+			cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
+			},
 		},
 	}
 
@@ -560,6 +564,12 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
+	restricted := util.OptionalBoolNone
+
+	if c.IsSet("restricted") {
+		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+	}
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
@@ -569,7 +579,8 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive:     util.OptionalBoolTrue,
+		IsRestricted: restricted,
 	}
 
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
