@@ -109,7 +109,7 @@ func TestPackageCleanup(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	time.Sleep(time.Second)
-	
+
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, pbs)
