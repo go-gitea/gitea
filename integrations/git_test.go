@@ -161,9 +161,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			return
 		}
 		prefix := "lfs-data-file-"
-		_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunInDir(dstPath)
+		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -293,20 +293,20 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 }
 
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunInDir(repoPath) // Push
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
 	assert.NoError(t, err)
 	return name
 }
@@ -765,7 +765,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -786,7 +786,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -839,7 +839,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -851,7 +851,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}

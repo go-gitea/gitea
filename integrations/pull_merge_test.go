@@ -269,25 +269,24 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*repo_model.Repository)
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunInDir(path)
+		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").Run(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     path,
-			Stdin:   stdin,
-			Stdout:  &stdout,
+		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").Run(&git.RunOpts{
+			Dir:    path,
+			Stdin:  stdin,
+			Stdout: &stdout,
 		})
 
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
+		_, _, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		treeSha, err := git.NewCommand(git.DefaultContext, "write-tree").RunInDir(path)
+		treeSha, _, err := git.NewCommand(git.DefaultContext, "write-tree").RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -308,17 +307,16 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout.Reset()
 		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).
-			RunWithContext(&git.RunContext{
-				Env:     env,
-				Timeout: -1,
-				Dir:     path,
-				Stdin:   messageBytes,
-				Stdout:  &stdout,
+			Run(&git.RunOpts{
+				Env:    env,
+				Dir:    path,
+				Stdin:  messageBytes,
+				Stdout: &stdout,
 			})
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunInDir(path)
+		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")

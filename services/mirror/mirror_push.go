@@ -35,13 +35,13 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
 		}
-		if _, err := cmd.RunInDir(path); err != nil {
+		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
 		return nil
@@ -67,12 +67,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", m.RemoteName)
 
-	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
+	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, err := cmd.RunInDir(m.Repo.WikiPath()); err != nil {
+		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}

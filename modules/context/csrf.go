@@ -19,13 +19,16 @@
 package context
 
 import (
+	"encoding/base32"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/unknwon/com"
 )
 
 // CSRF represents a CSRF service and is used to get the current token and validate a suspect token.
@@ -162,7 +165,12 @@ func prepareOptions(options []CsrfOptions) CsrfOptions {
 
 	// Defaults.
 	if len(opt.Secret) == 0 {
-		opt.Secret = string(com.RandomCreateBytes(10))
+		randBytes, err := util.CryptoRandomBytes(8)
+		if err != nil {
+			// this panic can be handled by the recover() in http handlers
+			panic(fmt.Errorf("failed to generate random bytes: %w", err))
+		}
+		opt.Secret = base32.StdEncoding.EncodeToString(randBytes)
 	}
 	if len(opt.Header) == 0 {
 		opt.Header = "X-CSRFToken"
@@ -209,9 +217,16 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 	}
 
 	x.ID = "0"
-	uid := ctx.Session.Get(opt.SessionKey)
-	if uid != nil {
-		x.ID = com.ToStr(uid)
+	uidAny := ctx.Session.Get(opt.SessionKey)
+	if uidAny != nil {
+		switch uidVal := uidAny.(type) {
+		case string:
+			x.ID = uidVal
+		case int64:
+			x.ID = strconv.FormatInt(uidVal, 10)
+		default:
+			log.Error("invalid uid type in session: %T", uidAny)
+		}
 	}
 
 	needsNew := false

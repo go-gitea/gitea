@@ -250,7 +250,7 @@ func GetUserRepoPermissionCtx(ctx context.Context, repo *repo_model.Repository, 
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			teamMode := team.UnitAccessMode(ctx, u.Type)
+			teamMode := team.UnitAccessModeCtx(ctx, u.Type)
 			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
 				if m < teamMode {
