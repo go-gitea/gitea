@@ -198,7 +198,7 @@ func DeletePackagesIfUnreferenced(ctx context.Context) error {
 	_, err := db.GetEngine(ctx).
 		// double select workaround for MySQL
 		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
-		Where(builder.In("package.id", builder.Select("id").From(in, "temp")).
+		Where(builder.In("package.id", builder.Select("id").From(in, "temp"))).
 		Delete(&Package{})
 
 	return err
