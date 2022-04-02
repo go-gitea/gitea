@@ -192,11 +192,13 @@ func DeletePackagesIfUnreferenced(ctx context.Context) error {
 	in := builder.
 		Select("package.id").
 		From("package").
-		Join("LEFT", "package_version", "package_version.package_id = package.id").
+		LeftJoin("package_version", "package_version.package_id = package.id").
 		Where(builder.Expr("package_version.id IS NULL"))
 
 	_, err := db.GetEngine(ctx).
-		Where(builder.In("package.id", in)).
+		// double select workaround for MySQL
+		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
+		Where(builder.In("package.id", builder.Select("id").From(in, "temp")).
 		Delete(&Package{})
 
 	return err
