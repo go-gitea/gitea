@@ -144,11 +144,6 @@ func Init(ctx context.Context) error {
 		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
-	// Save current git version on init to gitVersion otherwise it would require an RWMutex
-	if err := LoadGitVersion(); err != nil {
-		return err
-	}
-
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
 	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
 		if err := checkAndSetConfig(configKey, defaultValue, false); err != nil {
@@ -230,9 +225,8 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 	if err := NewCommand(DefaultContext, "config", "--get", key).
 		SetDescription("git.Init(get setting)").
 		Run(&git_cmd.RunOpts{
-			Timeout: -1,
-			Stdout:  &stdout,
-			Stderr:  &stderr,
+			Stdout: &stdout,
+			Stderr: &stderr,
 		}); err != nil {
 		eerr, ok := err.(*exec.ExitError)
 		if !ok || eerr.ExitCode() != 1 {
@@ -250,8 +244,7 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 	if err := NewCommand(DefaultContext, "config", "--global", key, defaultValue).
 		SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
 		Run(&git_cmd.RunOpts{
-			Timeout: -1,
-			Stderr:  &stderr,
+			Stderr: &stderr,
 		}); err != nil {
 		return fmt.Errorf("failed to set git %s(%s): %s", key, err, stderr.String())
 	}
@@ -268,9 +261,8 @@ func checkAndAddConfig(key, value string) error {
 	if err := NewCommand(DefaultContext, "config", "--get", key).
 		SetDescription("git.Init(get setting)").
 		Run(&git_cmd.RunOpts{
-			Timeout: -1,
-			Stdout:  &stdout,
-			Stderr:  &stderr,
+			Stdout: &stdout,
+			Stderr: &stderr,
 		}); err != nil {
 		eerr, ok := err.(*exec.ExitError)
 		if !ok || eerr.ExitCode() != 1 {
@@ -281,8 +273,7 @@ func checkAndAddConfig(key, value string) error {
 			if err := NewCommand(DefaultContext, "config", "--global", "--add", key, value).
 				SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
 				Run(&git_cmd.RunOpts{
-					Timeout: -1,
-					Stderr:  &stderr,
+					Stderr: &stderr,
 				}); err != nil {
 				return fmt.Errorf("failed to set git %s(%s): %s", key, err, stderr.String())
 			}
@@ -300,8 +291,7 @@ func checkAndRemoveConfig(key, value string) error {
 	if err := NewCommand(DefaultContext, "config", "--get", key, value).
 		SetDescription("git.Init(get setting)").
 		Run(&git_cmd.RunOpts{
-			Timeout: -1,
-			Stderr:  &stderr,
+			Stderr: &stderr,
 		}); err != nil {
 		eerr, ok := err.(*exec.ExitError)
 		if !ok || eerr.ExitCode() != 1 {
@@ -316,8 +306,7 @@ func checkAndRemoveConfig(key, value string) error {
 	if err := NewCommand(DefaultContext, "config", "--global", "--unset-all", key, value).
 		SetDescription(fmt.Sprintf("git.Init(set %s)", key)).
 		Run(&git_cmd.RunOpts{
-			Timeout: -1,
-			Stderr:  &stderr,
+			Stderr: &stderr,
 		}); err != nil {
 		return fmt.Errorf("failed to set git %s(%s): %s", key, err, stderr.String())
 	}
