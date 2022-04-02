@@ -81,8 +81,11 @@ func InitLocales() {
 		}
 	}
 	if len(setting.Langs) != 0 {
-		log.Info("Use the first language (%s) in LANGS setting option as default language", setting.Langs[0])
-		i18n.DefaultLocales.SetDefaultLang(setting.Langs[0])
+		defaultLangName := setting.Langs[0]
+		if defaultLangName != "en-US" {
+			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+		}
+		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 	}
 
 	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
