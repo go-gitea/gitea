@@ -336,7 +336,7 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 	return packages_model.DeleteFileByID(ctx, pf.ID)
 }
 
-// Cleanup removes old unreferenced package blobs
+// Cleanup removes expired package data
 func Cleanup(unused context.Context, olderThan time.Duration) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
