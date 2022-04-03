@@ -17,7 +17,6 @@ import (
 
 var (
 	ErrLocaleAlreadyExist = errors.New("lang already exists")
-	ErrLocaleAlreadyAdded = errors.New("lang was already added to another store")
 
 	DefaultLocales = NewLocaleStore()
 )
@@ -41,31 +40,21 @@ func NewLocaleStore() *LocaleStore {
 	return &LocaleStore{localeMap: make(map[string]*locale)}
 }
 
-// AddLocale adds locale into the store, and the locale is attached to the store, it can not be added to another one
-func (ls *LocaleStore) AddLocale(lc *locale) error {
-	if _, ok := ls.localeMap[lc.langName]; ok {
-		return ErrLocaleAlreadyExist
-	}
-
-	if lc.store != nil {
-		return ErrLocaleAlreadyAdded
-	}
-	lc.store = ls
-	ls.langNames = append(ls.langNames, lc.langName)
-	ls.langDescs = append(ls.langDescs, lc.langDesc)
-	ls.localeMap[lc.langName] = lc
-	return nil
-}
-
 // AddLocaleByIni adds locale by ini into the store
 func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile interface{}, otherLocaleFiles ...interface{}) error {
+	if _, ok := ls.localeMap[langName]; ok {
+		return ErrLocaleAlreadyExist
+	}
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
 	}, localeFile, otherLocaleFiles...)
 	if err == nil {
 		iniFile.BlockMode = false
-		return ls.AddLocale(&locale{langName: langName, langDesc: langDesc, messages: iniFile})
+		lc := &locale{store: ls, langName: langName, langDesc: langDesc, messages: iniFile}
+		ls.langNames = append(ls.langNames, lc.langName)
+		ls.langDescs = append(ls.langDescs, lc.langDesc)
+		ls.localeMap[lc.langName] = lc
 	}
 	return err
 }
