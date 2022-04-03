@@ -24,10 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle) *httptest.ResponseRecorder {
