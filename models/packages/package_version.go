@@ -18,7 +18,7 @@ import (
 )
 
 // ErrDuplicatePackageVersion indicates a duplicated package version error
-var ErrDuplicatePackageVersion = errors.New("Package version does exist already")
+var ErrDuplicatePackageVersion = errors.New("Package version already exists")
 
 func init() {
 	db.RegisterModel(new(PackageVersion))
