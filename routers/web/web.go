@@ -289,8 +289,13 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
+		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
-	m.Get("/issues", reqSignIn, user.Issues)
+	m.Group("/issues", func() {
+		m.Get("", user.Issues)
+		m.Get("/search", repo.SearchIssues)
+	}, reqSignIn)
+
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
@@ -421,6 +426,8 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
 		m.Get("/task/{task}", user.TaskStatus)
+		m.Get("/stopwatches", user.GetStopwatches, reqSignIn)
+		m.Get("/search", user.Search, ignExploreSignIn)
 	})
 	// ***** END: User *****
 
@@ -605,6 +612,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(forms.CreateTeamForm{}), org.NewTeamPost)
+			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", bindIgnErr(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -669,6 +677,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/{repoid}").Get(repo.Fork).
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
+		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
 	m.Group("/{username}/-", func() {
@@ -811,11 +820,13 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
+			m.Get("/search", repo.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
@@ -1195,6 +1206,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
