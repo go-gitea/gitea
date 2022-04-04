@@ -191,17 +191,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// RequireCSRF requires a validated a CSRF token
-func (ctx *APIContext) RequireCSRF() {
-	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
-	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
-	if len(headerToken) > 0 || len(formValueToken) > 0 {
-		Validate(ctx.Context, ctx.csrf)
-	} else {
-		ctx.Context.Error(http.StatusUnauthorized, "Missing CSRF token.")
-	}
-}
-
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
