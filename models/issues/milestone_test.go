@@ -179,17 +179,6 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 	assert.EqualValues(t, 0, count)
 }
 
-func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	miles := MilestoneList{
-		unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone),
-	}
-
-	assert.NoError(t, miles.LoadTotalTrackedTimes())
-
-	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
-}
-
 func TestCountMilestonesByRepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestonesCount := func(repoID int64) (int, int) {
@@ -253,15 +242,6 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	test("soonestduedate", func(milestone *Milestone) int {
 		return int(milestone.DeadlineUnix)
 	})
-}
-
-func TestLoadTotalTrackedTime(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-
-	assert.NoError(t, milestone.LoadTotalTrackedTime())
-
-	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
 
 func TestGetMilestonesStats(t *testing.T) {
