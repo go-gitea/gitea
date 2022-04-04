@@ -8,7 +8,6 @@ package context
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
-
-	"gitea.com/go-chi/session"
 )
 
 // APIContext is a specific context for API service
@@ -242,17 +239,14 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
-	csrfOpts := getCsrfOpts()
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(w, req)
 			ctx := APIContext{
 				Context: &Context{
-					Resp:    NewResponse(w),
-					Data:    map[string]interface{}{},
-					Locale:  locale,
-					Session: session.GetSession(req),
+					Resp:   NewResponse(w),
+					Data:   map[string]interface{}{},
+					Locale: locale,
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},
@@ -262,7 +256,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
-			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -274,7 +267,6 @@ func APIContexter() func(http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)

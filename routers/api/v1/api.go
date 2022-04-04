@@ -594,10 +594,8 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
+func Routes() *web.Route {
 	m := web.NewRoute()
-
-	m.Use(sessioner)
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
