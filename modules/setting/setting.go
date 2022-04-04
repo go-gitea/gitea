@@ -786,9 +786,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	case "login":
 		LandingPageURL = LandingPageLogin
 	case "custom":
-		customUrl := sec.Key("LANDING_PAGE_CUSTOM").MustString("")
-		if customUrl != "" {
-			LandingPageURL = LandingPage(customUrl)
+		customURL := sec.Key("LANDING_PAGE_CUSTOM").MustString("")
+		if customURL != "" {
+			LandingPageURL = LandingPage(customURL)
 		}
 	}
 
