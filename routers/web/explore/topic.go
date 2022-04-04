@@ -17,7 +17,7 @@ import (
 // TopicSearch search for creating topic
 func TopicSearch(ctx *context.Context) {
 	opts := &repo_model.FindTopicOptions{
-		Keyword:     ctx.FormString("q"),
+		Keyword: ctx.FormString("q"),
 		ListOptions: db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
