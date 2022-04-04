@@ -15,7 +15,6 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
@@ -244,8 +243,8 @@ type Comment struct {
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
-	Attachments []*repo_model.Attachment `xorm:"-"`
-	Reactions   issues.ReactionList      `xorm:"-"`
+	Attachments []*repo_model.Attachment  `xorm:"-"`
+	Reactions   issues_model.ReactionList `xorm:"-"`
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
@@ -636,7 +635,7 @@ func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, _, err = issues.FindReactions(ctx, issues.FindReactionsOptions{
+	c.Reactions, _, err = issues_model.FindReactions(ctx, issues_model.FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})
@@ -1161,7 +1160,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if _, err := e.Delete(&issues.ContentHistory{
+	if _, err := e.Delete(&issues_model.ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
@@ -1180,7 +1179,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	return issues.DeleteReaction(ctx, &issues.ReactionOptions{CommentID: comment.ID})
+	return issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{CommentID: comment.ID})
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS

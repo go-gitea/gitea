@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -80,5 +81,25 @@ func TestUpdateMilestone(t *testing.T) {
 	assert.NoError(t, issues_model.UpdateMilestone(milestone, milestone.IsClosed))
 	milestone = unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone)
 	assert.EqualValues(t, "newMilestoneName", milestone.Name)
+	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
+}
+
+func TestUpdateMilestoneCounters(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
+		"is_closed=0").(*Issue)
+
+	issue.IsClosed = true
+	issue.ClosedUnix = timeutil.TimeStampNow()
+	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	assert.NoError(t, err)
+	assert.NoError(t, issues_model.UpdateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
+	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
+
+	issue.IsClosed = false
+	issue.ClosedUnix = 0
+	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	assert.NoError(t, err)
+	assert.NoError(t, issues_model.UpdateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
 	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
