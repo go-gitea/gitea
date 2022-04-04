@@ -173,7 +173,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch unit.Type(db.Cell2Int64(val)) {
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
 			r.Config = new(UnitConfig)
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
