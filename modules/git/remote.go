@@ -7,7 +7,7 @@ package git
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/git/url"
+	giturl "code.gitea.io/gitea/modules/git/url"
 )
 
 // GetRemoteURL returns remote url of git repository in the repoPath with special remote name
@@ -35,10 +35,10 @@ func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (string, err
 }
 
 // GetRemoteAddress returns the url of a specific remote of the repository.
-func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.URL, error) {
+func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*giturl.GitURL, error) {
 	result, err := GetRemoteURL(ctx, repoPath, remoteName)
 	if err != nil {
 		return nil, err
 	}
-	return url.Parse(result)
+	return giturl.Parse(result)
 }
