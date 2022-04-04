@@ -117,6 +117,9 @@ type HookTask struct {
 	RequestInfo     *HookRequest  `xorm:"-"`
 	ResponseContent string        `xorm:"TEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
+
+	// Used for Auth Headers.
+	BearerToken string
 }
 
 func init() {
