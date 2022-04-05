@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-// IsIPPrivate for net.IP.IsPrivate. TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
+// IsIPPrivate for net.IP.IsPrivate.
 func IsIPPrivate(ip net.IP) bool {
 	if ip4 := ip.To4(); ip4 != nil {
 		return ip4[0] == 10 ||
