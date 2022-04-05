@@ -1,0 +1,33 @@
+<div class="ui container">
+	<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{.i18n.Tr "packages.versions"}}</strong></p>
+	<form class="ui form ignore-dirty">
+		<div class="ui fluid action input">
+			<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+			{{if eq .PackageDescriptor.Package.Type "container"}}
+			<select class="ui dropdown" name="tagged">
+				{{$isTagged := or (eq .Tagged "") (eq .Tagged "tagged")}}
+				<option value="tagged" {{if $isTagged}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.tagged"}}</option>
+				<option value="untagged" {{if not $isTagged}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.untagged"}}</option>
+			</select>
+			{{end}}
+			<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+		</div>
+	</form>
+	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
+		{{range .PackageDescriptors}}
+			<li class="item df py-3">
+				<div class="issue-item-main f1 fc df">
+					<div class="issue-item-top-row">
+						<a class="title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
+					</div>
+					<div class="desc issue-item-bottom-row df ac fw my-1">
+						{{$.i18n.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.i18n.Lang) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+					</div>
+				</div>
+			</li>
+		{{else}}
+			<p>{{.i18n.Tr "packages.filter.no_result"}}</p>
+		{{end}}
+		{{template "base/paginate" .}}
+	</div>
+</div>

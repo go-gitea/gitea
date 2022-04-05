@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -39,7 +40,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -122,7 +123,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	opts := &models.FindOrgMembersOpts{
+	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
@@ -137,13 +138,13 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
 
-	membersCount, err := models.CountOrgMembers(opts)
+	membersCount, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("CountOrgMembers", err)
 		return

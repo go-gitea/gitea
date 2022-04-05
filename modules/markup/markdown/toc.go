@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/unknwon/i18n"
+	"code.gitea.io/gitea/modules/translation/i18n"
+
 	"github.com/yuin/goldmark/ast"
 )
 

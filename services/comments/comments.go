@@ -28,7 +28,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		return nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)
 	if err != nil {
 		return nil, err
 	}

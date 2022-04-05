@@ -10,19 +10,19 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/unknwon/paginater"
+	"code.gitea.io/gitea/modules/paginator"
 )
 
-// Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
+// Pagination provides a pagination via paginator.Paginator and additional configurations for the link params used in rendering
 type Pagination struct {
-	Paginater *paginater.Paginater
+	Paginater *paginator.Paginator
 	urlParams []string
 }
 
 // NewPagination creates a new instance of the Pagination struct
 func NewPagination(total, page, issueNum, numPages int) *Pagination {
 	p := &Pagination{}
-	p.Paginater = paginater.New(total, page, issueNum, numPages)
+	p.Paginater = paginator.New(total, page, issueNum, numPages)
 	return p
 }
 
@@ -53,5 +53,6 @@ func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
 	p.AddParam(ctx, "tab", "TabName")
+	// do not add any more uncommon params here!
 	p.AddParam(ctx, "t", "queryType")
 }
