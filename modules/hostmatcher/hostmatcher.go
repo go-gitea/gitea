@@ -104,7 +104,7 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
-			if ip.IsGlobalUnicast() && util.IsIPPrivate(ip) {
+			if ip.IsGlobalUnicast() && !util.IsIPPrivate(ip) {
 				return true
 			}
 		case MatchBuiltinPrivate:
