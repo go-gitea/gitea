@@ -97,14 +97,18 @@ func GetInternalVersionByNameAndVersion(ctx context.Context, ownerID int64, pack
 
 func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string, isInternal bool) (*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
-		OwnerID:           ownerID,
-		Type:              packageType,
-		NameExactMatch:    true,
-		QueryName:         name,
-		VersionExactMatch: true,
-		QueryVersion:      version,
-		IsInternal:        isInternal,
-		Paginator:         db.NewAbsoluteListOptions(0, 1),
+		OwnerID: ownerID,
+		Type:    packageType,
+		Name: SearchValue{
+			ExactMatch: true,
+			Value:      name,
+		},
+		Version: SearchValue{
+			ExactMatch: true,
+			Value:      version,
+		},
+		IsInternal: isInternal,
+		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	})
 	if err != nil {
 		return nil, err
@@ -127,10 +131,12 @@ func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Ty
 // GetVersionsByPackageName gets all versions of a specific package
 func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
 	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
-		OwnerID:        ownerID,
-		Type:           packageType,
-		NameExactMatch: true,
-		QueryName:      name,
+		OwnerID: ownerID,
+		Type:    packageType,
+		Name: SearchValue{
+			ExactMatch: true,
+			Value:      name,
+		},
 	})
 	return pvs, err
 }
@@ -148,21 +154,27 @@ func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error
 	})
 }
 
+// SearchValue describes a value to search
+// If ExactMatch is true, the field must match the value otherwise a LIKE search is performed.
+type SearchValue struct {
+	Value      string
+	ExactMatch bool
+}
+
 // PackageSearchOptions are options for SearchXXX methods
+// Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
-	OwnerID           int64
-	RepoID            int64
-	Type              Type
-	PackageID         int64
-	NameExactMatch    bool
-	QueryName         string
-	VersionExactMatch bool
-	QueryVersion      string
-	Properties        map[string]string
-	IsInternal        bool
-	HasFileWithName   string
-	HasFiles          util.OptionalBool
-	Sort              string
+	OwnerID         int64
+	RepoID          int64
+	Type            Type
+	PackageID       int64
+	Name            SearchValue // only results with the specific name are found
+	Version         SearchValue // only results with the specific version are found
+	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
+	IsInternal      bool
+	HasFileWithName string // only results are found which are associated with a file with the specific name
+	HasFiles        util.OptionalBool // only results are found which have associated files
+	Sort            string
 	db.Paginator
 }
 
@@ -181,18 +193,18 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	if opts.PackageID != 0 {
 		cond = cond.And(builder.Eq{"package.id": opts.PackageID})
 	}
-	if opts.QueryName != "" {
-		if opts.NameExactMatch {
-			cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.QueryName)})
+	if opts.Name.Value != "" {
+		if opts.Name.ExactMatch {
+			cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Name.Value)})
 		} else {
-			cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.QueryName)})
+			cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Name.Value)})
 		}
 	}
-	if opts.QueryVersion != "" {
-		if opts.VersionExactMatch {
-			cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.QueryVersion)})
+	if opts.Version.Value != "" {
+		if opts.Version.ExactMatch {
+			cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.Version.Value)})
 		} else {
-			cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.QueryVersion)})
+			cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.Version.Value)})
 		}
 	}
 

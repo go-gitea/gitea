@@ -54,11 +54,13 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 	}
 
 	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		Type:              packages_model.TypeContainer,
-		VersionExactMatch: true,
-		QueryVersion:      container_model.UploadVersion,
-		IsInternal:        true,
-		HasFiles:          util.OptionalBoolFalse,
+		Type: packages_model.TypeContainer,
+		Version: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      container_model.UploadVersion,
+		},
+		IsInternal: true,
+		HasFiles:   util.OptionalBoolFalse,
 	})
 	if err != nil {
 		return err
