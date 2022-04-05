@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -108,9 +109,9 @@ func CreateFork(ctx *context.APIContext) {
 	if form.Organization == nil {
 		forker = ctx.Doer
 	} else {
-		org, err := models.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(*form.Organization)
 		if err != nil {
-			if models.IsErrOrgNotExist(err) {
+			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
@@ -135,7 +136,7 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.Doer, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,

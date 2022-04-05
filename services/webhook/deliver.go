@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -31,7 +32,7 @@ import (
 )
 
 // Deliver deliver hook task
-func Deliver(t *webhook_model.HookTask) error {
+func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	w, err := webhook_model.GetWebhookByID(t.HookID)
 	if err != nil {
 		return err
@@ -148,6 +149,8 @@ func Deliver(t *webhook_model.HookTask) error {
 		t.Delivered = time.Now().UnixNano()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
+		} else if !w.IsActive {
+			log.Trace("Hook delivery skipped as webhook is inactive: %s", t.UUID)
 		} else {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
@@ -172,7 +175,11 @@ func Deliver(t *webhook_model.HookTask) error {
 		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
-	resp, err := webhookHTTPClient.Do(req.WithContext(graceful.GetManager().ShutdownContext()))
+	if !w.IsActive {
+		return nil
+	}
+
+	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
@@ -204,6 +211,8 @@ func DeliverHooks(ctx context.Context) {
 		return
 	default:
 	}
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: DeliverHooks", process.SystemProcessType, true)
+	defer finished()
 	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
@@ -217,7 +226,7 @@ func DeliverHooks(ctx context.Context) {
 			return
 		default:
 		}
-		if err = Deliver(t); err != nil {
+		if err = Deliver(ctx, t); err != nil {
 			log.Error("deliver: %v", err)
 		}
 	}
@@ -249,7 +258,7 @@ func DeliverHooks(ctx context.Context) {
 					return
 				default:
 				}
-				if err = Deliver(t); err != nil {
+				if err = Deliver(ctx, t); err != nil {
 					log.Error("deliver: %v", err)
 				}
 			}

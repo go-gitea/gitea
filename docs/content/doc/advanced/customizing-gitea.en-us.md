@@ -299,6 +299,8 @@ LANGS = en-US,foo-BAR
 NAMES = English,FooBar
 ```
 
+The first locale will be used as the default if user browser's language doesn't match any locale in the list.
+
 Locales may change between versions, so keeping track of your customized locales is highly encouraged.
 
 ### Readmes

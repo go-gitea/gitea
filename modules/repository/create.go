@@ -33,7 +33,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 
 	// Check if label template exist
 	if len(opts.IssueLabels) > 0 {
-		if _, err := models.GetLabelTemplateFile(opts.IssueLabels); err != nil {
+		if _, err := GetLabelTemplateFile(opts.IssueLabels); err != nil {
 			return nil, err
 		}
 	}
@@ -54,6 +54,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 		Status:                          opts.Status,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
+		IsMirror:                        opts.IsMirror,
 	}
 
 	var rollbackRepo *repo_model.Repository
@@ -100,7 +101,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err = InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
 				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %v", err)
@@ -111,9 +112,9 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommand(ctx, "update-server-info").
+		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunInDir(repoPath); err != nil {
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			rollbackRepo = repo
 			rollbackRepo.OwnerID = u.ID

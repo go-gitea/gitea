@@ -279,7 +279,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
-		return "file-directory"
+		return "file-directory-fill"
 	case entry.IsSubModule():
 		return "file-submodule"
 	}

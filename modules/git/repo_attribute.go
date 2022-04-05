@@ -76,12 +76,11 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
-	if err := cmd.RunWithContext(&RunContext{
-		Env:     env,
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  stdOut,
-		Stderr:  stdErr,
+	if err := cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdout: stdOut,
+		Stderr: stdErr,
 	}); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
@@ -189,13 +188,12 @@ func (c *CheckAttributeReader) Run() error {
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunWithContext(&RunContext{
-		Env:     c.env,
-		Timeout: -1,
-		Dir:     c.Repo.Path,
-		Stdin:   c.stdinReader,
-		Stdout:  c.stdOut,
-		Stderr:  stdErr,
+	err := c.cmd.Run(&RunOpts{
+		Env:    c.env,
+		Dir:    c.Repo.Path,
+		Stdin:  c.stdinReader,
+		Stdout: c.stdOut,
+		Stderr: stdErr,
 		PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
 			select {
 			case <-c.running:

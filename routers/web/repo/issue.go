@@ -19,6 +19,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -40,8 +44,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -335,9 +337,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := models.GetProjects(models.ProjectSearchOptions{
+		projects, _, err := project_model.GetProjects(project_model.SearchOptions{
 			RepoID:   repo.ID,
-			Type:     models.ProjectTypeRepository,
+			Type:     project_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
 		})
 		if err != nil {
@@ -445,22 +447,22 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 
-	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
-		Type:     models.ProjectTypeRepository,
+		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
-		Type:     models.ProjectTypeRepository,
+		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -471,7 +473,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 // repoReviewerSelection items to bee shown
 type repoReviewerSelection struct {
 	IsTeam    bool
-	Team      *models.Team
+	Team      *organization.Team
 	User      *user_model.User
 	Review    *models.Review
 	CanChange bool
@@ -504,7 +506,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 		pullReviews         []*repoReviewerSelection
 		reviewersResult     []*repoReviewerSelection
 		teamReviewersResult []*repoReviewerSelection
-		teamReviewers       []*models.Team
+		teamReviewers       []*organization.Team
 		reviewers           []*user_model.User
 	)
 
@@ -586,7 +588,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 				item.User = item.Review.Reviewer
 			} else if item.Review.ReviewerTeamID > 0 {
 				if err = item.Review.LoadReviewerTeam(); err != nil {
-					if models.IsErrTeamNotExist(err) {
+					if organization.IsErrTeamNotExist(err) {
 						continue
 					}
 					ctx.ServerError("LoadReviewerTeam", err)
@@ -813,7 +815,7 @@ func NewIssue(ctx *context.Context) {
 
 	projectID := ctx.FormInt64("project")
 	if projectID > 0 {
-		project, err := models.GetProjectByID(projectID)
+		project, err := project_model.GetProjectByID(projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
@@ -925,7 +927,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	if form.ProjectID > 0 {
-		p, err := models.GetProjectByID(form.ProjectID)
+		p, err := project_model.GetProjectByID(form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
@@ -1110,7 +1112,13 @@ func ViewIssue(ctx *context.Context) {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas()
 				metas["index"] = ctx.Params(":index")
-				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
+				if err != nil {
+					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
+					ctx.ServerError("Expand", err)
+					return
+				}
+				ctx.Redirect(res)
 				return
 			}
 		} else if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
@@ -1412,7 +1420,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			ghostProject := &models.Project{
+			ghostProject := &project_model.Project{
 				ID:    -1,
 				Title: ctx.Tr("repo.issues.deleted_project"),
 			}
@@ -1965,9 +1973,9 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			team, err := models.GetTeamByID(-reviewID)
+			team, err := organization.GetTeamByID(-reviewID)
 			if err != nil {
-				ctx.ServerError("models.GetTeamByID", err)
+				ctx.ServerError("GetTeamByID", err)
 				return
 			}
 
@@ -2347,9 +2355,9 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateIssueReaction(ctx.Doer, issue, form.Content)
+		reaction, err := issues_model.CreateIssueReaction(ctx.Doer.ID, issue.ID, form.Content)
 		if err != nil {
-			if models.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}
@@ -2365,7 +2373,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for issue created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteIssueReaction(ctx.Doer, issue, form.Content); err != nil {
+		if err := issues_model.DeleteIssueReaction(ctx.Doer.ID, issue.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteIssueReaction", err)
 			return
 		}
@@ -2449,9 +2457,9 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		reaction, err := models.CreateCommentReaction(ctx.Doer, comment.Issue, comment, form.Content)
+		reaction, err := issues_model.CreateCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content)
 		if err != nil {
-			if models.IsErrForbiddenIssueReaction(err) {
+			if issues_model.IsErrForbiddenIssueReaction(err) {
 				ctx.ServerError("ChangeIssueReaction", err)
 				return
 			}
@@ -2467,7 +2475,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 
 		log.Trace("Reaction for comment created: %d/%d/%d/%d", ctx.Repo.Repository.ID, comment.Issue.ID, comment.ID, reaction.ID)
 	case "unreact":
-		if err := models.DeleteCommentReaction(ctx.Doer, comment.Issue, comment, form.Content); err != nil {
+		if err := issues_model.DeleteCommentReaction(ctx.Doer.ID, comment.Issue.ID, comment.ID, form.Content); err != nil {
 			ctx.ServerError("DeleteCommentReaction", err)
 			return
 		}
@@ -2593,7 +2601,7 @@ func updateAttachments(item interface{}, files []string) error {
 	if len(files) > 0 {
 		switch content := item.(type) {
 		case *models.Issue:
-			err = content.UpdateAttachments(files)
+			err = models.UpdateIssueAttachments(content.ID, files)
 		case *models.Comment:
 			err = content.UpdateAttachments(files)
 		default:
@@ -2702,8 +2710,8 @@ func handleTeamMentions(ctx *context.Context) {
 
 	var isAdmin bool
 	var err error
-	var teams []*models.Team
-	org := models.OrgFromUser(ctx.Repo.Owner)
+	var teams []*organization.Team
+	org := organization.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.Doer.IsAdmin {
 		isAdmin = true
