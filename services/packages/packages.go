@@ -399,10 +399,9 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 
 	pv, err := packages_model.GetVersionByID(ctx, versionID)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
-			return nil, nil, err
+		if err != packages_model.ErrPackageNotExist {
+			log.Error("Error getting package version: %v", err)
 		}
-		log.Error("Error getting package version: %v", err)
 		return nil, nil, err
 	}
 
