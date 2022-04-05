@@ -203,10 +203,13 @@ help:
 go-check:
 	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval GO_VERSION_STR := $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+'))
+	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(GO_VERSION_STR)' | tr '.' ' ')))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
+		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build, but $(GO_VERSION) was found. You can get an updated version at https://go.dev/dl/"; \
 		exit 1; \
+	else \
+		echo "WARNING: Please ensure Go $(GO_VERSION_STR) is still maintained to avoid possible security problems. You can check it at https://go.dev/dl/"; \
 	fi
 
 .PHONY: git-check

@@ -8,6 +8,8 @@ import (
 	"net"
 	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // HostMatchList is used to check if a host or IP is in a list.
@@ -102,11 +104,11 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 	for _, builtin := range hl.builtins {
 		switch builtin {
 		case MatchBuiltinExternal:
-			if ip.IsGlobalUnicast() && !ip.IsPrivate() {
+			if ip.IsGlobalUnicast() && !util.IsIPPrivate(ip) {
 				return true
 			}
 		case MatchBuiltinPrivate:
-			if ip.IsPrivate() {
+			if util.IsIPPrivate(ip) {
 				return true
 			}
 		case MatchBuiltinLoopback:
