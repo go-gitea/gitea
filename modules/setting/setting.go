@@ -777,19 +777,19 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
 
-	LandingPageURL = LandingPageHome
-	switch sec.Key("LANDING_PAGE").MustString("home") {
+	landingPage := sec.Key("LANDING_PAGE").MustString("home")
+	switch landingPage {
 	case "explore":
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	case "custom":
-		customURL := sec.Key("LANDING_PAGE_CUSTOM").MustString("")
-		if customURL != "" {
-			LandingPageURL = LandingPage(customURL)
-		}
+	case "":
+	case "home":
+		LandingPageURL = LandingPageHome
+	default:
+		LandingPageURL = LandingPage(landingPage)
 	}
 
 	if len(SSH.Domain) == 0 {
