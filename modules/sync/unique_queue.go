@@ -5,10 +5,6 @@
 
 package sync
 
-import (
-	"github.com/unknwon/com"
-)
-
 // UniqueQueue is a queue which guarantees only one instance of same
 // identity is in the line. Instances with same identity will be
 // discarded if there is already one in the line.
@@ -55,10 +51,10 @@ func (q *UniqueQueue) IsClosed() <-chan struct{} {
 }
 
 // IDs returns the current ids in the pool
-func (q *UniqueQueue) IDs() []interface{} {
+func (q *UniqueQueue) IDs() []string {
 	q.table.lock.Lock()
 	defer q.table.lock.Unlock()
-	ids := make([]interface{}, 0, len(q.table.pool))
+	ids := make([]string, 0, len(q.table.pool))
 	for id := range q.table.pool {
 		ids = append(ids, id)
 	}
@@ -72,20 +68,19 @@ func (q *UniqueQueue) Queue() <-chan string {
 
 // Exist returns true if there is an instance with given identity
 // exists in the queue.
-func (q *UniqueQueue) Exist(id interface{}) bool {
-	return q.table.IsRunning(com.ToStr(id))
+func (q *UniqueQueue) Exist(id string) bool {
+	return q.table.IsRunning(id)
 }
 
 // AddFunc adds new instance to the queue with a custom runnable function,
 // the queue is blocked until the function exits.
-func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
-	idStr := com.ToStr(id)
+func (q *UniqueQueue) AddFunc(id string, fn func()) {
 	q.table.lock.Lock()
-	if _, ok := q.table.pool[idStr]; ok {
+	if _, ok := q.table.pool[id]; ok {
 		q.table.lock.Unlock()
 		return
 	}
-	q.table.pool[idStr] = struct{}{}
+	q.table.pool[id] = struct{}{}
 	if fn != nil {
 		fn()
 	}
@@ -93,17 +88,17 @@ func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
 	select {
 	case <-q.closed:
 		return
-	case q.queue <- idStr:
+	case q.queue <- id:
 		return
 	}
 }
 
 // Add adds new instance to the queue.
-func (q *UniqueQueue) Add(id interface{}) {
+func (q *UniqueQueue) Add(id string) {
 	q.AddFunc(id, nil)
 }
 
 // Remove removes instance from the queue.
-func (q *UniqueQueue) Remove(id interface{}) {
-	q.table.Stop(com.ToStr(id))
+func (q *UniqueQueue) Remove(id string) {
+	q.table.Stop(id)
 }

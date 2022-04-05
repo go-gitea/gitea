@@ -6,6 +6,8 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,7 +42,7 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleAssignee(issue *models.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *models.Comment, err error) {
-	removed, comment, err = issue.ToggleAssignee(doer, assigneeID)
+	removed, comment, err = models.ToggleIssueAssignee(issue, doer, assigneeID)
 	if err != nil {
 		return
 	}
@@ -166,7 +168,7 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 }
 
 // IsValidTeamReviewRequest Check permission for ReviewRequest Team
-func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAdd bool, issue *models.Issue) error {
+func IsValidTeamReviewRequest(reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *models.Issue) error {
 	if doer.IsOrganization() {
 		return models.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
@@ -183,7 +185,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
-			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
+			hasTeam := organization.HasTeamRepo(db.DefaultContext, reviewer.OrgID, reviewer.ID, issue.RepoID)
 
 			if !hasTeam {
 				return models.ErrNotValidReviewRequest{
@@ -221,7 +223,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *models.Team, isAdd bool) (comment *models.Comment, err error) {
+func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *models.Comment, err error) {
 	if isAdd {
 		comment, err = models.AddTeamReviewRequest(issue, reviewer, doer)
 	} else {
@@ -241,11 +243,14 @@ func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *mod
 		return
 	}
 
-	if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
+	members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+		TeamID: reviewer.ID,
+	})
+	if err != nil {
 		return
 	}
 
-	for _, member := range reviewer.Members {
+	for _, member := range members {
 		if member.ID == comment.Issue.PosterID {
 			continue
 		}

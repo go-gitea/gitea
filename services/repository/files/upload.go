@@ -123,7 +123,7 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	committer := doer
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, opts.Message, opts.Signoff)
+	commitHash, err := t.CommitTree(opts.LastCommitID, author, committer, treeHash, opts.Message, opts.Signoff)
 	if err != nil {
 		return err
 	}

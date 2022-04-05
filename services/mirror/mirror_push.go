@@ -31,17 +31,17 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 	addRemoteAndConfig := func(addr, path string) error {
 		cmd := git.NewCommand(ctx, "remote", "add", "--mirror=push", m.RemoteName, addr)
 		if strings.Contains(addr, "://") && strings.Contains(addr, "@") {
-			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.NewStringURLSanitizer(addr, true).Replace(addr), path))
+			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, util.SanitizeCredentialURLs(addr), path))
 		} else {
 			cmd.SetDescription(fmt.Sprintf("remote add %s --mirror=push %s [repo_path: %s]", m.RemoteName, addr, path))
 		}
-		if _, err := cmd.RunInDir(path); err != nil {
+		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
-		if _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
+		if _, _, err := git.NewCommand(ctx, "config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunStdString(&git.RunOpts{Dir: path}); err != nil {
 			return err
 		}
 		return nil
@@ -67,12 +67,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", m.RemoteName)
 
-	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
+	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		if _, err := cmd.RunInDir(m.Repo.WikiPath()); err != nil {
+		if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.WikiPath()}); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}
@@ -137,7 +137,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepositoryCtx(ctx, path)
+			gitRepo, err := git.OpenRepository(ctx, path)
 			if err != nil {
 				log.Error("OpenRepository: %v", err)
 				return errors.New("Unexpected error")
@@ -147,7 +147,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
 			lfsClient := lfs.NewClient(endpoint, nil)
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				return util.NewURLSanitizedError(err, remoteAddr, true)
+				return util.SanitizeErrorCredentialURLs(err)
 			}
 		}
 
@@ -161,7 +161,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 
-			return util.NewURLSanitizedError(err, remoteAddr, true)
+			return util.SanitizeErrorCredentialURLs(err)
 		}
 
 		return nil

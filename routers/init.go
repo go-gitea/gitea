@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
+	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
@@ -140,7 +141,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	models.NewRepoContext()
 
 	// Booting long running goroutines.
-	cron.NewContext()
+	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
@@ -188,5 +189,9 @@ func NormalRoutes() *web.Route {
 	r.Mount("/", web_routers.Routes(sessioner))
 	r.Mount("/api/v1", apiv1.Routes(sessioner))
 	r.Mount("/api/internal", private.Routes())
+	if setting.Packages.Enabled {
+		r.Mount("/api/packages", packages_router.Routes())
+		r.Mount("/v2", packages_router.ContainerRoutes())
+	}
 	return r
 }

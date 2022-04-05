@@ -13,9 +13,9 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
