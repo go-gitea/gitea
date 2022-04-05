@@ -168,11 +168,11 @@ type PackageSearchOptions struct {
 	RepoID          int64
 	Type            Type
 	PackageID       int64
-	Name            SearchValue // only results with the specific name are found
-	Version         SearchValue // only results with the specific version are found
+	Name            SearchValue       // only results with the specific name are found
+	Version         SearchValue       // only results with the specific version are found
 	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
 	IsInternal      bool
-	HasFileWithName string // only results are found which are associated with a file with the specific name
+	HasFileWithName string            // only results are found which are associated with a file with the specific name
 	HasFiles        util.OptionalBool // only results are found which have associated files
 	Sort            string
 	db.Paginator
