@@ -36,7 +36,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	if ctx.Repo.GitRepo == nil {
 		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
+		ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 		if err != nil {
 			return nil, "OpenRepository", err
 		}

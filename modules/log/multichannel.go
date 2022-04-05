@@ -31,7 +31,7 @@ func newLogger(name string, buffer int64) *MultiChannelledLogger {
 
 // SetLogger sets new logger instance with given logger provider and config.
 func (l *MultiChannelledLogger) SetLogger(name, provider, config string) error {
-	eventLogger, err := NewChannelledLog(name, provider, config, l.bufferLength)
+	eventLogger, err := NewChannelledLog(l.ctx, name, provider, config, l.bufferLength)
 	if err != nil {
 		return fmt.Errorf("Failed to create sublogger (%s): %v", name, err)
 	}

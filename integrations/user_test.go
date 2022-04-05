@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewUser(t *testing.T) {
@@ -75,23 +75,41 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	reservedUsernames := []string{
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
+		"assets",
 		"attachments",
+		"avatar",
 		"avatars",
+		"captcha",
+		"commits",
+		"debug",
+		"error",
 		"explore",
-		"help",
-		"install",
+		"favicon.ico",
+		"ghost",
 		"issues",
 		"login",
+		"manifest.json",
 		"metrics",
+		"milestones",
+		"new",
 		"notifications",
 		"org",
 		"pulls",
+		"raw",
 		"repo",
-		"template",
-		"user",
+		"repo-avatars",
+		"robots.txt",
 		"search",
+		"serviceworker.js",
+		"ssh_info",
+		"swagger.v1.json",
+		"user",
+		"v2",
 	}
 
 	session := loginUser(t, "user2")
