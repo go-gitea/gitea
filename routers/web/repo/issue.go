@@ -16,6 +16,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -36,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -1868,6 +1870,40 @@ func UpdateIssueContent(ctx *context.Context) {
 		"content":     content,
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
+}
+
+// UpdateIssueDeadline updates an issue deadline
+func UpdateIssueDeadline(ctx *context.Context) {
+	form := web.GetForm(ctx).(*api.EditDeadlineOption)
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "", "Not repo writer")
+		return
+	}
+
+	var deadlineUnix timeutil.TimeStamp
+	var deadline time.Time
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+			23, 59, 59, 0, time.Local)
+		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+	}
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
 }
 
 // UpdateIssueMilestone change issue's milestone

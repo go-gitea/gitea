@@ -54,7 +54,7 @@ function updateDeadline(deadlineString) {
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}/deadline`, {
+  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
     data: JSON.stringify({
       due_date: realDeadline,
     }),
