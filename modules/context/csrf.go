@@ -229,6 +229,7 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 		}
 	}
 
+	needsNew = needsNew || ctx.Req.Method == "GET" // If this request is a Get request, it will generate a new token, make sure the token is always up-to-date.
 	if needsNew {
 		// FIXME: actionId.
 		x.Token = GenerateToken(x.Secret, x.ID, "POST")
