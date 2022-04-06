@@ -56,8 +56,8 @@ func ListPackages(ctx *context.APIContext) {
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packageType,
-		QueryName: query,
+		Type:      packages.Type(packageType),
+		Name:      packages.SearchValue{Value: query},
 		Paginator: &listOptions,
 	})
 	if err != nil {
