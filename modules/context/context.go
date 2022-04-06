@@ -57,7 +57,7 @@ type Context struct {
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    CSRF
+	csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
@@ -679,7 +679,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = Csrfer(csrfOpts, &ctx)
+			ctx.csrf = NewCSRFProtector(csrfOpts, &ctx)
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
@@ -737,7 +737,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these

@@ -609,7 +609,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
+			AllowedHeaders:   []string{"Authorization", "X-Csrf-Token", "X-Gitea-OTP"},
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}

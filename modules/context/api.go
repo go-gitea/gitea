@@ -8,7 +8,6 @@ package context
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"strings"
@@ -212,7 +211,7 @@ func (ctx *APIContext) RequireCSRF() {
 	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
 	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
 	if len(headerToken) > 0 || len(formValueToken) > 0 {
-		Validate(ctx.Context, ctx.csrf)
+		ctx.csrf.Validate(ctx.Context)
 	} else {
 		ctx.Context.Error(http.StatusUnauthorized, "Missing CSRF token.")
 	}
@@ -289,7 +288,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
-			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
+			ctx.csrf = NewCSRFProtector(csrfOpts, ctx.Context)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -301,7 +300,7 @@ func APIContexter() func(http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
