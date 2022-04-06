@@ -98,17 +98,6 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 		SameSite(setting.SessionConfig.SameSite))
 }
 
-// DeleteSesionConfigPathCookie convenience function to delete SessionConfigPath cookies consistently
-func DeleteSesionConfigPathCookie(resp http.ResponseWriter, name string) {
-	SetCookie(resp, name, "",
-		-1,
-		setting.SessionConfig.CookiePath,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
-}
-
 // DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
 func DeleteCSRFCookie(resp http.ResponseWriter) {
 	SetCookie(resp, setting.CSRFCookieName, "",

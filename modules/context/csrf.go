@@ -223,12 +223,7 @@ func NewCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 
 func (c *csrfProtector) validateToken(ctx *Context, token string) bool {
 	if !ValidCsrfToken(token, c.Secret, c.ID, "POST", time.Now()) {
-		// Delete the cookie
-		middleware.SetCookie(ctx.Resp, c.Cookie, "",
-			-1,
-			c.CookiePath,
-			c.CookieDomain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-
+		middleware.DeleteCSRFCookie(ctx.Resp)
 		if middleware.IsAPIPath(ctx.Req) {
 			http.Error(ctx.Resp, "Invalid CSRF token.", http.StatusBadRequest)
 		} else {
