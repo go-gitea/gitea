@@ -172,25 +172,20 @@ func NewCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 		}
 	}
 
-	needsNew := false
 	oldUID := ctx.Session.Get(opt.oldSessionKey)
-	if oldUID == nil || oldUID.(string) != x.ID {
-		needsNew = true
-		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
-	} else {
-		// If cookie present, map existing token, else generate a new one.
-		if val := ctx.GetCookie(opt.Cookie); val != "" {
-			x.Token = val // FIXME: test coverage.
-		} else {
-			needsNew = true
-		}
-	}
+	uidChanged := oldUID == nil || oldUID.(string) != x.ID
+	cookieToken := ctx.GetCookie(opt.Cookie)
 
-	if !needsNew {
+	needsNew := true
+	if uidChanged {
+		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
+	} else if cookieToken != "" {
+		// If cookie token presents, re-use existing unexpired token, else generate a new one.
 		if issueTime, ok := ParseCsrfToken(x.Token); ok {
 			dur := time.Since(issueTime)
-			if dur < -CsrfTokenRegenerationDuration || dur > CsrfTokenRegenerationDuration {
-				needsNew = true
+			if dur >= -CsrfTokenRegenerationDuration && dur <= CsrfTokenRegenerationDuration {
+				x.Token = cookieToken
+				needsNew = false
 			}
 		}
 	}
