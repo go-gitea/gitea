@@ -4,7 +4,28 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.5](https://github.com/go-gitea/gitea/releases/tag/1.16.5) - 2022-03-23
+## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-06
+
+* BUGFIXES
+  * Fix invalid CSRF token bug, make sure CSRF tokens can be up-to-date (#19338)
+  * Restore user autoregistration with email addresses (#19261) (#19312)
+  * Move checks for pulls before merge into own function (#19271) (#19277)
+  * Granular webhook events in editHook (#19251) (#19257)
+  * Only send webhook events to active system webhooks and only deliver to active hooks (#19234) (#19248)
+  * Use full output of git show-ref --tags to get tags for PushUpdateAddTag (#19235) (#19236)
+  * Touch mirrors on even on fail to update (#19217) (#19233)
+  * Hide sensitive content on admin panel progress monitor (#19218 & #19226) (#19231)
+  * Fix clone url JS error for the empty repo page (#19209)
+  * Bump goldmark to v1.4.11 (#19201) (#19203)
+* TESTING
+  * Prevent intermittent failures in RepoIndexerTest (#19225 #19229) (#19228)
+* BUILD
+  * Revert the minimal golang version requirement from 1.17 to 1.16 and add a warning in Makefile (#19319)
+* MISC
+  * Performance improvement for add team user when org has more than 1000 repositories (#19227) (#19289)
+  * Check go and nodejs version by go.mod and package.json (#19197) (#19254)
+
+## [1.16.5](https://github.com/go-gitea/gitea/releases/tag/v1.16.5) - 2022-03-23
 
 * BREAKING
   * Bump to build with go1.18 (#19120 et al) (#19127)
