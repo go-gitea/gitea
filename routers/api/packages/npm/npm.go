@@ -256,7 +256,12 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 	}
 	defer committer.Close()
 
-	pvs, err := packages_model.FindVersionsByPropertyNameAndValue(ctx, pv.PackageID, npm_module.TagProperty, tag)
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		PackageID: pv.PackageID,
+		Properties: map[string]string{
+			npm_module.TagProperty: tag,
+		},
+	})
 	if err != nil {
 		return err
 	}
