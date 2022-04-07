@@ -539,11 +539,17 @@ func TestUpdateIssueDeadline(t *testing.T) {
 
 	session := loginUser(t, owner.Name)
 
-	urlStr := fmt.Sprintf("/%s/%s/issues/%d/deadline", owner.Name, repoBefore.Name, issueBefore.Index)
-	req := NewRequestWithJSON(t, "POST", urlStr, map[string]string{
-		"due_date": "2022-04-06",
+	issueURL := fmt.Sprintf("%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	urlStr := issueURL + "/deadline?_csrf=" + htmlDoc.GetCSRF()
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]string{
+		"due_date": "2022-04-06T00:00:00.000Z",
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+
+	resp = session.MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.IssueDeadline
 	DecodeJSON(t, resp, &apiIssue)
 
