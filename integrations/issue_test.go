@@ -540,7 +540,7 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	session := loginUser(t, owner.Name)
 
 	urlStr := fmt.Sprintf("/%s/%s/issues/%d/deadline", owner.Name, repoBefore.Name, issueBefore.Index)
-	req := NewRequestWithJSON(t, "Post", urlStr, map[string]string{
+	req := NewRequestWithJSON(t, "POST", urlStr, map[string]string{
 		"due_date": "2022-04-06",
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
