@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -21,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -577,6 +579,22 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	return ctx.Req.Context().Value(key)
 }
 
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *Context) SetTotalCountHeader(total int64) {
+	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *Context) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
+	}
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
@@ -779,4 +797,22 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// SearchOrderByMap represents all possible search order
+var SearchOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"alpha":   db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"size":    db.SearchOrderBySize,
+		"id":      db.SearchOrderByID,
+	},
+	"desc": {
+		"alpha":   db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"size":    db.SearchOrderBySizeReverse,
+		"id":      db.SearchOrderByIDReverse,
+	},
 }

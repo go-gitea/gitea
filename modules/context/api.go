@@ -191,22 +191,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// SetTotalCountHeader set "X-Total-Count" header
-func (ctx *APIContext) SetTotalCountHeader(total int64) {
-	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
-	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
-}
-
-// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
-func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
-	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
-	if len(val) != 0 {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
-	} else {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
-	}
-}
-
 // RequireCSRF requires a validated a CSRF token
 func (ctx *APIContext) RequireCSRF() {
 	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
