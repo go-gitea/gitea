@@ -248,6 +248,11 @@ func (u *User) MaxCreationLimit() int {
 	return u.MaxRepoCreation
 }
 
+// CanChangePassword returns if user is allowed to change password.
+func (u *User) CanChangePassword() bool {
+	return (u.IsOAuth2() && !setting.OAuth2Client.DisablePassword) || u.IsLocal()
+}
+
 // CanCreateRepo returns if user login can create a repository
 // NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
 func (u *User) CanCreateRepo() bool {
