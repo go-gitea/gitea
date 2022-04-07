@@ -44,17 +44,17 @@ type CSRFProtector interface {
 }
 
 type csrfProtector struct {
-	// Header name value for setting and getting CSRF token.
+	// Header name value for setting and getting csrf token.
 	Header string
-	// Form name value for setting and getting CSRF token.
+	// Form name value for setting and getting csrf token.
 	Form string
-	// Cookie name value for setting and getting CSRF token.
+	// Cookie name value for setting and getting csrf token.
 	Cookie string
 	// Cookie domain
 	CookieDomain string
 	// Cookie path
 	CookiePath string
-	// Cookie HttpOnly flag value used for the CSRF token.
+	// Cookie HttpOnly flag value used for the csrf token.
 	CookieHTTPOnly bool
 	// Token generated to pass via header, cookie, or hidden form value.
 	Token string
@@ -64,12 +64,12 @@ type csrfProtector struct {
 	Secret string
 }
 
-// GetHeaderName returns the name of the HTTP header for CSRF token.
+// GetHeaderName returns the name of the HTTP header for csrf token.
 func (c *csrfProtector) GetHeaderName() string {
 	return c.Header
 }
 
-// GetFormName returns the name of the form value for CSRF token.
+// GetFormName returns the name of the form value for csrf token.
 func (c *csrfProtector) GetFormName() string {
 	return c.Form
 }
@@ -141,9 +141,9 @@ func prepareDefaultCsrfOptions(opt CsrfOptions) CsrfOptions {
 	return opt
 }
 
-// NewCSRFProtector returns a CSRFProtector to be used for every request.
+// PrepareCSRFProtector returns a CSRFProtector to be used for every request.
 // Additionally, depending on options set, generated tokens will be sent via Header and/or Cookie.
-func NewCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
+func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 	opt = prepareDefaultCsrfOptions(opt)
 	x := &csrfProtector{
 		Secret:         opt.Secret,
@@ -181,9 +181,9 @@ func NewCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
 	} else if cookieToken != "" {
 		// If cookie token presents, re-use existing unexpired token, else generate a new one.
-		if issueTime, ok := ParseCsrfToken(x.Token); ok {
-			dur := time.Since(issueTime)
-			if dur >= -CsrfTokenRegenerationDuration && dur <= CsrfTokenRegenerationDuration {
+		if issueTime, ok := ParseCsrfToken(cookieToken); ok {
+			dur := time.Since(issueTime) // issueTime is not a monotonic-clock, the server time may change a lot to an early time.
+			if dur >= -CsrfTokenRegenerationInterval && dur <= CsrfTokenRegenerationInterval {
 				x.Token = cookieToken
 				needsNew = false
 			}
@@ -196,7 +196,7 @@ func NewCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 		if opt.SetCookie {
 			var expires interface{}
 			if opt.CookieLifeTime == 0 {
-				expires = time.Now().AddDate(0, 0, 1)
+				expires = time.Now().Add(CsrfTokenTimeout)
 			}
 			middleware.SetCookie(ctx.Resp, opt.Cookie, x.Token,
 				opt.CookieLifeTime,

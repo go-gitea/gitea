@@ -648,7 +648,9 @@ func Auth(authMethod auth.Method) func(*Context) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
-
+	if !setting.IsProd {
+		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(resp, req)
@@ -679,7 +681,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = NewCSRFProtector(csrfOpts, &ctx)
+			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")

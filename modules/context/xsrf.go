@@ -31,7 +31,9 @@ import (
 // CsrfTokenTimeout represents the duration that XSRF tokens are valid.
 // It is exported so clients may set cookie timeouts that match generated tokens.
 const CsrfTokenTimeout = 24 * time.Hour
-const CsrfTokenRegenerationDuration = 1 * time.Minute
+
+// CsrfTokenRegenerationInterval is the interval between token generations, old tokens are still valid before CsrfTokenTimeout
+var CsrfTokenRegenerationInterval = 10 * time.Minute
 
 var csrfTokenSep = []byte(":")
 
