@@ -509,22 +509,22 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 func TestGetIssueInfo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
-	assert.NoError(t, issueBefore.LoadAttributes())
-	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
-	assert.Equal(t, api.StateOpen, issueBefore.State())
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	assert.NoError(t, issue.LoadAttributes())
+	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
+	assert.Equal(t, api.StateOpen, issue.State())
 
 	session := loginUser(t, owner.Name)
 
-	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repoBefore.Name, issueBefore.Index)
-	req := NewRequest(t, "Get", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repo.Name, issue.Index)
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 
-	assert.EqualValues(t, issueBefore.ID, apiIssue.ID)
+	assert.EqualValues(t, issue.ID, apiIssue.ID)
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
