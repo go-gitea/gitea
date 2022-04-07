@@ -32,9 +32,9 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		WorkerPoolConfiguration: queue.WorkerPoolConfiguration{
 			QueueLength: 10,
 			BatchLength: 1,
+			Name:        "temporary-queue",
 		},
 		Workers: 1,
-		Name:    "temporary-queue",
 	}, "")
 	assert.NoError(t, err)
 

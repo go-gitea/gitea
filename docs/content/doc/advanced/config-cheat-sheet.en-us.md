@@ -300,8 +300,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `ENABLE_GZIP`: **false**: Enable gzip compression for runtime-generated content, static resources excluded.
 - `ENABLE_PPROF`: **false**: Application profiling (memory and cpu). For "web" command it listens on localhost:6060. For "serv" command it dumps to disk at `PPROF_DATA_PATH` as `(cpuprofile|memprofile)_<username>_<temporary id>`
 - `PPROF_DATA_PATH`: **data/tmp/pprof**: `PPROF_DATA_PATH`, use an absolute path when you start Gitea as service
-- `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
-
+- `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login, **custom**\]. Where custom would instead be any URL such as "/org/repo" or even `https://anotherwebsite.com`
 - `LFS_START_SERVER`: **false**: Enables Git LFS support.
 - `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
@@ -856,7 +855,7 @@ Default templates for project boards:
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository statistics check.
 
-### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
+#### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
 
 - `ENABLED`: **true**: Enable cleanup hook_task job.
 - `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
@@ -864,6 +863,14 @@ Default templates for project boards:
 - `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
 - `OLDER_THAN`: **168h**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
 - `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
+
+#### Cron - Cleanup expired packages (`cron.cleanup_packages`)
+
+- `ENABLED`: **true**: Enable cleanup expired packages job.
+- `RUN_AT_START`: **true**: Run job at start time (if ENABLED).
+- `NOTICE_ON_SUCCESS`: **false**: Notify every time this job runs.
+- `SCHEDULE`: **@midnight**: Cron syntax for the job.
+- `OLDER_THAN`: **24h**: Unreferenced package data created more than OLDER_THAN ago is subject to deletion.
 
 #### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
@@ -989,7 +996,8 @@ Default templates for project boards:
 
 ## i18n (`i18n`)
 
-- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**: List of locales shown in language selector
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**:
+     List of locales shown in language selector. The first locale will be used as the default if user browser's language doesn't match any locale in the list.
 - `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어,ελληνικά,فارسی,magyar nyelv,bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
 ## U2F (`U2F`) **DEPRECATED**
@@ -1076,6 +1084,11 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Federation (`federation`)
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
+
+## Packages (`packages`)
+
+- `ENABLED`: **true**: Enable/Disable package registry capabilities
+- `CHUNKED_UPLOAD_PATH`: **tmp/package-upload**: Path for chunked uploads. Defaults to `APP_DATA_PATH` + `tmp/package-upload`
 
 ## Mirror (`mirror`)
 

@@ -123,6 +123,9 @@ var (
 
 	// RepoArchives represents repository archives storage
 	RepoArchives ObjectStorage
+
+	// Packages represents packages storage
+	Packages ObjectStorage
 )
 
 // Init init the stoarge
@@ -143,7 +146,11 @@ func Init() error {
 		return err
 	}
 
-	return initRepoArchives()
+	if err := initRepoArchives(); err != nil {
+		return err
+	}
+
+	return initPackages()
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -186,5 +193,11 @@ func initRepoAvatars() (err error) {
 func initRepoArchives() (err error) {
 	log.Info("Initialising Repository Archive storage with type: %s", setting.RepoArchive.Storage.Type)
 	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, &setting.RepoArchive.Storage)
+	return
+}
+
+func initPackages() (err error) {
+	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
+	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
 	return
 }

@@ -22,10 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-
-	"github.com/unknwon/com"
 )
 
 var (
@@ -229,9 +228,9 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, err := git.NewCommand(ctx, "clone", repoPath, tmpDir).
+	if stdout, _, err := git.NewCommand(ctx, "clone", repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
-		RunInDirWithEnv("", env); err != nil {
+		RunStdString(&git.RunOpts{Dir: "", Env: env}); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git clone: %v", err)
 	}
@@ -250,8 +249,13 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir,
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
+	res, err := vars.Expand(string(data), match)
+	if err != nil {
+		// here we could just log the error and continue the rendering
+		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
+	}
 	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
-		[]byte(com.Expand(string(data), match)), 0o644); err != nil {
+		[]byte(res), 0o644); err != nil {
 		return fmt.Errorf("write README.md: %v", err)
 	}
 
@@ -306,9 +310,9 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	committerName := sig.Name
 	committerEmail := sig.Email
 
-	if stdout, err := git.NewCommand(ctx, "add", "--all").
+	if stdout, _, err := git.NewCommand(ctx, "add", "--all").
 		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
-		RunInDir(tmpPath); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath}); err != nil {
 		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git add --all: %v", err)
 	}
@@ -343,9 +347,9 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		"GIT_COMMITTER_EMAIL="+committerEmail,
 	)
 
-	if stdout, err := git.NewCommand(ctx, args...).
+	if stdout, _, err := git.NewCommand(ctx, args...).
 		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
-		RunInDirWithEnv(tmpPath, env); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath, Env: env}); err != nil {
 		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
 		return fmt.Errorf("git commit: %v", err)
 	}
@@ -354,9 +358,9 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		defaultBranch = setting.Repository.DefaultBranch
 	}
 
-	if stdout, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
+	if stdout, _, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunInDirWithEnv(tmpPath, models.InternalPushingEnvironment(u, repo)); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath, Env: models.InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
@@ -430,7 +434,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
-		gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+		gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return fmt.Errorf("openRepository: %v", err)
 		}

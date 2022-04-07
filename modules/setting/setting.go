@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
@@ -107,6 +106,7 @@ var (
 	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
+	LandingPageCustom    string
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
@@ -212,6 +212,7 @@ var (
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		FeedPagingNum         int
+		PackagesPagingNum     int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -264,6 +265,7 @@ var (
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
+		PackagesPagingNum:   20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -610,7 +612,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	Cfg.NameMapper = ini.SnackCase
 
-	homeDir, err := com.HomeDir()
+	homeDir, err := util.HomeDir()
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
@@ -775,15 +777,19 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
 
-	switch sec.Key("LANDING_PAGE").MustString("home") {
+	landingPage := sec.Key("LANDING_PAGE").MustString("home")
+	switch landingPage {
 	case "explore":
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	default:
+	case "":
+	case "home":
 		LandingPageURL = LandingPageHome
+	default:
+		LandingPageURL = LandingPage(landingPage)
 	}
 
 	if len(SSH.Domain) == 0 {
@@ -1015,6 +1021,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newRepository()
 
 	newPictureService()
+
+	newPackages()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)

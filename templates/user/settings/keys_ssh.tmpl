@@ -75,7 +75,7 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{$.i18n.Tr "settings.ssh_token_help"}}</p>
-								<p><code>{{$.i18n.Tr "settings.ssh_token_code" $.TokenToSign}}</code></p>
+								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_your_pubkey" $.TokenToSign}}</code></p>
 							</div>
 							<br>
 						</div>

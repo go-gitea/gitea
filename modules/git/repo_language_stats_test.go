@@ -16,7 +16,7 @@ import (
 
 func TestRepository_GetLanguageStats(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "language_stats_repo")
-	gitRepo, err := OpenRepository(repoPath)
+	gitRepo, err := openRepositoryWithDefaultContext(repoPath)
 	if !assert.NoError(t, err) {
 		t.Fatal()
 	}

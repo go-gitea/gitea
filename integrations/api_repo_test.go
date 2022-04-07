@@ -405,6 +405,27 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 	})
 }
 
+// mirror-sync must fail with "400 (Bad Request)" when an attempt is made to
+// sync a non-mirror repository.
+func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+
+	var repo api.Repository
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+	resp := MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, false, repo.Mirror)
+
+	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync?token=%s", token)
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	errRespJSON := map[string]string{}
+	DecodeJSON(t, resp, &errRespJSON)
+	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
+}
+
 func TestAPIOrgRepoCreate(t *testing.T) {
 	testCases := []struct {
 		ctxUserID         int64

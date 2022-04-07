@@ -7,7 +7,7 @@ package cron
 import (
 	"time"
 
-	"github.com/unknwon/i18n"
+	"code.gitea.io/gitea/modules/translation/i18n"
 )
 
 // Config represents a basic configuration interface that cron task

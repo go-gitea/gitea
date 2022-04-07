@@ -191,22 +191,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// SetTotalCountHeader set "X-Total-Count" header
-func (ctx *APIContext) SetTotalCountHeader(total int64) {
-	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
-	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
-}
-
-// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
-func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
-	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
-	if len(val) != 0 {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
-	} else {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
-	}
-}
-
 // RequireCSRF requires a validated a CSRF token
 func (ctx *APIContext) RequireCSRF() {
 	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
@@ -331,7 +315,7 @@ func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.Ca
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 				return
@@ -388,7 +372,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
+			ctx.Repo.GitRepo, err = git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.InternalServerError(err)
 				return

@@ -32,7 +32,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
 	github.com/go-ldap/ldap/v3 v3.4.2
-	github.com/go-redis/redis/v8 v8.11.4
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.29.0
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
@@ -42,6 +42,7 @@ require (
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/google/go-github/v39 v39.2.0
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/sessions v1.2.1
@@ -77,9 +78,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tstranex/u2f v1.0.0
-	github.com/unknwon/com v1.0.1
-	github.com/unknwon/i18n v0.0.0-20210904045753-ff3a8617e361
-	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.4.1
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.58.0
@@ -100,7 +98,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.9
+	xorm.io/builder v0.3.10
 	xorm.io/xorm v1.2.5
 )
 
@@ -202,7 +200,7 @@ require (
 	github.com/jhump/protoreflect v1.8.2 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/kevinburke/ssh_config v1.1.0 // indirect
+	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -250,6 +248,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
+	github.com/unknwon/com v1.0.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
