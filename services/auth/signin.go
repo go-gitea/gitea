@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 
@@ -56,6 +57,10 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		}
 
 		if hasUser {
+			if setting.OAuth2Client.DisablePassword && user.IsOAuth2() {
+				return nil, nil, user_model.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+			}
+
 			source, err := auth.GetSourceByID(user.LoginSource)
 			if err != nil {
 				return nil, nil, err

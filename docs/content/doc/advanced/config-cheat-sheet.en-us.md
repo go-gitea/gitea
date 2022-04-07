@@ -544,6 +544,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
     - disabled - show an error
     - login - show an account linking login
     - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
+- `DISABLE_PASSWORD`: **false**: Disable login via a password or changing the password for oauth2 users. Users will not be able to login via password when true and need to use ssh keys for git access. API keys still work.
 
 ## Service (`service`)
 

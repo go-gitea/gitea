@@ -58,6 +58,7 @@ var OAuth2Client struct {
 	Username               OAuth2UsernameType
 	UpdateAvatar           bool
 	AccountLinking         OAuth2AccountLinkingType
+	DisablePassword        bool
 }
 
 func newOAuth2Client() {
@@ -76,6 +77,7 @@ func newOAuth2Client() {
 		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingLogin)
 		OAuth2Client.AccountLinking = OAuth2AccountLinkingLogin
 	}
+	OAuth2Client.DisablePassword = sec.Key("DISABLE_PASSWORD").MustBool()
 }
 
 func parseScopes(sec *ini.Section, name string) []string {
