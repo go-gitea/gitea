@@ -215,7 +215,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, issues)
 
 	// downloader.GetComments()
-	comments, _, err := downloader.GetComments(&base.Issue{Number: 2, ForeignIndex: 2})
+	comments, _, err := downloader.GetComments(base.GetCommentOptions{
+		Commentable: &base.Issue{Number: 2, ForeignIndex: 2},
+	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -335,7 +337,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	reviews, _, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
+	reviews, _, err := downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.PullRequest{Number: 3, ForeignIndex: 3},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -367,7 +371,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, reviews)
 
-	reviews, _, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
+	reviews, _, err = downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.PullRequest{Number: 4, ForeignIndex: 4},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

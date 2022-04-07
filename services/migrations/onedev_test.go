@@ -95,10 +95,12 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(&base.Issue{
-		Number:       4,
-		ForeignIndex: 398,
-		Context:      onedevIssueContext{IsPullRequest: false},
+	comments, _, err := downloader.GetComments(base.GetCommentOptions{
+		Commentable: &base.Issue{
+			Number:       4,
+			ForeignIndex: 398,
+			Context:      onedevIssueContext{IsPullRequest: false},
+		},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -137,7 +139,9 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, _, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
+	rvs, _, err := downloader.GetReviews(base.GetReviewOptions{
+		Reviewable: &base.PullRequest{Number: 5, ForeignIndex: 186},
+	})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

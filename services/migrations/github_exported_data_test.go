@@ -45,7 +45,7 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, 2, len(issues))
-	assert.EqualValues(t, 1, issues[0].Context.ForeignID())
+	assert.EqualValues(t, 1, issues[0].ForeignIndex)
 	assert.EqualValues(t, "Please add an animated gif icon to the merge button", issues[0].Title)
 	assert.EqualValues(t, "I just want the merge button to hurt my eyes a little. 😝 ", issues[0].Content)
 	assert.EqualValues(t, "guillep2k", issues[0].PosterName)
@@ -58,7 +58,7 @@ func TestParseGithubExportedData(t *testing.T) {
 	assert.NotZero(t, issues[0].Updated)
 	assert.NotZero(t, issues[0].Created)
 
-	assert.EqualValues(t, 2, issues[1].Context.ForeignID())
+	assert.EqualValues(t, 2, issues[1].ForeignIndex)
 	assert.EqualValues(t, "Test issue", issues[1].Title)
 	assert.EqualValues(t, "This is test issue 2, do not touch!", issues[1].Content)
 	assert.EqualValues(t, "mrsdizzie", issues[1].PosterName)

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -385,7 +384,7 @@ func (r *GithubExportedDataRestorer) GetRepoInfo() (*base.Repository, error) {
 	}
 
 	p := filepath.Join(r.tmpDir, "repositories_000001.json")
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
