@@ -200,5 +200,5 @@ func TestTeamSearch(t *testing.T) {
 	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
 	req.Header.Add("X-Csrf-Token", csrf)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
