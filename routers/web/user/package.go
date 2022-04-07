@@ -43,9 +43,9 @@ func ListPackages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID:   ctx.ContextUser.ID,
-		Type:      packageType,
-		QueryName: query,
+		OwnerID: ctx.ContextUser.ID,
+		Type:    packages_model.Type(packageType),
+		Name:    packages_model.SearchValue{Value: query},
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -219,9 +219,12 @@ func ListPackageVersions(ctx *context.Context) {
 		}
 	default:
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			Paginator:    pagination,
-			PackageID:    p.ID,
-			QueryVersion: query,
+			Paginator: pagination,
+			PackageID: p.ID,
+			Version: packages_model.SearchValue{
+				ExactMatch: false,
+				Value:      query,
+			},
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)

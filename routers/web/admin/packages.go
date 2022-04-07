@@ -31,9 +31,9 @@ func Packages(ctx *context.Context) {
 	sort := ctx.FormTrim("sort")
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		QueryName: query,
-		Type:      packageType,
-		Sort:      sort,
+		Type: packages_model.Type(packageType),
+		Name: packages_model.SearchValue{Value: query},
+		Sort: sort,
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,

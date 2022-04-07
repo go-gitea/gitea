@@ -67,7 +67,7 @@ func FindExpiredUnreferencedBlobs(ctx context.Context, olderThan time.Duration) 
 	pbs := make([]*PackageBlob, 0, 10)
 	return pbs, db.GetEngine(ctx).
 		Table("package_blob").
-		Join("LEFT OUTER", "package_file", "package_file.blob_id = package_blob.id").
+		Join("LEFT", "package_file", "package_file.blob_id = package_blob.id").
 		Where("package_file.id IS NULL AND package_blob.created_unix < ?", time.Now().Add(-olderThan).Unix()).
 		Find(&pbs)
 }

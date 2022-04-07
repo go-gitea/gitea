@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/unknwon/i18n"
 )
 
 // GetContentHistoryOverview get overview
