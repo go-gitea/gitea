@@ -10,6 +10,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Cleanup removes expired container data
@@ -43,10 +44,7 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 		return err
 	}
 
-	versions := make(map[int64]struct{})
 	for _, pf := range pfs {
-		versions[pf.VersionID] = struct{}{}
-
 		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeFile, pf.ID); err != nil {
 			return err
 		}
@@ -55,19 +53,26 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 		}
 	}
 
-	for versionID := range versions {
-		has, err := packages_model.HasVersionFileReferences(ctx, versionID)
-		if err != nil {
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		Type: packages_model.TypeContainer,
+		Version: packages_model.SearchValue{
+			ExactMatch: true,
+			Value:      container_model.UploadVersion,
+		},
+		IsInternal: true,
+		HasFiles:   util.OptionalBoolFalse,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, pv := range pvs {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, pv.ID); err != nil {
 			return err
 		}
-		if !has {
-			if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypeVersion, versionID); err != nil {
-				return err
-			}
 
-			if err := packages_model.DeleteVersionByID(ctx, versionID); err != nil {
-				return err
-			}
+		if err := packages_model.DeleteVersionByID(ctx, pv.ID); err != nil {
+			return err
 		}
 	}
 

@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
@@ -289,8 +290,13 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
+		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
-	m.Get("/issues", reqSignIn, user.Issues)
+	m.Group("/issues", func() {
+		m.Get("", user.Issues)
+		m.Get("/search", repo.SearchIssues)
+	}, reqSignIn)
+
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
@@ -421,6 +427,8 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
 		m.Get("/task/{task}", user.TaskStatus)
+		m.Get("/stopwatches", user.GetStopwatches, reqSignIn)
+		m.Get("/search", user.Search, ignExploreSignIn)
 	})
 	// ***** END: User *****
 
@@ -436,6 +444,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
+			m.Get("/stacktrace", admin.GoroutineStacktrace)
 			m.Post("/cancel/{pid}", admin.MonitorCancel)
 			m.Group("/queue/{qid}", func() {
 				m.Get("", admin.Queue)
@@ -472,10 +481,12 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
-		m.Group("/packages", func() {
-			m.Get("", admin.Packages)
-			m.Post("/delete", admin.DeletePackageVersion)
-		})
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", admin.Packages)
+				m.Post("/delete", admin.DeletePackageVersion)
+			})
+		}
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -602,6 +613,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(forms.CreateTeamForm{}), org.NewTeamPost)
+			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", bindIgnErr(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -666,24 +678,27 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/{repoid}").Get(repo.Fork).
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
+		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
 	m.Group("/{username}/-", func() {
-		m.Group("/packages", func() {
-			m.Get("", user.ListPackages)
-			m.Group("/{type}/{name}", func() {
-				m.Get("", user.RedirectToLastVersion)
-				m.Get("/versions", user.ListPackageVersions)
-				m.Group("/{version}", func() {
-					m.Get("", user.ViewPackageVersion)
-					m.Get("/files/{fileid}", user.DownloadPackageFile)
-					m.Group("/settings", func() {
-						m.Get("", user.PackageSettings)
-						m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
-					}, reqPackageAccess(perm.AccessModeWrite))
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", user.ListPackages)
+				m.Group("/{type}/{name}", func() {
+					m.Get("", user.RedirectToLastVersion)
+					m.Get("/versions", user.ListPackageVersions)
+					m.Group("/{version}", func() {
+						m.Get("", user.ViewPackageVersion)
+						m.Get("/files/{fileid}", user.DownloadPackageFile)
+						m.Group("/settings", func() {
+							m.Get("", user.PackageSettings)
+							m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+						}, reqPackageAccess(perm.AccessModeWrite))
+					})
 				})
-			})
-		}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
@@ -806,13 +821,16 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
+			m.Get("/search", repo.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
+				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
@@ -973,7 +991,9 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
-		m.Get("/packages", repo.Packages)
+		if setting.Packages.Enabled {
+			m.Get("/packages", repo.Packages)
+		}
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
@@ -1189,6 +1209,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {

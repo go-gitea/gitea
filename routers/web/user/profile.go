@@ -280,6 +280,7 @@ func Profile(ctx *context.Context) {
 		pager.AddParam(ctx, "language", "Language")
 	}
 	ctx.Data["Page"] = pager
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 
 	ctx.Data["ShowUserEmail"] = len(ctx.ContextUser.Email) > 0 && ctx.IsSigned && (!ctx.ContextUser.KeepEmailPrivate || ctx.ContextUser.ID == ctx.Doer.ID)
 
