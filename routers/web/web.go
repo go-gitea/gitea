@@ -25,13 +25,13 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
@@ -890,6 +890,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Get("/attachments", repo.GetCommentAttachments)
 		})
+		m.Post("/markdown", bindIgnErr(structs.MarkdownOption{}), misc.Markdown)
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), repo.UpdateLabel)
