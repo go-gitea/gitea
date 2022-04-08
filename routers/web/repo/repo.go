@@ -599,6 +599,13 @@ func SearchRepo(ctx *context.Context) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
+		if err = repo.GetOwner(ctx); err != nil {
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
+				OK:    false,
+				Error: err.Error(),
+			})
+			return
+		}
 		results[i] = &api.Repository{
 			ID:       repo.ID,
 			FullName: repo.FullName(),
