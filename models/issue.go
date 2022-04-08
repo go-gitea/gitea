@@ -1270,7 +1270,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 	}
 }
 
-func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
+func (opts *IssuesOptions) setupSessionWithLimit(sess *xorm.Session) {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1280,7 +1280,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		}
 		sess.Limit(opts.PageSize, start)
 	}
+	opts.setupSessionNoLimit(sess)
+}
 
+func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
@@ -1446,7 +1449,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
-	opts.setupSession(sess)
+	opts.setupSessionNoLimit(sess)
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1456,7 +1459,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 		Select("issue.repo_id AS repo_id, COUNT(*) AS count").
 		Table("issue").
 		Find(&countsSlice); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to CountIssuesByRepo: %w", err)
 	}
 
 	countMap := make(map[int64]int64, len(countsSlice))
@@ -1473,14 +1476,14 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
-	opts.setupSession(sess)
+	opts.setupSessionNoLimit(sess)
 
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
 		Distinct("issue.repo_id").
 		Table("issue").
 		Find(&repoIDs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to GetRepoIDsForIssuesOptions: %w", err)
 	}
 
 	return repoIDs, nil
@@ -1491,17 +1494,16 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	e := db.GetEngine(db.DefaultContext)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	opts.setupSession(sess)
+	opts.setupSessionWithLimit(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
 	if err := sess.Find(&issues); err != nil {
-		return nil, fmt.Errorf("Find: %v", err)
+		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}
-	sess.Close()
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
-		return nil, fmt.Errorf("LoadAttributes: %v", err)
+		return nil, fmt.Errorf("unable to LoadAttributes for Issues: %w", err)
 	}
 
 	return issues, nil
@@ -1512,18 +1514,17 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
 	countsSlice := make([]*struct {
-		RepoID int64
-		Count  int64
+		Count int64
 	}, 0, 1)
 
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	opts.setupSession(sess)
+	opts.setupSessionNoLimit(sess)
 	if err := sess.Find(&countsSlice); err != nil {
-		return 0, fmt.Errorf("Find: %v", err)
+		return 0, fmt.Errorf("unable to CountIssues: %w", err)
 	}
-	if len(countsSlice) < 1 {
-		return 0, fmt.Errorf("there is less than one result sql record")
+	if len(countsSlice) != 1 {
+		return 0, fmt.Errorf("unable to get one row result when CountIssues, row count=%d", len(countsSlice))
 	}
 	return countsSlice[0].Count, nil
 }
