@@ -586,7 +586,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		return err
 	}
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -598,7 +598,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_m
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = createComment(ctx, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return err
 	}
 
@@ -618,7 +618,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -642,7 +642,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
 func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 	for _, label := range labels {
@@ -691,7 +691,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 		return nil
 	}
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -702,7 +702,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = createComment(ctx, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return err
 	}
 

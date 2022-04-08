@@ -291,7 +291,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	stderr := new(bytes.Buffer)
 	output := &strings.Builder{}
 	err := NewCommand(repo.Ctx, "diff", "--name-only", base+".."+head).
-		RunWithContext(&RunContext{
+		Run(&RunOpts{
 			Timeout: -1,
 			Dir:     repo.Path,
 			Stdout:  output,

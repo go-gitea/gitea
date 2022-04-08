@@ -8,6 +8,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -102,7 +103,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Release, _ = e.Count(new(Release))
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
-	stats.Counter.Milestone, _ = e.Count(new(Milestone))
+	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))

@@ -120,7 +120,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 	}
 
 	// Repo infos
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
@@ -133,7 +133,7 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = createComment(ctx, opts)
+	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}

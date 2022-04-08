@@ -359,6 +359,10 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
 	if session, ok := loginSessionCache[userName]; ok {
