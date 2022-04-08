@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package access
 
 import (
 	"context"
@@ -118,8 +118,8 @@ func refreshAccesses(e db.Engine, repo *repo_model.Repository, accessMap map[int
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func refreshCollaboratorAccesses(e db.Engine, repoID int64, accessMap map[int64]*userAccess) error {
-	collaborators, err := getCollaborators(e, repoID, db.ListOptions{})
+func refreshCollaboratorAccesses(ctx context.Context, repoID int64, accessMap map[int64]*userAccess) error {
+	collaborators, err := repo_model.GetCollaborators(ctx, repoID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -132,10 +132,10 @@ func refreshCollaboratorAccesses(e db.Engine, repoID int64, accessMap map[int64]
 	return nil
 }
 
-// recalculateTeamAccesses recalculates new accesses for teams of an organization
+// RecalculateTeamAccesses recalculates new accesses for teams of an organization
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
-func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
+func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
 	if err = repo.GetOwner(ctx); err != nil {
@@ -146,7 +146,7 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 
 	e := db.GetEngine(ctx)
 
-	if err = refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
+	if err = refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
@@ -164,7 +164,7 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		// have relations with repository.
 		if t.IsOwnerTeam() {
 			t.AccessMode = perm.AccessModeOwner
-		} else if !hasRepository(ctx, t, repo.ID) {
+		} else if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 			continue
 		}
 
@@ -179,9 +179,9 @@ func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 	return refreshAccesses(e, repo, accessMap)
 }
 
-// recalculateUserAccess recalculates new access for a single user
+// RecalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
+func RecalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
@@ -189,7 +189,7 @@ func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 
 	accessMode := perm.AccessModeNone
 	e := db.GetEngine(ctx)
-	collaborator, err := getCollaboration(e, repo.ID, uid)
+	collaborator, err := repo_model.GetCollaboration(ctx, repo.ID, uid)
 	if err != nil {
 		return err
 	} else if collaborator != nil {
@@ -222,27 +222,23 @@ func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid
 	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
 		return fmt.Errorf("delete old user accesses: %v", err)
 	} else if accessMode >= minMode {
-		if _, err = e.Insert(&Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
+		if err = db.Insert(ctx, &Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
 			return fmt.Errorf("insert new user accesses: %v", err)
 		}
 	}
 	return nil
 }
 
-func recalculateAccesses(ctx context.Context, repo *repo_model.Repository) error {
+// RecalculateAccesses recalculates all accesses for repository.
+func RecalculateAccesses(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.Owner.IsOrganization() {
-		return recalculateTeamAccesses(ctx, repo, 0)
+		return RecalculateTeamAccesses(ctx, repo, 0)
 	}
 
 	e := db.GetEngine(ctx)
 	accessMap := make(map[int64]*userAccess, 20)
-	if err := refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
+	if err := refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 	return refreshAccesses(e, repo, accessMap)
-}
-
-// RecalculateAccesses recalculates all accesses for repository.
-func RecalculateAccesses(repo *repo_model.Repository) error {
-	return recalculateAccesses(db.DefaultContext, repo)
 }

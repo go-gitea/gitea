@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -30,7 +31,7 @@ type preReceiveContext struct {
 	// loadedPusher indicates that where the following information are loaded
 	loadedPusher        bool
 	user                *user_model.User // it's the org user if a DeployKey is used
-	userPerm            models.Permission
+	userPerm            access_model.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
 	canCreatePullRequest        bool
@@ -472,7 +473,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 	ctx.user = user
 
-	userPerm, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
+	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

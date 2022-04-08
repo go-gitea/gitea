@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package access
 
 import (
 	"context"
@@ -205,7 +205,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	var is bool
 	if user != nil {
-		is, err = isCollaborator(e, repo.ID, user.ID)
+		is, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
 		if err != nil {
 			return perm, err
 		}
@@ -367,13 +367,13 @@ func IsUserRepoAdminCtx(ctx context.Context, repo *repo_model.Repository, user *
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
-func AccessLevel(user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) {
+func AccessLevel(user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint
 	return accessLevelUnit(db.DefaultContext, user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
-func AccessLevelUnit(user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) {
+func AccessLevelUnit(user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) { //nolint
 	return accessLevelUnit(db.DefaultContext, user, repo, unitType)
 }
 
@@ -385,24 +385,16 @@ func accessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_mode
 	return perm.UnitAccessMode(unitType), nil
 }
 
-func hasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
+// HasAccessUnit returns true if user has testMode to the unit of the repository
+func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
 	mode, err := accessLevelUnit(ctx, user, repo, unitType)
 	return testMode <= mode, err
-}
-
-// HasAccessUnit returns true if user has testMode to the unit of the repository
-func HasAccessUnit(user *user_model.User, repo *repo_model.Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
-	return hasAccessUnit(db.DefaultContext, user, repo, unitType, testMode)
 }
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
-func CanBeAssigned(user *user_model.User, repo *repo_model.Repository, isPull bool) (bool, error) {
-	return canBeAssigned(db.DefaultContext, user, repo, isPull)
-}
-
-func canBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
+func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
@@ -413,7 +405,8 @@ func canBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.TypeCode, unit.TypeIssues, unit.TypePullRequests), nil
 }
 
-func hasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (bool, error) {
+// HasAccess returns true if user has access to repo
+func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (bool, error) {
 	var user *user_model.User
 	var err error
 	if userID > 0 {
@@ -429,9 +422,36 @@ func hasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	return perm.HasAccess(), nil
 }
 
-// HasAccess returns true if user has access to repo
-func HasAccess(userID int64, repo *repo_model.Repository) (bool, error) {
-	return hasAccess(db.DefaultContext, userID, repo)
+// getUsersWithAccessMode returns users that have at least given access mode to the repository.
+func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode) (_ []*user_model.User, err error) {
+	if err = repo.GetOwner(ctx); err != nil {
+		return nil, err
+	}
+
+	e := db.GetEngine(ctx)
+	accesses := make([]*Access, 0, 10)
+	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).Find(&accesses); err != nil {
+		return nil, err
+	}
+
+	// Leave a seat for owner itself to append later, but if owner is an organization
+	// and just waste 1 unit is cheaper than re-allocate memory once.
+	users := make([]*user_model.User, 0, len(accesses)+1)
+	if len(accesses) > 0 {
+		userIDs := make([]int64, len(accesses))
+		for i := 0; i < len(accesses); i++ {
+			userIDs[i] = accesses[i].UserID
+		}
+
+		if err = e.In("id", userIDs).Find(&users); err != nil {
+			return nil, err
+		}
+	}
+	if !repo.Owner.IsOrganization() {
+		users = append(users, repo.Owner)
+	}
+
+	return users, nil
 }
 
 // GetRepoReaders returns all users that have explicit read access or higher to the repository.
