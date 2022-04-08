@@ -44,7 +44,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 	// Comments that are replies don't require a review header to show up in the issue view
 	if !isReview && existsReview {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
 

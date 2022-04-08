@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -342,9 +343,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)

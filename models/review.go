@@ -427,7 +427,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 	}
 
-	comm, err := createComment(ctx, &CreateCommentOptions{
+	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -662,7 +662,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, err
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -717,7 +717,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 		}
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -776,7 +776,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -786,7 +786,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
 	return comment, committer.Commit()
@@ -837,7 +837,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -846,7 +846,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
 	return comment, committer.Commit()
@@ -887,7 +887,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 	}
 
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(db.DefaultContext); err != nil {
 			return false, err
 		}
 
