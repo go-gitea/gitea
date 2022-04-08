@@ -22,5 +22,6 @@ func TestMain(m *testing.M) {
 		"reaction.yml",
 		"user.yml",
 		"repository.yml",
+		"milestone.yml",
 	)
 }

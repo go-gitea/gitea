@@ -403,7 +403,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones
-	ctx.Data["Milestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["Milestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
 		State:  api.StateType(ctx.FormString("state")),
 	})
@@ -420,7 +420,7 @@ func Issues(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateOpen,
 	})
@@ -428,7 +428,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateClosed,
 	})
@@ -806,7 +806,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.FormInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -915,7 +915,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
@@ -1325,7 +1325,7 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
-					if err = otherIssue.LoadRepo(); err != nil {
+					if err = otherIssue.LoadRepo(ctx); err != nil {
 						ctx.ServerError("LoadRepo", err)
 						return
 					}
@@ -1405,7 +1405,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadMilestone", err)
 				return
 			}
-			ghostMilestone := &models.Milestone{
+			ghostMilestone := &issues_model.Milestone{
 				ID:   -1,
 				Name: ctx.Tr("repo.issues.deleted_milestone"),
 			}
@@ -1994,7 +1994,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	}
 
 	for _, issue := range issues {
-		if err := issue.LoadRepo(); err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			ctx.ServerError("issue.LoadRepo", err)
 			return
 		}
@@ -2344,12 +2344,12 @@ func ListIssues(ctx *context.Context) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if !models.IsErrMilestoneNotExist(err) {
+			if !issues_model.IsErrMilestoneNotExist(err) {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -2357,12 +2357,12 @@ func ListIssues(ctx *context.Context) {
 			if err != nil {
 				continue
 			}
-			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, err.Error())
