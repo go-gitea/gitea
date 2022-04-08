@@ -220,6 +220,7 @@ func (c *csrfProtector) validateToken(ctx *Context, token string) {
 	if !ValidCsrfToken(token, c.Secret, c.ID, "POST", time.Now()) {
 		middleware.DeleteCSRFCookie(ctx.Resp)
 		if middleware.IsAPIPath(ctx.Req) {
+			// currently, there should be no access to the APIPath with CSRF token. because templates shouldn't use the `/api/` endpoints.
 			http.Error(ctx.Resp, "Invalid CSRF token.", http.StatusBadRequest)
 		} else {
 			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
