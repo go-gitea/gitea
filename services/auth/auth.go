@@ -20,16 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
-// The purpose of the following three function variables is to let the linter know that
-// those functions are not dead code and are actually being used
-var (
-	_ = handleSignIn
-
-	// SharedSession the session auth should only be used by web, but now both web and API/v1
-	// will use it. We can remove this after Web removed dependent API/v1
-	SharedSession = &Session{}
-)
-
 // Init should be called exactly once when the application starts to allow plugins
 // to allocate necessary resources
 func Init() {
