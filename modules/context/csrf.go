@@ -216,7 +216,7 @@ func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
 	return x
 }
 
-func (c *csrfProtector) validateToken(ctx *Context, token string) bool {
+func (c *csrfProtector) validateToken(ctx *Context, token string) {
 	if !ValidCsrfToken(token, c.Secret, c.ID, "POST", time.Now()) {
 		middleware.DeleteCSRFCookie(ctx.Resp)
 		if middleware.IsAPIPath(ctx.Req) {
@@ -225,25 +225,21 @@ func (c *csrfProtector) validateToken(ctx *Context, token string) bool {
 			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
-		return false
 	}
-	return true
 }
 
 // Validate should be used as a per route middleware. It attempts to get a token from an "X-Csrf-Token"
-// HTTP header and then a "_csrf" form value. If one of these is found, the token will be validated
-// using ValidToken. If this validation fails, custom Error is sent in the reply.
+// HTTP header and then a "_csrf" form value. If one of these is found, the token will be validated.
+// If this validation fails, custom Error is sent in the reply.
 // If neither a header nor form value is found, http.StatusBadRequest is sent.
 func (c *csrfProtector) Validate(ctx *Context) {
 	if token := ctx.Req.Header.Get(c.GetHeaderName()); token != "" {
-		if c.validateToken(ctx, token) {
-			return
-		}
+		c.validateToken(ctx, token)
+		return
 	}
 	if token := ctx.Req.FormValue(c.GetFormName()); token != "" {
-		if c.validateToken(ctx, token) {
-			return
-		}
+		c.validateToken(ctx, token)
+		return
 	}
 	c.validateToken(ctx, "") // no csrf token, use an empty token to respond error
 }
