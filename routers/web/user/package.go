@@ -260,6 +260,7 @@ func PackageSettings(ctx *context.Context) {
 
 	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
 		Actor: pd.Owner,
+		Private: true,
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
