@@ -259,7 +259,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["PackageDescriptor"] = pd
 
 	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
-		Actor: pd.Owner,
+		Actor:   pd.Owner,
 		Private: true,
 	})
 	ctx.Data["Repos"] = repos
