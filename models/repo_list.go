@@ -454,7 +454,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
-		if opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
 			cond = cond.And(builder.Eq{"is_fork": false})
 		} else {
 			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
