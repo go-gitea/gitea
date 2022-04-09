@@ -60,6 +60,7 @@ type TimelineComment struct {
 	NewTitle     string       `json:"new_title"`
 	OldRef       string       `json:"old_ref"`
 	NewRef       string       `json:"new_ref"`
+	Tag          string       `json:"tag"`
 
 	RefIssue   *Issue   `json:"ref_issue"`
 	RefComment *Comment `json:"ref_comment"`

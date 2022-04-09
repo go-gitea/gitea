@@ -1686,6 +1686,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
+	ctx.Data["IsPullBranchTaggable"] = true
 
 	var hiddenCommentTypes *big.Int
 	if ctx.IsSigned {

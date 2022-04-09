@@ -346,6 +346,15 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
+									{{if .IsPullBranchTaggable}}
+										<div class="ui checkbox ml-2">
+  											<input name="tag_after_merge" type="checkbox">
+											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
+										</div>
+										<div class="ui input ml-2">
+											<input id="tag-name" name="tag_name" placeholder="{{.i18n.Tr "repo.release.tag_name"}}">
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -364,6 +373,15 @@
 										<div class="ui checkbox ml-2">
 											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
+									{{if .IsPullBranchTaggable}}
+										<div class="ui checkbox ml-2">
+											<input name="tag_after_merge" type="checkbox">
+											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
+										</div>
+										<div class="ui input ml-2">
+											<input id="tag-name" name="tag_name" value="" required>
 										</div>
 									{{end}}
 								</form>
@@ -392,6 +410,15 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
+									{{if .IsPullBranchTaggable}}
+										<div class="ui checkbox ml-2">
+											<input name="tag_after_merge" type="checkbox">
+											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
+										</div>
+										<div class="ui input ml-2">
+											<input id="tag-name" name="tag_name" value="" required>
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -416,6 +443,15 @@
 										<div class="ui checkbox ml-2">
 											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
+									{{if .IsPullBranchTaggable}}
+										<div class="ui checkbox ml-2">
+											<input name="tag_after_merge" type="checkbox">
+											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
+										</div>
+										<div class="ui input ml-2">
+											<input id="tag-name" name="tag_name" value="" required>
 										</div>
 									{{end}}
 								</form>
