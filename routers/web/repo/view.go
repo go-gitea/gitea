@@ -489,12 +489,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
-		shouldRenderMarkdown := !ctx.FormBool("plain")
+
+		shouldRenderMarkdown := ctx.FormString("display") != "source"
 		readmeExist := markup.IsReadmeFile(blob.Name()) && shouldRenderMarkdown
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())
-		ctx.Data["IsMarkdownBlob"] = markupType != ""
+		if markupType != "" {
+			ctx.Data["HasSourceRenderedToggle"] = true
+		}
 
 		if markupType != "" && shouldRenderMarkdown {
 			ctx.Data["IsMarkup"] = true
