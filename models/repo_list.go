@@ -481,7 +481,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.OnlyShowRelevant {
-		// Only show a repo that either has a topic, description or custom icon.
+		// Only show a repo that either has a topic or description.
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. topics is non-null.
