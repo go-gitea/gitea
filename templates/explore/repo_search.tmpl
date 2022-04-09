@@ -30,4 +30,9 @@
 		<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
 	</div>
 </form>
+{{if .OnlyShowRelevant}}
+  <div class="ui blue attached message" style="max-width: 90%; margin-top: 0; border-top: 0">
+    <span class="ui tooltip" data-content="{{.i18n.Tr "explore.relevant_repositories_tooltip"}}">{{.i18n.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?no_filter=1")|Escape) | Safe}}</span>
+  </div>
+{{end}}
 <div class="ui divider"></div>
