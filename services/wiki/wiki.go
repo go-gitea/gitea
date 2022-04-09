@@ -138,7 +138,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 	defer func() {
-		if err := util.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -292,7 +292,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 	defer func() {
-		if err := util.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()

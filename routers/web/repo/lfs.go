@@ -111,7 +111,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 	defer func() {
-		if err := util.RemoveTemporaryPath(tmpBasePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
 		}
 	}()

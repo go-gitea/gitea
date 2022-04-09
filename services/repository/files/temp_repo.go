@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -47,7 +46,7 @@ func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Reposito
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
 	defer t.gitRepo.Close()
-	if err := util.RemoveTemporaryPath(t.basePath); err != nil {
+	if err := repo_module.RemoveTemporaryPath(t.basePath); err != nil {
 		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
 	}
 }

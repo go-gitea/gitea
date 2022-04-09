@@ -78,8 +78,8 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 	return repo, nil
 }
 
-// NewContext start repository service
-func NewContext() error {
+// Init start repository service
+func Init() error {
 	repo_module.LoadRepoConfig()
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())

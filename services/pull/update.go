@@ -14,7 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // Update updates pull request with base branch.
@@ -155,7 +155,7 @@ func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObje
 		return nil, err
 	}
 	defer func() {
-		if err := util.RemoveTemporaryPath(tmpRepo); err != nil {
+		if err := repo_module.RemoveTemporaryPath(tmpRepo); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()

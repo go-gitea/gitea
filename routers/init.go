@@ -73,7 +73,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repo_service.NewContext)
+	mustInit(repo_service.Init)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -140,7 +140,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
-	mustInit(repo_service.NewContext)
+	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
 	cron.NewContext(ctx)
