@@ -154,7 +154,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DefaultBranch:                           "master",
+		DefaultBranch:                           "main",
 
 		// Repository editor settings
 		Editor: struct {
