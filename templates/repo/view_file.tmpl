@@ -39,6 +39,12 @@
 			{{end}}
 			{{if not .ReadmeInList}}
 				<div class="ui buttons mr-2">
+					{{if and .IsMarkdownBlob .IsMarkup}}
+						<a class="ui mini basic button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}?plain=1">{{.i18n.Tr "repo.file_view_source_blob"}}</a>
+					{{end}}
+					{{if and .IsMarkdownBlob (not .IsMarkup)}}
+						<a class="ui mini basic button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.file_view_rendered_blob"}}</a>
+					{{end}}
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 					{{if not .IsViewCommit}}
 						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>

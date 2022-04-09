@@ -489,9 +489,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
-		readmeExist := markup.IsReadmeFile(blob.Name())
+		shouldRenderMarkdown := !ctx.FormBool("plain")
+		readmeExist := markup.IsReadmeFile(blob.Name()) && shouldRenderMarkdown
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+
+		markupType := markup.Type(blob.Name())
+		ctx.Data["IsMarkdownBlob"] = markupType != ""
+
+		if markupType != "" && shouldRenderMarkdown {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
