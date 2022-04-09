@@ -36,7 +36,7 @@ var (
 	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
-	ErrIsChecking            = errors.New("PRs who are still being conflict checked cannot be merged")
+	ErrIsChecking            = errors.New("PRs which are still being conflict checked cannot be merged")
 	ErrNotMergableState      = errors.New("not in mergeable state")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
