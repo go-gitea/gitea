@@ -1,8 +1,8 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repository
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // LocalCopyPath returns the local repository temporary copy path.
@@ -36,12 +35,4 @@ func CreateTemporaryPath(prefix string) (string, error) {
 
 	}
 	return basePath, nil
-}
-
-// RemoveTemporaryPath removes the temporary path
-func RemoveTemporaryPath(basePath string) error {
-	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
-		return util.RemoveAll(basePath)
-	}
-	return nil
 }

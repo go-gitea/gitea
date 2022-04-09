@@ -27,8 +27,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -141,7 +143,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		return "", err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+		if err := util.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -497,7 +499,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		headUser = pr.HeadRepo.Owner
 	}
 
-	env = models.FullPushingEnvironment(
+	env = repo_module.FullPushingEnvironment(
 		headUser,
 		doer,
 		pr.BaseRepo,

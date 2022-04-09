@@ -42,6 +42,14 @@ func (repos RepositoryList) Swap(i, j int) {
 	repos[i], repos[j] = repos[j], repos[i]
 }
 
+func valuesRepository(m map[int64]*repo_model.Repository) []*repo_model.Repository {
+	values := make([]*repo_model.Repository, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
+}
+
 // RepositoryListOfMap make list from values of map
 func RepositoryListOfMap(repoMap map[int64]*repo_model.Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))

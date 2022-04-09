@@ -71,6 +71,14 @@ func RemoveAll(name string) error {
 	return err
 }
 
+// RemoveTemporaryPath removes the temporary path
+func RemoveTemporaryPath(basePath string) error {
+	if _, err := os.Stat(basePath); !os.IsNotExist(err) {
+		return RemoveAll(basePath)
+	}
+	return nil
+}
+
 // Rename renames (moves) oldpath to newpath with at most 5 attempts.
 func Rename(oldpath, newpath string) error {
 	var err error

@@ -116,7 +116,9 @@ func GlobalInitInstalled(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales()
 
-	InitGitServices()
+	setting.NewServices()
+	mustInit(storage.Init)
+
 	mailer.NewContext()
 	mustInit(cache.NewContext)
 	notification.NewContext()
@@ -138,6 +140,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
+	mustInit(repo_service.NewContext)
 
 	// Booting long running goroutines.
 	cron.NewContext(ctx)
