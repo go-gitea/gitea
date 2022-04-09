@@ -7,13 +7,13 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,10 +25,20 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // prQueue represents a queue to handle update pull request tests
 var prQueue queue.UniqueQueue
+
+var (
+	ErrIsClosed              = errors.New("pull is cosed")
+	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
+	ErrHasMerged             = errors.New("has already been merged")
+	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
+	ErrNotMergableState      = errors.New("not in mergeable state")
+	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
+)
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
@@ -45,6 +55,79 @@ func AddToTaskQueue(pr *models.PullRequest) {
 	if err != nil && err != queue.ErrAlreadyInQueue {
 		log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
 	}
+}
+
+// CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
+func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
+	if pr.HasMerged {
+		return ErrHasMerged
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		return err
+	} else if pr.Issue.IsClosed {
+		return ErrIsClosed
+	}
+
+	if allowedMerge, err := IsUserAllowedToMerge(pr, *perm, doer); err != nil {
+		return err
+	} else if !allowedMerge {
+		return ErrUserNotAllowedToMerge
+	}
+
+	if manuallMerge {
+		// don't check rules to "auto merge", doer is going to mark this pull as merged manually
+		return nil
+	}
+
+	if pr.IsWorkInProgress() {
+		return ErrIsWorkInProgress
+	}
+
+	if !pr.CanAutoMerge() {
+		return ErrNotMergableState
+	}
+
+	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
+		if models.IsErrDisallowedToMerge(err) {
+			if force {
+				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
+					return err
+				} else if !isRepoAdmin {
+					return ErrUserNotAllowedToMerge
+				}
+			}
+		} else {
+			return err
+		}
+	}
+
+	if _, err := isSignedIfRequired(ctx, pr, doer); err != nil {
+		return err
+	}
+
+	if noDeps, err := models.IssueNoDependenciesLeft(pr.Issue); err != nil {
+		return err
+	} else if !noDeps {
+		return ErrDependenciesLeft
+	}
+
+	return nil
+}
+
+// isSignedIfRequired check if merge will be signed if required
+func isSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
@@ -92,8 +175,8 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err = git.NewCommand(ctx, "merge-base", "--is-ancestor", headFile, pr.BaseBranch).
-		RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand(ctx, "merge-base", "--is-ancestor", headFile, pr.BaseBranch).
+		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath(), Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -113,8 +196,8 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
-		RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
+		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
@@ -122,7 +205,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 		mergeCommit = commitID[:40]
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -168,7 +251,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		// When the commit author is unknown set the BaseRepo owner as merger
 		if merger == nil {
 			if pr.BaseRepo.Owner == nil {
-				if err = pr.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+				if err = pr.BaseRepo.GetOwner(ctx); err != nil {
 					log.Error("BaseRepo.GetOwner[%d]: %v", pr.ID, err)
 					return false
 				}

@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,14 +66,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
 
-	milestones, _, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, _, err = models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})
@@ -233,7 +234,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	fromRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	baseRef := "master"
 	assert.NoError(t, git.InitRepository(git.DefaultContext, fromRepo.RepoPath(), false))
-	_, err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+baseRef).RunInDir(fromRepo.RepoPath())
+	err := git.NewCommand(git.DefaultContext, "symbolic-ref", "HEAD", git.BranchPrefix+baseRef).Run(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", fromRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -247,7 +248,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "Initial Commit",
 	}))
-	fromGitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, fromRepo.RepoPath())
+	fromGitRepo, err := git.OpenRepository(git.DefaultContext, fromRepo.RepoPath())
 	assert.NoError(t, err)
 	defer fromGitRepo.Close()
 	baseSHA, err := fromGitRepo.GetBranchCommitID(baseRef)
@@ -257,7 +258,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	// fromRepo branch1
 	//
 	headRef := "branch1"
-	_, err = git.NewCommand(git.DefaultContext, "checkout", "-b", headRef).RunInDir(fromRepo.RepoPath())
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", headRef).RunStdString(&git.RunOpts{Dir: fromRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(fromRepo.RepoPath(), "README.md"), []byte("SOMETHING"), 0o644))
 	assert.NoError(t, git.AddChanges(fromRepo.RepoPath(), true))
@@ -281,7 +282,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 	assert.NoError(t, git.CloneWithArgs(git.DefaultContext, fromRepo.RepoPath(), forkRepo.RepoPath(), []string{}, git.CloneRepoOptions{
 		Branch: headRef,
 	}))
-	_, err = git.NewCommand(git.DefaultContext, "checkout", "-b", forkHeadRef).RunInDir(forkRepo.RepoPath())
+	_, _, err = git.NewCommand(git.DefaultContext, "checkout", "-b", forkHeadRef).RunStdString(&git.RunOpts{Dir: forkRepo.RepoPath()})
 	assert.NoError(t, err)
 	assert.NoError(t, os.WriteFile(filepath.Join(forkRepo.RepoPath(), "README.md"), []byte(fmt.Sprintf("# branch2 %s", forkRepo.RepoPath())), 0o644))
 	assert.NoError(t, git.AddChanges(forkRepo.RepoPath(), true))
@@ -290,7 +291,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		Author:    &signature,
 		Message:   "branch2 commit",
 	}))
-	forkGitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, forkRepo.RepoPath())
+	forkGitRepo, err := git.OpenRepository(git.DefaultContext, forkRepo.RepoPath())
 	assert.NoError(t, err)
 	defer forkGitRepo.Close()
 	forkHeadSHA, err := forkGitRepo.GetBranchCommitID(forkHeadRef)

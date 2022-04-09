@@ -424,12 +424,12 @@
 					</div>
 				</p>
 			{{else}}
-				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
+				<p>{{.i18n.Tr "repo.issues.due_date_not_set"}}</p>
 			{{end}}
 
 			{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
-					<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/api/v1/repos/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form">
+					<form class="ui fluid action input issue-due-form" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline" method="post" id="update-issue-deadline-form">
 						{{$.CsrfTokenHtml}}
 						<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 						<button class="ui green icon button">

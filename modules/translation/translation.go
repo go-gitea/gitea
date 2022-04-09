@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
-	"github.com/unknwon/i18n"
 	"golang.org/x/text/language"
 )
 
@@ -54,13 +54,13 @@ func TryTr(lang, format string, args ...interface{}) (string, bool) {
 
 // InitLocales loads the locales
 func InitLocales() {
-	i18n.Reset()
+	i18n.ResetDefaultLocales()
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
-	localFiles := make(map[string][]byte)
+	localFiles := make(map[string][]byte, len(localeNames))
 	for _, name := range localeNames {
 		localFiles[name], err = options.Locale(name)
 		if err != nil {
@@ -76,16 +76,21 @@ func InitLocales() {
 	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
-	i18n.SetDefaultLang("en-US")
+	if len(setting.Langs) != 0 {
+		defaultLangName := setting.Langs[0]
+		if defaultLangName != "en-US" {
+			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+		}
+		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
+	}
 
-	allLangs = make([]*LangType, 0, i18n.Count())
+	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
+	allLangs = make([]*LangType, 0, len(langs))
 	allLangMap = map[string]*LangType{}
-	langs := i18n.ListLangs()
-	descs := i18n.ListLangDescs()
 	for i, v := range langs {
 		l := &LangType{v, descs[i]}
 		allLangs = append(allLangs, l)

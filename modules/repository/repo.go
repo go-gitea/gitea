@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +56,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := models.OrgFromUser(u).GetOwnerTeam()
+		t, err := organization.OrgFromUser(u).GetOwnerTeam()
 		if err != nil {
 			return nil, err
 		}
@@ -72,11 +73,16 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	}); err != nil {
 		return repo, fmt.Errorf("Clone: %v", err)
+	}
+
+	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+		return repo, err
 	}
 
 	if opts.Wiki {
@@ -88,16 +94,20 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 
 			if err = git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := util.RemoveAll(wikiPath); err != nil {
 					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
 			}
+		}
+		if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			return repo, err
 		}
 	}
 
@@ -109,14 +119,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	if stdout, err := git.NewCommand(ctx, "update-server-info").
+	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
-		RunInDir(repoPath); err != nil {
+		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -140,6 +150,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		if !opts.Releases {
+			// note: this will greatly improve release (tag) sync
+			// for pull-mirrors with many tags
+			repo.IsMirror = opts.Mirror
 			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
@@ -154,7 +167,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	if err = models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
+	if err = models.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -228,7 +241,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	_, err := git.NewCommand(ctx, "remote", "rm", "origin").RunInDir(repoPath)
+	_, _, err := git.NewCommand(ctx, "remote", "rm", "origin").RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}
@@ -244,6 +257,14 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+
+	// optimized procedure for pull-mirrors which saves a lot of time (in
+	// particular for repos with many tags).
+	if repo.IsMirror {
+		return pullMirrorReleaseSync(repo, gitRepo)
+	}
+
 	existingRelTags := make(map[string]struct{})
 	opts := models.FindReleasesOptions{
 		IncludeDrafts: true,
@@ -276,23 +297,25 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags(0, 0)
-	if err != nil {
-		return fmt.Errorf("unable to GetTags in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
-	}
-	for _, tagName := range tags {
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
-			}
+
+	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
+		tagName := strings.TrimPrefix(refname, git.TagPrefix)
+		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+			return nil
 		}
-	}
-	return nil
+
+		if err := PushUpdateAddTag(repo, gitRepo, tagName, sha1, refname); err != nil {
+			return fmt.Errorf("unable to PushUpdateAddTag: %q to Repo[%d:%s/%s]: %w", tagName, repo.ID, repo.OwnerName, repo.Name, err)
+		}
+
+		return nil
+	})
+	return err
 }
 
 // PushUpdateAddTag must be called for any push actions to add tag
-func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName string) error {
-	tag, err := gitRepo.GetTag(tagName)
+func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagName, sha1, refname string) error {
+	tag, err := gitRepo.GetTagWithID(sha1, tagName)
 	if err != nil {
 		return fmt.Errorf("unable to GetTag: %w", err)
 	}
@@ -436,5 +459,54 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		return err
 	}
 
+	return nil
+}
+
+// pullMirrorReleaseSync is a pull-mirror specific tag<->release table
+// synchronization which overwrites all Releases from the repository tags. This
+// can be relied on since a pull-mirror is always identical to its
+// upstream. Hence, after each sync we want the pull-mirror release set to be
+// identical to the upstream tag set. This is much more efficient for
+// repositories like https://github.com/vim/vim (with over 13000 tags).
+func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository) error {
+	log.Trace("pullMirrorReleaseSync: rebuilding releases for pull-mirror Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
+	tags, numTags, err := gitRepo.GetTagInfos(0, 0)
+	if err != nil {
+		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+	err = db.WithTx(func(ctx context.Context) error {
+		//
+		// clear out existing releases
+		//
+		if _, err := db.DeleteByBean(ctx, &models.Release{RepoID: repo.ID}); err != nil {
+			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		}
+		//
+		// make release set identical to upstream tags
+		//
+		for _, tag := range tags {
+			release := models.Release{
+				RepoID:       repo.ID,
+				TagName:      tag.Name,
+				LowerTagName: strings.ToLower(tag.Name),
+				Sha1:         tag.Object.String(),
+				// NOTE: ignored, since NumCommits are unused
+				// for pull-mirrors (only relevant when
+				// displaying releases, IsTag: false)
+				NumCommits:  -1,
+				CreatedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				IsTag:       true,
+			}
+			if err := db.Insert(ctx, release); err != nil {
+				return fmt.Errorf("unable insert tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+	}
+
+	log.Trace("pullMirrorReleaseSync: done rebuilding %d releases", numTags)
 	return nil
 }

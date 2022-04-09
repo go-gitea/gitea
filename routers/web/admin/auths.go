@@ -310,7 +310,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Authentication created by admin(%s): %s", ctx.User.Name, form.Name)
+	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.new_success", form.Name))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths")
@@ -413,7 +413,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + strconv.FormatInt(form.ID, 10))
@@ -438,7 +438,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		})
 		return
 	}
-	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{

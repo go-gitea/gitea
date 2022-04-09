@@ -21,11 +21,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -111,19 +109,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	owner, err := user_model.GetUserByName(username)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
-				context.RedirectToUser(ctx, username, redirectUserID)
-			} else {
-				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
-			}
-		} else {
-			ctx.ServerError("GetUserByName", err)
-		}
-		return
-	}
+	owner := ctx.ContextUser
 	if !owner.IsOrganization() && !owner.IsActive {
 		ctx.PlainText(http.StatusForbidden, "Repository cannot be accessed. You cannot push or open issues/pull-requests.")
 		return
@@ -159,7 +145,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// don't allow anonymous pulls if organization is not public
 	if isPublicPull {
-		if err := repo.GetOwner(db.DefaultContext); err != nil {
+		if err := repo.GetOwner(ctx); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}
@@ -178,7 +164,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
-			_, err = auth.GetTwoFactorByUID(ctx.User.ID)
+			_, err = auth.GetTwoFactorByUID(ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.PlainText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
@@ -189,13 +175,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			}
 		}
 
-		if !ctx.User.IsActive || ctx.User.ProhibitLogin {
+		if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
 			ctx.PlainText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
 		if repoExist {
-			p, err := models.GetUserRepoPermission(repo, ctx.User)
+			p, err := models.GetUserRepoPermission(repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -220,14 +206,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + ctx.User.Name,
-			models.EnvPusherID + fmt.Sprintf("=%d", ctx.User.ID),
-			models.EnvIsDeployKey + "=false",
+			models.EnvPusherName + "=" + ctx.Doer.Name,
+			models.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
 			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
-		if !ctx.User.KeepEmailPrivate {
-			environ = append(environ, models.EnvPusherEmail+"="+ctx.User.Email)
+		if !ctx.Doer.KeepEmailPrivate {
+			environ = append(environ, models.EnvPusherEmail+"="+ctx.Doer.Email)
 		}
 
 		if isWiki {
@@ -263,7 +248,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(ctx.User, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx.Doer, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
@@ -328,7 +313,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			return
 		}
 
-		refs, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunInDirBytes(tmpDir)
+		refs, _, err := git.NewCommand(ctx, "receive-pack", "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Dir: tmpDir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}
@@ -412,7 +397,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 var safeGitProtocolHeader = regexp.MustCompile(`^[0-9a-zA-Z]+=[0-9a-zA-Z]+(:[0-9a-zA-Z]+=[0-9a-zA-Z]+)*$`)
 
 func getGitConfig(ctx gocontext.Context, option, dir string) string {
-	out, err := git.NewCommand(ctx, "config", option).RunInDir(dir)
+	out, _, err := git.NewCommand(ctx, "config", option).RunStdString(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error("%v - %s", err, out)
 	}
@@ -487,13 +472,12 @@ func serviceRPC(ctx gocontext.Context, h serviceHandler, service string) {
 	var stderr bytes.Buffer
 	cmd := git.NewCommand(h.r.Context(), service, "--stateless-rpc", h.dir)
 	cmd.SetDescription(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
-	if err := cmd.RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     h.dir,
-		Env:     append(os.Environ(), h.environ...),
-		Stdout:  h.w,
-		Stdin:   reqBody,
-		Stderr:  &stderr,
+	if err := cmd.Run(&git.RunOpts{
+		Dir:    h.dir,
+		Env:    append(os.Environ(), h.environ...),
+		Stdout: h.w,
+		Stdin:  reqBody,
+		Stderr: &stderr,
 	}); err != nil {
 		if err.Error() != "signal: killed" {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())
@@ -527,7 +511,7 @@ func getServiceType(r *http.Request) string {
 }
 
 func updateServerInfo(ctx gocontext.Context, dir string) []byte {
-	out, err := git.NewCommand(ctx, "update-server-info").RunInDirBytes(dir)
+	out, _, err := git.NewCommand(ctx, "update-server-info").RunStdBytes(&git.RunOpts{Dir: dir})
 	if err != nil {
 		log.Error(fmt.Sprintf("%v - %s", err, string(out)))
 	}
@@ -557,7 +541,7 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunInDirTimeoutEnv(h.environ, -1, h.dir)
+		refs, _, err := git.NewCommand(ctx, service, "--stateless-rpc", "--advertise-refs", ".").RunStdBytes(&git.RunOpts{Env: h.environ, Dir: h.dir})
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
 		}

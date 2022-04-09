@@ -24,10 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 	"code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle repo_model.MergeStyle) *httptest.ResponseRecorder {
@@ -42,7 +42,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	return resp
 }
@@ -220,7 +220,7 @@ func TestCantMergeConflict(t *testing.T) {
 			Base:  "base",
 			Title: "create a conflicting pr",
 		})
-		session.MakeRequest(t, req, 201)
+		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
@@ -238,7 +238,7 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		gitRepo, err := git.OpenRepository(repo_model.RepoPath(user1.Name, repo1.Name))
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
 		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
@@ -269,25 +269,24 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*repo_model.Repository)
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").RunInDir(path)
+		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").Run(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")
 		var stdout strings.Builder
-		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").RunWithContext(&git.RunContext{
-			Timeout: -1,
-			Dir:     path,
-			Stdin:   stdin,
-			Stdout:  &stdout,
+		err = git.NewCommand(git.DefaultContext, "hash-object", "-w", "--stdin").Run(&git.RunOpts{
+			Dir:    path,
+			Stdin:  stdin,
+			Stdout: &stdout,
 		})
 
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunInDir(path)
+		_, _, err = git.NewCommand(git.DefaultContext, "update-index", "--add", "--replace", "--cacheinfo", "100644", sha, "somewher-over-the-rainbow").RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
-		treeSha, err := git.NewCommand(git.DefaultContext, "write-tree").RunInDir(path)
+		treeSha, _, err := git.NewCommand(git.DefaultContext, "write-tree").RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -308,17 +307,16 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout.Reset()
 		err = git.NewCommand(git.DefaultContext, "commit-tree", treeSha).
-			RunWithContext(&git.RunContext{
-				Env:     env,
-				Timeout: -1,
-				Dir:     path,
-				Stdin:   messageBytes,
-				Stdout:  &stdout,
+			Run(&git.RunOpts{
+				Env:    env,
+				Dir:    path,
+				Stdin:  messageBytes,
+				Stdout: &stdout,
 			})
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout.String())
 
-		_, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunInDir(path)
+		_, _, err = git.NewCommand(git.DefaultContext, "branch", "unrelated", commitSha).RunStdString(&git.RunOpts{Dir: path})
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -330,10 +328,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 			Base:  "base",
 			Title: "create an unrelated pr",
 		})
-		session.MakeRequest(t, req, 201)
+		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := git.OpenRepository(path)
+		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
 		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,

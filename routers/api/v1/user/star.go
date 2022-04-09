@@ -21,7 +21,7 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
-	starredRepos, err := models.GetStarredRepos(user.ID, private, listOptions)
+	starredRepos, err := repo_model.GetStarredRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -62,15 +62,14 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	private := user.ID == ctx.User.ID
-	repos, err := getStarredRepos(user, private, utils.GetListOptions(ctx))
+	private := ctx.ContextUser.ID == ctx.Doer.ID
+	repos, err := getStarredRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(user.NumStars))
+	ctx.SetTotalCountHeader(int64(ctx.ContextUser.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -94,12 +93,12 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getStarredRepos(ctx.User, true, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx.Doer, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.User.NumStars))
+	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -125,7 +124,7 @@ func IsStarring(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if repo_model.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsStaring(ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
@@ -152,7 +151,7 @@ func Star(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
@@ -180,7 +179,7 @@ func Unstar(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := repo_model.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return

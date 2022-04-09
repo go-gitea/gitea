@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/caddyserver/certmagic"
@@ -107,6 +108,9 @@ func runACME(listenAddr string, m http.Handler) error {
 
 	if enableHTTPChallenge {
 		go func() {
+			_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: ACME HTTP challenge server", process.SystemProcessType, true)
+			defer finished()
+
 			log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 			// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
 			err := runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, "Let's Encrypt HTTP Challenge", myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
@@ -128,5 +132,5 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 	// URI always contains a leading slash, which would result in a double
 	// slash
 	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
-	http.Redirect(w, r, target, http.StatusFound)
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }

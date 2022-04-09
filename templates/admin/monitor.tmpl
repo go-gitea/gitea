@@ -3,40 +3,7 @@
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.monitor.cron"}}
-		</h4>
-		<div class="ui attached table segment">
-			<form method="post" action="{{AppSubUrl}}/admin">
-				<table class="ui very basic striped table">
-					<thead>
-						<tr>
-							<th></th>
-							<th>{{.i18n.Tr "admin.monitor.name"}}</th>
-							<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
-							<th>{{.i18n.Tr "admin.monitor.next"}}</th>
-							<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
-							<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{{range .Entries}}
-							<tr>
-								<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.i18n.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
-								<td>{{$.i18n.Tr (printf "admin.dashboard.%s" .Name)}}</td>
-								<td>{{.Spec}}</td>
-								<td>{{DateFmtLong .Next}}</td>
-								<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
-								<td>{{.ExecTimes}}</td>
-							</tr>
-						{{end}}
-					</tbody>
-				</table>
-				<input type="hidden" name="from" value="monitor"/>
-				{{.CsrfTokenHtml}}
-			</form>
-		</div>
-
+		{{template "admin/cron" .}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.monitor.queues"}}
 		</h4>

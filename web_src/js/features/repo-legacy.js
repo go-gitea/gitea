@@ -16,7 +16,7 @@ import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoClone,
+  initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -498,7 +498,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoClone();
+  initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 

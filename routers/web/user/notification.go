@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 const (
@@ -33,7 +34,7 @@ func GetNotificationCount(c *context.Context) {
 	}
 
 	c.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
+		count, err := models.GetNotificationCount(c.Doer, models.NotificationStatusUnread)
 		if err != nil {
 			c.ServerError("GetNotificationCount", err)
 			return -1
@@ -78,7 +79,7 @@ func getNotifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
-	total, err := models.GetNotificationCount(c.User, status)
+	total, err := models.GetNotificationCount(c.Doer, status)
 	if err != nil {
 		c.ServerError("ErrGetNotificationCount", err)
 		return
@@ -92,7 +93,7 @@ func getNotifications(c *context.Context) {
 	}
 
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
-	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
+	notifications, err := models.NotificationsForUser(c.Doer, statuses, page, perPage)
 	if err != nil {
 		c.ServerError("ErrNotificationsForUser", err)
 		return
@@ -161,7 +162,7 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	if _, err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
+	if _, err := models.SetNotificationStatus(notificationID, c.Doer, status); err != nil {
 		c.ServerError("SetNotificationStatus", err)
 		return
 	}
@@ -183,11 +184,16 @@ func NotificationStatusPost(c *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(c *context.Context) {
-	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
+	err := models.UpdateNotificationStatuses(c.Doer, models.NotificationStatusUnread, models.NotificationStatusRead)
 	if err != nil {
 		c.ServerError("ErrUpdateNotificationStatuses", err)
 		return
 	}
 
 	c.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+}
+
+// NewAvailable returns the notification counts
+func NewAvailable(ctx *context.APIContext) {
+	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.Doer)})
 }

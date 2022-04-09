@@ -79,14 +79,14 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err := repo_module.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}
 
-		if stdout, err := git.NewCommand(ctx, "update-server-info").
+		if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
-			RunInDir(repoPath); err != nil {
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}
@@ -123,7 +123,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	repo.IsEmpty = false
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
@@ -339,6 +339,13 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 		}
 
 		repoNamesToCheck = append(repoNamesToCheck, name)
+		if len(repoNamesToCheck) > setting.Database.IterateBufferSize {
+			if err = checkUnadoptedRepositories(userName, repoNamesToCheck, unadopted); err != nil {
+				return err
+			}
+			repoNamesToCheck = repoNamesToCheck[:0]
+
+		}
 		return filepath.SkipDir
 	}); err != nil {
 		return nil, 0, err

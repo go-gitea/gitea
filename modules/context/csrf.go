@@ -19,38 +19,31 @@
 package context
 
 import (
+	"encoding/base32"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
-
-	"github.com/unknwon/com"
 )
 
-// CSRF represents a CSRF service and is used to get the current token and validate a suspect token.
-type CSRF interface {
-	// Return HTTP header to search for token.
+// CSRFProtector represents a CSRF protector and is used to get the current token and validate the token.
+type CSRFProtector interface {
+	// GetHeaderName returns HTTP header to search for token.
 	GetHeaderName() string
-	// Return form value to search for token.
+	// GetFormName returns form value to search for token.
 	GetFormName() string
-	// Return cookie name to search for token.
-	GetCookieName() string
-	// Return cookie path
-	GetCookiePath() string
-	// Return the flag value used for the csrf token.
-	GetCookieHTTPOnly() bool
-	// Return cookie domain
-	GetCookieDomain() string
-	// Return the token.
+	// GetToken returns the token.
 	GetToken() string
-	// Validate by token.
-	ValidToken(t string) bool
-	// Error replies to the request with a custom function when ValidToken fails.
-	Error(w http.ResponseWriter)
+	// Validate validates the token in http context.
+	Validate(ctx *Context)
 }
 
-type csrf struct {
+type csrfProtector struct {
 	// Header name value for setting and getting csrf token.
 	Header string
 	// Form name value for setting and getting csrf token.
@@ -69,54 +62,22 @@ type csrf struct {
 	ID string
 	// Secret used along with the unique id above to generate the Token.
 	Secret string
-	// ErrorFunc is the custom function that replies to the request when ValidToken fails.
-	ErrorFunc func(w http.ResponseWriter)
 }
 
 // GetHeaderName returns the name of the HTTP header for csrf token.
-func (c *csrf) GetHeaderName() string {
+func (c *csrfProtector) GetHeaderName() string {
 	return c.Header
 }
 
 // GetFormName returns the name of the form value for csrf token.
-func (c *csrf) GetFormName() string {
+func (c *csrfProtector) GetFormName() string {
 	return c.Form
-}
-
-// GetCookieName returns the name of the cookie for csrf token.
-func (c *csrf) GetCookieName() string {
-	return c.Cookie
-}
-
-// GetCookiePath returns the path of the cookie for csrf token.
-func (c *csrf) GetCookiePath() string {
-	return c.CookiePath
-}
-
-// GetCookieHTTPOnly returns the flag value used for the csrf token.
-func (c *csrf) GetCookieHTTPOnly() bool {
-	return c.CookieHTTPOnly
-}
-
-// GetCookieDomain returns the flag value used for the csrf token.
-func (c *csrf) GetCookieDomain() string {
-	return c.CookieDomain
 }
 
 // GetToken returns the current token. This is typically used
 // to populate a hidden form in an HTML template.
-func (c *csrf) GetToken() string {
+func (c *csrfProtector) GetToken() string {
 	return c.Token
-}
-
-// ValidToken validates the passed token against the existing Secret and ID.
-func (c *csrf) ValidToken(t string) bool {
-	return ValidToken(t, c.Secret, c.ID, "POST")
-}
-
-// Error replies to the request when ValidToken fails.
-func (c *csrf) Error(w http.ResponseWriter) {
-	c.ErrorFunc(w)
 }
 
 // CsrfOptions maintains options to manage behavior of Generate.
@@ -140,7 +101,7 @@ type CsrfOptions struct {
 	SessionKey string
 	// oldSessionKey saves old value corresponding to SessionKey.
 	oldSessionKey string
-	// If true, send token via X-CSRFToken header.
+	// If true, send token via X-Csrf-Token header.
 	SetHeader bool
 	// If true, send token via _csrf cookie.
 	SetCookie bool
@@ -148,52 +109,43 @@ type CsrfOptions struct {
 	Secure bool
 	// Disallow Origin appear in request header.
 	Origin bool
-	// The function called when Validate fails.
-	ErrorFunc func(w http.ResponseWriter)
-	// Cookie life time. Default is 0
+	// Cookie lifetime. Default is 0
 	CookieLifeTime int
 }
 
-func prepareOptions(options []CsrfOptions) CsrfOptions {
-	var opt CsrfOptions
-	if len(options) > 0 {
-		opt = options[0]
+func prepareDefaultCsrfOptions(opt CsrfOptions) CsrfOptions {
+	if opt.Secret == "" {
+		randBytes, err := util.CryptoRandomBytes(8)
+		if err != nil {
+			// this panic can be handled by the recover() in http handlers
+			panic(fmt.Errorf("failed to generate random bytes: %w", err))
+		}
+		opt.Secret = base32.StdEncoding.EncodeToString(randBytes)
 	}
-
-	// Defaults.
-	if len(opt.Secret) == 0 {
-		opt.Secret = string(com.RandomCreateBytes(10))
+	if opt.Header == "" {
+		opt.Header = "X-Csrf-Token"
 	}
-	if len(opt.Header) == 0 {
-		opt.Header = "X-CSRFToken"
-	}
-	if len(opt.Form) == 0 {
+	if opt.Form == "" {
 		opt.Form = "_csrf"
 	}
-	if len(opt.Cookie) == 0 {
+	if opt.Cookie == "" {
 		opt.Cookie = "_csrf"
 	}
-	if len(opt.CookiePath) == 0 {
+	if opt.CookiePath == "" {
 		opt.CookiePath = "/"
 	}
-	if len(opt.SessionKey) == 0 {
+	if opt.SessionKey == "" {
 		opt.SessionKey = "uid"
 	}
 	opt.oldSessionKey = "_old_" + opt.SessionKey
-	if opt.ErrorFunc == nil {
-		opt.ErrorFunc = func(w http.ResponseWriter) {
-			http.Error(w, "Invalid csrf token.", http.StatusBadRequest)
-		}
-	}
-
 	return opt
 }
 
-// Csrfer maps CSRF to each request. If this request is a Get request, it will generate a new token.
+// PrepareCSRFProtector returns a CSRFProtector to be used for every request.
 // Additionally, depending on options set, generated tokens will be sent via Header and/or Cookie.
-func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
-	opt = prepareOptions([]CsrfOptions{opt})
-	x := &csrf{
+func PrepareCSRFProtector(opt CsrfOptions, ctx *Context) CSRFProtector {
+	opt = prepareDefaultCsrfOptions(opt)
+	x := &csrfProtector{
 		Secret:         opt.Secret,
 		Header:         opt.Header,
 		Form:           opt.Form,
@@ -201,7 +153,6 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 		CookieDomain:   opt.CookieDomain,
 		CookiePath:     opt.CookiePath,
 		CookieHTTPOnly: opt.CookieHTTPOnly,
-		ErrorFunc:      opt.ErrorFunc,
 	}
 
 	if opt.Origin && len(ctx.Req.Header.Get("Origin")) > 0 {
@@ -209,33 +160,43 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 	}
 
 	x.ID = "0"
-	uid := ctx.Session.Get(opt.SessionKey)
-	if uid != nil {
-		x.ID = com.ToStr(uid)
+	uidAny := ctx.Session.Get(opt.SessionKey)
+	if uidAny != nil {
+		switch uidVal := uidAny.(type) {
+		case string:
+			x.ID = uidVal
+		case int64:
+			x.ID = strconv.FormatInt(uidVal, 10)
+		default:
+			log.Error("invalid uid type in session: %T", uidAny)
+		}
 	}
 
-	needsNew := false
 	oldUID := ctx.Session.Get(opt.oldSessionKey)
-	if oldUID == nil || oldUID.(string) != x.ID {
-		needsNew = true
+	uidChanged := oldUID == nil || oldUID.(string) != x.ID
+	cookieToken := ctx.GetCookie(opt.Cookie)
+
+	needsNew := true
+	if uidChanged {
 		_ = ctx.Session.Set(opt.oldSessionKey, x.ID)
-	} else {
-		// If cookie present, map existing token, else generate a new one.
-		if val := ctx.GetCookie(opt.Cookie); len(val) > 0 {
-			// FIXME: test coverage.
-			x.Token = val
-		} else {
-			needsNew = true
+	} else if cookieToken != "" {
+		// If cookie token presents, re-use existing unexpired token, else generate a new one.
+		if issueTime, ok := ParseCsrfToken(cookieToken); ok {
+			dur := time.Since(issueTime) // issueTime is not a monotonic-clock, the server time may change a lot to an early time.
+			if dur >= -CsrfTokenRegenerationInterval && dur <= CsrfTokenRegenerationInterval {
+				x.Token = cookieToken
+				needsNew = false
+			}
 		}
 	}
 
 	if needsNew {
 		// FIXME: actionId.
-		x.Token = GenerateToken(x.Secret, x.ID, "POST")
+		x.Token = GenerateCsrfToken(x.Secret, x.ID, "POST", time.Now())
 		if opt.SetCookie {
 			var expires interface{}
 			if opt.CookieLifeTime == 0 {
-				expires = time.Now().AddDate(0, 0, 1)
+				expires = time.Now().Add(CsrfTokenTimeout)
 			}
 			middleware.SetCookie(ctx.Resp, opt.Cookie, x.Token,
 				opt.CookieLifeTime,
@@ -255,47 +216,31 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 	return x
 }
 
-// Validate should be used as a per route middleware. It attempts to get a token from a "X-CSRFToken"
-// HTTP header and then a "_csrf" form value. If one of these is found, the token will be validated
-// using ValidToken. If this validation fails, custom Error is sent in the reply.
-// If neither a header or form value is found, http.StatusBadRequest is sent.
-func Validate(ctx *Context, x CSRF) {
-	if token := ctx.Req.Header.Get(x.GetHeaderName()); len(token) > 0 {
-		if !x.ValidToken(token) {
-			// Delete the cookie
-			middleware.SetCookie(ctx.Resp, x.GetCookieName(), "",
-				-1,
-				x.GetCookiePath(),
-				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-			if middleware.IsAPIPath(ctx.Req) {
-				x.Error(ctx.Resp)
-				return
-			}
+func (c *csrfProtector) validateToken(ctx *Context, token string) {
+	if !ValidCsrfToken(token, c.Secret, c.ID, "POST", time.Now()) {
+		middleware.DeleteCSRFCookie(ctx.Resp)
+		if middleware.IsAPIPath(ctx.Req) {
+			// currently, there should be no access to the APIPath with CSRF token. because templates shouldn't use the `/api/` endpoints.
+			http.Error(ctx.Resp, "Invalid CSRF token.", http.StatusBadRequest)
+		} else {
 			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
+	}
+}
+
+// Validate should be used as a per route middleware. It attempts to get a token from an "X-Csrf-Token"
+// HTTP header and then a "_csrf" form value. If one of these is found, the token will be validated.
+// If this validation fails, custom Error is sent in the reply.
+// If neither a header nor form value is found, http.StatusBadRequest is sent.
+func (c *csrfProtector) Validate(ctx *Context) {
+	if token := ctx.Req.Header.Get(c.GetHeaderName()); token != "" {
+		c.validateToken(ctx, token)
 		return
 	}
-	if token := ctx.Req.FormValue(x.GetFormName()); len(token) > 0 {
-		if !x.ValidToken(token) {
-			// Delete the cookie
-			middleware.SetCookie(ctx.Resp, x.GetCookieName(), "",
-				-1,
-				x.GetCookiePath(),
-				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
-			if middleware.IsAPIPath(ctx.Req) {
-				x.Error(ctx.Resp)
-				return
-			}
-			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
-			ctx.Redirect(setting.AppSubURL + "/")
-		}
+	if token := ctx.Req.FormValue(c.GetFormName()); token != "" {
+		c.validateToken(ctx, token)
 		return
 	}
-	if middleware.IsAPIPath(ctx.Req) {
-		http.Error(ctx.Resp, "Bad Request: no CSRF token present", http.StatusBadRequest)
-		return
-	}
-	ctx.Flash.Error(ctx.Tr("error.missing_csrf"))
-	ctx.Redirect(setting.AppSubURL + "/")
+	c.validateToken(ctx, "") // no csrf token, use an empty token to respond error
 }

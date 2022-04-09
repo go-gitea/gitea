@@ -20,15 +20,16 @@ import (
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name        string
-	Description string
-	Private     bool
-	GitContent  bool
-	Topics      bool
-	GitHooks    bool
-	Webhooks    bool
-	Avatar      bool
-	IssueLabels bool
+	Name          string
+	DefaultBranch string
+	Description   string
+	Private       bool
+	GitContent    bool
+	Topics        bool
+	GitHooks      bool
+	Webhooks      bool
+	Avatar        bool
+	IssueLabels   bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
@@ -109,7 +110,7 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
 		}
-		if err := newLabel(db.GetEngine(ctx), generateLabel); err != nil {
+		if err := db.Insert(ctx, generateLabel); err != nil {
 			return err
 		}
 	}

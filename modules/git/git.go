@@ -54,9 +54,9 @@ func LoadGitVersion() error {
 		return nil
 	}
 
-	stdout, err := NewCommand(context.Background(), "version").Run()
-	if err != nil {
-		return err
+	stdout, _, runErr := NewCommand(context.Background(), "version").RunStdString(nil)
+	if runErr != nil {
+		return runErr
 	}
 
 	fields := strings.Fields(stdout)
@@ -74,6 +74,7 @@ func LoadGitVersion() error {
 		versionString = fields[2]
 	}
 
+	var err error
 	gitVersion, err = version.NewVersion(versionString)
 	return err
 }
@@ -124,7 +125,9 @@ func VersionInfo() string {
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
-	defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+	if setting.Git.Timeout.Default > 0 {
+		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+	}
 
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
@@ -295,10 +298,5 @@ func checkAndRemoveConfig(key, value string) error {
 
 // Fsck verifies the connectivity and validity of the objects in the database
 func Fsck(ctx context.Context, repoPath string, timeout time.Duration, args ...string) error {
-	// Make sure timeout makes sense.
-	if timeout <= 0 {
-		timeout = -1
-	}
-	_, err := NewCommand(ctx, "fsck").AddArguments(args...).RunInDirTimeout(timeout, repoPath)
-	return err
+	return NewCommand(ctx, "fsck").AddArguments(args...).Run(&RunOpts{Timeout: timeout, Dir: repoPath})
 }

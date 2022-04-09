@@ -26,7 +26,7 @@ func TestArchivedIssues(t *testing.T) {
 	ctx.Req.Form.Set("state", "open")
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctx.User})
+	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctx.Doer})
 	assert.Len(t, repos, 2)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)

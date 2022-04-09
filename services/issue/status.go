@@ -14,7 +14,7 @@ import (
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	comment, err := issue.ChangeStatus(doer, closed)
+	comment, err := models.ChangeIssueStatus(issue, doer, closed)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) && closed {
 			if err := models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue); err != nil {

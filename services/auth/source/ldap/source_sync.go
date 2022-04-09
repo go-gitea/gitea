@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	user_service "code.gitea.io/gitea/services/user"
@@ -62,8 +62,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	})
 
 	userPos := 0
-	orgCache := make(map[string]*models.Organization)
-	teamCache := make(map[string]*models.Team)
+	orgCache := make(map[string]*organization.Organization)
+	teamCache := make(map[string]*organization.Team)
 
 	for _, su := range sr {
 		select {
@@ -202,7 +202,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.authSource.Name, usr.Name)
 
 				usr.IsActive = false
-				err = user_model.UpdateUserCols(db.DefaultContext, usr, "is_active")
+				err = user_model.UpdateUserCols(ctx, usr, "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.authSource.Name, usr.Name, err)
 				}
