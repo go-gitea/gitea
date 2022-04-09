@@ -37,10 +37,11 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	}
 
 	var (
-		repos   []*repo_model.Repository
-		count   int64
-		err     error
-		orderBy db.SearchOrderBy
+		repos            []*repo_model.Repository
+		count            int64
+		err              error
+		orderBy          db.SearchOrderBy
+		onlyShowRelevant bool
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -72,9 +73,16 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
+		onlyShowRelevant = true
 	}
 
 	keyword := ctx.FormTrim("q")
+	if keyword != "" {
+		onlyShowRelevant = false
+	}
+
+	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
@@ -96,6 +104,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		OnlyShowRelevant:   onlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)

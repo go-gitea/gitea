@@ -147,6 +147,10 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+	// When specified true, apply some filters over the conditions:
+	// - Don't show forks, when opts.Fork is OptionalBoolNone.
+	// - Do not display repositories that lacks a description, icon and topic.
+	OnlyShowRelevant bool
 }
 
 // SearchOrderBy is used to sort the result
@@ -449,8 +453,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant {
+			cond = cond.And(builder.Eq{"is_fork": false})
+		} else {
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+		}
 	}
 
 	if opts.Mirror != util.OptionalBoolNone {
@@ -470,6 +478,19 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		cond = cond.And(builder.Gt{"num_milestones": 0})
 	case util.OptionalBoolFalse:
 		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	if opts.OnlyShowRelevant {
+		// Only show a repo that either has a topic, description or custom icon.
+		subQueryCond := builder.NewCond()
+
+		// Topic checking. topics is non-null.
+		subQueryCond = subQueryCond.Or(builder.Neq{"topics": "null"})
+
+		// Description checking. Description not empty.
+		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
+
+		cond = cond.And(subQueryCond)
 	}
 
 	return cond
