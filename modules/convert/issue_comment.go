@@ -83,6 +83,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 
 		OldRef: c.OldRef,
 		NewRef: c.NewRef,
+		Tag:    c.Tag,
 
 		RefAction:    c.RefAction.String(),
 		RefCommitSHA: c.CommitSHA,

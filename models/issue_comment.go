@@ -110,6 +110,8 @@ const (
 	CommentTypeDismissReview
 	// 33 Change issue ref
 	CommentTypeChangeIssueRef
+	// 34 tag PR commit
+	CommentTypeTagPRCommit
 )
 
 var commentStrings = []string{
@@ -224,6 +226,7 @@ type Comment struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
+	Tag              string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -790,6 +793,7 @@ func createComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		NewTitle:         opts.NewTitle,
 		OldRef:           opts.OldRef,
 		NewRef:           opts.NewRef,
+		Tag:              opts.Tag,
 		DependentIssueID: opts.DependentIssueID,
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
@@ -971,6 +975,7 @@ type CreateCommentOptions struct {
 	RefIsPull        bool
 	IsForcePush      bool
 	Invalidated      bool
+	Tag              string
 }
 
 // CreateComment creates comment of issue or commit.

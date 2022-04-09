@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -1010,6 +1011,36 @@ func MergePullRequest(ctx *context.Context) {
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
+	if form.TagAfterMerge {
+		err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, issue.PullRequest.MergedCommitID, form.TagName, "")
+		if err != nil {
+			switch {
+			case models.IsErrTagAlreadyExists(err):
+				e := err.(models.ErrTagAlreadyExists)
+				ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
+			case models.IsErrInvalidTagName(err):
+				ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
+			case models.IsErrProtectedTagName(err):
+				ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+			default:
+				ctx.ServerError("MergePullRequest.TagAfterMerge", err)
+				return
+			}
+
+			ctx.Redirect(issue.Link())
+			return
+		}
+
+		if err := models.AddTagPRCommitComment(ctx.Doer, pr.BaseRepo, pr.IssueID, form.TagName, issue.PullRequest.MergedCommitID); err != nil {
+			// Do not fail here as tag has already been set
+			log.Error("AddTagPRCommitComment: %v", err)
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.TagName))
+
+		log.Trace("Commit %s after Pull request tagged: %s", issue.PullRequest.MergedCommitID, form.TagName)
+	}
+
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when other pr use this branch as head branch
 		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
@@ -1308,7 +1339,12 @@ func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Rep
 		log.Error("DeleteBranch: %v", err)
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.branch.deletion_success", fullBranchName))
+	successMsg := ctx.Tr("repo.branch.deletion_success", fullBranchName)
+	if ctx.Flash.SuccessMsg != "" {
+		successMsg = ctx.Flash.SuccessMsg + "<br>" + successMsg
+	}
+
+	ctx.Flash.Success(successMsg)
 }
 
 // DownloadPullDiff render a pull's raw diff

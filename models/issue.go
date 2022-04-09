@@ -818,6 +818,31 @@ func AddDeletePRBranchComment(doer *user_model.User, repo *repo_model.Repository
 	return committer.Commit()
 }
 
+// AddTagPRCommitComment adds tag comment for pull request issue
+func AddTagPRCommitComment(doer *user_model.User, repo *repo_model.Repository, issueID int64, tagName, commitSHA string) error {
+	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), issueID)
+	if err != nil {
+		return err
+	}
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	opts := &CreateCommentOptions{
+		Type:  CommentTypeTagPRCommit,
+		Doer:  doer,
+		Repo:  repo,
+		Issue: issue,
+		Tag:   tagName,
+	}
+	if _, err = createComment(ctx, opts); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 // UpdateIssueAttachments update attachments by UUIDs for the issue
 func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 	ctx, committer, err := db.TxContext()
