@@ -387,9 +387,9 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
-	members := make([]*api.User, len(ctx.Org.Team.Members))
-	for i, member := range teamMembers {
-		members[i] = convert.ToUser(member, ctx.Doer)
+	members := make([]*api.User, len(teamMembers))
+	for _, member := range teamMembers {
+		members = append(members, convert.ToUser(member, ctx.Doer))
 	}
 
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
