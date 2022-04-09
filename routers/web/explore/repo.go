@@ -73,7 +73,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
-		onlyShowRelevant = !ctx.FormBool("no_filter")
+		onlyShowRelevant = setting.UI.HideIrrelevantRepo && !ctx.FormBool("no_filter")
 	}
 
 	keyword := ctx.FormTrim("q")
