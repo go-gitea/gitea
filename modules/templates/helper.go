@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -521,8 +522,10 @@ var (
 
 func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
 	size := defaultSize
-	if len(others) > 0 && others[0].(int) != 0 {
-		size = others[0].(int)
+	if len(others) > 0 {
+		if sizeInt, ok := others[0].(int); ok {
+			size = sizeInt
+		}
 	}
 
 	class := defaultClass
@@ -550,12 +553,25 @@ func AvatarHTML(src string, size int, class, name string) template.HTML {
 
 // SVG render icons - arguments icon name (string), size (int), class (string)
 func SVG(icon string, others ...interface{}) template.HTML {
-	size, class := parseOthers(16, "", others...)
+	sizeInt, class := parseOthers(16, "", others...)
+
+	size := "16"
+
+	// if sizeInt returned the default(16), it's possible that the first argument
+	// is a string, and thus has a size with a unit.
+	if sizeInt == 16 && len(others) > 0 {
+		// Check if argument starts with a number
+		if possibleSize, ok := others[0].(string); ok && possibleSize != "" && possibleSize[0] >= '0' && possibleSize[0] <= '9' {
+			size = possibleSize
+		}
+	} else if sizeInt != 16 {
+		size = strconv.Itoa(sizeInt)
+	}
 
 	if svgStr, ok := svg.SVGs[icon]; ok {
-		if size != 16 {
-			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%d"`, size))
-			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
+		if size != "16" {
+			svgStr = widthRe.ReplaceAllString(svgStr, fmt.Sprintf(`width="%s"`, size))
+			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%s"`, size))
 		}
 		if class != "" {
 			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
