@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -132,7 +133,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, updateIssueCols(db.DefaultContext, issue, "name"))
+	assert.NoError(t, UpdateIssueCols(db.DefaultContext, issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
@@ -567,4 +568,24 @@ func TestIssueForeignReference(t *testing.T) {
 	found, err := GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
 	assert.NoError(t, err)
 	assert.EqualValues(t, found.Index, issue.Index)
+}
+
+func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	miles := issues_model.MilestoneList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone),
+	}
+
+	assert.NoError(t, miles.LoadTotalTrackedTimes())
+
+	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
+}
+
+func TestLoadTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone)
+
+	assert.NoError(t, milestone.LoadTotalTrackedTime())
+
+	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }

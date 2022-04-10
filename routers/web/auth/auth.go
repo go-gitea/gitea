@@ -345,7 +345,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 	}
 
-	// Clear whatever CSRF has right now, force to generate a new one
+	// Clear whatever CSRF cookie has right now, force to generate a new one
 	middleware.DeleteCSRFCookie(ctx.Resp)
 
 	// Register last login

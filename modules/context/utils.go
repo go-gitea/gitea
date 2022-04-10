@@ -2,20 +2,16 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package utils
+package context
 
 import (
 	"net/url"
 	"strings"
 	"time"
-
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 )
 
 // GetQueryBeforeSince return parsed time (unix format) from URL query's before and since
-func GetQueryBeforeSince(ctx *context.APIContext) (before, since int64, err error) {
+func GetQueryBeforeSince(ctx *Context) (before, since int64, err error) {
 	qCreatedBefore, err := prepareQueryArg(ctx, "before")
 	if err != nil {
 		return 0, 0, err
@@ -53,16 +49,8 @@ func parseTime(value string) (int64, error) {
 }
 
 // prepareQueryArg unescape and trim a query arg
-func prepareQueryArg(ctx *context.APIContext, name string) (value string, err error) {
+func prepareQueryArg(ctx *Context, name string) (value string, err error) {
 	value, err = url.PathUnescape(ctx.FormString(name))
 	value = strings.TrimSpace(value)
 	return
-}
-
-// GetListOptions returns list options using the page and limit parameters
-func GetListOptions(ctx *context.APIContext) db.ListOptions {
-	return db.ListOptions{
-		Page:     ctx.FormInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-	}
 }

@@ -20,17 +20,18 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
@@ -45,6 +46,7 @@ import (
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
+	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -84,7 +86,7 @@ func buildAuthGroup() *auth_service.Group {
 	group := auth_service.NewGroup(
 		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth realted routers
 		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
-		auth_service.SharedSession,
+		&auth_service.Session{},
 	)
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth_service.ReverseProxy{})
@@ -95,7 +97,7 @@ func buildAuthGroup() *auth_service.Group {
 }
 
 // Routes returns all web routes
-func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
+func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
@@ -104,6 +106,17 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		CorsHandler: CorsHandler(),
 	}), "AssetsHandler"))
 
+	sessioner := session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
+		Domain:         setting.SessionConfig.Domain,
+	})
 	routes.Use(sessioner)
 
 	routes.Use(Recovery())
@@ -289,8 +302,13 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
+		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
-	m.Get("/issues", reqSignIn, user.Issues)
+	m.Group("/issues", func() {
+		m.Get("", user.Issues)
+		m.Get("/search", repo.SearchIssues)
+	}, reqSignIn)
+
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
@@ -421,6 +439,8 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
 		m.Get("/task/{task}", user.TaskStatus)
+		m.Get("/stopwatches", user.GetStopwatches, reqSignIn)
+		m.Get("/search", user.Search, ignExploreSignIn)
 	})
 	// ***** END: User *****
 
@@ -605,6 +625,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(forms.CreateTeamForm{}), org.NewTeamPost)
+			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", bindIgnErr(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -669,6 +690,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/{repoid}").Get(repo.Fork).
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
+		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
 
 	m.Group("/{username}/-", func() {
@@ -811,13 +833,16 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
+			m.Get("/search", repo.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
+				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Group("/dependency", func() {
@@ -865,6 +890,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Get("/attachments", repo.GetCommentAttachments)
 		})
+		m.Post("/markdown", bindIgnErr(structs.MarkdownOption{}), misc.Markdown)
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -1195,6 +1221,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
