@@ -11,13 +11,14 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"code.gitea.io/gitea/modules/git"
+	"strings"
 )
 
 func main() {
@@ -27,12 +28,13 @@ func main() {
 	}
 
 	fmt.Println("Current Directory is", curDir)
-
 	tmpDir := os.TempDir()
 	distDir, err := os.MkdirTemp(tmpDir, "gitea-docs")
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println("Fetch origin branches")
 	cmd := exec.Command("git", "fetch", "origin")
 	cmd.Dir = curDir
 	if err := cmd.Run(); err != nil {
@@ -42,6 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("Found %d branches\n", len(releaseBranches))
 	for _, releaseVersion := range releaseBranches {
 		if err := genearteOneVersion(curDir, distDir, releaseVersion); err != nil {
 			log.Fatal(err)
@@ -51,25 +54,40 @@ func main() {
 }
 
 func fetchAllReleasesBranches(curDir string) ([]string, error) {
-	git.NewCommand("branch", "-r", "--list 'origin/release/*'").Run
-	cmd := exec.Command("git")
+	var output bytes.Buffer
+	var stderr strings.Builder
+	cmd := exec.Command("git", "branch", "-r", "--list", "origin/release/*")
 	cmd.Dir = curDir
-	cmd.Run()
-	repo, err := git.OpenRepository(curDir)
-	if err != nil {
-		return nil, err
+	cmd.Stdout = &output
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("%v - %v", err, stderr.String())
+	}
+	var branches []string
+	scanner := bufio.NewScanner(&output)
+
+	for scanner.Scan() {
+		branch := strings.TrimPrefix(strings.TrimSpace(scanner.Text()), "origin/release/")
+		branches = append(branches, branch)
 	}
 
-	branches, _, err := repo.GetBranches(0, 0)
-	return branches, err
+	return branches, nil
 }
 
 func genearteOneVersion(curDir, distDir, releaseVersion string) error {
+	fmt.Println("Genera branch", releaseVersion)
+
 	distSubDir := filepath.Join(distDir, releaseVersion)
 
-	exec.Command("git", "switch", releaseVersion)
+	var stderr strings.Builder
+	cmd := exec.Command("git", "switch", "release/"+releaseVersion)
+	cmd.Dir = curDir
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%v - %v", err, stderr.String())
+	}
 	// hugo  $(PUBLIC)
-	cmd := exec.Command("hugo", "--cleanDestinationDir", "--destination="+distSubDir)
+	cmd = exec.Command("hugo", "--cleanDestinationDir", "--destination="+distSubDir)
 	cmd.Dir = curDir
 	return cmd.Run()
 }
