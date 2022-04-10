@@ -75,11 +75,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		LoginSource: source.authSource.ID,
 		LoginName:   userName,
 	}
-	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
-	}
 
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return user, err
 	}
 

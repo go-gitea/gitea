@@ -877,7 +877,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			overwriteDefault := &user_model.CreateUserOverwriteOptions{
-				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
+				IsActive: util.OptionalBoolOf(!(setting.OAuth2Client.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)),
 			}
 
 			setUserGroupClaims(authSource, u, &gothUser)
