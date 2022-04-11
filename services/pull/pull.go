@@ -778,12 +778,6 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map
 	return res, lastRes, nil
 }
 
-// getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
-func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	_, lastStatus, err := getAllCommitStatus(gitRepo, pr)
-	return lastStatus, err
-}
-
 // getAllCommitStatus get pr's commit statuses.
 func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statuses []*models.CommitStatus, lastStatus *models.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
