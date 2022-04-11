@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -31,10 +32,8 @@ func newPackages() {
 
 	Packages.Storage = getStorage("packages", "", nil)
 
-	Packages.RegistryHost = Domain
-	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
-		Packages.RegistryHost += ":" + HTTPPort
-	}
+	appURL, _ := url.Parse(AppURL)
+	Packages.RegistryHost = appURL.Host
 
 	Packages.ChunkedUploadPath = filepath.ToSlash(sec.Key("CHUNKED_UPLOAD_PATH").MustString("tmp/package-upload"))
 	if !filepath.IsAbs(Packages.ChunkedUploadPath) {
