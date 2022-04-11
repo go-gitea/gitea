@@ -189,11 +189,11 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -210,7 +210,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -240,11 +240,11 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -281,11 +281,11 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if err := issue.loadRepo(ctx); err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 
-		if _, err := createComment(ctx, &CreateCommentOptions{
+		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,

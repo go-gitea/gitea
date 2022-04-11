@@ -19,6 +19,7 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
@@ -698,7 +699,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&webhook.HookTask{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
-		&Milestone{RepoID: repoID},
+		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
@@ -945,10 +946,6 @@ func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
 
 var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
 
-func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return updateMilestoneCounters(ctx, id)
-}
-
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
 	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
@@ -957,7 +954,7 @@ func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	}
 	for _, result := range results {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-		err = milestoneStatsCorrectNumIssues(ctx, id)
+		err = issues_model.UpdateMilestoneCounters(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1049,7 +1046,7 @@ func CheckRepoStats(ctx context.Context) error {
 		// Milestone.Num{,Closed}Issues
 		{
 			statsQuery(milestoneStatsQueryNumIssues, true),
-			milestoneStatsCorrectNumIssues,
+			issues_model.UpdateMilestoneCounters,
 			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
 		// User.NumRepos

@@ -76,7 +76,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 		log.Error("loadIssue [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
 	}
 	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
@@ -99,7 +99,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 		if err = ref.LoadIssue(); err != nil {
 			return err
 		}
-		if err = ref.Issue.LoadRepo(); err != nil {
+		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 		close := ref.RefAction == references.XRefActionCloses
