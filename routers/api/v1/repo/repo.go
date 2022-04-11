@@ -31,23 +31,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-var searchOrderByMap = map[string]map[string]db.SearchOrderBy{
-	"asc": {
-		"alpha":   db.SearchOrderByAlphabetically,
-		"created": db.SearchOrderByOldest,
-		"updated": db.SearchOrderByLeastUpdated,
-		"size":    db.SearchOrderBySize,
-		"id":      db.SearchOrderByID,
-	},
-	"desc": {
-		"alpha":   db.SearchOrderByAlphabeticallyReverse,
-		"created": db.SearchOrderByNewest,
-		"updated": db.SearchOrderByRecentUpdated,
-		"size":    db.SearchOrderBySizeReverse,
-		"id":      db.SearchOrderByIDReverse,
-	},
-}
-
 // Search repositories via options
 func Search(ctx *context.APIContext) {
 	// swagger:operation GET /repos/search repository repoSearch
@@ -193,7 +176,7 @@ func Search(ctx *context.APIContext) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := searchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {

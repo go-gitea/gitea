@@ -147,7 +147,7 @@ func (opts *PackageFileSearchOptions) toConds() builder.Cond {
 		in := builder.
 			Select("package_version.id").
 			From("package_version").
-			Join("INNER", "package", "package.id = package_version.package_id").
+			InnerJoin("package", "package.id = package_version.package_id").
 			Where(versionCond)
 
 		cond = cond.And(builder.In("package_file.version_id", in))
