@@ -165,6 +165,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(models.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
@@ -254,7 +255,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -359,6 +360,10 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
 	if session, ok := loginSessionCache[userName]; ok {
@@ -380,7 +385,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 		"user_name": userName,
 		"password":  password,
 	})
-	resp = MakeRequest(t, req, http.StatusFound)
+	resp = MakeRequest(t, req, http.StatusSeeOther)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -408,7 +413,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -550,7 +555,7 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

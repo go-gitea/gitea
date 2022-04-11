@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -106,7 +107,7 @@ func PrepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
+	go hookQueue.Add(strconv.FormatInt(repo.ID, 10))
 	return nil
 }
 
@@ -187,7 +188,7 @@ func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
+	go hookQueue.Add(strconv.FormatInt(repo.ID, 10))
 	return nil
 }
 
@@ -214,7 +215,7 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks()
+	systemHooks, err := webhook_model.GetSystemWebhooks(util.OptionalBoolTrue)
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %v", err)
 	}
@@ -239,7 +240,7 @@ func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
 		return err
 	}
 
-	go hookQueue.Add(t.RepoID)
+	go hookQueue.Add(strconv.FormatInt(t.RepoID, 10))
 
 	return nil
 }

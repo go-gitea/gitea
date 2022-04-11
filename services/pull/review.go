@@ -44,7 +44,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 	// Comments that are replies don't require a review header to show up in the issue view
 	if !isReview && existsReview {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
 
@@ -61,7 +61,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+		mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
 	}
 	defer closer.Close()
 
@@ -248,7 +248,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		return nil, nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +258,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, codeComment := range comments {
-				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
 				if err != nil {
 					return nil, nil, err
 				}

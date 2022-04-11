@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -227,8 +228,8 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// update team information and then check permission
-	team := unittest.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
-	err = UpdateTeamUnits(team, nil)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
+	err = organization.UpdateTeamUnits(team, nil)
 	assert.NoError(t, err)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)

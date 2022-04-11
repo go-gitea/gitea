@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/PuerkitoBio/goquery"
@@ -132,7 +134,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 		"title":   title,
 		"content": content,
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	issueURL := test.RedirectURL(resp)
 	req = NewRequest(t, "GET", issueURL)
@@ -162,7 +164,7 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 		"content": content,
 		"status":  status,
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -334,16 +336,224 @@ func TestIssueRedirect(t *testing.T) {
 
 	// Test external tracker where style not set (shall default numeric)
 	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
-	resp := session.MakeRequest(t, req, http.StatusFound)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with numeric style
 	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with alphanumeric style (for a pull request)
 	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
+}
+
+func TestSearchIssues(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	link, _ := url.Parse("/issues/search")
+	req := NewRequest(t, "GET", link.String())
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiIssues []*api.Issue
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10)
+
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10)
+
+	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
+	before := time.Unix(999307200, 0).Format(time.RFC3339)
+	query := url.Values{}
+	query.Add("since", since)
+	query.Add("before", before)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 8)
+	query.Del("since")
+	query.Del("before")
+
+	query.Add("state", "closed")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	query.Set("state", "all")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.EqualValues(t, "15", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
+
+	query.Add("limit", "20")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 15)
+
+	query = url.Values{"assigned": {"true"}, "state": {"all"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 1)
+
+	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 1)
+
+	query = url.Values{"milestones": {"milestone1,milestone3"}, "state": {"all"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	query = url.Values{"owner": {"user2"}} // user
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 6)
+
+	query = url.Values{"owner": {"user3"}} // organization
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+
+	query = url.Values{"owner": {"user3"}, "team": {"team1"}} // organization + team
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+}
+
+func TestSearchIssuesWithLabels(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	token := getUserToken(t, "user1")
+
+	link, _ := url.Parse("/api/v1/repos/issues/search?token=" + token)
+	req := NewRequest(t, "GET", link.String())
+	resp := MakeRequest(t, req, http.StatusOK)
+	var apiIssues []*api.Issue
+	DecodeJSON(t, resp, &apiIssues)
+
+	assert.Len(t, apiIssues, 10)
+
+	query := url.Values{
+		"token": []string{token},
+	}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10)
+
+	query.Add("labels", "label1")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// multiple labels
+	query.Set("labels", "label1,label2")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// an org label
+	query.Set("labels", "orglabel4")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 1)
+
+	// org and repo label
+	query.Set("labels", "label2,orglabel4")
+	query.Add("state", "all")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// org and repo label which share the same issue
+	query.Set("labels", "label1,orglabel4")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+}
+
+func TestGetIssueInfo(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	assert.NoError(t, issue.LoadAttributes())
+	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
+	assert.Equal(t, api.StateOpen, issue.State())
+
+	session := loginUser(t, owner.Name)
+
+	urlStr := fmt.Sprintf("/%s/%s/issues/%d/info", owner.Name, repo.Name, issue.Index)
+	req := NewRequest(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiIssue api.Issue
+	DecodeJSON(t, resp, &apiIssue)
+
+	assert.EqualValues(t, issue.ID, apiIssue.ID)
+}
+
+func TestUpdateIssueDeadline(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
+	assert.NoError(t, issueBefore.LoadAttributes())
+	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
+	assert.Equal(t, api.StateOpen, issueBefore.State())
+
+	session := loginUser(t, owner.Name)
+
+	issueURL := fmt.Sprintf("%s/%s/issues/%d", owner.Name, repoBefore.Name, issueBefore.Index)
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	urlStr := issueURL + "/deadline?_csrf=" + htmlDoc.GetCSRF()
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]string{
+		"due_date": "2022-04-06T00:00:00.000Z",
+	})
+
+	resp = session.MakeRequest(t, req, http.StatusCreated)
+	var apiIssue api.IssueDeadline
+	DecodeJSON(t, resp, &apiIssue)
+
+	assert.EqualValues(t, "2022-04-06", apiIssue.Deadline.Format("2006-01-02"))
 }

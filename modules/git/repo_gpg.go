@@ -34,7 +34,7 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		Sign: true,
 	}
 
-	value, _ := NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunInDir(repo.Path)
+	value, _, _ := NewCommand(repo.Ctx, "config", "--get", "commit.gpgsign").RunStdString(&RunOpts{Dir: repo.Path})
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
 		gpgSettings.Sign = false
@@ -42,13 +42,13 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 		return gpgSettings, nil
 	}
 
-	signingKey, _ := NewCommand(repo.Ctx, "config", "--get", "user.signingkey").RunInDir(repo.Path)
+	signingKey, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.signingkey").RunStdString(&RunOpts{Dir: repo.Path})
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	defaultEmail, _ := NewCommand(repo.Ctx, "config", "--get", "user.email").RunInDir(repo.Path)
+	defaultEmail, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.email").RunStdString(&RunOpts{Dir: repo.Path})
 	gpgSettings.Email = strings.TrimSpace(defaultEmail)
 
-	defaultName, _ := NewCommand(repo.Ctx, "config", "--get", "user.name").RunInDir(repo.Path)
+	defaultName, _, _ := NewCommand(repo.Ctx, "config", "--get", "user.name").RunStdString(&RunOpts{Dir: repo.Path})
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {

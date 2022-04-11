@@ -92,15 +92,15 @@ func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
 	return
 }
 
-// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func (issue *Issue) ToggleAssignee(doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
+// ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return false, nil, err
 	}
 	defer committer.Close()
 
-	removed, comment, err = issue.toggleAssignee(ctx, doer, assigneeID, false)
+	removed, comment, err = toggleIssueAssignee(ctx, issue, doer, assigneeID, false)
 	if err != nil {
 		return false, nil, err
 	}
@@ -112,7 +112,7 @@ func (issue *Issue) ToggleAssignee(doer *user_model.User, assigneeID int64) (rem
 	return removed, comment, nil
 }
 
-func (issue *Issue) toggleAssignee(ctx context.Context, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
 	sess := db.GetEngine(ctx)
 	removed, err = toggleUserAssignee(sess, issue, assigneeID)
 	if err != nil {
@@ -120,7 +120,7 @@ func (issue *Issue) toggleAssignee(ctx context.Context, doer *user_model.User, a
 	}
 
 	// Repo infos
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
@@ -133,7 +133,7 @@ func (issue *Issue) toggleAssignee(ctx context.Context, doer *user_model.User, a
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = createComment(ctx, opts)
+	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}

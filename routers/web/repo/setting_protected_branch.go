@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
@@ -73,7 +74,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 
 		branch := ctx.FormString("branch")
 		if !ctx.Repo.GitRepo.IsBranchExist(branch) {
-			ctx.Status(404)
+			ctx.Status(http.StatusNotFound)
 			return
 		} else if repo.DefaultBranch != branch {
 			repo.DefaultBranch = branch
@@ -158,7 +159,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := models.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -305,7 +306,7 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.User, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
 	if err != nil {
 		ctx.ServerError("RenameBranch", err)
 		return

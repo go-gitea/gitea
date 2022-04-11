@@ -1,0 +1,40 @@
+{{if eq .PackageDescriptor.Package.Type "rubygems"}}
+	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.rubygems.install" | Safe}}:</label>
+				<div class="markup"><pre class="code-block"><code>gem install {{.PackageDescriptor.Package.Name}} --version &quot;{{.PackageDescriptor.Version.Version}}&quot; --source &quot;{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/rubygems&quot;</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{.i18n.Tr "packages.rubygems.install2"}}:</label>
+				<div class="markup"><pre class="code-block"><code>source "{{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/rubygems" do
+	gem "{{.PackageDescriptor.Package.Name}}", "{{.PackageDescriptor.Version.Version}}"
+end</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "packages.rubygems.documentation" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">{{.PackageDescriptor.Metadata.Description}}</div>
+	{{end}}
+	{{if or .PackageDescriptor.Metadata.RequiredRubyVersion .PackageDescriptor.Metadata.RequiredRubygemsVersion}}
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.requirements"}}</h4>
+		<div class="ui attached segment">
+			{{if .PackageDescriptor.Metadata.RequiredRubyVersion}}<p>{{.i18n.Tr "packages.rubygems.required.ruby"}}: {{range $i, $v := .PackageDescriptor.Metadata.RequiredRubyVersion}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</p>{{end}}
+			{{if .PackageDescriptor.Metadata.RequiredRubygemsVersion}}<p>{{.i18n.Tr "packages.rubygems.required.rubygems"}}: {{range $i, $v := .PackageDescriptor.Metadata.RequiredRubygemsVersion}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</p>{{end}}
+		</div>
+	{{end}}
+	{{if or .PackageDescriptor.Metadata.RuntimeDependencies .PackageDescriptor.Metadata.DevelopmentDependencies}}
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
+		<div class="ui attached segment">
+			<div class="ui list">
+				{{template "package/content/rubygems_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RuntimeDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.runtime")}}
+				{{template "package/content/rubygems_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.development")}}
+			</div>
+		</div>
+	{{end}}
+{{end}}

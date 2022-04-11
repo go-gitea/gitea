@@ -23,7 +23,7 @@ func SyncRepositoryHooks(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryHooks")
 
 	if err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
@@ -54,13 +54,13 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := git.OpenRepositoryCtx(ctx, generateRepo.RepoPath())
+	generateGitRepo, err := git.OpenRepository(ctx, generateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := git.OpenRepositoryCtx(ctx, templateRepo.RepoPath())
+	templateGitRepo, err := git.OpenRepository(ctx, templateRepo.RepoPath())
 	if err != nil {
 		return err
 	}

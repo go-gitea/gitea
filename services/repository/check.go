@@ -27,7 +27,7 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
 		func(idx int, bean interface{}) error {
@@ -62,7 +62,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 	args = append([]string{"gc"}, args...)
 
 	if err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
@@ -77,15 +77,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 			var stdout string
 			var err error
-			if timeout > 0 {
-				var stdoutBytes []byte
-				stdoutBytes, err = command.RunInDirTimeout(
-					timeout,
-					repo.RepoPath())
-				stdout = string(stdoutBytes)
-			} else {
-				stdout, err = command.RunInDir(repo.RepoPath())
-			}
+			stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
 
 			if err != nil {
 				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
@@ -97,7 +89,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			}
 
 			// Now update the size of the repository
-			if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
+			if err := models.UpdateRepoSize(ctx, repo); err != nil {
 				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = admin_model.CreateRepositoryNotice(desc); err != nil {
@@ -119,7 +111,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 func gatherMissingRepoRecords(ctx context.Context) ([]*repo_model.Repository, error) {
 	repos := make([]*repo_model.Repository, 0, 10)
 	if err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

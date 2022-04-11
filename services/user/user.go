@@ -16,6 +16,8 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -50,11 +52,18 @@ func DeleteUser(u *user_model.User) error {
 	}
 
 	// Check membership of organization.
-	count, err = models.GetOrganizationCount(ctx, u)
+	count, err = organization.GetOrganizationCount(ctx, u)
 	if err != nil {
 		return fmt.Errorf("GetOrganizationCount: %v", err)
 	} else if count > 0 {
 		return models.ErrUserHasOrgs{UID: u.ID}
+	}
+
+	// Check ownership of packages.
+	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
+		return fmt.Errorf("HasOwnerPackages: %v", err)
+	} else if ownsPackages {
+		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
 	if err := models.DeleteUser(ctx, u); err != nil {
@@ -78,7 +87,7 @@ func DeleteUser(u *user_model.User) error {
 	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
 
@@ -86,7 +95,7 @@ func DeleteUser(u *user_model.User) error {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
 	}
@@ -110,7 +119,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 		}
 		if err := DeleteUser(u); err != nil {
 			// Ignore users that were set inactive by admin.
-			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) {
+			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
 			}
 			return err

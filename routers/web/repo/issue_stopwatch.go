@@ -21,16 +21,16 @@ func IssueStopwatch(c *context.Context) {
 
 	var showSuccessMessage bool
 
-	if !models.StopwatchExists(c.User.ID, issue.ID) {
+	if !models.StopwatchExists(c.Doer.ID, issue.ID) {
 		showSuccessMessage = true
 	}
 
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(c.User, issue); err != nil {
+	if err := models.CreateOrStopIssueStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -49,12 +49,12 @@ func CancelStopwatch(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	if err := models.CancelStopwatch(c.User, issue); err != nil {
+	if err := models.CancelStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
 	}
@@ -64,18 +64,18 @@ func CancelStopwatch(c *context.Context) {
 }
 
 // GetActiveStopwatch is the middleware that sets .ActiveStopwatch on context
-func GetActiveStopwatch(c *context.Context) {
-	if strings.HasPrefix(c.Req.URL.Path, "/api") {
+func GetActiveStopwatch(ctx *context.Context) {
+	if strings.HasPrefix(ctx.Req.URL.Path, "/api") {
 		return
 	}
 
-	if !c.IsSigned {
+	if !ctx.IsSigned {
 		return
 	}
 
-	_, sw, err := models.HasUserStopwatch(c.User.ID)
+	_, sw, err := models.HasUserStopwatch(ctx.Doer.ID)
 	if err != nil {
-		c.ServerError("HasUserStopwatch", err)
+		ctx.ServerError("HasUserStopwatch", err)
 		return
 	}
 
@@ -85,15 +85,15 @@ func GetActiveStopwatch(c *context.Context) {
 
 	issue, err := models.GetIssueByID(sw.IssueID)
 	if err != nil || issue == nil {
-		c.ServerError("GetIssueByID", err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
-	if err = issue.LoadRepo(); err != nil {
-		c.ServerError("LoadRepo", err)
+	if err = issue.LoadRepo(ctx); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
-	c.Data["ActiveStopwatch"] = StopwatchTmplInfo{
+	ctx.Data["ActiveStopwatch"] = StopwatchTmplInfo{
 		issue.Link(),
 		issue.Repo.FullName(),
 		issue.Index,

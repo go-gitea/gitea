@@ -73,7 +73,7 @@ or if SQLite support is required:
 
 The `build` target is split into two sub-targets:
 
-- `make backend` which requires [Go 1.16](https://golang.org/dl/) or greater.
+- `make backend` which requires [Go 1.17](https://go.dev/dl/) or greater.
 - `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
 
 When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.

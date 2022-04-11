@@ -69,6 +69,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
@@ -95,6 +96,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 
 	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
 
+	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
@@ -102,7 +105,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = util.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
@@ -173,7 +176,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
-	assert.NoError(t, util.CopyDir(metaPath, setting.RepoRootPath))
+	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)

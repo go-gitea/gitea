@@ -11,11 +11,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -76,7 +79,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	case "comment":
 		return db.MaxBatchInsertSize(new(models.Comment))
 	case "milestone":
-		return db.MaxBatchInsertSize(new(models.Milestone))
+		return db.MaxBatchInsertSize(new(issues_model.Milestone))
 	case "label":
 		return db.MaxBatchInsertSize(new(models.Label))
 	case "release":
@@ -134,7 +137,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, r.RepoPath())
+	g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
 	return err
 }
 
@@ -161,7 +164,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
-	mss := make([]*models.Milestone, 0, len(milestones))
+	mss := make([]*issues_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
@@ -184,7 +187,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			milestone.Updated = &milestone.Created
 		}
 
-		ms := models.Milestone{
+		ms := issues_model.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
@@ -373,6 +376,12 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
+			ForeignReference: &foreignreference.ForeignReference{
+				LocalIndex:   issue.GetLocalIndex(),
+				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
+				RepoID:       g.repo.ID,
+				Type:         foreignreference.TypeIssue,
+			},
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
@@ -384,7 +393,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 		// add reactions
 		for _, reaction := range issue.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -440,7 +449,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		// add reactions
 		for _, reaction := range comment.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -544,7 +553,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			}
 
 			if ok {
-				_, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
+				_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
@@ -568,7 +577,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	} else {
 		head = pr.Head.Ref
 		// Ensure the closed PR SHA still points to an existing ref
-		_, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
@@ -638,7 +647,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// add reactions
 	for _, reaction := range pr.Reactions {
-		res := models.Reaction{
+		res := issues_model.Reaction{
 			Type:        reaction.Content,
 			CreatedUnix: timeutil.TimeStampNow(),
 		}
@@ -809,7 +818,7 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
-	if err := models.UpdateRepoStats(db.DefaultContext, g.repo.ID); err != nil {
+	if err := models.UpdateRepoStats(g.ctx, g.repo.ID); err != nil {
 		return err
 	}
 
