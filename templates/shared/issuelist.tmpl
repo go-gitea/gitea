@@ -34,7 +34,7 @@
 					<a class="title tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
 					{{if .IsPull}}
 						{{if (index $.CommitStatuses .PullRequest.ID)}}
-							{{template "repo/commit_statuses" (index $.CommitStatuses .PullRequest.ID)}}
+							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
 						{{end}}
 					{{end}}
 					<span class="labels-list ml-2">

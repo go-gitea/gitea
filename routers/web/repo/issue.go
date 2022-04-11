@@ -276,10 +276,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["CommitStatuses"] = map[string]interface{}{
-		"Status":   lastStatus,
-		"Statuses": commitStatuses,
-	}
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
