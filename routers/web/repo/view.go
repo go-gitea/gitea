@@ -489,9 +489,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+
+		shouldRenderSource := ctx.FormString("display") == "source"
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+
+		markupType := markup.Type(blob.Name())
+		if markupType != "" {
+			ctx.Data["HasSourceRenderedToggle"] = true
+		}
+
+		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
@@ -507,7 +515,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
-		} else if readmeExist {
+		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
