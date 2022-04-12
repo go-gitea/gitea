@@ -199,13 +199,6 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
-	// Undocumented mode for internal usages, don't send
-	// any data only the count.
-	if ctx.FormBool("count_only") {
-		ctx.SetTotalCountHeader(count)
-		return
-	}
-
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(ctx); err != nil {
