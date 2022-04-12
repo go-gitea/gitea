@@ -50,8 +50,8 @@ type checks map[string][]componentStatus
 // response is the data returned by the health endpoint, which will be marshaled to JSON format
 type response struct {
 	Status      status `json:"status"`
-	Description string `json:"description"` // a human-friendly description of the service
-	Checks      checks `json:"checks"`      // The Checks Object
+	Description string `json:"description"`      // a human-friendly description of the service
+	Checks      checks `json:"checks,omitempty"` // The Checks Object, should be omitted on installation route
 }
 
 // componentStatus presents one status of a single check object
@@ -80,6 +80,19 @@ func Check(w http.ResponseWriter, r *http.Request) {
 			rsp.Status = fail
 			break
 		}
+	}
+
+	data, _ := json.MarshalIndent(rsp, "", "  ")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(rsp.Status.ToHTTPStatus())
+	_, _ = w.Write(data)
+}
+
+// CheckInstall always return pass. Should only be used in Install routes
+func CheckInstall(w http.ResponseWriter, r *http.Request) {
+	rsp := response{
+		Status:      pass,
+		Description: "Gitea: Installation stage",
 	}
 
 	data, _ := json.MarshalIndent(rsp, "", "  ")
