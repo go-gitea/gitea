@@ -125,7 +125,7 @@
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_zip"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_tar"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.i18n.Tr "repo.download_bundle"}}</a>
-								<a class="item" href="vscode://vscode.git/clone?url={{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 					</div>

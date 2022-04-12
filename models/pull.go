@@ -222,22 +222,19 @@ func (pr *PullRequest) loadProtectedBranch(ctx context.Context) (err error) {
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func (pr *PullRequest) GetDefaultMergeMessage() string {
+func (pr *PullRequest) GetDefaultMergeMessage() (string, error) {
 	if pr.HeadRepo == nil {
 		var err error
 		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
-			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
-			return ""
+			return "", fmt.Errorf("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 		}
 	}
 	if err := pr.LoadIssue(); err != nil {
-		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
-		return ""
+		return "", fmt.Errorf("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 	}
 	if err := pr.LoadBaseRepo(); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return ""
+		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
 	issueReference := "#"
@@ -246,10 +243,10 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 	}
 
 	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
 	}
 
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
 }
 
 // ReviewCount represents a count of Reviews
@@ -335,19 +332,17 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
-func (pr *PullRequest) GetDefaultSquashMessage() string {
+func (pr *PullRequest) GetDefaultSquashMessage() (string, error) {
 	if err := pr.LoadIssue(); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return ""
+		return "", fmt.Errorf("LoadIssue: %v", err)
 	}
 	if err := pr.LoadBaseRepo(); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return ""
+		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
-		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
+		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index), nil
 	}
-	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
+	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index), nil
 }
 
 // GetGitRefName returns git ref for hidden pull request branch
@@ -412,7 +407,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("PullRequest[%d] already closed", pr.Index)
 	}
 
-	if err := pr.Issue.loadRepo(ctx); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		return false, err
 	}
 
@@ -420,12 +415,15 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if _, err := pr.Issue.changeStatus(ctx, pr.Merger, true, true); err != nil {
+	if _, err := changeIssueStatus(ctx, pr.Issue, pr.Merger, true, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
+	// reset the conflicted files as there cannot be any if we're merged
+	pr.ConflictedFiles = []string{}
+
 	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").Update(pr); err != nil {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 

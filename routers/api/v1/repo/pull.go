@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -342,9 +343,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
@@ -560,7 +561,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			labels = append(labels, orgLabels...)
 		}
 
-		if err = issue.ReplaceLabels(labels, ctx.Doer); err != nil {
+		if err = models.ReplaceIssueLabels(issue, labels, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
 		}
@@ -723,13 +724,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepo(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
-	err = pr.LoadIssue()
-	if err != nil {
+	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -743,29 +743,33 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if pr.Issue.IsClosed {
-		ctx.NotFound()
-		return
-	}
+	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	force := form.ForceMerge != nil && *form.ForceMerge
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
-		return
-	}
-	if !allowedMerge {
-		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		return
-	}
-
-	if pr.HasMerged {
-		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+		if errors.Is(err, pull_service.ErrIsClosed) {
+			ctx.NotFound()
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+		} else if models.IsErrDisallowedToMerge(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		} else {
+			ctx.InternalServerError(err)
+		}
 		return
 	}
 
 	// handle manually-merged mark
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+	if manuallMerge {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -781,63 +785,13 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
-	if pr.IsWorkInProgress() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		return
-	}
-
-	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if !models.IsErrNotAllowedToMerge(err) {
-			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
-			return
-		}
-		if form.ForceMerge != nil && *form.ForceMerge {
-			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
-				return
-			} else if !isRepoAdmin {
-				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
-			}
-		} else {
-			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
-			return
-		}
-	}
-
-	if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.Doer); err != nil {
-		if !asymkey_service.IsErrWontSign(err) {
-			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
-			return
-		}
-		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
-		return
-	}
-
-	if len(form.Do) == 0 {
-		form.Do = string(repo_model.MergeStyleMerge)
-	}
-
-	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-			message = pr.GetDefaultSquashMessage()
-		}
-	}
-
-	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	if len(form.MergeMessageField) > 0 {
-		message += "\n\n" + form.MergeMessageField
-	}
-
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 			return
@@ -887,7 +841,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 				return
@@ -981,7 +935,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepositoryCtx(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = git.OpenRepository(ctx, repo_model.RepoPath(headUser.Name, headRepo.Name))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""

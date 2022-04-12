@@ -78,12 +78,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 	private := ctx.IsSigned
-	listUserRepos(ctx, user, private)
+	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
 // ListMyRepos - list the repositories you own or have access to.

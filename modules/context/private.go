@@ -79,6 +79,6 @@ func PrivateContexter() func(http.Handler) http.Handler {
 // the underlying request has timed out from the ssh/http push
 func OverrideContext(ctx *PrivateContext) (cancel context.CancelFunc) {
 	// We now need to override the request context as the base for our work because even if the request is cancelled we have to continue this work
-	ctx.Override, _, cancel = process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI))
+	ctx.Override, _, cancel = process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PrivateContext: %s", ctx.Req.RequestURI), process.RequestProcessType, true)
 	return
 }

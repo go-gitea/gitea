@@ -98,18 +98,12 @@ func GetInfo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u := GetUserByParams(ctx)
-
-	if ctx.Written() {
-		return
-	}
-
-	if !models.IsUserVisibleToViewer(u, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
 		// fake ErrUserNotExist error message to not leak information about existence
 		ctx.NotFound("GetUserByName", user_model.ErrUserNotExist{Name: ctx.Params(":username")})
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.Doer))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.ContextUser, ctx.Doer))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -145,12 +139,7 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	heatmap, err := models.GetUserHeatmapDataByUser(user, ctx.Doer)
+	heatmap, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return

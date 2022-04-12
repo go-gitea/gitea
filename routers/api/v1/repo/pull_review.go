@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -74,7 +75,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.Issue.LoadRepo(); err != nil {
+	if err = pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 		return
 	}
@@ -321,7 +322,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}
@@ -656,7 +657,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}
@@ -722,12 +723,12 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
 
-		teamReviewers := make([]*models.Team, 0, len(opts.TeamReviewers))
+		teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
 		for _, t := range opts.TeamReviewers {
-			var teamReviewer *models.Team
-			teamReviewer, err = models.GetTeam(ctx.Repo.Owner.ID, t)
+			var teamReviewer *organization.Team
+			teamReviewer, err = organization.GetTeam(ctx.Repo.Owner.ID, t)
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
 					return
 				}

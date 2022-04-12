@@ -18,6 +18,7 @@ linters:
     - ineffassign
     - revive
     - gofumpt
+    - depguard
   enable-all: false
   disable-all: true
   fast: false
@@ -65,7 +66,15 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.18
+    lang-version: "1.18"
+  depguard:
+    # TODO: use depguard to replace import checks in gitea-vet
+    list-type: denylist
+    # Check the list against standard lib.
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: "use gitea's modules/json instead of encoding/json"
+      - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
   exclude-rules:
@@ -153,5 +162,6 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
-    - linters: staticcheck
+    - linters:
+        - staticcheck
       text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."

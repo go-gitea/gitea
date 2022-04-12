@@ -178,7 +178,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}

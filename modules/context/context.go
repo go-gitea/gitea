@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -21,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -31,13 +33,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
-	"github.com/unknwon/com"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -57,7 +59,7 @@ type Context struct {
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    CSRF
+	csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
@@ -67,8 +69,10 @@ type Context struct {
 	IsSigned    bool
 	IsBasicAuth bool
 
-	Repo *Repository
-	Org  *Organization
+	ContextUser *user_model.User
+	Repo        *Repository
+	Org         *Organization
+	Package     *Package
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
@@ -330,6 +334,18 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+// SetServeHeaders sets necessary content serve headers
+func (ctx *Context) SetServeHeaders(filename string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+}
+
 // ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
 	modTime := time.Now()
@@ -339,14 +355,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 			modTime = v
 		}
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
 }
 
@@ -358,29 +367,39 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	} else {
 		name = path.Base(file)
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
 // ServeStream serves file via io stream
 func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	_, err := io.Copy(ctx.Resp, rd)
 	if err != nil {
 		ctx.ServerError("Download file failed", err)
 	}
+}
+
+// UploadStream returns the request body or the first form file
+// Only form files need to get closed.
+func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err error) {
+	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
+			return nil, false, err
+		}
+		if ctx.Req.MultipartForm.File == nil {
+			return nil, false, http.ErrMissingFile
+		}
+		for _, files := range ctx.Req.MultipartForm.File {
+			if len(files) > 0 {
+				r, err := files[0].Open()
+				return r, true, err
+			}
+		}
+		return nil, false, http.ErrMissingFile
+	}
+	return ctx.Req.Body, false, nil
 }
 
 // Error returned an error to web browser
@@ -458,7 +477,7 @@ func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 	}
 
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err = com.AESGCMDecrypt(key, text)
+	text, err = util.AESGCMDecrypt(key, text)
 	return string(text), err == nil
 }
 
@@ -472,7 +491,7 @@ func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int)
 // CookieEncrypt encrypts a given value using the provided secret
 func (ctx *Context) CookieEncrypt(secret, value string) string {
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err := com.AESGCMEncrypt(key, []byte(value))
+	text, err := util.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
@@ -560,6 +579,22 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	return ctx.Req.Context().Value(key)
 }
 
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *Context) SetTotalCountHeader(total int64) {
+	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *Context) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
+	}
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
@@ -631,7 +666,9 @@ func Auth(authMethod auth.Method) func(*Context) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
-
+	if !setting.IsProd {
+		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(resp, req)
@@ -662,7 +699,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = Csrfer(csrfOpts, &ctx)
+			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
@@ -720,7 +757,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
@@ -762,4 +799,22 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// SearchOrderByMap represents all possible search order
+var SearchOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"alpha":   db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"size":    db.SearchOrderBySize,
+		"id":      db.SearchOrderByID,
+	},
+	"desc": {
+		"alpha":   db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"size":    db.SearchOrderBySizeReverse,
+		"id":      db.SearchOrderByIDReverse,
+	},
 }

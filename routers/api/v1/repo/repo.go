@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -29,23 +30,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
-
-var searchOrderByMap = map[string]map[string]db.SearchOrderBy{
-	"asc": {
-		"alpha":   db.SearchOrderByAlphabetically,
-		"created": db.SearchOrderByOldest,
-		"updated": db.SearchOrderByLeastUpdated,
-		"size":    db.SearchOrderBySize,
-		"id":      db.SearchOrderByID,
-	},
-	"desc": {
-		"alpha":   db.SearchOrderByAlphabeticallyReverse,
-		"created": db.SearchOrderByNewest,
-		"updated": db.SearchOrderByRecentUpdated,
-		"size":    db.SearchOrderBySizeReverse,
-		"id":      db.SearchOrderByIDReverse,
-	},
-}
 
 // Search repositories via options
 func Search(ctx *context.APIContext) {
@@ -192,7 +176,7 @@ func Search(ctx *context.APIContext) {
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
-		if searchModeMap, ok := searchOrderByMap[sortOrder]; ok {
+		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
@@ -359,15 +343,16 @@ func Generate(ctx *context.APIContext) {
 	}
 
 	opts := models.GenerateRepoOptions{
-		Name:        form.Name,
-		Description: form.Description,
-		Private:     form.Private,
-		GitContent:  form.GitContent,
-		Topics:      form.Topics,
-		GitHooks:    form.GitHooks,
-		Webhooks:    form.Webhooks,
-		Avatar:      form.Avatar,
-		IssueLabels: form.Labels,
+		Name:          form.Name,
+		DefaultBranch: form.DefaultBranch,
+		Description:   form.Description,
+		Private:       form.Private,
+		GitContent:    form.GitContent,
+		Topics:        form.Topics,
+		GitHooks:      form.GitHooks,
+		Webhooks:      form.Webhooks,
+		Avatar:        form.Avatar,
+		IssueLabels:   form.Labels,
 	}
 
 	if !opts.IsValid() {
@@ -397,7 +382,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.Doer.IsAdmin {
-			canCreate, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+			canCreate, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -483,9 +468,9 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	opt := web.GetForm(ctx).(*api.CreateRepoOption)
-	org, err := models.GetOrgByName(ctx.Params(":org"))
+	org, err := organization.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
-		if models.IsErrOrgNotExist(err) {
+		if organization.IsErrOrgNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
@@ -493,7 +478,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.Doer) {
+	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -709,7 +694,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
+		ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err

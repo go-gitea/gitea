@@ -7,9 +7,11 @@ package cron
 
 import (
 	"context"
+	"runtime/pprof"
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/sync"
 
 	"github.com/gogs/cron"
@@ -23,7 +25,9 @@ var taskStatusTable = sync.NewStatusTable()
 // NewContext begins cron tasks
 // Each cron task is run within the shutdown context as a running server
 // AtShutdown the cron server is stopped
-func NewContext() {
+func NewContext(original context.Context) {
+	defer pprof.SetGoroutineLabels(original)
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().ShutdownContext(), "Service: Cron", process.SystemProcessType, true)
 	initBasicTasks()
 	initExtendedTasks()
 
@@ -42,16 +46,29 @@ func NewContext() {
 		lock.Lock()
 		started = false
 		lock.Unlock()
+		finished()
 	})
 }
 
 // TaskTableRow represents a task row in the tasks table
 type TaskTableRow struct {
-	Name      string
-	Spec      string
-	Next      time.Time
-	Prev      time.Time
-	ExecTimes int64
+	Name        string
+	Spec        string
+	Next        time.Time
+	Prev        time.Time
+	Status      string
+	LastMessage string
+	LastDoer    string
+	ExecTimes   int64
+	task        *Task
+}
+
+func (t *TaskTableRow) FormatLastMessage(locale string) string {
+	if t.Status == "finished" {
+		return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer)
+	}
+
+	return t.task.GetConfig().FormatMessage(locale, t.Name, t.Status, t.LastDoer, t.LastMessage)
 }
 
 // TaskTable represents a table of tasks
@@ -80,11 +97,15 @@ func ListTasks() TaskTable {
 		}
 		task.lock.Lock()
 		tTable = append(tTable, &TaskTableRow{
-			Name:      task.Name,
-			Spec:      spec,
-			Next:      next,
-			Prev:      prev,
-			ExecTimes: task.ExecTimes,
+			Name:        task.Name,
+			Spec:        spec,
+			Next:        next,
+			Prev:        prev,
+			ExecTimes:   task.ExecTimes,
+			LastMessage: task.LastMessage,
+			Status:      task.Status,
+			LastDoer:    task.LastDoer,
+			task:        task,
 		})
 		task.lock.Unlock()
 	}

@@ -1007,7 +1007,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			log.Error("Error storing session: %v", err)
 		}
 
-		// Clear whatever CSRF has right now, force to generate a new one
+		// Clear whatever CSRF cookie has right now, force to generate a new one
 		middleware.DeleteCSRFCookie(ctx.Resp)
 
 		// Register last login

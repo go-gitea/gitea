@@ -11,9 +11,11 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -151,7 +153,7 @@ func CreateRepoTransferNotification(doer, newOwner *user_model.User, repo *repo_
 	var notify []*Notification
 
 	if newOwner.IsOrganization() {
-		users, err := getUsersWhoCanCreateOrgRepo(db.GetEngine(ctx), newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
 		if err != nil || len(users) == 0 {
 			return err
 		}
@@ -253,7 +255,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 	}
 
-	err = issue.loadRepo(ctx)
+	err = issue.LoadRepo(ctx)
 	if err != nil {
 		return err
 	}
@@ -519,7 +521,7 @@ func (nl NotificationList) getPendingRepoIDs() []int64 {
 			ids[notification.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadRepos loads repositories from database
@@ -595,7 +597,7 @@ func (nl NotificationList) getPendingIssueIDs() []int64 {
 			ids[notification.IssueID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadIssues loads issues from database
@@ -681,7 +683,7 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 			ids[notification.CommentID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // LoadComments loads comments from database
