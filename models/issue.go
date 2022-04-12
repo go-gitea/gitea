@@ -1510,14 +1510,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 func CountIssues(opts *IssuesOptions) (int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
-	var cnt int64
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
-	if _, err := sess.Get(&cnt); err != nil {
-		return 0, fmt.Errorf("unable to CountIssues: %w", err)
-	}
-	return cnt, nil
+	return sess.Count()
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
