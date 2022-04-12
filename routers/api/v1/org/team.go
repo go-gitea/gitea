@@ -387,7 +387,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
-	members := make([]*api.User, len(ctx.Org.Team.Members))
+	members := make([]*api.User, len(teamMembers))
 	for i, member := range teamMembers {
 		members[i] = convert.ToUser(member, ctx.Doer)
 	}
