@@ -36,6 +36,7 @@ var (
 	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
+	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergableState      = errors.New("not in mergeable state")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
@@ -86,6 +87,10 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 
 	if !pr.CanAutoMerge() {
 		return ErrNotMergableState
+	}
+
+	if pr.IsChecking() {
+		return ErrIsChecking
 	}
 
 	if err := CheckPRReadyToMerge(pr, false); err != nil {
