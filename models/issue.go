@@ -833,7 +833,7 @@ func AddTagPRCommitComment(doer *user_model.User, repo *repo_model.Repository, i
 		Issue: issue,
 		Tag:   tagName,
 	}
-	if _, err = createComment(ctx, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return err
 	}
 
