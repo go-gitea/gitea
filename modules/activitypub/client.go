@@ -24,6 +24,7 @@ import (
 const (
 	// ActivityStreamsContentType const
 	ActivityStreamsContentType = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
+	httpsigExpirationTime = 60
 )
 
 func containsRequiredHTTPHeaders(method string, headers []string) error {
@@ -109,7 +110,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	req.Header.Add("Accept-Charset", "utf-8")
 	req.Header.Add("Date", fmt.Sprintf("%s GMT", c.clock.Now().UTC().Format(time.RFC1123)))
 
-	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, 60)
+	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {
 		return
 	}
