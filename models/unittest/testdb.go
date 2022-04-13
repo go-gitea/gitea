@@ -43,8 +43,8 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 type TestOptions struct {
 	GiteaRootPath string
 	FixtureFiles  []string
-	TearUp        func() error
-	TearDown      func() error
+	SetUp         func() error // SetUp will be executed before all tests in this package
+	TearDown      func() error // TearDown will be executed after all tests in this package
 }
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
@@ -137,9 +137,9 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		}
 	}
 
-	if testOpts.TearUp != nil {
-		if err := testOpts.TearUp(); err != nil {
-			fatalTestError("tear up failed: %v\n", err)
+	if testOpts.SetUp != nil {
+		if err := testOpts.SetUp(); err != nil {
+			fatalTestError("set up failed: %v\n", err)
 		}
 	}
 
