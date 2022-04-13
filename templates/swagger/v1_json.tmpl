@@ -16180,6 +16180,14 @@
         "head_commit_id": {
           "type": "string",
           "x-go-name": "HeadCommitID"
+        },
+        "tag_after_merge": {
+          "type": "boolean",
+          "x-go-name": "TagAfterMerge"
+        },
+        "tag_name": {
+          "type": "string",
+          "x-go-name": "TagName"
         }
       },
       "x-go-name": "MergePullRequestForm",
@@ -18005,6 +18013,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ReviewID"
+        },
+        "tag": {
+          "type": "string",
+          "x-go-name": "Tag"
         },
         "tracked_time": {
           "$ref": "#/definitions/TrackedTime"
