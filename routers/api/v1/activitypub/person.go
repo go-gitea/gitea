@@ -67,7 +67,7 @@ func Person(ctx *context.APIContext) {
 	publicKeyType := streams.NewW3IDSecurityV1PublicKey()
 
 	pubKeyIDProp := streams.NewJSONLDIdProperty()
-	pubKeyIRI, _ := url.Parse(link + "/#main-key")
+	pubKeyIRI, _ := url.Parse(link + "#main-key")
 	pubKeyIDProp.SetIRI(pubKeyIRI)
 	publicKeyType.SetJSONLDId(pubKeyIDProp)
 
