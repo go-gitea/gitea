@@ -165,6 +165,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(models.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
@@ -357,6 +358,10 @@ func emptyTestSession(t testing.TB) *TestSession {
 	assert.NoError(t, err)
 
 	return &TestSession{jar: jar}
+}
+
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {

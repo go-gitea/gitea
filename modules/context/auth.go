@@ -63,7 +63,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		}
 
 		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
-			Validate(ctx, ctx.csrf)
+			ctx.csrf.Validate(ctx)
 			if ctx.Written() {
 				return
 			}
