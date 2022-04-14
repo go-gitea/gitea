@@ -16,6 +16,7 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles:  []string{""}, // load nothing
 	})
 }
 
