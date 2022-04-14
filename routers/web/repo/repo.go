@@ -590,15 +590,13 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	// Undocumented mode for internal usages, don't send
-	// any data only the count.
+	// To improve performance when only the count is requested
 	if ctx.FormBool("count_only") {
 		ctx.SetTotalCountHeader(count)
 		return
 	}
 
-	// Undocumented mode for internal usages, only return
-	// information that's useful for the dashboard's repo list.
+	// To query only what's necessary for the dashboard repo list
 	minimalMode := ctx.FormBool("minimal")
 
 	results := make([]*api.Repository, len(repos))
