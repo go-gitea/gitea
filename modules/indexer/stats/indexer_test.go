@@ -23,7 +23,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func TestRepoStatsIndex(t *testing.T) {

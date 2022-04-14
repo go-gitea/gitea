@@ -18,7 +18,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func testIndexer(name string, t *testing.T, indexer Indexer) {
