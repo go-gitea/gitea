@@ -53,7 +53,7 @@ func TestActivityPubPerson(t *testing.T) {
 
 		pkp := person.GetW3IDSecurityV1PublicKey()
 		assert.NotNil(t, pkp)
-		publicKeyID := keyID + "/#main-key"
+		publicKeyID := keyID + "#main-key"
 		var pkpFound vocab.W3IDSecurityV1PublicKey
 		for pkpIter := pkp.Begin(); pkpIter != pkp.End(); pkpIter = pkpIter.Next() {
 			if !pkpIter.IsW3IDSecurityV1PublicKey() {
@@ -113,7 +113,7 @@ func TestActivityPubPersonInbox(t *testing.T) {
 		username1 := "user1"
 		user1, err := user_model.GetUserByName(username1)
 		assert.NoError(t, err)
-		user1url := fmt.Sprintf("%s/api/v1/activitypub/user/%s/#main-key", srv.URL, username1)
+		user1url := fmt.Sprintf("%s/api/v1/activitypub/user/%s#main-key", srv.URL, username1)
 		c, err := activitypub.NewClient(user1, user1url)
 		assert.NoError(t, err)
 		username2 := "user2"
