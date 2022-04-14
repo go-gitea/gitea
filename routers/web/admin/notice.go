@@ -59,10 +59,10 @@ func DeleteNotices(ctx *context.Context) {
 
 	if err := admin_model.DeleteNoticesByIDs(ids); err != nil {
 		ctx.Flash.Error("DeleteNoticesByIDs: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Success(ctx.Tr("admin.notices.delete_success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 
@@ -73,7 +73,7 @@ func EmptyNotices(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("System notices deleted by admin (%s): [start: %d]", ctx.User.Name, 0)
+	log.Trace("System notices deleted by admin (%s): [start: %d]", ctx.Doer.Name, 0)
 	ctx.Flash.Success(ctx.Tr("admin.notices.delete_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/notices")
 }

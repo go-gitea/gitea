@@ -16,7 +16,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {
@@ -203,10 +205,10 @@ func TestGetContentsOrListErrors(t *testing.T) {
 
 func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo15")
-	ctx.SetParams(":id", "15")
-	test.LoadRepo(t, ctx, 15)
-	test.LoadUser(t, ctx, 2)
+	ctx := test.MockContext(t, "user30/empty")
+	ctx.SetParams(":id", "52")
+	test.LoadRepo(t, ctx, 52)
+	test.LoadUser(t, ctx, 30)
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 

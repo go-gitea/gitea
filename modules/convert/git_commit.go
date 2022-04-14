@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToCommitUser convert a git.Signature to an api.CommitUser
@@ -146,6 +147,13 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 		}
 	}
 
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		AfterCommitID: commit.ID.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
@@ -175,10 +183,16 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
+			Verification: ToVerification(commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
 		Files:     affectedFileList,
+		Stats: &api.CommitStats{
+			Total:     diff.TotalAddition + diff.TotalDeletion,
+			Additions: diff.TotalAddition,
+			Deletions: diff.TotalDeletion,
+		},
 	}, nil
 }

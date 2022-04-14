@@ -27,7 +27,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		err        error
 	)
 
-	if err = pr.Issue.LoadRepo(); err != nil {
+	if err = pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
@@ -85,7 +85,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		},
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 		return nil
@@ -111,7 +111,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	if pr.Flow == models.PullRequestFlowAGit {
-		gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
 			return nil
@@ -138,7 +138,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, p.AccessMode)
 
-		headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -174,7 +174,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 			return nil

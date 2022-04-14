@@ -60,7 +60,7 @@ func SendEmail(ctx *context.PrivateContext) {
 		}
 	} else {
 		err := user_model.IterateUser(func(user *user_model.User) error {
-			if len(user.Email) > 0 {
+			if len(user.Email) > 0 && user.IsActive {
 				emails = append(emails, user.Email)
 			}
 			return nil

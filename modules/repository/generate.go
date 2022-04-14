@@ -177,14 +177,20 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	repoPath := repo.RepoPath()
-	if stdout, err := git.NewCommand(ctx, "remote", "add", "origin", repoPath).
+	if stdout, _, err := git.NewCommand(ctx, "remote", "add", "origin", repoPath).
 		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
-		RunInDirWithEnv(tmpDir, env); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpDir, Env: env}); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
+	// set default branch based on whether it's specified in the newly generated repo or not
+	defaultBranch := repo.DefaultBranch
+	if strings.TrimSpace(defaultBranch) == "" {
+		defaultBranch = templateRepo.DefaultBranch
+	}
+
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository) (err error) {
@@ -208,8 +214,12 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
-	repo.DefaultBranch = templateRepo.DefaultBranch
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	// if there was no default branch supplied when generating the repo, use the default one from the template
+	if strings.TrimSpace(repo.DefaultBranch) == "" {
+		repo.DefaultBranch = templateRepo.DefaultBranch
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
@@ -249,6 +259,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		Name:          opts.Name,
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
+		DefaultBranch: opts.DefaultBranch,
 		IsPrivate:     opts.Private,
 		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
@@ -281,9 +292,9 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	if stdout, err := git.NewCommand(ctx, "update-server-info").
+	if stdout, _, err := git.NewCommand(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
-		RunInDir(repoPath); err != nil {
+		RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
 		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %v", err)
 	}

@@ -125,7 +125,7 @@
 						<div class="column">
 							{{if $.Permission.CanRead $.UnitTypeIssues}}
 								<div class="ui link list">
-									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/" }}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/" }}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
 								</div>
 							{{end}}
 							<div class="ui link list">
