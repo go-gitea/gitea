@@ -30,9 +30,5 @@ func GetUserSetting(userID int64, key string) (string, error) {
 func SetUserSetting(userID int64, key, value string) error {
 	cache.Remove(genUserKey(userID, key))
 
-	return user.SetSetting(&user.Setting{
-		UserID:       userID,
-		SettingKey:   key,
-		SettingValue: value,
-	})
+	return user.SetUserSetting(userID, key, value)
 }
