@@ -14,10 +14,13 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."),
-		"project.yml",
-		"project_board.yml",
-		"project_issue.yml",
-		"repository.yml",
-	)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles: []string{
+			"project.yml",
+			"project_board.yml",
+			"project_issue.yml",
+			"repository.yml",
+		},
+	})
 }
