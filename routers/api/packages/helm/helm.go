@@ -15,6 +15,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	helm_module "code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/setting"
@@ -46,7 +47,7 @@ func Index(ctx *context.Context) {
 		return
 	}
 
-	baseURL := setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/helm"
+	baseURL := setting.AppURL + "api/packages/" + url.PathEscape(ctx.Package.Owner.Name) + "/helm"
 
 	type ChartVersion struct {
 		helm_module.Metadata `yaml:",inline"`
@@ -88,10 +89,10 @@ func Index(ctx *context.Context) {
 		Entries:    entries,
 		Generated:  time.Now(),
 		ServerInfo: &ServerInfo{
-			ContextPath: setting.AppSubURL + "/api/packages/" + ctx.Package.Owner.Name + "/helm",
+			ContextPath: setting.AppSubURL + "/api/packages/" + url.PathEscape(ctx.Package.Owner.Name) + "/helm",
 		},
 	}); err != nil {
-		ctx.ServerError("YAML encode failed", err)
+		log.Error("YAML encode failed: %v", err)
 	}
 }
 

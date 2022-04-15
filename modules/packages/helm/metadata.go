@@ -9,8 +9,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"io"
-	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/validation"
@@ -91,7 +89,7 @@ func ParseChartArchive(r io.Reader) (*Metadata, error) {
 		}
 
 		if hd.FileInfo().Name() == "Chart.yaml" {
-			if strings.Count(path.Dir(filepath.ToSlash(hd.Name)), "/") != 0 {
+			if strings.Count(hd.Name, "/") != 1 {
 				continue
 			}
 
