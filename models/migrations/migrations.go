@@ -391,6 +391,8 @@ var migrations = []Migration{
 	NewMigration("Improve Action table indices", improveActionTableIndices),
 	// v217 -> v218
 	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v218 -> v219
+	NewMigration("Add sync_on_push column to push_mirror table", addSyncOnPushColForPushMirror),
 }
 
 // GetCurrentDBVersion returns the current db version
