@@ -596,39 +596,18 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	// To query only what's necessary for the dashboard repo list
-	minimalMode := ctx.FormBool("minimal")
-
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-			return
-		}
-		if minimalMode {
-			results[i] = &api.Repository{
-				ID:       repo.ID,
-				FullName: repo.FullName(),
-				Fork:     repo.IsFork,
-				Private:  repo.IsPrivate,
-				Template: repo.IsTemplate,
-				Mirror:   repo.IsMirror,
-				Stars:    repo.NumStars,
-				HTMLURL:  repo.HTMLURL(),
-				Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-			}
-		} else {
-			accessMode, err := models.AccessLevel(ctx.Doer, repo)
-			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, api.SearchError{
-					OK:    false,
-					Error: err.Error(),
-				})
-			}
-			results[i] = convert.ToRepo(repo, accessMode)
+		results[i] = &api.Repository{
+			ID:       repo.ID,
+			FullName: repo.FullName(),
+			Fork:     repo.IsFork,
+			Private:  repo.IsPrivate,
+			Template: repo.IsTemplate,
+			Mirror:   repo.IsMirror,
+			Stars:    repo.NumStars,
+			HTMLURL:  repo.HTMLURL(),
+			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		}
 	}
 
