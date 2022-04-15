@@ -1583,6 +1583,7 @@
     }
 
     .line-num {
+      &:extend(.unselectable);
       width: 1%;
       min-width: 50px;
       font-family: monospace;
@@ -1591,7 +1592,6 @@
       white-space: nowrap;
       vertical-align: top;
       cursor: pointer;
-      user-select: none;
       text-align: right;
       background: var(--color-body);
       border: 0;
@@ -1727,11 +1727,11 @@
       background: var(--color-code-bg);
 
       .lines-num {
+        &:extend(.unselectable);
         text-align: right;
         color: var(--color-text-light);
         width: 1%;
         min-width: 50px;
-        user-select: none;
 
         span.fold {
           display: block;
@@ -1774,9 +1774,9 @@
           }
 
           .lines-type-marker {
+            &:extend(.unselectable);
             width: 10px;
             min-width: 10px;
-            user-select: none;
           }
 
           [data-type-marker]::before {
@@ -2450,13 +2450,13 @@
     }
 
     .segment.language-stats {
+      &:extend(.unselectable);
       padding: 0;
       height: 11px;
       display: flex;
       white-space: nowrap;
       width: 100%;
       border-radius: 0;
-      user-select: none;
 
       @media @mediaSm {
         display: none;
