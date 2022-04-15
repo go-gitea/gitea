@@ -1,3 +1,7 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package mirror
 
 import (
@@ -40,5 +44,4 @@ func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 			pushmirror_service.SyncPushMirror(ctx, mirror.ID)
 		}
 	}
-	return
 }
