@@ -17,8 +17,5 @@ func createRepoSettingsTable(x *xorm.Engine) error {
 		SettingKey   string `xorm:"varchar(255) index unique(key_repoid)"` // ensure key is always lowercase
 		SettingValue string `xorm:"text"`
 	}
-	if err := x.Sync2(new(RepoSetting)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(RepoSetting))
 }
