@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,7 +21,9 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
@@ -327,6 +330,51 @@ func TeamRepositories(ctx *context.Context) {
 	}
 	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamRepositories)
+}
+
+// SearchTeam api for searching teams
+func SearchTeam(ctx *context.Context) {
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+	}
+
+	opts := &organization.SearchTeamOptions{
+		UserID:      ctx.Doer.ID,
+		Keyword:     ctx.FormTrim("q"),
+		OrgID:       ctx.Org.Organization.ID,
+		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
+		ListOptions: listOptions,
+	}
+
+	teams, maxResults, err := organization.SearchTeam(opts)
+	if err != nil {
+		log.Error("SearchTeam failed: %v", err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"ok":    false,
+			"error": "SearchTeam internal failure",
+		})
+		return
+	}
+
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
+			log.Error("Team GetUnits failed: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"ok":    false,
+				"error": "SearchTeam failed to get units",
+			})
+			return
+		}
+		apiTeams[i] = convert.ToTeam(teams[i])
+	}
+
+	ctx.SetTotalCountHeader(maxResults)
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"ok":   true,
+		"data": apiTeams,
+	})
 }
 
 // EditTeam render team edit page

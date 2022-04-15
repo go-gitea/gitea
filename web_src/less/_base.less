@@ -255,6 +255,16 @@ a.commit-statuses-trigger {
   text-decoration: none !important;
 }
 
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.button {
+  &:extend(.unselectable);
+}
+
 .ui.breadcrumb a:hover {
   text-decoration: underline !important;
 }
@@ -810,7 +820,6 @@ a.ui.card:hover,
     float: right;
   }
 
-  &.button,
   &.menu .item {
     user-select: auto;
   }
@@ -1526,12 +1535,12 @@ a.ui.label:hover {
 }
 
 .lines-num {
+  &:extend(.unselectable);
   padding-left: 10px;
   padding-right: 10px;
   text-align: right !important;
   color: rgba(27, 31, 35, .3);
   width: 1%;
-  user-select: none;
   font-family: var(--fonts-monospace);
 
   span {
@@ -1616,21 +1625,18 @@ a.ui.label:hover {
 }
 
 .lines-commit {
+  &:extend(.unselectable);
   vertical-align: top;
   color: #999999;
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-user-select: none;
-  user-select: none;
 
   .blame-info {
+    &:extend(.unselectable);
     width: 350px;
     max-width: 350px;
     display: block;
-    user-select: none;
     padding: 0 0 0 10px;
     line-height: 20px;
     box-sizing: content-box;
@@ -2159,9 +2165,9 @@ table th[data-sortt-desc] {
 }
 
 .ellipsis-button {
+  &:extend(.unselectable);
   padding: 0 5px 8px !important;
   display: inline-block !important;
-  user-select: none !important;
   font-weight: 600 !important;
   line-height: 6px !important;
   vertical-align: middle !important;

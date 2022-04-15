@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,14 +66,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, repo_model.RepositoryReady, repo.Status)
 
-	milestones, _, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, _, err = models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})

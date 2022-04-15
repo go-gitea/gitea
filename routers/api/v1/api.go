@@ -216,7 +216,6 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 		if ctx.IsSigned {
-			ctx.RequireCSRF()
 			return
 		}
 		ctx.Error(http.StatusUnauthorized, "reqToken", "token is required")
@@ -584,8 +583,7 @@ func bind(obj interface{}) http.HandlerFunc {
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
-		&auth.Basic{},      // FIXME: this should be removed once we don't allow basic auth in API
-		auth.SharedSession, // FIXME: this should be removed once all UI don't reference API/v1, see https://github.com/go-gitea/gitea/pull/16052
+		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth.ReverseProxy{})
@@ -596,10 +594,8 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
+func Routes() *web.Route {
 	m := web.NewRoute()
-
-	m.Use(sessioner)
 
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
@@ -609,7 +605,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			// setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
+			AllowedHeaders:   []string{"Authorization", "X-Gitea-OTP"},
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}

@@ -41,7 +41,7 @@ func EnumeratePackages(ctx *context.Context) {
 func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
-		Type:    string(packages_model.TypeRubyGems),
+		Type:    packages_model.TypeRubyGems,
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -96,7 +96,7 @@ func ServePackageSpecification(ctx *context.Context) {
 		return
 	}
 
-	pvs, err := packages_model.GetVersionsByFilename(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, filename[:len(filename)-10]+"gem")
+	pvs, err := getVersionsByFilename(ctx, filename[:len(filename)-10]+"gem")
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -158,7 +158,7 @@ func ServePackageSpecification(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
 
-	pvs, err := packages_model.GetVersionsByFilename(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, filename)
+	pvs, err := getVersionsByFilename(ctx, filename)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -282,4 +282,13 @@ func DeletePackage(ctx *context.Context) {
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 	}
+}
+
+func getVersionsByFilename(ctx *context.Context, filename string) ([]*packages_model.PackageVersion, error) {
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:         ctx.Package.Owner.ID,
+		Type:            packages_model.TypeRubyGems,
+		HasFileWithName: filename,
+	})
+	return pvs, err
 }

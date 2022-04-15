@@ -23,7 +23,7 @@ export function initRepoTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${appSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${appSubUrl}/repo/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({

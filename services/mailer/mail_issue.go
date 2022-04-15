@@ -40,7 +40,7 @@ const (
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
 	// Required by the mail composer; make sure to load these before calling the async function
-	if err := ctx.Issue.LoadRepo(); err != nil {
+	if err := ctx.Issue.LoadRepo(ctx); err != nil {
 		return fmt.Errorf("LoadRepo(): %v", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
