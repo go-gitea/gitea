@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -172,4 +174,31 @@ func TestOrgRestrictedUser(t *testing.T) {
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestTeamSearch(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+
+	var results TeamSearchResults
+
+	session := loginUser(t, user.Name)
+	csrf := GetCSRF(t, session, "/"+org.Name)
+	req := NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "_team")
+	req.Header.Add("X-Csrf-Token", csrf)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &results)
+	assert.NotEmpty(t, results.Data)
+	assert.Len(t, results.Data, 1)
+	assert.Equal(t, "test_team", results.Data[0].Name)
+
+	// no access if not organization member
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	session = loginUser(t, user5.Name)
+	csrf = GetCSRF(t, session, "/"+org.Name)
+	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")
+	req.Header.Add("X-Csrf-Token", csrf)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }

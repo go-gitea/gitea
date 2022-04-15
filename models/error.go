@@ -1048,33 +1048,6 @@ func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
 }
 
-//    _____  .__.__                   __
-//   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
-//  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \
-// /    Y    \  |  |_\  ___/ \___ \  |  | (  <_> )   |  \  ___/
-// \____|__  /__|____/\___  >____  > |__|  \____/|___|  /\___  >
-//         \/             \/     \/                   \/     \/
-
-// ErrMilestoneNotExist represents a "MilestoneNotExist" kind of error.
-type ErrMilestoneNotExist struct {
-	ID     int64
-	RepoID int64
-	Name   string
-}
-
-// IsErrMilestoneNotExist checks if an error is a ErrMilestoneNotExist.
-func IsErrMilestoneNotExist(err error) bool {
-	_, ok := err.(ErrMilestoneNotExist)
-	return ok
-}
-
-func (err ErrMilestoneNotExist) Error() string {
-	if len(err.Name) > 0 {
-		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
-	}
-	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
-}
-
 //  ____ ___        .__                    .___
 // |    |   \______ |  |   _________     __| _/
 // |    |   /\____ \|  |  /  _ \__  \   / __ |

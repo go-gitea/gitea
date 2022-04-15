@@ -111,7 +111,7 @@ async function updateStopwatchWithCallback(callback, timeout) {
 async function updateStopwatch() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${appSubUrl}/api/v1/user/stopwatches`,
+    url: `${appSubUrl}/user/stopwatches`,
     headers: {'X-Csrf-Token': csrfToken},
   });
 
