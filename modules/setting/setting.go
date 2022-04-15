@@ -106,6 +106,7 @@ var (
 	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
+	LandingPageCustom    string
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
@@ -776,15 +777,19 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
 
-	switch sec.Key("LANDING_PAGE").MustString("home") {
+	landingPage := sec.Key("LANDING_PAGE").MustString("home")
+	switch landingPage {
 	case "explore":
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	default:
+	case "":
+	case "home":
 		LandingPageURL = LandingPageHome
+	default:
+		LandingPageURL = LandingPage(landingPage)
 	}
 
 	if len(SSH.Domain) == 0 {

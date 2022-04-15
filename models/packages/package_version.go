@@ -12,16 +12,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
 
-var (
-	// ErrDuplicatePackageVersion indicates a duplicated package version error
-	ErrDuplicatePackageVersion = errors.New("Package version does exist already")
-	// ErrPackageVersionNotExist indicates a package version not exist error
-	ErrPackageVersionNotExist = errors.New("Package version does not exist")
-)
+// ErrDuplicatePackageVersion indicates a duplicated package version error
+var ErrDuplicatePackageVersion = errors.New("Package version already exists")
 
 func init() {
 	db.RegisterModel(new(PackageVersion))
@@ -99,75 +96,49 @@ func GetInternalVersionByNameAndVersion(ctx context.Context, ownerID int64, pack
 }
 
 func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string, isInternal bool) (*PackageVersion, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.owner_id":            ownerID,
-		"package.type":                packageType,
-		"package.lower_name":          strings.ToLower(name),
-		"package_version.is_internal": isInternal,
-	}
-	pv := &PackageVersion{
-		LowerVersion: strings.ToLower(version),
-	}
-	has, err := db.GetEngine(ctx).
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond).
-		Get(pv)
+	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
+		OwnerID: ownerID,
+		Type:    packageType,
+		Name: SearchValue{
+			ExactMatch: true,
+			Value:      name,
+		},
+		Version: SearchValue{
+			ExactMatch: true,
+			Value:      version,
+		},
+		IsInternal: isInternal,
+		Paginator:  db.NewAbsoluteListOptions(0, 1),
+	})
 	if err != nil {
 		return nil, err
 	}
-	if !has {
+	if len(pvs) == 0 {
 		return nil, ErrPackageNotExist
 	}
-
-	return pv, nil
+	return pvs[0], nil
 }
 
 // GetVersionsByPackageType gets all versions of a specific type
 func GetVersionsByPackageType(ctx context.Context, ownerID int64, packageType Type) ([]*PackageVersion, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.owner_id":            ownerID,
-		"package.type":                packageType,
-		"package_version.is_internal": false,
-	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(ctx).
-		Where(cond).
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Find(&pvs)
+	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
+		OwnerID: ownerID,
+		Type:    packageType,
+	})
+	return pvs, err
 }
 
 // GetVersionsByPackageName gets all versions of a specific package
 func GetVersionsByPackageName(ctx context.Context, ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.owner_id":            ownerID,
-		"package.type":                packageType,
-		"package.lower_name":          strings.ToLower(name),
-		"package_version.is_internal": false,
-	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(ctx).
-		Where(cond).
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Find(&pvs)
-}
-
-// GetVersionsByFilename gets all versions which are linked to a filename
-func GetVersionsByFilename(ctx context.Context, ownerID int64, packageType Type, filename string) ([]*PackageVersion, error) {
-	var cond builder.Cond = builder.Eq{
-		"package.owner_id":            ownerID,
-		"package.type":                packageType,
-		"package_file.lower_name":     strings.ToLower(filename),
-		"package_version.is_internal": false,
-	}
-
-	pvs := make([]*PackageVersion, 0, 10)
-	return pvs, db.GetEngine(ctx).
-		Where(cond).
-		Join("INNER", "package_file", "package_file.version_id = package_version.id").
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Find(&pvs)
+	pvs, _, err := SearchVersions(ctx, &PackageSearchOptions{
+		OwnerID: ownerID,
+		Type:    packageType,
+		Name: SearchValue{
+			ExactMatch: true,
+			Value:      name,
+		},
+	})
+	return pvs, err
 }
 
 // DeleteVersionByID deletes a version by id
@@ -183,21 +154,32 @@ func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error
 	})
 }
 
+// SearchValue describes a value to search
+// If ExactMatch is true, the field must match the value otherwise a LIKE search is performed.
+type SearchValue struct {
+	Value      string
+	ExactMatch bool
+}
+
 // PackageSearchOptions are options for SearchXXX methods
+// Besides IsInternal are all fields optional and are not used if they have their default value (nil, "", 0)
 type PackageSearchOptions struct {
-	OwnerID      int64
-	RepoID       int64
-	Type         string
-	PackageID    int64
-	QueryName    string
-	QueryVersion string
-	Properties   map[string]string
-	Sort         string
+	OwnerID         int64
+	RepoID          int64
+	Type            Type
+	PackageID       int64
+	Name            SearchValue       // only results with the specific name are found
+	Version         SearchValue       // only results with the specific version are found
+	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
+	IsInternal      bool
+	HasFileWithName string            // only results are found which are associated with a file with the specific name
+	HasFiles        util.OptionalBool // only results are found which have associated files
+	Sort            string
 	db.Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"package_version.is_internal": false}
+	var cond builder.Cond = builder.Eq{"package_version.is_internal": opts.IsInternal}
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
@@ -211,11 +193,19 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	if opts.PackageID != 0 {
 		cond = cond.And(builder.Eq{"package.id": opts.PackageID})
 	}
-	if opts.QueryName != "" {
-		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.QueryName)})
+	if opts.Name.Value != "" {
+		if opts.Name.ExactMatch {
+			cond = cond.And(builder.Eq{"package.lower_name": strings.ToLower(opts.Name.Value)})
+		} else {
+			cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Name.Value)})
+		}
 	}
-	if opts.QueryVersion != "" {
-		cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.QueryVersion)})
+	if opts.Version.Value != "" {
+		if opts.Version.ExactMatch {
+			cond = cond.And(builder.Eq{"package_version.lower_version": strings.ToLower(opts.Version.Value)})
+		} else {
+			cond = cond.And(builder.Like{"package_version.lower_version", strings.ToLower(opts.Version.Value)})
+		}
 	}
 
 	if len(opts.Properties) != 0 {
@@ -236,6 +226,22 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{
 			strconv.Itoa(len(opts.Properties)): builder.Select("COUNT(*)").Where(propsCond).From("package_property"),
 		})
+	}
+
+	if opts.HasFileWithName != "" {
+		fileCond := builder.Expr("package_file.version_id = package_version.id").And(builder.Eq{"package_file.lower_name": strings.ToLower(opts.HasFileWithName)})
+
+		cond = cond.And(builder.Exists(builder.Select("package_file.id").From("package_file").Where(fileCond)))
+	}
+
+	if !opts.HasFiles.IsNone() {
+		var filesCond builder.Cond = builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
+
+		if opts.HasFiles.IsFalse() {
+			filesCond = builder.Not{filesCond}
+		}
+
+		cond = cond.And(filesCond)
 	}
 
 	return cond
@@ -296,21 +302,4 @@ func SearchLatestVersions(ctx context.Context, opts *PackageSearchOptions) ([]*P
 	pvs := make([]*PackageVersion, 0, 10)
 	count, err := sess.FindAndCount(&pvs)
 	return pvs, count, err
-}
-
-// FindVersionsByPropertyNameAndValue gets all package versions which are associated with a specific property + value
-func FindVersionsByPropertyNameAndValue(ctx context.Context, packageID int64, name, value string) ([]*PackageVersion, error) {
-	var cond builder.Cond = builder.Eq{
-		"package_property.ref_type":   PropertyTypeVersion,
-		"package_property.name":       name,
-		"package_property.value":      value,
-		"package_version.package_id":  packageID,
-		"package_version.is_internal": false,
-	}
-
-	pvs := make([]*PackageVersion, 0, 5)
-	return pvs, db.GetEngine(ctx).
-		Where(cond).
-		Join("INNER", "package_property", "package_property.ref_id = package_version.id").
-		Find(&pvs)
 }
