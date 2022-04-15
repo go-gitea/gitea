@@ -309,7 +309,7 @@ function initVueComponents() {
         let response;
         try {
           if (!this.reposTotalCount) {
-            const totalCountSearchURL = `${this.subUrl}/repo/search?sort=updated&count_only=1&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
+            const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
             response = await fetch(totalCountSearchURL);
             this.reposTotalCount = response.headers.get('X-Total-Count');
           }
