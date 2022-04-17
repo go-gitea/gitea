@@ -32,16 +32,15 @@ func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mirrorNotifier.NotifyPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
 	defer finished()
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	syncOnPush := true
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnPush(repo.ID, syncOnPush)
 	if err != nil {
-		log.Error("repo_model.GetPushMirrorsByRepoID failed: %v", err)
+		log.Error("repo_model.GetPushMirrorsByRepoIDWithSyncOnPush failed: %v", err)
 		return
 	}
 
 	for _, mirror := range pushMirrors {
-		if mirror.SyncOnPush {
-			// TODO: push mirror likely will benefit from using a queue
-			pushmirror_service.SyncPushMirror(ctx, mirror.ID)
-		}
+		// TODO: push mirror likely will benefit from using a queue
+		pushmirror_service.SyncPushMirror(ctx, mirror.ID)
 	}
 }

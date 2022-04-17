@@ -94,6 +94,15 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
 }
 
+// GetPushMirrorsByRepoIDWithSyncOnPush returns push-mirror information of a repository,
+// filtered by sync_on_push.
+func GetPushMirrorsByRepoIDWithSyncOnPush(repoID int64, syncOnPush bool) ([]*PushMirror, error) {
+	mirrors := make([]*PushMirror, 0, 10)
+	return mirrors, db.GetEngine(db.DefaultContext).
+		Where("repo_id=? AND sync_on_push=?", repoID, syncOnPush).
+		Find(&mirrors)
+}
+
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
