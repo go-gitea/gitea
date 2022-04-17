@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 
 	_ "code.gitea.io/gitea/models"
 )
@@ -16,5 +17,8 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
+		SetUp: func() error {
+			return webhook_service.Init()
+		},
 	})
 }
