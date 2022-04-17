@@ -185,8 +185,6 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
-
 ### Building and adding SVGs
 
 SVG icons are built using the `make svg` target which compiles the icon sources defined in `build/generate-svg.js` into the output directory `public/img/svg`. Custom icons can be added in the `web_src/svg` directory.

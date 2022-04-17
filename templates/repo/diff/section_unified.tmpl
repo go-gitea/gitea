@@ -32,7 +32,6 @@
 					<td class="chroma lines-code blob-hunk">{{/*
 						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.root.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
 					*/}}
-				{{$line.Content}}
 					</td>
 				{{else}}
 					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
