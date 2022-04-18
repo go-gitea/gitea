@@ -33,25 +33,25 @@ func (viewedState ViewedState) String() string {
 	}
 }
 
-// PRReview stores for a user - PR - commit combination which files the user has already viewed
-type PRReview struct {
+// ReviewState stores for a user - PR - commit combination which files the user has already viewed
+type ReviewState struct {
 	ID           int64                  `xorm:"pk autoincr"`
 	UserID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL TEXT JSON"`                          // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
-	CommitSHA    string                 `xorm:"NOT NULL UNIQUE(pull_commit_user)"`           // Which commit was the head commit for the review?
-	PullID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"` // Which PR was the review on?
-	UpdatedUnix  timeutil.TimeStamp     `xorm:"updated"`                                     // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
+	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL TEXT JSON"`                            // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
+	CommitSHA    string                 `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
+	PullID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"`   // Which PR was the review on?
+	UpdatedUnix  timeutil.TimeStamp     `xorm:"updated"`                                       // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
 
 func init() {
-	db.RegisterModel(new(PRReview))
+	db.RegisterModel(new(ReviewState))
 }
 
-// GetReview returns the PRReview with all given values prefilled, whether or not it exists in the database.
+// GetReview returns the ReviewState with all given values prefilled, whether or not it exists in the database.
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
-func GetReview(userID, pullID int64, commitSHA string) (*PRReview, bool, error) {
-	review := &PRReview{UserID: userID, CommitSHA: commitSHA, PullID: pullID}
+func GetReview(userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
+	review := &ReviewState{UserID: userID, CommitSHA: commitSHA, PullID: pullID}
 	has, err := db.GetEngine(db.DefaultContext).Get(review)
 	return review, has, err
 }
@@ -81,9 +81,11 @@ func UpdateReview(userID, pullID int64, commitSHA string, updatedFiles map[strin
 	// Insert or Update review
 	engine := db.GetEngine(db.DefaultContext)
 	if !exists {
+		log.Trace("Inserting new review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, review.UpdatedFiles)
 		_, err := engine.Insert(review)
 		return err
 	}
+	log.Trace("Updating already existing review with ID %d (user %d, repo %d, commit %s) with the updated files %v.", review.ID, userID, pullID, commitSHA, review.UpdatedFiles)
 	_, err = engine.ID(review.ID).Update(review)
 	return err
 }
@@ -105,9 +107,9 @@ func mergeFiles(oldFiles, newFiles map[string]ViewedState) map[string]ViewedStat
 
 // GetNewestReview gets the newest review of the current user in the current PR.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
-func GetNewestReview(userID, pullID int64) (*PRReview, error) {
-	var review PRReview
-	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(1).Get(&review)
+func GetNewestReview(userID, pullID int64) (*ReviewState, error) {
+	var review ReviewState
+	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Get(&review)
 	if err != nil || !has {
 		return nil, err
 	}
@@ -116,8 +118,8 @@ func GetNewestReview(userID, pullID int64) (*PRReview, error) {
 
 // getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
-func getNewestReviewApartFrom(userID, pullID int64, commitSHA string) (*PRReview, error) {
-	var reviews []PRReview
+func getNewestReviewApartFrom(userID, pullID int64, commitSHA string) (*ReviewState, error) {
+	var reviews []ReviewState
 	err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
 	// It would also be possible to use ".And("commit_sha != ?", commitSHA)" instead of the error handling below
 	// However, benchmarks show a MASSIVE performance gain by not doing that: 1000 ms => <300 ms

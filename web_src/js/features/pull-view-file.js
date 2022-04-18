@@ -51,15 +51,16 @@ export function initViewedCheckboxListenerFor(element) {
       const hasChangedLabel = form.parentNode.querySelector('.changed-since-last-review');
       hasChangedLabel?.parentNode.removeChild(hasChangedLabel);
 
-      // Unfortunately, using an actual form causes too many problems, hence we have to emulate the form
-      const data = new FormData();
+      // Unfortunately, actual forms cause too many problems, hence another approach is needed
+      const files = {};
+      files[checkbox.getAttribute('name')] = this.checked;
+      const data = {files};
       const headCommitSHA = form.getAttribute('data-headcommit');
-      if (headCommitSHA) data.append('_headCommitSHA', headCommitSHA);
-      data.append('_csrf', csrfToken);
-      data.append(checkbox.getAttribute('name'), this.checked);
+      if (headCommitSHA) data.headCommitSHA = headCommitSHA;
       fetch(form.getAttribute('data-link'), {
         method: 'POST',
-        body: data,
+        headers: {'X-Csrf-Token': csrfToken},
+        body: JSON.stringify(data),
       });
 
       // Fold the file accordingly

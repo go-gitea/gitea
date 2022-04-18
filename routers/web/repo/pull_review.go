@@ -7,13 +7,12 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/pulls"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -246,49 +245,46 @@ func DismissReview(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }
 
-const headCommitKey = "_headCommitSHA"
+// viewedFilesUpdate Struct to parse the body of a request to update the reviewed files of a PR
+// If you want to implement an API to update the review, simply move this struct into modules.
+type viewedFilesUpdate struct {
+	Files         map[string]bool `json:"files"`
+	HeadCommitSHA string          `json:"headCommitSHA"`
+}
 
 func UpdateViewedFiles(ctx *context.Context) {
+	// Find corresponding PR
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 	pull := issue.PullRequest
-	updatedFiles := make(map[string]pulls.ViewedState, len(ctx.Req.Form))
-	headCommitSHA := ""
 
-	// Collect all files and their viewed state
-	for file, values := range ctx.Req.Form {
-		for _, viewedString := range values {
-			viewed, err := strconv.ParseBool(viewedString)
-			// Ignore fields that do not parse as a boolean, i.e. the CSRF token
-			if err != nil {
+	var data *viewedFilesUpdate
+	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
+	if err != nil {
+		log.Warn("Attempted to update a review but could not parse request body: %v", err)
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-				// Prevent invalid reviews by specifically supplying the commit the user viewed the file under
-				if file == headCommitKey {
-					headCommitSHA = viewedString
-				}
-				continue
-			}
+	// Expect the review to have been now if no head commit was supplied
+	if data.HeadCommitSHA == "" {
+		data.HeadCommitSHA = pull.HeadCommitID
+	}
 
-			// Only unviewed and viewed are possible, has-changed can not be set from the outside
-			state := pulls.Unviewed
-			if viewed {
-				state = pulls.Viewed
-			}
-			updatedFiles[strings.ReplaceAll(file, "%22", "\"")] = state
-			// \" is the only character that gets encoded when sent as form-encoded string.
-			// Unfortunately, this WILL break marking any file as viewed that contains an actual "%22" in its name.
-			// There is no way to prevent this, and "%22" is way more unlikely to occur in a filename than \".
+	updatedFiles := make(map[string]pulls.ViewedState, len(data.Files))
+	for file, viewed := range data.Files {
+
+		// Only unviewed and viewed are possible, has-changed can not be set from the outside
+		state := pulls.Unviewed
+		if viewed {
+			state = pulls.Viewed
 		}
+		updatedFiles[file] = state
 	}
 
-	// No head commit SHA was supplied - expect the review to have been now
-	if headCommitSHA == "" {
-		headCommitSHA = pull.HeadCommitID
-	}
-
-	if err := pulls.UpdateReview(ctx.Doer.ID, pull.ID, headCommitSHA, updatedFiles); err != nil {
+	if err := pulls.UpdateReview(ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }

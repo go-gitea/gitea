@@ -11,15 +11,15 @@ import (
 	"xorm.io/xorm"
 )
 
-func addPRReviewedFiles(x *xorm.Engine) error {
-	type PRReview struct {
+func addReviewViewedFiles(x *xorm.Engine) error {
+	type ReviewState struct {
 		ID           int64                        `xorm:"pk autoincr"`
 		UserID       int64                        `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
 		UpdatedFiles map[string]pulls.ViewedState `xorm:"NOT NULL TEXT JSON"`
-		CommitSHA    string                       `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
+		CommitSHA    string                       `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"`
 		PullID       int64                        `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"`
 		UpdatedUnix  timeutil.TimeStamp           `xorm:"updated"`
 	}
 
-	return x.Sync2(new(PRReview))
+	return x.Sync2(new(ReviewState))
 }

@@ -381,7 +381,7 @@ var migrations = []Migration{
 	// v212 -> v213
 	NewMigration("Add package tables", addPackageTables),
 	// v213 -> v214
-	NewMigration("allow to view files in PRs", addPRReviewedFiles),
+	NewMigration("allow to view files in PRs", addReviewViewedFiles),
 }
 
 // GetCurrentDBVersion returns the current db version
