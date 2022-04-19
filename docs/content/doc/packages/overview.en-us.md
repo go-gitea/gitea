@@ -30,6 +30,7 @@ The following package managers are currently supported:
 | [Conan]({{< relref "doc/packages/conan.en-us.md" >}}) | C++ | `conan` |
 | [Container]({{< relref "doc/packages/container.en-us.md" >}}) | - | any OCI compliant client |
 | [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Helm]({{< relref "doc/packages/helm.en-us.md" >}}) | - | any HTTP client, `cm-push` |
 | [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
 | [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm`, `yarn` |
 | [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |

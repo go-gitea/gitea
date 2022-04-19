@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/conan"
 	"code.gitea.io/gitea/routers/api/packages/container"
 	"code.gitea.io/gitea/routers/api/packages/generic"
+	"code.gitea.io/gitea/routers/api/packages/helm"
 	"code.gitea.io/gitea/routers/api/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/npm"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
@@ -161,6 +162,11 @@ func Routes() *web.Route {
 					r.Delete("", generic.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
+		})
+		r.Group("/helm", func() {
+			r.Get("/index.yaml", helm.Index)
+			r.Get("/{filename}", helm.DownloadPackageFile)
+			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
 		})
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
