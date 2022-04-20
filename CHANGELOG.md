@@ -10,6 +10,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
  * Only request write when necessary (#18657) (#19422)
  * Disable service worker by default (#18914) (#19342)
 * BUGFIXES
+  * Warn on SSH connection for incorrect configuration (#19317) (#19437)
+  * Search Issues via API, dont show 500 if filter result in empty list (#19244) (#19436)
   * When updating mirror repo intervals by API reschedule next update too (#19429) (#19433)
   * Fix nil error when some pages are rendered outside request context (#19427) (#19428)
   * Fix double blob-hunk on diff page (#19404) (#19405)
