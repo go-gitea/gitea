@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
  * Only request write when necessary (#18657) (#19422)
  * Disable service worker by default (#18914) (#19342)
 * BUGFIXES
+  * Add uploadpack.allowAnySHA1InWant to allow --filter=blob:none with older git clients (#19430) (#19438)
   * Warn on SSH connection for incorrect configuration (#19317) (#19437)
   * Search Issues via API, dont show 500 if filter result in empty list (#19244) (#19436)
   * When updating mirror repo intervals by API reschedule next update too (#19429) (#19433)
