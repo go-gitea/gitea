@@ -288,6 +288,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", NodeInfoLinks)
+			m.Get("/webfinger", WebfingerQuery)
 		}
 		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
