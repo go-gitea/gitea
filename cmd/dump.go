@@ -160,7 +160,12 @@ func runDump(ctx *cli.Context) error {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
 	} else {
-		fileName = strings.TrimSuffix(fileName, path.Ext(fileName))
+		for _, suffix := range outputTypeEnum.Enum {
+			if strings.HasSuffix(fileName, "."+suffix) {
+				fileName = strings.TrimSuffix(fileName, "."+suffix)
+				break
+			}
+		}
 		fileName += "." + outType
 	}
 	setting.LoadFromExisting()
