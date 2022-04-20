@@ -106,3 +106,19 @@ git.example.com {
 ```
 
 然后您**必须**在 Gitea 的配置文件中正确的添加类似 `[server] ROOT_URL = http://git.example.com/git/` 的配置项。
+
+## 使用 Traefik 作为反向代理服务
+
+如果您想使用 traefik 作为 Gitea 的反向代理服务，您可以在 `docker-compose.yaml` 中添加 label 部分（假设使用 docker 作为 traefik 的 provider）：
+
+```yaml
+gitea:
+  image: gitea/gitea
+  ...
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.gitea.rule=Host(`example.com`)"
+    - "traefik.http.services.gitea-websecure.loadbalancer.server.port=3000"
+```
+
+这份配置假设您使用 traefik 来处理 HTTPS 服务，并在其和 Gitea 之间使用 HTTP 进行通信。
