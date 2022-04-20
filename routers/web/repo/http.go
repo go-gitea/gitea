@@ -159,6 +159,12 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+
+			if auth.IsSSPIEnabled() {
+				// if SSPI is enabled add Negotiate to the list of supported authentication methods
+				ctx.Resp.Header().Add("WWW-Authenticate", "Negotiate")
+			}
+
 			ctx.Error(http.StatusUnauthorized)
 			return
 		}

@@ -178,6 +178,14 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		}
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
+	} else if isGitRawReleaseOrLFSPath(req) {
+		// Allow login via SSPI if access to the repo is requested and
+		// a negotiation authorization header is present
+		_, err := sspiAuth.GetAuthData(req, nil)
+		if err == nil {
+			log.Trace("SSPI Authorization: Got authorization header, try to login")
+			shouldAuth = true
+		}
 	}
 	return
 }
