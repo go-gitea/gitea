@@ -545,7 +545,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
 	}
-	repos := make([]*api.Repository, len(team.Repos))
+	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
 		access, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {

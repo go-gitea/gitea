@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "npm"
-    weight: 60
+    weight: 70
     identifier: "npm"
 ---
 
