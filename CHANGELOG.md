@@ -10,6 +10,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
  * Only request write when necessary (#18657) (#19422)
  * Disable service worker by default (#18914) (#19342)
 * BUGFIXES
+  * When updating mirror repo intervals by API reschedule next update too (#19429) (#19433)
+  * Fix nil error when some pages are rendered outside request context (#19427) (#19428)
+  * Fix double blob-hunk on diff page (#19404) (#19405)
+  * Don't allow merging PR's which are being conflict checked (#19357) (#19358)
+  * Fix middleware function's placements (#19377) (#19378)
   * Fix invalid CSRF token bug, make sure CSRF tokens can be up-to-date (#19338)
   * Restore user autoregistration with email addresses (#19261) (#19312)
   * Move checks for pulls before merge into own function (#19271) (#19277)
