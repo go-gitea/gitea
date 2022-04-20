@@ -24,7 +24,10 @@ func (c *closerError) CloseWithError(err error) error {
 	if c.Closer != nil {
 		_ = c.Closer.Close()
 	}
-	c.err = err
+	if err == nil {
+		err = io.ErrClosedPipe
+	}
+	c.err = err	
 	return nil
 }
 
