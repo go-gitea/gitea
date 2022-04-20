@@ -27,7 +27,7 @@ func (c *closerError) CloseWithError(err error) error {
 	if err == nil {
 		err = io.ErrClosedPipe
 	}
-	c.err = err	
+	c.err = err
 	return nil
 }
 
