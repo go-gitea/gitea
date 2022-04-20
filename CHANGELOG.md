@@ -4,8 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-17
+## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-20
 
+* ENHANCEMENTS
+ * Only request write when necessary (#18657) (#19422)
+ * Disable service worker by default (#18914) (#19342)
 * BUGFIXES
   * Fix invalid CSRF token bug, make sure CSRF tokens can be up-to-date (#19338)
   * Restore user autoregistration with email addresses (#19261) (#19312)
