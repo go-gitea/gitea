@@ -407,6 +407,13 @@ func RepoIDAssignment() func(ctx *Context) {
 
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
+	repoAssignmentOnce, ok := ctx.Data["RepoAssignment"].(bool)
+	if ok && repoAssignmentOnce {
+		log.Trace("RepoAssignment was exec already skiping second call ...")
+		return
+	}
+	ctx.Data["RepoAssignment"] = true
+
 	var (
 		owner *user_model.User
 		err   error
