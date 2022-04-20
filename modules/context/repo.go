@@ -602,6 +602,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.ServerError("RepoAssignment Invalid repo "+repo_model.RepoPath(userName, repoName), err)
 		return
 	}
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
+	}
 	ctx.Repo.GitRepo = gitRepo
 
 	// We opened it, we should close it
