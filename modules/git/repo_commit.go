@@ -201,7 +201,10 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) ([]*Commit, error) {
 	skip := (page - 1) * setting.Git.CommitsRangeSize
 
-	stdoutReader, stdoutWriter := io.Pipe()
+	stdoutReader, stdoutWriter, err := Pipe()
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()

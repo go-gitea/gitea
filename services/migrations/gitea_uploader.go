@@ -748,21 +748,10 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				continue
 			}
 
-			var patch string
-			reader, writer := io.Pipe()
-			defer func() {
-				_ = reader.Close()
-				_ = writer.Close()
-			}()
-			go func(comment *base.ReviewComment) {
-				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
-					// We should ignore the error since the commit maybe removed when force push to the pull request
-					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
-				}
-				_ = writer.Close()
-			}(comment)
-
-			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+			patch, err := patchForComment(g, comment, line, pr, headCommitID)
+			if err != nil {
+				return err
+			}
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
@@ -794,6 +783,29 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	}
 
 	return models.InsertReviews(cms)
+}
+
+func patchForComment(g *GiteaLocalUploader, comment *base.ReviewComment, line int, pr *models.PullRequest, headCommitID string) (string, error) {
+	reader, writer, err := git.Pipe()
+	if err != nil {
+		log.Error("GetRepoRawDiffForFile failed to create pipe when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+		return "", err
+	}
+	defer func() {
+		_ = reader.Close()
+		_ = writer.Close()
+	}()
+	go func(comment *base.ReviewComment) {
+		if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
+			// We should ignore the error since the commit maybe removed when force push to the pull request
+			log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+		}
+		_ = writer.Close()
+	}(comment)
+
+	patch, _ := git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+
+	return patch, nil
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

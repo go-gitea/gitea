@@ -100,7 +100,10 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 }
 
 func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
-	stdoutReader, stdoutWriter := io.Pipe()
+	stdoutReader, stdoutWriter, err := Pipe()
+	if err != nil {
+		return 0, err
+	}
 	defer func() {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()

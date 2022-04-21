@@ -8,7 +8,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
@@ -115,7 +114,10 @@ func (repo *Repository) GetTagWithID(idStr, name string) (*Tag, error) {
 func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:short", "object", "objectname", "creator", "contents", "contents:signature")
 
-	stdoutReader, stdoutWriter := io.Pipe()
+	stdoutReader, stdoutWriter, err := Pipe()
+	if err != nil {
+		return nil, 0, err
+	}
 	defer stdoutReader.Close()
 	defer stdoutWriter.Close()
 	stderr := strings.Builder{}

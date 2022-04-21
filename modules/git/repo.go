@@ -329,18 +329,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 		return err
 	}
 
-	tmpFile := filepath.Join(tmp, "bundle")
-	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
-	if err != nil {
-		return err
-	}
+	_, _, err = NewCommand(ctx, "bundle", "create", "-", "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env, Stdout: out})
 
-	fi, err := os.Open(tmpFile)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
-	_, err = io.Copy(out, fi)
 	return err
 }

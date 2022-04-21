@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -475,7 +476,10 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 
 // GetCommitFileStatus returns file status of commit in given repository.
 func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
-	stdout, w := io.Pipe()
+	stdout, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
@@ -486,7 +490,7 @@ func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*Commi
 	stderr := new(bytes.Buffer)
 	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
 
-	err := NewCommand(ctx, args...).Run(&RunOpts{
+	err = NewCommand(ctx, args...).Run(&RunOpts{
 		Dir:    repoPath,
 		Stdout: w,
 		Stderr: stderr,

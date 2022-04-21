@@ -1369,13 +1369,17 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		diffArgs = append(diffArgs, files...)
 	}
 
-	reader, writer := io.Pipe()
+	reader, writer, err := git.Pipe()
+	if err != nil {
+		return nil, err
+	}
+
 	defer func() {
 		_ = reader.Close()
 		_ = writer.Close()
 	}()
 
-	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
+	go func(ctx context.Context, diffArgs []string, repoPath string, writer git.WriteCloserError) {
 		cmd := git.NewCommand(ctx, diffArgs...)
 		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 		if err := cmd.Run(&git.RunOpts{

@@ -23,9 +23,40 @@ import (
 func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob, errChan chan<- error) {
 	basePath := repo.Path
 
-	catFileCheckReader, catFileCheckWriter := io.Pipe()
-	shasToBatchReader, shasToBatchWriter := io.Pipe()
-	catFileBatchReader, catFileBatchWriter := io.Pipe()
+	closers := []git.CloserError{}
+	closeAll := func(err error) {
+		for _, closer := range closers {
+			_ = closer.CloseWithError(err)
+		}
+	}
+	defer closeAll(nil)
+
+	fail := func(err error) {
+		errChan <- err
+		close(pointerChan)
+		close(errChan)
+	}
+
+	catFileCheckReader, catFileCheckWriter, err := git.Pipe()
+	if err != nil {
+		fail(err)
+		return
+	}
+	closers = append(closers, catFileCheckReader, catFileCheckWriter)
+
+	shasToBatchReader, shasToBatchWriter, err := git.Pipe()
+	if err != nil {
+		fail(err)
+		return
+	}
+	closers = append(closers, shasToBatchReader, shasToBatchWriter)
+
+	catFileBatchReader, catFileBatchWriter, err := git.Pipe()
+	if err != nil {
+		fail(err)
+		return
+	}
+	closers = append(closers, catFileBatchReader, catFileBatchWriter)
 
 	wg := sync.WaitGroup{}
 	wg.Add(4)
@@ -44,8 +75,25 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 
 	// 1. Run batch-check on all objects in the repository
 	if git.CheckGitVersionAtLeast("2.6.0") != nil {
-		revListReader, revListWriter := io.Pipe()
-		shasToCheckReader, shasToCheckWriter := io.Pipe()
+		revListReader, revListWriter, err := git.Pipe()
+		if err != nil {
+			wg.Done()
+			closeAll(err)
+			wg.Wait()
+			fail(err)
+			return
+		}
+		closers = append(closers, revListReader, revListWriter)
+		shasToCheckReader, shasToCheckWriter, err := git.Pipe()
+		if err != nil {
+			wg.Done()
+			closeAll(err)
+			wg.Wait()
+			fail(err)
+			return
+		}
+		closers = append(closers, shasToCheckReader, shasToCheckWriter)
+
 		wg.Add(2)
 		go pipeline.CatFileBatchCheck(ctx, shasToCheckReader, catFileCheckWriter, &wg, basePath)
 		go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
@@ -59,7 +107,8 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	close(errChan)
 }
 
-func createPointerResultsFromCatFileBatch(ctx context.Context, catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- PointerBlob) {
+// createPointerResultsFromCatFileBatch does not call git
+func createPointerResultsFromCatFileBatch(ctx context.Context, catFileBatchReader git.ReadCloserError, wg *sync.WaitGroup, pointerChan chan<- PointerBlob) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 

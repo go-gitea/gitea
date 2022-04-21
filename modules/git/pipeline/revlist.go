@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 
@@ -18,7 +17,7 @@ import (
 )
 
 // RevListAllObjects runs rev-list --objects --all and writes to a pipewriter
-func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.WaitGroup, basePath string, errChan chan<- error) {
+func RevListAllObjects(ctx context.Context, revListWriter git.WriteCloserError, wg *sync.WaitGroup, basePath string, errChan chan<- error) {
 	defer wg.Done()
 	defer revListWriter.Close()
 
@@ -38,7 +37,7 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 }
 
 // RevListObjects run rev-list --objects from headSHA to baseSHA
-func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath, headSHA, baseSHA string, errChan chan<- error) {
+func RevListObjects(ctx context.Context, revListWriter git.WriteCloserError, wg *sync.WaitGroup, tmpBasePath, headSHA, baseSHA string, errChan chan<- error) {
 	defer wg.Done()
 	defer revListWriter.Close()
 	stderr := new(bytes.Buffer)
@@ -55,7 +54,8 @@ func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.
 }
 
 // BlobsFromRevListObjects reads a RevListAllObjects and only selects blobs
-func BlobsFromRevListObjects(revListReader *io.PipeReader, shasToCheckWriter *io.PipeWriter, wg *sync.WaitGroup) {
+// NOTE: Does not call git
+func BlobsFromRevListObjects(revListReader git.ReadCloserError, shasToCheckWriter git.WriteCloserError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer revListReader.Close()
 	scanner := bufio.NewScanner(revListReader)

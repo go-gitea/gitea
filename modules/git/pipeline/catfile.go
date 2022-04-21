@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,7 +18,7 @@ import (
 )
 
 // CatFileBatchCheck runs cat-file with --batch-check
-func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func CatFileBatchCheck(ctx context.Context, shasToCheckReader git.ReadCloserError, catFileCheckWriter git.WriteCloserError, wg *sync.WaitGroup, tmpBasePath string) {
 	defer wg.Done()
 	defer shasToCheckReader.Close()
 	defer catFileCheckWriter.Close()
@@ -38,7 +37,7 @@ func CatFileBatchCheck(ctx context.Context, shasToCheckReader *io.PipeReader, ca
 }
 
 // CatFileBatchCheckAllObjects runs cat-file with --batch-check --batch-all
-func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
+func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter git.WriteCloserError, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
 	defer wg.Done()
 	defer catFileCheckWriter.Close()
 
@@ -58,7 +57,7 @@ func CatFileBatchCheckAllObjects(ctx context.Context, catFileCheckWriter *io.Pip
 }
 
 // CatFileBatch runs cat-file --batch
-func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func CatFileBatch(ctx context.Context, shasToBatchReader git.ReadCloserError, catFileBatchWriter git.WriteCloserError, wg *sync.WaitGroup, tmpBasePath string) {
 	defer wg.Done()
 	defer shasToBatchReader.Close()
 	defer catFileBatchWriter.Close()
@@ -76,7 +75,7 @@ func CatFileBatch(ctx context.Context, shasToBatchReader *io.PipeReader, catFile
 }
 
 // BlobsLessThan1024FromCatFileBatchCheck reads a pipeline from cat-file --batch-check and returns the blobs <1024 in size
-func BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader *io.PipeReader, shasToBatchWriter *io.PipeWriter, wg *sync.WaitGroup) {
+func BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader git.ReadCloserError, shasToBatchWriter git.WriteCloserError, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer catFileCheckReader.Close()
 	scanner := bufio.NewScanner(catFileCheckReader)

@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -26,11 +27,45 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	// ensure only blobs and <=1k size then pass in to git cat-file --batch
 	// to read each sha and check each as a pointer
 	// Then if they are lfs -> add them to the baseRepo
-	revListReader, revListWriter := io.Pipe()
-	shasToCheckReader, shasToCheckWriter := io.Pipe()
-	catFileCheckReader, catFileCheckWriter := io.Pipe()
-	shasToBatchReader, shasToBatchWriter := io.Pipe()
-	catFileBatchReader, catFileBatchWriter := io.Pipe()
+
+	closers := []git.CloserError{}
+	closeAll := func(err error) {
+		for _, closer := range closers {
+			_ = closer.CloseWithError(err)
+		}
+	}
+	defer closeAll(nil)
+
+	revListReader, revListWriter, err := git.Pipe()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, revListReader, revListWriter)
+
+	shasToCheckReader, shasToCheckWriter, err := git.Pipe()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, shasToCheckReader, shasToCheckWriter)
+
+	catFileCheckReader, catFileCheckWriter, err := git.Pipe()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, catFileCheckReader, catFileCheckWriter)
+
+	shasToBatchReader, shasToBatchWriter, err := git.Pipe()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, shasToBatchReader, shasToBatchWriter)
+
+	catFileBatchReader, catFileBatchWriter, err := git.Pipe()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, catFileBatchReader, catFileBatchWriter)
+
 	errChan := make(chan error, 1)
 	wg := sync.WaitGroup{}
 	wg.Add(6)
@@ -67,7 +102,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	return nil
 }
 
-func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *models.PullRequest) {
+func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader git.ReadCloserError, wg *sync.WaitGroup, pr *models.PullRequest) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 

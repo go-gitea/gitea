@@ -13,15 +13,19 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/djherbis/buffer"
-	"github.com/djherbis/nio/v3"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // LogNameStatusRepo opens git log --raw in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) (*bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	stdoutReader, stdoutWriter := nio.Pipe(buffer.New(32 * 1024))
+	stdoutReader, stdoutWriter, err := Pipe()
+	if err != nil {
+		log.Critical("Unable to open pipe to write to: %v", err)
+		rd := &ClosedReadWriteCloserError{err}
+		return bufio.NewReader(rd), func() {}
+	}
 
 	// Lets also create a context so that we can absolutely ensure that the command should die when we're done
 	ctx, ctxCancel := context.WithCancel(ctx)

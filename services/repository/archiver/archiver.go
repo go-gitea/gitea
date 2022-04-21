@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -167,7 +166,10 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		return nil, fmt.Errorf("unable to stat archive: %v", err)
 	}
 
-	rd, w := io.Pipe()
+	rd, w, err := git.Pipe()
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		w.Close()
 		rd.Close()
@@ -184,7 +186,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	}
 	defer gitRepo.Close()
 
-	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
+	go func(done chan error, w git.WriteCloserError, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)

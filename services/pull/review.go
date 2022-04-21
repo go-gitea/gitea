@@ -8,7 +8,6 @@ package pull
 import (
 	"context"
 	"fmt"
-	"io"
 	"regexp"
 	"strings"
 
@@ -183,7 +182,11 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if len(commitID) == 0 {
 			commitID = headCommitID
 		}
-		reader, writer := io.Pipe()
+		reader, writer, err := git.Pipe()
+		if err != nil {
+			log.Critical("Unable to open pipe whilst generating patch: %v", err)
+			return nil, err
+		}
 		defer func() {
 			_ = reader.Close()
 			_ = writer.Close()

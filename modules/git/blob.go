@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -69,25 +70,18 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 	}
 	defer dataRc.Close()
 
-	pr, pw := io.Pipe()
-	encoder := base64.NewEncoder(base64.StdEncoding, pw)
+	sb := &strings.Builder{}
 
-	go func() {
-		_, err := io.Copy(encoder, dataRc)
-		_ = encoder.Close()
+	encoder := base64.NewEncoder(base64.StdEncoding, sb)
 
-		if err != nil {
-			_ = pw.CloseWithError(err)
-		} else {
-			_ = pw.Close()
-		}
-	}()
+	_, err = io.Copy(encoder, dataRc)
+	_ = encoder.Close()
 
-	out, err := io.ReadAll(pr)
 	if err != nil {
 		return "", err
 	}
-	return string(out), nil
+
+	return sb.String(), nil
 }
 
 // GuessContentType guesses the content type of the blob.

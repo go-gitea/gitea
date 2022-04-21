@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -36,24 +35,21 @@ func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 }
 
 func returnClosedReaderWriters(err error) (WriteCloserError, *bufio.Reader, func()) {
-	wr := &writeCloserError{}
-	rd := &readCloserError{}
-
-	_ = wr.CloseWithError(err)
-	_ = rd.CloseWithError(err)
-
-	return wr, bufio.NewReader(rd), func() {}
+	wr := &ClosedReadWriteCloserError{err}
+	return wr, bufio.NewReader(wr), func() {}
 }
 
 // CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
-	batchStdinReader, batchStdinWriter, err := os.Pipe()
+	batchStdinReader, batchStdinWriter, err := Pipe()
 	if err != nil {
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdoutReader, batchStdoutWriter, err := os.Pipe()
+	batchStdoutReader, batchStdoutWriter, err := Pipe()
 	if err != nil {
+		_ = batchStdinReader.Close()
+		_ = batchStdinWriter.Close()
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
@@ -69,9 +65,6 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
-	wr := newWriteCloserError(batchStdinWriter)
-	rd := newReadCloserError(batchStdoutReader)
-
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand(ctx, "cat-file", "--batch-check").
@@ -84,10 +77,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 			})
 		if err != nil {
 			err := ConcatenateError(err, (&stderr).String())
-			_ = wr.CloseWithError(err)
-			_ = rd.CloseWithError(err)
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
+			_ = batchStdinReader.CloseWithError(err)
+			_ = batchStdoutWriter.CloseWithError(err)
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
@@ -96,28 +87,26 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	}()
 
 	// For simplicities sake we'll use a buffered reader to read from the cat-file --batch-check
-	batchReader := bufio.NewReader(rd)
-
-	return wr, batchReader, cancel
+	batchReader := bufio.NewReader(batchStdoutReader)
+	return batchStdinWriter, batchReader, cancel
 }
 
 // CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter, err := os.Pipe()
+	batchStdinReader, batchStdinWriter, err := Pipe()
 	if err != nil {
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdoutReader, batchStdoutWriter, err := os.Pipe()
+	batchStdoutReader, batchStdoutWriter, err := Pipe()
 	if err != nil {
+		_ = batchStdinReader.Close()
+		_ = batchStdinWriter.Close()
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-
-	wr := newWriteCloserError(batchStdinWriter)
-	rd := newReadCloserError(batchStdoutReader)
 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
@@ -143,10 +132,8 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 			})
 		if err != nil {
 			err := ConcatenateError(err, (&stderr).String())
-			_ = wr.CloseWithError(err)
-			_ = rd.CloseWithError(err)
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
+			_ = batchStdinReader.CloseWithError(err)
+			_ = batchStdoutWriter.CloseWithError(err)
 		} else {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
@@ -155,9 +142,9 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 	}()
 
 	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
-	batchReader := bufio.NewReaderSize(rd, 32*1024)
+	batchReader := bufio.NewReaderSize(batchStdoutReader, 32*1024)
 
-	return wr, batchReader, cancel
+	return batchStdinWriter, batchReader, cancel
 }
 
 // ReadBatchLine reads the header line from cat-file --batch

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 
@@ -16,7 +15,7 @@ import (
 )
 
 // NameRevStdin runs name-rev --stdin
-func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevStdinWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
+func NameRevStdin(ctx context.Context, shasToNameReader git.ReadCloserError, nameRevStdinWriter git.WriteCloserError, wg *sync.WaitGroup, tmpBasePath string) {
 	defer wg.Done()
 	defer shasToNameReader.Close()
 	defer nameRevStdinWriter.Close()

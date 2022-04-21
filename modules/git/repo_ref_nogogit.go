@@ -15,7 +15,10 @@ import (
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
 func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
-	stdoutReader, stdoutWriter := io.Pipe()
+	stdoutReader, stdoutWriter, err := Pipe()
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()

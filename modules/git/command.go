@@ -158,9 +158,21 @@ func (c *Command) Run(opts *RunOpts) error {
 	)
 
 	cmd.Dir = opts.Dir
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
-	cmd.Stdin = opts.Stdin
+	if pipeWriter, ok := opts.Stdout.(*PipeWriter); ok {
+		cmd.Stdout = pipeWriter.File()
+	} else {
+		cmd.Stdout = opts.Stdout
+	}
+	if pipeWriter, ok := opts.Stderr.(*PipeWriter); ok {
+		cmd.Stderr = pipeWriter.File()
+	} else {
+		cmd.Stderr = opts.Stderr
+	}
+	if pipeReader, ok := opts.Stdin.(*PipeReader); ok {
+		cmd.Stdin = pipeReader.File()
+	} else {
+		cmd.Stdin = opts.Stdin
+	}
 	if err := cmd.Start(); err != nil {
 		return err
 	}
