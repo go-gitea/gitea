@@ -818,11 +818,11 @@ func Routes() *web.Route {
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
-					m.Get("", context.ReferencesGitRepo(), repo.ListBranches)
-					m.Get("/*", context.ReferencesGitRepo(), repo.GetBranch)
-					m.Delete("/*", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(), repo.DeleteBranch)
-					m.Post("", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
-				}, reqRepoReader(unit.TypeCode))
+					m.Get("", repo.ListBranches)
+					m.Get("/*", repo.GetBranch)
+					m.Delete("/*", reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
