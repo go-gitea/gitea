@@ -269,6 +269,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	// TODO: use gitRepo from context
 	if err := git.GetRawDiff(
 		ctx,
 		repoPath,
