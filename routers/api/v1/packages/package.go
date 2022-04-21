@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [composer, conan, generic, maven, npm, nuget, pypi, rubygems]
+	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pypi, rubygems]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -56,8 +56,8 @@ func ListPackages(ctx *context.APIContext) {
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packageType,
-		QueryName: query,
+		Type:      packages.Type(packageType),
+		Name:      packages.SearchValue{Value: query},
 		Paginator: &listOptions,
 	})
 	if err != nil {

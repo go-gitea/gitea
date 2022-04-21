@@ -75,7 +75,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.Issue.LoadRepo(); err != nil {
+	if err = pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 		return
 	}
@@ -322,7 +322,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}
@@ -657,7 +657,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}

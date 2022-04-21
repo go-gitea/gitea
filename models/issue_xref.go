@@ -129,7 +129,7 @@ func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossRefe
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := createComment(stdCtx, opts)
+		_, err := CreateCommentCtx(stdCtx, opts)
 		if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (issue *Issue) getCrossReferences(stdCtx context.Context, ctx *crossReferen
 	for _, ref := range allrefs {
 		if ref.Owner == "" && ref.Name == "" {
 			// Issues in the same repository
-			if err := ctx.OrigIssue.loadRepo(stdCtx); err != nil {
+			if err := ctx.OrigIssue.LoadRepo(stdCtx); err != nil {
 				return nil, err
 			}
 			refRepo = ctx.OrigIssue.Repo
@@ -204,7 +204,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 	if has, _ := e.Get(refIssue); !has {
 		return nil, references.XRefActionNone, nil
 	}
-	if err := refIssue.loadRepo(stdCtx); err != nil {
+	if err := refIssue.LoadRepo(stdCtx); err != nil {
 		return nil, references.XRefActionNone, err
 	}
 
@@ -282,7 +282,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	}
 	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
 	if err == nil {
-		err = comment.RefIssue.loadRepo(db.DefaultContext)
+		err = comment.RefIssue.LoadRepo(db.DefaultContext)
 	}
 	return
 }
