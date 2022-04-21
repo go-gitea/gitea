@@ -21,7 +21,7 @@ params:
   version: 1.16.6
   minGoVersion: 1.17
   goVersion: 1.18
-  minNodeVersion: 12.17
+  minNodeVersion: 14
 
 outputs:
   home:
