@@ -285,14 +285,9 @@ func APIContexter() func(http.Handler) http.Handler {
 	}
 }
 
-// ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.CancelFunc) {
+// ReferencesGitRepoAllowEmpty injects the GitRepo into the Context even it it is marked as empty
+func ReferencesGitRepoAllowEmpty() func(ctx *APIContext) (cancel context.CancelFunc) {
 	return func(ctx *APIContext) (cancel context.CancelFunc) {
-		// Empty repository does not have reference information.
-		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
-			return
-		}
-
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
