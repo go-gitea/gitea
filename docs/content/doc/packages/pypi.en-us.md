@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "PyPI"
-    weight: 80
+    weight: 90
     identifier: "pypi"
 ---
 

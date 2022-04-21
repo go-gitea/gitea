@@ -48,7 +48,7 @@ func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*r
 		)
 	}
 	if opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, opts.Page*opts.PageSize)
+		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var repos []*repo_model.Repository
 	return repos, sess.OrderBy("repository.name").
