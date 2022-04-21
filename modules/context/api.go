@@ -285,36 +285,6 @@ func APIContexter() func(http.Handler) http.Handler {
 	}
 }
 
-// ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.CancelFunc) {
-	return func(ctx *APIContext) (cancel context.CancelFunc) {
-		// Empty repository does not have reference information.
-		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
-			return
-		}
-
-		// For API calls.
-		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepository(ctx, repoPath)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-				return
-			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			return func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
-				}
-			}
-		}
-
-		return
-	}
-}
-
 // NotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) NotFound(objs ...interface{}) {
@@ -340,33 +310,62 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	})
 }
 
-// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
-func RepoRefForAPI(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := GetAPIContext(req)
+// ReferencesGitRepo injects the GitRepo into the Context
+// you can optional skip the IsEmpty check
+func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context.CancelFunc) {
+	return func(ctx *APIContext) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
+		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
 			return
 		}
 
-		var err error
-
+		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(ctx, repoPath)
+			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
-				ctx.InternalServerError(err)
+				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 				return
 			}
+			ctx.Repo.GitRepo = gitRepo
 			// We opened it, we should close it
-			defer func() {
+			return func() {
 				// If it's been set to nil then assume someone else has closed it.
 				if ctx.Repo.GitRepo != nil {
 					ctx.Repo.GitRepo.Close()
 				}
-			}()
+			}
 		}
 
+		return
+	}
+}
+
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := GetAPIContext(req)
+
+		if ctx.Repo.GitRepo == nil {
+			ctx.InternalServerError(fmt.Errorf("no open git repo"))
+			return
+		}
+
+		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
+			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					ctx.NotFound()
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+				}
+				return
+			}
+			ctx.Repo.Commit = commit
+			return
+		}
+
+		var err error
 		refName := getRefName(ctx.Context, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {
