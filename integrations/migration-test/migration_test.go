@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -56,11 +57,30 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.NewContext()
+	setting.LoadForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
+	if err != nil {
+		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+	}
+	for _, ownerDir := range ownerDirs {
+		if !ownerDir.Type().IsDir() {
+			continue
+		}
+		repoDirs, err := os.ReadDir(filepath.Join(setting.RepoRootPath, ownerDir.Name()))
+		if err != nil {
+			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
+		}
+		for _, repoDir := range repoDirs {
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
+		}
+	}
 
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
@@ -256,13 +276,13 @@ func doMigrationTest(t *testing.T, version string) {
 
 	setting.NewXORMLogService(false)
 
-	err := db.NewEngine(context.Background(), wrappedMigrate)
+	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 
 	beans, _ := db.NamesToBean()
 
-	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})
@@ -270,7 +290,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})
@@ -296,6 +316,5 @@ func TestMigrations(t *testing.T) {
 		t.Run(fmt.Sprintf("Migrate-%s-%s", dialect, version), func(t *testing.T) {
 			doMigrationTest(t, version)
 		})
-
 	}
 }

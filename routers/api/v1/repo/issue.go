@@ -14,6 +14,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -108,7 +112,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -132,17 +136,17 @@ func SearchIssues(ctx *context.APIContext) {
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
-		OrderBy: models.SearchOrderByAlphabetically,
-		Actor:   ctx.User,
+		OrderBy: db.SearchOrderByAlphabetically,
+		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -159,9 +163,9 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -186,7 +190,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
-		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
 		}
@@ -243,18 +247,23 @@ func SearchIssues(ctx *context.APIContext) {
 			UpdatedAfterUnix:   since,
 		}
 
+		ctxUserID := int64(0)
+		if ctx.IsSigned {
+			ctxUserID = ctx.Doer.ID
+		}
+
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
 		if ctx.FormBool("created") {
-			issuesOpt.PosterID = ctx.User.ID
+			issuesOpt.PosterID = ctxUserID
 		}
 		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeID = ctx.User.ID
+			issuesOpt.AssigneeID = ctxUserID
 		}
 		if ctx.FormBool("mentioned") {
-			issuesOpt.MentionedID = ctx.User.ID
+			issuesOpt.MentionedID = ctxUserID
 		}
 		if ctx.FormBool("review_requested") {
-			issuesOpt.ReviewRequestedID = ctx.User.ID
+			issuesOpt.ReviewRequestedID = ctxUserID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
@@ -351,7 +360,7 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -377,7 +386,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issueIDs []int64
 	var labelIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
 			return
@@ -397,12 +406,12 @@ func ListIssues(ctx *context.APIContext) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if !models.IsErrMilestoneNotExist(err) {
+			if !issues_model.IsErrMilestoneNotExist(err) {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
 				return
 			}
@@ -410,12 +419,12 @@ func ListIssues(ctx *context.APIContext) {
 			if err != nil {
 				continue
 			}
-			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
@@ -491,8 +500,8 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 		return 0
 	}
 
-	user, err := models.GetUserByName(userName)
-	if models.IsErrUserNotExist(err) {
+	user, err := user_model.GetUserByName(userName)
+	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0
 	}
@@ -582,7 +591,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -590,20 +599,20 @@ func CreateIssue(ctx *context.APIContext) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Repo:         ctx.Repo.Repository,
 		Title:        form.Title,
-		PosterID:     ctx.User.ID,
-		Poster:       ctx.User,
+		PosterID:     ctx.Doer.ID,
+		Poster:       ctx.Doer,
 		Content:      form.Body,
 		Ref:          form.Ref,
 		DeadlineUnix: deadlineUnix,
 	}
 
-	var assigneeIDs = make([]int64, 0)
+	assigneeIDs := make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
 				ctx.Error(http.StatusInternalServerError, "AddAssigneeByName", err)
@@ -613,7 +622,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 		// Check if the passed assignees is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := models.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(aID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -644,7 +653,7 @@ func CreateIssue(ctx *context.APIContext) {
 	}
 
 	if form.Closed {
-		if err := issue_service.ChangeStatus(issue, ctx.User, true); err != nil {
+		if err := issue_service.ChangeStatus(issue, ctx.Doer, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -722,7 +731,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.User.ID) && !canWrite {
+	if !issue.IsPoster(ctx.Doer.ID) && !canWrite {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -735,7 +744,7 @@ func EditIssue(ctx *context.APIContext) {
 		issue.Content = *form.Body
 	}
 	if form.Ref != nil {
-		err = issue_service.ChangeIssueRef(issue, ctx.User, *form.Ref)
+		err = issue_service.ChangeIssueRef(issue, ctx.Doer, *form.Ref)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRef", err)
 			return
@@ -752,7 +761,7 @@ func EditIssue(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 			return
 		}
@@ -773,7 +782,7 @@ func EditIssue(ctx *context.APIContext) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateAssignees", err)
 			return
@@ -784,7 +793,7 @@ func EditIssue(ctx *context.APIContext) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -801,7 +810,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
+	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.Doer)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
@@ -812,11 +821,11 @@ func EditIssue(ctx *context.APIContext) {
 	}
 
 	if titleChanged {
-		notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
+		notification.NotifyIssueChangeTitle(ctx.Doer, issue, oldTitle)
 	}
 
 	if statusChangeComment != nil {
-		notification.NotifyIssueChangeStatus(ctx.User, issue, statusChangeComment, issue.IsClosed)
+		notification.NotifyIssueChangeStatus(ctx.Doer, issue, statusChangeComment, issue.IsClosed)
 	}
 
 	// Refetch from database to assign some automatic values
@@ -830,6 +839,52 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(issue))
+}
+
+func DeleteIssue(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index} issue issueDelete
+	// ---
+	// summary: Delete an issue
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of issue to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		}
+		return
+	}
+
+	if err = issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteIssueByID", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // UpdateIssueDeadline updates an issue deadline
@@ -893,7 +948,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 		return
 	}

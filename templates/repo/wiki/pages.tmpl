@@ -8,7 +8,7 @@
 			</div>
 			<div>
 				{{if and .CanWriteWiki (not .IsRepositoryMirror)}}
-					<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+					<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
 				{{end}}
 			</div>
 		</h2>
@@ -20,7 +20,7 @@
 							{{svg "octicon-file"}}
 							<a href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
 						</td>
-						{{$timeSince := TimeSinceUnix .UpdatedUnix $.Lang}}
+						{{$timeSince := TimeSinceUnix .UpdatedUnix $.i18n.Lang}}
 						<td class="text right grey">{{$.i18n.Tr "repo.wiki.last_updated" $timeSince | Safe}}</td>
 					</tr>
 				{{end}}

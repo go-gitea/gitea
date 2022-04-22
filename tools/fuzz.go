@@ -9,6 +9,7 @@ package fuzz
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"code.gitea.io/gitea/modules/markup"
@@ -23,15 +24,14 @@ import (
 // (for example, the input is lexically correct and was parsed successfully).
 // -1 if the input must not be added to corpus even if gives new coverage and 0 otherwise.
 
-var (
-	renderContext = markup.RenderContext{
-		URLPrefix: "https://example.com/go-gitea/gitea",
-		Metas: map[string]string{
-			"user": "go-gitea",
-			"repo": "gitea",
-		},
-	}
-)
+var renderContext = markup.RenderContext{
+	Ctx:       context.Background(),
+	URLPrefix: "https://example.com/go-gitea/gitea",
+	Metas: map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	},
+}
 
 func FuzzMarkdownRenderRaw(data []byte) int {
 	setting.AppURL = "http://localhost:3000/"

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -54,7 +55,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -177,15 +178,15 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	var filename = header.Filename
+	filename := header.Filename
 	if query := ctx.FormString("name"); query != "" {
 		filename = query
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(file, setting.Repository.Release.AllowedTypes, &models.Attachment{
+	attach, err := attachment.UploadAttachment(file, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
-		UploaderID: ctx.User.ID,
+		UploaderID: ctx.Doer.ID,
 		RepoID:     release.RepoID,
 		ReleaseID:  releaseID,
 	})
@@ -246,7 +247,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -261,7 +262,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := models.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachment(attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
@@ -304,7 +305,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -316,7 +317,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
-	if err := models.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}

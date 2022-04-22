@@ -45,11 +45,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -117,7 +117,7 @@
 					</div>
 				</div>
 				<div class="inline field">
-					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
+					<div class="ui checkbox tooltip" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
 						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
@@ -152,6 +152,44 @@
 				<div class="field">
 					<button class="ui green button">{{.i18n.Tr "admin.users.update_profile"}}</button>
 					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.i18n.Tr "admin.users.delete_account"}}</div>
+				</div>
+			</form>
+		</div>
+
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.avatar"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				{{if not DisableGravatar}}
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="lookup" type="radio" {{if not .User.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
+					</div>
+				</div>
+				<div class="field {{if .Err_Gravatar}}error{{end}}">
+					<label for="gravatar">Avatar {{.i18n.Tr "email"}}</label>
+					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}" />
+				</div>
+				{{end}}
+
+				<div class="inline field">
+					<div class="ui radio checkbox">
+						<input name="source" value="local" type="radio" {{if .User.UseCustomAvatar}}checked{{end}}>
+						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
+					</div>
+				</div>
+
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
 				</div>
 			</form>
 		</div>

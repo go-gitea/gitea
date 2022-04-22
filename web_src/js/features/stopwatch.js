@@ -1,9 +1,10 @@
+import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
+const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 let updateTimeInterval = null; // holds setInterval id when active
 
-export async function initStopwatch() {
+export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
   }
@@ -82,8 +83,8 @@ export async function initStopwatch() {
   }
 
   const fn = (timeout) => {
-    setTimeout(async () => {
-      await updateStopwatchWithCallback(fn, timeout);
+    setTimeout(() => {
+      const _promise = updateStopwatchWithCallback(fn, timeout);
     }, timeout);
   };
 
@@ -110,7 +111,7 @@ async function updateStopwatchWithCallback(callback, timeout) {
 async function updateStopwatch() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${appSubUrl}/api/v1/user/stopwatches`,
+    url: `${appSubUrl}/user/stopwatches`,
     headers: {'X-Csrf-Token': csrfToken},
   });
 
@@ -122,7 +123,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-async function updateStopwatchData(data) {
+function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
@@ -142,7 +143,7 @@ async function updateStopwatchData(data) {
   return !!data.length;
 }
 
-async function updateStopwatchTime(seconds) {
+function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
   if (!Number.isFinite(secs)) return;
 

@@ -15,7 +15,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -40,14 +42,14 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !ctx.Repo.CanRead(models.UnitTypeWiki) &&
-		!ctx.Repo.CanRead(models.UnitTypeExternalWiki) {
+	if !ctx.Repo.CanRead(unit.TypeWiki) &&
+		!ctx.Repo.CanRead(unit.TypeExternalWiki) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User %-v cannot read %-v or %-v of repo %-v\n"+
 				"User in repo has Permissions: %-+v",
-				ctx.User,
-				models.UnitTypeWiki,
-				models.UnitTypeExternalWiki,
+				ctx.Doer,
+				unit.TypeWiki,
+				unit.TypeExternalWiki,
 				ctx.Repo.Repository,
 				ctx.Repo.Permission)
 		}
@@ -55,7 +57,7 @@ func MustEnableWiki(ctx *context.Context) {
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalWiki)
+	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalWiki)
 	if err == nil {
 		ctx.Redirect(unit.ExternalWikiConfig().ExternalWikiURL)
 		return
@@ -88,7 +90,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err
@@ -179,7 +181,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["Pages"] = pages
 
 	// get requested pagename
-	pageName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
+	pageName := wiki_service.NormalizeWikiName(ctx.Params("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -189,10 +191,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
-		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if entry == nil || ctx.Written() {
 		if wikiRepo != nil {
@@ -217,7 +219,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	var rctx = &markup.RenderContext{
+	rctx := &markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 		IsWiki:    true,
@@ -231,7 +234,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("Render", err)
 		return nil, nil
 	}
-	ctx.Data["content"] = buf.String()
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
@@ -242,7 +246,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = buf.String()
+	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
@@ -253,7 +257,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = buf.String()
+	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -275,7 +279,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get requested pagename
-	pageName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
+	pageName := wiki_service.NormalizeWikiName(ctx.Params("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -287,10 +291,10 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
-		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if entry == nil || ctx.Written() {
 		if wikiRepo != nil {
@@ -351,7 +355,7 @@ func renderEditPage(ctx *context.Context) {
 	}()
 
 	// get requested pagename
-	pageName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
+	pageName := wiki_service.NormalizeWikiName(ctx.Params("*"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -361,10 +365,10 @@ func renderEditPage(ctx *context.Context) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
-		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
 	if entry == nil || ctx.Written() {
 		return
@@ -377,10 +381,58 @@ func renderEditPage(ctx *context.Context) {
 	ctx.Data["footerContent"] = ""
 }
 
+// WikiPost renders post of wiki page
+func WikiPost(ctx *context.Context) {
+	switch ctx.FormString("action") {
+	case "_new":
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			return
+		}
+		NewWikiPost(ctx)
+		return
+	case "_delete":
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			return
+		}
+		DeleteWikiPagePost(ctx)
+		return
+	}
+
+	if !ctx.Repo.CanWrite(unit.TypeWiki) {
+		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+		return
+	}
+	EditWikiPost(ctx)
+}
+
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
+
+	switch ctx.FormString("action") {
+	case "_pages":
+		WikiPages(ctx)
+		return
+	case "_revision":
+		WikiRevision(ctx)
+		return
+	case "_edit":
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			return
+		}
+		EditWiki(ctx)
+		return
+	case "_new":
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
+			return
+		}
+		NewWiki(ctx)
+		return
+	}
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -421,8 +473,7 @@ func Wiki(ctx *context.Context) {
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
@@ -466,8 +517,7 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -571,11 +621,12 @@ func WikiRaw(ctx *context.Context) {
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
+	}
+	if ctx.FormString("title") != "" {
+		ctx.Data["title"] = ctx.FormString("title")
 	}
 
 	ctx.HTML(http.StatusOK, tplWikiNew)
@@ -585,8 +636,6 @@ func NewWiki(ctx *context.Context) {
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -604,7 +653,7 @@ func NewWikiPost(ctx *context.Context) {
 		form.Message = ctx.Tr("repo.editor.add", form.Title)
 	}
 
-	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
@@ -622,9 +671,7 @@ func NewWikiPost(ctx *context.Context) {
 
 // EditWiki render wiki modify page
 func EditWiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
@@ -643,22 +690,20 @@ func EditWiki(ctx *context.Context) {
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
 		return
 	}
 
-	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
+	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params("*"))
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
 
 	if len(form.Message) == 0 {
 		form.Message = ctx.Tr("repo.editor.update", form.Title)
 	}
 
-	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)
 		return
 	}
@@ -668,12 +713,12 @@ func EditWikiPost(ctx *context.Context) {
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
-	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
+	wikiName := wiki_service.NormalizeWikiName(ctx.Params("*"))
 	if len(wikiName) == 0 {
 		wikiName = "Home"
 	}
 
-	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
+	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}

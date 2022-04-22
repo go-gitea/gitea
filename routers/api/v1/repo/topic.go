@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -47,12 +47,12 @@ func ListTopics(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
 
-	opts := &models.FindTopicOptions{
+	opts := &repo_model.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	topics, total, err := models.FindTopics(opts)
+	topics, total, err := repo_model.FindTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -99,7 +99,7 @@ func UpdateTopics(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.RepoTopicOptions)
 	topicNames := form.Topics
-	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
+	validTopics, invalidTopics := repo_model.SanitizeAndValidateTopics(topicNames)
 
 	if len(validTopics) > 25 {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
@@ -117,7 +117,7 @@ func UpdateTopics(ctx *context.APIContext) {
 		return
 	}
 
-	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
+	err := repo_model.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.InternalServerError(err)
@@ -158,7 +158,7 @@ func AddTopic(ctx *context.APIContext) {
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
-	if !models.ValidateTopic(topicName) {
+	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
@@ -167,7 +167,7 @@ func AddTopic(ctx *context.APIContext) {
 	}
 
 	// Prevent adding more topics than allowed to repo
-	count, err := models.CountTopics(&models.FindTopicOptions{
+	count, err := repo_model.CountTopics(&repo_model.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -182,7 +182,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	_, err = models.AddTopic(ctx.Repo.Repository.ID, topicName)
+	_, err = repo_model.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
 		ctx.InternalServerError(err)
@@ -223,7 +223,7 @@ func DeleteTopic(ctx *context.APIContext) {
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
-	if !models.ValidateTopic(topicName) {
+	if !repo_model.ValidateTopic(topicName) {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
@@ -231,7 +231,7 @@ func DeleteTopic(ctx *context.APIContext) {
 		return
 	}
 
-	topic, err := models.DeleteTopic(ctx.Repo.Repository.ID, topicName)
+	topic, err := repo_model.DeleteTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
 		ctx.InternalServerError(err)
@@ -272,12 +272,12 @@ func TopicSearch(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	opts := &models.FindTopicOptions{
+	opts := &repo_model.FindTopicOptions{
 		Keyword:     ctx.FormString("q"),
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	topics, total, err := models.FindTopics(opts)
+	topics, total, err := repo_model.FindTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

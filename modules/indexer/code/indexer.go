@@ -7,14 +7,16 @@ package code
 import (
 	"context"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -42,9 +44,11 @@ type SearchResultLanguages struct {
 
 // Indexer defines an interface to index and search code contents
 type Indexer interface {
-	Index(repo *models.Repository, sha string, changes *repoChanges) error
+	Ping() bool
+	SetAvailabilityChangeCallback(callback func(bool))
+	Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 
@@ -75,36 +79,36 @@ func filenameOfIndexerID(indexerID string) string {
 
 // IndexerData represents data stored in the code indexer
 type IndexerData struct {
-	RepoID   int64
-	IsDelete bool
+	RepoID int64
 }
 
-var (
-	indexerQueue queue.Queue
-)
+var indexerQueue queue.UniqueQueue
 
-func index(indexer Indexer, repoID int64) error {
-	repo, err := models.GetRepositoryByID(repoID)
+func index(ctx context.Context, indexer Indexer, repoID int64) error {
+	repo, err := repo_model.GetRepositoryByID(repoID)
+	if repo_model.IsErrRepoNotExist(err) {
+		return indexer.Delete(repoID)
+	}
 	if err != nil {
 		return err
 	}
 
-	sha, err := getDefaultBranchSha(repo)
+	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(repo, sha)
+	changes, err := getRepoChanges(ctx, repo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {
 		return nil
 	}
 
-	if err := indexer.Index(repo, sha, changes); err != nil {
+	if err := indexer.Index(ctx, repo, sha, changes); err != nil {
 		return err
 	}
 
-	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+	return repo_model.UpdateIndexerStatus(repo, repo_model.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer
@@ -114,7 +118,7 @@ func Init() {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), "Service: CodeIndexer", process.SystemProcessType, false)
 
 	graceful.GetManager().RunAtTerminate(func() {
 		select {
@@ -126,6 +130,7 @@ func Init() {
 		log.Debug("Closing repository indexer")
 		indexer.Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())
+		finished()
 	})
 
 	waitChannel := make(chan time.Duration)
@@ -133,35 +138,35 @@ func Init() {
 	// Create the Queue
 	switch setting.Indexer.RepoType {
 	case "bleve", "elasticsearch":
-		handler := func(data ...queue.Data) {
+		handler := func(data ...queue.Data) []queue.Data {
 			idx, err := indexer.get()
 			if idx == nil || err != nil {
 				log.Error("Codes indexer handler: unable to get indexer!")
-				return
+				return data
 			}
 
+			unhandled := make([]queue.Data, 0, len(data))
 			for _, datum := range data {
 				indexerData, ok := datum.(*IndexerData)
 				if !ok {
 					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
 					continue
 				}
-				log.Trace("IndexerData Process: %v %t", indexerData.RepoID, indexerData.IsDelete)
+				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
-				if indexerData.IsDelete {
-					if err := indexer.Delete(indexerData.RepoID); err != nil {
-						log.Error("indexer.Delete: %v", err)
-					}
-				} else {
-					if err := index(indexer, indexerData.RepoID); err != nil {
-						log.Error("index: %v", err)
+				if err := index(ctx, indexer, indexerData.RepoID); err != nil {
+					log.Error("index: %v", err)
+					if indexer.Ping() {
 						continue
 					}
+					// Add back to queue
+					unhandled = append(unhandled, datum)
 				}
 			}
+			return unhandled
 		}
 
-		indexerQueue = queue.CreateQueue("code_indexer", handler, &IndexerData{})
+		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler, &IndexerData{})
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -170,6 +175,7 @@ func Init() {
 	}
 
 	go func() {
+		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		var (
 			rIndexer Indexer
@@ -189,9 +195,6 @@ func Init() {
 
 			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
@@ -209,9 +212,6 @@ func Init() {
 
 			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
@@ -222,6 +222,18 @@ func Init() {
 		}
 
 		indexer.set(rIndexer)
+
+		if queue, ok := indexerQueue.(queue.Pausable); ok {
+			rIndexer.SetAvailabilityChangeCallback(func(available bool) {
+				if !available {
+					log.Info("Code index queue paused")
+					queue.Pause()
+				} else {
+					log.Info("Code index queue resumed")
+					queue.Resume()
+				}
+			})
+		}
 
 		// Start processing the queue
 		go graceful.GetManager().RunWithShutdownFns(indexerQueue.Run)
@@ -239,6 +251,7 @@ func Init() {
 
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			timeout := setting.Indexer.StartupTimeout
 			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
@@ -265,20 +278,23 @@ func Init() {
 	}
 }
 
-// DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *models.Repository) {
-	indexData := &IndexerData{RepoID: repo.ID, IsDelete: true}
-	if err := indexerQueue.Push(indexData); err != nil {
-		log.Error("Delete repo index data %v failed: %v", indexData, err)
-	}
-}
-
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *models.Repository) {
+func UpdateRepoIndexer(repo *repo_model.Repository) {
 	indexData := &IndexerData{RepoID: repo.ID}
 	if err := indexerQueue.Push(indexData); err != nil {
 		log.Error("Update repo index data %v failed: %v", indexData, err)
 	}
+}
+
+// IsAvailable checks if issue indexer is available
+func IsAvailable() bool {
+	idx, err := indexer.get()
+	if err != nil {
+		log.Error("IsAvailable(): unable to get indexer: %v", err)
+		return false
+	}
+
+	return idx.Ping()
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
@@ -315,7 +331,7 @@ func populateRepoIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		ids, err := models.GetUnindexedRepos(models.RepoIndexerTypeCode, maxRepoID, 0, 50)
+		ids, err := repo_model.GetUnindexedRepos(repo_model.RepoIndexerTypeCode, maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return

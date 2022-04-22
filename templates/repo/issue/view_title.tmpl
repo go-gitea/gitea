@@ -6,7 +6,7 @@
 			</div>
 		{{end}}
 		<h1>
-			<span id="issue-title">{{RenderIssueTitle .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
+			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
 			<span class="index">#{{.Issue.Index}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
 				<input value="{{.Issue.Title}}" maxlength="255" autocomplete="off">
@@ -34,13 +34,13 @@
 		{{if .HeadBranchHTMLURL}}
 			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchHTMLURL | Escape) $headHref}}
 		{{end}}
-		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-success=\"%s\" data-error=\"%s\" data-clipboard-text=\"%s\" data-variation=\"inverted tiny\">%s</a>" $headHref (.i18n.Tr "repo.copy_branch") (.i18n.Tr "repo.copy_branch_success") (.i18n.Tr "repo.copy_branch_error") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+		{{$headHref = printf "%s <a class=\"tooltip\" data-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.i18n.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchHTMLURL}}
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}
 		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
-			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
+			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.i18n.Lang }}
 			{{if .Issue.OriginalAuthor }}
 				{{.Issue.OriginalAuthor}}
 				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
@@ -88,12 +88,12 @@
 			</span>
 		{{end}}
 	{{else}}
-		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
+		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang }}
 		<span class="time-desc">
 			{{if .Issue.OriginalAuthor }}
-				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
 			{{else if gt .Issue.Poster.ID 0}}
-				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{else}}
 				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{end}}

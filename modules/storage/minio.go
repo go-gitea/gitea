@@ -117,12 +117,12 @@ func NewMinioStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	return strings.TrimPrefix(path.Join(m.basePath, p), "/")
+	return strings.TrimPrefix(path.Join(m.basePath, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:]), "/")
 }
 
 // Open open a file
 func (m *MinioStorage) Open(path string) (Object, error) {
-	var opts = minio.GetObjectOptions{}
+	opts := minio.GetObjectOptions{}
 	object, err := m.client.GetObject(m.ctx, m.bucket, m.buildMinioPath(path), opts)
 	if err != nil {
 		return nil, convertMinioErr(err)
@@ -206,7 +206,7 @@ func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
 
 // IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) error {
-	var opts = minio.GetObjectOptions{}
+	opts := minio.GetObjectOptions{}
 	lobjectCtx, cancel := context.WithCancel(m.ctx)
 	defer cancel()
 	for mObjInfo := range m.client.ListObjects(lobjectCtx, m.bucket, minio.ListObjectsOptions{

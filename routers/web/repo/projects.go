@@ -7,11 +7,16 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	project_model "code.gitea.io/gitea/models/project"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,13 +34,13 @@ const (
 
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
-	if models.UnitTypeProjects.UnitGlobalDisabled() {
+	if unit.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(models.UnitTypeProjects) {
+		if !ctx.Repo.CanRead(unit.TypeProjects) {
 			ctx.NotFound("MustEnableProjects", nil)
 			return
 		}
@@ -65,12 +70,12 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := models.GetProjects(models.ProjectSearchOptions{
+	projects, count, err := project_model.GetProjects(project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
 		SortType: sortType,
-		Type:     models.ProjectTypeRepository,
+		Type:     project_model.TypeRepository,
 	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
@@ -107,7 +112,7 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
@@ -118,8 +123,8 @@ func Projects(ctx *context.Context) {
 // NewProject render creating a project page
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -129,19 +134,19 @@ func NewProjectPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
-		ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+		ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
-	if err := models.NewProject(&models.Project{
+	if err := project_model.NewProject(&project_model.Project{
 		RepoID:      ctx.Repo.Repository.ID,
 		Title:       form.Title,
 		Description: form.Content,
-		CreatorID:   ctx.User.ID,
+		CreatorID:   ctx.Doer.ID,
 		BoardType:   form.BoardType,
-		Type:        models.ProjectTypeRepository,
+		Type:        project_model.TypeRepository,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
@@ -164,22 +169,22 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := models.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
-		if models.IsErrProjectNotExist(err) {
+	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
 			ctx.ServerError("ChangeProjectStatusByIDAndRepoID", err)
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + ctx.Params(":action"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteProject delete a project
 func DeleteProject(ctx *context.Context) {
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -191,7 +196,7 @@ func DeleteProject(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteProjectByID(p.ID); err != nil {
+	if err := project_model.DeleteProjectByID(p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
@@ -206,11 +211,11 @@ func DeleteProject(ctx *context.Context) {
 func EditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -233,16 +238,16 @@ func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -256,7 +261,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p.Title = form.Title
 	p.Description = form.Content
-	if err = models.UpdateProject(p); err != nil {
+	if err = project_model.UpdateProject(p); err != nil {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
@@ -267,10 +272,9 @@ func EditProjectPost(ctx *context.Context) {
 
 // ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
-
-	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -282,7 +286,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := models.GetProjectBoards(project.ID)
+	boards, err := project_model.GetBoards(project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
@@ -292,28 +296,29 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issueList, err := boards.LoadIssues()
+	issuesMap, err := models.LoadIssuesFromBoardList(boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
-	ctx.Data["Issues"] = issueList
 
 	linkedPrsMap := make(map[int64][]*models.Issue)
-	for _, issue := range issueList {
-		var referencedIds []int64
-		for _, comment := range issue.Comments {
-			if comment.RefIssueID != 0 && comment.RefIsPull {
-				referencedIds = append(referencedIds, comment.RefIssueID)
+	for _, issuesList := range issuesMap {
+		for _, issue := range issuesList {
+			var referencedIds []int64
+			for _, comment := range issue.Comments {
+				if comment.RefIssueID != 0 && comment.RefIsPull {
+					referencedIds = append(referencedIds, comment.RefIssueID)
+				}
 			}
-		}
 
-		if len(referencedIds) > 0 {
-			if linkedPrs, err := models.Issues(&models.IssuesOptions{
-				IssueIDs: referencedIds,
-				IsPull:   util.OptionalBoolTrue,
-			}); err == nil {
-				linkedPrsMap[issue.ID] = linkedPrs
+			if len(referencedIds) > 0 {
+				if linkedPrs, err := models.Issues(&models.IssuesOptions{
+					IssueIDs: referencedIds,
+					IsPull:   util.OptionalBoolTrue,
+				}); err == nil {
+					linkedPrsMap[issue.ID] = linkedPrs
+				}
 			}
 		}
 	}
@@ -330,8 +335,10 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["IsProjectsPage"] = true
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
+	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
@@ -351,7 +358,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			continue
 		}
 
-		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
+		if err := models.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -364,23 +371,23 @@ func UpdateIssueProject(ctx *context.Context) {
 
 // DeleteProjectBoard allows for the deletion of a project board
 func DeleteProjectBoard(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
 
-	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -388,7 +395,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	pb, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return
@@ -407,7 +414,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteProjectBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
+	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":boardID")); err != nil {
 		ctx.ServerError("DeleteProjectBoardByID", err)
 		return
 	}
@@ -420,16 +427,16 @@ func DeleteProjectBoard(ctx *context.Context) {
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
 
-	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -437,11 +444,11 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := models.NewProjectBoard(&models.ProjectBoard{
+	if err := project_model.NewBoard(&project_model.Board{
 		ProjectID: project.ID,
 		Title:     form.Title,
 		Color:     form.Color,
-		CreatorID: ctx.User.ID,
+		CreatorID: ctx.Doer.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
 		return
@@ -452,24 +459,24 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	})
 }
 
-func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, *models.ProjectBoard) {
-	if ctx.User == nil {
+func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Board) {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return nil, nil
 	}
 
-	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
+		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
@@ -477,7 +484,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 		return nil, nil
 	}
 
-	board, err := models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
+	board, err := project_model.GetBoard(ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return nil, nil
@@ -516,7 +523,7 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Sorting = form.Sorting
 	}
 
-	if err := models.UpdateProjectBoard(board); err != nil {
+	if err := project_model.UpdateBoard(board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
 		return
 	}
@@ -528,13 +535,12 @@ func EditProjectBoard(ctx *context.Context) {
 
 // SetDefaultProjectBoard set default board for uncategorized issues/pulls
 func SetDefaultProjectBoard(ctx *context.Context) {
-
 	project, board := checkProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	if err := models.SetDefaultBoard(project.ID, board.ID); err != nil {
+	if err := project_model.SetDefaultBoard(project.ID, board.ID); err != nil {
 		ctx.ServerError("SetDefaultBoard", err)
 		return
 	}
@@ -544,76 +550,95 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	})
 }
 
-// MoveIssueAcrossBoards move a card from one board to another in a project
-func MoveIssueAcrossBoards(ctx *context.Context) {
-
-	if ctx.User == nil {
+// MoveIssues moves or keeps issues in a column and sorts them inside that column
+func MoveIssues(ctx *context.Context) {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
 	}
 
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrProjectNotExist(err) {
-			ctx.NotFound("", nil)
+		if project_model.IsErrProjectNotExist(err) {
+			ctx.NotFound("ProjectNotExist", nil)
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("", nil)
+	if project.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
 
-	var board *models.ProjectBoard
+	var board *project_model.Board
 
 	if ctx.ParamsInt64(":boardID") == 0 {
-
-		board = &models.ProjectBoard{
+		board = &project_model.Board{
 			ID:        0,
-			ProjectID: 0,
+			ProjectID: project.ID,
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		}
-
 	} else {
-		board, err = models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
+		board, err = project_model.GetBoard(ctx.ParamsInt64(":boardID"))
 		if err != nil {
-			if models.IsErrProjectBoardNotExist(err) {
-				ctx.NotFound("", nil)
+			if project_model.IsErrProjectBoardNotExist(err) {
+				ctx.NotFound("ProjectBoardNotExist", nil)
 			} else {
 				ctx.ServerError("GetProjectBoard", err)
 			}
 			return
 		}
-		if board.ProjectID != p.ID {
-			ctx.NotFound("", nil)
+		if board.ProjectID != project.ID {
+			ctx.NotFound("BoardNotInProject", nil)
 			return
 		}
 	}
 
-	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
+	type movedIssuesForm struct {
+		Issues []struct {
+			IssueID int64 `json:"issueID"`
+			Sorting int64 `json:"sorting"`
+		} `json:"issues"`
+	}
+
+	form := &movedIssuesForm{}
+	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
+		ctx.ServerError("DecodeMovedIssuesForm", err)
+	}
+
+	issueIDs := make([]int64, 0, len(form.Issues))
+	sortedIssueIDs := make(map[int64]int64)
+	for _, issue := range form.Issues {
+		issueIDs = append(issueIDs, issue.IssueID)
+		sortedIssueIDs[issue.Sorting] = issue.IssueID
+	}
+	movedIssues, err := models.GetIssuesByIDs(issueIDs)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("", nil)
+			ctx.NotFound("IssueNotExisting", nil)
 		} else {
 			ctx.ServerError("GetIssueByID", err)
 		}
-
 		return
 	}
 
-	if err := models.MoveIssueAcrossProjectBoards(issue, board); err != nil {
-		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
+	if len(movedIssues) != len(form.Issues) {
+		ctx.ServerError("IssuesNotFound", err)
+		return
+	}
+
+	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 
@@ -625,15 +650,14 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 // CreateProject renders the generic project creation page
 func CreateProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
-	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 }
 
 // CreateProjectPost creates an individual and/or organization project
 func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-
 	user := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
@@ -642,17 +666,17 @@ func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
 	ctx.Data["ContextUser"] = user
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 		return
 	}
 
-	var projectType = models.ProjectTypeIndividual
+	projectType := project_model.TypeIndividual
 	if user.IsOrganization() {
-		projectType = models.ProjectTypeOrganization
+		projectType = project_model.TypeOrganization
 	}
 
-	if err := models.NewProject(&models.Project{
+	if err := project_model.NewProject(&project_model.Project{
 		Title:       form.Title,
 		Description: form.Content,
 		CreatorID:   user.ID,

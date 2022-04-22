@@ -1,6 +1,6 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}" data-variation="tiny inverted">
+		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}">
 			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
@@ -41,7 +41,7 @@
 
 	{{if and .IsSigned .MustChangePassword}}
 		<div class="right stackable menu">
-			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
@@ -63,8 +63,7 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
-			{{$issueURL := Printf "%s/%s/issues/%d" AppSubUrl .ActiveStopwatch.RepoSlug .ActiveStopwatch.IssueIndex}}
-			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{$issueURL}}">
+			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="text">
 					<span class="fitted item">
 						{{svg "octicon-stopwatch"}}
@@ -75,33 +74,33 @@
 			</a>
 			<div class="ui popup very wide">
 				<div class="df ac">
-					<a class="stopwatch-link df ac" href="{{$issueURL}}">
+					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
 						{{svg "octicon-issue-opened"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui label blue stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
 						</span>
 					</a>
-					<form class="stopwatch-commit" method="POST" action="{{$issueURL}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
-							class="ui button mini compact basic icon fitted poping up"
+							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.i18n.Tr "repo.issues.stop_tracking"}}"
-							data-position="top right" data-variation="small inverted"
+							data-position="top right"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
-					<form class="stopwatch-cancel" method="POST" action="{{$issueURL}}/times/stopwatch/cancel">
+					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
-							class="ui button mini compact basic icon fitted poping up"
+							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
-							data-position="top right" data-variation="small inverted"
+							data-position="top right"
 						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
 
-			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip" data-content='{{.i18n.Tr "notifications"}}'>
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
@@ -113,7 +112,7 @@
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item poping up" data-content="{{.i18n.Tr "create_new"}}" data-variation="tiny inverted">
+			<div class="ui dropdown jump item tooltip" data-content="{{.i18n.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
@@ -136,7 +135,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}" data-variation="tiny inverted">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
@@ -149,12 +148,12 @@
 					</div>
 
 					<div class="divider"></div>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
+					<a class="item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					{{if not .DisableStars}}
-						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}}
 							{{.i18n.Tr "your_starred"}}
 						</a>

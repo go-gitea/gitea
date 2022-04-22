@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -28,7 +28,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminEmails"] = true
 
-	opts := &models.SearchEmailOptions{
+	opts := &user_model.SearchEmailOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
@@ -40,31 +40,31 @@ func Emails(ctx *context.Context) {
 	}
 
 	type ActiveEmail struct {
-		models.SearchEmailResult
+		user_model.SearchEmailResult
 		CanChange bool
 	}
 
 	var (
-		baseEmails []*models.SearchEmailResult
+		baseEmails []*user_model.SearchEmailResult
 		emails     []ActiveEmail
 		count      int64
 		err        error
-		orderBy    models.SearchEmailOrderBy
+		orderBy    user_model.SearchEmailOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "email":
-		orderBy = models.SearchEmailOrderByEmail
+		orderBy = user_model.SearchEmailOrderByEmail
 	case "reverseemail":
-		orderBy = models.SearchEmailOrderByEmailReverse
+		orderBy = user_model.SearchEmailOrderByEmailReverse
 	case "username":
-		orderBy = models.SearchEmailOrderByName
+		orderBy = user_model.SearchEmailOrderByName
 	case "reverseusername":
-		orderBy = models.SearchEmailOrderByNameReverse
+		orderBy = user_model.SearchEmailOrderByNameReverse
 	default:
 		ctx.Data["SortType"] = "email"
-		orderBy = models.SearchEmailOrderByEmail
+		orderBy = user_model.SearchEmailOrderByEmail
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
@@ -77,7 +77,7 @@ func Emails(ctx *context.Context) {
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
-		baseEmails, count, err = models.SearchEmails(opts)
+		baseEmails, count, err = user_model.SearchEmails(opts)
 		if err != nil {
 			ctx.ServerError("SearchEmails", err)
 			return
@@ -87,7 +87,7 @@ func Emails(ctx *context.Context) {
 			emails[i].SearchEmailResult = *baseEmails[i]
 			// Don't let the admin deactivate its own primary email address
 			// We already know the user is admin
-			emails[i].CanChange = ctx.User.ID != emails[i].UID || !emails[i].IsPrimary
+			emails[i].CanChange = ctx.Doer.ID != emails[i].UID || !emails[i].IsPrimary
 		}
 	}
 	ctx.Data["Keyword"] = opts.Keyword
@@ -101,9 +101,7 @@ func Emails(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplEmails)
 }
 
-var (
-	nullByte = []byte{0x00}
-)
+var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)
@@ -111,7 +109,6 @@ func isKeywordValid(keyword string) bool {
 
 // ActivateEmail serves a POST request for activating/deactivating a user's email
 func ActivateEmail(ctx *context.Context) {
-
 	truefalse := map[string]bool{"1": true, "0": false}
 
 	uid := ctx.FormInt64("uid")
@@ -126,9 +123,9 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	if err := models.ActivateUserEmail(uid, email, activate); err != nil {
+	if err := user_model.ActivateUserEmail(uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
-		if models.IsErrEmailAlreadyUsed(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))

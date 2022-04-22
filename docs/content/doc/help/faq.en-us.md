@@ -31,7 +31,7 @@ On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory
 The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
 The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "master" branch for each release).  
+This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).  
 On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
@@ -45,7 +45,7 @@ To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
 In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
 [Example (requires login)](https://try.gitea.io/repo/migrate)
 
-To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
+To migrate from GitLab to Gitea, you can use this non-affiliated tool:  
 https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
@@ -162,7 +162,7 @@ Gitea supports three official themes right now, `gitea` (light), `arc-green` (da
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`  
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
 ## SSHD vs built-in SSH
@@ -229,7 +229,7 @@ following things:
 - On the client:
   - Ensure the public and private ssh keys are added to the correct Gitea user.
   - Make sure there are no issues in the remote url. In particular, ensure the name of the
-    git user (before the `@`) is spelled correctly.
+    Git user (before the `@`) is spelled correctly.
   - Ensure public and private ssh keys are correct on client machine.
 - On the server:
   - Make sure the repository exists and is correctly named.
@@ -353,3 +353,51 @@ You will also need to change the app.ini database charset to `CHARSET=utf8mb4`.
 ## Why are Emoji displaying only as placeholders or in monochrome
 
 Gitea requires the system or browser to have one of the supported Emoji fonts installed, which are Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji and Twemoji Mozilla. Generally, the operating system should already provide one of these fonts, but especially on Linux, it may be necessary to install them manually.
+
+## Stdout logging on SystemD and Docker
+
+Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
+
+Similarly stdout on docker can be viewed using `docker logs <container>`
+
+## Initial logging
+
+Before Gitea has read the configuration file and set-up its logging it will log a number of things to stdout in order to help debug things if logging does not work.
+
+You can stop this logging by setting the `--quiet` or `-q` option. Please note this will only stop logging until Gitea has set-up its own logging.
+
+If you report a bug or issue you MUST give us logs with this information restored.
+
+You should only set this option once you have completely configured everything.
+
+## Warnings about struct defaults during database startup
+
+Sometimes when there are migrations the old columns and default values may be left
+unchanged in the database schema. This may lead to warning such as:
+
+```
+2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
+```
+
+These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+
+```
+gitea doctor recreate-table user
+```
+
+This will cause Gitea to recreate the user table and copy the old data into the new table
+with the defaults set appropriately.
+
+You can ask Gitea to recreate multiple tables using:
+
+```
+gitea doctor recreate-table table1 table2 ...
+```
+
+And if you would like Gitea to recreate all tables simply call:
+
+```
+gitea doctor recreate-table
+```
+
+It is highly recommended to back-up your database before running these commands.

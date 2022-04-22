@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -151,6 +152,7 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
+	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
@@ -161,7 +163,8 @@ type RepoSettingForm struct {
 	TrustModel string
 
 	// Admin settings
-	EnableHealthCheck bool
+	EnableHealthCheck  bool
+	RequestReindexType string
 }
 
 // Validate validates the fields
@@ -236,6 +239,7 @@ type WebhookForm struct {
 	PullRequestReview    bool
 	PullRequestSync      bool
 	Repository           bool
+	Package              bool
 	Active               bool
 	BranchFilter         string `binding:"GlobPattern"`
 }
@@ -395,6 +399,20 @@ func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewPackagistHookForm form for creating packagist hook
+type NewPackagistHookForm struct {
+	Username   string `binding:"Required"`
+	APIToken   string `binding:"Required"`
+	PackageURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -483,7 +501,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -491,7 +509,7 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -534,7 +552,7 @@ type CreateLabelForm struct {
 	ID          int64
 	Title       string `binding:"Required;MaxSize(50)" locale:"repo.issues.label_title"`
 	Description string `binding:"MaxSize(200)" locale:"repo.issues.label_description"`
-	Color       string `binding:"Required;Size(7)" locale:"repo.issues.label_color"`
+	Color       string `binding:"Required;MaxSize(7)" locale:"repo.issues.label_color"`
 }
 
 // Validate validates the fields
@@ -570,6 +588,7 @@ type MergePullRequestForm struct {
 	MergeTitleField        string
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
+	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
@@ -578,6 +597,31 @@ type MergePullRequestForm struct {
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// SetDefaults if not provided for mergestyle and commit message
+func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+	if f.Do == "" {
+		f.Do = "merge"
+	}
+
+	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
+	if len(f.MergeTitleField) == 0 {
+		switch f.Do {
+		case "merge", "rebase-merge":
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
+		case "squash":
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+		}
+	}
+
+	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
+	if len(f.MergeMessageField) > 0 {
+		f.MergeTitleField += "\n\n" + f.MergeMessageField
+		f.MergeMessageField = ""
+	}
+
+	return
 }
 
 // CodeCommentForm form for adding code comments for PRs
@@ -734,6 +778,30 @@ type EditPreviewDiffForm struct {
 
 // Validate validates the fields
 func (f *EditPreviewDiffForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// _________ .__                                 __________.__        __
+// \_   ___ \|  |__   __________________ ___.__. \______   \__| ____ |  | __
+// /    \  \/|  |  \_/ __ \_  __ \_  __ <   |  |  |     ___/  |/ ___\|  |/ /
+// \     \___|   Y  \  ___/|  | \/|  | \/\___  |  |    |   |  \  \___|    <
+//  \______  /___|  /\___  >__|   |__|   / ____|  |____|   |__|\___  >__|_ \
+//         \/     \/     \/              \/                        \/     \/
+
+// CherryPickForm form for changing repository file
+type CherryPickForm struct {
+	CommitSummary string `binding:"MaxSize(100)"`
+	CommitMessage string
+	CommitChoice  string `binding:"Required;MaxSize(50)"`
+	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
+	LastCommit    string
+	Revert        bool
+	Signoff       bool
+}
+
+// Validate validates the fields
+func (f *CherryPickForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

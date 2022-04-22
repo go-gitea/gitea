@@ -11,11 +11,12 @@ import (
 
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCSVDiff(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		diff  string
 		base  string
 		head  string
@@ -34,7 +35,8 @@ func TestCSVDiff(t *testing.T) {
 a,a`,
 			cells: [][]TableDiffCellType{
 				{TableDiffCellAdd, TableDiffCellAdd},
-				{TableDiffCellAdd, TableDiffCellAdd}},
+				{TableDiffCellAdd, TableDiffCellAdd},
+			},
 		},
 		// case 1 - adding 1 row at end
 		{
@@ -52,7 +54,8 @@ a,a`,
 a,a
 b,b`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellUnchanged, TableDiffCellUnchanged}, {TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
 				{TableDiffCellAdd, TableDiffCellAdd},
 			},
 		},
@@ -71,7 +74,8 @@ b,b`,
 			head: `col1,col2
 b,b`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellUnchanged, TableDiffCellUnchanged}, {TableDiffCellDel, TableDiffCellDel},
+				{TableDiffCellUnchanged, TableDiffCellUnchanged},
+				{TableDiffCellDel, TableDiffCellDel},
 				{TableDiffCellUnchanged, TableDiffCellUnchanged},
 			},
 		},
@@ -187,23 +191,23 @@ c,d,e`,
 	}
 
 	for n, c := range cases {
-		diff, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff))
+		diff, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff), "")
 		if err != nil {
 			t.Errorf("ParsePatch failed: %s", err)
 		}
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
-			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			baseReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.base))
 			if err != nil {
-				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
 			}
 		}
 		var headReader *csv.Reader
 		if len(c.head) > 0 {
-			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			headReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.head))
 			if err != nil {
-				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
 			}
 		}
 

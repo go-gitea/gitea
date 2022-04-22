@@ -22,6 +22,8 @@ type CheckAttributeOpts struct {
 	AllAttributes bool
 	Attributes    []string
 	Filenames     []string
+	IndexFile     string
+	WorkTree      string
 }
 
 // CheckAttribute return the Blame object of file
@@ -29,6 +31,19 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	err := LoadGitVersion()
 	if err != nil {
 		return nil, fmt.Errorf("git version missing: %v", err)
+	}
+
+	env := []string{}
+
+	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
+	}
+	if len(opts.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
+	}
+
+	if len(env) > 0 {
+		env = append(os.Environ(), env...)
 	}
 
 	stdOut := new(bytes.Buffer)
@@ -59,9 +74,14 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		}
 	}
 
-	cmd := NewCommand(cmdArgs...)
+	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
-	if err := cmd.RunInDirPipeline(repo.Path, stdOut, stdErr); err != nil {
+	if err := cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdout: stdOut,
+		Stderr: stdErr,
+	}); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 
@@ -72,7 +92,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		return nil, fmt.Errorf("wrong number of fields in return from check-attr")
 	}
 
-	var name2attribute2info = make(map[string]map[string]string)
+	name2attribute2info := make(map[string]map[string]string)
 
 	for i := 0; i < (len(fields) / 3); i++ {
 		filename := string(fields[3*i])
@@ -137,7 +157,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	cmdArgs = append(cmdArgs, "--")
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommandContext(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, cmdArgs...)
 
 	var err error
 
@@ -164,17 +184,30 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
 	defer func() {
-		_ = c.Close()
+		_ = c.stdinReader.Close()
+		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunInDirTimeoutEnvFullPipelineFunc(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader, func(_ context.Context, _ context.CancelFunc) error {
-		close(c.running)
-		return nil
+	err := c.cmd.Run(&RunOpts{
+		Env:    c.env,
+		Dir:    c.Repo.Path,
+		Stdin:  c.stdinReader,
+		Stdout: c.stdOut,
+		Stderr: stdErr,
+		PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
+			select {
+			case <-c.running:
+			default:
+				close(c.running)
+			}
+			return nil
+		},
 	})
-	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
+	if err != nil && //                      If there is an error we need to return but:
+		c.ctx.Err() != err && //             1. Ignore the context error if the context is cancelled or exceeds the deadline (RunWithContext could return c.ctx.Err() which is Canceled or DeadlineExceeded)
+		err.Error() != "signal: killed" { // 2. We should not pass up errors due to the program being killed
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
-
 	return nil
 }
 
@@ -214,10 +247,8 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
-	err := c.stdinWriter.Close()
-	_ = c.stdinReader.Close()
-	_ = c.stdOut.Close()
 	c.cancel()
+	err := c.stdinWriter.Close()
 	select {
 	case <-c.running:
 	default:

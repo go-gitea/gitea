@@ -5,7 +5,10 @@
 package convert
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -19,12 +22,12 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		URL:       n.APIURL(),
 	}
 
-	//since user only get notifications when he has access to use minimal access mode
+	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(n.Repository, models.AccessModeRead)
+		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
 	}
 
-	//handle Subject
+	// handle Subject
 	switch n.Source {
 	case models.NotificationSourceIssue:
 		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
@@ -58,7 +61,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 		}
 	case models.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + n.CommitID
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
 			Title:   n.CommitID,
@@ -80,7 +83,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 // ToNotifications convert list of Notification to api.NotificationThread list
 func ToNotifications(nl models.NotificationList) []*api.NotificationThread {
-	var result = make([]*api.NotificationThread, 0, len(nl))
+	result := make([]*api.NotificationThread, 0, len(nl))
 	for _, n := range nl {
 		result = append(result, ToNotificationThread(n))
 	}

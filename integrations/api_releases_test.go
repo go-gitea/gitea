@@ -11,7 +11,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -21,14 +23,13 @@ import (
 func TestAPIListReleases(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	session := loginUser(t, user2.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	token := getUserToken(t, user2.LowerName)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	var apiReleases []*api.Release
 	DecodeJSON(t, resp, &apiReleases)
 	if assert.Len(t, apiReleases, 3) {
@@ -51,13 +52,11 @@ func TestAPIListReleases(t *testing.T) {
 
 	// test filter
 	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
 		if auth {
 			query.Set("token", token)
-			resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		} else {
-			resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		}
+		link.RawQuery = query.Encode()
+		resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		DecodeJSON(t, resp, &apiReleases)
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
@@ -70,7 +69,7 @@ func TestAPIListReleases(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *models.User, repo *models.Repository, name, target, title, desc string) *api.Release {
+func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases?token=%s",
 		owner.Name, repo.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
@@ -85,7 +84,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
-	db.AssertExistsAndLoadBean(t, &models.Release{
+	unittest.AssertExistsAndLoadBean(t, &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
@@ -98,12 +97,12 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 func TestAPICreateAndUpdateRelease(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -138,7 +137,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
-	db.AssertExistsAndLoadBean(t, &models.Release{
+	unittest.AssertExistsAndLoadBean(t, &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
@@ -149,8 +148,8 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -160,12 +159,12 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -178,8 +177,8 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 func TestAPIGetReleaseByTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 
 	tag := "v1.1"
@@ -205,14 +204,14 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
-	assert.EqualValues(t, "Not Found", err.Message)
+	assert.NotEmpty(t, err.Message)
 }
 
 func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 

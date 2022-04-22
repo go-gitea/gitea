@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -91,8 +93,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := models.GetUserByName(qUser)
-		if models.IsErrUserNotExist(err) {
+		user, err := user_model.GetUserByName(qUser)
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -101,18 +103,18 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		opts.UserID = user.ID
 	}
 
-	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
+	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = context.GetQueryBeforeSince(ctx.Context); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
-	cantSetUser := !ctx.User.IsAdmin &&
-		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+	cantSetUser := !ctx.Doer.IsAdmin &&
+		opts.UserID != ctx.Doer.ID &&
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
-			opts.UserID = ctx.User.ID
+			opts.UserID = ctx.Doer.ID
 		} else {
 			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
@@ -187,7 +189,7 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
@@ -196,11 +198,11 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	user := ctx.User
+	user := ctx.Doer
 	if form.User != "" {
-		if (ctx.IsUserRepoAdmin() && ctx.User.Name != form.User) || ctx.User.IsAdmin {
-			//allow only RepoAdmin, Admin and User to add time
-			user, err = models.GetUserByName(form.User)
+		if (ctx.IsUserRepoAdmin() && ctx.Doer.Name != form.User) || ctx.Doer.IsAdmin {
+			// allow only RepoAdmin, Admin and User to add time
+			user, err = user_model.GetUserByName(form.User)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
@@ -268,7 +270,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -277,7 +279,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.DeleteIssueUserTimes(issue, ctx.User)
+	err = models.DeleteIssueUserTimes(issue, ctx.Doer)
 	if err != nil {
 		if models.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
@@ -286,7 +288,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteTime delete a specific time by id
@@ -339,7 +341,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
 			return
@@ -362,8 +364,8 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
-		//Only Admin and User itself can delete their time
+	if !ctx.Doer.IsAdmin && time.UserID != ctx.Doer.ID {
+		// Only Admin and User itself can delete their time
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -412,9 +414,9 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
+	user, err := user_model.GetUserByName(ctx.Params(":timetrackingusername"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -426,7 +428,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin && ctx.User.ID != user.ID {
+	if !ctx.IsUserRepoAdmin() && !ctx.Doer.IsAdmin && ctx.Doer.ID != user.ID {
 		ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 		return
 	}
@@ -509,8 +511,8 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// Filters
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := models.GetUserByName(qUser)
-		if models.IsErrUserNotExist(err) {
+		user, err := user_model.GetUserByName(qUser)
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -520,18 +522,18 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	var err error
-	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
+	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = context.GetQueryBeforeSince(ctx.Context); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
-	cantSetUser := !ctx.User.IsAdmin &&
-		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+	cantSetUser := !ctx.Doer.IsAdmin &&
+		opts.UserID != ctx.Doer.ID &&
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
-			opts.UserID = ctx.User.ID
+			opts.UserID = ctx.Doer.ID
 		} else {
 			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
@@ -591,11 +593,11 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 
 	opts := &models.FindTrackedTimesOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		UserID:      ctx.User.ID,
+		UserID:      ctx.Doer.ID,
 	}
 
 	var err error
-	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
+	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = context.GetQueryBeforeSince(ctx.Context); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}

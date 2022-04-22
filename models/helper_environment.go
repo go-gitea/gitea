@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -21,8 +23,8 @@ const (
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
-	EnvKeyID        = "GITEA_KEY_ID"
-	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
+	EnvKeyID        = "GITEA_KEY_ID" // public key ID
+	EnvDeployKeyID  = "GITEA_DEPLOY_KEY_ID"
 	EnvPRID         = "GITEA_PR_ID"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"
@@ -32,19 +34,19 @@ const (
 // It is recommended to avoid using this unless you are pushing within a transaction
 // or if you absolutely are sure that post-receive and pre-receive will do nothing
 // We provide the full pushing-environment for other hook providers
-func InternalPushingEnvironment(doer *User, repo *Repository) []string {
+func InternalPushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {
 	return append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
 	)
 }
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
-func PushingEnvironment(doer *User, repo *Repository) []string {
+func PushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {
 	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
-func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
+func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model.Repository, repoName string, prID int64) []string {
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"

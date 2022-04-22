@@ -7,79 +7,85 @@ package auth
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 
-	// Register the sources
-	_ "code.gitea.io/gitea/services/auth/source/db"
-	_ "code.gitea.io/gitea/services/auth/source/ldap"
-	_ "code.gitea.io/gitea/services/auth/source/oauth2"
-	_ "code.gitea.io/gitea/services/auth/source/pam"
-	_ "code.gitea.io/gitea/services/auth/source/smtp"
-	_ "code.gitea.io/gitea/services/auth/source/sspi"
+	_ "code.gitea.io/gitea/services/auth/source/db"   // register the sources (and below)
+	_ "code.gitea.io/gitea/services/auth/source/ldap" // register the ldap source
+	_ "code.gitea.io/gitea/services/auth/source/pam"  // register the pam source
+	_ "code.gitea.io/gitea/services/auth/source/sspi" // register the sspi source
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*models.User, *login.Source, error) {
-	var user *models.User
+func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
+	var user *user_model.User
+	isEmail := false
 	if strings.Contains(username, "@") {
-		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
+		isEmail = true
+		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := db.Count(user)
+		has, err := db.GetEngine(db.DefaultContext).Get(&emailAddress)
 		if err != nil {
 			return nil, nil, err
 		}
-		if cnt > 1 {
-			return nil, nil, models.ErrEmailAlreadyUsed{
-				Email: user.Email,
+		if has {
+			if !emailAddress.IsActivated {
+				return nil, nil, user_model.ErrEmailAddressNotExist{
+					Email: username,
+				}
 			}
+			user = &user_model.User{ID: emailAddress.UID}
 		}
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
 		if len(trimmedUsername) == 0 {
-			return nil, nil, models.ErrUserNotExist{Name: username}
+			return nil, nil, user_model.ErrUserNotExist{Name: username}
 		}
 
-		user = &models.User{LowerName: strings.ToLower(trimmedUsername)}
+		user = &user_model.User{LowerName: strings.ToLower(trimmedUsername)}
 	}
 
-	hasUser, err := models.GetUser(user)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if hasUser {
-		source, err := login.GetSourceByID(user.LoginSource)
+	if user != nil {
+		hasUser, err := user_model.GetUser(user)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		if !source.IsActive {
-			return nil, nil, models.ErrLoginSourceNotActived
-		}
+		if hasUser {
+			source, err := auth.GetSourceByID(user.LoginSource)
+			if err != nil {
+				return nil, nil, err
+			}
 
-		authenticator, ok := source.Cfg.(PasswordAuthenticator)
-		if !ok {
-			return nil, nil, models.ErrUnsupportedLoginType
-		}
+			if !source.IsActive {
+				return nil, nil, oauth2.ErrAuthSourceNotActived
+			}
 
-		user, err := authenticator.Authenticate(user, username, password)
-		if err != nil {
-			return nil, nil, err
-		}
+			authenticator, ok := source.Cfg.(PasswordAuthenticator)
+			if !ok {
+				return nil, nil, smtp.ErrUnsupportedLoginType
+			}
 
-		// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-		// user could be hint to resend confirm email.
-		if user.ProhibitLogin {
-			return nil, nil, models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
-		}
+			user, err := authenticator.Authenticate(user, user.LoginName, password)
+			if err != nil {
+				return nil, nil, err
+			}
 
-		return user, source, nil
+			// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+			// user could be hint to resend confirm email.
+			if user.ProhibitLogin {
+				return nil, nil, user_model.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+			}
+
+			return user, source, nil
+		}
 	}
 
-	sources, err := login.AllActiveSources()
+	sources, err := auth.AllActiveSources()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,15 +107,19 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 			if !authUser.ProhibitLogin {
 				return authUser, source, nil
 			}
-			err = models.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
+			err = user_model.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		} else {
 			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		}
 	}
 
-	return nil, nil, models.ErrUserNotExist{Name: username}
+	if isEmail {
+		return nil, nil, user_model.ErrEmailAddressNotExist{Email: username}
+	}
+
+	return nil, nil, user_model.ErrUserNotExist{Name: username}
 }

@@ -6,18 +6,26 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -62,13 +70,13 @@ type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64       `xorm:"INDEX"` // Action user id.
-	ActUser     *User       `xorm:"-"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	CommentID   int64       `xorm:"INDEX"`
-	Comment     *Comment    `xorm:"-"`
-	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	ActUserID   int64                  `xorm:"INDEX"` // Action user id.
+	ActUser     *user_model.User       `xorm:"-"`
+	RepoID      int64                  `xorm:"INDEX"`
+	Repo        *repo_model.Repository `xorm:"-"`
+	CommentID   int64                  `xorm:"INDEX"`
+	Comment     *Comment               `xorm:"-"`
+	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
@@ -90,11 +98,11 @@ func (a *Action) LoadActUser() {
 		return
 	}
 	var err error
-	a.ActUser, err = GetUserByID(a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
 	if err == nil {
 		return
-	} else if IsErrUserNotExist(err) {
-		a.ActUser = NewGhostUser()
+	} else if user_model.IsErrUserNotExist(err) {
+		a.ActUser = user_model.NewGhostUser()
 	} else {
 		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
 	}
@@ -105,9 +113,9 @@ func (a *Action) loadRepo() {
 		return
 	}
 	var err error
-	a.Repo, err = GetRepositoryByID(a.RepoID)
+	a.Repo, err = repo_model.GetRepositoryByID(a.RepoID)
 	if err != nil {
-		log.Error("GetRepositoryByID(%d): %v", a.RepoID, err)
+		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
 }
 
@@ -185,22 +193,20 @@ func (a *Action) ShortRepoPath() string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
-	if len(setting.AppSubURL) > 0 {
-		return path.Join(setting.AppSubURL, a.GetRepoPath())
-	}
-	return "/" + a.GetRepoPath()
+	// path.Join will skip empty strings
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
-// GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
+// GetRepositoryFromMatch returns a *repo_model.Repository from a username and repo strings
+func GetRepositoryFromMatch(ownerName, repoName string) (*repo_model.Repository, error) {
 	var err error
-	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
+	refRepo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
-		if IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			log.Warn("Repository referenced in commit but does not exist: %v", err)
 			return nil, err
 		}
-		log.Error("GetRepositoryByOwnerAndName: %v", err)
+		log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
 		return nil, err
 	}
 	return refRepo, nil
@@ -208,13 +214,14 @@ func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.GetEngine(db.DefaultContext))
+	return a.getCommentLink(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(e db.Engine) string {
+func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
+	e := db.GetEngine(ctx)
 	if a.Comment == nil && a.CommentID != 0 {
 		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
@@ -236,7 +243,7 @@ func (a *Action) getCommentLink(e db.Engine) string {
 		return "#"
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 
@@ -246,6 +253,21 @@ func (a *Action) getCommentLink(e db.Engine) string {
 // GetBranch returns the action's repository branch.
 func (a *Action) GetBranch() string {
 	return strings.TrimPrefix(a.RefName, git.BranchPrefix)
+}
+
+// GetRefLink returns the action's ref link.
+func (a *Action) GetRefLink() string {
+	switch {
+	case strings.HasPrefix(a.RefName, git.BranchPrefix):
+		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
+	case strings.HasPrefix(a.RefName, git.TagPrefix):
+		return a.GetRepoLink() + "/src/tag/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.TagPrefix))
+	case len(a.RefName) == 40 && git.SHAPattern.MatchString(a.RefName):
+		return a.GetRepoLink() + "/src/commit/" + a.RefName
+	default:
+		// FIXME: we will just assume it's a branch - this was the old way - at some point we may want to enforce that there is always a ref here.
+		return a.GetRepoLink() + "/src/branch/" + util.PathEscapeSegments(strings.TrimPrefix(a.RefName, git.BranchPrefix))
+	}
 }
 
 // GetTag returns the action's repository tag.
@@ -295,19 +317,21 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User  // the user we want activity for
-	RequestedTeam   *Team  // the team we want activity for
-	Actor           *User  // the user viewing the activity
-	IncludePrivate  bool   // include private actions
-	OnlyPerformedBy bool   // only actions performed by requested user
-	IncludeDeleted  bool   // include deleted actions
-	Date            string // the day we want activity for: YYYY-MM-DD
+	db.ListOptions
+	RequestedUser   *user_model.User       // the user we want activity for
+	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedRepo   *repo_model.Repository // the repo we want activity for
+	Actor           *user_model.User       // the user viewing the activity
+	IncludePrivate  bool                   // include private actions
+	OnlyPerformedBy bool                   // only actions performed by requested user
+	IncludeDeleted  bool                   // include deleted actions
+	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
-	if !activityReadable(opts.RequestedUser, opts.Actor) {
-		return make([]*Action, 0), nil
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
+		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
@@ -315,59 +339,68 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		return nil, err
 	}
 
-	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
+	e := db.GetEngine(ctx)
+	sess := e.Where(cond)
 
-	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
+	opts.SetDefaultValues()
+	sess = db.SetSessionPagination(sess, &opts)
+
+	actions := make([]*Action, 0, opts.PageSize)
+
+	if err := sess.Desc("created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	if err := ActionList(actions).LoadAttributes(); err != nil {
+	if err := ActionList(actions).loadAttributes(e); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
 	return actions, nil
 }
 
-func activityReadable(user, doer *User) bool {
-	var doerID int64
-	if doer != nil {
-		doerID = doer.ID
-	}
-	if doer == nil || !doer.IsAdmin {
-		if user.KeepActivityPrivate && doerID != user.ID {
-			return false
-		}
-	}
-	return true
+func activityReadable(user, doer *user_model.User) bool {
+	return !user.KeepActivityPrivate ||
+		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
 func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
-	var repoIDs []int64
-	var actorID int64
-	if opts.Actor != nil {
-		actorID = opts.Actor.ID
+	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
+		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
+		if err != nil {
+			return nil, err
+		}
+		opts.RequestedUser = org
+	}
+
+	// check activity visibility for actor ( similar to activityReadable() )
+	if opts.Actor == nil {
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+			).From("`user`"),
+		))
+	} else if !opts.Actor.IsAdmin {
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false}.
+					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
+		))
 	}
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		if opts.RequestedUser.IsOrganization() {
-			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
-			if err != nil {
-				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
-			}
-			if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
-				return nil, fmt.Errorf("GetUserRepositories: %v", err)
-			}
-			cond = cond.And(builder.In("repo_id", repoIDs))
-		} else {
-			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
-		}
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+	}
+
+	if opts.RequestedRepo != nil {
+		cond = cond.And(builder.Eq{"repo_id": opts.RequestedRepo.ID})
 	}
 
 	if opts.RequestedTeam != nil {
-		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
@@ -375,11 +408,14 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
 
-	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+	if opts.RequestedUser != nil {
+		cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
 
-	if opts.OnlyPerformedBy {
-		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
 	}
+
 	if !opts.IncludePrivate {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
@@ -410,4 +446,128 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 
 	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
 	return
+}
+
+func notifyWatchers(ctx context.Context, actions ...*Action) error {
+	var watchers []*repo_model.Watch
+	var repo *repo_model.Repository
+	var err error
+	var permCode []bool
+	var permIssue []bool
+	var permPR []bool
+
+	e := db.GetEngine(ctx)
+
+	for _, act := range actions {
+		repoChanged := repo == nil || repo.ID != act.RepoID
+
+		if repoChanged {
+			// Add feeds for user self and all watchers.
+			watchers, err = repo_model.GetWatchers(ctx, act.RepoID)
+			if err != nil {
+				return fmt.Errorf("get watchers: %v", err)
+			}
+		}
+
+		// Add feed for actioner.
+		act.UserID = act.ActUserID
+		if _, err = e.Insert(act); err != nil {
+			return fmt.Errorf("insert new actioner: %v", err)
+		}
+
+		if repoChanged {
+			act.loadRepo()
+			repo = act.Repo
+
+			// check repo owner exist.
+			if err := act.Repo.GetOwner(ctx); err != nil {
+				return fmt.Errorf("can't get repo owner: %v", err)
+			}
+		} else if act.Repo == nil {
+			act.Repo = repo
+		}
+
+		// Add feed for organization
+		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
+			act.ID = 0
+			act.UserID = act.Repo.Owner.ID
+			if _, err = e.InsertOne(act); err != nil {
+				return fmt.Errorf("insert new actioner: %v", err)
+			}
+		}
+
+		if repoChanged {
+			permCode = make([]bool, len(watchers))
+			permIssue = make([]bool, len(watchers))
+			permPR = make([]bool, len(watchers))
+			for i, watcher := range watchers {
+				user, err := user_model.GetUserByIDEngine(e, watcher.UserID)
+				if err != nil {
+					permCode[i] = false
+					permIssue[i] = false
+					permPR[i] = false
+					continue
+				}
+				perm, err := getUserRepoPermission(ctx, repo, user)
+				if err != nil {
+					permCode[i] = false
+					permIssue[i] = false
+					permPR[i] = false
+					continue
+				}
+				permCode[i] = perm.CanRead(unit.TypeCode)
+				permIssue[i] = perm.CanRead(unit.TypeIssues)
+				permPR[i] = perm.CanRead(unit.TypePullRequests)
+			}
+		}
+
+		for i, watcher := range watchers {
+			if act.ActUserID == watcher.UserID {
+				continue
+			}
+			act.ID = 0
+			act.UserID = watcher.UserID
+			act.Repo.Units = nil
+
+			switch act.OpType {
+			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionPublishRelease, ActionDeleteBranch:
+				if !permCode[i] {
+					continue
+				}
+			case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
+				if !permIssue[i] {
+					continue
+				}
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+				if !permPR[i] {
+					continue
+				}
+			}
+
+			if _, err = e.InsertOne(act); err != nil {
+				return fmt.Errorf("insert new action: %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+// NotifyWatchers creates batch of actions for every watcher.
+func NotifyWatchers(actions ...*Action) error {
+	return notifyWatchers(db.DefaultContext, actions...)
+}
+
+// NotifyWatchersActions creates batch of actions for every watcher.
+func NotifyWatchersActions(acts []*Action) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	for _, act := range acts {
+		if err := notifyWatchers(ctx, act); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
 }

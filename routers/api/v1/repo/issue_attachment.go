@@ -184,7 +184,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	var filename = header.Filename
+	filename := header.Filename
 	if query := ctx.FormString("name"); query != "" {
 		filename = query
 	}

@@ -15,7 +15,7 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
+	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -35,29 +35,32 @@
 									{{ .Issue.OriginalAuthor }}
 								</span>
 								<span class="text grey">
-									{{ .i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe }}
+									{{ .i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe }}
 								</span>
 								<span class="text migrate">
-									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}
+									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
 								<span class="text grey">
 									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-									{{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}
+									{{.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}
 						</div>
 						<div class="comment-header-right actions df ac">
-							{{if not $.Repository.IsArchived}}
-								{{if gt .Issue.ShowTag 0}}
+							{{if gt .Issue.ShowRole 0}}
+								{{if (.Issue.ShowRole.HasRole "Writer")}}
 									<div class="ui basic label">
-										{{if eq .Issue.ShowTag 2}}
-											{{$.i18n.Tr "repo.issues.collaborator"}}
-										{{else if eq .Issue.ShowTag 3}}
-											{{$.i18n.Tr "repo.issues.owner"}}
-										{{end}}
+										{{$.i18n.Tr "repo.issues.collaborator"}}
 									</div>
 								{{end}}
+								{{if (.Issue.ShowRole.HasRole "Owner")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.owner"}}
+									</div>
+								{{end}}
+							{{end}}
+							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
 							{{end}}
@@ -177,7 +180,7 @@
 					{{end}}
 				{{else}}
 					<div class="ui warning message">
-						{{.i18n.Tr "repo.issues.sign_in_require_desc" .SignInLink | Safe}}
+						{{.i18n.Tr "repo.issues.sign_in_require_desc" (.SignInLink|Escape) | Safe}}
 					</div>
 				{{end}}
 			{{end}}
@@ -192,7 +195,7 @@
 	<div class="ui comment form">
 		<div class="ui top tabular menu">
 			<a class="active write item">{{$.i18n.Tr "write"}}</a>
-			<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+			<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 		</div>
 		<div class="field">
 			<div class="ui bottom active tab write">

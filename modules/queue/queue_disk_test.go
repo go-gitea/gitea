@@ -11,17 +11,19 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLevelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
-	handle := func(data ...Data) {
+	handle := func(data ...Data) []Data {
 		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
+		return nil
 	}
 
 	var lock sync.Mutex

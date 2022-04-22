@@ -55,7 +55,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+	if err := models.CreateIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -104,7 +104,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+	if err := models.FinishIssueStopwatch(ctx, ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -153,7 +153,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CancelStopwatch(ctx.User, issue); err != nil {
+	if err := models.CancelStopwatch(ctx.Doer, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CancelStopwatch", err)
 		return
 	}
@@ -178,12 +178,12 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 		return nil, errors.New("Unable to write to PRs")
 	}
 
-	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.Doer) {
 		ctx.Status(http.StatusForbidden)
 		return nil, errors.New("Cannot use time tracker")
 	}
 
-	if models.StopwatchExists(ctx.User.ID, issue.ID) != shouldExist {
+	if models.StopwatchExists(ctx.Doer.ID, issue.ID) != shouldExist {
 		if shouldExist {
 			ctx.Error(http.StatusConflict, "StopwatchExists", "cannot stop/cancel a non existent stopwatch")
 			err = errors.New("cannot stop/cancel a non existent stopwatch")
@@ -219,13 +219,13 @@ func GetStopwatches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/StopWatchList"
 
-	sws, err := models.GetUserStopwatches(ctx.User.ID, utils.GetListOptions(ctx))
+	sws, err := models.GetUserStopwatches(ctx.Doer.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStopwatches", err)
 		return
 	}
 
-	count, err := models.CountUserStopwatches(ctx.User.ID)
+	count, err := models.CountUserStopwatches(ctx.Doer.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

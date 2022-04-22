@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import $ from 'jquery';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
@@ -123,7 +124,7 @@ function initVueComponents() {
         return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
-        return `${this.subUrl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
+        return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
         }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
         }${this.reposFilter !== 'all' ? '&exclusive=1' : ''
         }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
@@ -137,7 +138,7 @@ function initVueComponents() {
 
     mounted() {
       this.changeReposFilter(this.reposFilter);
-      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.tooltip').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
       Vue.nextTick(() => {
@@ -301,7 +302,7 @@ function initVueComponents() {
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.subUrl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
+          const totalCountSearchURL = `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
             this.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });

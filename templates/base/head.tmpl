@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{.Lang}}" class="theme-{{.SignedUser.Theme}}">
+<html lang="{{.i18n.Lang}}" class="theme-{{.SignedUser.Theme}}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,48 +12,19 @@
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
 {{if .GoGetImport}}
-	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
+	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
-	<script>
-		<!-- /* eslint-disable */ -->
-		window.config = {
-			appVer: '{{AppVer}}',
-			appSubUrl: '{{AppSubUrl}}',
-			assetUrlPrefix: '{{AssetUrlPrefix}}',
-			runModeIsProd: {{.RunModeIsProd}},
-			customEmojis: {{CustomEmojis}},
-			useServiceWorker: {{UseServiceWorker}},
-			csrfToken: '{{.CsrfToken}}',
-			pageData: {{.PageData}},
-			requireTribute: {{.RequireTribute}},
-			notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
-			enableTimeTracking: {{EnableTimetracking}},
-			{{if .RequireTribute}}
-			tributeValues: Array.from(new Map([
-				{{ range .Participants }}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
-				{{ end }}
-				{{ range .Assignees }}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
-				{{ end }}
-				{{ range .MentionableTeams }}
-					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
-					name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
-				{{ end }}
-			]).values()),
-			{{end}}
-			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-		};
-	</script>
+{{if .FeedURL}}
+	<link rel="alternate" type="application/atom+xml" title="" href="{{.FeedURL}}.atom">
+	<link rel="alternate" type="application/rss+xml" title="" href="{{.FeedURL}}.rss">
+{{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
-{{end}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+
+	{{template "base/head_script" .}}
+
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
@@ -61,7 +32,7 @@
 		</style>
 	</noscript>
 {{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.Owner.Name}}" />
+	<meta property="og:title" content="{{.Owner.DisplayName}}" />
 	<meta property="og:type" content="profile" />
 	<meta property="og:image" content="{{.Owner.AvatarLink}}" />
 	<meta property="og:url" content="{{.Owner.HTMLURL}}" />
@@ -98,10 +69,10 @@
 <meta property="og:site_name" content="{{AppName}}" />
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>

@@ -9,7 +9,7 @@
 				{{template "base/alert" .}}
 				<p>
 					<b>{{.i18n.Tr "auth.authorize_application_description"}}</b><br/>
-					{{.i18n.Tr "auth.authorize_application_created_by" .ApplicationUserLink | Str2html}}
+					{{.i18n.Tr "auth.authorize_application_created_by" .ApplicationUserLinkHTML | Str2html}}
 				</p>
 			</div>
 			<div class="ui attached segment">

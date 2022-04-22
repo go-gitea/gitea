@@ -24,22 +24,22 @@
 							<td>
 								{{if index $.Linkable $index}}
 									{{svg "octicon-file"}}
-								<a href="{{EscapePound $.RepoLink}}/src/branch/{{EscapePound $lock.Repo.DefaultBranch}}/{{EscapePound $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
+								<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments $.Repository.DefaultBranch}}/{{PathEscapeSegments $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
 								{{else}}
 									{{svg "octicon-diff"}}
-								<span class="poping up" title="{{$.i18n.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
+								<span class="tooltip" title="{{$.i18n.Tr "repo.settings.lfs_lock_file_no_exist"}}">{{$lock.Path}}</span>
 								{{end}}
 								{{if not (index $.Lockables $index)}}
-									<span class="poping up" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
+									<span class="tooltip" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}">{{svg "octicon-alert"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{$lock.Owner.Name}}">
-									{{avatar $lock.Owner}}
-									{{$lock.Owner.DisplayName}}
+								<a href="{{$.Owner.HomeLink}}">
+									{{avatar $.Owner}}
+									{{$.Owner.DisplayName}}
 								</a>
 							</td>
-							<td>{{TimeSince .Created $.Lang}}</td>
+							<td>{{TimeSince .Created $.i18n.Lang}}</td>
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
 									{{$.CsrfTokenHtml}}

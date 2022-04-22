@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {createMonaco} from './codeeditor.js';
 import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 
@@ -20,7 +21,7 @@ export function initRepoSettingSearchTeamBox() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      url: `${appSubUrl}/org/${$searchTeamBox.data('org')}/teams/-/search?q={query}`,
       headers: {'X-Csrf-Token': csrfToken},
       onResponse(response) {
         const items = [];
@@ -40,10 +41,10 @@ export function initRepoSettingSearchTeamBox() {
 }
 
 
-export async function initRepoSettingGitHook() {
+export function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  await createMonaco($('#content')[0], filename, {language: 'shell'});
+  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 export function initRepoSettingBranches() {

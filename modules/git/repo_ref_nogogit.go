@@ -23,7 +23,11 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand("for-each-ref").RunInDirPipeline(repo.Path, stdoutWriter, stderrBuilder)
+		err := NewCommand(repo.Ctx, "for-each-ref").Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
+			Stderr: stderrBuilder,
+		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
 		} else {
@@ -66,7 +70,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 		refName = refName[:len(refName)-1]
 
 		// refName cannot be HEAD but can be remotes or stash
-		if strings.HasPrefix(refName, "/refs/remotes/") || refName == "/refs/stash" {
+		if strings.HasPrefix(refName, RemotePrefix) || refName == "/refs/stash" {
 			continue
 		}
 

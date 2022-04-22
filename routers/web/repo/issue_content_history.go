@@ -9,16 +9,18 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	issuesModel "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"github.com/unknwon/i18n"
 )
 
 // GetContentHistoryOverview get overview
@@ -28,8 +30,8 @@ func GetContentHistoryOverview(ctx *context.Context) {
 		return
 	}
 
-	lang := ctx.Data["Lang"].(string)
-	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(db.DefaultContext, issue.ID)
+	lang := ctx.Locale.Language()
+	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
 			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
@@ -49,27 +51,33 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items, _ := issuesModel.FetchIssueContentHistoryList(db.DefaultContext, issue.ID, commentID)
+	items, _ := issuesModel.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	lang := ctx.Data["Lang"].(string)
+	lang := ctx.Locale.Language()
 	var results []map[string]interface{}
 	for _, item := range items {
 		var actionText string
 		if item.IsDeleted {
-			actionTextDeleted := i18n.Tr(lang, "repo.issues.content_history.deleted")
+			actionTextDeleted := ctx.Locale.Tr("repo.issues.content_history.deleted")
 			actionText = "<i data-history-is-deleted='1'>" + actionTextDeleted + "</i>"
 		} else if item.IsFirstCreated {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.created")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.created")
 		} else {
-			actionText = i18n.Tr(lang, "repo.issues.content_history.edited")
+			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
 		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
+
+		username := item.UserName
+		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
+			username = strings.TrimSpace(item.UserFullName)
+		}
+
 		results = append(results, map[string]interface{}{
 			"name": fmt.Sprintf("<img class='ui avatar image' src='%s'><strong>%s</strong> %s %s",
-				html.EscapeString(item.UserAvatarLink), html.EscapeString(item.UserName), actionText, timeSinceText),
+				html.EscapeString(item.UserAvatarLink), html.EscapeString(username), actionText, timeSinceText),
 			"value": item.HistoryID,
 		})
 	}
@@ -82,19 +90,19 @@ func GetContentHistoryList(ctx *context.Context) {
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
 func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
-	history *issuesModel.ContentHistory) bool {
-
+	history *issuesModel.ContentHistory,
+) bool {
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
 		canSoftDelete = true
-	} else if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	} else if ctx.Repo.CanWrite(unit.TypeIssues) {
 		if comment == nil {
 			// the issue poster or the history poster can soft-delete
-			canSoftDelete = ctx.User.ID == issue.PosterID || ctx.User.ID == history.PosterID
+			canSoftDelete = ctx.Doer.ID == issue.PosterID || ctx.Doer.ID == history.PosterID
 			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
 		} else {
 			// the comment poster or the history poster can soft-delete
-			canSoftDelete = ctx.User.ID == comment.PosterID || ctx.User.ID == history.PosterID
+			canSoftDelete = ctx.Doer.ID == comment.PosterID || ctx.Doer.ID == history.PosterID
 			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
 			canSoftDelete = canSoftDelete && (history.CommentID == comment.ID)
 		}
@@ -102,7 +110,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comm
 	return canSoftDelete
 }
 
-//GetContentHistoryDetail get detail
+// GetContentHistoryDetail get detail
 func GetContentHistoryDetail(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if issue == nil {
@@ -110,7 +118,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(db.DefaultContext, historyID)
+	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(ctx, historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
@@ -168,7 +176,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	})
 }
 
-//SoftDeleteContentHistory soft delete
+// SoftDeleteContentHistory soft delete
 func SoftDeleteContentHistory(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	if issue == nil {
@@ -187,7 +195,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 	}
-	if history, err = issuesModel.GetIssueContentHistoryByID(db.DefaultContext, historyID); err != nil {
+	if history, err = issuesModel.GetIssueContentHistoryByID(ctx, historyID); err != nil {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
@@ -200,7 +208,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	err = issuesModel.SoftDeleteIssueContentHistory(db.DefaultContext, historyID)
+	err = issuesModel.SoftDeleteIssueContentHistory(ctx, historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": err == nil,

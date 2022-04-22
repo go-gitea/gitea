@@ -15,13 +15,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
 // LabelColorPattern is a regexp witch can validate LabelColor
-var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+var LabelColorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
 // Label represents a label of repository for issues.
 type Label struct {
@@ -47,50 +48,6 @@ type Label struct {
 func init() {
 	db.RegisterModel(new(Label))
 	db.RegisterModel(new(IssueLabel))
-}
-
-// GetLabelTemplateFile loads the label template file by given name,
-// then parses and returns a list of name-color pairs and optionally description.
-func GetLabelTemplateFile(name string) ([][3]string, error) {
-	data, err := GetRepoInitFile("label", name)
-	if err != nil {
-		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
-	}
-
-	lines := strings.Split(string(data), "\n")
-	list := make([][3]string, 0, len(lines))
-	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
-		if len(line) == 0 {
-			continue
-		}
-
-		parts := strings.SplitN(line, ";", 2)
-
-		fields := strings.SplitN(parts[0], " ", 2)
-		if len(fields) != 2 {
-			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
-		}
-
-		color := strings.Trim(fields[0], " ")
-		if len(color) == 6 {
-			color = "#" + color
-		}
-		if !LabelColorPattern.MatchString(color) {
-			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
-		}
-
-		var description string
-
-		if len(parts) > 1 {
-			description = strings.TrimSpace(parts[1])
-		}
-
-		fields[1] = strings.TrimSpace(fields[1])
-		list = append(list, [3]string{fields[1], color, description})
-	}
-
-	return list, nil
 }
 
 // CalOpenIssues sets the number of open issues of a label based on the already stored number of closed issues.
@@ -190,74 +147,29 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-// .____          ___.          .__
-// |    |   _____ \_ |__   ____ |  |
-// |    |   \__  \ | __ \_/ __ \|  |
-// |    |___ / __ \| \_\ \  ___/|  |__
-// >_______ (____  /___  /\___  >____/
-
-func loadLabels(labelTemplate string) ([]string, error) {
-	list, err := GetLabelTemplateFile(labelTemplate)
-	if err != nil {
-		return nil, err
-	}
-
-	labels := make([]string, len(list))
-	for i := 0; i < len(list); i++ {
-		labels[i] = list[i][0]
-	}
-	return labels, nil
-}
-
-// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
-func LoadLabelsFormatted(labelTemplate string) (string, error) {
-	labels, err := loadLabels(labelTemplate)
-	return strings.Join(labels, ", "), err
-}
-
-func initializeLabels(e db.Engine, id int64, labelTemplate string, isOrg bool) error {
-	list, err := GetLabelTemplateFile(labelTemplate)
-	if err != nil {
-		return err
-	}
-
-	labels := make([]*Label, len(list))
-	for i := 0; i < len(list); i++ {
-		labels[i] = &Label{
-			Name:        list[i][0],
-			Description: list[i][2],
-			Color:       list[i][1],
-		}
-		if isOrg {
-			labels[i].OrgID = id
-		} else {
-			labels[i].RepoID = id
-		}
-	}
-	for _, label := range labels {
-		if err = newLabel(e, label); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// InitializeLabels adds a label set to a repository using a template
-func InitializeLabels(ctx context.Context, repoID int64, labelTemplate string, isOrg bool) error {
-	return initializeLabels(db.GetEngine(ctx), repoID, labelTemplate, isOrg)
-}
-
-func newLabel(e db.Engine, label *Label) error {
-	_, err := e.Insert(label)
-	return err
-}
-
 // NewLabel creates a new label
-func NewLabel(label *Label) error {
+func NewLabel(ctx context.Context, label *Label) error {
 	if !LabelColorPattern.MatchString(label.Color) {
 		return fmt.Errorf("bad color code: %s", label.Color)
 	}
-	return newLabel(db.GetEngine(db.DefaultContext), label)
+
+	// normalize case
+	label.Color = strings.ToLower(label.Color)
+
+	// add leading hash
+	if label.Color[0] != '#' {
+		label.Color = "#" + label.Color
+	}
+
+	// convert 3-character shorthand into 6-character version
+	if len(label.Color) == 4 {
+		r := label.Color[1]
+		g := label.Color[2]
+		b := label.Color[3]
+		label.Color = fmt.Sprintf("#%c%c%c%c%c%c", r, r, g, g, b, b)
+	}
+
+	return db.Insert(ctx, label)
 }
 
 // NewLabels creates new labels
@@ -272,7 +184,7 @@ func NewLabels(labels ...*Label) error {
 		if !LabelColorPattern.MatchString(label.Color) {
 			return fmt.Errorf("bad color code: %s", label.Color)
 		}
-		if err := newLabel(db.GetEngine(ctx), label); err != nil {
+		if err := db.Insert(ctx, label); err != nil {
 			return err
 		}
 	}
@@ -297,11 +209,13 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if label.BelongsToOrg() && label.OrgID != id {
 		return nil
@@ -323,7 +237,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // getLabelByID returns a label by label id
@@ -663,7 +577,8 @@ func HasIssueLabel(issueID, labelID int64) bool {
 
 // newIssueLabel this function creates a new label it does not check if the label is valid for the issue
 // YOU MUST CHECK THIS BEFORE THIS FUNCTION
-func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
+func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	e := db.GetEngine(ctx)
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -671,7 +586,7 @@ func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err err
 		return err
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -683,7 +598,7 @@ func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err err
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return err
 	}
 
@@ -691,18 +606,19 @@ func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err err
 }
 
 // NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
+func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
 	if HasIssueLabel(issue.ID, label.ID) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
-	if err = issue.loadRepo(sess); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -711,7 +627,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return nil
 	}
 
-	if err = newIssueLabel(sess, issue, label, doer); err != nil {
+	if err = newIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
@@ -720,12 +636,13 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err error) {
-	if err = issue.loadRepo(e); err != nil {
+func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
+	e := db.GetEngine(ctx)
+	if err = issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 	for _, label := range labels {
@@ -735,7 +652,7 @@ func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err
 			continue
 		}
 
-		if err = newIssueLabel(e, issue, label, doer); err != nil {
+		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
 			return fmt.Errorf("newIssueLabel: %v", err)
 		}
 	}
@@ -744,14 +661,14 @@ func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err
 }
 
 // NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
+func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err = newIssueLabels(db.GetEngine(ctx), issue, labels, doer); err != nil {
+	if err = newIssueLabels(ctx, issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -763,7 +680,8 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	return committer.Commit()
 }
 
-func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
+func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
+	e := db.GetEngine(ctx)
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -773,7 +691,7 @@ func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err 
 		return nil
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -784,7 +702,7 @@ func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err 
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return err
 	}
 
@@ -792,23 +710,23 @@ func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err 
 }
 
 // DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+func DeleteIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
+	if err = deleteIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(sess); err != nil {
+	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteLabelsByRepoID(sess db.Engine, repoID int64) error {

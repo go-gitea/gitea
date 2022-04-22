@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {stripTags} from '../utils.js';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -57,13 +58,13 @@ export function initRepoTopicBar() {
           const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
-          topics.split(',').forEach((value, index) => {
+          for (const [index, value] of topics.split(',').entries()) {
             for (let i = 0; i < invalidTopics.length; i++) {
               if (invalidTopics[i] === value) {
                 topicLables.eq(index).removeClass('green').addClass('red');
               }
             }
-          });
+          }
         } else {
           topicPrompts.countPrompt = xhr.responseJSON.message;
         }
@@ -90,7 +91,7 @@ export function initRepoTopicBar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${appSubUrl}/api/v1/topics/search?q={query}`,
+      url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -101,7 +102,9 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, el) => {
+          current_topics.push(el.getAttribute('data-value'));
+        });
 
         if (res.topics) {
           let found = false;

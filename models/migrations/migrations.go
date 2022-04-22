@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -59,9 +60,7 @@ type Version struct {
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
 var migrations = []Migration{
-
 	// Gitea 1.5.0 ends at v69
-
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
@@ -356,6 +355,31 @@ var migrations = []Migration{
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
 	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	// v202 -> v203
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
+	// v203 -> v204
+	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
+	// v204 -> v205
+	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
+	// v205 -> v206
+	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
+	// v206 -> v207
+	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
+	// v207 -> v208
+	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", addWebAuthnCred),
+	// v208 -> v209
+	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", useBase32HexForCredIDInWebAuthnCredential),
+	// v209 -> v210
+	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", increaseCredentialIDTo410),
+	// v210 -> v211
+	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
+
+	// Gitea 1.16.2 ends at v211
+
+	// v211 -> v212
+	NewMigration("Create ForeignReference table", createForeignReferenceTable),
+	// v212 -> v213
+	NewMigration("Add package tables", addPackageTables),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -436,9 +460,12 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Downgrading Gitea's database version not supported
 	if int(v-minDBVersion) > len(migrations) {
-		msg := fmt.Sprintf("Downgrading database version from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
-			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
-		fmt.Fprint(os.Stderr, msg)
+		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gita, you can not use the newer database for this old Gitea release (%d).", v, minDBVersion+len(migrations))
+		msg += "\nGitea will exit to keep your database safe and unchanged. Please use the correct Gitea release, do not change the migration version manually (incorrect manual operation may lose data)."
+		if !setting.IsProd {
+			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
+		}
+		_, _ = fmt.Fprintln(os.Stderr, msg)
 		log.Fatal(msg)
 		return nil
 	}
@@ -791,8 +818,14 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		tableSQL := string(res[0]["sql"])
 
+		// Get the string offset for column definitions: `CREATE TABLE ( column-definitions... )`
+		columnDefinitionsIndex := strings.Index(tableSQL, "(")
+		if columnDefinitionsIndex < 0 {
+			return errors.New("couldn't find column definitions")
+		}
+
 		// Separate out the column definitions
-		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+		tableSQL = tableSQL[columnDefinitionsIndex:]
 
 		// Remove the required columnNames
 		for _, name := range columnNames {

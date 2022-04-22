@@ -5,19 +5,21 @@
 package convert
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
+func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -25,7 +27,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		err        error
 	)
 
-	if err = pr.Issue.LoadRepo(); err != nil {
+	if err = pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("pr.Issue.LoadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
@@ -41,10 +43,10 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	p, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
-		perm.AccessMode = models.AccessModeNone
+		p.AccessMode = perm.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -66,6 +68,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
 		MergeBase: pr.MergeBase,
+		Mergeable: pr.Mergeable(),
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
@@ -74,16 +77,23 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(pr.BaseRepo, perm.AccessMode),
+			Repository: ToRepo(pr.BaseRepo, p.AccessMode),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
-			Ref:    fmt.Sprintf("refs/pull/%d/head", pr.Index),
+			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
 	}
 
-	baseBranch, err = repo_module.GetBranch(pr.BaseRepo, pr.BaseBranch)
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+		return nil
+	}
+	defer gitRepo.Close()
+
+	baseBranch, err = gitRepo.GetBranch(pr.BaseBranch)
 	if err != nil && !git.IsErrBranchNotExist(err) {
 		log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil
@@ -102,7 +112,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 	}
 
 	if pr.Flow == models.PullRequestFlowAGit {
-		gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
 			return nil
@@ -120,16 +130,16 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		perm, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		p, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
-			perm.AccessMode = models.AccessModeNone
+			p.AccessMode = perm.AccessModeNone
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, perm.AccessMode)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, p.AccessMode)
 
-		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
 			return nil
@@ -165,7 +175,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
 			return nil
@@ -182,10 +192,6 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		}
 	}
 
-	if pr.Status != models.PullRequestStatusChecking {
-		mergeable := !(pr.Status == models.PullRequestStatusConflict || pr.Status == models.PullRequestStatusError) && !pr.IsWorkInProgress()
-		apiPullRequest.Mergeable = mergeable
-	}
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID

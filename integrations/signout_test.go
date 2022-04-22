@@ -15,10 +15,10 @@ func TestSignOut(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	req := NewRequest(t, "POST", "/user/logout")
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// try to view a private repo, should fail
-	req = NewRequest(t, "GET", "/user2/repo2/")
+	req = NewRequest(t, "GET", "/user2/repo2")
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// invalidate cached cookies for user2, for subsequent tests

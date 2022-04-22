@@ -101,7 +101,7 @@
 													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
 														{{if contain $teamIDs .ID }}
-															<a class="ui basic image label" href="{{$.Owner.OrganisationLink}}/teams/{{.LowerName}}">{{.Name}}</a>
+															<a class="ui basic image label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
 												{{end}}

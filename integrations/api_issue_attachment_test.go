@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,7 +77,7 @@ func TestAPICreateIssueAttachment(t *testing.T) {
 	buff := generateImg()
 	body := &bytes.Buffer{}
 
-	//Setup multi-part
+	// Setup multi-part
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("attachment", filename)
 	assert.NoError(t, err)

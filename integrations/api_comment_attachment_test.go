@@ -84,7 +84,7 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	buff := generateImg()
 	body := &bytes.Buffer{}
 
-	//Setup multi-part
+	// Setup multi-part
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("attachment", filename)
 	assert.NoError(t, err)
