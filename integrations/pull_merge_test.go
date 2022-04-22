@@ -25,6 +25,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
@@ -65,7 +67,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -87,7 +89,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -109,7 +111,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -131,7 +133,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) // Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -333,5 +335,76 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()
+	})
+}
+
+func TestConflictChecking(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+
+		// Create new clean repo to test conflict checking.
+		baseRepo, err := repo_service.CreateRepository(user, user, models.CreateRepoOptions{
+			Name:          "conflict-checking",
+			Description:   "Tempo repo",
+			AutoInit:      true,
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, baseRepo)
+
+		// create a commit on new branch.
+		_, err = files_service.CreateOrUpdateRepoFile(baseRepo, user, &files_service.UpdateRepoFileOptions{
+			TreePath:  "important_file",
+			Message:   "Add a important file",
+			Content:   "Just a non-important file",
+			IsNewFile: true,
+			OldBranch: "main",
+			NewBranch: "important-secrets",
+		})
+		assert.NoError(t, err)
+
+		// create a commit on main branch.
+		_, err = files_service.CreateOrUpdateRepoFile(baseRepo, user, &files_service.UpdateRepoFileOptions{
+			TreePath:  "important_file",
+			Message:   "Add a important file",
+			Content:   "Not the same content :P",
+			IsNewFile: true,
+			OldBranch: "main",
+			NewBranch: "main",
+		})
+		assert.NoError(t, err)
+
+		// create Pull to merge the important-secrets branch into main branch.
+		pullIssue := &models.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "PR with conflict!",
+			PosterID: user.ID,
+			Poster:   user,
+			IsPull:   true,
+		}
+
+		pullRequest := &models.PullRequest{
+			HeadRepoID: baseRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "important-secrets",
+			BaseBranch: "main",
+			HeadRepo:   baseRepo,
+			BaseRepo:   baseRepo,
+			Type:       models.PullRequestGitea,
+		}
+		err = pull.NewPullRequest(baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		assert.NoError(t, err)
+
+		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "PR with conflict!"}).(*models.Issue)
+		conflictingPR, err := models.GetPullRequestByIssueID(issue.ID)
+		assert.NoError(t, err)
+
+		// Ensure conflictedFiles is populated.
+		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
+		// Check if status is correct.
+		assert.Equal(t, models.PullRequestStatusConflict, conflictingPR.Status)
+		// Ensure that mergeable returns false
+		assert.False(t, conflictingPR.Mergeable())
 	})
 }
