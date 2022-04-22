@@ -86,7 +86,7 @@ func TestUpdateAttachment(t *testing.T) {
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
 
 	attach.Name = "new_name"
-	assert.NoError(t, UpdateAttachment(attach))
+	assert.NoError(t, UpdateAttachmentCtx(db.DefaultContext, attach))
 
 	unittest.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
 }

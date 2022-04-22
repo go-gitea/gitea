@@ -262,7 +262,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachmentCtx(ctx, attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))

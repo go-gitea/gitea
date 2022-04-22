@@ -225,11 +225,6 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	return DeleteAttachments(db.DefaultContext, attachments, remove)
 }
 
-// UpdateAttachment updates the given attachment in database
-func UpdateAttachment(atta *Attachment) error {
-	return UpdateAttachmentCtx(db.DefaultContext, atta)
-}
-
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {

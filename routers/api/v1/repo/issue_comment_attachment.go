@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -180,9 +181,9 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		filename = query
 	}
 
-	attach, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &models.Attachment{
+	attach, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
-		UploaderID: ctx.User.ID,
+		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,
 		IssueID:    comment.IssueID,
 		CommentID:  comment.ID,
@@ -196,7 +197,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.UpdateComment(comment, ctx.User, comment.Content); err != nil {
+	if err = comment_service.UpdateComment(comment, ctx.Doer, comment.Content); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -256,7 +257,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := models.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachmentCtx(ctx, attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
@@ -303,7 +304,7 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}
@@ -329,7 +330,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *models.Comment {
 	return comment
 }
 
-func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
+func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *repo_model.Attachment {
 	comment := getIssueCommentSafe(ctx)
 	if comment == nil {
 		return nil
@@ -344,11 +345,11 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *models.Attachm
 	return attach
 }
 
-func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *models.Comment) *models.Attachment {
+func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *models.Comment) *repo_model.Attachment {
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
+		ctx.NotFoundOrServerError("GetAttachmentByID", repo_model.IsErrAttachmentNotExist, err)
 		return nil
 	}
 	if !attachmentBelongsToRepoOrComment(ctx, attach, comment) {
@@ -358,7 +359,7 @@ func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *models.
 }
 
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comment) (success bool) {
-	canEditComment := ctx.User.ID == c.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
+	canEditComment := ctx.Doer.ID == c.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
 	if !canEditComment {
 		ctx.Error(http.StatusForbidden, "", "user should have permission to edit comment")
 		return
@@ -367,7 +368,7 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comme
 	return true
 }
 
-func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, comment *models.Comment) (success bool) {
+func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *repo_model.Attachment, comment *models.Comment) (success bool) {
 	if a.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
 		ctx.NotFound("no such attachment in repo")
