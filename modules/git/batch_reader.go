@@ -46,8 +46,8 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdinReader, batchStdinWriter := pipes[0].Reader(), pipes[0].Writer()
-	batchStdoutReader, batchStdoutWriter := pipes[1].Reader(), pipes[1].Writer()
+	batchStdinReader, batchStdinWriter := pipes[0].ReaderWriter()
+	batchStdoutReader, batchStdoutWriter := pipes[1].ReaderWriter()
 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
@@ -96,8 +96,8 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdinReader, batchStdinWriter := pipes[0].Reader(), pipes[0].Writer()
-	batchStdoutReader, batchStdoutWriter := pipes[1].Reader(), pipes[1].Writer()
+	batchStdinReader, batchStdinWriter := pipes[0].ReaderWriter()
+	batchStdoutReader, batchStdoutWriter := pipes[1].ReaderWriter()
 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
