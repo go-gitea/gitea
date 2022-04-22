@@ -37,7 +37,7 @@ require (
 	github.com/go-swagger/go-swagger v0.27.0
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
 	github.com/gobwas/glob v0.2.3
-	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
+	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.3.0
