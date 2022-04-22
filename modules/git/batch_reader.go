@@ -41,18 +41,14 @@ func returnClosedReaderWriters(err error) (WriteCloserError, *bufio.Reader, func
 
 // CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
-	batchStdinReader, batchStdinWriter, err := Pipe()
+	pipes, err := NewPipePairs(2)
 	if err != nil {
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdoutReader, batchStdoutWriter, err := Pipe()
-	if err != nil {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		log.Critical("Unable to open pipe to write to: %v", err)
-		return returnClosedReaderWriters(err)
-	}
+	batchStdinReader, batchStdinWriter := pipes[0].Reader(), pipes[0].Writer()
+	batchStdoutReader, batchStdoutWriter := pipes[1].Reader(), pipes[1].Writer()
+
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
@@ -95,18 +91,13 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter, err := Pipe()
+	pipes, err := NewPipePairs(2)
 	if err != nil {
 		log.Critical("Unable to open pipe to write to: %v", err)
 		return returnClosedReaderWriters(err)
 	}
-	batchStdoutReader, batchStdoutWriter, err := Pipe()
-	if err != nil {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		log.Critical("Unable to open pipe to write to: %v", err)
-		return returnClosedReaderWriters(err)
-	}
+	batchStdinReader, batchStdinWriter := pipes[0].Reader(), pipes[0].Writer()
+	batchStdoutReader, batchStdoutWriter := pipes[1].Reader(), pipes[1].Writer()
 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})

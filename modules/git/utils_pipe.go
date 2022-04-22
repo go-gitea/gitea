@@ -10,7 +10,8 @@ import (
 	"sync"
 )
 
-type pipe struct {
+// PipePair represents an os.Pipe() wrapped with a io.Pipe()-like PipeWriter and PipeReader
+type PipePair struct {
 	rd *os.File
 	wr *os.File
 
@@ -19,7 +20,17 @@ type pipe struct {
 	rdErr error
 }
 
-func (p *pipe) read(b []byte) (n int, err error) {
+// ReaderWriter returns the Reader and Writer ends of the Pipe
+func (p *PipePair) ReaderWriter() (*PipeReader, *PipeWriter) {
+	return p.Reader(), p.Writer()
+}
+
+// Reader returns the Reader end of the Pipe
+func (p *PipePair) Reader() *PipeReader {
+	return &PipeReader{p}
+}
+
+func (p *PipePair) read(b []byte) (n int, err error) {
 	n, err = p.rd.Read(b)
 	if err != nil {
 		return n, p.readCloseError(err)
@@ -27,7 +38,7 @@ func (p *pipe) read(b []byte) (n int, err error) {
 	return
 }
 
-func (p *pipe) closeRead(err error) error {
+func (p *PipePair) closeRead(err error) error {
 	if err == nil {
 		err = io.ErrClosedPipe
 	}
@@ -43,7 +54,7 @@ func (p *pipe) closeRead(err error) error {
 }
 
 // readCloseError returns the error returned on reading a closed read pipe
-func (p *pipe) readCloseError(err error) error {
+func (p *PipePair) readCloseError(err error) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	rdErr := p.rdErr
@@ -57,7 +68,12 @@ func (p *pipe) readCloseError(err error) error {
 	return io.ErrClosedPipe
 }
 
-func (p *pipe) write(b []byte) (n int, err error) {
+// Writer returns the Writer end of the Pipe
+func (p *PipePair) Writer() *PipeWriter {
+	return &PipeWriter{p}
+}
+
+func (p *PipePair) write(b []byte) (n int, err error) {
 	n, err = p.wr.Write(b)
 	if err != nil {
 		return n, p.writeCloseError(err)
@@ -65,7 +81,7 @@ func (p *pipe) write(b []byte) (n int, err error) {
 	return
 }
 
-func (p *pipe) closeWrite(err error) error {
+func (p *PipePair) closeWrite(err error) error {
 	if err == nil {
 		err = io.EOF
 	}
@@ -80,7 +96,7 @@ func (p *pipe) closeWrite(err error) error {
 }
 
 // writeCloseError returns the error returned on writing to a closed write pipe
-func (p *pipe) writeCloseError(err error) error {
+func (p *PipePair) writeCloseError(err error) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	wrErr := p.wrErr
@@ -93,9 +109,21 @@ func (p *pipe) writeCloseError(err error) error {
 	return io.ErrClosedPipe
 }
 
+// Close closes the pipe pair
+func (p *PipePair) Close() error {
+	return p.CloseWithError(nil)
+}
+
+// CloseWithError closes the pipe pair
+func (p *PipePair) CloseWithError(err error) error {
+	_ = p.closeRead(err)
+	_ = p.closeWrite(err)
+	return nil
+}
+
 // PipeReader is the read half of a pipe
 type PipeReader struct {
-	p *pipe
+	p *PipePair
 }
 
 // Read implements the standard Read interface.
@@ -127,7 +155,7 @@ func (r *PipeReader) File() *os.File {
 
 // PipeWriter is the write half of a pipe.
 type PipeWriter struct {
-	p *pipe
+	p *PipePair
 }
 
 // Write implements the standard Write interface:
@@ -158,14 +186,42 @@ func (w *PipeWriter) File() *os.File {
 	return w.p.wr
 }
 
+// Pipe returns a connected pair of Files wrapped with CloserError similar to io.Pipe().
+// Reads from r return bytes written to w. It returns the files and an error, if any.
 func Pipe() (*PipeReader, *PipeWriter, error) {
-	p := &pipe{}
-	var err error
-
-	p.rd, p.wr, err = os.Pipe()
+	rd, wr, err := os.Pipe()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return &PipeReader{p}, &PipeWriter{p}, nil
+	pipe := &PipePair{rd: rd, wr: wr}
+
+	return pipe.Reader(), pipe.Writer(), nil
+}
+
+// NewPipePair returns a connected pair of Files wrapped in a PipePair
+func NewPipePair() (*PipePair, error) {
+	rd, wr, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+
+	return &PipePair{rd: rd, wr: wr}, nil
+}
+
+// NewPipePairs will return a slice of n PipePairs or an error
+func NewPipePairs(n int) ([]*PipePair, error) {
+	pipePairs := make([]*PipePair, 0, n)
+	for i := 0; i < n; i++ {
+		pipe, err := NewPipePair()
+		if err != nil {
+			for _, pipe := range pipePairs {
+				_ = pipe.Close()
+			}
+			return nil, err
+		}
+
+		pipePairs = append(pipePairs, pipe)
+	}
+	return pipePairs, nil
 }

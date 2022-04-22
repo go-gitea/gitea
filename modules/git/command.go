@@ -177,6 +177,31 @@ func (c *Command) Run(opts *RunOpts) error {
 		return err
 	}
 
+	// Ensure that closers are closed
+	closers := make([]io.Closer, 0, 3)
+	for _, pipe := range []interface{}{cmd.Stdout, cmd.Stdin, cmd.Stderr} {
+		if pipe == nil {
+			continue
+		}
+		if _, ok := pipe.(*os.File); ok {
+			continue
+		}
+
+		if closer, ok := pipe.(io.Closer); ok {
+			closers = append(closers, closer)
+		}
+	}
+
+	if len(closers) > 0 {
+		go func() {
+			<-ctx.Done()
+			cancel()
+			for _, closer := range closers {
+				_ = closer.Close()
+			}
+		}()
+	}
+
 	if opts.PipelineFunc != nil {
 		err := opts.PipelineFunc(ctx, cancel)
 		if err != nil {

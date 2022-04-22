@@ -28,43 +28,23 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	// to read each sha and check each as a pointer
 	// Then if they are lfs -> add them to the baseRepo
 
-	closers := []git.CloserError{}
+	pipes, err := git.NewPipePairs(5)
+	if err != nil {
+		return err
+	}
+
 	closeAll := func(err error) {
-		for _, closer := range closers {
+		for _, closer := range pipes {
 			_ = closer.CloseWithError(err)
 		}
 	}
 	defer closeAll(nil)
 
-	revListReader, revListWriter, err := git.Pipe()
-	if err != nil {
-		return err
-	}
-	closers = append(closers, revListReader, revListWriter)
-
-	shasToCheckReader, shasToCheckWriter, err := git.Pipe()
-	if err != nil {
-		return err
-	}
-	closers = append(closers, shasToCheckReader, shasToCheckWriter)
-
-	catFileCheckReader, catFileCheckWriter, err := git.Pipe()
-	if err != nil {
-		return err
-	}
-	closers = append(closers, catFileCheckReader, catFileCheckWriter)
-
-	shasToBatchReader, shasToBatchWriter, err := git.Pipe()
-	if err != nil {
-		return err
-	}
-	closers = append(closers, shasToBatchReader, shasToBatchWriter)
-
-	catFileBatchReader, catFileBatchWriter, err := git.Pipe()
-	if err != nil {
-		return err
-	}
-	closers = append(closers, catFileBatchReader, catFileBatchWriter)
+	revListReader, revListWriter := pipes[0].ReaderWriter()
+	shasToCheckReader, shasToCheckWriter := pipes[1].ReaderWriter()
+	catFileCheckReader, catFileCheckWriter := pipes[2].ReaderWriter()
+	shasToBatchReader, shasToBatchWriter := pipes[3].ReaderWriter()
+	catFileBatchReader, catFileBatchWriter := pipes[4].ReaderWriter()
 
 	errChan := make(chan error, 1)
 	wg := sync.WaitGroup{}
