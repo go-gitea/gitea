@@ -90,7 +90,9 @@ func WebfingerQuery(ctx *context.Context) {
 		return
 	}
 
-	aliases := make([]string, 0, 1)
+	aliases := []string{
+		u.HTMLURL(),
+	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
 	}
