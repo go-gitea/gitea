@@ -12,17 +12,20 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."),
-		"attachment.yml",
-		"repo_archiver.yml",
-		"repository.yml",
-		"repo_unit.yml",
-		"repo_indexer_status.yml",
-		"repo_redirect.yml",
-		"watch.yml",
-		"star.yml",
-		"topic.yml",
-		"repo_topic.yml",
-		"user.yml",
-	)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles: []string{
+			"attachment.yml",
+			"repo_archiver.yml",
+			"repository.yml",
+			"repo_unit.yml",
+			"repo_indexer_status.yml",
+			"repo_redirect.yml",
+			"watch.yml",
+			"star.yml",
+			"topic.yml",
+			"repo_topic.yml",
+			"user.yml",
+		},
+	})
 }

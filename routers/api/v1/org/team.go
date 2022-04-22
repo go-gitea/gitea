@@ -387,7 +387,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
-	members := make([]*api.User, len(ctx.Org.Team.Members))
+	members := make([]*api.User, len(teamMembers))
 	for i, member := range teamMembers {
 		members[i] = convert.ToUser(member, ctx.Doer)
 	}
@@ -545,7 +545,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
 	}
-	repos := make([]*api.Repository, len(team.Repos))
+	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
 		access, err := models.AccessLevel(ctx.Doer, repo)
 		if err != nil {
