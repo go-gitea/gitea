@@ -54,6 +54,12 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		<-closed
 	}
 
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
@@ -92,6 +98,12 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		_ = batchStdoutReader.Close()
 		<-closed
 	}
+
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
 
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
