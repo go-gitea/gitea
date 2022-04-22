@@ -337,11 +337,13 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *user_model.User, issue 
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifyIssueChangeContent User: %s[%d] Issue[%d] #%d in [%d]", doer.Name, doer.ID, issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 
-	var err error
-	if err = issue.LoadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("NotifyIssueChangeContent: coulnd't load repo", err)
+		return
 	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	var err error
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
