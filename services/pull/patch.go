@@ -431,14 +431,16 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 				return nil
 			})
 
-	// 8. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
-	if err != nil {
+	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
+	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.
+	if len(pr.ConflictedFiles) > 0 {
 		if conflict {
 			pr.Status = models.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 
 			return true, nil
 		}
+	} else if err != nil {
 		return false, fmt.Errorf("git apply --check: %v", err)
 	}
 	return false, nil
