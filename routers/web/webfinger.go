@@ -85,7 +85,10 @@ func WebfingerQuery(ctx *context.Context) {
 		return
 	}
 
-	// Should we check IsUserVisibleToViewer here?
+	if !user_model.IsUserVisibleToViewer(u, ctx.Doer) {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
 
 	aliases := make([]string, 0, 1)
 	if !u.KeepEmailPrivate {
