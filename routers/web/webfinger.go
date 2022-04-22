@@ -92,6 +92,7 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
+		appURL.String() + "api/v1/activitypub/user/" + strings.ToLower(u.Name),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -106,6 +107,15 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
 			Href: u.AvatarLink(),
+		},
+		{
+			Rel:  "self",
+			Type: "application/activity+json",
+			Href: appURL.String() + "api/v1/activitypub/user/" + strings.ToLower(u.Name),
+		},
+		{
+			Rel:  "http://ostatus.org/schema/1.0/subscribe",
+			Href: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
 		},
 	}
 
