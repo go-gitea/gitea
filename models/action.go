@@ -68,19 +68,19 @@ const (
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	UserID      int64 `xorm:"INDEX(u_ua_and_r)"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64                  `xorm:"INDEX"` // Action user id.
+	ActUserID   int64                  `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r)"` // Action user id.
 	ActUser     *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"INDEX"`
+	RepoID      int64                  `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r)"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
 	Comment     *Comment               `xorm:"-"`
-	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
-	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r) created"`
 }
 
 func init() {
