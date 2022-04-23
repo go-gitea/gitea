@@ -71,6 +71,9 @@ func WebfingerQuery(ctx *context.Context) {
 		u, err = user_model.GetUserByNameCtx(ctx, parts[0])
 	case "mailto":
 		u, err = user_model.GetUserByEmailContext(ctx, uri)
+		if u != nil && u.KeepEmailPrivate {
+			err = user_model.ErrUserNotExist{}
+		}
 	default:
 		ctx.Error(http.StatusBadRequest)
 		return
