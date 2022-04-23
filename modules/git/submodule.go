@@ -142,7 +142,7 @@ func GetSubmoduleCommits(ctx context.Context, repoPath string) []SubModuleCommit
 
 	go func() {
 		stderrBuilder := strings.Builder{}
-		err := NewCommand(ctx, "config", "-f", ".gitmodules", "--list", "--name-only").RunWithContext(&RunContext{
+		err := NewCommand(ctx, "config", "-f", ".gitmodules", "--list", "--name-only").Run(&RunOpts{
 			Timeout: -1,
 			Dir:     repoPath,
 			Stdout:  stdoutWriter,
@@ -181,8 +181,8 @@ func GetSubmoduleCommits(ctx context.Context, repoPath string) []SubModuleCommit
 		}
 
 		// If no commit was found for the module skip it
-		commit, err := NewCommand(ctx, "submodule", "status", name).
-			RunInDir(repoPath)
+		commit, _, err := NewCommand(ctx, "submodule", "status", name).
+			RunStdString(&RunOpts{Dir: repoPath})
 		if err != nil {
 			log.Debug("Submodule %s skipped because it has no commit", name)
 			continue
@@ -215,8 +215,8 @@ func GetSubmoduleCommits(ctx context.Context, repoPath string) []SubModuleCommit
 // AddSubmoduleIndexes Adds the given submodules to the git index. Requires the .gitmodules file to be already present.
 func AddSubmoduleIndexes(ctx context.Context, repoPath string, submodules []SubModuleCommit) error {
 	for _, submodule := range submodules {
-		if stdout, err := NewCommand(ctx, "update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
-			RunInDir(repoPath); err != nil {
+		if stdout, _, err := NewCommand(ctx, "update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
+			RunStdString(&RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Name, repoPath, stdout, err)
 			return err
 		}

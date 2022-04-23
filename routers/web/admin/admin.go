@@ -35,10 +35,11 @@ import (
 )
 
 const (
-	tplDashboard base.TplName = "admin/dashboard"
-	tplConfig    base.TplName = "admin/config"
-	tplMonitor   base.TplName = "admin/monitor"
-	tplQueue     base.TplName = "admin/queue"
+	tplDashboard  base.TplName = "admin/dashboard"
+	tplConfig     base.TplName = "admin/config"
+	tplMonitor    base.TplName = "admin/monitor"
+	tplStacktrace base.TplName = "admin/stacktrace"
+	tplQueue      base.TplName = "admin/queue"
 )
 
 var sysStatus struct {
@@ -149,7 +150,7 @@ func DashboardPost(ctx *context.Context) {
 	if form.Op != "" {
 		task := cron.GetTask(form.Op)
 		if task != nil {
-			go task.RunWithUser(ctx.User, nil)
+			go task.RunWithUser(ctx.Doer, nil)
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
@@ -326,10 +327,31 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes(true)
+	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+
 	ctx.HTML(http.StatusOK, tplMonitor)
+}
+
+// GoroutineStacktrace show admin monitor goroutines page
+func GoroutineStacktrace(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+
+	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	if err != nil {
+		ctx.ServerError("GoroutineStacktrace", err)
+		return
+	}
+
+	ctx.Data["ProcessStacks"] = processStacks
+
+	ctx.Data["GoroutineCount"] = goroutineCount
+	ctx.Data["ProcessCount"] = processCount
+
+	ctx.HTML(http.StatusOK, tplStacktrace)
 }
 
 // MonitorCancel cancels a process
@@ -346,7 +368,7 @@ func Queue(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
@@ -361,7 +383,7 @@ func WorkerCancel(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	pid := ctx.ParamsInt64("pid")
@@ -377,7 +399,7 @@ func Flush(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
@@ -423,7 +445,7 @@ func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	number := ctx.FormInt("number")
@@ -453,7 +475,7 @@ func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {

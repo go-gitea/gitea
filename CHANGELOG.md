@@ -4,6 +4,171 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-20
+
+* ENHANCEMENTS
+  * Only request write when necessary (#18657) (#19422)
+  * Disable service worker by default (#18914) (#19342)
+* BUGFIXES
+  * When dumping trim the standard suffices instead of a random suffix (#19440) (#19447)
+  * Fix DELETE request for non-existent public key (#19443) (#19444)
+  * Don't panic on ErrEmailInvalid (#19441) (#19442)
+  * Add uploadpack.allowAnySHA1InWant to allow --filter=blob:none with older git clients (#19430) (#19438)
+  * Warn on SSH connection for incorrect configuration (#19317) (#19437)
+  * Search Issues via API, dont show 500 if filter result in empty list (#19244) (#19436)
+  * When updating mirror repo intervals by API reschedule next update too (#19429) (#19433)
+  * Fix nil error when some pages are rendered outside request context (#19427) (#19428)
+  * Fix double blob-hunk on diff page (#19404) (#19405)
+  * Don't allow merging PR's which are being conflict checked (#19357) (#19358)
+  * Fix middleware function's placements (#19377) (#19378)
+  * Fix invalid CSRF token bug, make sure CSRF tokens can be up-to-date (#19338)
+  * Restore user autoregistration with email addresses (#19261) (#19312)
+  * Move checks for pulls before merge into own function (#19271) (#19277)
+  * Granular webhook events in editHook (#19251) (#19257)
+  * Only send webhook events to active system webhooks and only deliver to active hooks (#19234) (#19248)
+  * Use full output of git show-ref --tags to get tags for PushUpdateAddTag (#19235) (#19236)
+  * Touch mirrors on even on fail to update (#19217) (#19233)
+  * Hide sensitive content on admin panel progress monitor (#19218 & #19226) (#19231)
+  * Fix clone url JS error for the empty repo page (#19209)
+  * Bump goldmark to v1.4.11 (#19201) (#19203)
+* TESTING
+  * Prevent intermittent failures in RepoIndexerTest (#19225 #19229) (#19228)
+* BUILD
+  * Revert the minimal golang version requirement from 1.17 to 1.16 and add a warning in Makefile (#19319)
+* MISC
+  * Performance improvement for add team user when org has more than 1000 repositories (#19227) (#19289)
+  * Check go and nodejs version by go.mod and package.json (#19197) (#19254)
+
+## [1.16.5](https://github.com/go-gitea/gitea/releases/tag/v1.16.5) - 2022-03-23
+
+* BREAKING
+  * Bump to build with go1.18 (#19120 et al) (#19127)
+* SECURITY
+  * Prevent redirect to Host (2) (#19175) (#19186)
+  * Try to prevent autolinking of displaynames by email readers (#19169) (#19183)
+  * Clean paths when looking in Storage (#19124) (#19179)
+  * Do not send notification emails to inactive users (#19131) (#19139)
+  * Do not send activation email if manual confirm is set (#19119) (#19122)
+* ENHANCEMENTS
+  * Use the new/choose link for New Issue on project page (#19172) (#19176)
+* BUGFIXES
+  * Fix showing issues in your repositories (#18916) (#19191)
+  * Fix compare link in active feeds for new branch (#19149) (#19185)
+  * Redirect .wiki/* ui link to /wiki (#18831) (#19184)
+  * Ensure deploy keys with write access can push (#19010) (#19182)
+  * Ensure that setting.LocalURL always has a trailing slash (#19171) (#19177)
+  * Cleanup protected branches when deleting users & teams (#19158) (#19174)
+  * Use IterateBufferSize whilst querying repositories during adoption check (#19140) (#19160)
+  * Fix NPE /repos/issues/search when not signed in (#19154) (#19155)
+  * Use custom favicon when viewing static files if it exists (#19130) (#19152)
+  * Fix the editor height in review box (#19003) (#19147)
+  * Ensure isSSH is set whenever DISABLE_HTTP_GIT is set (#19028) (#19146)
+  * Fix wrong scopes caused by empty scope input (#19029) (#19145)
+  * Make migrations SKIP_TLS_VERIFY apply to git too (#19132) (#19141)
+  * Handle email address not exist (#19089) (#19121)
+* MISC
+  * Update json-iterator to allow compilation with go1.18 (#18644) (#19100)
+  * Update golang.org/x/crypto (#19097) (#19098)
+
+## [1.16.4](https://github.com/go-gitea/gitea/releases/tag/v1.16.4) - 2022-03-14
+
+* SECURITY
+  * Restrict email address validation (#17688) (#19085)
+  * Fix lfs bug (#19072) (#19080)
+* ENHANCEMENTS
+  * Improve SyncMirrors logging (#19045) (#19050)
+* BUGFIXES
+  * Refactor mirror code & fix `StartToMirror` (#18904) (#19075)
+  * Update the webauthn_credential_id_sequence in Postgres (#19048) (#19060)
+  * Prevent 500 when there is an error during new auth source post (#19041) (#19059)
+  * If rendering has failed due to a net.OpError stop rendering (attempt 2) (#19049) (#19056)
+  * Fix flag validation (#19046) (#19051)
+  * Add pam account authorization check (#19040) (#19047)
+  * Ignore missing comment for user notifications (#18954) (#19043)
+  * Set `rel="nofollow noindex"` on new issue links (#19023) (#19042)
+  * Upgrading binding package (#19034) (#19035)
+  * Don't show context cancelled errors in attribute reader (#19006) (#19027)
+  * Fix update hint bug (#18996) (#19002)
+* MISC
+  *  Fix potential assignee query for repo (#18994) (#18999)
+
+## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
+
+* SECURITY
+ * Git backend ignore replace objects (#18979) (#18980) 
+* ENHANCEMENTS
+  * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
+* BUGFIXES
+  * Set max text height to prevent overflow (#18862) (#18977)
+  * Fix newAttachmentPaths deletion for DeleteRepository() (#18973) (#18974)
+  * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
+  * Send 404 on `/{org}.gpg` (#18959) (#18962)
+  * Fix admin user list pagination (#18957) (#18960)
+  * Fix lfs management setting (#18947) (#18946)
+  * Fix login with email panic when email is not exist (#18942)
+  * Update go-org to v1.6.1 (#18932) (#18933)
+  * Fix `<strong>` html in translation (#18929) (#18931)
+  * Fix page and missing return on unadopted repos API (#18848) (#18927)
+  * Allow adminstrator teams members to see other teams (#18918) (#18919)
+  * Don't treat BOM escape sequence as hidden character. (#18909) (#18910)
+  * Correctly link URLs to users/repos with dashes, dots or underscores (… (#18908)
+  * Fix redirect when using lowercase repo name (#18775) (#18902)
+  * Fix migration v210 (#18893) (#18892)
+  * Fix team management UI (#18887) (18886)
+  * BeforeSourcePath should point to base commit (#18880) (#18799)
+* TRANSLATION
+  * Backport locales from master (#18944)
+* MISC
+  * Don't update email for organisation (#18905) (#18906)
+
+## [1.16.2](https://github.com/go-gitea/gitea/releases/tag/v1.16.2) - 2022-02-24
+
+* ENHANCEMENTS
+  * Show fullname on issue edits and gpg/ssh signing info (#18828)
+  * Immediately Hammer if second kill is sent (#18823) (#18826)
+  * Allow mermaid render error to wrap (#18791)
+* BUGFIXES
+  * Fix ldap user sync missed email in email_address table (#18786) (#18876) 
+  * Update assignees check to include any writing team and change org sidebar (#18680) (#18873)
+  * Don't report signal: killed errors in serviceRPC (#18850) (#18865)
+  * Fix bug where certain LDAP settings were reverted (#18859)
+  * Update go-org to 1.6.0 (#18824) (#18839)
+  * Fix login with email for ldap users (#18800) (#18836)
+  * Fix bug for get user by email (#18834)
+  * Fix panic in EscapeReader (#18820) (#18821)
+  * Fix ldap loginname (#18789) (#18804)
+  * Remove redundant call to UpdateRepoStats during migration (#18591) (#18794)
+  * In disk_channel queues synchronously push to disk on shutdown (#18415) (#18788)
+  * Fix template bug of LFS lock (#18784) (#18787)
+  * Attempt to fix the webauthn migration again - part 3 (#18770) (#18771)
+  * Send mail to issue/pr assignee/reviewer also when OnMention is set (#18707) (#18765)
+  * Fix a broken link in commits_list_small.tmpl (#18763) (#18764)
+  * Increase the size of the webauthn_credential credential_id field (#18739) (#18756)
+  * Prevent dangling GetAttribute calls (#18754) (#18755)
+  * Fix isempty detection of git repository (#18746) (#18750)
+  * Fix source code line highlighting on external tracker (#18729) (#18740)
+  * Prevent double encoding of branch names in delete branch (#18714) (#18738)
+  * Always set PullRequestWorkInProgressPrefixes in PrepareViewPullInfo (#18713) (#18737)
+  * Fix forked repositories missed tags (#18719) (#18735)
+  * Fix release typo (#18728) (#18731)
+  * Separate the details links of commit-statuses in headers (#18661) (#18730)
+  * Update object repo with the migrated repository (#18684) (#18726)
+  * Fix bug for version update hint (#18701) (#18705)
+  * Fix issue with docker-rootless shimming script (#18690) (#18699)
+  * Let `MinUnitAccessMode` return correct perm (#18675) (#18689)
+  * Prevent security failure due to bad APP_ID (#18678) (#18682)
+  * Restart zero worker if there is still work to do (#18658) (#18672)
+  * If rendering has failed due to a net.OpError stop rendering (#18642) (#18645)
+* TESTING
+  * Ensure git tag tests and others create test repos in tmpdir (#18447) (#18767)
+* BUILD
+  * Reduce CI go module downloads, add make targets (#18708, #18475, #18443) (#18741)
+* MISC
+  * Put buttons back in org dashboard (#18817) (#18825)
+  * Various Mermaid improvements (#18776) (#18780)
+  * C preprocessor colors improvement (#18671) (#18696)
+  * Fix the missing i18n key for update checker (#18646) (#18665)
+
 ## [1.16.1](https://github.com/go-gitea/gitea/releases/tag/v1.16.1) - 2022-02-06
 
 * SECURITY

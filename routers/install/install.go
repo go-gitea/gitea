@@ -42,24 +42,22 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
-var supportedDbTypeNames []map[string]string // use a slice to keep order
-func getDbTypeNames() []map[string]string {
-	if supportedDbTypeNames == nil {
-		for _, t := range setting.SupportedDatabaseTypes {
-			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
-		}
+// getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
+func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
+	for _, t := range setting.SupportedDatabaseTypes {
+		dbTypeNames = append(dbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
 	}
-	return supportedDbTypeNames
+	return dbTypeNames
 }
 
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
-
+	dbTypeNames := getSupportedDbTypeNames()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
 			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
+			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
 			return
 		}
 		locale := middleware.Locale(resp, req)
@@ -74,7 +72,7 @@ func Init(next http.Handler) http.Handler {
 				"i18n":          locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
-				"DbTypeNames":   getDbTypeNames(),
+				"DbTypeNames":   dbTypeNames,
 				"AllLangs":      translation.AllLangs(),
 				"PageStartTime": startTime,
 

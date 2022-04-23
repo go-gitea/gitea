@@ -187,6 +187,8 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
+	// enable prune - remove obsolete remote-tracking references
+	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
 // GenerateRepoOption options when creating repository using a template
@@ -201,6 +203,8 @@ type GenerateRepoOption struct {
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Default branch of the new repository
+	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private

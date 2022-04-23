@@ -48,7 +48,7 @@ func Events(ctx *context.Context) {
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 
-	uid := ctx.User.ID
+	uid := ctx.Doer.ID
 
 	messageChan := eventsource.GetManager().Register(uid)
 
@@ -82,7 +82,7 @@ loop:
 			}
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
@@ -94,7 +94,7 @@ loop:
 			go unregister()
 			break loop
 		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.User.ID, db.ListOptions{})
+			sws, err := models.GetUserStopwatches(ctx.Doer.ID, db.ListOptions{})
 			if err != nil {
 				log.Error("Unable to GetUserStopwatches: %v", err)
 				continue
@@ -114,7 +114,7 @@ loop:
 				Data: string(dataBs),
 			}).WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
@@ -145,7 +145,7 @@ loop:
 
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}

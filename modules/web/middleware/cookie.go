@@ -98,17 +98,6 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 		SameSite(setting.SessionConfig.SameSite))
 }
 
-// DeleteSesionConfigPathCookie convenience function to delete SessionConfigPath cookies consistently
-func DeleteSesionConfigPathCookie(resp http.ResponseWriter, name string) {
-	SetCookie(resp, name, "",
-		-1,
-		setting.SessionConfig.CookiePath,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		SameSite(setting.SessionConfig.SameSite))
-}
-
 // DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
 func DeleteCSRFCookie(resp http.ResponseWriter) {
 	SetCookie(resp, setting.CSRFCookieName, "",
@@ -117,7 +106,7 @@ func DeleteCSRFCookie(resp http.ResponseWriter) {
 		setting.SessionConfig.Domain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
 }
 
-// SetCookie set the cookies
+// SetCookie set the cookies. (name, value, lifetime, path, domain, secure, httponly, expires, {sameSite, ...})
 // TODO: Copied from gitea.com/macaron/macaron and should be improved after macaron removed.
 func SetCookie(resp http.ResponseWriter, name, value string, others ...interface{}) {
 	cookie := http.Cookie{}
