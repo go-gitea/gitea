@@ -5,6 +5,8 @@
 package models
 
 import (
+	"time"
+
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -31,6 +33,7 @@ type Statistic struct {
 		IssueByLabel      []IssueByLabelCount
 		IssueByRepository []IssueByRepositoryCount
 	}
+	Time time.Time
 }
 
 // IssueByLabelCount contains the number of issue group by label
@@ -47,23 +50,31 @@ type IssueByRepositoryCount struct {
 }
 
 // GetStatistic returns the database statistics
-func GetStatistic() (stats Statistic) {
+func GetStatistic(estimate, metrics bool) (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = organization.CountOrganizations()
-	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
 	stats.Counter.Repo = repo_model.CountRepositories(true)
-	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
-	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-	stats.Counter.Action, _ = e.Count(new(Action))
-	stats.Counter.Access, _ = e.Count(new(Access))
+	if estimate {
+		stats.Counter.PublicKey, _ = db.EstimateTotal(new(asymkey_model.PublicKey))
+		stats.Counter.Watch, _ = db.EstimateTotal(new(repo_model.Watch))
+		stats.Counter.Star, _ = db.EstimateTotal(new(repo_model.Star))
+		stats.Counter.Action, _ = db.EstimateTotal(new(Action))
+		stats.Counter.Access, _ = db.EstimateTotal(new(Access))
+	} else {
+		stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
+		stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
+		stats.Counter.Star, _ = e.Count(new(repo_model.Star))
+		stats.Counter.Action, _ = e.Count(new(Action))
+		stats.Counter.Access, _ = e.Count(new(Access))
+	}
 
 	type IssueCount struct {
 		Count    int64
 		IsClosed bool
 	}
 
-	if setting.Metrics.EnabledIssueByLabel {
+	if metrics && setting.Metrics.EnabledIssueByLabel {
 		stats.Counter.IssueByLabel = []IssueByLabelCount{}
 
 		_ = e.Select("COUNT(*) AS count, l.name AS label").
@@ -73,7 +84,7 @@ func GetStatistic() (stats Statistic) {
 			Find(&stats.Counter.IssueByLabel)
 	}
 
-	if setting.Metrics.EnabledIssueByRepository {
+	if metrics && setting.Metrics.EnabledIssueByRepository {
 		stats.Counter.IssueByRepository = []IssueByRepositoryCount{}
 
 		_ = e.Select("COUNT(*) AS count, r.owner_name, r.name AS repository").
@@ -110,5 +121,6 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
 	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	stats.Time = time.Now()
 	return
 }

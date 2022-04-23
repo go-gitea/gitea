@@ -94,16 +94,18 @@ func newCacheService() {
 
 // TTLSeconds returns the TTLSeconds or unix timestamp for memcache
 func (c Cache) TTLSeconds() int64 {
-	if c.Adapter == "memcache" && c.TTL > MemcacheMaxTTL {
-		return time.Now().Add(c.TTL).Unix()
-	}
-	return int64(c.TTL.Seconds())
+	return DurationToCacheTTL(c.TTL)
 }
 
 // LastCommitCacheTTLSeconds returns the TTLSeconds or unix timestamp for memcache
 func LastCommitCacheTTLSeconds() int64 {
-	if CacheService.Adapter == "memcache" && CacheService.LastCommit.TTL > MemcacheMaxTTL {
-		return time.Now().Add(CacheService.LastCommit.TTL).Unix()
+	return DurationToCacheTTL(CacheService.LastCommit.TTL)
+}
+
+// DurationToCacheTTL converts a time.Duration to a TTL
+func DurationToCacheTTL(duration time.Duration) int64 {
+	if CacheService.Adapter == "memcache" && duration > MemcacheMaxTTL {
+		return time.Now().Add(duration).Unix()
 	}
-	return int64(CacheService.LastCommit.TTL.Seconds())
+	return int64(duration.Seconds())
 }

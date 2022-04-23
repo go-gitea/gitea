@@ -5,7 +5,7 @@
 package metrics
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -43,6 +43,8 @@ type Collector struct {
 	Users              *prometheus.Desc
 	Watches            *prometheus.Desc
 	Webhooks           *prometheus.Desc
+
+	StatisticsTime *prometheus.Desc
 }
 
 // NewCollector returns a new Collector with all prometheus.Desc initialized
@@ -225,152 +227,152 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := models.GetStatistic()
+	stats := GetStatistic(setting.Metrics.EstimateCounts, setting.Metrics.StatisticTTL)
 
-	ch <- prometheus.MustNewConstMetric(
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Accesses,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Access),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Actions,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Action),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Attachments,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Attachment),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Comments,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Comment),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Follows,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Follow),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.HookTasks,
 		prometheus.GaugeValue,
 		float64(stats.Counter.HookTask),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Issues,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Issue),
-	)
+	))
 	for _, il := range stats.Counter.IssueByLabel {
-		ch <- prometheus.MustNewConstMetric(
+		ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 			c.IssuesByLabel,
 			prometheus.GaugeValue,
 			float64(il.Count),
 			il.Label,
-		)
+		))
 	}
 	for _, ir := range stats.Counter.IssueByRepository {
-		ch <- prometheus.MustNewConstMetric(
+		ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 			c.IssuesByRepository,
 			prometheus.GaugeValue,
 			float64(ir.Count),
 			ir.OwnerName+"/"+ir.Repository,
-		)
+		))
 	}
-	ch <- prometheus.MustNewConstMetric(
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.IssuesClosed,
 		prometheus.GaugeValue,
 		float64(stats.Counter.IssueClosed),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.IssuesOpen,
 		prometheus.GaugeValue,
 		float64(stats.Counter.IssueOpen),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Labels,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Label),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.LoginSources,
 		prometheus.GaugeValue,
 		float64(stats.Counter.AuthSource),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Milestones,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Milestone),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Mirrors,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Mirror),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Oauths,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Oauth),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Organizations,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Org),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Projects,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Project),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.ProjectBoards,
 		prometheus.GaugeValue,
 		float64(stats.Counter.ProjectBoard),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.PublicKeys,
 		prometheus.GaugeValue,
 		float64(stats.Counter.PublicKey),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Releases,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Release),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Repositories,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Repo),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Stars,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Star),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Teams,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Team),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.UpdateTasks,
 		prometheus.GaugeValue,
 		float64(stats.Counter.UpdateTask),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Users,
 		prometheus.GaugeValue,
 		float64(stats.Counter.User),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Watches,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Watch),
-	)
-	ch <- prometheus.MustNewConstMetric(
+	))
+	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Webhooks,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Webhook),
-	)
+	))
 }

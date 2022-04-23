@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -126,7 +126,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = metrics.GetStatistic(setting.UI.Admin.EstimateCounts, setting.UI.Admin.StatisticTTL)
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
@@ -142,7 +142,7 @@ func DashboardPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = metrics.GetStatistic(setting.UI.Admin.EstimateCounts, setting.UI.Admin.StatisticTTL)
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 

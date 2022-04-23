@@ -197,6 +197,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REPO_PAGING_NUM`: **50**: Number of repos that are shown in one page.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
+- `ESTIMATE_COUNTS`: **false**: Estimate counts for summary statistics instead counting directly.
+- `STATISTICS_TTL`: **5m**: Cache summary statistics for this period of time.
 
 ### UI - Metadata (`ui.meta`)
 
@@ -974,6 +976,8 @@ Default templates for project boards:
 - `ENABLED_ISSUE_BY_LABEL`: **false**: Enable issue by label metrics with format `gitea_issues_by_label{label="bug"} 2`.
 - `ENABLED_ISSUE_BY_REPOSITORY`: **false**: Enable issue by repository metrics with format `gitea_issues_by_repository{repository="org/repo"} 5`.
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
+- `ESTIMATE_COUNTS`: **false**: Estimate counts for statistics instead counting directly.
+- `STATISTICS_TTL`: **5m**: Cache summary statistics for this period of time.
 
 ## API (`api`)
 

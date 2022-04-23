@@ -249,6 +249,8 @@ var (
 			RepoPagingNum   int
 			NoticePagingNum int
 			OrgPagingNum    int
+			EstimateCounts  bool
+			StatisticTTL    time.Duration `ini:"STATISTICS_TTL"`
 		} `ini:"ui.admin"`
 		User struct {
 			RepoPagingNum int
@@ -302,11 +304,14 @@ var (
 			RepoPagingNum   int
 			NoticePagingNum int
 			OrgPagingNum    int
+			EstimateCounts  bool
+			StatisticTTL    time.Duration `ini:"STATISTICS_TTL"`
 		}{
 			UserPagingNum:   50,
 			RepoPagingNum:   50,
 			NoticePagingNum: 25,
 			OrgPagingNum:    50,
+			StatisticTTL:    5 * time.Minute,
 		},
 		User: struct {
 			RepoPagingNum int
@@ -411,11 +416,14 @@ var (
 		Token                    string
 		EnabledIssueByLabel      bool
 		EnabledIssueByRepository bool
+		EstimateCounts           bool
+		StatisticTTL             time.Duration `ini:"STATISTICS_TTL"`
 	}{
 		Enabled:                  false,
 		Token:                    "",
 		EnabledIssueByLabel:      false,
 		EnabledIssueByRepository: false,
+		StatisticTTL:             5 * time.Minute,
 	}
 
 	// I18n settings
