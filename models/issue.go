@@ -1194,7 +1194,9 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	db.ListOptions
-	RepoIDs            []int64 // include all repos if empty
+	RepoIDs            []int64 // include all repos if empty // TODO: migrate to RepoCond
+	RepoID             int64   // overwrites RepoCond if not 0
+	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
@@ -1285,8 +1287,14 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if len(opts.RepoIDs) > 0 {
-		applyReposCondition(sess, opts.RepoIDs)
+	if opts.RepoCond == nil && len(opts.RepoIDs) != 0 {
+		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
+	}
+	if opts.RepoID != 0 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
+	}
+	if opts.RepoCond != nil {
+		sess.And(opts.RepoCond)
 	}
 
 	switch opts.IsClosed {
@@ -1410,10 +1418,6 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 		)
 	}
 	return cond
-}
-
-func applyReposCondition(sess *xorm.Session, repoIDs []int64) *xorm.Session {
-	return sess.In("issue.repo_id", repoIDs)
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
