@@ -107,20 +107,35 @@ func GetStatistic(estimate, metrics bool) (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = e.Count(new(Comment))
+	if estimate {
+		stats.Counter.Comment, _ = db.EstimateTotal(new(Comment))
+		stats.Counter.Follow, _ = db.EstimateTotal(new(user_model.Follow))
+		stats.Counter.Mirror, _ = db.EstimateTotal(new(repo_model.Mirror))
+		stats.Counter.Release, _ = db.EstimateTotal(new(Release))
+		stats.Counter.Webhook, _ = db.EstimateTotal(new(webhook.Webhook))
+		stats.Counter.Milestone, _ = db.EstimateTotal(new(issues_model.Milestone))
+		stats.Counter.Label, _ = db.EstimateTotal(new(Label))
+		stats.Counter.HookTask, _ = db.EstimateTotal(new(webhook.HookTask))
+		stats.Counter.Team, _ = db.EstimateTotal(new(organization.Team))
+		stats.Counter.Attachment, _ = db.EstimateTotal(new(repo_model.Attachment))
+		stats.Counter.Project, _ = db.EstimateTotal(new(project_model.Project))
+		stats.Counter.ProjectBoard, _ = db.EstimateTotal(new(project_model.Board))
+	} else {
+		stats.Counter.Comment, _ = e.Count(new(Comment))
+		stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
+		stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
+		stats.Counter.Release, _ = e.Count(new(Release))
+		stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
+		stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
+		stats.Counter.Label, _ = e.Count(new(Label))
+		stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
+		stats.Counter.Team, _ = e.Count(new(organization.Team))
+		stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
+		stats.Counter.Project, _ = e.Count(new(project_model.Project))
+		stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
+	}
 	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
-	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
-	stats.Counter.Release, _ = e.Count(new(Release))
 	stats.Counter.AuthSource = auth.CountSources()
-	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
-	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
-	stats.Counter.Label, _ = e.Count(new(Label))
-	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
-	stats.Counter.Team, _ = e.Count(new(organization.Team))
-	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
-	stats.Counter.Project, _ = e.Count(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
 	stats.Time = time.Now()
 	return
 }
