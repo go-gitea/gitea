@@ -5,11 +5,13 @@
 package validation
 
 import (
+	"errors"
 	"net/url"
 	"strings"
-
-	"code.gitea.io/gitea/models"
 )
+
+// ErrInvalidCloneAddr tell us a remote address is invalid
+var ErrInvalidCloneAddr = errors.New("remote address is invalid")
 
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
@@ -21,7 +23,7 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", ErrInvalidCloneAddr
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
