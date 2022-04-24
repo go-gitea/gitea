@@ -101,12 +101,9 @@ func (label *Label) CalOpenIssues() {
 
 // CalOpenOrgIssues calculates the open issues of a label for a specific repo
 func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
-	repoIDs := []int64{repoID}
-	labelIDs := []int64{labelID}
-
 	counts, _ := CountIssuesByRepo(&IssuesOptions{
-		RepoIDs:  repoIDs,
-		LabelIDs: labelIDs,
+		RepoID:   repoID,
+		LabelIDs: []int64{labelID},
 	})
 
 	for _, count := range counts {
