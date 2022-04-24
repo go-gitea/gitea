@@ -9,6 +9,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/validation"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -151,7 +154,13 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	// TODO validate url
+	if !db.AlphaDashDotPattern.MatchString(name) {
+		return fmt.Errorf("name[%s] do not match AlphaDashDotPattern", name)
+	}
+	if !validation.RemoteAddr(url, "", "") {
+		return fmt.Errorf("url[%s] is no valid RemoteAddr", url)
+	}
+
 	cmd := NewCommand(repo.Ctx, "remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
