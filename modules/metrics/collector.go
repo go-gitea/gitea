@@ -227,7 +227,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := GetStatistic(setting.Metrics.EstimateCounts, setting.Metrics.StatisticTTL)
+	stats := <-GetStatistic(setting.Metrics.EstimateCounts, setting.Metrics.StatisticTTL, true)
 
 	ch <- prometheus.NewMetricWithTimestamp(stats.Time, prometheus.MustNewConstMetric(
 		c.Accesses,

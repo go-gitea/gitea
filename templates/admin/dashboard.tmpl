@@ -12,10 +12,14 @@
 			{{.i18n.Tr "admin.dashboard.statistic"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>
-				{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
-				<span class="text italic light grey">{{TimeSince .Stats.Time $.i18n.Lang}}</span>
-			</p>
+			{{if .Stats}}
+				<p>
+					{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
+					<span class="text italic light grey">{{.i18n.Tr "admin.dashboard.statistic_info_last_updated" (TimeSince .Stats.Time $.i18n.Lang) | Str2html}}</span>
+				</p>
+			{{else}}
+				<p class="text italic light grey">{{.i18n.Tr "admin.dashboard.statistic_info_in_progress"}}</p>
+			{{end}}
 		</div>
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.operations"}}
