@@ -154,7 +154,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	if !db.AlphaDashDotPattern.MatchString(name) {
+	if db.AlphaDashDotPattern.MatchString(name) {
 		return fmt.Errorf("name[%s] do not match AlphaDashDotPattern", name)
 	}
 	if !validation.RemoteAddr(url, "", "") {

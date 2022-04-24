@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -500,7 +501,14 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		if pr.PatchURL == "" {
 			return nil
 		}
-		// pr.PatchURL maybe a local file
+		// validate pr.PatchURL
+		u, err := url.Parse(pr.PatchURL)
+		if err != nil {
+			return err
+		}
+		if u.Scheme == "" || u.Scheme == "file" {
+			return fmt.Errorf("local path not allowed")
+		}
 		ret, err := uri.Open(pr.PatchURL)
 		if err != nil {
 			return err
@@ -545,44 +553,47 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			cloneURL := pr.Head.CloneURL
 
 			// validate cloneURL, remote, ref
-			if validation.GitRefNamePatternInvalid.MatchString(ref) &&
-				validation.CheckGitRefAdditionalRulesValid(ref) &&
-				validation.RemoteAddr(cloneURL, "", "") &&
+
+			if validation.GitRefNamePatternInvalid.MatchString(ref) ||
+				!validation.CheckGitRefAdditionalRulesValid(ref) ||
+				!validation.RemoteAddr(cloneURL, "", "") ||
 				db.AlphaDashDotPattern.MatchString(remote) {
+				log.Error("migrating pull failed, invalid pattern: ref[%s], cloneURL[%s], remote[%s]", ref, cloneURL, remote)
+				return head, nil
+			}
 
-				_, ok := g.prHeadCache[remote]
+			_, ok := g.prHeadCache[remote]
 
-				if !ok {
-					// git remote add
-					err := g.gitRepo.AddRemote(remote, cloneURL, true)
-					if err != nil {
-						log.Error("AddRemote failed: %s", err)
-					} else {
-						g.prHeadCache[remote] = struct{}{}
-						ok = true
-					}
+			if !ok {
+				// git remote add
+				err := g.gitRepo.AddRemote(remote, cloneURL, true)
+				if err != nil {
+					log.Error("AddRemote failed: %s", err)
+				} else {
+					g.prHeadCache[remote] = struct{}{}
+					ok = true
 				}
+			}
 
-				if ok {
-					_, _, err = git.NewCommand(g.ctx, "fetch", remote, ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-					if err != nil {
-						log.Error("Fetch branch from %s failed: %v", cloneURL, err)
-					} else {
-						headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", remote, ref)
-						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-							return "", err
-						}
-						b, err := os.Create(headBranch)
-						if err != nil {
-							return "", err
-						}
-						_, err = b.WriteString(pr.Head.SHA)
-						b.Close()
-						if err != nil {
-							return "", err
-						}
-						head = remote + "/" + ref
+			if ok {
+				_, _, err = git.NewCommand(g.ctx, "fetch", remote, ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+				if err != nil {
+					log.Error("Fetch branch from %s failed: %v", cloneURL, err)
+				} else {
+					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", remote, ref)
+					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+						return "", err
 					}
+					b, err := os.Create(headBranch)
+					if err != nil {
+						return "", err
+					}
+					_, err = b.WriteString(pr.Head.SHA)
+					b.Close()
+					if err != nil {
+						return "", err
+					}
+					head = remote + "/" + ref
 				}
 			}
 		}
