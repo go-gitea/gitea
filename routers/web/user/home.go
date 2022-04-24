@@ -463,13 +463,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			// to check if it's in the team(which possible isn't the case).
 			opts.User = nil
 		}
-		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
-		if err != nil {
-			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
-			return
-		}
-
-		opts.RepoIDs = userRepoIDs
+		opts.RepoCond = models.SearchRepositoryCondition(repoOpts)
 	}
 
 	// keyword holds the search term entered into the search field.
