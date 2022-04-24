@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -113,8 +112,4 @@ func IsValidExternalTrackerURLFormat(uri string) bool {
 	}
 
 	return true
-}
-
-func IsValidUsername(user string) bool {
-	return user_model.IsUsableUsername(user) == nil
 }
