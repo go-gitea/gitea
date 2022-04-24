@@ -540,6 +540,10 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
+			ref := pr.Head.Ref
+
+			// TODO: lint remote & ref
+
 			_, ok := g.prHeadCache[remote]
 			if !ok {
 				// git remote add
@@ -553,11 +557,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			}
 
 			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+				_, _, err = git.NewCommand(g.ctx, "fetch", remote, ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
-					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", remote, ref)
 					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
 						return "", err
 					}
@@ -570,7 +574,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 					if err != nil {
 						return "", err
 					}
-					head = pr.Head.OwnerName + "/" + pr.Head.Ref
+					head = remote + "/" + ref
 				}
 			}
 		}
