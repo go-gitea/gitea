@@ -28,8 +28,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 )
 
@@ -104,7 +104,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
-	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	remoteAddr, err := validation.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.Doer)
 	}
