@@ -523,7 +523,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
 				continue
 			} else {
-				milestone, err := models.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
+				milestone, err := issues_model.GetMilestoneByRepoIDANDName(issue.RepoID, data["MilestoneTitle"])
 				if err != nil {
 					log.Error("GetMilestoneByRepoIDANDName %d, %s failed: %v", issue.RepoID, data["MilestoneTitle"], err)
 					continue
