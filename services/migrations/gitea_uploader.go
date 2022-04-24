@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -660,21 +659,13 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			remote := pr.Head.OwnerName
 			ref := pr.Head.Ref
 			cloneURL := pr.Head.CloneURL
-			valid := true
 
-			ref = strings.ReplaceAll(strings.ReplaceAll(ref, " ", ""), "'", "")
-			_, err := url.Parse(remote)
-			if err != nil {
-				remote = ""
-			}
-			_, err = url.Parse(cloneURL)
-			if err != nil {
-				cloneURL = ""
-			}
-
-			// TODO: lint remote & ref
+			// validate cloneURL, remote, ref
 			if validation.GitRefNamePatternInvalid.MatchString(ref) &&
-				validation.CheckGitRefAdditionalRulesValid(ref) {
+				validation.CheckGitRefAdditionalRulesValid(ref) &&
+				validation.RemoteAddr(cloneURL, "", "") &&
+				validation.IsValidUsername(remote) {
+
 				_, ok := g.prHeadCache[remote]
 
 				if !ok {
