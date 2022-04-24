@@ -548,7 +548,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			if validation.GitRefNamePatternInvalid.MatchString(ref) &&
 				validation.CheckGitRefAdditionalRulesValid(ref) &&
 				validation.RemoteAddr(cloneURL, "", "") &&
-				validation.IsValidUsername(remote) {
+				db.AlphaDashDotPattern.MatchString(remote) {
 
 				_, ok := g.prHeadCache[remote]
 
