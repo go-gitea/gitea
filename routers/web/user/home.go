@@ -528,7 +528,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// TODO: check if user has access to repos ?
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
 	if len(repoIDs) > 0 {
-		opts.RepoIDs = repoIDs
+		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
 	}
 
 	// ------------------------------

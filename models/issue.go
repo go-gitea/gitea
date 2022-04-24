@@ -1194,8 +1194,7 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	db.ListOptions
-	RepoIDs            []int64 // include all repos if empty // TODO: migrate to RepoCond
-	RepoID             int64   // overwrites RepoCond if not 0
+	RepoID             int64 // overwrites RepoCond if not 0
 	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
@@ -1287,9 +1286,6 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if opts.RepoCond == nil && len(opts.RepoIDs) != 0 {
-		opts.RepoCond = builder.In("issue.repo_id", opts.RepoIDs)
-	}
 	if opts.RepoID != 0 {
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
 	}
