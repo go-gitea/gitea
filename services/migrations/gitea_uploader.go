@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -657,13 +658,24 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
 			ref := pr.Head.Ref
+			cloneURL := pr.Head.CloneURL
+			ok := false
 
+			ref = strings.ReplaceAll(strings.ReplaceAll(ref, " ", ""), "'", "")
+			_, err := url.Parse(remote)
+			if err != nil {
+				remote = ""
+			}
+			_, err = url.Parse(cloneURL)
+			if err != nil {
+				cloneURL = ""
+			}
 			// TODO: lint remote & ref
 
-			_, ok := g.prHeadCache[remote]
+			_, ok = g.prHeadCache[remote]
 			if !ok {
 				// git remote add
-				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+				err := g.gitRepo.AddRemote(remote, cloneURL, true)
 				if err != nil {
 					log.Error("AddRemote failed: %s", err)
 				} else {
@@ -675,7 +687,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			if ok {
 				_, err = git.NewCommandContext(g.ctx, "fetch", remote, ref).RunInDir(g.repo.RepoPath())
 				if err != nil {
-					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					log.Error("Fetch branch from %s failed: %v", cloneURL, err)
 				} else {
 					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", remote, ref)
 					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
