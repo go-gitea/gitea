@@ -150,6 +150,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
+	// TODO validate url
 	cmd := NewCommandContext(repo.Ctx, "remote", "add")
 	if fetch {
 		cmd.AddArguments("-f")
