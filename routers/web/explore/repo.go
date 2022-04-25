@@ -50,8 +50,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByNewest
 	case "oldest":
 		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
