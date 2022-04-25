@@ -187,6 +187,8 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
+	// enable prune - remove obsolete remote-tracking references
+	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
 // GenerateRepoOption options when creating repository using a template

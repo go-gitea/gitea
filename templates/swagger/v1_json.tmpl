@@ -1904,7 +1904,9 @@
             "enum": [
               "composer",
               "conan",
+              "container",
               "generic",
+              "helm",
               "maven",
               "npm",
               "nuget",
@@ -3666,6 +3668,12 @@
             "name": "filepath",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4557,6 +4565,12 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -15081,6 +15095,11 @@
           "description": "a short description of the repository.",
           "type": "string",
           "x-go-name": "Description"
+        },
+        "enable_prune": {
+          "description": "enable prune - remove obsolete remote-tracking references",
+          "type": "boolean",
+          "x-go-name": "EnablePrune"
         },
         "external_tracker": {
           "$ref": "#/definitions/ExternalTracker"
