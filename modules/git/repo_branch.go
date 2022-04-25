@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/validation"
 )
 
@@ -154,7 +153,7 @@ func (repo *Repository) CreateBranch(branch, oldbranchOrCommit string) error {
 
 // AddRemote adds a new remote to repository.
 func (repo *Repository) AddRemote(name, url string, fetch bool) error {
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if validation.AlphaDashDotPattern.MatchString(name) {
 		return fmt.Errorf("name[%s] do not match AlphaDashDotPattern", name)
 	}
 	if !validation.RemoteAddr(url, "", "") {
