@@ -13,6 +13,7 @@
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
+					<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
 					<div class="labels df ac fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
