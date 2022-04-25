@@ -10,9 +10,6 @@
 #   upgrade.sh 1.15.10
 #   giteahome=/opt/gitea giteaconf=$giteahome/app.ini upgrade.sh
 
-# load environment variables from `giteaenv` when `giteaenv` exists.
-[[ -f "$(dirname $0)/giteaenv" ]] && source "$(dirname $0)/giteaenv"
-
 # apply variables from environment
 : "${giteabin:="/usr/local/bin/gitea"}"
 : "${giteahome:="/var/lib/gitea"}"
@@ -27,7 +24,7 @@
 
 function giteacmd {
   if [[ $sudocmd = "su" ]]; then
-    # `-c` accept one string as argument.
+    # `-c` only accept one string as argument.
     "$sudocmd" - "$giteauser" -c "$giteabin --config $giteaconf --work-path $giteahome $@"
   else
     "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
