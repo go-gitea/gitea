@@ -97,7 +97,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, releases, 1)
 
 	issues, err := models.Issues(&models.IssuesOptions{
-		RepoIDs:  []int64{repo.ID},
+		RepoID:   repo.ID,
 		IsPull:   util.OptionalBoolFalse,
 		SortType: "oldest",
 	})
