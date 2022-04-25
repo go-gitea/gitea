@@ -151,7 +151,7 @@ func CherryPickPost(ctx *context.Context) {
 				return
 			}
 		} else {
-			if err := git.GetRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, git.RawDiffType("patch"), buf); err != nil {
+			if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
 					return

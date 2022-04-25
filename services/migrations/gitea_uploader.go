@@ -576,7 +576,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			}
 
 			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", remote, ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", cloneURL, err)
 				} else {

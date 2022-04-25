@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/eventsource"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
@@ -57,6 +59,18 @@ func CancelStopwatch(c *context.Context) {
 	if err := models.CancelStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
+	}
+
+	stopwatches, err := models.GetUserStopwatches(c.Doer.ID, db.ListOptions{})
+	if err != nil {
+		c.ServerError("GetUserStopwatches", err)
+		return
+	}
+	if len(stopwatches) == 0 {
+		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
+			Name: "stopwatches",
+			Data: "{}",
+		})
 	}
 
 	url := issue.HTMLURL()
