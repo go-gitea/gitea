@@ -203,18 +203,14 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 }
 
 // populateDeliverHooks checks and delivers undelivered hooks.
-// FIXME: graceful: This would likely benefit from either a worker pool with dummy queue
-// or a full queue. Then more hooks could be sent at same time.
 func populateDeliverHooks(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return
 	default:
 	}
-
 	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: DeliverHooks", process.SystemProcessType, true)
 	defer finished()
-
 	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)

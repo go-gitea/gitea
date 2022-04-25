@@ -17,8 +17,6 @@ func TestMain(m *testing.M) {
 	setting.LoadForTest()
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", "..", "..", ".."),
-		SetUp: func() error {
-			return webhook_service.Init()
-		},
+		SetUp:         webhook_service.Init,
 	})
 }
