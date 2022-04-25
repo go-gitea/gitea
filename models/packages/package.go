@@ -35,9 +35,10 @@ const (
 	TypeConan     Type = "conan"
 	TypeContainer Type = "container"
 	TypeGeneric   Type = "generic"
-	TypeNuGet     Type = "nuget"
-	TypeNpm       Type = "npm"
+	TypeHelm      Type = "helm"
 	TypeMaven     Type = "maven"
+	TypeNpm       Type = "npm"
+	TypeNuGet     Type = "nuget"
 	TypePyPI      Type = "pypi"
 	TypeRubyGems  Type = "rubygems"
 )
@@ -53,12 +54,14 @@ func (pt Type) Name() string {
 		return "Container"
 	case TypeGeneric:
 		return "Generic"
-	case TypeNuGet:
-		return "NuGet"
-	case TypeNpm:
-		return "npm"
+	case TypeHelm:
+		return "Helm"
 	case TypeMaven:
 		return "Maven"
+	case TypeNpm:
+		return "npm"
+	case TypeNuGet:
+		return "NuGet"
 	case TypePyPI:
 		return "PyPI"
 	case TypeRubyGems:
@@ -78,12 +81,14 @@ func (pt Type) SVGName() string {
 		return "octicon-container"
 	case TypeGeneric:
 		return "octicon-package"
-	case TypeNuGet:
-		return "gitea-nuget"
-	case TypeNpm:
-		return "gitea-npm"
+	case TypeHelm:
+		return "gitea-helm"
 	case TypeMaven:
 		return "gitea-maven"
+	case TypeNpm:
+		return "gitea-npm"
+	case TypeNuGet:
+		return "gitea-nuget"
 	case TypePyPI:
 		return "gitea-python"
 	case TypeRubyGems:
