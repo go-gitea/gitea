@@ -210,7 +210,7 @@ func NewPipePair() (*PipePair, error) {
 }
 
 // NewPipePairs will return a slice of n PipePairs or an error
-func NewPipePairs(n int) ([]*PipePair, error) {
+func NewPipePairs(n int) (PipePairs, error) {
 	pipePairs := make([]*PipePair, 0, n)
 	for i := 0; i < n; i++ {
 		pipe, err := NewPipePair()
@@ -224,4 +224,20 @@ func NewPipePairs(n int) ([]*PipePair, error) {
 		pipePairs = append(pipePairs, pipe)
 	}
 	return pipePairs, nil
+}
+
+type PipePairs []*PipePair
+
+// Close closes the PipePairs
+func (pairs PipePairs) Close() error {
+	return pairs.CloseWithError(nil)
+}
+
+// CloseWithError closes the pipe pair
+func (pairs PipePairs) CloseWithError(err error) error {
+	for _, p := range pairs {
+		_ = p.closeRead(err)
+		_ = p.closeWrite(err)
+	}
+	return nil
 }

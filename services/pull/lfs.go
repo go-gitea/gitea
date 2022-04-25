@@ -32,13 +32,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	if err != nil {
 		return err
 	}
-
-	closeAll := func(err error) {
-		for _, closer := range pipes {
-			_ = closer.CloseWithError(err)
-		}
-	}
-	defer closeAll(nil)
+	defer pipes.Close()
 
 	revListReader, revListWriter := pipes[0].ReaderWriter()
 	shasToCheckReader, shasToCheckWriter := pipes[1].ReaderWriter()

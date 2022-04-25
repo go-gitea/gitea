@@ -23,24 +23,24 @@ import (
 func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob, errChan chan<- error) {
 	basePath := repo.Path
 
-	fail := func(err error) {
+	// We will need to run batch-check on all the objects in the repository
+	// in Git 2.6.0+ we can use `git cat-file --batch-check --batch-all-objects`
+	// However in earlier versions we'll need to use rev-list to get the objects.
+	gitHasBatchCheckAllObjects := git.CheckGitVersionAtLeast("2.6.0") == nil
+
+	numPipesRequired := 3
+	if !gitHasBatchCheckAllObjects {
+		numPipesRequired += 2
+	}
+
+	pipes, err := git.NewPipePairs(numPipesRequired)
+	if err != nil {
 		errChan <- err
 		close(pointerChan)
 		close(errChan)
-	}
-
-	pipes, err := git.NewPipePairs(3)
-	if err != nil {
-		fail(err)
 		return
 	}
-
-	closeAll := func(err error) {
-		for _, closer := range pipes {
-			_ = closer.CloseWithError(err)
-		}
-	}
-	defer closeAll(nil)
+	defer pipes.Close()
 
 	catFileCheckReader, catFileCheckWriter := pipes[0].ReaderWriter()
 	shasToBatchReader, shasToBatchWriter := pipes[1].ReaderWriter()
@@ -62,20 +62,9 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
 
 	// 1. Run batch-check on all objects in the repository
-	if git.CheckGitVersionAtLeast("2.6.0") != nil {
-
-		morePipes, err := git.NewPipePairs(2)
-		if err != nil {
-			wg.Done()
-			closeAll(err)
-			wg.Wait()
-			fail(err)
-			return
-		}
-
-		revListReader, revListWriter := morePipes[0].ReaderWriter()
-		shasToCheckReader, shasToCheckWriter := morePipes[1].ReaderWriter()
-		pipes = append(pipes, morePipes...)
+	if !gitHasBatchCheckAllObjects {
+		revListReader, revListWriter := pipes[3].ReaderWriter()
+		shasToCheckReader, shasToCheckWriter := pipes[4].ReaderWriter()
 
 		wg.Add(2)
 		go pipeline.CatFileBatchCheck(ctx, shasToCheckReader, catFileCheckWriter, &wg, basePath)

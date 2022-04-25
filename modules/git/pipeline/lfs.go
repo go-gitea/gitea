@@ -103,12 +103,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	defer func() {
-		for _, pipe := range pipes {
-			_ = pipe.Close()
-		}
-	} ()
+	defer pipes.Close()
 
 	shasToNameReader, shasToNameWriter := pipes[0].ReaderWriter()
 	nameRevStdinReader, nameRevStdinWriter := pipes[1].ReaderWriter()
