@@ -27,7 +27,7 @@ type PushMirror struct {
 
 	// A keypair formatted in OpenSSH format.
 	PublicKey  string
-	PrivateKey string
+	PrivateKey string `xorm:"VARCHAR(400)"`
 
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`

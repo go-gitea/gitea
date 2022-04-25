@@ -6,14 +6,27 @@ package migrations
 
 import (
 	"fmt"
+	"time"
 
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
 
 func addKeypairToPushMirror(x *xorm.Engine) error {
 	type PushMirror struct {
+		ID         int64            `xorm:"pk autoincr"`
+		RepoID     int64            `xorm:"INDEX"`
+		Repo       *repo.Repository `xorm:"-"`
+		RemoteName string
+
 		PublicKey  string
-		PrivateKey string
+		PrivateKey string `xorm:"VARCHAR(400)"`
+
+		Interval       time.Duration
+		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
+		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
+		LastError      string             `xorm:"text"`
 	}
 
 	if err := x.Sync2(new(PushMirror)); err != nil {
