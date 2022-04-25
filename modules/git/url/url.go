@@ -29,7 +29,7 @@ type GitURL struct {
 func (u *GitURL) String() string {
 	switch u.extraMark {
 	case 0:
-		return u.String()
+		return u.URL.String()
 	case 1:
 		return fmt.Sprintf("%s@%s:%s", u.User.Username(), u.Host, u.Path)
 	case 2:
