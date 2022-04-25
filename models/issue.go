@@ -1194,7 +1194,8 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	db.ListOptions
-	RepoIDs            []int64 // include all repos if empty
+	RepoID             int64 // overwrites RepoCond if not 0
+	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
@@ -1285,15 +1286,15 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if len(opts.RepoIDs) > 0 {
-		applyReposCondition(sess, opts.RepoIDs)
+	if opts.RepoID != 0 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
+	}
+	if opts.RepoCond != nil {
+		sess.And(opts.RepoCond)
 	}
 
-	switch opts.IsClosed {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_closed=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_closed=?", false)
+	if !opts.IsClosed.IsNone() {
+		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
 	}
 
 	if opts.AssigneeID > 0 {
@@ -1412,10 +1413,6 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyReposCondition(sess *xorm.Session, repoIDs []int64) *xorm.Session {
-	return sess.In("issue.repo_id", repoIDs)
-}
-
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
 	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 		And("issue_assignees.assignee_id = ?", assigneeID)
@@ -1510,20 +1507,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 func CountIssues(opts *IssuesOptions) (int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
-	countsSlice := make([]*struct {
-		Count int64
-	}, 0, 1)
-
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
-	if err := sess.Find(&countsSlice); err != nil {
-		return 0, fmt.Errorf("unable to CountIssues: %w", err)
-	}
-	if len(countsSlice) != 1 {
-		return 0, fmt.Errorf("unable to get one row result when CountIssues, row count=%d", len(countsSlice))
-	}
-	return countsSlice[0].Count, nil
+	return sess.Count()
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
