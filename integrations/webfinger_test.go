@@ -20,6 +20,9 @@ import (
 func TestWebfinger(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	old := setting.Federation.Enabled
+	setting.Federation.Enabled = true
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	appURL, _ := url.Parse(setting.AppURL)
@@ -60,4 +63,6 @@ func TestWebfinger(t *testing.T) {
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/.well-known/webfinger?resource=mailto:%s", user.Email))
 	MakeRequest(t, req, http.StatusNotFound)
+
+	setting.Federation.Enabled = old
 }
