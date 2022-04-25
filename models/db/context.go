@@ -170,23 +170,26 @@ func TableName(bean interface{}) string {
 	return x.TableName(bean)
 }
 
-// EstimateTotal returns an estimate of total number of rows in table
-func EstimateTotal(bean interface{}) (int64, error) {
-	tablename := x.TableName(bean)
+// EstimateCount returns an estimate of total number of rows in table
+func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
+	e := GetEngine(ctx)
+	e.Context(ctx)
+
+	tablename := TableName(bean)
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
 		var rows int64
-		_, err := x.SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
+		_, err := e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
 		return rows, err
 	case schemas.POSTGRES:
 		var rows int64
-		_, err := x.SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
+		_, err := e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
 		return rows, err
 	case schemas.MSSQL:
 		var rows int64
-		_, err := x.SQL("sp_spaceused ?;", tablename).Get(&rows)
+		_, err := e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
 		return rows, err
 	default:
-		return x.Count(tablename)
+		return e.Context(ctx).Count(tablename)
 	}
 }

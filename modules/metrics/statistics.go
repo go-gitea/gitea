@@ -5,11 +5,14 @@
 package metrics
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/process"
 )
 
 var (
@@ -51,11 +54,22 @@ func GetStatistic(estimate bool, statisticsTTL time.Duration, metrics bool) <-ch
 
 		// Create the working go-routine
 		go func() {
-			stats := models.GetStatistic(estimate, metrics)
+			ctx, _, finished := process.GetManager().AddContext(db.DefaultContext, fmt.Sprintf("Statistics: Estimated: %t Metrics: %t", estimate, metrics))
+			defer finished()
+			stats := models.GetStatistic(ctx, estimate, metrics)
+			statsPtr := &stats
+			select {
+			case <-ctx.Done():
+				// The above stats likely have been cancelled part way through generation and should be ignored
+				statsPtr = nil
+			default:
+			}
 
 			// cache the result, remove this worker and inform anyone waiting we are done
 			statisticsLock.Lock() // Lock within goroutine
-			statisticsMap[cacheKey] = &stats
+			if statsPtr != nil {
+				statisticsMap[cacheKey] = statsPtr
+			}
 			delete(statisticsWorkingChan, cacheKey)
 			close(workingChan)
 			statisticsLock.Unlock() // Unlock within goroutine

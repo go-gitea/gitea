@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -50,24 +51,25 @@ type IssueByRepositoryCount struct {
 }
 
 // GetStatistic returns the database statistics
-func GetStatistic(estimate, metrics bool) (stats Statistic) {
-	e := db.GetEngine(db.DefaultContext)
+func GetStatistic(ctx context.Context, estimate, metrics bool) (stats Statistic) {
+	e := db.GetEngine(ctx)
+	countFn := func(bean interface{}) (int64, error) {
+		return e.Context(ctx).Count(bean)
+	}
+	if estimate {
+		countFn = func(bean interface{}) (int64, error) {
+			return db.EstimateCount(ctx, bean)
+		}
+	}
+
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = organization.CountOrganizations()
 	stats.Counter.Repo = repo_model.CountRepositories(true)
-	if estimate {
-		stats.Counter.PublicKey, _ = db.EstimateTotal(new(asymkey_model.PublicKey))
-		stats.Counter.Watch, _ = db.EstimateTotal(new(repo_model.Watch))
-		stats.Counter.Star, _ = db.EstimateTotal(new(repo_model.Star))
-		stats.Counter.Action, _ = db.EstimateTotal(new(Action))
-		stats.Counter.Access, _ = db.EstimateTotal(new(Access))
-	} else {
-		stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
-		stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
-		stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-		stats.Counter.Action, _ = e.Count(new(Action))
-		stats.Counter.Access, _ = e.Count(new(Access))
-	}
+	stats.Counter.PublicKey, _ = countFn(new(asymkey_model.PublicKey))
+	stats.Counter.Watch, _ = countFn(new(repo_model.Watch))
+	stats.Counter.Star, _ = countFn(new(repo_model.Star))
+	stats.Counter.Action, _ = countFn(new(Action))
+	stats.Counter.Access, _ = countFn(new(Access))
 
 	type IssueCount struct {
 		Count    int64
@@ -107,33 +109,18 @@ func GetStatistic(estimate, metrics bool) (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	if estimate {
-		stats.Counter.Comment, _ = db.EstimateTotal(new(Comment))
-		stats.Counter.Follow, _ = db.EstimateTotal(new(user_model.Follow))
-		stats.Counter.Mirror, _ = db.EstimateTotal(new(repo_model.Mirror))
-		stats.Counter.Release, _ = db.EstimateTotal(new(Release))
-		stats.Counter.Webhook, _ = db.EstimateTotal(new(webhook.Webhook))
-		stats.Counter.Milestone, _ = db.EstimateTotal(new(issues_model.Milestone))
-		stats.Counter.Label, _ = db.EstimateTotal(new(Label))
-		stats.Counter.HookTask, _ = db.EstimateTotal(new(webhook.HookTask))
-		stats.Counter.Team, _ = db.EstimateTotal(new(organization.Team))
-		stats.Counter.Attachment, _ = db.EstimateTotal(new(repo_model.Attachment))
-		stats.Counter.Project, _ = db.EstimateTotal(new(project_model.Project))
-		stats.Counter.ProjectBoard, _ = db.EstimateTotal(new(project_model.Board))
-	} else {
-		stats.Counter.Comment, _ = e.Count(new(Comment))
-		stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
-		stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
-		stats.Counter.Release, _ = e.Count(new(Release))
-		stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
-		stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
-		stats.Counter.Label, _ = e.Count(new(Label))
-		stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
-		stats.Counter.Team, _ = e.Count(new(organization.Team))
-		stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
-		stats.Counter.Project, _ = e.Count(new(project_model.Project))
-		stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
-	}
+	stats.Counter.Comment, _ = countFn(new(Comment))
+	stats.Counter.Follow, _ = countFn(new(user_model.Follow))
+	stats.Counter.Mirror, _ = countFn(new(repo_model.Mirror))
+	stats.Counter.Release, _ = countFn(new(Release))
+	stats.Counter.Webhook, _ = countFn(new(webhook.Webhook))
+	stats.Counter.Milestone, _ = countFn(new(issues_model.Milestone))
+	stats.Counter.Label, _ = countFn(new(Label))
+	stats.Counter.HookTask, _ = countFn(new(webhook.HookTask))
+	stats.Counter.Team, _ = countFn(new(organization.Team))
+	stats.Counter.Attachment, _ = countFn(new(repo_model.Attachment))
+	stats.Counter.Project, _ = countFn(new(project_model.Project))
+	stats.Counter.ProjectBoard, _ = countFn(new(project_model.Board))
 	stats.Counter.Oauth = 0
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Time = time.Now()
