@@ -7,13 +7,13 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -381,15 +381,24 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	var repoPath string
+	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		repoPath = ctx.Repo.Repository.WikiPath()
+		wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer wikiRepo.Close()
+		gitRepo = wikiRepo
 	} else {
-		repoPath = repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		gitRepo = ctx.Repo.GitRepo
+		if gitRepo == nil {
+			ctx.ServerError("GitRepo not open", fmt.Errorf("no open git repo for '%s'", ctx.Repo.Repository.FullName()))
+			return
+		}
 	}
 	if err := git.GetRawDiff(
-		ctx,
-		repoPath,
+		gitRepo,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
