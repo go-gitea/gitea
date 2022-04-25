@@ -16,6 +16,7 @@ import (
 
 func TestMain(m *testing.M) {
 	setting.LoadForTest()
+	setting.NewQueueService()
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
 		SetUp:         Init,
