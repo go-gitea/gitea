@@ -13,6 +13,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -63,6 +64,8 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 
 	repo.batchWriter, repo.batchReader, repo.batchCancel = CatFileBatch(ctx, repoPath)
 	repo.checkWriter, repo.checkReader, repo.checkCancel = CatFileBatchCheck(ctx, repo.Path)
+
+	runtime.SetFinalizer(repo, func(repo *Repository) { repo.Close() })
 
 	return repo, nil
 }

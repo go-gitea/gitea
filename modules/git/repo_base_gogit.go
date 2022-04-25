@@ -63,13 +63,17 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	return &Repository{
+	repo := &Repository{
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 		Ctx:          ctx,
-	}, nil
+	}
+
+	runtime.SetFinalizer(repo, func(repo *Repository) { repo.Close() })
+
+	return repo, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil

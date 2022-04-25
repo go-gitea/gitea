@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -54,11 +55,14 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 		return io.NopCloser(bytes.NewReader(bs)), err
 	}
 
-	return &blobReader{
+	br := &blobReader{
 		rd:     rd,
 		n:      size,
 		cancel: cancel,
-	}, nil
+	}
+	runtime.SetFinalizer(br, func(br *blobReader) { br.Close() })
+
+	return br, nil
 }
 
 // Size returns the uncompressed size of the blob
