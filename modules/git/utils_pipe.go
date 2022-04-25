@@ -228,12 +228,12 @@ func NewPipePairs(n int) (PipePairs, error) {
 
 type PipePairs []*PipePair
 
-// Close closes the PipePairs
+// Close closes the pipe pairs
 func (pairs PipePairs) Close() error {
 	return pairs.CloseWithError(nil)
 }
 
-// CloseWithError closes the pipe pair
+// CloseWithError closes the pipe pairs
 func (pairs PipePairs) CloseWithError(err error) error {
 	for _, p := range pairs {
 		_ = p.closeRead(err)
