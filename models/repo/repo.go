@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	reservedRepoNames    = []string{".", ".."}
+	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
@@ -290,7 +290,14 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	}
 
 	repo.Units, err = getUnitsByRepoID(db.GetEngine(ctx), repo.ID)
-	log.Trace("repo.Units: %-+v", repo.Units)
+	if log.IsTrace() {
+		unitTypeStrings := make([]string, len(repo.Units))
+		for i, unit := range repo.Units {
+			unitTypeStrings[i] = unit.Type.String()
+		}
+		log.Trace("repo.Units, ID=%d, Types: [%s]", repo.ID, strings.Join(unitTypeStrings, ", "))
+	}
+
 	return err
 }
 
@@ -513,7 +520,7 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: repo.HTMLURL(),
-		Metas:     repo.ComposeMetas(),
+		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
@@ -526,7 +533,6 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
-	Git   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
@@ -540,10 +546,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		repoName += ".wiki"
 	}
 
-	sshUser := setting.RunUser
-	if setting.SSH.StartBuiltinServer {
-		sshUser = setting.SSH.BuiltinServerUser
-	}
+	sshUser := setting.SSH.User
 
 	cl := new(CloneLink)
 
@@ -747,38 +750,4 @@ func countRepositories(userID int64, private bool) int64 {
 // set it true to count all repositories.
 func CountRepositories(private bool) int64 {
 	return countRepositories(-1, private)
-}
-
-// CountUserRepositories returns number of repositories user owns.
-// Argument private only takes effect when it is false,
-// set it true to count all repositories.
-func CountUserRepositories(userID int64, private bool) int64 {
-	return countRepositories(userID, private)
-}
-
-func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
-	return e.Count(&Repository{OwnerID: ownerID})
-}
-
-func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
-}
-
-func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
-}
-
-// GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), ownerID)
-}
-
-// GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
-	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
-	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }

@@ -194,7 +194,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getCreateRepoFileOptions(repo)
 
 		// test
@@ -202,7 +202,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -230,7 +230,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 
 		// test
@@ -238,7 +238,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
@@ -263,7 +263,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 		opts.FromTreePath = "README.md"
 		opts.TreePath = "README_new.md" // new file name, README_new.md
@@ -273,7 +273,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
@@ -313,7 +313,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 		opts := getUpdateRepoFileOptions(repo)
 		opts.OldBranch = ""
 		opts.NewBranch = ""
@@ -323,7 +323,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 
 		// asserts
 		assert.NoError(t, err)
-		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 		defer gitRepo.Close()
 
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)
@@ -344,7 +344,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		defer ctx.Repo.GitRepo.Close()
 
 		repo := ctx.Repo.Repository
-		doer := ctx.User
+		doer := ctx.Doer
 
 		t.Run("bad branch", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)

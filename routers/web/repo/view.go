@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 )
 
 const (
@@ -464,6 +465,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			return
 		}
 		ctx.Data["LFSLockOwner"] = u.DisplayName()
+		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
 
@@ -487,9 +489,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+
+		shouldRenderSource := ctx.FormString("display") == "source"
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markupType := markup.Type(blob.Name()); markupType != "" {
+
+		markupType := markup.Type(blob.Name())
+		if markupType != "" {
+			ctx.Data["HasSourceRenderedToggle"] = true
+		}
+
+		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
@@ -505,7 +515,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
-		} else if readmeExist {
+		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
@@ -557,7 +567,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
-				if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 				} else {
@@ -607,7 +617,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {
@@ -661,7 +671,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.User.ID); err != nil {
+			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}
@@ -690,6 +700,14 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 // Home render repository home page
 func Home(ctx *context.Context) {
+	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
+	if isFeed {
+		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
+		return
+	}
+
+	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
@@ -799,7 +817,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+			return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
@@ -874,7 +892,7 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}
-		if err = models.UpdateRepoSize(db.DefaultContext, ctx.Repo.Repository); err != nil {
+		if err = models.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
@@ -1007,7 +1025,7 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(db.DefaultContext); err != nil {
+		if err = fork.GetOwner(ctx); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}

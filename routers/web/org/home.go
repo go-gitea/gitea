@@ -6,9 +6,11 @@ package org
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -23,7 +25,14 @@ const (
 
 // Home show organization home page
 func Home(ctx *context.Context) {
-	ctx.SetParams(":org", ctx.Params(":username"))
+	uname := ctx.Params(":username")
+
+	if strings.HasSuffix(uname, ".keys") || strings.HasSuffix(uname, ".gpg") {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	ctx.SetParams(":org", uname)
 	context.HandleOrgAssignment(ctx)
 	if ctx.Written() {
 		return
@@ -31,7 +40,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
+	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -105,7 +114,7 @@ func Home(ctx *context.Context) {
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,
 		Private:            ctx.IsSigned,
-		Actor:              ctx.User,
+		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
@@ -114,28 +123,28 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	opts := &models.FindOrgMembersOpts{
+	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
 		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
 
-	if ctx.User != nil {
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+	if ctx.Doer != nil {
+		isMember, err := org.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(opts)
+	members, _, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
 
-	membersCount, err := models.CountOrgMembers(opts)
+	membersCount, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("CountOrgMembers", err)
 		return

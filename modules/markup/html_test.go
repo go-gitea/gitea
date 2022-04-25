@@ -97,6 +97,15 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
@@ -547,4 +556,17 @@ func TestFuzz(t *testing.T) {
 	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
 
 	assert.NoError(t, err)
+}
+
+func TestIssue18471(t *testing.T) {
+	data := `http://domain/org/repo/compare/783b039...da951ce`
+
+	var res strings.Builder
+	err := PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
+
+	assert.NoError(t, err)
+	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
 }

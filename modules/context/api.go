@@ -8,7 +8,6 @@ package context
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
-
-	"gitea.com/go-chi/session"
 )
 
 // APIContext is a specific context for API service
@@ -100,7 +97,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.Doer != nil && ctx.Doer.IsAdmin) {
 			message = ""
 		}
 	}
@@ -117,7 +114,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if !setting.IsProd || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd || (ctx.Doer != nil && ctx.Doer.IsAdmin) {
 		message = err.Error()
 	}
 
@@ -191,33 +188,6 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
-// SetTotalCountHeader set "X-Total-Count" header
-func (ctx *APIContext) SetTotalCountHeader(total int64) {
-	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
-	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
-}
-
-// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
-func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
-	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
-	if len(val) != 0 {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
-	} else {
-		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
-	}
-}
-
-// RequireCSRF requires a validated a CSRF token
-func (ctx *APIContext) RequireCSRF() {
-	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
-	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
-	if len(headerToken) > 0 || len(formValueToken) > 0 {
-		Validate(ctx.Context, ctx.csrf)
-	} else {
-		ctx.Context.Error(401, "Missing CSRF token.")
-	}
-}
-
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
@@ -225,7 +195,7 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := auth.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := auth.GetTwoFactorByUID(ctx.Context.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
@@ -239,7 +209,7 @@ func (ctx *APIContext) CheckForOTP() {
 		return
 	}
 	if !ok {
-		ctx.Context.Error(401)
+		ctx.Context.Error(http.StatusUnauthorized)
 		return
 	}
 }
@@ -248,18 +218,18 @@ func (ctx *APIContext) CheckForOTP() {
 func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
 		// Get user from session if logged in.
-		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if ctx.User != nil {
-			if ctx.Locale.Language() != ctx.User.Language {
+		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.Doer != nil {
+			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.User
-			ctx.Data["SignedUserID"] = ctx.User.ID
-			ctx.Data["SignedUserName"] = ctx.User.Name
-			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+			ctx.Data["SignedUser"] = ctx.Doer
+			ctx.Data["SignedUserID"] = ctx.Doer.ID
+			ctx.Data["SignedUserName"] = ctx.Doer.Name
+			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 		} else {
 			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""
@@ -269,17 +239,14 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
-	csrfOpts := getCsrfOpts()
-
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(w, req)
 			ctx := APIContext{
 				Context: &Context{
-					Resp:    NewResponse(w),
-					Data:    map[string]interface{}{},
-					Locale:  locale,
-					Session: session.GetSession(req),
+					Resp:   NewResponse(w),
+					Data:   map[string]interface{}{},
+					Locale: locale,
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},
@@ -289,7 +256,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
-			ctx.csrf = Csrfer(csrfOpts, ctx.Context)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -301,7 +267,6 @@ func APIContexter() func(http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
@@ -317,36 +282,6 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 		})
-	}
-}
-
-// ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.CancelFunc) {
-	return func(ctx *APIContext) (cancel context.CancelFunc) {
-		// Empty repository does not have reference information.
-		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
-			return
-		}
-
-		// For API calls.
-		if ctx.Repo.GitRepo == nil {
-			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-				return
-			}
-			ctx.Repo.GitRepo = gitRepo
-			// We opened it, we should close it
-			return func() {
-				// If it's been set to nil then assume someone else has closed it.
-				if ctx.Repo.GitRepo != nil {
-					ctx.Repo.GitRepo.Close()
-				}
-			}
-		}
-
-		return
 	}
 }
 
@@ -375,33 +310,62 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 	})
 }
 
-// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
-func RepoRefForAPI(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		ctx := GetAPIContext(req)
+// ReferencesGitRepo injects the GitRepo into the Context
+// you can optional skip the IsEmpty check
+func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context.CancelFunc) {
+	return func(ctx *APIContext) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
-		if ctx.Repo.Repository.IsEmpty {
+		if ctx.Repo.Repository.IsEmpty && !(len(allowEmpty) != 0 && allowEmpty[0]) {
 			return
 		}
 
-		var err error
-
+		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
+			gitRepo, err := git.OpenRepository(ctx, repoPath)
 			if err != nil {
-				ctx.InternalServerError(err)
+				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 				return
 			}
+			ctx.Repo.GitRepo = gitRepo
 			// We opened it, we should close it
-			defer func() {
+			return func() {
 				// If it's been set to nil then assume someone else has closed it.
 				if ctx.Repo.GitRepo != nil {
 					ctx.Repo.GitRepo.Close()
 				}
-			}()
+			}
 		}
 
+		return
+	}
+}
+
+// RepoRefForAPI handles repository reference names when the ref name is not explicitly given
+func RepoRefForAPI(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := GetAPIContext(req)
+
+		if ctx.Repo.GitRepo == nil {
+			ctx.InternalServerError(fmt.Errorf("no open git repo"))
+			return
+		}
+
+		if ref := ctx.FormTrim("ref"); len(ref) > 0 {
+			commit, err := ctx.Repo.GitRepo.GetCommit(ref)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					ctx.NotFound()
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+				}
+				return
+			}
+			ctx.Repo.Commit = commit
+			return
+		}
+
+		var err error
 		refName := getRefName(ctx.Context, RepoRefAny)
 
 		if ctx.Repo.GitRepo.IsBranchExist(refName) {

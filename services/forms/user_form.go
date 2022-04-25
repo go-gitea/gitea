@@ -430,3 +430,15 @@ func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) bi
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// PackageSettingForm form for package settings
+type PackageSettingForm struct {
+	Action string
+	RepoID int64 `form:"repo_id"`
+}
+
+// Validate validates the fields
+func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}

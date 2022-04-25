@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -72,9 +73,9 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			BoostTimeout: config.BoostTimeout,
 			BoostWorkers: config.BoostWorkers,
 			MaxWorkers:   config.MaxWorkers,
+			Name:         config.Name + "-channel",
 		},
 		Workers: config.Workers,
-		Name:    config.Name + "-channel",
 	}, exemplar)
 	if err != nil {
 		return nil, err
@@ -90,9 +91,9 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 				BoostTimeout: 5 * time.Minute,
 				BoostWorkers: 1,
 				MaxWorkers:   5,
+				Name:         config.Name + "-level",
 			},
 			Workers: 0,
-			Name:    config.Name + "-level",
 		},
 		DataDir: config.DataDir,
 	}
@@ -154,6 +155,7 @@ func (q *PersistableChannelQueue) PushBack(data Data) error {
 
 // Run starts to run the queue
 func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.channelQueue.baseCtx)
 	log.Debug("PersistableChannelQueue: %s Starting", q.delayedStarter.name)
 	_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 
@@ -313,14 +315,13 @@ func (q *PersistableChannelQueue) Shutdown() {
 	q.channelQueue.Wait()
 	q.internal.(*LevelQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
-	go func() {
-		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
-		for data := range q.channelQueue.dataChan {
-			_ = q.internal.Push(data)
-			atomic.AddInt64(&q.channelQueue.numInQueue, -1)
-		}
-		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
-	}()
+	log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
+	close(q.channelQueue.dataChan)
+	for data := range q.channelQueue.dataChan {
+		_ = q.internal.Push(data)
+		atomic.AddInt64(&q.channelQueue.numInQueue, -1)
+	}
+	log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 
 	log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 }

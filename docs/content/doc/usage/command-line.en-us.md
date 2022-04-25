@@ -129,7 +129,7 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
         - `--scopes`: Additional scopes to request for this OAuth2 source. (Optional)
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
@@ -152,7 +152,7 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
         - `--scopes`: Additional scopes to request for this OAuth2 source.
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
@@ -503,6 +503,13 @@ Manage running server operations:
               - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
               - `--send-to value`, `-s value`: Email address(es) to send to
               - `--subject value`, `-S value`: Subject header of sent emails
+  - `processes`: Display Gitea processes and goroutine information
+    - Options:
+      - `--flat`: Show processes as flat table rather than as tree
+      - `--no-system`: Do not show system processes
+      - `--stacktraces`: Show stacktraces for goroutines associated with processes
+      - `--json`: Output as json
+      - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
 
 ### dump-repo
 

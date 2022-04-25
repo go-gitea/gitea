@@ -6,11 +6,14 @@ package queue
 
 import (
 	"context"
+	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -22,6 +25,7 @@ type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
+	baseCtxFinished    process.FinishedFunc
 	paused             chan struct{}
 	resumed            chan struct{}
 	cond               *sync.Cond
@@ -44,6 +48,7 @@ var (
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
 type WorkerPoolConfiguration struct {
+	Name         string
 	QueueLength  int
 	BatchLength  int
 	BlockTimeout time.Duration
@@ -54,12 +59,13 @@ type WorkerPoolConfiguration struct {
 
 // NewWorkerPool creates a new worker pool
 func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPool {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Queue: %s", config.Name), process.SystemProcessType, false)
 
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
+		baseCtxFinished:    finished,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		resumed:            closedChan,
@@ -72,6 +78,11 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	}
 
 	return pool
+}
+
+// Done returns when this worker pool's base context has been cancelled
+func (p *WorkerPool) Done() <-chan struct{} {
+	return p.baseCtx.Done()
 }
 
 // Push pushes the data to the internal channel
@@ -110,6 +121,9 @@ func (p *WorkerPool) hasNoWorkerScaling() bool {
 	return p.numberOfWorkers == 0 && (p.boostTimeout == 0 || p.boostWorkers == 0 || p.maxNumberOfWorkers == 0)
 }
 
+// zeroBoost will add a temporary boost worker for a no worker queue
+// p.lock must be locked at the start of this function BUT it will be unlocked by the end of this function
+// (This is because addWorkers has to be called whilst unlocked)
 func (p *WorkerPool) zeroBoost() {
 	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
 	mq := GetManager().GetManagedQueue(p.qid)
@@ -118,7 +132,7 @@ func (p *WorkerPool) zeroBoost() {
 		boost = p.maxNumberOfWorkers - p.numberOfWorkers
 	}
 	if mq != nil {
-		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
+		log.Debug("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
 
 		start := time.Now()
 		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
@@ -126,7 +140,7 @@ func (p *WorkerPool) zeroBoost() {
 			mq.RemoveWorkers(pid)
 		}
 	} else {
-		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+		log.Debug("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
 	}
 	p.lock.Unlock()
 	p.addWorkers(ctx, cancel, boost)
@@ -163,7 +177,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				boost = p.maxNumberOfWorkers - p.numberOfWorkers
 			}
 			if mq != nil {
-				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
 				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), boostCtxCancel, false)
@@ -173,7 +187,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 					boostCtxCancel()
 				}()
 			} else {
-				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Debug("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)
@@ -194,6 +208,11 @@ func (p *WorkerPool) NumberOfWorkers() int {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.numberOfWorkers
+}
+
+// NumberInQueue returns the number of items in the queue
+func (p *WorkerPool) NumberInQueue() int64 {
+	return atomic.LoadInt64(&p.numInQueue)
 }
 
 // MaxNumberOfWorkers returns the maximum number of workers automatically added to the pool
@@ -286,6 +305,7 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 		p.numberOfWorkers++
 		p.lock.Unlock()
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			p.doWork(ctx)
 
 			p.lock.Lock()
@@ -300,16 +320,23 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 				p.cond.Broadcast()
 				cancel()
 			}
-			if p.hasNoWorkerScaling() {
-				select {
-				case <-p.baseCtx.Done():
-					// Don't warn if the baseCtx is shutdown
-				default:
+			select {
+			case <-p.baseCtx.Done():
+				// Don't warn or check for ongoing work if the baseCtx is shutdown
+			case <-p.paused:
+				// Don't warn or check for ongoing work if the pool is paused
+			default:
+				if p.hasNoWorkerScaling() {
 					log.Warn(
 						"Queue: %d is configured to be non-scaling and has no workers - this configuration is likely incorrect.\n"+
 							"The queue will be paused to prevent data-loss with the assumption that you will add workers and unpause as required.", p.qid)
+					p.pause()
+				} else if p.numberOfWorkers == 0 && atomic.LoadInt64(&p.numInQueue) > 0 {
+					// OK there are no workers but... there's still work to be done -> Reboost
+					p.zeroBoost()
+					// p.lock will be unlocked by zeroBoost
+					return
 				}
-				p.pause()
 			}
 			p.lock.Unlock()
 		}()
@@ -366,14 +393,37 @@ func (p *WorkerPool) pause() {
 
 // Resume resumes the WorkerPool
 func (p *WorkerPool) Resume() {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.lock.Lock() // can't defer unlock because of the zeroBoost at the end
 	select {
 	case <-p.resumed:
+		// already resumed - there's nothing to do
+		p.lock.Unlock()
+		return
 	default:
-		p.paused = make(chan struct{})
-		close(p.resumed)
 	}
+
+	p.paused = make(chan struct{})
+	close(p.resumed)
+
+	// OK now we need to check if we need to add some workers...
+	if p.numberOfWorkers > 0 || p.hasNoWorkerScaling() || atomic.LoadInt64(&p.numInQueue) == 0 {
+		// We either have workers, can't scale or there's no work to be done -> so just resume
+		p.lock.Unlock()
+		return
+	}
+
+	// OK we got some work but no workers we need to think about boosting
+	select {
+	case <-p.baseCtx.Done():
+		// don't bother boosting if the baseCtx is done
+		p.lock.Unlock()
+		return
+	default:
+	}
+
+	// OK we'd better add some boost workers!
+	p.zeroBoost()
+	// p.zeroBoost will unlock the lock
 }
 
 // CleanUp will drain the remaining contents of the channel
@@ -433,6 +483,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 }
 
 func (p *WorkerPool) doWork(ctx context.Context) {
+	pprof.SetGoroutineLabels(ctx)
 	delay := time.Millisecond * 300
 
 	// Create a common timer - we will use this elsewhere

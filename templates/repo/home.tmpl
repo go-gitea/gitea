@@ -89,6 +89,11 @@
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
+						{{if .CanAddFile}}
+							<a href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
+								{{.i18n.Tr "repo.editor.patch"}}
+							</a>
+						{{end}}
 					{{end}}
 					{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame) }}
 						<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
@@ -120,7 +125,7 @@
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_zip"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_tar"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.i18n.Tr "repo.download_bundle"}}</a>
-								<a class="item" href="vscode://vscode.git/clone?url={{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 					</div>

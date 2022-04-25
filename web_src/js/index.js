@@ -1,4 +1,5 @@
-import './publicpath.js';
+// bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
+import './bootstrap.js';
 
 import $ from 'jquery';
 import {initVueEnv} from './components/VueComponentLoader.js';
@@ -39,6 +40,7 @@ import {
 } from './features/repo-issue.js';
 import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
+  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -78,9 +80,10 @@ import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
+// Disable the behavior of fomantic to toggle the checkbox when you press enter on a checkbox element.
+$.fn.checkbox.settings.enableEnterKey = false;
 
 initVueEnv();
-
 $(document).ready(() => {
   initGlobalCommon();
 
@@ -167,4 +170,6 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
+
+  checkAppUrl();
 });

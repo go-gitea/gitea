@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync/atomic"
 	"time"
 
@@ -20,7 +21,6 @@ const ChannelQueueType Type = "channel"
 type ChannelQueueConfiguration struct {
 	WorkerPoolConfiguration
 	Workers int
-	Name    string
 }
 
 // ChannelQueue implements Queue
@@ -84,6 +84,7 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 
 // Run starts to run the queue
 func (q *ChannelQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("ChannelQueue: %s Starting", q.name)
@@ -117,7 +118,10 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 		select {
 		case <-paused:
 			return nil
-		case data := <-q.dataChan:
+		case data, ok := <-q.dataChan:
+			if !ok {
+				return nil
+			}
 			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
@@ -166,6 +170,7 @@ func (q *ChannelQueue) Terminate() {
 	default:
 	}
 	q.terminateCtxCancel()
+	q.baseCtxFinished()
 	log.Debug("ChannelQueue: %s Terminated", q.name)
 }
 

@@ -17,7 +17,7 @@ import (
 func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numReposUpdated := 0
-	err := iterateRepositories(func(repo *repo_model.Repository) error {
+	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		if repo.IsEmpty {
 			return nil
 		}

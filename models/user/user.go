@@ -576,6 +576,7 @@ var (
 		"api",
 		"assets",
 		"attachments",
+		"avatar",
 		"avatars",
 		"captcha",
 		"commits",
@@ -584,10 +585,7 @@ var (
 		"explore",
 		"favicon.ico",
 		"ghost",
-		"help",
-		"install",
 		"issues",
-		"less",
 		"login",
 		"manifest.json",
 		"metrics",
@@ -595,16 +593,17 @@ var (
 		"new",
 		"notifications",
 		"org",
-		"plugins",
 		"pulls",
 		"raw",
 		"repo",
+		"repo-avatars",
 		"robots.txt",
 		"search",
 		"serviceworker.js",
-		"stars",
-		"template",
+		"ssh_info",
+		"swagger.v1.json",
 		"user",
+		"v2",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
@@ -644,6 +643,15 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		u.Visibility = overwriteDefault[0].Visibility
 	}
 
+	// validate data
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
+	if err := ValidateEmail(u.Email); err != nil {
+		return err
+	}
+
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -651,11 +659,6 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	defer committer.Close()
 
 	sess := db.GetEngine(ctx)
-
-	// validate data
-	if err := validateUser(u); err != nil {
-		return err
-	}
 
 	isExist, err := isUserExist(sess, 0, u.Name)
 	if err != nil {
@@ -827,8 +830,9 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
-func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
-	if err := validateUser(u); err != nil {
+func updateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...string) error {
+	err := validateUser(u)
+	if err != nil {
 		return err
 	}
 
@@ -860,15 +864,35 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 		}); err != nil {
 			return err
 		}
+	} else if !u.IsOrganization() { // check if primary email in email_address table
+		primaryEmailExist, err := e.Where("uid=? AND is_primary=?", u.ID, true).Exist(&EmailAddress{})
+		if err != nil {
+			return err
+		}
+
+		if !primaryEmailExist {
+			if _, err := e.Insert(&EmailAddress{
+				Email:       u.Email,
+				UID:         u.ID,
+				IsActivated: true,
+				IsPrimary:   true,
+			}); err != nil {
+				return err
+			}
+		}
 	}
 
-	_, err := e.ID(u.ID).AllCols().Update(u)
+	if len(cols) == 0 {
+		_, err = e.ID(u.ID).AllCols().Update(u)
+	} else {
+		_, err = e.ID(u.ID).Cols(cols...).Update(u)
+	}
 	return err
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(u *User, emailChanged bool) error {
-	return updateUser(db.DefaultContext, u, emailChanged)
+func UpdateUser(u *User, emailChanged bool, cols ...string) error {
+	return updateUser(db.DefaultContext, u, emailChanged, cols...)
 }
 
 // UpdateUserCols update user according special columns
@@ -1025,6 +1049,19 @@ func GetUserNamesByIDs(ids []int64) ([]string, error) {
 	return unames, err
 }
 
+// GetUserNameByID returns username for the id
+func GetUserNameByID(ctx context.Context, id int64) (string, error) {
+	var name string
+	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
+	if err != nil {
+		return "", err
+	}
+	if has {
+		return name, nil
+	}
+	return "", nil
+}
+
 // GetUserIDsByNames returns a slice of ids corresponds to names.
 func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
@@ -1104,19 +1141,9 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	email = strings.ToLower(email)
-	// First try to find the user by primary email
-	user := &User{Email: email}
-	has, err := db.GetEngine(ctx).Get(user)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return user, nil
-	}
-
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = db.GetEngine(ctx).Get(emailAddress)
+	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
+	has, err := db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -1182,4 +1209,60 @@ func GetAdminUser() (*User, error) {
 	}
 
 	return &admin, nil
+}
+
+// IsUserVisibleToViewer check if viewer is able to see user profile
+func IsUserVisibleToViewer(u, viewer *User) bool {
+	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
+}
+
+func isUserVisibleToViewer(e db.Engine, u, viewer *User) bool {
+	if viewer != nil && viewer.IsAdmin {
+		return true
+	}
+
+	switch u.Visibility {
+	case structs.VisibleTypePublic:
+		return true
+	case structs.VisibleTypeLimited:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+		return true
+	case structs.VisibleTypePrivate:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+
+		// If they follow - they see each over
+		follower := IsFollowing(u.ID, viewer.ID)
+		if follower {
+			return true
+		}
+
+		// Now we need to check if they in some organization together
+		count, err := e.Table("team_user").
+			Where(
+				builder.And(
+					builder.Eq{"uid": viewer.ID},
+					builder.Or(
+						builder.Eq{"org_id": u.ID},
+						builder.In("org_id",
+							builder.Select("org_id").
+								From("team_user", "t2").
+								Where(builder.Eq{"uid": u.ID}))))).
+			Count()
+		if err != nil {
+			return false
+		}
+
+		if count < 0 {
+			// No common organization
+			return false
+		}
+
+		// they are in an organization together
+		return true
+	}
+	return false
 }

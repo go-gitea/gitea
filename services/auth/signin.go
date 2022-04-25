@@ -23,17 +23,22 @@ import (
 // UserSignIn validates user name and password.
 func UserSignIn(username, password string) (*user_model.User, *auth.Source, error) {
 	var user *user_model.User
+	isEmail := false
 	if strings.Contains(username, "@") {
-		user = &user_model.User{Email: strings.ToLower(strings.TrimSpace(username))}
+		isEmail = true
+		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := db.Count(user)
+		has, err := db.GetEngine(db.DefaultContext).Get(&emailAddress)
 		if err != nil {
 			return nil, nil, err
 		}
-		if cnt > 1 {
-			return nil, nil, user_model.ErrEmailAlreadyUsed{
-				Email: user.Email,
+		if has {
+			if !emailAddress.IsActivated {
+				return nil, nil, user_model.ErrEmailAddressNotExist{
+					Email: username,
+				}
 			}
+			user = &user_model.User{ID: emailAddress.UID}
 		}
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
@@ -44,38 +49,40 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		user = &user_model.User{LowerName: strings.ToLower(trimmedUsername)}
 	}
 
-	hasUser, err := user_model.GetUser(user)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if hasUser {
-		source, err := auth.GetSourceByID(user.LoginSource)
+	if user != nil {
+		hasUser, err := user_model.GetUser(user)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		if !source.IsActive {
-			return nil, nil, oauth2.ErrAuthSourceNotActived
-		}
+		if hasUser {
+			source, err := auth.GetSourceByID(user.LoginSource)
+			if err != nil {
+				return nil, nil, err
+			}
 
-		authenticator, ok := source.Cfg.(PasswordAuthenticator)
-		if !ok {
-			return nil, nil, smtp.ErrUnsupportedLoginType
-		}
+			if !source.IsActive {
+				return nil, nil, oauth2.ErrAuthSourceNotActived
+			}
 
-		user, err := authenticator.Authenticate(user, username, password)
-		if err != nil {
-			return nil, nil, err
-		}
+			authenticator, ok := source.Cfg.(PasswordAuthenticator)
+			if !ok {
+				return nil, nil, smtp.ErrUnsupportedLoginType
+			}
 
-		// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-		// user could be hint to resend confirm email.
-		if user.ProhibitLogin {
-			return nil, nil, user_model.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
-		}
+			user, err := authenticator.Authenticate(user, user.LoginName, password)
+			if err != nil {
+				return nil, nil, err
+			}
 
-		return user, source, nil
+			// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+			// user could be hint to resend confirm email.
+			if user.ProhibitLogin {
+				return nil, nil, user_model.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+			}
+
+			return user, source, nil
+		}
 	}
 
 	sources, err := auth.AllActiveSources()
@@ -108,6 +115,10 @@ func UserSignIn(username, password string) (*user_model.User, *auth.Source, erro
 		} else {
 			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		}
+	}
+
+	if isEmail {
+		return nil, nil, user_model.ErrEmailAddressNotExist{Email: username}
 	}
 
 	return nil, nil, user_model.ErrUserNotExist{Name: username}

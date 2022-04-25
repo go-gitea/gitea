@@ -134,6 +134,7 @@ type HookEvents struct {
 	PullRequestSync      bool `json:"pull_request_sync"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
+	Package              bool `json:"package"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -339,6 +340,12 @@ func (w *Webhook) HasRepositoryEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Repository)
 }
 
+// HasPackageEvent returns if hook enabled package event.
+func (w *Webhook) HasPackageEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Package)
+}
+
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
@@ -368,6 +375,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
+		{w.HasPackageEvent, HookEventPackage},
 	}
 }
 
@@ -498,14 +506,19 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 }
 
 // GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks() ([]*Webhook, error) {
-	return getSystemWebhooks(db.GetEngine(db.DefaultContext))
+func GetSystemWebhooks(isActive util.OptionalBool) ([]*Webhook, error) {
+	return getSystemWebhooks(db.GetEngine(db.DefaultContext), isActive)
 }
 
-func getSystemWebhooks(e db.Engine) ([]*Webhook, error) {
+func getSystemWebhooks(e db.Engine, isActive util.OptionalBool) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
+	if isActive.IsNone() {
+		return webhooks, e.
+			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+			Find(&webhooks)
+	}
 	return webhooks, e.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }
 

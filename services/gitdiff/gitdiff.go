@@ -1376,9 +1376,9 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}()
 
 	go func(ctx context.Context, diffArgs []string, repoPath string, writer *io.PipeWriter) {
-		cmd := git.NewCommandContext(ctx, diffArgs...)
+		cmd := git.NewCommand(ctx, diffArgs...)
 		cmd.SetDescription(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
-		if err := cmd.RunWithContext(&git.RunContext{
+		if err := cmd.Run(&git.RunOpts{
 			Timeout: time.Duration(setting.Git.Timeout.Default) * time.Second,
 			Dir:     repoPath,
 			Stderr:  os.Stderr,
@@ -1422,6 +1422,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				}()
 			}
 			defer func() {
+				_ = checker.Close()
 				cancel()
 			}()
 		}
@@ -1532,13 +1533,17 @@ func CommentMustAsDiff(c *models.Comment) *Diff {
 }
 
 // GetWhitespaceFlag returns git diff flag for treating whitespaces
-func GetWhitespaceFlag(whiteSpaceBehavior string) string {
+func GetWhitespaceFlag(whitespaceBehavior string) string {
 	whitespaceFlags := map[string]string{
 		"ignore-all":    "-w",
 		"ignore-change": "-b",
 		"ignore-eol":    "--ignore-space-at-eol",
-		"":              "",
+		"show-all":      "",
 	}
 
-	return whitespaceFlags[whiteSpaceBehavior]
+	if flag, ok := whitespaceFlags[whitespaceBehavior]; ok {
+		return flag
+	}
+	log.Warn("unknown whitespace behavior: %q, default to 'show-all'", whitespaceBehavior)
+	return ""
 }

@@ -44,7 +44,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(file, ctx.User.ID, repoID, 0, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.Doer.ID, repoID, 0, header.Filename, allowedTypes)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -68,7 +68,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest, err.Error())
 		return
 	}
-	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
+	if !ctx.IsSigned || (ctx.Doer.ID != attach.UploaderID) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
@@ -101,12 +101,12 @@ func GetAttachment(ctx *context.Context) {
 	}
 
 	if repository == nil { // If not linked
-		if !(ctx.IsSigned && attach.UploaderID == ctx.User.ID) { // We block if not the uploader
+		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
 			ctx.Error(http.StatusNotFound)
 			return
 		}
 	} else { // If we have the repository we check access
-		perm, err := models.GetUserRepoPermission(repository, ctx.User)
+		perm, err := models.GetUserRepoPermission(repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
 			return

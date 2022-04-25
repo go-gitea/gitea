@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -186,7 +187,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
-	if !hasOrgOrUserVisible(e, repo.Owner, user) && !is {
+	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !is {
 		perm.AccessMode = perm_model.AccessModeNone
 		return
 	}
@@ -232,7 +233,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	// get units mode from teams
-	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return
 	}
@@ -249,7 +250,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			teamMode := team.unitAccessMode(e, u.Type)
+			teamMode := team.UnitAccessModeCtx(ctx, u.Type)
 			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
 				if m < teamMode {
@@ -300,10 +301,10 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	return isUserRepoAdmin(db.GetEngine(db.DefaultContext), repo, user)
+	return isUserRepoAdmin(db.DefaultContext, repo, user)
 }
 
-func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+func isUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
@@ -311,6 +312,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 		return true, nil
 	}
 
+	e := db.GetEngine(ctx)
 	mode, err := accessLevel(e, user, repo)
 	if err != nil {
 		return false, err
@@ -319,7 +321,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 		return true, nil
 	}
 
-	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return false, err
 	}

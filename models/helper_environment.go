@@ -23,8 +23,8 @@ const (
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
-	EnvKeyID        = "GITEA_KEY_ID"
-	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
+	EnvKeyID        = "GITEA_KEY_ID" // public key ID
+	EnvDeployKeyID  = "GITEA_DEPLOY_KEY_ID"
 	EnvPRID         = "GITEA_PR_ID"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"

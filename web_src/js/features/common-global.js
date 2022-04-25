@@ -3,8 +3,9 @@ import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
+import {showGlobalErrorMessage} from '../bootstrap.js';
 
-const {csrfToken} = window.config;
+const {appUrl, csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -211,7 +212,7 @@ export function initGlobalLinkActions() {
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
@@ -313,9 +314,22 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+  $('.show-modal').on('click', function () {
+    const modalDiv = $($(this).attr('data-modal'));
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith('data-modal-')) {
+        continue;
+      }
+      const id = attrib.name.substring(11);
+      const target = modalDiv.find(`#${id}`);
+      if (target.is('input')) {
+        target.val(attrib.value);
+      } else {
+        target.text(attrib.value);
+      }
+    }
+    modalDiv.modal('show');
+    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
@@ -323,10 +337,30 @@ export function initGlobalButtons() {
 
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
-    $.post($this.data('request-url'), {
+    $.post($this.attr('data-request-url'), {
       _csrf: csrfToken
     }).done(() => {
-      window.location.href = $this.data('done-url');
+      window.location.href = $this.attr('data-done-url');
     });
   });
+}
+
+/**
+ * Too many users set their ROOT_URL to wrong value, and it causes a lot of problems:
+ *   * Cross-origin API request without correct cookie
+ *   * Incorrect href in <a>
+ *   * ...
+ * So we check whether current URL starts with AppUrl(ROOT_URL).
+ * If they don't match, show a warning to users.
+ */
+export function checkAppUrl() {
+  const curUrl = window.location.href;
+  if (curUrl.startsWith(appUrl)) {
+    return;
+  }
+  if (document.querySelector('.page-content.install')) {
+    return; // no need to show the message on the installation page
+  }
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
+You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }
