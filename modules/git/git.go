@@ -148,7 +148,7 @@ func Init(ctx context.Context) error {
 
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true")
+		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
