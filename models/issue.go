@@ -1510,20 +1510,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 func CountIssues(opts *IssuesOptions) (int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
-	countsSlice := make([]*struct {
-		Count int64
-	}, 0, 1)
-
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
-	if err := sess.Find(&countsSlice); err != nil {
-		return 0, fmt.Errorf("unable to CountIssues: %w", err)
-	}
-	if len(countsSlice) != 1 {
-		return 0, fmt.Errorf("unable to get one row result when CountIssues, row count=%d", len(countsSlice))
-	}
-	return countsSlice[0].Count, nil
+	return sess.Count()
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
