@@ -2956,11 +2956,21 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+
+  @media @mediaSm {
+    + .container {
+      margin-top: 7px;
+    }
+  }
 }
 
 .repo-buttons {
   display: flex;
   align-items: center;
+
+  @media @mediaSm {
+    margin-top: 1em;
+  }
 }
 
 .repo-buttons .ui.labeled.button > .label:hover {
@@ -3226,4 +3236,19 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+@media @mediaSm {
+  .repo-header-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    .ui.stackable.menu {
+      flex-direction: row;
+
+      .item {
+        width: initial !important;
+      }
+    }
+  }
 }

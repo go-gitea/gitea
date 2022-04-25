@@ -62,22 +62,7 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	commit := ctx.Repo.Commit
-
-	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
-		var err error
-		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound()
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
-			}
-			return
-		}
-	}
-
-	blob, err := commit.GetBlobByPath(ctx.Repo.TreePath)
+	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
@@ -157,13 +142,18 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   description: filepath of file to get
 	//   type: string
 	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, err := ctx.Repo.GetEditorconfig()
+	ec, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
