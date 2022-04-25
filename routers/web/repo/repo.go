@@ -590,9 +590,10 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
+
 	// To improve performance when only the count is requested
 	if ctx.FormBool("count_only") {
-		ctx.SetTotalCountHeader(count)
 		return
 	}
 
@@ -611,7 +612,6 @@ func SearchRepo(ctx *context.Context) {
 		}
 	}
 
-	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
