@@ -553,11 +553,10 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			cloneURL := pr.Head.CloneURL
 
 			// validate cloneURL, remote, ref
-
 			if validation.GitRefNamePatternInvalid.MatchString(ref) ||
 				!validation.CheckGitRefAdditionalRulesValid(ref) ||
 				!validation.RemoteAddr(cloneURL, "", "") ||
-				db.AlphaDashDotPattern.MatchString(remote) {
+				validation.AlphaDashDotPattern.MatchString(remote) {
 				log.Error("migrating pull failed, invalid pattern: ref[%s], cloneURL[%s], remote[%s]", ref, cloneURL, remote)
 				return head, nil
 			}

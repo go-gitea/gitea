@@ -17,7 +17,6 @@ var (
 	ErrNameEmpty = errors.New("Name is empty")
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	// TODO move into validation package
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 

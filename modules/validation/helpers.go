@@ -13,7 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
+var (
+	externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
+
+	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
+	// be carefull it's a negative set
+	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
+)
 
 func isLoopbackIP(ip string) bool {
 	return net.ParseIP(ip).IsLoopback()
