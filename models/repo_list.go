@@ -485,7 +485,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		subQueryCond := builder.NewCond()
 
 		// Topic checking. topics is non-null.
-		subQueryCond = subQueryCond.Or(builder.Neq{"topics": "null"})
+		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
 
 		// Description checking. Description not empty.
 		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
