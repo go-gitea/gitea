@@ -25,7 +25,7 @@
 function giteacmd {
   if [[ $sudocmd = "su" ]]; then
     # `-c` only accept one string as argument.
-    "$sudocmd" - "$giteauser" -c "\"$giteabin\" --config \"$giteaconf\" --work-path \"$giteahome\" \"$@\""
+    "$sudocmd" - "$giteauser" -c "$(printf "%q " "$giteabin" "--config" "$giteaconf" "--work-path" "$giteahome" "$@")"
   else
     "$sudocmd" --user "$giteauser" "$giteabin" --config "$giteaconf" --work-path "$giteahome" "$@"
   fi
