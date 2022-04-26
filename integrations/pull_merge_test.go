@@ -26,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation/i18n"
 	"code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -344,5 +346,76 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()
+	})
+}
+
+func TestConflictChecking(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+
+		// Create new clean repo to test conflict checking.
+		baseRepo, err := repo_service.CreateRepository(user, user, models.CreateRepoOptions{
+			Name:          "conflict-checking",
+			Description:   "Tempo repo",
+			AutoInit:      true,
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, baseRepo)
+
+		// create a commit on new branch.
+		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
+			TreePath:  "important_file",
+			Message:   "Add a important file",
+			Content:   "Just a non-important file",
+			IsNewFile: true,
+			OldBranch: "main",
+			NewBranch: "important-secrets",
+		})
+		assert.NoError(t, err)
+
+		// create a commit on main branch.
+		_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, user, &files_service.UpdateRepoFileOptions{
+			TreePath:  "important_file",
+			Message:   "Add a important file",
+			Content:   "Not the same content :P",
+			IsNewFile: true,
+			OldBranch: "main",
+			NewBranch: "main",
+		})
+		assert.NoError(t, err)
+
+		// create Pull to merge the important-secrets branch into main branch.
+		pullIssue := &models.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "PR with conflict!",
+			PosterID: user.ID,
+			Poster:   user,
+			IsPull:   true,
+		}
+
+		pullRequest := &models.PullRequest{
+			HeadRepoID: baseRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "important-secrets",
+			BaseBranch: "main",
+			HeadRepo:   baseRepo,
+			BaseRepo:   baseRepo,
+			Type:       models.PullRequestGitea,
+		}
+		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
+		assert.NoError(t, err)
+
+		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "PR with conflict!"}).(*models.Issue)
+		conflictingPR, err := models.GetPullRequestByIssueID(issue.ID)
+		assert.NoError(t, err)
+
+		// Ensure conflictedFiles is populated.
+		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
+		// Check if status is correct.
+		assert.Equal(t, models.PullRequestStatusConflict, conflictingPR.Status)
+		// Ensure that mergeable returns false
+		assert.False(t, conflictingPR.Mergeable())
 	})
 }
