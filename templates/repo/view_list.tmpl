@@ -36,8 +36,9 @@
 			</th>
 			<th class="text grey right age">
 				<span class="mobile-align">
-					{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When $.i18n.Lang}}{{end}}{{end}}</th>
+					{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When $.i18n.Lang}}{{end}}{{end}}
 				</span>
+			</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -92,8 +93,9 @@
 				</td>
 				<td class="text right age three wide">
 					<span class="truncate">
-						{{if $commit}}{{TimeSince $commit.Committer.When $.i18n.Lang}}{{end}}</td>
+						{{if $commit}}{{TimeSince $commit.Committer.When $.i18n.Lang}}{{end}}
 					</span>
+				</td>
 			</tr>
 		{{end}}
 	</tbody>
