@@ -6,6 +6,7 @@ package automerge
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -15,9 +16,58 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/queue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
+
+// prAutoMergeQueue represents a queue to handle update pull request tests
+var prAutoMergeQueue queue.UniqueQueue
+
+// Init runs the task queue to that handles auto merges
+func Init() error {
+	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handle, "")
+	if prAutoMergeQueue == nil {
+		return fmt.Errorf("Unable to create pr_auto_merge Queue")
+	}
+	go graceful.GetManager().RunWithShutdownFns(prAutoMergeQueue.Run)
+	return nil
+}
+
+// handle passed PR IDs and test the PRs
+func handle(data ...queue.Data) []queue.Data {
+	for _, d := range data {
+		id, _ := strconv.ParseInt(d.(string), 10, 64)
+		handlePull(id)
+	}
+	return nil
+}
+
+func add2Queue(pr *models.PullRequest, sha string) {
+	if err := prAutoMergeQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
+		return nil
+	}); err != nil {
+		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
+	}
+}
+
+// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
+	if err != nil {
+		return false, err
+	}
+
+	// we don't need to schedule
+	if lastCommitStatus.IsSuccess() {
+		return false, nil
+	}
+
+	return true, pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
+}
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
 func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
@@ -29,7 +79,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 	}
 
 	for _, pr := range pulls {
-		go handlePull(pr, sha)
+		add2Queue(pr, sha)
 	}
 
 	return nil
@@ -101,14 +151,24 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	return pulls, nil
 }
 
-// TODO: queue
-func handlePull(pr *models.PullRequest, sha string) {
+func handlePull(pullID int64) {
+	stdCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
+		fmt.Sprintf("Handle AutoMerge of PR[%d]", pullID))
+	defer finished()
+
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		log.Error(err.Error())
 		return
 	}
 	defer committer.Close()
+	ctx.WithContext(stdCtx)
+
+	pr, err := models.GetPullRequestByID(ctx, pullID)
+	if err != nil {
+		log.Error("GetPullRequestByID[%d]: %v", pullID, err)
+		return
+	}
 
 	// Check if there is a scheduled pr in the db
 	exists, scheduledPRM, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
@@ -150,7 +210,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 	if !pass {
-		log.Info("Scheduled auto merge pr has unsuccessful status checks [PRID: %d, Commit: %s]", pr.ID, sha)
+		log.Info("Scheduled auto merge pr has unsuccessful status checks [PullID: %d]", pr.ID)
 		return
 	}
 
@@ -197,19 +257,4 @@ func handlePull(pr *models.PullRequest, sha string) {
 	if err := committer.Commit(); err != nil {
 		log.Error(err.Error())
 	}
-}
-
-// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
-	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
-	if err != nil {
-		return false, err
-	}
-
-	// we don't need to schedule
-	if lastCommitStatus.IsSuccess() {
-		return false, nil
-	}
-
-	return true, pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
 }
