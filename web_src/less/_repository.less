@@ -3237,3 +3237,22 @@ td.blob-excerpt {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
 }
+
+@media @mediaSm {
+  .issue-list-headers.ui[class].grid {
+    > div:nth-child(1) {
+      order: 1;
+      width: 50%;
+    }
+
+    > div:nth-child(2) {
+      order: 3;
+      width: 100%;
+    }
+
+    > div.column:not(.row):nth-child(3) {
+      order: 2;
+      width: 50%;
+    }
+  }
+}
