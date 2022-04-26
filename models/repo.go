@@ -57,9 +57,9 @@ func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	if user.IsAdmin {
 		return true
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
-		log.Error("getUserRepoPermission(): %v", err)
+		log.Error("GetUserRepoPermission(): %v", err)
 		return false
 	}
 

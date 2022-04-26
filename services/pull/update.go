@@ -71,7 +71,7 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
+func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == models.PullRequestFlowAGit {
 		return false, false, nil
 	}
@@ -79,7 +79,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 	if user == nil {
 		return false, false, nil
 	}
-	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
+	headRepoPerm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
 		return false, false, err
 	}

@@ -145,11 +145,7 @@ func (p *Permission) ColorFormat(s fmt.State) {
 }
 
 // GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(repo *repo_model.Repository, user *user_model.User) (Permission, error) {
-	return getUserRepoPermission(db.DefaultContext, repo, user)
-}
-
-func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {
@@ -347,7 +343,7 @@ func AccessLevelUnit(user *user_model.User, repo *repo_model.Repository, unitTyp
 }
 
 func accessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) {
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return perm_model.AccessModeNone, err
 	}
@@ -375,7 +371,7 @@ func canBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -391,7 +387,7 @@ func hasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 			return false, err
 		}
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}

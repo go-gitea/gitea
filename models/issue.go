@@ -493,7 +493,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 		return err
 	}
 
-	perm, err := getUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -2341,9 +2341,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := getUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := GetUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %v", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

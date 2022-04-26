@@ -891,7 +891,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 			return false, err
 		}
 
-		p, err := GetUserRepoPermission(issue.Repo, doer)
+		p, err := GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}
