@@ -230,7 +230,7 @@ func checkForInvalidation(ctx context.Context, requests models.PullRequestList, 
 	}
 	go func() {
 		// FIXME: graceful: We need to tell the manager we're doing something...
-		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
+		err := requests.InvalidateCodeComments(ctx, doer, gitRepo, branch)
 		if err != nil {
 			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
 		}
