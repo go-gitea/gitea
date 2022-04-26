@@ -653,7 +653,7 @@
 							{{if and $statusChecksPending (not .HasPendingPullRequestMerge)}}
 								<div class="ui blue buttons merge-button">
 									<button class="ui button" data-do="{{.MergeStyle}}">
-										<span class="octicon octicon-git-merge"></span>
+										{{svg "octicon-git-merge"}}
 										<span class="button-text">
 											{{if eq .MergeStyle "merge"}}
 												{{$.i18n.Tr "repo.pulls.merge_pull_request_on_status_success"}}
@@ -689,7 +689,7 @@
 								</div>
 								<div class="ui red buttons merge-now-button">
 									<button class="ui button" data-do="{{.MergeStyle}}-now">
-										<span class="octicon octicon-git-merge"></span>
+										{{svg "octicon-git-merge"}}
 										<span class="button-text">
 											{{if eq .MergeStyle "merge"}}
 												{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
@@ -727,7 +727,7 @@
 								<div class="merge-buttons-grid">
 									<div class="ui red buttons merge-button">
 										<button class="ui button" data-do="{{.MergeStyle}}">
-											<span class="octicon octicon-git-merge"></span>
+											{{svg "octicon-git-merge"}}
 											<span class="button-text">
 												{{if eq .MergeStyle "merge"}}
 													{{$.i18n.Tr "repo.pulls.merge_pull_request_now"}}
