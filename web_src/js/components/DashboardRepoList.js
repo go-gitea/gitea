@@ -305,8 +305,7 @@ function initVueComponents() {
         const searchedURL = this.searchURL;
         const searchedQuery = this.searchQuery;
 
-        let json = {};
-        let response;
+        let response, json;
         try {
           if (!this.reposTotalCount) {
             const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
