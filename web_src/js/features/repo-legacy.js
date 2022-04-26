@@ -418,11 +418,6 @@ async function onEditContent(event) {
 }
 
 export function initRepository() {
-  if ($('.repository').length === 0) {
-    return;
-  }
-
-
   // Commit statuses
   $('.commit-statuses-trigger').each(function () {
     const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
@@ -434,6 +429,10 @@ export function initRepository() {
         position: popupPosition,
       });
   });
+  
+  if ($('.repository').length === 0) {
+    return;
+  }
 
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
