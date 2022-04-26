@@ -317,7 +317,7 @@ Loop:
 			if protectedBranch == nil {
 				return false, "", nil, &ErrWontSign{approved}
 			}
-			if protectedBranch.GetGrantedApprovalsCount(pr) < 1 {
+			if protectedBranch.GetGrantedApprovalsCount(ctx, pr) < 1 {
 				return false, "", nil, &ErrWontSign{approved}
 			}
 		case baseSigned:

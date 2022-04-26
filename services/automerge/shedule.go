@@ -13,7 +13,7 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-// if schedule is false and no error, pull can be merged directly
+// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
 	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
 	if err != nil {
@@ -25,5 +25,5 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.
 		return false, nil
 	}
 
-	return true, models.ScheduleAutoMerge(doer, pull.ID, style, message)
+	return true, models.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
 }

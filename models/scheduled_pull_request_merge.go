@@ -29,13 +29,7 @@ func init() {
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
-func ScheduleAutoMerge(doer *user_model.User, pullID int64, style repo_model.MergeStyle, message string) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, style repo_model.MergeStyle, message string) error {
 	// Check if we already have a merge scheduled for that pull request
 	if exists, _, err := GetScheduledPullRequestMergeByPullID(ctx, pullID); err != nil {
 		return err
@@ -57,11 +51,8 @@ func ScheduleAutoMerge(doer *user_model.User, pullID int64, style repo_model.Mer
 		return err
 	}
 
-	if _, err := createAutoMergeComment(ctx, CommentTypePRScheduledToAutoMerge, pr, doer); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	_, err = createAutoMergeComment(ctx, CommentTypePRScheduledToAutoMerge, pr, doer)
+	return err
 }
 
 // GetScheduledPullRequestMergeByPullID gets a scheduled pull request merge by pull request id
@@ -82,13 +73,7 @@ func GetScheduledPullRequestMergeByPullID(ctx context.Context, pullID int64) (bo
 }
 
 // RemoveScheduledPullRequestMerge cancels a previously scheduled pull request
-func RemoveScheduledPullRequestMerge(doer *user_model.User, pullID int64, comment bool) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
+func RemoveScheduledPullRequestMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
 	exist, scheduledPRM, err := GetScheduledPullRequestMergeByPullID(ctx, pullID)
 	if err != nil {
 		return err
@@ -102,7 +87,7 @@ func RemoveScheduledPullRequestMerge(doer *user_model.User, pullID int64, commen
 
 	// if pull got merged we dont need to add a "auto-merge canceled comment"
 	if !comment || doer == nil {
-		return committer.Commit()
+		return nil
 	}
 
 	pr, err := getPullRequestByID(db.GetEngine(ctx), pullID)
@@ -110,9 +95,6 @@ func RemoveScheduledPullRequestMerge(doer *user_model.User, pullID int64, commen
 		return err
 	}
 
-	if _, err := createAutoMergeComment(ctx, CommentTypePRUnScheduledToAutoMerge, pr, doer); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	_, err = createAutoMergeComment(ctx, CommentTypePRUnScheduledToAutoMerge, pr, doer)
+	return err
 }

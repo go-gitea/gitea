@@ -284,14 +284,14 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		return nil
 	}
 
-	if err = issue.PullRequest.LoadHeadRepo(); err != nil {
+	if err = issue.PullRequest.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = issue.ReadBy(ctx.Doer.ID); err != nil {
+		if err = issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil
 		}
@@ -861,13 +861,21 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
+	dbCtx, committer, err := db.TxContext()
+	if err != nil {
+		ctx.ServerError("db.TxContext", err)
+		return
+	}
+	defer committer.Close()
+	dbCtx = dbCtx.WithContext(ctx)
+
 	pr := issue.PullRequest
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+	if err := pull_service.CheckPullMergable(dbCtx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
@@ -921,6 +929,10 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 
+		if err := committer.Commit(); err != nil {
+			ctx.ServerError("committer.Commit", err)
+			return
+		}
 		ctx.Redirect(issue.Link())
 		return
 	}
@@ -932,7 +944,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
+		scheduled, err := automerge.ScheduleAutoMerge(dbCtx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
 				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
@@ -943,13 +955,17 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		} else if scheduled {
 			// nothing more to do ...
+			if err := committer.Commit(); err != nil {
+				ctx.ServerError("committer.Commit", err)
+				return
+			}
 			ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_success"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 			return
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
@@ -1031,12 +1047,16 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when other pr use this branch as head branch
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(dbCtx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
 		}
 		if exist {
+			if err := committer.Commit(); err != nil {
+				ctx.ServerError("committer.Commit", err)
+				return
+			}
 			ctx.Redirect(issue.Link())
 			return
 		}
@@ -1055,6 +1075,10 @@ func MergePullRequest(ctx *context.Context) {
 		deleteBranch(ctx, pr, headRepo)
 	}
 
+	if err := committer.Commit(); err != nil {
+		ctx.ServerError("committer.Commit", err)
+		return
+	}
 	ctx.Redirect(issue.Link())
 }
 
@@ -1065,13 +1089,25 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := models.RemoveScheduledPullRequestMerge(ctx.Doer, issue.PullRequest.ID, true); err != nil {
+	dbCtx, committer, err := db.TxContext()
+	if err != nil {
+		ctx.ServerError("db.TxContext", err)
+		return
+	}
+	defer committer.Close()
+
+	if err := models.RemoveScheduledPullRequestMerge(dbCtx, ctx.Doer, issue.PullRequest.ID, true); err != nil {
 		if models.IsErrNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
 		ctx.ServerError("RemoveScheduledPullRequestMerge", err)
+		return
+	}
+
+	if err := committer.Commit(); err != nil {
+		ctx.ServerError("committer.Commit", err)
 		return
 	}
 
@@ -1232,7 +1268,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	// Don't cleanup when there are other PR's that use this branch as head branch.
-	exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+	exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 	if err != nil {
 		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 		return
@@ -1343,7 +1379,7 @@ func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Rep
 		return
 	}
 
-	if err := models.AddDeletePRBranchComment(ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
+	if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
 		log.Error("DeleteBranch: %v", err)
 	}

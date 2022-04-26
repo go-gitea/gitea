@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -111,7 +112,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 		return false, false, nil
 	}
 
-	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
+	mergeAllowed, err = IsUserAllowedToMerge(db.DefaultContext, pr, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
 	}

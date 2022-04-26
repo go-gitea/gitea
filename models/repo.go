@@ -455,8 +455,8 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := isUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("isUserRepoAdmin: %v", err)
+		if isAdmin, err := IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
@@ -1215,7 +1215,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := isUserRepoAdmin(ctx, repo, doer)
+		has, err := IsUserRepoAdminCtx(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {
