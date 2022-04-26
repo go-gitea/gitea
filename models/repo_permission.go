@@ -410,9 +410,9 @@ func GetRepoWriters(repo *repo_model.Repository) (_ []*user_model.User, err erro
 }
 
 // IsRepoReader returns true if user has explicit read access or higher to the repository.
-func IsRepoReader(repo *repo_model.Repository, userID int64) (bool, error) {
+func IsRepoReader(ctx context.Context, repo *repo_model.Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
+	return db.GetEngine(ctx).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
 }

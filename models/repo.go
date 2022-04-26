@@ -198,7 +198,7 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 		return nil, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, err
 	}

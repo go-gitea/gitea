@@ -354,26 +354,26 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
-	whitelist, err = updateApprovalWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	whitelist, err = updateApprovalWhitelist(ctx, repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
 	// if the repo is in an organization
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.MergeWhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
 	if err != nil {
 		return err
 	}
@@ -381,13 +381,13 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
-		if _, err = db.GetEngine(db.DefaultContext).Insert(protectBranch); err != nil {
+		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 		return nil
 	}
 
-	if _, err = db.GetEngine(db.DefaultContext).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 
@@ -416,7 +416,7 @@ func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have explicit read or write access to the repo.
-func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -424,7 +424,7 @@ func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newW
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := IsRepoReader(repo, userID); err != nil {
+		if reader, err := IsRepoReader(ctx, repo, userID); err != nil {
 			return nil, err
 		} else if !reader {
 			continue
@@ -466,13 +466,13 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
 // the teams from newWhitelist which have write access to the repo.
-func updateTeamWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasTeamsChanged {
 		return currentWhitelist, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}
