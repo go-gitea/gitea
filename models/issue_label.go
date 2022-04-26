@@ -613,7 +613,6 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if err = issue.LoadRepo(ctx); err != nil {
 		return err
@@ -629,7 +628,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(sess); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -670,7 +669,7 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err e
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -713,7 +712,7 @@ func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	}
 
 	issue.Labels = nil
-	return issue.loadLabels(db.GetEngine(ctx))
+	return issue.LoadLabels(ctx)
 }
 
 func deleteLabelsByRepoID(sess db.Engine, repoID int64) error {
