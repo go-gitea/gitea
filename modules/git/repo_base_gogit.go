@@ -98,7 +98,8 @@ func (repo *Repository) close() (err error) {
 	if repo.gogitStorage == nil {
 		return
 	}
-	if err := repo.gogitStorage.Close(); err != nil {
+	err = repo.gogitStorage.Close()
+	if err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
 	return
