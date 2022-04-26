@@ -142,11 +142,6 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		return
 	}
 
-	renderDirectoryDefaultFile(ctx, entries, treeLink)
-}
-
-// renderDirectoryDefaultFile render the default file when render a root directory or a sub directory
-func renderDirectoryDefaultFile(ctx *context.Context, entries git.Entries, treeLink string) {
 	if ctx.Repo.TreePath != "" {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
