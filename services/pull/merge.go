@@ -43,11 +43,10 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	// TODO: update pull within DB -> status merging (db lock for merging)
-	//       (add repoWorkingPull make sure two merges does not happen at same time.)
+	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
-	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
-	// scheduled before, hence we can remove it without checking for its existence.
+	// Removing an auto merge pull and ignore if not exist
 	if err := pull_model.RemoveScheduledAutoMerge(ctx, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
 		return err
 	}
