@@ -4,10 +4,12 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;
 
-  const svg = svgXml.rootElement;
-
-  const width = svg.width.baseVal;
-  const height = svg.height.baseVal;
+  const svg = svgXml.documentElement;
+  const width = svg?.width?.baseVal;
+  const height = svg?.height?.baseVal;
+  if (width === undefined || height === undefined) {
+    return null; // in case some svg is invalid or doesn't have the width/height
+  }
   if (width.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE || height.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE) {
     const img = new Image();
     img.src = src;
@@ -29,6 +31,7 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
       height: DefaultSize
     };
   }
+  return null;
 }
 
 export default function initImageDiff() {
@@ -88,6 +91,10 @@ export default function initImageDiff() {
             info.$image.on('load', () => {
               info.loaded = true;
               setReadyIfLoaded();
+            }).on('error', () => {
+              info.loaded = true;
+              setReadyIfLoaded();
+              info.$boundsInfo.text('(image error)');
             });
             info.$image.attr('src', info.path);
 
