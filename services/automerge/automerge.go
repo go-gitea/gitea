@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -110,7 +111,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 	defer committer.Close()
 
 	// Check if there is a scheduled pr in the db
-	exists, scheduledPRM, err := models.GetScheduledPullRequestMergeByPullID(ctx, pr.ID)
+	exists, scheduledPRM, err := pull_model.GetScheduledPullRequestMergeByPullID(ctx, pr.ID)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -210,5 +211,5 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.
 		return false, nil
 	}
 
-	return true, models.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
+	return true, pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
 }

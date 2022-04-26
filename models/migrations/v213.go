@@ -1,4 +1,4 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,7 +10,7 @@ import (
 
 func addAutoMergeTable(x *xorm.Engine) error {
 	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
+	type PullRequestAutoMerge struct {
 		ID          int64      `xorm:"pk autoincr"`
 		PullID      int64      `xorm:"BIGINT"`
 		DoerID      int64      `xorm:"BIGINT"`
@@ -19,5 +19,5 @@ func addAutoMergeTable(x *xorm.Engine) error {
 		CreatedUnix int64      `xorm:"created"`
 	}
 
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	return x.Sync2(&PullRequestAutoMerge{})
 }

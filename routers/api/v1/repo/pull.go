@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -808,7 +809,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if form.MergeWhenChecksSucceed {
 		scheduled, err := automerge.ScheduleAutoMerge(dbCtx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
-			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
+			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
 				return
 			}

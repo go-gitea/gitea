@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -47,7 +48,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 
 	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
 	// scheduled before, hence we can remove it without checking for its existence.
-	if err := models.RemoveScheduledPullRequestMerge(ctx, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
+	if err := pull_model.RemoveScheduledPullRequestMerge(ctx, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
 		return err
 	}
 

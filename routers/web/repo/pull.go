@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -946,7 +947,7 @@ func MergePullRequest(ctx *context.Context) {
 	if form.MergeWhenChecksSucceed {
 		scheduled, err := automerge.ScheduleAutoMerge(dbCtx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
-			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
+			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
 				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 				return
@@ -1096,7 +1097,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	}
 	defer committer.Close()
 
-	if err := models.RemoveScheduledPullRequestMerge(dbCtx, ctx.Doer, issue.PullRequest.ID, true); err != nil {
+	if err := pull_model.RemoveScheduledPullRequestMerge(dbCtx, ctx.Doer, issue.PullRequest.ID, true); err != nil {
 		if models.IsErrNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))

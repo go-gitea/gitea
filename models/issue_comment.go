@@ -1474,25 +1474,6 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	return nil
 }
 
-// createAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func createAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
-	if err = pr.LoadIssueCtx(ctx); err != nil {
-		return
-	}
-
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-		return
-	}
-
-	comment, err = CreateCommentCtx(ctx, &CreateCommentOptions{
-		Type:  typ,
-		Doer:  doer,
-		Repo:  pr.BaseRepo,
-		Issue: pr.Issue,
-	})
-	return
-}
-
 // RemapExternalUser ExternalUserRemappable interface
 func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
 	c.OriginalAuthor = externalName
