@@ -15,10 +15,6 @@ function selectRange($list, $select, $from) {
   const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
 
-  if ($copyPermalink.length === 0) {
-    return;
-  }
-
   const updateIssueHref = function (anchor) {
     if ($issue.length === 0) {
       return;
@@ -29,6 +25,9 @@ function selectRange($list, $select, $from) {
   };
 
   const updateCopyPermalinkHref = function(anchor) {
+    if ($copyPermalink.length === 0) {
+      return;
+    }
     let link = $copyPermalink.attr('data-clipboard-text');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     $copyPermalink.attr('data-clipboard-text', link);
