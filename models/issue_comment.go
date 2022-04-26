@@ -1475,7 +1475,7 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 
 // createAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
 func createAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
-	if err = pr.loadIssue(db.GetEngine(ctx)); err != nil {
+	if err = pr.LoadIssueCtx(ctx); err != nil {
 		return
 	}
 
