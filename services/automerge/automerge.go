@@ -197,3 +197,18 @@ func handlePull(pr *models.PullRequest, sha string) {
 		log.Error(err.Error())
 	}
 }
+
+// ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
+	if err != nil {
+		return false, err
+	}
+
+	// we don't need to schedule
+	if lastCommitStatus.IsSuccess() {
+		return false, nil
+	}
+
+	return true, models.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
+}
