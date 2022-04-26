@@ -28,7 +28,7 @@ import (
 
 func addReader(w archiver.Writer, r io.ReadCloser, info os.FileInfo, customName string, verbose bool) error {
 	if verbose {
-		log.Info("Adding file %s\n", customName)
+		log.Info("Adding file %s", customName)
 	}
 
 	return w.Write(archiver.File{
