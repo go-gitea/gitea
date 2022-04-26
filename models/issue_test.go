@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestIssue_ReplaceLabels(t *testing.T) {
@@ -153,7 +154,7 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs:  []int64{1, 3},
+				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
 				ListOptions: db.ListOptions{
 					Page:     1,
@@ -340,7 +341,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs: []int64{1, 2},
+				RepoCond: builder.In("repo_id", 1, 2),
 			},
 			[]int64{1, 2},
 		},

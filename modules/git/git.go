@@ -112,8 +112,8 @@ func SetExecutablePath(path string) error {
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	var format = "Git Version: %s"
-	var args = []interface{}{gitVersion.Original()}
+	format := "Git Version: %s"
+	args := []interface{}{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
@@ -148,7 +148,7 @@ func Init(ctx context.Context) error {
 
 	// By default partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "uploadpack.allowfilter=true")
+		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex

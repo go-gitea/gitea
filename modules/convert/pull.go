@@ -67,6 +67,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
 		MergeBase: pr.MergeBase,
+		Mergeable: pr.Mergeable(),
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
@@ -190,10 +191,6 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		}
 	}
 
-	if pr.Status != models.PullRequestStatusChecking {
-		mergeable := !(pr.Status == models.PullRequestStatusConflict || pr.Status == models.PullRequestStatusError) && !pr.IsWorkInProgress()
-		apiPullRequest.Mergeable = mergeable
-	}
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID

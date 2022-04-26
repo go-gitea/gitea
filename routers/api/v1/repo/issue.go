@@ -173,6 +173,7 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.TeamID = team.ID
 	}
 
+	repoCond := models.SearchRepositoryCondition(opts)
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
@@ -233,7 +234,7 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
-			RepoIDs:            repoIDs,
+			RepoCond:           repoCond,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
@@ -460,7 +461,7 @@ func ListIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoIDs:           []int64{ctx.Repo.Repository.ID},
+			RepoID:            ctx.Repo.Repository.ID,
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,
