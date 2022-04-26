@@ -362,6 +362,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 				return
 			}
 			ctx.Repo.Commit = commit
+			ctx.Repo.TreePath = ctx.Params("*")
 			return
 		}
 
