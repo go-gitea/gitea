@@ -187,15 +187,16 @@ func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
 
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
-	return pr.loadIssue(db.GetEngine(db.DefaultContext))
+	return pr.LoadIssueCtx(db.DefaultContext)
 }
 
-func (pr *PullRequest) loadIssue(e db.Engine) (err error) {
+// LoadIssueCtx loads issue information from database
+func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 	if pr.Issue != nil {
 		return nil
 	}
 
-	pr.Issue, err = getIssueByID(e, pr.IssueID)
+	pr.Issue, err = getIssueByID(db.GetEngine(ctx), pr.IssueID)
 	if err == nil {
 		pr.Issue.PullRequest = pr
 	}
@@ -394,7 +395,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 	}
 
 	pr.Issue = nil
-	if err := pr.loadIssue(sess); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		return false, err
 	}
 
@@ -535,7 +536,7 @@ func GetPullRequestByIndexCtx(ctx context.Context, repoID, index int64) (*PullRe
 	if err = pr.loadAttributes(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
-	if err = pr.loadIssue(db.GetEngine(ctx)); err != nil {
+	if err = pr.LoadIssueCtx(ctx); err != nil {
 		return nil, err
 	}
 
