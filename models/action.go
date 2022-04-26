@@ -508,7 +508,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				perm, err := GetUserRepoPermissionCtx(ctx, repo, user)
+				perm, err := GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -99,7 +100,7 @@ func TestRenameBranch(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	_isDefault := false
 
-	err := UpdateProtectBranch(repo1, &ProtectedBranch{
+	err := UpdateProtectBranch(db.DefaultContext, repo1, &ProtectedBranch{
 		RepoID:     repo1.ID,
 		BranchName: "master",
 	}, WhitelistOptions{})

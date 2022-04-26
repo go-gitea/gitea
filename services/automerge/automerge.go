@@ -161,7 +161,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermissionCtx(ctx, pr.HeadRepo, doer)
+	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
 		log.Error(err.Error())
 		return

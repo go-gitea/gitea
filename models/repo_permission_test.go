@@ -18,6 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func getUserRepoPermission(repo *repo_model.Repository, user *user_model.User) (Permission, error) {
+	return GetUserRepoPermission(db.DefaultContext, repo, user)
+}
+
 func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -27,7 +31,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -36,7 +40,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// change to collaborator
 	assert.NoError(t, AddCollaborator(repo, user))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -45,7 +49,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// collaborator
 	collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, collaborator)
+	perm, err = getUserRepoPermission(repo, collaborator)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -54,7 +58,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// owner
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, owner)
+	perm, err = getUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -63,7 +67,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// admin
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, admin)
+	perm, err = getUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -80,7 +84,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.False(t, perm.CanRead(unit.Type))
@@ -89,7 +93,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 
 	// change to collaborator to default write access
 	assert.NoError(t, AddCollaborator(repo, user))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -97,7 +101,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -106,7 +110,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 
 	// owner
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, owner)
+	perm, err = getUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -115,7 +119,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 
 	// admin
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, admin)
+	perm, err = getUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -132,7 +136,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -141,7 +145,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// change to collaborator to default write access
 	assert.NoError(t, AddCollaborator(repo, user))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -149,7 +153,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -158,7 +162,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// org member team owner
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, owner)
+	perm, err = getUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -167,7 +171,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// org member team tester
 	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, member)
+	perm, err = getUserRepoPermission(repo, member)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -177,7 +181,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// admin
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, admin)
+	perm, err = getUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -194,7 +198,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	perm, err := GetUserRepoPermission(repo, user)
+	perm, err := getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.False(t, perm.CanRead(unit.Type))
@@ -203,7 +207,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// change to collaborator to default write access
 	assert.NoError(t, AddCollaborator(repo, user))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -211,7 +215,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
-	perm, err = GetUserRepoPermission(repo, user)
+	perm, err = getUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -220,7 +224,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// org member team owner
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, owner)
+	perm, err = getUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -231,7 +235,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
 	err = organization.UpdateTeamUnits(team, nil)
 	assert.NoError(t, err)
-	perm, err = GetUserRepoPermission(repo, owner)
+	perm, err = getUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
@@ -240,7 +244,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// org member team tester
 	tester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, tester)
+	perm, err = getUserRepoPermission(repo, tester)
 	assert.NoError(t, err)
 	assert.True(t, perm.CanWrite(unit.TypeIssues))
 	assert.False(t, perm.CanWrite(unit.TypeCode))
@@ -248,7 +252,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// org member team reviewer
 	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, reviewer)
+	perm, err = getUserRepoPermission(repo, reviewer)
 	assert.NoError(t, err)
 	assert.False(t, perm.CanRead(unit.TypeIssues))
 	assert.False(t, perm.CanWrite(unit.TypeCode))
@@ -256,7 +260,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// admin
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	perm, err = GetUserRepoPermission(repo, admin)
+	perm, err = getUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
