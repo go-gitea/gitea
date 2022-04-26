@@ -428,7 +428,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 				buf = buf[:n]
 
-				st = typesniffer.DetectContentType(buf)
+				st, _ = typesniffer.DetectContentTypeExtFirst(blob.Name(), buf)
 				isTextFile = st.IsText()
 
 				fileSize = meta.Size

@@ -4,7 +4,12 @@
 
 package setting
 
-import "strings"
+import (
+	"mime"
+	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+)
 
 // MimeTypeMap defines custom mime type mapping settings
 var MimeTypeMap = struct {
@@ -21,6 +26,10 @@ func newMimeTypeMap() {
 	m := make(map[string]string, len(keys))
 	for _, key := range keys {
 		m[strings.ToLower(key.Name())] = key.Value()
+		err := mime.AddExtensionType(key.Name(), key.Value())
+		if err != nil {
+			log.Warn("mime.AddExtensionType(%s,%s): %v", key.Name(), key.Value(), err)
+		}
 	}
 	MimeTypeMap.Map = m
 	if len(keys) > 0 {
