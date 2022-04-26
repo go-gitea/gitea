@@ -111,11 +111,11 @@ func ListPullRequests(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		if err = prs[i].LoadBaseRepo(); err != nil {
+		if err = prs[i].LoadBaseRepoCtx(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 			return
 		}
-		if err = prs[i].LoadHeadRepo(); err != nil {
+		if err = prs[i].LoadHeadRepoCtx(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
@@ -167,11 +167,11 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
@@ -724,7 +724,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
@@ -1063,11 +1063,11 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
@@ -1151,7 +1151,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

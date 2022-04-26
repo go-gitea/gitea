@@ -1526,7 +1526,7 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
-			if err := pull.LoadHeadRepo(); err != nil {
+			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
 				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
@@ -1545,7 +1545,7 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 
-			if err := pull.LoadBaseRepo(); err != nil {
+			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
 			perm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
