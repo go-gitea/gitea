@@ -165,6 +165,8 @@ $(document).ready(() => {
   initRepoWikiForm();
   initRepository();
 
+  initCommitStatuses();
+
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
