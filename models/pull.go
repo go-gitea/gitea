@@ -130,7 +130,8 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadHeadRepo(ctx context.Context) (err error) {
+// LoadHeadRepoCtx loads the head repository
+func (pr *PullRequest) LoadHeadRepoCtx(ctx context.Context) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
 			if pr.BaseRepo != nil {
@@ -153,7 +154,7 @@ func (pr *PullRequest) loadHeadRepo(ctx context.Context) (err error) {
 
 // LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
-	return pr.loadHeadRepo(db.DefaultContext)
+	return pr.LoadHeadRepoCtx(db.DefaultContext)
 }
 
 // LoadBaseRepo loads the target repository
@@ -510,6 +511,11 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 
 // GetPullRequestByIndex returns a pull request by the given index
 func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
+	return GetPullRequestByIndexCtx(db.DefaultContext, repoID, index)
+}
+
+// GetPullRequestByIndexCtx returns a pull request by the given index
+func GetPullRequestByIndexCtx(ctx context.Context, repoID, index int64) (*PullRequest, error) {
 	if index < 1 {
 		return nil, ErrPullRequestNotExist{}
 	}
@@ -518,17 +524,17 @@ func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 		Index:      index,
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).Get(pr)
+	has, err := db.GetEngine(ctx).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
 	}
 
-	if err = pr.LoadAttributes(); err != nil {
+	if err = pr.loadAttributes(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
-	if err = pr.LoadIssue(); err != nil {
+	if err = pr.loadIssue(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
 
@@ -547,8 +553,8 @@ func getPullRequestByID(e db.Engine, id int64) (*PullRequest, error) {
 }
 
 // GetPullRequestByID returns a pull request by given ID.
-func GetPullRequestByID(id int64) (*PullRequest, error) {
-	return getPullRequestByID(db.GetEngine(db.DefaultContext), id)
+func GetPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
+	return getPullRequestByID(db.GetEngine(ctx), id)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
