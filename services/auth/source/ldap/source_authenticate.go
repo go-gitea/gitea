@@ -97,6 +97,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
+		IsActive:     util.OptionalBoolTrue,
 	}
 
 	err := user_model.CreateUser(user, overwriteDefault)
