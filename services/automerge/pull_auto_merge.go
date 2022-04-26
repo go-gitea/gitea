@@ -18,9 +18,6 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-// This package merges a previously scheduled pull request on successful status check.
-// It is a separate package to avoid cyclic dependencies.
-
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
 func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
 	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *models.PullRequest) bool {
