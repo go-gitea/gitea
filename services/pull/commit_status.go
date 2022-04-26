@@ -83,7 +83,7 @@ func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, require
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
 	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {

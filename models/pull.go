@@ -206,10 +206,11 @@ func (pr *PullRequest) loadIssue(e db.Engine) (err error) {
 
 // LoadProtectedBranch loads the protected branch of the base branch
 func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.loadProtectedBranch(db.DefaultContext)
+	return pr.LoadProtectedBranchCtx(db.DefaultContext)
 }
 
-func (pr *PullRequest) loadProtectedBranch(ctx context.Context) (err error) {
+// LoadProtectedBranchCtx loads the protected branch of the base branch
+func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
