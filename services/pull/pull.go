@@ -29,7 +29,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
-// TODO: use clustered lock (unique queue?)
+// TODO: use clustered lock (unique queue? or *abuse* cache)
 var pullWorkingPool = sync.NewExclusivePool()
 
 // NewPullRequest creates new pull request with labels for repository.
