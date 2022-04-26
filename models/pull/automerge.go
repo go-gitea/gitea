@@ -1,4 +1,4 @@
-// Copyright 2021 Gitea. All rights reserved.
+// Copyright 2022 Gitea. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -28,6 +28,21 @@ type PullRequestAutoMerge struct {
 
 func init() {
 	db.RegisterModel(new(PullRequestAutoMerge))
+}
+
+// ErrAlreadyScheduledToAutoMerge represents a "PullRequestHasMerged"-error
+type ErrAlreadyScheduledToAutoMerge struct {
+	PullID int64
+}
+
+func (err ErrAlreadyScheduledToAutoMerge) Error() string {
+	return fmt.Sprintf("pull request is already scheduled to auto merge when checks succeed [pull_id: %d]", err.PullID)
+}
+
+// IsErrAlreadyScheduledToAutoMerge checks if an error is a ErrAlreadyScheduledToAutoMerge.
+func IsErrAlreadyScheduledToAutoMerge(err error) bool {
+	_, ok := err.(ErrAlreadyScheduledToAutoMerge)
+	return ok
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
@@ -118,19 +133,4 @@ func createAutoMergeComment(ctx context.Context, typ models.CommentType, pr *mod
 		Issue: pr.Issue,
 	})
 	return
-}
-
-// ErrAlreadyScheduledToAutoMerge represents a "PullRequestHasMerged"-error
-type ErrAlreadyScheduledToAutoMerge struct {
-	PullID int64
-}
-
-func (err ErrAlreadyScheduledToAutoMerge) Error() string {
-	return fmt.Sprintf("pull request is already scheduled to auto merge when checks succeed [pull_id: %d]", err.PullID)
-}
-
-// IsErrAlreadyScheduledToAutoMerge checks if an error is a ErrAlreadyScheduledToAutoMerge.
-func IsErrAlreadyScheduledToAutoMerge(err error) bool {
-	_, ok := err.(ErrAlreadyScheduledToAutoMerge)
-	return ok
 }
