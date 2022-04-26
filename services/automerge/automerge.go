@@ -111,7 +111,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 	defer committer.Close()
 
 	// Check if there is a scheduled pr in the db
-	exists, scheduledPRM, err := pull_model.GetScheduledPullRequestMergeByPullID(ctx, pr.ID)
+	exists, scheduledPRM, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
 	if err != nil {
 		log.Error(err.Error())
 		return

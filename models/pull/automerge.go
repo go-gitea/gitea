@@ -33,7 +33,7 @@ func init() {
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, style repo_model.MergeStyle, message string) error {
 	// Check if we already have a merge scheduled for that pull request
-	if exists, _, err := GetScheduledPullRequestMergeByPullID(ctx, pullID); err != nil {
+	if exists, _, err := GetScheduledMergeByPullID(ctx, pullID); err != nil {
 		return err
 	} else if exists {
 		return ErrAlreadyScheduledToAutoMerge{PullID: pullID}
@@ -57,8 +57,8 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64,
 	return err
 }
 
-// GetScheduledPullRequestMergeByPullID gets a scheduled pull request merge by pull request id
-func GetScheduledPullRequestMergeByPullID(ctx context.Context, pullID int64) (bool, *PullRequestAutoMerge, error) {
+// GetScheduledMergeByPullID gets a scheduled pull request merge by pull request id
+func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *PullRequestAutoMerge, error) {
 	scheduledPRM := &PullRequestAutoMerge{}
 	exists, err := db.GetEngine(ctx).Where("pull_id = ?", pullID).Get(scheduledPRM)
 	if err != nil || !exists {
@@ -74,9 +74,9 @@ func GetScheduledPullRequestMergeByPullID(ctx context.Context, pullID int64) (bo
 	return true, scheduledPRM, nil
 }
 
-// RemoveScheduledPullRequestMerge cancels a previously scheduled pull request
-func RemoveScheduledPullRequestMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
-	exist, scheduledPRM, err := GetScheduledPullRequestMergeByPullID(ctx, pullID)
+// RemoveScheduledAutoMerge cancels a previously scheduled pull request
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
+	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
 	if err != nil {
 		return err
 	} else if !exist {
@@ -87,7 +87,7 @@ func RemoveScheduledPullRequestMerge(ctx context.Context, doer *user_model.User,
 		return err
 	}
 
-	// if pull got merged we dont need to add a "auto-merge canceled comment"
+	// if pull got merged we don't need to add "auto-merge canceled comment"
 	if !comment || doer == nil {
 		return nil
 	}
