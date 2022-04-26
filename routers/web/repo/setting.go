@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -31,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -194,11 +194,7 @@ func SettingsPost(ctx *context.Context) {
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
-			if interval != 0 {
-				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
-			} else {
-				ctx.Repo.Mirror.NextUpdateUnix = 0
-			}
+			ctx.Repo.Mirror.ScheduleNextUpdate()
 			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
@@ -648,7 +644,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == user_model.UserTypeOrganization {
-			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
@@ -835,7 +831,7 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := models.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -938,9 +934,9 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := models.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
+	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
 	if err != nil {
-		if models.IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
@@ -955,13 +951,13 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if models.HasTeamRepo(ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
+	if organization.HasTeamRepo(ctx, ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
-	if err = team.AddRepository(ctx.Repo.Repository); err != nil {
+	if err = models.AddRepository(team, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("team.AddRepository", err)
 		return
 	}
@@ -978,13 +974,13 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	team, err := models.GetTeamByID(ctx.FormInt64("id"))
+	team, err := organization.GetTeamByID(ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetTeamByID", err)
 		return
 	}
 
-	if err = team.RemoveRepository(ctx.Repo.Repository.ID); err != nil {
+	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}
@@ -1070,6 +1066,7 @@ func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
 	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {

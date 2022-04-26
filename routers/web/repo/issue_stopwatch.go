@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/eventsource"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
@@ -59,23 +61,35 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
+	stopwatches, err := models.GetUserStopwatches(c.Doer.ID, db.ListOptions{})
+	if err != nil {
+		c.ServerError("GetUserStopwatches", err)
+		return
+	}
+	if len(stopwatches) == 0 {
+		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
+			Name: "stopwatches",
+			Data: "{}",
+		})
+	}
+
 	url := issue.HTMLURL()
 	c.Redirect(url, http.StatusSeeOther)
 }
 
 // GetActiveStopwatch is the middleware that sets .ActiveStopwatch on context
-func GetActiveStopwatch(c *context.Context) {
-	if strings.HasPrefix(c.Req.URL.Path, "/api") {
+func GetActiveStopwatch(ctx *context.Context) {
+	if strings.HasPrefix(ctx.Req.URL.Path, "/api") {
 		return
 	}
 
-	if !c.IsSigned {
+	if !ctx.IsSigned {
 		return
 	}
 
-	_, sw, err := models.HasUserStopwatch(c.Doer.ID)
+	_, sw, err := models.HasUserStopwatch(ctx.Doer.ID)
 	if err != nil {
-		c.ServerError("HasUserStopwatch", err)
+		ctx.ServerError("HasUserStopwatch", err)
 		return
 	}
 
@@ -85,15 +99,15 @@ func GetActiveStopwatch(c *context.Context) {
 
 	issue, err := models.GetIssueByID(sw.IssueID)
 	if err != nil || issue == nil {
-		c.ServerError("GetIssueByID", err)
+		ctx.ServerError("GetIssueByID", err)
 		return
 	}
-	if err = issue.LoadRepo(); err != nil {
-		c.ServerError("LoadRepo", err)
+	if err = issue.LoadRepo(ctx); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
-	c.Data["ActiveStopwatch"] = StopwatchTmplInfo{
+	ctx.Data["ActiveStopwatch"] = StopwatchTmplInfo{
 		issue.Link(),
 		issue.Repo.FullName(),
 		issue.Index,

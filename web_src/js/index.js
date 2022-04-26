@@ -1,4 +1,5 @@
-import './publicpath.js';
+// bootstrap module must be the first one to be imported, it handles webpack lazy-loading and global errors
+import './bootstrap.js';
 
 import $ from 'jquery';
 import {initVueEnv} from './components/VueComponentLoader.js';
@@ -37,8 +38,13 @@ import {
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
-import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
+  initRepoEllipsisButton,
+  initRepoCommitLastCommitLoader,
+  initCommitStatuses,
+} from './features/repo-commit.js';
+import {
+  checkAppUrl,
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
   initGlobalButtons,
@@ -82,7 +88,6 @@ $.fn.tab.settings.silent = true;
 $.fn.checkbox.settings.enableEnterKey = false;
 
 initVueEnv();
-
 $(document).ready(() => {
   initGlobalCommon();
 
@@ -164,9 +169,13 @@ $(document).ready(() => {
   initRepoWikiForm();
   initRepository();
 
+  initCommitStatuses();
+
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
+
+  checkAppUrl();
 });

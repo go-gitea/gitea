@@ -23,12 +23,11 @@ func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevS
 
 	stderr := new(bytes.Buffer)
 	var errbuf strings.Builder
-	if err := git.NewCommand(ctx, "name-rev", "--stdin", "--name-only", "--always").RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     tmpBasePath,
-		Stdout:  nameRevStdinWriter,
-		Stdin:   shasToNameReader,
-		Stderr:  stderr,
+	if err := git.NewCommand(ctx, "name-rev", "--stdin", "--name-only", "--always").Run(&git.RunOpts{
+		Dir:    tmpBasePath,
+		Stdout: nameRevStdinWriter,
+		Stdin:  shasToNameReader,
+		Stderr: stderr,
 	}); err != nil {
 		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
 	}

@@ -69,7 +69,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 		return err
 	}
 
-	mentions, err := pull.FindAndUpdateIssueMentions(ctx, pull.Poster, pull.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(ctx, pull, pull.Poster, pull.Content)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, pull *mode
 	}
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepositoryCtx(prCtx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepository(prCtx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func checkForInvalidation(ctx context.Context, requests models.PullRequestList, 
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %v", err)
 	}
@@ -352,7 +352,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *models.PullRequest, oldCom
 		return false, fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -479,7 +479,7 @@ func UpdateRef(ctx context.Context, pr *models.PullRequest) (err error) {
 		return err
 	}
 
-	_, err = git.NewCommand(ctx, "update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunInDir(pr.BaseRepo.RepoPath())
+	_, _, err = git.NewCommand(ctx, "update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -726,18 +726,25 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map
+// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
 func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (map[int64]*models.CommitStatus, error) {
+	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
+	return lastStatus, err
+}
+
+// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
+func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map[int64][]*models.CommitStatus, map[int64]*models.CommitStatus, error) {
 	if err := issues.LoadPullRequests(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if _, err := issues.LoadRepositories(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var (
 		gitRepos = make(map[int64]*git.Repository)
-		res      = make(map[int64]*models.CommitStatus)
+		res      = make(map[int64][]*models.CommitStatus)
+		lastRes  = make(map[int64]*models.CommitStatus)
 		err      error
 	)
 	defer func() {
@@ -752,7 +759,7 @@ func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (ma
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepositoryCtx(ctx, issue.Repo.RepoPath())
+			gitRepo, err = git.OpenRepository(ctx, issue.Repo.RepoPath())
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
@@ -760,28 +767,27 @@ func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (ma
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		status, err := getLastCommitStatus(gitRepo, issue.PullRequest)
+		statuses, lastStatus, err := getAllCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
-			log.Error("getLastCommitStatus: cant get last commit of pull [%d]: %v", issue.PullRequest.ID, err)
+			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
 		}
-		res[issue.PullRequest.ID] = status
+		res[issue.PullRequest.ID] = statuses
+		lastRes[issue.PullRequest.ID] = lastStatus
 	}
-	return res, nil
+	return res, lastRes, nil
 }
 
-// getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
-func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	sha, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		return nil, err
+// getAllCommitStatus get pr's commit statuses.
+func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statuses []*models.CommitStatus, lastStatus *models.CommitStatus, err error) {
+	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if shaErr != nil {
+		return nil, nil, shaErr
 	}
 
-	statusList, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return models.CalcCommitStatus(statusList), nil
+	statuses, _, err = models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	lastStatus = models.CalcCommitStatus(statuses)
+	return statuses, lastStatus, err
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

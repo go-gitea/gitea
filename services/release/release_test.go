@@ -21,7 +21,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+	})
 }
 
 func TestRelease_Create(t *testing.T) {
@@ -31,7 +33,7 @@ func TestRelease_Create(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -135,7 +137,7 @@ func TestRelease_Update(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -277,7 +279,7 @@ func TestRelease_createTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

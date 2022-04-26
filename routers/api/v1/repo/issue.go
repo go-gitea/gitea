@@ -14,6 +14,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -110,7 +112,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -161,9 +163,9 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -173,6 +175,7 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.TeamID = team.ID
 	}
 
+	repoCond := models.SearchRepositoryCondition(opts)
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
@@ -233,7 +236,7 @@ func SearchIssues(ctx *context.APIContext) {
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
-			RepoIDs:            repoIDs,
+			RepoCond:           repoCond,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
@@ -358,7 +361,7 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -404,12 +407,12 @@ func ListIssues(ctx *context.APIContext) {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
-			mile, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if !models.IsErrMilestoneNotExist(err) {
+			if !issues_model.IsErrMilestoneNotExist(err) {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoIDANDName", err)
 				return
 			}
@@ -417,12 +420,12 @@ func ListIssues(ctx *context.APIContext) {
 			if err != nil {
 				continue
 			}
-			mile, err = models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, id)
+			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
 			if err == nil {
 				mileIDs = append(mileIDs, mile.ID)
 				continue
 			}
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
@@ -460,7 +463,7 @@ func ListIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoIDs:           []int64{ctx.Repo.Repository.ID},
+			RepoID:            ctx.Repo.Repository.ID,
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,

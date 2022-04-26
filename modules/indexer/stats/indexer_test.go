@@ -12,6 +12,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -22,10 +23,16 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func TestRepoStatsIndex(t *testing.T) {
+	if err := git.Init(context.Background()); !assert.NoError(t, err) {
+		return
+	}
+
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 

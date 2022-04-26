@@ -90,7 +90,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err
@@ -191,6 +191,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
+	isSideBar := pageName == "_Sidebar"
+	isFooter := pageName == "_Footer"
+
 	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
@@ -203,20 +206,30 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	var sidebarContent []byte
+	if !isSideBar {
+		sidebarContent, _, _, _ = wikiContentsByName(ctx, commit, "_Sidebar")
+		if ctx.Written() {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			return nil, nil
 		}
-		return nil, nil
+	} else {
+		sidebarContent = data
 	}
 
-	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	var footerContent []byte
+	if !isFooter {
+		footerContent, _, _, _ = wikiContentsByName(ctx, commit, "_Footer")
+		if ctx.Written() {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			return nil, nil
 		}
-		return nil, nil
+	} else {
+		footerContent = data
 	}
 
 	rctx := &markup.RenderContext{
@@ -237,27 +250,35 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
-	buf.Reset()
-	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	if !isSideBar {
+		buf.Reset()
+		if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			ctx.ServerError("Render", err)
+			return nil, nil
 		}
-		ctx.ServerError("Render", err)
-		return nil, nil
+		ctx.Data["sidebarPresent"] = sidebarContent != nil
+		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
+	} else {
+		ctx.Data["sidebarPresent"] = false
 	}
-	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
-	buf.Reset()
-	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	if !isFooter {
+		buf.Reset()
+		if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			ctx.ServerError("Render", err)
+			return nil, nil
 		}
-		ctx.ServerError("Render", err)
-		return nil, nil
+		ctx.Data["footerPresent"] = footerContent != nil
+		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
+	} else {
+		ctx.Data["footerPresent"] = false
 	}
-	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -409,7 +430,6 @@ func WikiPost(ctx *context.Context) {
 
 // Wiki renders single wiki page
 func Wiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	switch ctx.FormString("action") {
@@ -474,7 +494,6 @@ func Wiki(ctx *context.Context) {
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	if !ctx.Repo.Repository.HasWiki() {
@@ -519,7 +538,6 @@ func WikiPages(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.pages")
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
@@ -624,7 +642,6 @@ func WikiRaw(ctx *context.Context) {
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
@@ -640,7 +657,6 @@ func NewWiki(ctx *context.Context) {
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)
@@ -676,7 +692,6 @@ func NewWikiPost(ctx *context.Context) {
 
 // EditWiki render wiki modify page
 func EditWiki(ctx *context.Context) {
-	ctx.Data["PageIsWiki"] = true
 	ctx.Data["PageIsWikiEdit"] = true
 
 	if !ctx.Repo.Repository.HasWiki() {
@@ -696,7 +711,6 @@ func EditWiki(ctx *context.Context) {
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-	ctx.Data["PageIsWiki"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplWikiNew)

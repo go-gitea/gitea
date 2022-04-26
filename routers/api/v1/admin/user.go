@@ -306,7 +306,8 @@ func DeleteUser(ctx *context.APIContext) {
 
 	if err := user_service.DeleteUser(ctx.ContextUser); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
-			models.IsErrUserHasOrgs(err) {
+			models.IsErrUserHasOrgs(err) ||
+			models.IsErrUserOwnPackages(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUser", err)

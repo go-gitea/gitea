@@ -5,59 +5,71 @@
 package util
 
 import (
-	"net/url"
-	"strings"
-)
+	"bytes"
+	"unicode"
 
-const (
-	userPlaceholder = "sanitized-credential"
-	unparsableURL   = "(unparsable url)"
+	"github.com/yuin/goldmark/util"
 )
 
 type sanitizedError struct {
-	err      error
-	replacer *strings.Replacer
+	err error
 }
 
 func (err sanitizedError) Error() string {
-	return err.replacer.Replace(err.err.Error())
+	return SanitizeCredentialURLs(err.err.Error())
 }
 
-// NewSanitizedError wraps an error and replaces all old, new string pairs in the message text.
-func NewSanitizedError(err error, oldnew ...string) error {
-	return sanitizedError{err: err, replacer: strings.NewReplacer(oldnew...)}
+func (err sanitizedError) Unwrap() error {
+	return err.err
 }
 
-// NewURLSanitizedError wraps an error and replaces the url credential or removes them.
-func NewURLSanitizedError(err error, u *url.URL, usePlaceholder bool) error {
-	return sanitizedError{err: err, replacer: NewURLSanitizer(u, usePlaceholder)}
+// SanitizeErrorCredentialURLs wraps the error and make sure the returned error message doesn't contain sensitive credentials in URLs
+func SanitizeErrorCredentialURLs(err error) error {
+	return sanitizedError{err: err}
 }
 
-// NewStringURLSanitizedError wraps an error and replaces the url credential or removes them.
-// If the url can't get parsed it gets replaced with a placeholder string.
-func NewStringURLSanitizedError(err error, unsanitizedURL string, usePlaceholder bool) error {
-	return sanitizedError{err: err, replacer: NewStringURLSanitizer(unsanitizedURL, usePlaceholder)}
-}
+const userPlaceholder = "sanitized-credential"
 
-// NewURLSanitizer creates a replacer for the url with the credential sanitized or removed.
-func NewURLSanitizer(u *url.URL, usePlaceholder bool) *strings.Replacer {
-	old := u.String()
+var schemeSep = []byte("://")
 
-	if u.User != nil && usePlaceholder {
-		u.User = url.User(userPlaceholder)
-	} else {
-		u.User = nil
+// SanitizeCredentialURLs remove all credentials in URLs (starting with "scheme://") for the input string: "https://user:pass@domain.com" => "https://sanitized-credential@domain.com"
+func SanitizeCredentialURLs(s string) string {
+	bs := util.StringToReadOnlyBytes(s)
+	schemeSepPos := bytes.Index(bs, schemeSep)
+	if schemeSepPos == -1 || bytes.IndexByte(bs[schemeSepPos:], '@') == -1 {
+		return s // fast return if there is no URL scheme or no userinfo
 	}
-	return strings.NewReplacer(old, u.String())
-}
-
-// NewStringURLSanitizer creates a replacer for the url with the credential sanitized or removed.
-// If the url can't get parsed it gets replaced with a placeholder string
-func NewStringURLSanitizer(unsanitizedURL string, usePlaceholder bool) *strings.Replacer {
-	u, err := url.Parse(unsanitizedURL)
-	if err != nil {
-		// don't log the error, since it might contain unsanitized URL.
-		return strings.NewReplacer(unsanitizedURL, unparsableURL)
+	out := make([]byte, 0, len(bs)+len(userPlaceholder))
+	for schemeSepPos != -1 {
+		schemeSepPos += 3         // skip the "://"
+		sepAtPos := -1            // the possible '@' position: "https://foo@[^here]host"
+		sepEndPos := schemeSepPos // the possible end position: "The https://host[^here] in log for test"
+	sepLoop:
+		for ; sepEndPos < len(bs); sepEndPos++ {
+			c := bs[sepEndPos]
+			if ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') {
+				continue
+			}
+			switch c {
+			case '@':
+				sepAtPos = sepEndPos
+			case '-', '.', '_', '~', '!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=', ':', '%':
+				continue // due to RFC 3986, userinfo can contain - . _ ~ ! $ & ' ( ) * + , ; = : and any percent-encoded chars
+			default:
+				break sepLoop // if it is an invalid char for URL (eg: space, '/', and others), stop the loop
+			}
+		}
+		// if there is '@', and the string is like "s://u@h", then hide the "u" part
+		if sepAtPos != -1 && (schemeSepPos >= 4 && unicode.IsLetter(rune(bs[schemeSepPos-4]))) && sepAtPos-schemeSepPos > 0 && sepEndPos-sepAtPos > 0 {
+			out = append(out, bs[:schemeSepPos]...)
+			out = append(out, userPlaceholder...)
+			out = append(out, bs[sepAtPos:sepEndPos]...)
+		} else {
+			out = append(out, bs[:sepEndPos]...)
+		}
+		bs = bs[sepEndPos:]
+		schemeSepPos = bytes.Index(bs, schemeSep)
 	}
-	return NewURLSanitizer(u, usePlaceholder)
+	out = append(out, bs...)
+	return util.BytesToReadOnlyString(out)
 }

@@ -389,7 +389,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepositoryCtx(ctx, ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = git.OpenRepository(ctx, ci.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -661,7 +661,7 @@ func PrepareCompareDiff(
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -795,7 +795,7 @@ func ExcerptBlob(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	if ctx.FormBool("wiki") {
 		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

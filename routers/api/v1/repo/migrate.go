@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -51,6 +52,8 @@ func Migrate(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Repository"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "409":
+	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -90,7 +93,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := models.OrgFromUser(repoOwner).IsOwnedBy(ctx.Doer.ID)
+			isOwner, err := organization.OrgFromUser(repoOwner).IsOwnedBy(ctx.Doer.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -235,7 +238,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, rem
 	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
-		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
+		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {

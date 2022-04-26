@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -53,7 +54,7 @@ func TestTransferOwnership(t *testing.T) {
 		Content:   "user3/repo3",
 	})
 
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }
 
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
@@ -74,5 +75,5 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }

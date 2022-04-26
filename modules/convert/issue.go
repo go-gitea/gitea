@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +30,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	if err := issue.LoadPoster(); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.Repo.GetOwner(db.DefaultContext); err != nil {
@@ -214,7 +215,7 @@ func ToLabelList(labels []*models.Label, repo *repo_model.Repository, org *user_
 }
 
 // ToAPIMilestone converts Milestone into API Format
-func ToAPIMilestone(m *models.Milestone) *api.Milestone {
+func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	apiMilestone := &api.Milestone{
 		ID:           m.ID,
 		State:        m.State(),

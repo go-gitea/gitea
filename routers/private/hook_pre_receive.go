@@ -179,7 +179,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 2. Disallow force pushes to protected branches
 	if git.EmptySHA != oldCommitID {
-		output, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
+		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -340,7 +340,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 		// Check all status checks and reviews are ok
 		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
-			if models.IsErrNotAllowedToMerge(err) {
+			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
 					Err: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),
