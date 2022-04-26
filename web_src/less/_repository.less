@@ -3251,4 +3251,30 @@ td.blob-excerpt {
       }
     }
   }
+
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto !important;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+
+        th .mobile-align {
+          display: inline-block;
+          padding-top: 5px;
+        }
+      }
+    }
+  }
 }
