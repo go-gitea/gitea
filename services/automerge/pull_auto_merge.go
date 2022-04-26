@@ -178,7 +178,7 @@ func handlePull(pr *models.PullRequest, sha string) {
 	if pr.BaseRepoID == pr.HeadRepoID {
 		baseGitRepo = headGitRepo
 	} else {
-		if err = pr.LoadBaseRepo(); err != nil {
+		if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 			log.Error(err.Error())
 			return
 		}

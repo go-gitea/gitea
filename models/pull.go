@@ -161,10 +161,11 @@ func (pr *PullRequest) LoadHeadRepo() error {
 
 // LoadBaseRepo loads the target repository
 func (pr *PullRequest) LoadBaseRepo() error {
-	return pr.loadBaseRepo(db.DefaultContext)
+	return pr.LoadBaseRepoCtx(db.DefaultContext)
 }
 
-func (pr *PullRequest) loadBaseRepo(ctx context.Context) (err error) {
+// LoadBaseRepoCtx loads the target repository
+func (pr *PullRequest) LoadBaseRepoCtx(ctx context.Context) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
 	}

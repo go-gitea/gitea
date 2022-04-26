@@ -1479,7 +1479,7 @@ func createAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		return
 	}
 
-	if err = pr.loadBaseRepo(ctx); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		return
 	}
 
