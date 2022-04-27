@@ -100,11 +100,14 @@ func TestRenameBranch(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	_isDefault := false
 
-	err := UpdateProtectBranch(db.DefaultContext, repo1, &ProtectedBranch{
+	ctx, committer, err := db.TxContext()
+	defer committer.Close()
+	assert.NoError(t, err)
+	assert.NoError(t, UpdateProtectBranch(ctx, repo1, &ProtectedBranch{
 		RepoID:     repo1.ID,
 		BranchName: "master",
-	}, WhitelistOptions{})
-	assert.NoError(t, err)
+	}, WhitelistOptions{}))
+	assert.NoError(t, committer.Commit())
 
 	assert.NoError(t, RenameBranch(repo1, "master", "main", func(isDefault bool) error {
 		_isDefault = isDefault
