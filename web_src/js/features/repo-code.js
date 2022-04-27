@@ -15,10 +15,7 @@ function selectRange($list, $select, $from) {
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
-
-  if ($copyPermalink.length === 0) {
-    return;
-  }
+  const $viewGitBlame = $('a.view_git_blame');
 
   const updateIssueHref = function (anchor) {
     if ($issue.length === 0) {
@@ -29,7 +26,22 @@ function selectRange($list, $select, $from) {
     $issue.attr('href', href);
   };
 
+  const updateViewGitBlameFragment = function (anchor) {
+    if ($viewGitBlame.length === 0) {
+      return;
+    }
+    let href = $viewGitBlame.attr('href');
+    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
+    if (anchor.length !== 0) {
+      href = `${href}#${anchor}`;
+    }
+    $viewGitBlame.attr('href', href);
+  };
+
   const updateCopyPermalinkHref = function(anchor) {
+    if ($copyPermalink.length === 0) {
+      return;
+    }
     let link = $copyPermalink.attr('data-clipboard-text');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     $copyPermalink.attr('data-clipboard-text', link);
@@ -53,6 +65,7 @@ function selectRange($list, $select, $from) {
       changeHash(`#L${a}-L${b}`);
 
       updateIssueHref(`L${a}-L${b}`);
+      updateViewGitBlameFragment(`L${a}-L${b}`);
       updateCopyPermalinkHref(`L${a}-L${b}`);
       return;
     }
@@ -61,6 +74,7 @@ function selectRange($list, $select, $from) {
   changeHash(`#${$select.attr('rel')}`);
 
   updateIssueHref($select.attr('rel'));
+  updateViewGitBlameFragment($select.attr('rel'));
   updateCopyPermalinkHref($select.attr('rel'));
 }
 

@@ -269,14 +269,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
