@@ -730,6 +730,9 @@ func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtec
 
 // MergedManually mark pr as merged manually
 func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+
 	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return

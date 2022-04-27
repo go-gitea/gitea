@@ -27,7 +27,7 @@ import (
 
 var (
 	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	// TODO: use clustered lock (unique queue?)
+	// TODO: use clustered lock (unique queue? or *abuse* cache)
 	wikiWorkingPool = sync.NewExclusivePool()
 )
 
