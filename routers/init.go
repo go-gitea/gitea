@@ -145,7 +145,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(stats_indexer.Init)
 
 	mirror_service.InitSyncMirrors()
-	webhook.InitDeliverHooks()
+	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
