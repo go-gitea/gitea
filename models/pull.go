@@ -710,7 +710,7 @@ func UpdateAllowEdits(pr *PullRequest, allow bool) error {
 
 func updateAllowEdits(e db.Engine, pr *PullRequest, allow bool) error {
 	pr.AllowMaintainerEdit = allow
-	if _, err := e.ID(pr.ID).Cols("allow_maintainers_edits").Update(pr); err != nil {
+	if _, err := e.ID(pr.ID).Cols("allow_maintainers_edit").Update(pr); err != nil {
 		return err
 	}
 	return nil
