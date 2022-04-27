@@ -62,6 +62,9 @@
 
     dd {
       margin-left: 275px;
+      @media @mediaSm {
+        margin-left: 5%;
+      }
     }
 
     dt {
@@ -72,6 +75,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      @media @mediaSm {
+        width: auto;
+        margin-right: .5em;
+      }
     }
   }
 
