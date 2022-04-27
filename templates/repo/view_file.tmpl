@@ -129,6 +129,9 @@
 								</div>
 							{{end}}
 							<div class="ui link list">
+								<a class="item view_git_blame" href="{{.Repository.HTMLURL}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.view_git_blame"}}</a>
+							</div>
+							<div class="ui link list">
 								<a data-clipboard-text="{{.Repository.HTMLURL}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" class="item copy-line-permalink">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
 							</div>
 						</div>
