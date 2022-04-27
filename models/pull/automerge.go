@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// PullRequestAutoMerge represents a pull request scheduled for merging when checks succeed
-type PullRequestAutoMerge struct {
+// AutoMerge represents a pull request scheduled for merging when checks succeed
+type AutoMerge struct {
 	ID          int64                 `xorm:"pk autoincr"`
 	PullID      int64                 `xorm:"BIGINT"`
 	DoerID      int64                 `xorm:"BIGINT"`
@@ -26,8 +26,13 @@ type PullRequestAutoMerge struct {
 	CreatedUnix timeutil.TimeStamp    `xorm:"created"`
 }
 
+// TableName return database table name for xorm
+func (AutoMerge) TableName() string {
+	return "pull_auto_merge"
+}
+
 func init() {
-	db.RegisterModel(new(PullRequestAutoMerge))
+	db.RegisterModel(new(AutoMerge))
 }
 
 // ErrAlreadyScheduledToAutoMerge represents a "PullRequestHasMerged"-error
@@ -54,7 +59,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64,
 		return ErrAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
-	if _, err := db.GetEngine(ctx).Insert(&PullRequestAutoMerge{
+	if _, err := db.GetEngine(ctx).Insert(&AutoMerge{
 		DoerID:     doer.ID,
 		PullID:     pullID,
 		MergeStyle: style,
@@ -73,8 +78,8 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64,
 }
 
 // GetScheduledMergeByPullID gets a scheduled pull request merge by pull request id
-func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *PullRequestAutoMerge, error) {
-	scheduledPRM := &PullRequestAutoMerge{}
+func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMerge, error) {
+	scheduledPRM := &AutoMerge{}
 	exists, err := db.GetEngine(ctx).Where("pull_id = ?", pullID).Get(scheduledPRM)
 	if err != nil || !exists {
 		return false, nil, err
@@ -98,7 +103,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID
 		return models.ErrNotExist{ID: pullID}
 	}
 
-	if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&PullRequestAutoMerge{}); err != nil {
+	if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{}); err != nil {
 		return err
 	}
 

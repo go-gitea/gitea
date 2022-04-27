@@ -10,7 +10,7 @@ import (
 
 func addAutoMergeTable(x *xorm.Engine) error {
 	type MergeStyle string
-	type PullRequestAutoMerge struct {
+	type PullAutoMerge struct {
 		ID          int64      `xorm:"pk autoincr"`
 		PullID      int64      `xorm:"BIGINT"`
 		DoerID      int64      `xorm:"BIGINT"`
@@ -19,5 +19,5 @@ func addAutoMergeTable(x *xorm.Engine) error {
 		CreatedUnix int64      `xorm:"created"`
 	}
 
-	return x.Sync2(&PullRequestAutoMerge{})
+	return x.Sync2(&PullAutoMerge{})
 }
