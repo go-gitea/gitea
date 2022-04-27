@@ -78,7 +78,7 @@ type PullRequest struct {
 	BaseBranch          string
 	ProtectedBranch     *ProtectedBranch `xorm:"-"`
 	MergeBase           string           `xorm:"VARCHAR(40)"`
-	AllowMaintainerEdit bool             `xorm:"NOT NULL DEFAULT true"`
+	AllowMaintainerEdit bool             `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`

@@ -11,7 +11,7 @@ import (
 func addAllowMaintainerEdit(x *xorm.Engine) error {
 	// PullRequest represents relation between pull request and repositories.
 	type PullRequest struct {
-		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT true"`
+		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	return x.Sync2(new(PullRequest))
