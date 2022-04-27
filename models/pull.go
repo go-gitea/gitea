@@ -715,3 +715,14 @@ func updateAllowEdits(e db.Engine, pr *PullRequest, allow bool) error {
 	}
 	return nil
 }
+
+// Mergeable returns if the pullrequest is mergeable.
+func (pr *PullRequest) Mergeable() bool {
+	// If a pull request isn't mergable if it's:
+	// - Being conflict checked.
+	// - Has a conflict.
+	// - Received a error while being conflict checked.
+	// - Is a work-in-progress pull request.
+	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
+		pr.Status != PullRequestStatusError && !pr.IsWorkInProgress()
+}

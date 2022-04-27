@@ -232,7 +232,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:           []int64{repo.ID},
+			RepoID:            repo.ID,
 			AssigneeID:        assigneeID,
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
@@ -269,14 +269,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
@@ -2170,6 +2171,7 @@ func SearchIssues(ctx *context.Context) {
 		opts.TeamID = team.ID
 	}
 
+	repoCond := models.SearchRepositoryCondition(opts)
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err.Error())
@@ -2230,7 +2232,7 @@ func SearchIssues(ctx *context.Context) {
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
-			RepoIDs:            repoIDs,
+			RepoCond:           repoCond,
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
@@ -2406,7 +2408,7 @@ func ListIssues(ctx *context.Context) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions:       listOptions,
-			RepoIDs:           []int64{ctx.Repo.Repository.ID},
+			RepoID:            ctx.Repo.Repository.ID,
 			IsClosed:          isClosed,
 			IssueIDs:          issueIDs,
 			LabelIDs:          labelIDs,

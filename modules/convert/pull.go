@@ -50,27 +50,29 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	apiPullRequest := &api.PullRequest{
-		ID:                  pr.ID,
-		URL:                 pr.Issue.HTMLURL(),
-		Index:               pr.Index,
-		Poster:              apiIssue.Poster,
-		Title:               apiIssue.Title,
-		Body:                apiIssue.Body,
-		Labels:              apiIssue.Labels,
-		Milestone:           apiIssue.Milestone,
-		Assignee:            apiIssue.Assignee,
-		Assignees:           apiIssue.Assignees,
-		State:               apiIssue.State,
-		IsLocked:            apiIssue.IsLocked,
-		Comments:            apiIssue.Comments,
-		HTMLURL:             pr.Issue.HTMLURL(),
-		DiffURL:             pr.Issue.DiffURL(),
-		PatchURL:            pr.Issue.PatchURL(),
-		HasMerged:           pr.HasMerged,
-		MergeBase:           pr.MergeBase,
-		Deadline:            apiIssue.Deadline,
-		Created:             pr.Issue.CreatedUnix.AsTimePtr(),
-		Updated:             pr.Issue.UpdatedUnix.AsTimePtr(),
+		ID:        pr.ID,
+		URL:       pr.Issue.HTMLURL(),
+		Index:     pr.Index,
+		Poster:    apiIssue.Poster,
+		Title:     apiIssue.Title,
+		Body:      apiIssue.Body,
+		Labels:    apiIssue.Labels,
+		Milestone: apiIssue.Milestone,
+		Assignee:  apiIssue.Assignee,
+		Assignees: apiIssue.Assignees,
+		State:     apiIssue.State,
+		IsLocked:  apiIssue.IsLocked,
+		Comments:  apiIssue.Comments,
+		HTMLURL:   pr.Issue.HTMLURL(),
+		DiffURL:   pr.Issue.DiffURL(),
+		PatchURL:  pr.Issue.PatchURL(),
+		HasMerged: pr.HasMerged,
+		MergeBase: pr.MergeBase,
+		Mergeable: pr.Mergeable(),
+		Deadline:  apiIssue.Deadline,
+		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
+		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+
 		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
 		Base: &api.PRBranchInfo{
@@ -192,10 +194,6 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		}
 	}
 
-	if pr.Status != models.PullRequestStatusChecking {
-		mergeable := !(pr.Status == models.PullRequestStatusConflict || pr.Status == models.PullRequestStatusError) && !pr.IsWorkInProgress()
-		apiPullRequest.Mergeable = mergeable
-	}
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
