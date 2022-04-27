@@ -2965,8 +2965,11 @@ tbody.commit-list {
 }
 
 .repo-buttons {
-  display: flex;
   align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  word-break: keep-all;
 
   @media @mediaSm {
     margin-top: 1em;
@@ -3009,6 +3012,11 @@ tbody.commit-list {
 
     > .button {
       pointer-events: none !important;
+    }
+  }
+  @media @mediaSm {
+    .svg {
+      display: none;
     }
   }
 }
