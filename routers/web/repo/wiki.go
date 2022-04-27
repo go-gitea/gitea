@@ -191,7 +191,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	isSideBar := pageName == "_Sidebar"
+	isFooter := pageName == "_Footer"
+
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
@@ -203,23 +206,33 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	var sidebarContent []byte
+	if !isSideBar {
+		sidebarContent, _, _, _ = wikiContentsByName(ctx, commit, "_Sidebar")
+		if ctx.Written() {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			return nil, nil
 		}
-		return nil, nil
+	} else {
+		sidebarContent = data
 	}
 
-	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	var footerContent []byte
+	if !isFooter {
+		footerContent, _, _, _ = wikiContentsByName(ctx, commit, "_Footer")
+		if ctx.Written() {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			return nil, nil
 		}
-		return nil, nil
+	} else {
+		footerContent = data
 	}
 
-	var rctx = &markup.RenderContext{
+	rctx := &markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 		IsWiki:    true,
@@ -236,27 +249,35 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
-	buf.Reset()
-	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	if !isSideBar {
+		buf.Reset()
+		if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			ctx.ServerError("Render", err)
+			return nil, nil
 		}
-		ctx.ServerError("Render", err)
-		return nil, nil
+		ctx.Data["sidebarPresent"] = sidebarContent != nil
+		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
+	} else {
+		ctx.Data["sidebarPresent"] = false
 	}
-	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
-	buf.Reset()
-	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
+	if !isFooter {
+		buf.Reset()
+		if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+			ctx.ServerError("Render", err)
+			return nil, nil
 		}
-		ctx.ServerError("Render", err)
-		return nil, nil
+		ctx.Data["footerPresent"] = footerContent != nil
+		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
+	} else {
+		ctx.Data["footerPresent"] = false
 	}
-	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -290,7 +311,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
@@ -364,7 +385,7 @@ func renderEditPage(ctx *context.Context) {
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	// lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
