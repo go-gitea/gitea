@@ -133,7 +133,7 @@ func Init() {
 		finished()
 	})
 
-	waitChannel := make(chan time.Duration)
+	waitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
 	switch setting.Indexer.RepoType {
