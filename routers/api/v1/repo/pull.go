@@ -617,10 +617,13 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// update allow edits
-	if pr.Issue.IsPoster(ctx.Doer.ID) && form.AllowMaintainerEdit != nil {
-		err = models.UpdateAllowEdits(pr, *form.AllowMaintainerEdit)
-		if err != nil {
-			ctx.ServerError("UpdateAllowEdits", err)
+	if form.AllowMaintainerEdit != nil {
+		if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, *form.AllowMaintainerEdit); err != nil {
+			if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+				ctx.Error(http.StatusForbidden, "SetAllowEdits", fmt.Sprintf("SetAllowEdits: %s", err))
+				return
+			}
+			ctx.ServerError("SetAllowEdits", err)
 			return
 		}
 	}

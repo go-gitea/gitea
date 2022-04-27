@@ -1415,6 +1415,8 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 
 // SetAllowEdits allow edits from maintainers to PRs
 func SetAllowEdits(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
+
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -1425,19 +1427,16 @@ func SetAllowEdits(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || !pr.Issue.IsPoster(ctx.Doer.ID) {
-		ctx.Error(http.StatusForbidden)
-		return
-	}
-
-	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
-	err = models.UpdateAllowEdits(pr, form.AllowMaintainerEdit)
-	if err != nil {
-		ctx.ServerError("UpdateAllowEdits", err)
+	if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, form.AllowMaintainerEdit); err != nil {
+		if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+		ctx.ServerError("SetAllowEdits", err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"allow_edits": pr.AllowMaintainerEdit,
+		"allow_maintainer_edit": pr.AllowMaintainerEdit,
 	})
 }
