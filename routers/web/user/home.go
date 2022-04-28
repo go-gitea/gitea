@@ -463,13 +463,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			// to check if it's in the team(which possible isn't the case).
 			opts.User = nil
 		}
-		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
-		if err != nil {
-			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
-			return
-		}
-
-		opts.RepoIDs = userRepoIDs
+		opts.RepoCond = models.SearchRepositoryCondition(repoOpts)
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -533,7 +527,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
 	if len(repoIDs) > 0 {
-		opts.RepoIDs = repoIDs
+		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
 	}
 
 	// ------------------------------
@@ -579,7 +573,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
@@ -656,7 +650,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		return 0
 	}
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = issueStats

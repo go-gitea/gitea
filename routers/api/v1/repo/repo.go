@@ -218,7 +218,6 @@ func Search(ctx *context.APIContext) {
 		}
 		results[i] = convert.ToRepo(repo, accessMode)
 	}
-
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{
@@ -556,7 +555,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return

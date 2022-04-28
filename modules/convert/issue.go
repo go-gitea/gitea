@@ -24,7 +24,7 @@ import (
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(issue *models.Issue) *api.Issue {
-	if err := issue.LoadLabels(); err != nil {
+	if err := issue.LoadLabels(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadPoster(); err != nil {
