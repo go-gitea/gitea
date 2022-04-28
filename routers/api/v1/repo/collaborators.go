@@ -279,7 +279,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := models.GetUserRepoPermission(ctx.Repo.Repository, collaborator)
+	permission, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
