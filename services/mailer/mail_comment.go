@@ -21,7 +21,7 @@ func MailParticipantsComment(ctx context.Context, c *models.Comment, opType mode
 	}
 
 	content := c.Content
-	if c.Type == models.CommentTypePullPush {
+	if c.Type == models.CommentTypePullRequestPush {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(

@@ -191,7 +191,7 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err := releaseservice.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+	if err := releaseservice.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
 		if models.IsErrTagAlreadyExists(err) {
 			ctx.Error(http.StatusConflict, "tag exist", err)
 			return
@@ -255,7 +255,7 @@ func DeleteTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.User, true); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.Doer, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 	}
 

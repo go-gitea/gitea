@@ -268,7 +268,7 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 	count := 0
 
 	err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(RepoUnit),
 		builder.Gt{
 			"id": 0,
@@ -296,7 +296,6 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 			return repo_model.UpdateRepoUnit(repoUnit)
 		},
 	)
-
 	if err != nil {
 		logger.Critical("Unable to iterate across repounits to fix the broken units: Error %v", err)
 		return err

@@ -69,6 +69,12 @@ func TestAPIAddEmail(t *testing.T) {
 			Primary:  false,
 		},
 	}, emails)
+
+	opts = api.CreateEmailOption{
+		Emails: []string{"notAEmail"},
+	}
+	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 }
 
 func TestAPIDeleteEmail(t *testing.T) {

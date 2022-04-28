@@ -185,7 +185,26 @@ Before committing, make sure the linters pass:
 make lint-frontend
 ```
 
-Note: When working on frontend code, set `USE_SERVICE_WORKER` to `false` in `app.ini` to prevent undesirable caching of frontend assets.
+### Configuring local ElasticSearch instance
+
+Start local ElasticSearch instance using docker:
+
+```sh
+mkdir -p $(pwd)/data/elasticsearch
+sudo chown -R 1000:1000 $(pwd)/data/elasticsearch
+docker run --rm -p 127.0.0.1:9200:9200 -p 127.0.0.1:9300:9300 -e "discovery.type=single-node" -v "$(pwd)/data/elasticsearch:/usr/share/elasticsearch/data" docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+```
+
+Configure `app.ini`:
+
+```ini
+[indexer]
+ISSUE_INDEXER_TYPE = elasticsearch
+ISSUE_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+REPO_INDEXER_ENABLED = true
+REPO_INDEXER_TYPE = elasticsearch
+REPO_INDEXER_CONN_STR = http://elastic:changeme@localhost:9200
+```
 
 ### Building and adding SVGs
 

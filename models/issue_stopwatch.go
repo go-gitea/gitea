@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrIssueStopwatchNotExist represents an error that stopwatch is not exist
@@ -53,7 +54,7 @@ func (s Stopwatch) Seconds() int64 {
 
 // Duration returns a human-readable duration string based on local server time
 func (s Stopwatch) Duration() string {
-	return SecToTime(s.Seconds())
+	return util.SecToTime(s.Seconds())
 }
 
 func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
@@ -63,6 +64,38 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 		And("issue_id = ?", issueID).
 		Get(sw)
 	return
+}
+
+// UserIDCount is a simple coalition of UserID and Count
+type UserStopwatch struct {
+	UserID      int64
+	StopWatches []*Stopwatch
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndStopwatch() ([]*UserStopwatch, error) {
+	sws := []*Stopwatch{}
+	if err := db.GetEngine(db.DefaultContext).Find(&sws); err != nil {
+		return nil, err
+	}
+	if len(sws) == 0 {
+		return []*UserStopwatch{}, nil
+	}
+
+	lastUserID := int64(-1)
+	res := []*UserStopwatch{}
+	for _, sw := range sws {
+		if lastUserID == sw.UserID {
+			lastUserStopwatch := res[len(res)-1]
+			lastUserStopwatch.StopWatches = append(lastUserStopwatch.StopWatches, sw)
+		} else {
+			res = append(res, &UserStopwatch{
+				UserID:      sw.UserID,
+				StopWatches: []*Stopwatch{sw},
+			})
+		}
+	}
+	return res, nil
 }
 
 // GetUserStopwatches return list of all stopwatches of a user
@@ -156,15 +189,15 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
-		Content: SecToTime(timediff),
+		Content: util.SecToTime(timediff),
 		Type:    CommentTypeStopTracking,
 		TimeID:  tt.ID,
 	}); err != nil {
@@ -177,7 +210,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -207,11 +240,11 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -248,11 +281,11 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if err := issue.loadRepo(ctx); err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 
-		if _, err := createComment(ctx, &CreateCommentOptions{
+		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,
@@ -262,33 +295,4 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 		}
 	}
 	return nil
-}
-
-// SecToTime converts an amount of seconds to a human-readable string (example: 66s -> 1min 6s)
-func SecToTime(duration int64) string {
-	seconds := duration % 60
-	minutes := (duration / (60)) % 60
-	hours := duration / (60 * 60)
-
-	var hrs string
-
-	if hours > 0 {
-		hrs = fmt.Sprintf("%dh", hours)
-	}
-	if minutes > 0 {
-		if hours == 0 {
-			hrs = fmt.Sprintf("%dmin", minutes)
-		} else {
-			hrs = fmt.Sprintf("%s %dmin", hrs, minutes)
-		}
-	}
-	if seconds > 0 {
-		if hours == 0 && minutes == 0 {
-			hrs = fmt.Sprintf("%ds", seconds)
-		} else {
-			hrs = fmt.Sprintf("%s %ds", hrs, seconds)
-		}
-	}
-
-	return hrs
 }

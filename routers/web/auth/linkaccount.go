@@ -27,9 +27,7 @@ import (
 	"github.com/markbates/goth"
 )
 
-var (
-	tplLinkAccount base.TplName = "user/auth/link_account"
-)
+var tplLinkAccount base.TplName = "user/auth/link_account"
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {

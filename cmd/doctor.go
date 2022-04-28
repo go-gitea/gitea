@@ -121,7 +121,6 @@ func runRecreateTable(ctx *cli.Context) error {
 		}
 		return recreateTables(x)
 	})
-
 }
 
 func runDoctor(ctx *cli.Context) error {

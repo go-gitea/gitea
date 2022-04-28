@@ -22,7 +22,7 @@ import (
 	"golang.org/x/tools/cover"
 )
 
-func mergeProfiles(p *cover.Profile, merge *cover.Profile) {
+func mergeProfiles(p, merge *cover.Profile) {
 	if p.Mode != merge.Mode {
 		log.Fatalf("cannot merge profiles with different modes")
 	}

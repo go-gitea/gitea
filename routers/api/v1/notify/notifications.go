@@ -22,18 +22,18 @@ func NewAvailable(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationCount"
-	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.User)})
+	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.Doer)})
 }
 
 func getFindNotificationOptions(ctx *context.APIContext) *models.FindNotificationOptions {
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return nil
 	}
 	opts := &models.FindNotificationOptions{
 		ListOptions:       utils.GetListOptions(ctx),
-		UserID:            ctx.User.ID,
+		UserID:            ctx.Doer.ID,
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
 	}

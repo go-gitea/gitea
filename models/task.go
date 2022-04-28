@@ -245,7 +245,7 @@ func FinishMigrateTask(task *Task) error {
 	}
 	conf.AuthPassword = ""
 	conf.AuthToken = ""
-	conf.CloneAddr = util.NewStringURLSanitizer(conf.CloneAddr, true).Replace(conf.CloneAddr)
+	conf.CloneAddr = util.SanitizeCredentialURLs(conf.CloneAddr)
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""

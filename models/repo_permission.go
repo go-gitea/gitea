@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -144,11 +145,7 @@ func (p *Permission) ColorFormat(s fmt.State) {
 }
 
 // GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(repo *repo_model.Repository, user *user_model.User) (Permission, error) {
-	return getUserRepoPermission(db.DefaultContext, repo, user)
-}
-
-func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
+func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {
@@ -186,7 +183,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
-	if !hasOrgOrUserVisible(e, repo.Owner, user) && !is {
+	if !organization.HasOrgOrUserVisible(ctx, repo.Owner, user) && !is {
 		perm.AccessMode = perm_model.AccessModeNone
 		return
 	}
@@ -232,7 +229,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	// get units mode from teams
-	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return
 	}
@@ -249,7 +246,7 @@ func getUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	for _, u := range repo.Units {
 		var found bool
 		for _, team := range teams {
-			teamMode := team.unitAccessMode(e, u.Type)
+			teamMode := team.UnitAccessModeCtx(ctx, u.Type)
 			if teamMode > perm_model.AccessModeNone {
 				m := perm.UnitsMode[u.Type]
 				if m < teamMode {
@@ -300,10 +297,10 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	return isUserRepoAdmin(db.GetEngine(db.DefaultContext), repo, user)
+	return isUserRepoAdmin(db.DefaultContext, repo, user)
 }
 
-func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+func isUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
@@ -311,6 +308,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 		return true, nil
 	}
 
+	e := db.GetEngine(ctx)
 	mode, err := accessLevel(e, user, repo)
 	if err != nil {
 		return false, err
@@ -319,7 +317,7 @@ func isUserRepoAdmin(e db.Engine, repo *repo_model.Repository, user *user_model.
 		return true, nil
 	}
 
-	teams, err := getUserRepoTeams(e, repo.OwnerID, user.ID, repo.ID)
+	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)
 	if err != nil {
 		return false, err
 	}
@@ -345,7 +343,7 @@ func AccessLevelUnit(user *user_model.User, repo *repo_model.Repository, unitTyp
 }
 
 func accessLevelUnit(ctx context.Context, user *user_model.User, repo *repo_model.Repository, unitType unit.Type) (perm_model.AccessMode, error) {
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return perm_model.AccessModeNone, err
 	}
@@ -373,7 +371,7 @@ func canBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -389,7 +387,7 @@ func hasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 			return false, err
 		}
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		return false, err
 	}
@@ -412,9 +410,9 @@ func GetRepoWriters(repo *repo_model.Repository) (_ []*user_model.User, err erro
 }
 
 // IsRepoReader returns true if user has explicit read access or higher to the repository.
-func IsRepoReader(repo *repo_model.Repository, userID int64) (bool, error) {
+func IsRepoReader(ctx context.Context, repo *repo_model.Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
+	return db.GetEngine(ctx).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
 }

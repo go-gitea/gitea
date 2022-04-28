@@ -8,7 +8,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,13 +25,17 @@ func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_mode
 	}
 
 	if newOwner.IsOrganization() {
-		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		users, err := organization.GetUsersWhoCanCreateOrgRepo(db.DefaultContext, newOwner.ID)
 		if err != nil {
 			return err
 		}
 
 		langMap := make(map[string][]string)
 		for _, user := range users {
+			if !user.IsActive {
+				// don't send emails to inactive users
+				continue
+			}
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
@@ -69,8 +74,9 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Language":    locale.Language(),
 		"Destination": destination,
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {

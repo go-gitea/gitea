@@ -6,6 +6,7 @@
   /* other variables */
   --border-radius: .28571429rem;
   --opacity-disabled: .55;
+  --height-loading: 12rem;
   --color-primary: #4183c4;
   --color-primary-dark-1: #3876b3;
   --color-primary-dark-2: #31699f;
@@ -249,8 +250,19 @@ a.label,
 .ui.search .results a,
 .ui .menu a,
 .ui.cards a.card,
-.issue-keyword a {
+.issue-keyword a,
+a.commit-statuses-trigger {
   text-decoration: none !important;
+}
+
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.button {
+  &:extend(.unselectable);
 }
 
 .ui.breadcrumb a:hover {
@@ -808,7 +820,6 @@ a.ui.card:hover,
     float: right;
   }
 
-  &.button,
   &.menu .item {
     user-select: auto;
   }
@@ -1339,25 +1350,11 @@ footer {
   overflow: auto;
 }
 
-@media @mediaSm {
-  .ui.menu.new-menu {
-    overflow: visible !important;
-  }
-}
-
 .ui.menu.new-menu .new-menu-inner {
   display: flex;
   margin-left: auto;
   margin-right: auto;
   overflow-x: auto;
-}
-
-@media @mediaSm {
-  .ui.menu.new-menu .new-menu-inner {
-    flex-wrap: wrap;
-    margin-left: 0;
-    margin-right: 0;
-  }
 }
 
 .ui.menu.new-menu::after {
@@ -1524,12 +1521,12 @@ a.ui.label:hover {
 }
 
 .lines-num {
+  &:extend(.unselectable);
   padding-left: 10px;
   padding-right: 10px;
   text-align: right !important;
   color: rgba(27, 31, 35, .3);
   width: 1%;
-  user-select: none;
   font-family: var(--fonts-monospace);
 
   span {
@@ -1614,21 +1611,18 @@ a.ui.label:hover {
 }
 
 .lines-commit {
+  &:extend(.unselectable);
   vertical-align: top;
   color: #999999;
   padding: 0 !important;
   background: var(--color-code-sidebar-bg);
   width: 1%;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-user-select: none;
-  user-select: none;
 
   .blame-info {
+    &:extend(.unselectable);
     width: 350px;
     max-width: 350px;
     display: block;
-    user-select: none;
     padding: 0 0 0 10px;
     line-height: 20px;
     box-sizing: content-box;
@@ -2157,9 +2151,9 @@ table th[data-sortt-desc] {
 }
 
 .ellipsis-button {
+  &:extend(.unselectable);
   padding: 0 5px 8px !important;
   display: inline-block !important;
-  user-select: none !important;
   font-weight: 600 !important;
   line-height: 6px !important;
   vertical-align: middle !important;
@@ -2184,5 +2178,18 @@ table th[data-sortt-desc] {
     float: left;
     width: 15px;
     height: 15px;
+  }
+}
+
+@media @mediaSm {
+  .ui.stackable.menu:not(.no-vertical-tabs) {
+    overflow-y: hidden;
+    overflow-x: auto;
+    flex-direction: row;
+    flex-wrap: nowrap !important;
+
+    .item {
+      width: initial !important;
+    }
   }
 }

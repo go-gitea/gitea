@@ -29,7 +29,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
@@ -59,7 +59,7 @@ func DisableTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
@@ -69,7 +69,7 @@ func DisableTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = auth.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
+	if err = auth.DeleteTwoFactorByID(t.ID, ctx.Doer.ID); err != nil {
 		if auth.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
@@ -100,7 +100,7 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
 			Issuer:      issuer,
-			AccountName: ctx.User.Name,
+			AccountName: ctx.Doer.Name,
 		})
 		if err != nil {
 			ctx.ServerError("SettingsTwoFactor: totpGenerate Failed", err)
@@ -146,10 +146,10 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
-		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.User)
+		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
@@ -172,7 +172,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := auth.GetTwoFactorByUID(ctx.User.ID)
+	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if t != nil {
 		// already enrolled
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
@@ -210,7 +210,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	}
 
 	t = &auth.TwoFactor{
-		UID: ctx.User.ID,
+		UID: ctx.Doer.ID,
 	}
 	err = t.SetSecret(secret)
 	if err != nil {

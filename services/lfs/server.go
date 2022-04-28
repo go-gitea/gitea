@@ -45,8 +45,7 @@ type Claims struct {
 	RepoID int64
 	Op     string
 	UserID int64
-	// FIXME: Migrate to RegisteredClaims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // DownloadLink builds a URL to download the object.
@@ -223,7 +222,7 @@ func BatchHandler(ctx *context.Context) {
 			}
 
 			if exists && meta == nil {
-				accessible, err := models.LFSObjectAccessible(ctx.User, p.Oid)
+				accessible, err := models.LFSObjectAccessible(ctx.Doer, p.Oid)
 				if err != nil {
 					log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
 					writeStatus(ctx, http.StatusInternalServerError)
@@ -297,7 +296,7 @@ func UploadHandler(ctx *context.Context) {
 
 	uploadOrVerify := func() error {
 		if exists {
-			accessible, err := models.LFSObjectAccessible(ctx.User, p.Oid)
+			accessible, err := models.LFSObjectAccessible(ctx.Doer, p.Oid)
 			if err != nil {
 				log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
 				return err
@@ -440,7 +439,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		if download {
 			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
 			if setting.LFS.ServeDirect {
-				//If we have a signed url (S3, object storage), redirect to this directly.
+				// If we have a signed url (S3, object storage), redirect to this directly.
 				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
 				if u != nil && err == nil {
 					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
@@ -489,9 +488,9 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-	perm, err := models.GetUserRepoPermission(repository, ctx.User)
+	perm, err := models.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
-		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
+		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
 		return false
 	}
 
@@ -506,7 +505,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 		log.Warn("Authentication failure for provided token with Error: %v", err)
 		return false
 	}
-	ctx.User = user
+	ctx.Doer = user
 	return true
 }
 

@@ -199,5 +199,4 @@ func TestDismissReview(t *testing.T) {
 	assert.False(t, rejectReviewExample.Dismissed)
 	assert.False(t, requestReviewExample.Dismissed)
 	assert.True(t, approveReviewExample.Dismissed)
-
 }

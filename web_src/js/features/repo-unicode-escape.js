@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initUnicodeEscapeButton() {
   $(document).on('click', 'a.escape-button', (e) => {
     e.preventDefault();

@@ -123,7 +123,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		return nil, err
 	}
 
-	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
 	if err := migrateRepository(downloader, uploader, opts, messenger); err != nil {
@@ -305,7 +305,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		messenger("repo.migrate.migrating_issues")
-		var issueBatchSize = uploader.MaxBatchInsertSize("issue")
+		issueBatchSize := uploader.MaxBatchInsertSize("issue")
 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
@@ -322,12 +322,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 
 			if opts.Comments && !supportAllComments {
-				var allComments = make([]*base.Comment, 0, commentBatchSize)
+				allComments := make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(base.GetCommentOptions{
-						Context: issue.Context,
-					})
+					comments, _, err := downloader.GetComments(issue)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -362,7 +360,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
-		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
+		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
@@ -380,12 +378,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if opts.Comments {
 				if !supportAllComments {
 					// plain comments
-					var allComments = make([]*base.Comment, 0, commentBatchSize)
+					allComments := make([]*base.Comment, 0, commentBatchSize)
 					for _, pr := range prs {
 						log.Trace("migrating pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(base.GetCommentOptions{
-							Context: pr.Context,
-						})
+						comments, _, err := downloader.GetComments(pr)
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
 								return err
@@ -410,9 +406,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 
 				// migrate reviews
-				var allReviews = make([]*base.Review, 0, reviewBatchSize)
+				allReviews := make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr.Context)
+					reviews, err := downloader.GetReviews(pr)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -446,10 +442,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Comments && supportAllComments {
 		log.Trace("migrating comments")
 		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetComments(base.GetCommentOptions{
-				Page:     i,
-				PageSize: commentBatchSize,
-			})
+			comments, isEnd, err := downloader.GetAllComments(i, commentBatchSize)
 			if err != nil {
 				return err
 			}

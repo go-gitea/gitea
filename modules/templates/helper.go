@@ -25,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -33,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -160,7 +162,16 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
+		"RenderMarkdownToHtml": func(input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -213,7 +224,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
-		"DiffStatsWidth": func(adds int, dels int) string {
+		"DiffStatsWidth": func(adds, dels int) string {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
@@ -256,7 +267,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -286,7 +297,7 @@ func NewFuncMap() []template.FuncMap {
 			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
-			var sum = 0
+			sum := 0
 			for i := 0; i < len(values); i++ {
 				sum += values[i]
 			}
@@ -302,7 +313,7 @@ func NewFuncMap() []template.FuncMap {
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
-		"containGeneric": func(arr interface{}, v interface{}) bool {
+		"containGeneric": func(arr, v interface{}) bool {
 			arrV := reflect.ValueOf(arr)
 			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
 				return strings.Contains(arr.(string), v.(string))
@@ -379,6 +390,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
+		"DotEscape":   DotEscape,
 	}}
 }
 
@@ -447,7 +459,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -478,7 +490,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			return dict, nil
 		},
 		"percentage": func(n int, values ...int) float32 {
-			var sum = 0
+			sum := 0
 			for i := 0; i < len(values); i++ {
 				sum += values[i]
 			}
@@ -502,8 +514,10 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
-var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
-var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+var (
+	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
+	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+)
 
 func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
 	size := defaultSize
@@ -566,7 +580,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Organization:
+	case *organization.Organization:
 		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
@@ -628,6 +642,11 @@ func Escape(raw string) string {
 // JSEscape escapes a JS string
 func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
+}
+
+// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
+func DotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // Sha1 returns sha1 sum of string
@@ -741,7 +760,7 @@ func RenderEmoji(text string) template.HTML {
 	return template.HTML(renderedText)
 }
 
-//ReactionToEmoji renders emoji for use in reactions
+// ReactionToEmoji renders emoji for use in reactions
 func ReactionToEmoji(reaction string) template.HTML {
 	val := emoji.FromCode(reaction)
 	if val != nil {

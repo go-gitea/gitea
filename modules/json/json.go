@@ -4,10 +4,11 @@
 
 package json
 
+// Allow "encoding/json" import.
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json" //nolint:depguard
 	"io"
 	"strings"
 

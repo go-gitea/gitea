@@ -46,7 +46,6 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2202
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-pgsql/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
@@ -84,7 +83,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-pgsql/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = pgsql-log
+ROOT_PATH            = {{REPO_TEST_DIR}}pgsql-log
 ROUTER               = ,
 XORM                 = file
 ENABLE_SSH_LOG       = true
@@ -101,3 +100,6 @@ DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+
+[lfs]
+PATH = integrations/gitea-integration-pgsql/data/lfs

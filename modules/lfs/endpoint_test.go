@@ -18,7 +18,7 @@ func str2url(raw string) *url.URL {
 
 func TestDetermineEndpoint(t *testing.T) {
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		cloneurl string
 		lfsurl   string
 		expected *url.URL

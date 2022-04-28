@@ -15,7 +15,7 @@ import (
 )
 
 func TestIssue_AddLabels(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID  int64
 		labelIDs []int64
 		doerID   int64
@@ -41,7 +41,7 @@ func TestIssue_AddLabels(t *testing.T) {
 }
 
 func TestIssue_AddLabel(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID int64
 		labelID int64
 		doerID  int64

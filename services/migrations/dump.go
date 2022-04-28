@@ -22,14 +22,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	_ base.Uploader = &RepositoryDumper{}
-)
+var _ base.Uploader = &RepositoryDumper{}
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
@@ -151,9 +150,10 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	}
 
 	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
 		return fmt.Errorf("Clone: %v", err)
@@ -168,10 +168,11 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 			}
 
 			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := os.RemoveAll(wikiPath); err != nil {
@@ -181,7 +182,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepository(g.ctx, g.gitPath())
 	return err
 }
 
@@ -403,7 +404,7 @@ func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File,
 
 // CreateComments creates comments of issues
 func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
-	var commentsMap = make(map[int64][]interface{}, len(comments))
+	commentsMap := make(map[int64][]interface{}, len(comments))
 	for _, comment := range comments {
 		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
 	}
@@ -478,7 +479,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
@@ -532,7 +533,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 // CreateReviews create pull request reviews
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
-	var reviewsMap = make(map[int64][]interface{}, len(reviews))
+	reviewsMap := make(map[int64][]interface{}, len(reviews))
 	for _, review := range reviews {
 		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
 	}
@@ -606,13 +607,13 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
 	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}
-	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
+	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName, validation)
 	if err != nil {
 		return err
 	}
@@ -622,7 +623,7 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 	}
 	tp, _ := strconv.Atoi(opts["service_type"])
 
-	var migrateOpts = base.MigrateOptions{
+	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(tp),
 	}
 	updateOptionsUnits(&migrateOpts, units)
