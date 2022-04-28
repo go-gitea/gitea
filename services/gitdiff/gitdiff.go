@@ -1514,13 +1514,14 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	return diff, nil
 }
 
-// GetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
-func GetUserSpecificDiff(userID int64, pull *models.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+// SyncAndGetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
+// Additionally, the database asynchronously is updated if files have changed since the last review
+func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *models.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, err := GetDiff(gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
 	}
-	review, err := pulls.GetNewestReview(userID, pull.ID)
+	review, err := pulls.GetNewestReviewState(ctx, userID, pull.ID)
 	if err != nil || review == nil || review.UpdatedFiles == nil {
 		return diff, err
 	}
@@ -1536,7 +1537,7 @@ outer:
 	for _, diffFile := range diff.Files {
 		fileViewedState := review.UpdatedFiles[diffFile.GetDiffFileName()]
 
-		// Check whether it was previously checked whether the file has changed since the last review
+		// Check whether it was previously detected that the file has changed since the last review
 		if fileViewedState == pulls.HasChanged {
 			diffFile.HasChangedSinceLastReview = true
 			continue
@@ -1562,9 +1563,10 @@ outer:
 	// Explicitly store files that have changed in the database, if any is present at all.
 	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
 	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+	// The update is performed in the background because it only affects future calls to this function and not the present one, and because it is quite an expensive operation
 	if len(filesChangedSinceLastDiff) > 0 {
 		go func() {
-			err := pulls.UpdateReview(review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+			err := pulls.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 			if err != nil {
 				log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			}

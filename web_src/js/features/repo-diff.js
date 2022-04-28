@@ -93,7 +93,7 @@ export function initRepoDiffConversationNav() {
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
   initRepoIssueContentHistory();
-  initViewedCheckboxListenerFor(document);
+  initViewedCheckboxListenerFor();
   countAndUpdateViewedFiles();
 }
 
@@ -144,7 +144,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
-      onShowMoreFiles(resp);
+      onShowMoreFiles();
     }).fail(() => {
       $target.removeClass('disabled');
     });

@@ -701,7 +701,7 @@ func ViewPullFiles(ctx *context.Context) {
 		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
 		methodWithError = "GetDiff"
 	} else {
-		diff, err = gitdiff.GetUserSpecificDiff(ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
+		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
 		methodWithError = "GetUserSpecificDiff"
 	}
 	if err != nil {
@@ -709,10 +709,10 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	reviewData := make(map[string]interface{}, 2)
-	reviewData["numberOfFiles"] = diff.NumFiles
-	reviewData["numberOfViewedFiles"] = diff.NumViewedFiles
-	ctx.PageData["prReview"] = reviewData
+	ctx.PageData["prReview"] = map[string]interface{}{
+		"numberOfFiles":       diff.NumFiles,
+		"numberOfViewedFiles": diff.NumViewedFiles,
+	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
 		ctx.ServerError("LoadComments", err)

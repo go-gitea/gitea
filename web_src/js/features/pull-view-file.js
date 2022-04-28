@@ -28,10 +28,10 @@ export function countAndUpdateViewedFiles() {
 // Initializes a listener for all children of the given html element
 // (for example 'document' in the most basic case)
 // to watch for changes of viewed-file checkboxes
-export function initViewedCheckboxListenerFor(element) {
-  for (const form of element.querySelectorAll(`${viewedCheckboxSelector}:not([data-has-listener="true"])`)) {
+export function initViewedCheckboxListenerFor() {
+  for (const form of document.querySelectorAll(`${viewedCheckboxSelector}:not([data-has-viewed-checkbox-listener="true"])`)) {
     // To prevent double addition of listeners
-    form.setAttribute('data-has-listener', true);
+    form.setAttribute('data-has-viewed-checkbox-listener', true);
 
     // The checkbox consists of a div containing the real checkbox with its label and the CSRF token,
     // hence the actual checkbox first has to be found

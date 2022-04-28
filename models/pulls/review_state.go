@@ -4,6 +4,7 @@
 package pulls
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -33,13 +34,13 @@ func (viewedState ViewedState) String() string {
 	}
 }
 
-// ReviewState stores for a user - PR - commit combination which files the user has already viewed
+// ReviewState stores for a user-PR-commit combination which files the user has already viewed
 type ReviewState struct {
 	ID           int64                  `xorm:"pk autoincr"`
 	UserID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL TEXT JSON"`                            // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
-	CommitSHA    string                 `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
 	PullID       int64                  `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"`   // Which PR was the review on?
+	CommitSHA    string                 `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"` // Which commit was the head commit for the review?
+	UpdatedFiles map[string]ViewedState `xorm:"NOT NULL TEXT JSON"`                            // Stores for each of the changed files of a PR whether they have been viewed, changed since last viewed, or not viewed
 	UpdatedUnix  timeutil.TimeStamp     `xorm:"updated"`                                       // Is an accurate indicator of the order of commits as we do not expect it to be possible to make reviews on previous commits
 }
 
@@ -47,28 +48,28 @@ func init() {
 	db.RegisterModel(new(ReviewState))
 }
 
-// GetReview returns the ReviewState with all given values prefilled, whether or not it exists in the database.
+// GetReviewState returns the ReviewState with all given values prefilled, whether or not it exists in the database.
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
-func GetReview(userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
-	review := &ReviewState{UserID: userID, CommitSHA: commitSHA, PullID: pullID}
-	has, err := db.GetEngine(db.DefaultContext).Get(review)
+func GetReviewState(ctx context.Context, userID, pullID int64, commitSHA string) (*ReviewState, bool, error) {
+	review := &ReviewState{UserID: userID, PullID: pullID, CommitSHA: commitSHA}
+	has, err := db.GetEngine(ctx).Get(review)
 	return review, has, err
 }
 
-// UpdateReview updates the given review inside the database, regardless of whether it existed before or not
+// UpdateReviewState updates the given review inside the database, regardless of whether it existed before or not
 // The given map of files with their viewed state will be merged with the previous review, if present
-func UpdateReview(userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) error {
+func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) error {
 	log.Trace("Updating review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, updatedFiles)
 
-	review, exists, err := GetReview(userID, pullID, commitSHA)
+	review, exists, err := GetReviewState(ctx, userID, pullID, commitSHA)
 	if err != nil {
 		return err
 	}
 
 	if exists {
 		review.UpdatedFiles = mergeFiles(review.UpdatedFiles, updatedFiles)
-	} else if previousReview, err := getNewestReviewApartFrom(userID, pullID, commitSHA); err != nil {
+	} else if previousReview, err := getNewestReviewStateApartFrom(ctx, userID, pullID, commitSHA); err != nil {
 		return err
 
 		// Overwrite the viewed files of the previous review if present
@@ -79,14 +80,14 @@ func UpdateReview(userID, pullID int64, commitSHA string, updatedFiles map[strin
 	}
 
 	// Insert or Update review
-	engine := db.GetEngine(db.DefaultContext)
+	engine := db.GetEngine(ctx)
 	if !exists {
 		log.Trace("Inserting new review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, review.UpdatedFiles)
 		_, err := engine.Insert(review)
 		return err
 	}
 	log.Trace("Updating already existing review with ID %d (user %d, repo %d, commit %s) with the updated files %v.", review.ID, userID, pullID, commitSHA, review.UpdatedFiles)
-	_, err = engine.ID(review.ID).Update(review)
+	_, err = engine.ID(review.ID).Update(&ReviewState{UpdatedFiles: review.UpdatedFiles})
 	return err
 }
 
@@ -105,24 +106,24 @@ func mergeFiles(oldFiles, newFiles map[string]ViewedState) map[string]ViewedStat
 	return oldFiles
 }
 
-// GetNewestReview gets the newest review of the current user in the current PR.
+// GetNewestReviewState gets the newest review of the current user in the current PR.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
-func GetNewestReview(userID, pullID int64) (*ReviewState, error) {
+func GetNewestReviewState(ctx context.Context, userID, pullID int64) (*ReviewState, error) {
 	var review ReviewState
-	has, err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Get(&review)
+	has, err := db.GetEngine(ctx).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Get(&review)
 	if err != nil || !has {
 		return nil, err
 	}
 	return &review, err
 }
 
-// getNewestReviewApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
+// getNewestReviewStateApartFrom is like GetNewestReview, except that the second newest review will be returned if the newest review points at the given commit.
 // The returned PR Review will be nil if the user has not yet reviewed this PR.
-func getNewestReviewApartFrom(userID, pullID int64, commitSHA string) (*ReviewState, error) {
+func getNewestReviewStateApartFrom(ctx context.Context, userID, pullID int64, commitSHA string) (*ReviewState, error) {
 	var reviews []ReviewState
-	err := db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
+	err := db.GetEngine(ctx).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
 	// It would also be possible to use ".And("commit_sha != ?", commitSHA)" instead of the error handling below
-	// However, benchmarks show a MASSIVE performance gain by not doing that: 1000 ms => <300 ms
+	// However, benchmarks show drastically improved performance gain by not doing that
 
 	// Error cases in which no review should be returned
 	if err != nil || len(reviews) == 0 || (len(reviews) == 1 && reviews[0].CommitSHA == commitSHA) {

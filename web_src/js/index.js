@@ -171,6 +171,6 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-  initViewedCheckboxListenerFor(document);
+  initViewedCheckboxListenerFor();
   checkAppUrl();
 });
