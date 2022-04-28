@@ -1140,7 +1140,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		BaseRepo:            repo,
 		MergeBase:           ci.CompareInfo.MergeBase,
 		Type:                models.PullRequestGitea,
-		AllowMaintainerEdit: form.AllowEditsFromMaintainers,
+		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
