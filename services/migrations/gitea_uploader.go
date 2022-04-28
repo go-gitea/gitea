@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -253,7 +254,6 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			LowerTagName: strings.ToLower(release.TagName),
 			Target:       release.TargetCommitish,
 			Title:        release.Name,
-			Sha1:         release.TargetCommitish,
 			Note:         release.Body,
 			IsDraft:      release.Draft,
 			IsPrerelease: release.Prerelease,
@@ -265,15 +265,18 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			return err
 		}
 
-		// calc NumCommits if no draft
-		if !release.Draft {
+		// calc NumCommits if possible
+		if rel.TagName != "" {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
-			if err != nil {
-				return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
-			}
-			rel.NumCommits, err = commit.CommitsCount()
-			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
+			if !errors.Is(err, git.ErrNotExist{}) {
+				if err != nil {
+					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+				}
+				rel.Sha1 = commit.ID.String()
+				rel.NumCommits, err = commit.CommitsCount()
+				if err != nil {
+					return fmt.Errorf("CommitsCount: %v", err)
+				}
 			}
 		}
 
@@ -553,7 +556,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			}
 
 			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {

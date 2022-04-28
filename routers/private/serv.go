@@ -320,7 +320,7 @@ func ServCommand(ctx *context.PrivateContext) {
 				mode = perm.AccessModeRead
 			}
 
-			perm, err := models.GetUserRepoPermission(repo, user)
+			perm, err := models.GetUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{

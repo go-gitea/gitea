@@ -215,7 +215,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := getUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
+		perm, err := GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}

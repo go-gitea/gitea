@@ -78,8 +78,8 @@ type Repository struct {
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+func (r *Repository) CanEnableEditor(user *user_model.User) bool {
+	return r.IsViewBranch && r.Permission.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -123,7 +123,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
-	canCommit := r.CanEnableEditor() && userCanPush
+	canCommit := r.CanEnableEditor(doer) && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
@@ -139,7 +139,7 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 
 	return CanCommitToBranchResults{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(),
+		EditorEnabled:     r.CanEnableEditor(doer),
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
@@ -221,13 +221,21 @@ func (r *Repository) FileExists(path, branch string) (bool, error) {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
+func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Editorconfig, error) {
 	if r.GitRepo == nil {
 		return nil, nil
 	}
-	commit, err := r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
-	if err != nil {
-		return nil, err
+	var (
+		err    error
+		commit *git.Commit
+	)
+	if len(optCommit) != 0 {
+		commit = optCommit[0]
+	} else {
+		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
+		if err != nil {
+			return nil, err
+		}
 	}
 	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
 	if err != nil {
@@ -277,7 +285,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(templateRepo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -343,7 +351,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -407,6 +415,12 @@ func RepoIDAssignment() func(ctx *Context) {
 
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
+	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
+		log.Trace("RepoAssignment was exec already, skipping second call ...")
+		return
+	}
+	ctx.Data["repoAssignmentExecuted"] = true
+
 	var (
 		owner *user_model.User
 		err   error
@@ -601,6 +615,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 		ctx.ServerError("RepoAssignment Invalid repo "+repo_model.RepoPath(userName, repoName), err)
 		return
+	}
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
 	}
 	ctx.Repo.GitRepo = gitRepo
 

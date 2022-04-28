@@ -42,10 +42,10 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
-	} else if err = pr.LoadBaseRepo(); err != nil {
+	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
@@ -71,7 +71,7 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
+func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == models.PullRequestFlowAGit {
 		return false, false, nil
 	}
@@ -79,7 +79,7 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 	if user == nil {
 		return false, false, nil
 	}
-	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
+	headRepoPerm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
 		return false, false, err
 	}
@@ -111,9 +111,23 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 		return false, false, nil
 	}
 
+	baseRepoPerm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, user)
+	if err != nil {
+		return false, false, err
+	}
+
 	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
+	}
+
+	if pull.AllowMaintainerEdit {
+		mergeAllowedMaintainer, err := IsUserAllowedToMerge(pr, baseRepoPerm, user)
+		if err != nil {
+			return false, false, err
+		}
+
+		mergeAllowed = mergeAllowed || mergeAllowedMaintainer
 	}
 
 	return mergeAllowed, rebaseAllowed, nil
@@ -122,10 +136,10 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mer
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
 func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, err
 	}
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		return nil, err
 	}
 

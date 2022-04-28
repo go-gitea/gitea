@@ -422,15 +422,16 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title       string `binding:"Required;MaxSize(255)"`
-	LabelIDs    string `form:"label_ids"`
-	AssigneeIDs string `form:"assignee_ids"`
-	Ref         string `form:"ref"`
-	MilestoneID int64
-	ProjectID   int64
-	AssigneeID  int64
-	Content     string
-	Files       []string
+	Title               string `binding:"Required;MaxSize(255)"`
+	LabelIDs            string `form:"label_ids"`
+	AssigneeIDs         string `form:"assignee_ids"`
+	Ref                 string `form:"ref"`
+	MilestoneID         int64
+	ProjectID           int64
+	AssigneeID          int64
+	Content             string
+	Files               []string
+	AllowMaintainerEdit bool
 }
 
 // Validate validates the fields
@@ -682,6 +683,11 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 type DismissReviewForm struct {
 	ReviewID int64 `binding:"Required"`
 	Message  string
+}
+
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+	AllowMaintainerEdit bool
 }
 
 // __________       .__
