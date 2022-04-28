@@ -7,6 +7,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -25,10 +26,21 @@ import (
 	"github.com/urfave/cli"
 )
 
-func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
+func addReader(w archiver.Writer, r io.ReadCloser, info os.FileInfo, customName string, verbose bool) error {
 	if verbose {
-		log.Info("Adding file %s\n", filePath)
+		log.Info("Adding file %s", customName)
 	}
+
+	return w.Write(archiver.File{
+		FileInfo: archiver.FileInfo{
+			FileInfo:   info,
+			CustomName: customName,
+		},
+		ReadCloser: r,
+	})
+}
+
+func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
 	file, err := os.Open(absPath)
 	if err != nil {
 		return err
@@ -39,13 +51,7 @@ func addFile(w archiver.Writer, filePath, absPath string, verbose bool) error {
 		return err
 	}
 
-	return w.Write(archiver.File{
-		FileInfo: archiver.FileInfo{
-			FileInfo:   fileInfo,
-			CustomName: filePath,
-		},
-		ReadCloser: file,
-	})
+	return addReader(w, file, fileInfo, filePath, verbose)
 }
 
 func isSubdir(upper, lower string) (bool, error) {
@@ -135,6 +141,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 		cli.BoolFlag{
 			Name:  "skip-attachment-data",
 			Usage: "Skip attachment data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-package-data",
+			Usage: "Skip package data",
 		},
 		cli.GenericFlag{
 			Name:  "type",
@@ -241,13 +251,7 @@ func runDump(ctx *cli.Context) error {
 				return err
 			}
 
-			return w.Write(archiver.File{
-				FileInfo: archiver.FileInfo{
-					FileInfo:   info,
-					CustomName: path.Join("data", "lfs", objPath),
-				},
-				ReadCloser: object,
-			})
+			return addReader(w, object, info, path.Join("data", "lfs", objPath), verbose)
 		}); err != nil {
 			fatal("Failed to dump LFS objects: %v", err)
 		}
@@ -326,6 +330,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.RepoRootPath)
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
+		excludes = append(excludes, setting.Packages.Path)
 		excludes = append(excludes, setting.LogRootPath)
 		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
@@ -341,15 +346,22 @@ func runDump(ctx *cli.Context) error {
 			return err
 		}
 
-		return w.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: path.Join("data", "attachments", objPath),
-			},
-			ReadCloser: object,
-		})
+		return addReader(w, object, info, path.Join("data", "attachments", objPath), verbose)
 	}); err != nil {
 		fatal("Failed to dump attachments: %v", err)
+	}
+
+	if ctx.IsSet("skip-package-data") && ctx.Bool("skip-package-data") {
+		log.Info("Skip dumping package data")
+	} else if err := storage.Packages.IterateObjects(func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
+		}
+
+		return addReader(w, object, info, path.Join("data", "packages", objPath), verbose)
+	}); err != nil {
+		fatal("Failed to dump packages: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,

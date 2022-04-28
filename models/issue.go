@@ -162,13 +162,9 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 }
 
 // LoadLabels loads labels
-func (issue *Issue) LoadLabels() error {
-	return issue.loadLabels(db.GetEngine(db.DefaultContext))
-}
-
-func (issue *Issue) loadLabels(e db.Engine) (err error) {
+func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
+		issue.Labels, err = getLabelsByIssueID(db.GetEngine(ctx), issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -313,7 +309,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadLabels(e); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return
 	}
 
@@ -493,7 +489,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 		return err
 	}
 
-	perm, err := getUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -539,7 +535,7 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 		return err
 	}
 
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -587,7 +583,7 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -2341,9 +2337,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := getUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := GetUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %v", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

@@ -3239,15 +3239,24 @@ td.blob-excerpt {
 }
 
 @media @mediaSm {
-  .repo-header-container {
-    overflow-x: auto;
-    overflow-y: hidden;
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
 
-    .ui.stackable.menu {
-      flex-direction: row;
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
 
-      .item {
-        width: initial !important;
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
       }
     }
   }

@@ -402,7 +402,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.Doer)
+	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -421,7 +421,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ci.HeadRepo, ctx.Doer)
+		permHead, err := models.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil

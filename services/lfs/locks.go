@@ -88,7 +88,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := models.GetLFSLockByID(v)
+		lock, err := models.GetLFSLockByID(ctx, v)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
 		}
@@ -98,7 +98,7 @@ func GetListLockHandler(ctx *context.Context) {
 
 	path := ctx.FormString("path")
 	if path != "" { // Case where we request a specific id
-		lock, err := models.GetLFSLock(repository, path)
+		lock, err := models.GetLFSLock(ctx, repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock for repository %-v with path %s: Error: %v", repository, path, err)
 		}

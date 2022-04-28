@@ -191,7 +191,7 @@
 				<div class="twelve wide column issue-title">
 					{{.i18n.Tr "repo.pulls.has_pull_request" (Escape $.RepoLink) (Escape $.RepoRelPath) .PullRequest.Index | Safe}}
 					<h1>
-						<span id="issue-title">{{RenderIssueTitle .PullRequest.Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
+						<span id="issue-title">{{RenderIssueTitle $.Context .PullRequest.Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>
 					</h1>
 				</div>

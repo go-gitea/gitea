@@ -104,7 +104,7 @@ var (
 func InitIssueIndexer(syncReindex bool) {
 	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
 
-	waitChannel := make(chan time.Duration)
+	waitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {
