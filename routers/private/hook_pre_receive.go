@@ -290,7 +290,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx.opts.PullRequestID)
+		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -468,7 +468,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 	ctx.user = user
 
-	userPerm, err := models.GetUserRepoPermission(ctx.Repo.Repository, user)
+	userPerm, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

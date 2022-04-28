@@ -44,11 +44,17 @@ func AddLabels(issue *models.Issue, doer *user_model.User, labels []*models.Labe
 
 // RemoveLabel removes a label from issue by given ID.
 func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label) error {
-	if err := issue.LoadRepo(db.DefaultContext); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	perm, err := models.GetUserRepoPermission(issue.Repo, doer)
+	perm, err := models.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -59,7 +65,11 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 		return models.ErrRepoLabelNotExist{}
 	}
 
-	if err := models.DeleteIssueLabel(issue, label, doer); err != nil {
+	if err := models.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+		return err
+	}
+
+	if err := committer.Commit(); err != nil {
 		return err
 	}
 

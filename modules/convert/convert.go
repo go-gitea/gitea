@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -74,7 +75,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 	}
 
 	if user != nil {
-		permission, err := models.GetUserRepoPermission(repo, user)
+		permission, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
 		if err != nil {
 			return nil, err
 		}

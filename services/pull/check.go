@@ -227,7 +227,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
@@ -317,7 +317,7 @@ func testPR(id int64) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
-	pr, err := models.GetPullRequestByID(id)
+	pr, err := models.GetPullRequestByID(ctx, id)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", id, err)
 		return

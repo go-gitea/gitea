@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -217,7 +218,6 @@ func Search(ctx *context.APIContext) {
 		}
 		results[i] = convert.ToRepo(repo, accessMode)
 	}
-
 	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{
@@ -248,7 +248,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if db.IsErrNameReserved(err) ||
-			db.IsErrNamePatternNotAllowed(err) {
+			db.IsErrNamePatternNotAllowed(err) ||
+			repo_module.IsErrIssueLabelTemplateLoad(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -554,7 +555,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return

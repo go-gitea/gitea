@@ -122,7 +122,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
 	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
