@@ -678,7 +678,7 @@
 							data-prompt-error="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
 						>
 						<label><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-						<input name="allow_edits_from_maintainers" type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+						<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
 					</div>
 				</div>
 			{{end}}
