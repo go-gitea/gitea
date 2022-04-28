@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -17,12 +18,20 @@ var ErrUserHasNoPermissionForAction = errors.New("user not allowed to do this ac
 
 // SetAllowEdits allow edits from maintainers to PRs
 func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *models.PullRequest, allow bool) error {
-	if doer == nil {
+	if doer == nil || !pr.Issue.IsPoster(doer.ID) {
 		return ErrUserHasNoPermissionForAction
 	}
 
-	// TODO: fix see "hack"
-	if !pr.Issue.IsPoster(doer.ID) {
+	if err := pr.LoadBaseRepo(); err != nil {
+		return err
+	}
+
+	permission, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+	if err != nil {
+		return err
+	}
+
+	if !permission.CanWrite(unit_model.TypeCode) {
 		return ErrUserHasNoPermissionForAction
 	}
 
