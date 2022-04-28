@@ -57,9 +57,9 @@ func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	if user.IsAdmin {
 		return true
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
-		log.Error("getUserRepoPermission(): %v", err)
+		log.Error("GetUserRepoPermission(): %v", err)
 		return false
 	}
 
@@ -198,7 +198,7 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 		return nil, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, err
 	}

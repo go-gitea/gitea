@@ -369,7 +369,12 @@ func TestDeleteIssueLabel(t *testing.T) {
 			}
 		}
 
-		assert.NoError(t, DeleteIssueLabel(issue, label, doer))
+		ctx, committer, err := db.TxContext()
+		defer committer.Close()
+		assert.NoError(t, err)
+		assert.NoError(t, DeleteIssueLabel(ctx, issue, label, doer))
+		assert.NoError(t, committer.Commit())
+
 		unittest.AssertNotExistsBean(t, &IssueLabel{IssueID: issueID, LabelID: labelID})
 		unittest.AssertExistsAndLoadBean(t, &Comment{
 			Type:     CommentTypeLabel,
