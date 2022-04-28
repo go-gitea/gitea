@@ -697,7 +697,6 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
 	prs := make([]*PullRequest, 0, 2)
 	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
-		// Desc("id").
 		Find(&prs); err != nil {
 		return nil, err
 	}
