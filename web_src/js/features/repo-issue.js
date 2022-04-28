@@ -302,7 +302,7 @@ export function initRepoPullRequestAllowMaintainerEdit() {
       url += '/set_allow_maintainer_edit';
       $checkbox.checkbox('set disabled');
       $.ajax({url, type: 'POST',
-        data: {_csrf: csrfToken, allowMaintainerEdit: checked},
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
         error: () => {
           $checkbox.popup({
             content: promptError,
