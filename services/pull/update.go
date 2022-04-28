@@ -111,7 +111,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, nil
 	}
 
-	baseRepoPerm, err := models.GetUserRepoPermission(pull.BaseRepo, user)
+	baseRepoPerm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 	if err != nil {
 		return false, false, err
 	}

@@ -1530,7 +1530,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil {
-				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.Doer)
+				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return

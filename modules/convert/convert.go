@@ -49,7 +49,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 				return nil, err
 			}
 
-			perms, err := models.GetUserRepoPermission(repo, user)
+			perms, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
 			if err != nil {
 				return nil, err
 			}

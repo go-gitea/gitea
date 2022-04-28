@@ -124,7 +124,7 @@ func (p *Permission) CanWriteToBranch(user *user_model.User, branch string) bool
 			if err != nil {
 				continue
 			}
-			prPerm, err := getUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
+			prPerm, err := GetUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
 			if err != nil {
 				continue
 			}
