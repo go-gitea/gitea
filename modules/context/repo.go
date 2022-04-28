@@ -285,7 +285,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(templateRepo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -351,7 +351,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.Doer)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return

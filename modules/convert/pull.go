@@ -33,17 +33,17 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	apiIssue := ToAPIIssue(pr.Issue)
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
 
-	p, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	p, err := models.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
@@ -130,7 +130,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		p, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		p, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone

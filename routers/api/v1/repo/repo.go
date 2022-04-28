@@ -555,7 +555,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
