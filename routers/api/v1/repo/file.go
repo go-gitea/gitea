@@ -53,7 +53,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   200:
-	//     description: success
+	//     description: Returns raw file content.
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
