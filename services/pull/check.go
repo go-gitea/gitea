@@ -36,6 +36,7 @@ var (
 	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
+	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
 	ErrNotMergableState      = errors.New("not in mergeable state")
 	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
 )
@@ -86,6 +87,10 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 
 	if !pr.CanAutoMerge() {
 		return ErrNotMergableState
+	}
+
+	if pr.IsChecking() {
+		return ErrIsChecking
 	}
 
 	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
@@ -222,7 +227,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
@@ -312,7 +317,7 @@ func testPR(id int64) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
-	pr, err := models.GetPullRequestByID(id)
+	pr, err := models.GetPullRequestByID(ctx, id)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", id, err)
 		return

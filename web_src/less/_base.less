@@ -1350,25 +1350,11 @@ footer {
   overflow: auto;
 }
 
-@media @mediaSm {
-  .ui.menu.new-menu {
-    overflow: visible !important;
-  }
-}
-
 .ui.menu.new-menu .new-menu-inner {
   display: flex;
   margin-left: auto;
   margin-right: auto;
   overflow-x: auto;
-}
-
-@media @mediaSm {
-  .ui.menu.new-menu .new-menu-inner {
-    flex-wrap: wrap;
-    margin-left: 0;
-    margin-right: 0;
-  }
 }
 
 .ui.menu.new-menu::after {
@@ -2192,5 +2178,18 @@ table th[data-sortt-desc] {
     float: left;
     width: 15px;
     height: 15px;
+  }
+}
+
+@media @mediaSm {
+  .ui.stackable.menu:not(.no-vertical-tabs) {
+    overflow-y: hidden;
+    overflow-x: auto;
+    flex-direction: row;
+    flex-wrap: nowrap !important;
+
+    .item {
+      width: initial !important;
+    }
   }
 }

@@ -70,7 +70,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -283,7 +283,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		return nil
 	}
 
-	if err = issue.PullRequest.LoadHeadRepo(); err != nil {
+	if err = issue.PullRequest.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
@@ -397,12 +397,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
-	if err := pull.LoadHeadRepo(); err != nil {
+	if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
 
-	if err := pull.LoadBaseRepo(); err != nil {
+	if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return nil
 	}
@@ -499,7 +499,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	if headBranchExist {
 		var err error
-		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.Doer)
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
@@ -785,16 +785,16 @@ func UpdatePullRequest(ctx *context.Context) {
 
 	rebase := ctx.FormString("style") == "rebase"
 
-	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
+	if err := issue.PullRequest.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
-	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
+	if err := issue.PullRequest.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.Doer)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
@@ -1202,14 +1202,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return
 	} else if pr.HeadRepo == nil {
 		// Forked repository has already been deleted
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
-	} else if err = pr.LoadBaseRepo(); err != nil {
+	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	} else if err = pr.HeadRepo.GetOwner(ctx); err != nil {
@@ -1217,7 +1217,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return

@@ -238,7 +238,7 @@ func isOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(ctx); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -265,7 +265,7 @@ func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(ctx); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -891,7 +891,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 			return false, err
 		}
 
-		p, err := GetUserRepoPermission(issue.Repo, doer)
+		p, err := GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}
