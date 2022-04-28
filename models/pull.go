@@ -69,15 +69,16 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID      int64                  `xorm:"INDEX"`
-	HeadRepo        *repo_model.Repository `xorm:"-"`
-	BaseRepoID      int64                  `xorm:"INDEX"`
-	BaseRepo        *repo_model.Repository `xorm:"-"`
-	HeadBranch      string
-	HeadCommitID    string `xorm:"-"`
-	BaseBranch      string
-	ProtectedBranch *ProtectedBranch `xorm:"-"`
-	MergeBase       string           `xorm:"VARCHAR(40)"`
+	HeadRepoID          int64                  `xorm:"INDEX"`
+	HeadRepo            *repo_model.Repository `xorm:"-"`
+	BaseRepoID          int64                  `xorm:"INDEX"`
+	BaseRepo            *repo_model.Repository `xorm:"-"`
+	HeadBranch          string
+	HeadCommitID        string `xorm:"-"`
+	BaseBranch          string
+	ProtectedBranch     *ProtectedBranch `xorm:"-"`
+	MergeBase           string           `xorm:"VARCHAR(40)"`
+	AllowMaintainerEdit bool             `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
@@ -709,6 +710,14 @@ func (pr *PullRequest) GetHeadBranchHTMLURL() string {
 		return ""
 	}
 	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
+}
+
+// UpdateAllowEdits update if PR can be edited from maintainers
+func UpdateAllowEdits(ctx context.Context, pr *PullRequest) error {
+	if _, err := db.GetEngine(ctx).ID(pr.ID).Cols("allow_maintainer_edit").Update(pr); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Mergeable returns if the pullrequest is mergeable.

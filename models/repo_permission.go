@@ -103,6 +103,39 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
+// CanWriteToBranch checks if the branch is writable by the user
+func (p *Permission) CanWriteToBranch(user *user_model.User, branch string) bool {
+	if p.CanWrite(unit.TypeCode) {
+		return true
+	}
+
+	if len(p.Units) < 1 {
+		return false
+	}
+
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
+	if err != nil {
+		return false
+	}
+
+	for _, pr := range prs {
+		if pr.AllowMaintainerEdit {
+			err = pr.LoadBaseRepo()
+			if err != nil {
+				continue
+			}
+			prPerm, err := GetUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
+			if err != nil {
+				continue
+			}
+			if prPerm.CanWrite(unit.TypeCode) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // ColorFormat writes a colored string for these Permissions
 func (p *Permission) ColorFormat(s fmt.State) {
 	noColor := log.ColorBytes(log.Reset)
@@ -160,6 +193,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 				perm)
 		}()
 	}
+
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
