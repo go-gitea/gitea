@@ -111,9 +111,23 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, nil
 	}
 
+	baseRepoPerm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, user)
+	if err != nil {
+		return false, false, err
+	}
+
 	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
+	}
+
+	if pull.AllowMaintainerEdit {
+		mergeAllowedMaintainer, err := IsUserAllowedToMerge(pr, baseRepoPerm, user)
+		if err != nil {
+			return false, false, err
+		}
+
+		mergeAllowed = mergeAllowed || mergeAllowedMaintainer
 	}
 
 	return mergeAllowed, rebaseAllowed, nil
