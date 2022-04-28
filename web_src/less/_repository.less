@@ -3237,3 +3237,27 @@ td.blob-excerpt {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
 }
+
+@media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
+}
