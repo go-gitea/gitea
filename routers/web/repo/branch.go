@@ -279,7 +279,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
-		} else if err := pr.LoadBaseRepo(); err != nil {
+		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 			ctx.ServerError("pr.LoadBaseRepo", err)
 			return nil
 		} else {

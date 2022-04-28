@@ -613,7 +613,6 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if err = issue.LoadRepo(ctx); err != nil {
 		return err
@@ -629,7 +628,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(sess); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -670,7 +669,7 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err e
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -707,23 +706,13 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 }
 
 // DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = deleteIssueLabel(ctx, issue, label, doer); err != nil {
+func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) error {
+	if err := deleteIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return issue.LoadLabels(ctx)
 }
 
 func deleteLabelsByRepoID(sess db.Engine, repoID int64) error {

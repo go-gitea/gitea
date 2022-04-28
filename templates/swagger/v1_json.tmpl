@@ -8674,7 +8674,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "Returns raw file content."
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -14984,6 +14984,10 @@
       "description": "EditPullRequestOption options when modify pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
@@ -17091,6 +17095,10 @@
       "description": "PullRequest represents a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "$ref": "#/definitions/User"
         },
