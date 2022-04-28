@@ -3247,6 +3247,27 @@ td.blob-excerpt {
 }
 
 @media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
   .issue-list-headers.ui[class].grid {
     > div:nth-child(1) {
       order: 1;
