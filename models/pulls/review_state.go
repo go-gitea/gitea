@@ -123,7 +123,7 @@ func getNewestReviewStateApartFrom(ctx context.Context, userID, pullID int64, co
 	var reviews []ReviewState
 	err := db.GetEngine(ctx).Where("user_id = ?", userID).And("pull_id = ?", pullID).OrderBy("updated_unix DESC").Limit(2).Find(&reviews)
 	// It would also be possible to use ".And("commit_sha != ?", commitSHA)" instead of the error handling below
-	// However, benchmarks show drastically improved performance gain by not doing that
+	// However, benchmarks show drastically improved performance by not doing that
 
 	// Error cases in which no review should be returned
 	if err != nil || len(reviews) == 0 || (len(reviews) == 1 && reviews[0].CommitSHA == commitSHA) {
