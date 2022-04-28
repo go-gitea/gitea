@@ -488,7 +488,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-	perm, err := models.GetUserRepoPermission(repository, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
 		return false

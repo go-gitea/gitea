@@ -35,10 +35,10 @@ import (
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
-	} else if err = pr.LoadBaseRepo(); err != nil {
+	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
@@ -664,7 +664,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *use
 
 // CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
 func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtectedFilesCheck bool) (err error) {
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 

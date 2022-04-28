@@ -498,7 +498,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
-	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+	err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
@@ -733,7 +733,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		}
 	}
 
-	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+	err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
