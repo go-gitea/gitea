@@ -235,6 +235,15 @@
 						</a>
 					{{end}}
 				</div>
+			{{if and .PageIsComparePull (not (eq .HeadRepo.FullName .BaseCompareRepo.FullName)) .CanWriteToHeadRepo}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox">
+						<label class="tooltip" data-content="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<input name="allow_maintainer_edit" type="checkbox">
+					</div>
+				</div>
+			{{end}}
 		</div>
 		<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 	</div>

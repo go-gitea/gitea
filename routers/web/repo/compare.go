@@ -398,6 +398,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
+	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
@@ -436,6 +437,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.NotFound("ParseCompareInfo", nil)
 			return nil
 		}
+		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
 	// If we have a rootRepo and it's different from:

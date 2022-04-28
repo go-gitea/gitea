@@ -41,12 +41,19 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
+		var canPush bool
 		var err error
 		if user != nil {
 			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
+
+			perms, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
+			if err != nil {
+				return nil, err
+			}
+			canPush = perms.CanWriteToBranch(user, b.Name)
 		}
 
 		return &api.Branch{
@@ -56,7 +63,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
 			StatusCheckContexts: []string{},
-			UserCanPush:         hasPerm,
+			UserCanPush:         canPush,
 			UserCanMerge:        hasPerm,
 		}, nil
 	}

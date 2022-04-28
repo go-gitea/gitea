@@ -61,6 +61,7 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
+
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
@@ -381,6 +382,8 @@ var migrations = []Migration{
 	// v212 -> v213
 	NewMigration("Add package tables", addPackageTables),
 	// v213 -> v214
+	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
+	// v214 -> v215
 	NewMigration("Add auto merge table", addAutoMergeTable),
 }
 

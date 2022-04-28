@@ -73,6 +73,8 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
 
+		AllowMaintainerEdit: pr.AllowMaintainerEdit,
+
 		Base: &api.PRBranchInfo{
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
