@@ -147,7 +147,7 @@ services:
 +      - db
 +
 +  db:
-+    image: postgres:13
++    image: postgres:14
 +    restart: always
 +    environment:
 +      - POSTGRES_USER=gitea
