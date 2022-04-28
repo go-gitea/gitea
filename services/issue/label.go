@@ -69,8 +69,12 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 		return err
 	}
 
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+
 	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
-	return committer.Commit()
+	return nil
 }
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
