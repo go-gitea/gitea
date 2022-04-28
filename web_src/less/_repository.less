@@ -2956,11 +2956,21 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+
+  @media @mediaSm {
+    + .container {
+      margin-top: 7px;
+    }
+  }
 }
 
 .repo-buttons {
   display: flex;
   align-items: center;
+
+  @media @mediaSm {
+    margin-top: 1em;
+  }
 }
 
 .repo-buttons .ui.labeled.button > .label:hover {
@@ -3226,4 +3236,28 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+@media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
 }

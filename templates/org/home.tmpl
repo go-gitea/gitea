@@ -5,6 +5,7 @@
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
+				<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
 				<span class="org-visibility">
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}

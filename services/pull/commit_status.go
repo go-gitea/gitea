@@ -83,7 +83,7 @@ func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, require
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
 	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {
@@ -100,7 +100,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
 func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest) (structs.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
 	}
 
@@ -114,7 +114,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(headGitRepo.Ctx, headGitRepo.Path, pr.GetGitRefName()) {
+	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(ctx, headGitRepo.Path, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
@@ -128,11 +128,11 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 		return "", err
 	}
 
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := models.GetLatestCommitStatusCtx(ctx, pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

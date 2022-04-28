@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [composer, conan, generic, maven, npm, nuget, pypi, rubygems]
+	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pypi, rubygems]
 	// - name: q
 	//   in: query
 	//   description: name filter
