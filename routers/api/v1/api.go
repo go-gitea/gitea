@@ -1109,7 +1109,8 @@ func Routes() *web.Route {
 				m.Get("", org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
 					Put(org.AddTeamRepository).
-					Delete(org.RemoveTeamRepository)
+					Delete(org.RemoveTeamRepository).
+					Get(org.GetTeamRepo)
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
