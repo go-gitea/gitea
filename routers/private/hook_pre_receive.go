@@ -45,6 +45,8 @@ type preReceiveContext struct {
 	env []string
 
 	opts *private.HookOptions
+
+	branchName string
 }
 
 // CanWriteCode returns true if pusher can write code
@@ -53,7 +55,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = ctx.userPerm.CanWriteToBranch(ctx.user, ctx.branchName) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -134,13 +136,15 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+	ctx.branchName = branchName
+
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
@@ -290,7 +294,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx.opts.PullRequestID)
+		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -468,7 +472,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 	ctx.user = user
 
-	userPerm, err := models.GetUserRepoPermission(ctx.Repo.Repository, user)
+	userPerm, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

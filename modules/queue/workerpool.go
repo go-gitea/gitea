@@ -22,6 +22,10 @@ import (
 // they use to detect if there is a block and will grow and shrink in
 // response to demand as per configuration.
 type WorkerPool struct {
+	// This field requires to be the first one in the struct.
+	// This is to allow 64 bit atomic operations on 32-bit machines.
+	// See: https://pkg.go.dev/sync/atomic#pkg-note-BUG & Gitea issue 19518
+	numInQueue         int64
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
@@ -38,7 +42,6 @@ type WorkerPool struct {
 	blockTimeout       time.Duration
 	boostTimeout       time.Duration
 	boostWorkers       int
-	numInQueue         int64
 }
 
 var (
