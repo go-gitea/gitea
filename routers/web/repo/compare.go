@@ -150,6 +150,9 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			return CsvDiffResult{nil, "csv diff error"}
+		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
