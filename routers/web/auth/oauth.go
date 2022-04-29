@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -867,19 +868,21 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			u = &user_model.User{
-				Name:         getUserName(&gothUser),
-				FullName:     gothUser.Name,
-				Email:        gothUser.Email,
-				IsActive:     !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:    auth.OAuth2,
-				LoginSource:  authSource.ID,
-				LoginName:    gothUser.UserID,
-				IsRestricted: setting.Service.DefaultUserIsRestricted,
+				Name:        getUserName(&gothUser),
+				FullName:    gothUser.Name,
+				Email:       gothUser.Email,
+				LoginType:   auth.OAuth2,
+				LoginSource: authSource.ID,
+				LoginName:   gothUser.UserID,
+			}
+
+			overwriteDefault := &user_model.CreateUserOverwriteOptions{
+				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
 			}
 
 			setUserGroupClaims(authSource, u, &gothUser)
 
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
 				return
 			}
