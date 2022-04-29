@@ -35,6 +35,9 @@
 									({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
+								<a class="inline-timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
+									{{avatar .Poster}}
+								</a>
 								<span class="text grey">
 									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 										{{.Poster.GetDisplayName}}
