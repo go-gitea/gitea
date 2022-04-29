@@ -284,6 +284,7 @@ func ListBranches(ctx *context.APIContext) {
 		}
 		idx++
 	}
+	apiBranches = apiBranches[:idx]
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
