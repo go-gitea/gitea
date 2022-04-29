@@ -259,10 +259,9 @@ func ListBranches(ctx *context.APIContext) {
 		return
 	}
 
-	apiBranches := make([]*api.Branch, len(branches))
-	idx := 0
-	for _, branch := range branches {
-		c, err := branch.GetCommit()
+	apiBranches := make([]*api.Branch, 0, len(branches))
+	for i := range branches {
+		c, err := branches[i].GetCommit()
 		if err != nil {
 			// Skip if this branch doesn't exist anymore.
 			if git.IsErrNotExist(err) {
@@ -272,19 +271,18 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
-		apiBranches[idx], err = convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 			return
 		}
-		idx++
+		apiBranches = append(apiBranches, apiBranch)
 	}
-	apiBranches = apiBranches[:idx]
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
