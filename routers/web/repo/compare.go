@@ -151,6 +151,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, err.Error()}
 		}
 		if err != nil {
+			log.Error("CreateCsvDiff error: %v", err)
 			return CsvDiffResult{nil, "csv diff error"}
 		}
 
