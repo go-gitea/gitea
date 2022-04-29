@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	bots_router "code.gitea.io/gitea/routers/api/bots"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
@@ -39,6 +40,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
+	bots_service "code.gitea.io/gitea/services/bots"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -160,6 +162,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(pull_service.Init)
 	mustInit(automerge.Init)
 	mustInit(task.Init)
+	mustInit(bots_service.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
@@ -195,5 +198,6 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
+	r.Mount("/api/actions", bots_router.Routes())
 	return r
 }

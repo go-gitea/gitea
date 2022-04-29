@@ -5,6 +5,9 @@
 package context
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 )
 
@@ -82,6 +85,14 @@ func (r *Response) Status() int {
 // useful for setting headers or any other operations that must happen before a response has been written.
 func (r *Response) Before(f func(ResponseWriter)) {
 	r.befores = append(r.befores, f)
+}
+
+func (r *Response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := r.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+
+	return nil, nil, errors.New("unimplemented http.Hijacker ")
 }
 
 // NewResponse creates a response
