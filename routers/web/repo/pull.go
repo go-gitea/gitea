@@ -1132,14 +1132,15 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID: ci.HeadRepo.ID,
-		BaseRepoID: repo.ID,
-		HeadBranch: ci.HeadBranch,
-		BaseBranch: ci.BaseBranch,
-		HeadRepo:   ci.HeadRepo,
-		BaseRepo:   repo,
-		MergeBase:  ci.CompareInfo.MergeBase,
-		Type:       models.PullRequestGitea,
+		HeadRepoID:          ci.HeadRepo.ID,
+		BaseRepoID:          repo.ID,
+		HeadBranch:          ci.HeadBranch,
+		BaseBranch:          ci.BaseBranch,
+		HeadRepo:            ci.HeadRepo,
+		BaseRepo:            repo,
+		MergeBase:           ci.CompareInfo.MergeBase,
+		Type:                models.PullRequestGitea,
+		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -1409,5 +1410,33 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"base_branch": pr.BaseBranch,
+	})
+}
+
+// SetAllowEdits allow edits from maintainers to PRs
+func SetAllowEdits(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.ServerError("GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, form.AllowMaintainerEdit); err != nil {
+		if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+		ctx.ServerError("SetAllowEdits", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"allow_maintainer_edit": pr.AllowMaintainerEdit,
 	})
 }
