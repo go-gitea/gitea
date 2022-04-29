@@ -3129,6 +3129,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/collaborators/{collaborator}/permission": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get repository permissions for a user",
+        "operationId": "repoGetRepoPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the collaborator",
+            "name": "collaborator",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoCollaboratorPermission"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/commits": {
       "get": {
         "produces": [
@@ -8628,7 +8674,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "Returns raw file content."
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -14938,6 +14984,10 @@
       "description": "EditPullRequestOption options when modify pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
@@ -17045,6 +17095,10 @@
       "description": "PullRequest represents a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "$ref": "#/definitions/User"
         },
@@ -17439,6 +17493,24 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepoCollaboratorPermission": {
+      "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
+      "type": "object",
+      "properties": {
+        "permission": {
+          "type": "string",
+          "x-go-name": "Permission"
+        },
+        "role_name": {
+          "type": "string",
+          "x-go-name": "RoleName"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19116,6 +19188,12 @@
         "items": {
           "$ref": "#/definitions/Release"
         }
+      }
+    },
+    "RepoCollaboratorPermission": {
+      "description": "RepoCollaboratorPermission",
+      "schema": {
+        "$ref": "#/definitions/RepoCollaboratorPermission"
       }
     },
     "Repository": {
