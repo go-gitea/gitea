@@ -6,7 +6,9 @@ package misc
 
 import (
 	"net/http"
+	"time"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -23,6 +25,16 @@ func NodeInfo(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/NodeInfo"
 
+	infoUsageUsers := structs.NodeInfoUsageUsers{}
+	if setting.Federation.ShareUserStatistics {
+		infoUsageUsers.Total = int(user_model.CountUsers(nil))
+		now := time.Now()
+		timeOneMonthAgo := now.AddDate(0, -1, 0).Unix()
+		timeHaveYearAgo := now.AddDate(0, -6, 0).Unix()
+		infoUsageUsers.ActiveMonth = int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeOneMonthAgo}))
+		infoUsageUsers.ActiveHalfyear = int(user_model.CountUsers(&user_model.CountUserFilter{LastLoginSince: &timeHaveYearAgo}))
+	}
+
 	nodeInfo := &structs.NodeInfo{
 		Version: "2.1",
 		Software: structs.NodeInfoSoftware{
@@ -38,7 +50,7 @@ func NodeInfo(ctx *context.APIContext) {
 		},
 		OpenRegistrations: setting.Service.ShowRegistrationButton,
 		Usage: structs.NodeInfoUsage{
-			Users: structs.NodeInfoUsageUsers{},
+			Users: infoUsageUsers,
 		},
 	}
 	ctx.JSON(http.StatusOK, nodeInfo)
