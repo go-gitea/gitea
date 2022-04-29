@@ -861,6 +861,10 @@
           }
         }
 
+        .inline-timeline-avatar {
+          display: none;
+        }
+
         .avatar.image,
         .avatar.image img {
           width: 20px;
@@ -3282,6 +3286,43 @@ td.blob-excerpt {
     > div.column:not(.row):nth-child(3) {
       order: 2;
       width: 50%;
+    }
+  }
+
+  .repository.view.issue .comment-list {
+    .timeline,
+    .timeline-item {
+      margin-left: 0;
+    }
+
+    .timeline {
+      &::before {
+        left: 14px;
+      }
+
+      .inline-timeline-avatar {
+        display: flex;
+        margin-bottom: auto;
+
+        img.avatar.image {
+          height: 24px;
+          width: 24px;
+        }
+      }
+
+      .comment-header {
+        &::before,
+        &::after {
+          content: unset;
+        }
+
+        padding-left: 4px;
+      }
+
+      .timeline-avatar,
+      .comment-header-right .role-label {
+        display: none;
+      }
     }
   }
 }
