@@ -810,9 +810,12 @@ func Routes() *web.Route {
 				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
-					m.Combo("/{collaborator}").Get(reqAnyRepoReader(), repo.IsCollaborator).
-						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
-						Delete(reqAdmin(), repo.DeleteCollaborator)
+					m.Group("/{collaborator}", func() {
+						m.Combo("").Get(reqAnyRepoReader(), repo.IsCollaborator).
+							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+							Delete(reqAdmin(), repo.DeleteCollaborator)
+						m.Get("/permission", repo.GetRepoPermissions)
+					}, reqToken())
 				}, reqToken())
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
