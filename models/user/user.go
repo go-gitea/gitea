@@ -621,7 +621,14 @@ func IsUsableUsername(name string) error {
 
 // CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
 type CreateUserOverwriteOptions struct {
-	Visibility structs.VisibleType
+	KeepEmailPrivate             util.OptionalBool
+	Visibility                   *structs.VisibleType
+	AllowCreateOrganization      util.OptionalBool
+	EmailNotificationsPreference *string
+	MaxRepoCreation              *int
+	Theme                        *string
+	IsRestricted                 util.OptionalBool
+	IsActive                     util.OptionalBool
 }
 
 // CreateUser creates record of a new user.
@@ -637,10 +644,36 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
+	u.IsRestricted = setting.Service.DefaultUserIsRestricted
+	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)
 
 	// overwrite defaults if set
 	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
-		u.Visibility = overwriteDefault[0].Visibility
+		overwrite := overwriteDefault[0]
+		if !overwrite.KeepEmailPrivate.IsNone() {
+			u.KeepEmailPrivate = overwrite.KeepEmailPrivate.IsTrue()
+		}
+		if overwrite.Visibility != nil {
+			u.Visibility = *overwrite.Visibility
+		}
+		if !overwrite.AllowCreateOrganization.IsNone() {
+			u.AllowCreateOrganization = overwrite.AllowCreateOrganization.IsTrue()
+		}
+		if overwrite.EmailNotificationsPreference != nil {
+			u.EmailNotificationsPreference = *overwrite.EmailNotificationsPreference
+		}
+		if overwrite.MaxRepoCreation != nil {
+			u.MaxRepoCreation = *overwrite.MaxRepoCreation
+		}
+		if overwrite.Theme != nil {
+			u.Theme = *overwrite.Theme
+		}
+		if !overwrite.IsRestricted.IsNone() {
+			u.IsRestricted = overwrite.IsRestricted.IsTrue()
+		}
+		if !overwrite.IsActive.IsNone() {
+			u.IsActive = overwrite.IsActive.IsTrue()
+		}
 	}
 
 	// validate data
