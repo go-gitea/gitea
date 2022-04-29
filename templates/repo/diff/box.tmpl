@@ -77,7 +77,7 @@
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
-							<span class="file mono"><a href="#diff-{{$nameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+							<span class="file mono"><a class="muted" href="#diff-{{$nameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 							{{if $file.IsGenerated}}
 								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.generated"}}</span>
 							{{end}}
