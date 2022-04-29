@@ -39,7 +39,7 @@
 					</div>
 					<!-- todo finish all file status, now modify, add, delete and rename -->
 					<span class="status {{DiffTypeToStr .GetType}} tooltip" data-content="{{DiffTypeToStr .GetType}}" data-position="right center">&nbsp;</span>
-					<a class="file mono" href="#diff-{{.Index}}">{{.Name}}</a>
+					<a class="file mono" href="#diff-{{Sha1 .Name}}">{{.Name}}</a>
 				</li>
 			{{end}}
 			{{if .Diff.IsIncomplete}}
@@ -57,7 +57,8 @@
 				{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
 				{{$isCsv := (call $.IsCsvFile $file)}}
 				{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
-				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{.Index}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.IsGenerated}}data-folded="true"{{end}}>
+				{{$nameHash := Sha1 $file.Name}}
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$nameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.IsGenerated}}data-folded="true"{{end}}>
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							<a role="button" class="fold-file muted mr-2">
@@ -76,7 +77,7 @@
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
-							<span class="file mono">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+							<span class="file mono"><a class="muted" href="#diff-{{$nameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 							{{if $file.IsGenerated}}
 								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.generated"}}</span>
 							{{end}}
