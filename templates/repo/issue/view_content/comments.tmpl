@@ -36,9 +36,9 @@
 								</span>
 							{{else}}
 								{{if gt .Poster.ID 0}}
-								  <a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
-									  {{avatar .Poster}}
-								  </a>
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar .Poster}}
+									</a>
 								{{end}}
 								<span class="text grey">
 									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
