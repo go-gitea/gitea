@@ -43,8 +43,8 @@ func NewSitemapIndex() *Sitemap {
 }
 
 // Add adds a URL to the sitemap
-func (s *Sitemap) Add(URL URL) {
-	s.URLs = append(s.URLs, URL)
+func (s *Sitemap) Add(u URL) {
+	s.URLs = append(s.URLs, u)
 }
 
 // Write writes the sitemap to a response
