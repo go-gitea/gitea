@@ -95,3 +95,12 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 		DiffViewStyle: user.DiffViewStyle,
 	}
 }
+
+// ToUserAndPermission return User and its collaboration permission for a repository
+func ToUserAndPermission(user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
+	return api.RepoCollaboratorPermission{
+		User:       ToUser(user, doer),
+		Permission: accessMode.String(),
+		RoleName:   accessMode.String(),
+	}
+}
