@@ -499,13 +499,17 @@ func SubmitInstall(ctx *context.Context) {
 	// Create admin account
 	if len(form.AdminName) > 0 {
 		u := &user_model.User{
-			Name:     form.AdminName,
-			Email:    form.AdminEmail,
-			Passwd:   form.AdminPasswd,
-			IsAdmin:  true,
-			IsActive: true,
+			Name:    form.AdminName,
+			Email:   form.AdminEmail,
+			Passwd:  form.AdminPasswd,
+			IsAdmin: true,
 		}
-		if err = user_model.CreateUser(u); err != nil {
+		overwriteDefault := &user_model.CreateUserOverwriteOptions{
+			IsRestricted: util.OptionalBoolFalse,
+			IsActive:     util.OptionalBoolTrue,
+		}
+
+		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true

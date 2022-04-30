@@ -25,6 +25,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -113,6 +114,10 @@ var (
 			cli.BoolFlag{
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
+			},
+			cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
 			},
 		},
 	}
@@ -559,17 +564,26 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
+	restricted := util.OptionalBoolNone
+
+	if c.IsSet("restricted") {
+		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+	}
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
-		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
-		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := user_model.CreateUser(u); err != nil {
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:     util.OptionalBoolTrue,
+		IsRestricted: restricted,
+	}
+
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
