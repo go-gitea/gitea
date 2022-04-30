@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/mailer"
@@ -187,17 +188,20 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
-		Name:                         username,
-		Email:                        email,
-		KeepEmailPrivate:             true,
-		Passwd:                       gouuid.New().String(),
-		IsActive:                     cfg.AutoActivateUsers,
-		Language:                     cfg.DefaultLanguage,
-		UseCustomAvatar:              true,
-		Avatar:                       avatars.DefaultAvatarLink(),
-		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
+		Name:            username,
+		Email:           email,
+		Passwd:          gouuid.New().String(),
+		Language:        cfg.DefaultLanguage,
+		UseCustomAvatar: true,
+		Avatar:          avatars.DefaultAvatarLink(),
 	}
-	if err := user_model.CreateUser(user); err != nil {
+	emailNotificationPreference := user_model.EmailNotificationsDisabled
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
+		KeepEmailPrivate:             util.OptionalBoolTrue,
+		EmailNotificationsPreference: &emailNotificationPreference,
+	}
+	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
 
