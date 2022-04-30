@@ -861,6 +861,7 @@
           }
         }
 
+        /* Don't show the inline timeline avatar on desktop. */
         .inline-timeline-avatar {
           display: none;
         }
@@ -3319,6 +3320,8 @@ td.blob-excerpt {
         padding-left: 4px;
       }
 
+      /* Don't show the general avatar, we show the inline avatar on mobile.
+       * And don't show the role labels, there's no place for that. */
       .timeline-avatar,
       .comment-header-right .role-label {
         display: none;
