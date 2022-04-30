@@ -93,7 +93,7 @@ func HomeSitemap(ctx *context.Context) {
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
-		Actor:     nil,
+		Actor:     ctx.Doer,
 		AllPublic: true,
 	})
 	if err != nil {
