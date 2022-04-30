@@ -8,10 +8,3 @@ package structs
 type AddCollaboratorOption struct {
 	Permission *string `json:"permission"`
 }
-
-// RepoCollaboratorPermission to get repository permission for a collaborator
-type RepoCollaboratorPermission struct {
-	Permission string `json:"permission"`
-	RoleName   string `json:"role_name"`
-	User       *User  `json:"user"`
-}

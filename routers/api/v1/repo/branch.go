@@ -259,15 +259,10 @@ func ListBranches(ctx *context.APIContext) {
 		return
 	}
 
-	apiBranches := make([]*api.Branch, 0, len(branches))
+	apiBranches := make([]*api.Branch, len(branches))
 	for i := range branches {
 		c, err := branches[i].GetCommit()
 		if err != nil {
-			// Skip if this branch doesn't exist anymore.
-			if git.IsErrNotExist(err) {
-				totalNumOfBranches--
-				continue
-			}
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
@@ -276,12 +271,11 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
-		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 			return
 		}
-		apiBranches = append(apiBranches, apiBranch)
 	}
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)

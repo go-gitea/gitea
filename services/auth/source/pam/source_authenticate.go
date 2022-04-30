@@ -12,7 +12,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/google/uuid"
@@ -59,12 +58,10 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		LoginType:   auth.PAM,
 		LoginSource: source.authSource.ID,
 		LoginName:   userName, // This is what the user typed in
-	}
-	overwriteDefault := &user_model.CreateUserOverwriteOptions{
-		IsActive: util.OptionalBoolTrue,
+		IsActive:    true,
 	}
 
-	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return user, err
 	}
 

@@ -507,12 +507,14 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	u := &user_model.User{
-		Name:   form.UserName,
-		Email:  form.Email,
-		Passwd: form.Password,
+		Name:         form.UserName,
+		Email:        form.Email,
+		Passwd:       form.Password,
+		IsActive:     !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
+		IsRestricted: setting.Service.DefaultUserIsRestricted,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, false) {
 		// error already handled
 		return
 	}
@@ -523,8 +525,8 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
-	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, gothUser *goth.User, allowLink bool) bool {
+	if !createUserInContext(ctx, tpl, form, u, gothUser, allowLink) {
 		return false
 	}
 	return handleUserCreated(ctx, u, gothUser)
@@ -532,8 +534,8 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
-	if err := user_model.CreateUser(u, overwrites); err != nil {
+func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, gothUser *goth.User, allowLink bool) (ok bool) {
+	if err := user_model.CreateUser(u); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *user_model.User
