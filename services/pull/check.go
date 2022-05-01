@@ -33,7 +33,7 @@ var prPatchCheckerQueue queue.UniqueQueue
 
 var (
 	ErrIsClosed              = errors.New("pull is cosed")
-	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
+	ErrUserNotAllowedToMerge = models.ErrDisallowedToMerge{}
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
@@ -81,13 +81,6 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return nil
 	}
 
-	if pr.ProtectedBranch != nil && (!pr.ProtectedBranch.HasEnoughApprovals(pr) ||
-		pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) ||
-		pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) ||
-		pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr)) {
-		return ErrUserNotAllowedToMerge
-	}
-
 	if pr.IsWorkInProgress() {
 		return ErrIsWorkInProgress
 	}
@@ -100,13 +93,13 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return ErrIsChecking
 	}
 
-	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
+	if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 		if models.IsErrDisallowedToMerge(err) {
 			if force {
-				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
-					return err
+				if isRepoAdmin, err2 := models.IsUserRepoAdmin(pr.BaseRepo, doer); err2 != nil {
+					return err2
 				} else if !isRepoAdmin {
-					return ErrUserNotAllowedToMerge
+					return err
 				}
 			}
 		} else {
