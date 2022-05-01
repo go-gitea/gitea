@@ -335,7 +335,7 @@
 							{{end}}
 							{{ if .HasPendingPullRequestMerge }}
 								{{ $mergeButtonColor = "red"}}
-								{{ $createdPRMergeStr:= TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.Lang }}
+								{{ $createdPRMergeStr:= TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.i18n.Lang }}
 								<div class="ui info message">
 									{{$.i18n.Tr "repo.pulls.pr_has_pending_merge_on_success" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr | Safe }}
 								</div>

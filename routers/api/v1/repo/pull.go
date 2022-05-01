@@ -792,7 +792,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -869,21 +869,22 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Merge", err)
 		return
 	}
+	// commit dbCtx
+	if err := committer.Commit(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when there are other PR's that use this branch as head branch.
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(dbCtx, pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
 		}
 		if exist {
-			if err := committer.Commit(); err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
 			ctx.Status(http.StatusOK)
 			return
 		}
@@ -912,16 +913,12 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		if err := models.AddDeletePRBranchComment(dbCtx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+		if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 			// Do not fail here as branch has already been deleted
 			log.Error("DeleteBranch: %v", err)
 		}
 	}
 
-	if err := committer.Commit(); err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
 	ctx.Status(http.StatusOK)
 }
 

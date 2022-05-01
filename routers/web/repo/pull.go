@@ -915,7 +915,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
@@ -1038,6 +1038,11 @@ func MergePullRequest(ctx *context.Context) {
 		ctx.ServerError("Merge", err)
 		return
 	}
+	// commit dbCtx
+	if err := committer.Commit(); err != nil {
+		ctx.ServerError("Commit", err)
+		return
+	}
 
 	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
@@ -1048,7 +1053,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when other pr use this branch as head branch
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(dbCtx, pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
@@ -1076,10 +1081,6 @@ func MergePullRequest(ctx *context.Context) {
 		deleteBranch(ctx, pr, headRepo)
 	}
 
-	if err := committer.Commit(); err != nil {
-		ctx.ServerError("committer.Commit", err)
-		return
-	}
 	ctx.Redirect(issue.Link())
 }
 
