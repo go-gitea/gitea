@@ -1059,10 +1059,6 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 		if exist {
-			if err := committer.Commit(); err != nil {
-				ctx.ServerError("committer.Commit", err)
-				return
-			}
 			ctx.Redirect(issue.Link())
 			return
 		}
