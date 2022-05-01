@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -238,4 +239,27 @@ func TestAPITeamSearch(t *testing.T) {
 
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token5)
 	MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAPIGetTeamRepo(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
+	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24}).(*repo.Repository)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
+
+	var results api.Repository
+
+	token := getUserToken(t, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &results)
+	assert.Equal(t, "big_test_private_4", teamRepo.Name)
+
+	// no access if not organization member
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	token5 := getUserToken(t, user5.Name)
+
+	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/?token=%s", team.ID, teamRepo.FullName(), token5)
+	MakeRequest(t, req, http.StatusNotFound)
 }
