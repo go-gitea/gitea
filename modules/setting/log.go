@@ -32,9 +32,8 @@ func GetLogDescriptions() map[string]*LogDescription {
 	descs := make(map[string]*LogDescription, len(logDescriptions))
 	for k, v := range logDescriptions {
 		subLogDescriptions := make([]SubLogDescription, len(v.SubLogDescriptions))
-		for i, s := range v.SubLogDescriptions {
-			subLogDescriptions[i] = s
-		}
+		copy(subLogDescriptions, v.SubLogDescriptions)
+
 		descs[k] = &LogDescription{
 			Name:               v.Name,
 			SubLogDescriptions: subLogDescriptions,
