@@ -558,6 +558,55 @@ func GetTeamRepos(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, repos)
 }
 
+// GetTeamRepo api for get a particular repo of team
+func GetTeamRepo(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/repos/{org}/{repo} organization orgListTeamRepo
+	// ---
+	// summary: List a particular repo of team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: org
+	//   in: path
+	//   description: organization that owns the repo to list
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo to list
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	repo := getRepositoryByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !organization.HasTeamRepo(ctx, ctx.Org.Team.OrgID, ctx.Org.Team.ID, repo.ID) {
+		ctx.NotFound()
+		return
+	}
+
+	access, err := models.AccessLevel(ctx.Doer, repo)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, access))
+}
+
 // getRepositoryByParams get repository by a team's organization ID and repo name
 func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 	repo, err := repo_model.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
