@@ -757,10 +757,8 @@ func CountUsers(opts *CountUserFilter) int64 {
 func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
 	sess := db.GetEngine(ctx).Where(builder.Eq{"type": "0"})
 
-	if opts != nil {
-		if opts.LastLoginSince != nil {
-			sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
-		}
+	if opts != nil && opts.LastLoginSince != nil {
+		sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
 	}
 
 	count, _ := sess.Count(new(User))
