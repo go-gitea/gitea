@@ -6,6 +6,7 @@ package automerge
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -227,15 +228,11 @@ func handlePull(pullID int64) {
 		return
 	}
 
-	if ready, err := pull_service.IsUserAllowedToMerge(ctx, pr, perm, doer); err != nil {
-		log.Error("IsUserAllowedToMerge: %v", err)
-		return
-	} else if !ready {
-		log.Debug("pull[%d] not ready for automerge", pr.ID)
-		return
-	}
-
 	if err := pull_service.CheckPullMergable(ctx, doer, &perm, pr, false, false); err != nil {
+		if errors.Is(pull_service.ErrUserNotAllowedToMerge, err) {
+			log.Debug("pull[%d] not ready for automerge", pr.ID)
+			return
+		}
 		log.Error(err.Error())
 		return
 	}
