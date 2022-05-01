@@ -662,8 +662,8 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *use
 	return false, nil
 }
 
-// CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
-func CheckPRReadyToMerge(ctx context.Context, pr *models.PullRequest, skipProtectedFilesCheck bool) (err error) {
+// CheckPullBranchProtections checks whether the PR is ready to be merged (reviews and status checks)
+func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, skipProtectedFilesCheck bool) (err error) {
 	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
