@@ -32,7 +32,7 @@ import (
 var prQueue queue.UniqueQueue
 
 var (
-	ErrIsClosed              = errors.New("pull is cosed")
+	ErrIsClosed              = errors.New("pull is closed")
 	ErrUserNotAllowedToMerge = models.ErrNotAllowedToMerge{}
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
