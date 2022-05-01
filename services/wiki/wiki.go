@@ -27,8 +27,7 @@ import (
 
 var (
 	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	// TODO: use clustered lock (unique queue? or *abuse* cache)
-	wikiWorkingPool = sync.NewExclusivePool()
+	wikiWorkingPool   = sync.NewExclusivePool()
 )
 
 func nameAllowed(name string) error {

@@ -19,7 +19,6 @@ import (
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
-// TODO: use clustered lock (unique queue? or *abuse* cache)
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
