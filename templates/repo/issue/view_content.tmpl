@@ -41,6 +41,9 @@
 									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
+								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
+									{{avatar .Issue.Poster}}
+								</a>
 								<span class="text grey">
 									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
 									{{.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
@@ -50,12 +53,12 @@
 						<div class="comment-header-right actions df ac">
 							{{if gt .Issue.ShowRole 0}}
 								{{if (.Issue.ShowRole.HasRole "Writer")}}
-									<div class="ui basic label">
+									<div class="ui basic label role-label">
 										{{$.i18n.Tr "repo.issues.collaborator"}}
 									</div>
 								{{end}}
 								{{if (.Issue.ShowRole.HasRole "Owner")}}
-									<div class="ui basic label">
+									<div class="ui basic label role-label">
 										{{$.i18n.Tr "repo.issues.owner"}}
 									</div>
 								{{end}}
