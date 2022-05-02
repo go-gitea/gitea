@@ -164,7 +164,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err != nil {
 			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
-				log.Error("RenderCsvDiff failed: %v", err)
+				log.Error("CreateCsvDiff FormatError failed: %v", err)
 				return CsvDiffResult{nil, "unknown csv diff error"}
 			}
 			return CsvDiffResult{nil, errMessage}
