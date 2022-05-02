@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -243,7 +244,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 
@@ -319,7 +320,7 @@ func (a *Action) GetIssueContent() string {
 type GetFeedsOptions struct {
 	db.ListOptions
 	RequestedUser   *user_model.User       // the user we want activity for
-	RequestedTeam   *Team                  // the team we want activity for
+	RequestedTeam   *organization.Team     // the team we want activity for
 	RequestedRepo   *repo_model.Repository // the repo we want activity for
 	Actor           *user_model.User       // the user viewing the activity
 	IncludePrivate  bool                   // include private actions
@@ -400,7 +401,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
@@ -510,7 +511,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				perm, err := getUserRepoPermission(ctx, repo, user)
+				perm, err := GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

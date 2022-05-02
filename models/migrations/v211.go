@@ -10,34 +10,17 @@ import (
 	"xorm.io/xorm"
 )
 
-func addPrivateIssues(x *xorm.Engine) error {
-	type Repository struct {
-		NumPrivateIssues       int
-		NumClosedPrivateIssues int
+func createForeignReferenceTable(x *xorm.Engine) error {
+	type ForeignReference struct {
+		// RepoID is the first column in all indices. now we only need 2 indices: (repo, local) and (repo, foreign, type)
+		RepoID       int64  `xorm:"UNIQUE(repo_foreign_type) INDEX(repo_local)" `
+		LocalIndex   int64  `xorm:"INDEX(repo_local)"` // the resource key inside Gitea, it can be IssueIndex, or some model ID.
+		ForeignIndex string `xorm:"INDEX UNIQUE(repo_foreign_type)"`
+		Type         string `xorm:"VARCHAR(16) INDEX UNIQUE(repo_foreign_type)"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(ForeignReference)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-
-	type Issue struct {
-		IsPrivate bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	if err := x.Sync2(new(Issue)); err != nil {
-		return err
-	}
-
-	type Team struct {
-		ID                  int64 `xorm:"pk autoincr"`
-		CanSeePrivateIssues bool  `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	if err := x.Sync2(new(Team)); err != nil {
-		return err
-	}
-
-	_, err := x.Exec("UPDATE `team` SET `can_see_private_issues` = ? WHERE `name`=?",
-		true, "Owners")
-	return err
+	return nil
 }

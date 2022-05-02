@@ -17,12 +17,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation/i18n"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -30,8 +32,6 @@ import (
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 	user_service "code.gitea.io/gitea/services/user"
-
-	"github.com/unknwon/i18n"
 )
 
 const (
@@ -106,24 +106,24 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	if len(form.Name) != 0 && ctx.User.Name != form.Name {
-		log.Debug("Changing name for %s to %s", ctx.User.Name, form.Name)
-		if err := HandleUsernameChange(ctx, ctx.User, form.Name); err != nil {
+	if len(form.Name) != 0 && ctx.Doer.Name != form.Name {
+		log.Debug("Changing name for %s to %s", ctx.Doer.Name, form.Name)
+		if err := HandleUsernameChange(ctx, ctx.Doer, form.Name); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
-		ctx.User.Name = form.Name
-		ctx.User.LowerName = strings.ToLower(form.Name)
+		ctx.Doer.Name = form.Name
+		ctx.Doer.LowerName = strings.ToLower(form.Name)
 	}
 
-	ctx.User.FullName = form.FullName
-	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
-	ctx.User.Website = form.Website
-	ctx.User.Location = form.Location
-	ctx.User.Description = form.Description
-	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
-	ctx.User.Visibility = form.Visibility
-	if err := user_model.UpdateUserSetting(ctx.User); err != nil {
+	ctx.Doer.FullName = form.FullName
+	ctx.Doer.KeepEmailPrivate = form.KeepEmailPrivate
+	ctx.Doer.Website = form.Website
+	ctx.Doer.Location = form.Location
+	ctx.Doer.Description = form.Description
+	ctx.Doer.KeepActivityPrivate = form.KeepActivityPrivate
+	ctx.Doer.Visibility = form.Visibility
+	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
@@ -134,10 +134,10 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
-	log.Trace("User settings updated: %s", ctx.User.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
+	log.Trace("User settings updated: %s", ctx.Doer.Name)
+	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -185,7 +185,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		}
 	}
 
-	if err := user_model.UpdateUserCols(db.DefaultContext, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -195,7 +195,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 // AvatarPost response for change user's avatar request
 func AvatarPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AvatarForm)
-	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
+	if err := UpdateAvatarSetting(ctx, form, ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
@@ -206,7 +206,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := user_service.DeleteAvatar(ctx.User); err != nil {
+	if err := user_service.DeleteAvatar(ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
@@ -218,12 +218,12 @@ func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOrganization"] = true
 
-	opts := models.FindOrgOptions{
+	opts := organization.FindOrgOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
 		},
-		UserID:         ctx.User.ID,
+		UserID:         ctx.Doer.ID,
 		IncludePrivate: ctx.IsSigned,
 	}
 
@@ -231,12 +231,12 @@ func Organization(ctx *context.Context) {
 		opts.Page = 1
 	}
 
-	orgs, err := models.FindOrgs(opts)
+	orgs, err := organization.FindOrgs(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)
 		return
 	}
-	total, err := models.CountOrgs(opts)
+	total, err := organization.CountOrgs(opts)
 	if err != nil {
 		ctx.ServerError("CountOrgs", err)
 		return
@@ -268,7 +268,7 @@ func Repos(ctx *context.Context) {
 
 	adoptOrDelete := ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories)
 
-	ctxUser := ctx.User
+	ctxUser := ctx.Doer
 	count := 0
 
 	if adoptOrDelete {
@@ -360,7 +360,7 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	var hiddenCommentTypes *big.Int
-	val, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes)
+	val, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes)
 	if err != nil {
 		ctx.ServerError("GetUserSetting", err)
 		return
@@ -391,13 +391,13 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_model.UpdateUserTheme(ctx.User, form.Theme); err != nil {
+	if err := user_model.UpdateUserTheme(ctx.Doer, form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
-	log.Trace("Update user theme: %s", ctx.User.Name)
+	log.Trace("Update user theme: %s", ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
@@ -414,31 +414,31 @@ func UpdateUserLang(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 			return
 		}
-		ctx.User.Language = form.Language
+		ctx.Doer.Language = form.Language
 	}
 
-	if err := user_model.UpdateUserSetting(ctx.User); err != nil {
+	if err := user_model.UpdateUserSetting(ctx.Doer); err != nil {
 		ctx.ServerError("UpdateUserSetting", err)
 		return
 	}
 
 	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
-	log.Trace("User settings updated: %s", ctx.User.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_language_success"))
+	log.Trace("User settings updated: %s", ctx.Doer.Name)
+	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 
 // UpdateUserHiddenComments update a user's shown comment types
 func UpdateUserHiddenComments(ctx *context.Context) {
-	err := user_model.SetUserSetting(ctx.User.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
+	err := user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyHiddenCommentTypes, forms.UserHiddenCommentTypesFromRequest(ctx).String())
 	if err != nil {
 		ctx.ServerError("SetUserSetting", err)
 		return
 	}
 
-	log.Trace("User settings updated: %s", ctx.User.Name)
+	log.Trace("User settings updated: %s", ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }

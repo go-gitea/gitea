@@ -28,7 +28,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	}
 
 	resp, err := http.Get("https://gitlab.com/gitea/test_repo")
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
@@ -214,12 +214,10 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: gitlabIssueContext{
-			foreignID:      2,
-			localID:        2,
-			IsMergeRequest: false,
-		},
+	comments, _, err := downloader.GetComments(&base.Issue{
+		Number:       2,
+		ForeignIndex: 2,
+		Context:      gitlabIssueContext{IsMergeRequest: false},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -301,15 +299,12 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			Merged:         false,
 			MergedTime:     nil,
 			MergeCommitSHA: "",
-			Context: gitlabIssueContext{
-				foreignID:      2,
-				localID:        4,
-				IsMergeRequest: true,
-			},
+			ForeignIndex:   2,
+			Context:        gitlabIssueContext{IsMergeRequest: true},
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(base.BasicIssueContext(1))
+	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 1, ForeignIndex: 1})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -328,7 +323,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 
-	rvs, err = downloader.GetReviews(base.BasicIssueContext(2))
+	rvs, err = downloader.GetReviews(&base.PullRequest{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -469,7 +464,8 @@ func TestGitlabGetReviews(t *testing.T) {
 		mock, review := convertTestCase(testCase)
 		mux.HandleFunc(fmt.Sprintf("/api/v4/projects/%d/merge_requests/%d/approvals", testCase.repoID, testCase.prID), mock)
 
-		rvs, err := downloader.GetReviews(base.BasicIssueContext(testCase.prID))
+		id := int64(testCase.prID)
+		rvs, err := downloader.GetReviews(&base.Issue{Number: id, ForeignIndex: id})
 		assert.NoError(t, err)
 		assertReviewsEqual(t, []*base.Review{&review}, rvs)
 	}

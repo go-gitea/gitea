@@ -9,19 +9,28 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 
 	"github.com/gorilla/feeds"
 )
 
-// ShowUserFeed show user activity as RSS / Atom feed
-func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
+// ShowUserFeedRSS show user activity as RSS feed
+func ShowUserFeedRSS(ctx *context.Context) {
+	showUserFeed(ctx, "rss")
+}
+
+// ShowUserFeedAtom show user activity as Atom feed
+func ShowUserFeedAtom(ctx *context.Context) {
+	showUserFeed(ctx, "atom")
+}
+
+// showUserFeed show user activity as RSS / Atom feed
+func showUserFeed(ctx *context.Context, formatType string) {
 	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctxUser,
-		Actor:           ctx.User,
+		RequestedUser:   ctx.ContextUser,
+		Actor:           ctx.Doer,
 		IncludePrivate:  false,
-		OnlyPerformedBy: !ctxUser.IsOrganization(),
+		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
@@ -31,9 +40,9 @@ func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType str
 	}
 
 	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.feed_of", ctxUser.DisplayName()),
-		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
-		Description: ctxUser.Description,
+		Title:       ctx.Tr("home.feed_of", ctx.ContextUser.DisplayName()),
+		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
+		Description: ctx.ContextUser.Description,
 		Created:     time.Now(),
 	}
 

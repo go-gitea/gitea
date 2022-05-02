@@ -28,69 +28,69 @@ import (
 	"time"
 )
 
-// Timeout represents the duration that XSRF tokens are valid.
+// CsrfTokenTimeout represents the duration that XSRF tokens are valid.
 // It is exported so clients may set cookie timeouts that match generated tokens.
-const Timeout = 24 * time.Hour
+const CsrfTokenTimeout = 24 * time.Hour
 
-// clean sanitizes a string for inclusion in a token by replacing all ":"s.
-func clean(s string) string {
-	return strings.ReplaceAll(s, ":", "_")
-}
+// CsrfTokenRegenerationInterval is the interval between token generations, old tokens are still valid before CsrfTokenTimeout
+var CsrfTokenRegenerationInterval = 10 * time.Minute
 
-// GenerateToken returns a URL-safe secure XSRF token that expires in 24 hours.
-//
+var csrfTokenSep = []byte(":")
+
+// GenerateCsrfToken returns a URL-safe secure XSRF token that expires in CsrfTokenTimeout hours.
 // key is a secret key for your application.
 // userID is a unique identifier for the user.
 // actionID is the action the user is taking (e.g. POSTing to a particular path).
-func GenerateToken(key, userID, actionID string) string {
-	return generateTokenAtTime(key, userID, actionID, time.Now())
-}
-
-// generateTokenAtTime is like Generate, but returns a token that expires 24 hours from now.
-func generateTokenAtTime(key, userID, actionID string, now time.Time) string {
+func GenerateCsrfToken(key, userID, actionID string, now time.Time) string {
+	nowUnixNano := now.UnixNano()
+	nowUnixNanoStr := strconv.FormatInt(nowUnixNano, 10)
 	h := hmac.New(sha1.New, []byte(key))
-	fmt.Fprintf(h, "%s:%s:%d", clean(userID), clean(actionID), now.UnixNano())
-	tok := fmt.Sprintf("%s:%d", h.Sum(nil), now.UnixNano())
+	h.Write([]byte(strings.ReplaceAll(userID, ":", "_")))
+	h.Write(csrfTokenSep)
+	h.Write([]byte(strings.ReplaceAll(actionID, ":", "_")))
+	h.Write(csrfTokenSep)
+	h.Write([]byte(nowUnixNanoStr))
+	tok := fmt.Sprintf("%s:%s", h.Sum(nil), nowUnixNanoStr)
 	return base64.RawURLEncoding.EncodeToString([]byte(tok))
 }
 
-// ValidToken returns true if token is a valid, unexpired token returned by Generate.
-func ValidToken(token, key, userID, actionID string) bool {
-	return validTokenAtTime(token, key, userID, actionID, time.Now())
-}
-
-// validTokenAtTime is like Valid, but it uses now to check if the token is expired.
-func validTokenAtTime(token, key, userID, actionID string, now time.Time) bool {
-	// Decode the token.
+func ParseCsrfToken(token string) (issueTime time.Time, ok bool) {
 	data, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
-		return false
+		return time.Time{}, false
 	}
 
-	// Extract the issue time of the token.
-	sep := bytes.LastIndex(data, []byte{':'})
-	if sep < 0 {
-		return false
+	pos := bytes.LastIndex(data, csrfTokenSep)
+	if pos == -1 {
+		return time.Time{}, false
 	}
-	nanos, err := strconv.ParseInt(string(data[sep+1:]), 10, 64)
+	nanos, err := strconv.ParseInt(string(data[pos+1:]), 10, 64)
 	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(0, nanos), true
+}
+
+// ValidCsrfToken returns true if token is a valid and unexpired token returned by Generate.
+func ValidCsrfToken(token, key, userID, actionID string, now time.Time) bool {
+	issueTime, ok := ParseCsrfToken(token)
+	if !ok {
 		return false
 	}
-	issueTime := time.Unix(0, nanos)
 
 	// Check that the token is not expired.
-	if now.Sub(issueTime) >= Timeout {
+	if now.Sub(issueTime) >= CsrfTokenTimeout {
 		return false
 	}
 
 	// Check that the token is not from the future.
-	// Allow 1 minute grace period in case the token is being verified on a
+	// Allow 1-minute grace period in case the token is being verified on a
 	// machine whose clock is behind the machine that issued the token.
 	if issueTime.After(now.Add(1 * time.Minute)) {
 		return false
 	}
 
-	expected := generateTokenAtTime(key, userID, actionID, issueTime)
+	expected := GenerateCsrfToken(key, userID, actionID, issueTime)
 
 	// Check that the token matches the expected value.
 	// Use constant time comparison to avoid timing attacks.

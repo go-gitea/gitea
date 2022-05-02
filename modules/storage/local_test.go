@@ -10,36 +10,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLocalPathIsValid(t *testing.T) {
+func TestBuildLocalPath(t *testing.T) {
 	kases := []struct {
-		path  string
-		valid bool
+		localDir string
+		path     string
+		expected string
 	}{
 		{
+			"a",
+			"0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			true,
 		},
 		{
-			"../a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			false,
+			"a",
+			"../0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"a\\0\\a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			true,
+			"a",
+			"0\\a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"b/../a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			false,
+			"b",
+			"a/../0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 		{
-			"..\\a/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-			false,
+			"b",
+			"a\\..\\0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+			"b/0/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
 		},
 	}
 
 	for _, k := range kases {
 		t.Run(k.path, func(t *testing.T) {
-			assert.EqualValues(t, k.valid, isLocalPathValid(k.path))
+			l := LocalStorage{dir: k.localDir}
+
+			assert.EqualValues(t, k.expected, l.buildLocalPath(k.path))
 		})
 	}
 }

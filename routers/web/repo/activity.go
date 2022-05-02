@@ -53,7 +53,7 @@ func Activity(ctx *context.Context) {
 
 	var userID int64
 	if ctx.IsSigned {
-		userID = ctx.User.ID
+		userID = ctx.Doer.ID
 	}
 
 	var err error

@@ -116,7 +116,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
+	if !issue.CanSeeIssue(ctx.Doer.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -133,8 +133,8 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	// only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.User.Name, user.Name))
+	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 
@@ -202,12 +202,12 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
+	if !issue.CanSeeIssue(ctx.Doer.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
 
-	watching, err := models.CheckIssueWatch(ctx.User, issue)
+	watching, err := models.CheckIssueWatch(ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -275,7 +275,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 
 	var userID int64
 	if ctx.IsSigned {
-		userID = ctx.User.ID
+		userID = ctx.Doer.ID
 	}
 	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
@@ -300,7 +300,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
 	}
 
 	count, err := models.CountIssueWatchers(issue.ID)

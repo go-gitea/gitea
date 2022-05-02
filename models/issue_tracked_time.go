@@ -53,7 +53,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 		if err != nil {
 			return
 		}
-		err = t.Issue.loadRepo(ctx)
+		err = t.Issue.LoadRepo(ctx)
 		if err != nil {
 			return
 		}
@@ -170,11 +170,11 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -254,10 +254,10 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return ErrNotExist{}
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -286,7 +286,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,

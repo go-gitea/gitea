@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -144,6 +143,11 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file from base commit"}
+		}
+
 		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.Name}, headCommit)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
@@ -151,13 +155,17 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file from head commit"}
+		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
 			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
-				log.Error("RenderCsvDiff failed: %v", err)
-				return CsvDiffResult{nil, ""}
+				log.Error("CreateCsvDiff FormatError failed: %v", err)
+				return CsvDiffResult{nil, "unknown csv diff error"}
 			}
 			return CsvDiffResult{nil, errMessage}
 		}
@@ -269,7 +277,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				}
 				return nil
 			}
-			if err := ci.HeadRepo.GetOwner(db.DefaultContext); err != nil {
+			if err := ci.HeadRepo.GetOwner(ctx); err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -299,6 +307,13 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ci.BaseBranch = baseCommit.ID.String()
 			ctx.Data["BaseBranch"] = ci.BaseBranch
 			baseIsCommit = true
+		} else if ci.BaseBranch == git.EmptySHA {
+			if isSameRepo {
+				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadBranch))
+			} else {
+				ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ci.HeadRepo.FullName()) + ":" + util.PathEscapeSegments(ci.HeadBranch))
+			}
+			return nil
 		} else {
 			ctx.NotFound("IsRefExist", nil)
 			return nil
@@ -338,8 +353,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
 	var ownForkRepo *repo_model.Repository
-	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
-		repo := repo_model.GetForkedRepo(ctx.User.ID, baseRepo.ID)
+	if ctx.Doer != nil && baseRepo.OwnerID != ctx.Doer.ID {
+		repo := repo_model.GetForkedRepo(ctx.Doer.ID, baseRepo.ID)
 		if repo != nil {
 			ownForkRepo = repo
 			ctx.Data["OwnForkRepo"] = ownForkRepo
@@ -354,7 +369,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		has = true
 	}
 
-	// 4. If the ctx.User has their own fork of the baseRepo and the headUser is the ctx.User
+	// 4. If the ctx.Doer has their own fork of the baseRepo and the headUser is the ctx.Doer
 	// set the headRepo to the ownFork
 	if !has && ownForkRepo != nil && ownForkRepo.OwnerID == ci.HeadUser.ID {
 		ci.HeadRepo = ownForkRepo
@@ -383,7 +398,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepositoryCtx(ctx, ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = git.OpenRepository(ctx, ci.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -392,11 +407,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
+	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
-	// Now we need to assert that the ctx.User has permission to read
+	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
+	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -404,7 +420,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if !permBase.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.User,
+				ctx.Doer,
 				baseRepo,
 				permBase)
 		}
@@ -414,8 +430,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// If we're not merging from the same repo:
 	if !isSameRepo {
-		// Assert ctx.User has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ci.HeadRepo, ctx.User)
+		// Assert ctx.Doer has permission to read headRepo's codes
+		permHead, err := models.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
@@ -423,13 +439,14 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if !permHead.CanRead(unit.TypeCode) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
-					ctx.User,
+					ctx.Doer,
 					ci.HeadRepo,
 					permHead)
 			}
 			ctx.NotFound("ParseCompareInfo", nil)
 			return nil
 		}
+		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
 	// If we have a rootRepo and it's different from:
@@ -439,7 +456,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(rootRepo, ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -464,7 +481,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -506,7 +523,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if ctx.Data["PageIsComparePull"] == true && !permBase.CanReadIssuesOrPulls(true) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot create/read pull requests in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
-				ctx.User,
+				ctx.Doer,
 				baseRepo,
 				permBase)
 		}
@@ -655,7 +672,7 @@ func PrepareCompareDiff(
 }
 
 func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *repo_model.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -789,7 +806,7 @@ func ExcerptBlob(ctx *context.Context) {
 	gitRepo := ctx.Repo.GitRepo
 	if ctx.FormBool("wiki") {
 		var err error
-		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

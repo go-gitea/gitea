@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	reservedRepoNames    = []string{".", ".."}
+	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
@@ -105,21 +105,24 @@ type Repository struct {
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
 
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
-	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
-	NumOpenPulls        int `xorm:"-"`
-	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenMilestones   int `xorm:"-"`
-	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenProjects     int `xorm:"-"`
+	NumWatches             int
+	NumStars               int
+	NumForks               int
+	NumIssues              int
+	NumClosedIssues        int
+	NumOpenIssues          int `xorm:"-"`
+	NumPrivateIssues       int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedPrivateIssues int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenPrivateIssues   int `xorm:"-"`
+	NumPulls               int
+	NumClosedPulls         int
+	NumOpenPulls           int `xorm:"-"`
+	NumMilestones          int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedMilestones    int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenMilestones      int `xorm:"-"`
+	NumProjects            int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects      int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects        int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -533,7 +536,6 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
-	Git   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
@@ -751,38 +753,4 @@ func countRepositories(userID int64, private bool) int64 {
 // set it true to count all repositories.
 func CountRepositories(private bool) int64 {
 	return countRepositories(-1, private)
-}
-
-// CountUserRepositories returns number of repositories user owns.
-// Argument private only takes effect when it is false,
-// set it true to count all repositories.
-func CountUserRepositories(userID int64, private bool) int64 {
-	return countRepositories(userID, private)
-}
-
-func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
-	return e.Count(&Repository{OwnerID: ownerID})
-}
-
-func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
-}
-
-func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
-}
-
-// GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), ownerID)
-}
-
-// GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
-	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
-	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }

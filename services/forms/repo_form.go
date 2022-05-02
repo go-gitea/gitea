@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -238,6 +239,7 @@ type WebhookForm struct {
 	PullRequestReview    bool
 	PullRequestSync      bool
 	Repository           bool
+	Package              bool
 	Active               bool
 	BranchFilter         string `binding:"GlobPattern"`
 }
@@ -420,16 +422,17 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title          string `binding:"Required;MaxSize(255)"`
-	LabelIDs       string `form:"label_ids"`
-	AssigneeIDs    string `form:"assignee_ids"`
-	Ref            string `form:"ref"`
-	MilestoneID    int64
-	ProjectID      int64
-	AssigneeID     int64
-	Content        string
-	Files          []string
-	IsConfidential bool `form:"is_confidential"`
+	Title               string `binding:"Required;MaxSize(255)"`
+	LabelIDs            string `form:"label_ids"`
+	AssigneeIDs         string `form:"assignee_ids"`
+	Ref                 string `form:"ref"`
+	MilestoneID         int64
+	ProjectID           int64
+	AssigneeID          int64
+	Content             string
+	Files               []string
+	AllowMaintainerEdit bool
+	IsConfidential      bool `form:"is_confidential"`
 }
 
 // Validate validates the fields
@@ -500,7 +503,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 }
 
 // UserCreateProjectForm is a from for creating an individual or organization
@@ -508,7 +511,7 @@ type CreateProjectForm struct {
 type UserCreateProjectForm struct {
 	Title     string `binding:"Required;MaxSize(100)"`
 	Content   string
-	BoardType models.ProjectBoardType
+	BoardType project_model.BoardType
 	UID       int64 `binding:"Required"`
 }
 
@@ -598,6 +601,31 @@ func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// SetDefaults if not provided for mergestyle and commit message
+func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+	if f.Do == "" {
+		f.Do = "merge"
+	}
+
+	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
+	if len(f.MergeTitleField) == 0 {
+		switch f.Do {
+		case "merge", "rebase-merge":
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
+		case "squash":
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+		}
+	}
+
+	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
+	if len(f.MergeMessageField) > 0 {
+		f.MergeTitleField += "\n\n" + f.MergeMessageField
+		f.MergeMessageField = ""
+	}
+
+	return
+}
+
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
 	Origin         string `binding:"Required;In(timeline,diff)"`
@@ -656,6 +684,11 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 type DismissReviewForm struct {
 	ReviewID int64 `binding:"Required"`
 	Message  string
+}
+
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+	AllowMaintainerEdit bool
 }
 
 // __________       .__

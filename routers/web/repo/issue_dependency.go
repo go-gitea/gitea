@@ -27,11 +27,11 @@ func AddDependency(ctx *context.Context) {
 
 	var userID int64
 	if ctx.IsSigned {
-		userID = ctx.User.ID
+		userID = ctx.Doer.ID
 	}
 	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
-			UserID: ctx.User.ID,
+			UserID: ctx.Doer.ID,
 			ID:     issue.ID,
 			RepoID: ctx.Repo.Repository.ID,
 			Index:  ctx.ParamsInt64("index"),
@@ -40,20 +40,20 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
 	depID := ctx.FormInt64("newDependency")
 
-	if err = issue.LoadRepo(); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL())
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -64,7 +64,7 @@ func AddDependency(ctx *context.Context) {
 
 	if !canDepBeLoaded(issue, dep, ctx) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
-			UserID: ctx.User.ID,
+			UserID: ctx.Doer.ID,
 			ID:     dep.ID,
 			RepoID: dep.Repo.ID,
 			Index:  ctx.ParamsInt64("index"),
@@ -84,7 +84,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	err = models.CreateIssueDependency(ctx.User, issue, dep)
+	err = models.CreateIssueDependency(ctx.Doer, issue, dep)
 	if err != nil {
 		if models.IsErrDependencyExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
@@ -114,7 +114,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	var userID int64
 	if ctx.IsSigned {
-		userID = ctx.User.ID
+		userID = ctx.Doer.ID
 	}
 	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
@@ -127,14 +127,14 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(ctx.Doer, issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
 
 	depID := ctx.FormInt64("removeDependencyID")
 
-	if err = issue.LoadRepo(); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		ctx.ServerError("LoadRepo", err)
 		return
 	}
@@ -163,7 +163,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	if !canDepBeLoaded(issue, dep, ctx) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
-			UserID: ctx.User.ID,
+			UserID: ctx.Doer.ID,
 			ID:     dep.ID,
 			RepoID: dep.Repo.ID,
 			Index:  ctx.ParamsInt64("index"),
@@ -171,7 +171,7 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {
+	if err = models.RemoveIssueDependency(ctx.Doer, issue, dep, depType); err != nil {
 		if models.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
 			return
@@ -181,31 +181,31 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }
 
 func canDepBeLoaded(issue *models.Issue, dep *models.Issue, ctx *context.Context) bool {
 	if issue.RepoID == dep.RepoID {
 		var userID int64
 		if ctx.IsSigned {
-			userID = ctx.User.ID
+			userID = ctx.Doer.ID
 		}
 		if !dep.CanSeeIssue(userID, &ctx.Repo.Permission) {
 			return false
 		}
 	} else {
-		if err := dep.LoadRepo(); err != nil {
+		if err := dep.LoadRepo(ctx); err != nil {
 			ctx.ServerError("LoadRepo", err)
 		}
 
-		perm, err := models.GetUserRepoPermission(dep.Repo, ctx.User)
+		perm, err := models.GetUserRepoPermission(ctx, dep.Repo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 		}
 
 		var userID int64
 		if ctx.IsSigned {
-			userID = ctx.User.ID
+			userID = ctx.Doer.ID
 		}
 		if !dep.CanSeeIssue(userID, &perm) {
 			return false

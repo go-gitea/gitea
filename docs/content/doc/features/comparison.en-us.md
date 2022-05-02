@@ -34,25 +34,25 @@ _Symbols used in table:_
 ## General Features
 
 | Feature                             | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |
-| ----------------------------------- | -------------------------------------------------- | ---- | --------- | --------- | --------- | -------------- | ------------ |
-| Open source and free                | ✓                                                  | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
-| Low resource usage (RAM/CPU)        | ✓                                                  | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
-| Multiple database support           | ✓                                                  | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
-| Multiple OS support                 | ✓                                                  | ✓    | ✘         | ✘         | ✘         | ✘              | ✓            |
-| Easy upgrade process                | ✓                                                  | ✓    | ✘         | ✓         | ✓         | ✘              | ✓            |
-| Markdown support                    | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Orgmode support                     | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
-| CSV support                         | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
-| Third-party render tool support     | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
-| Static Git-powered pages            | [✘](https://github.com/go-gitea/gitea/issues/302)  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Integrated Git-powered wiki         | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
-| Deploy Tokens                       | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Repository Tokens with write rights | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘              | ✘            |
-| External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
-| Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Subgroups: groups within groups     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| ----------------------------------- | ---------------------------------------------------| ---- | --------- | --------- | --------- | -------------- | ------------ |
+| Open source and free                | ✓                                                 | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
+| Low resource usage (RAM/CPU)        | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
+| Multiple database support           | ✓                                                 | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
+| Multiple OS support                 | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✓            |
+| Easy upgrade process                | ✓                                                 | ✓    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Markdown support                    | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Orgmode support                     | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
+| CSV support                         | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
+| Third-party render tool support     | ✓                                                 | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
+| Static Git-powered pages            | [✘](https://github.com/go-gitea/gitea/issues/302) | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Integrated Git-powered wiki         | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
+| Deploy Tokens                       | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Repository Tokens with write rights | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Built-in Package/Container Registry | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| External git mirroring              | ✓                                                 | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
+| WebAuthn (2FA)                      | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
+| Built-in CI/CD                      | ✘                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Subgroups: groups within groups     | ✘                                                 | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
 
 ## Code management
 

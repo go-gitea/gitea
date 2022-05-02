@@ -5,7 +5,11 @@
 package issue
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,7 +44,7 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleAssignee(issue *models.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *models.Comment, err error) {
-	removed, comment, err = issue.ToggleAssignee(doer, assigneeID)
+	removed, comment, err = models.ToggleIssueAssignee(issue, doer, assigneeID)
 	if err != nil {
 		return
 	}
@@ -76,7 +80,7 @@ func ReviewRequest(issue *models.Issue, doer, reviewer *user_model.User, isAdd b
 }
 
 // IsValidReviewRequest Check permission for ReviewRequest
-func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *models.Issue, permDoer *models.Permission) error {
+func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, isAdd bool, issue *models.Issue, permDoer *models.Permission) error {
 	if reviewer.IsOrganization() {
 		return models.ErrNotValidReviewRequest{
 			Reason: "Organization can't be added as reviewer",
@@ -92,14 +96,14 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 		}
 	}
 
-	permReviewer, err := models.GetUserRepoPermission(issue.Repo, reviewer)
+	permReviewer, err := models.GetUserRepoPermission(ctx, issue.Repo, reviewer)
 	if err != nil {
 		return err
 	}
 
 	if permDoer == nil {
 		permDoer = new(models.Permission)
-		*permDoer, err = models.GetUserRepoPermission(issue.Repo, doer)
+		*permDoer, err = models.GetUserRepoPermission(ctx, issue.Repo, doer)
 		if err != nil {
 			return err
 		}
@@ -166,7 +170,7 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 }
 
 // IsValidTeamReviewRequest Check permission for ReviewRequest Team
-func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAdd bool, issue *models.Issue) error {
+func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, doer *user_model.User, isAdd bool, issue *models.Issue) error {
 	if doer.IsOrganization() {
 		return models.ErrNotValidReviewRequest{
 			Reason: "Organization can't be doer to add reviewer",
@@ -175,7 +179,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 		}
 	}
 
-	permission, err := models.GetUserRepoPermission(issue.Repo, doer)
+	permission, err := models.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 		return err
@@ -183,7 +187,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 
 	if isAdd {
 		if issue.Repo.IsPrivate {
-			hasTeam := models.HasTeamRepo(reviewer.OrgID, reviewer.ID, issue.RepoID)
+			hasTeam := organization.HasTeamRepo(ctx, reviewer.OrgID, reviewer.ID, issue.RepoID)
 
 			if !hasTeam {
 				return models.ErrNotValidReviewRequest{
@@ -221,7 +225,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 }
 
 // TeamReviewRequest add or remove a review request from a team for this PR, and make comment for it.
-func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *models.Team, isAdd bool) (comment *models.Comment, err error) {
+func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *organization.Team, isAdd bool) (comment *models.Comment, err error) {
 	if isAdd {
 		comment, err = models.AddTeamReviewRequest(issue, reviewer, doer)
 	} else {
@@ -241,11 +245,14 @@ func TeamReviewRequest(issue *models.Issue, doer *user_model.User, reviewer *mod
 		return
 	}
 
-	if err = reviewer.GetMembers(&models.SearchMembersOptions{}); err != nil {
+	members, err := organization.GetTeamMembers(db.DefaultContext, &organization.SearchMembersOptions{
+		TeamID: reviewer.ID,
+	})
+	if err != nil {
 		return
 	}
 
-	for _, member := range reviewer.Members {
+	for _, member := range members {
 		if member.ID == comment.Issue.PosterID {
 			continue
 		}

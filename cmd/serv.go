@@ -243,7 +243,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
 	os.Setenv(models.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
 	os.Setenv(models.EnvPRID, fmt.Sprintf("%d", 0))
-	os.Setenv(models.EnvIsDeployKey, fmt.Sprintf("%t", results.IsDeployKey))
+	os.Setenv(models.EnvDeployKeyID, fmt.Sprintf("%d", results.DeployKeyID))
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
 	os.Setenv(models.EnvAppURL, setting.AppURL)
 
@@ -294,6 +294,15 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.CommandContext(ctx, verbs[0], verbs[1], repoPath)
 	} else {
 		gitcmd = exec.CommandContext(ctx, verb, repoPath)
+	}
+
+	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
+	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
+	if _, err := os.Stat(setting.RepoRootPath); err != nil {
+		if os.IsNotExist(err) {
+			return fail("Incorrect configuration.",
+				"Directory `[repository]` `ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository]` `ROOT` an absolute value.")
+		}
 	}
 
 	gitcmd.Dir = setting.RepoRootPath

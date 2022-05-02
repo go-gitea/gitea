@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -23,11 +24,11 @@ func GetUserHeatmapDataByUser(user, doer *user_model.User) ([]*UserHeatmapData, 
 }
 
 // GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
-func GetUserHeatmapDataByUserTeam(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUserTeam(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	return getUserHeatmapData(user, team, doer)
 }
 
-func getUserHeatmapData(user *user_model.User, team *Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
 	if !activityReadable(user, doer) {
