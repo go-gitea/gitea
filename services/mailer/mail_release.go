@@ -6,9 +6,9 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -25,13 +25,13 @@ const (
 )
 
 // MailNewRelease send new release notify to all all repo watchers.
-func MailNewRelease(rel *models.Release) {
+func MailNewRelease(ctx context.Context, rel *models.Release) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
 	}
 
-	watcherIDList, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, rel.RepoID)
+	watcherIDList, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
@@ -51,15 +51,16 @@ func MailNewRelease(rel *models.Release) {
 	}
 
 	for lang, tos := range langMap {
-		mailNewRelease(lang, tos, rel)
+		mailNewRelease(ctx, lang, tos, rel)
 	}
 }
 
-func mailNewRelease(lang string, tos []string, rel *models.Release) {
+func mailNewRelease(ctx context.Context, lang string, tos []string, rel *models.Release) {
 	locale := translation.NewLocale(lang)
 
 	var err error
 	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: rel.Repo.Link(),
 		Metas:     rel.Repo.ComposeMetas(),
 	}, rel.Note)
@@ -74,8 +75,9 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 		"Subject":  subject,
 		"Language": locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailBody bytes.Buffer

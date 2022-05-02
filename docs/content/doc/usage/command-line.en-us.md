@@ -129,7 +129,7 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
         - `--scopes`: Additional scopes to request for this OAuth2 source. (Optional)
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
@@ -152,7 +152,7 @@ Admin operations:
         - `--custom-profile-url`: Use a custom Profile URL (option for GitLab/GitHub).
         - `--custom-email-url`: Use a custom Email URL (option for GitHub).
         - `--icon-url`: Custom icon URL for OAuth2 login source.
-        - `--override-local-2fa`: Allow source to override local 2FA. (Optional)
+        - `--skip-local-2fa`: Allow source to override local 2FA. (Optional)
         - `--scopes`: Additional scopes to request for this OAuth2 source.
         - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
         - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
@@ -161,6 +161,33 @@ Admin operations:
         - `--restricted-group`: Group Claim value for restricted users. (Optional)
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
+    - `add-smtp`:
+      - Options:
+        - `--name`: Application Name. Required.
+        - `--auth-type`: SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5). Default to PLAIN.
+        - `--host`: SMTP host. Required.
+        - `--port`: SMTP port. Required.
+        - `--force-smtps`: SMTPS is always used on port 465. Set this to force SMTPS on other ports.
+        - `--skip-verify`: Skip TLS verify.
+        - `--helo-hostname`: Hostname sent with HELO. Leave blank to send current hostname.
+        - `--disable-helo`: Disable SMTP helo.
+        - `--allowed-domains`: Leave empty to allow all domains. Separate multiple domains with a comma (',').
+        - `--skip-local-2fa`: Skip 2FA to log on.
+        - `--active`: This Authentication Source is Activated.
+        Remarks:
+        `--force-smtps`, `--skip-verify`, `--disable-helo`, `--skip-loca-2fs` and `--active` options can be used in form:
+        - `--option`, `--option=true` to enable
+        - `--option=false` to disable
+        If those options are not specified value would not be changed in `update-smtp` or would use default `false` value in `add-smtp`
+      - Examples:
+        - `gitea admin auth add-smtp --name ldap --host smtp.mydomain.org --port 587 --skip-verify --active`
+    - `update-smtp`:
+      - Options:
+        - `--id`: ID of source to be updated. Required.
+        - other options are shared with `add-smtp`
+      - Examples:
+        - `gitea admin auth update-smtp --id 1 --host smtp.mydomain.org --port 587 --skip-verify=false`
+        - `gitea admin auth update-smtp --id 1 --active=false`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
       - Options:
         - `--name value`: Authentication name. Required.
@@ -286,8 +313,13 @@ in the current directory.
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
   - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
+  - `--skip-lfs-data`: Skip dumping of LFS data. Optional.
+  - `--skip-attachment-data`: Skip dumping of attachment data. Optional.
+  - `--skip-package-data`: Skip dumping of package data. Optional.
+  - `--skip-log`: Skip dumping of log data. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
+  - `--type`: Set the dump output format. Optional. (default: zip)
 - Examples:
   - `gitea dump`
   - `gitea dump --verbose`
@@ -476,6 +508,13 @@ Manage running server operations:
               - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
               - `--send-to value`, `-s value`: Email address(es) to send to
               - `--subject value`, `-S value`: Subject header of sent emails
+  - `processes`: Display Gitea processes and goroutine information
+    - Options:
+      - `--flat`: Show processes as flat table rather than as tree
+      - `--no-system`: Do not show system processes
+      - `--stacktraces`: Show stacktraces for goroutines associated with processes
+      - `--json`: Output as json
+      - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
 
 ### dump-repo
 

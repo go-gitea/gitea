@@ -18,8 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const privateActivityTestAdmin = "user1"
-const privateActivityTestUser = "user2"
+const (
+	privateActivityTestAdmin = "user1"
+	privateActivityTestUser  = "user2"
+)
 
 // user3 is an organization so it is not usable here
 const privateActivityTestOtherUser = "user4"
@@ -51,7 +53,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {

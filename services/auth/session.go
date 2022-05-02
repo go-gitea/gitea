@@ -19,8 +19,7 @@ var (
 
 // Session checks if there is a user uid stored in the session and returns the user
 // object for that uid.
-type Session struct {
-}
+type Session struct{}
 
 // Name represents the name of auth method
 func (s *Session) Name() string {

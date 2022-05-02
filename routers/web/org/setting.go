@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -74,10 +75,14 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
 		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			if db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) {
+			switch {
+			case db.IsErrNameReserved(err):
 				ctx.Data["OrgName"] = true
-				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
-			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Data["OrgName"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			default:
 				ctx.ServerError("ChangeUserName", err)
 			}
 			return
@@ -92,7 +97,7 @@ func SettingsPost(ctx *context.Context) {
 	org.Name = form.Name
 	org.LowerName = strings.ToLower(form.Name)
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		org.MaxRepoCreation = form.MaxRepoCreation
 	}
 
@@ -113,7 +118,8 @@ func SettingsPost(ctx *context.Context) {
 	// update forks visibility
 	if visibilityChanged {
 		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
-			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos}})
+			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
+		})
 		if err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
@@ -176,6 +182,9 @@ func SettingsDelete(ctx *context.Context) {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
+			} else if models.IsErrUserOwnPackages(err) {
+				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
+				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {
 				ctx.ServerError("DeleteOrganization", err)
 			}
@@ -227,6 +236,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

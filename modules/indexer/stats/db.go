@@ -15,8 +15,7 @@ import (
 )
 
 // DBIndexer implements Indexer interface to use database's like search
-type DBIndexer struct {
-}
+type DBIndexer struct{}
 
 // Index repository status function
 func (db *DBIndexer) Index(id int64) error {
@@ -36,8 +35,11 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
+		if err.Error() == "no such file or directory" {
+			return nil
+		}
 		return err
 	}
 	defer gitRepo.Close()

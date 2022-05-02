@@ -111,8 +111,17 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	owner, err := user_model.GetUserByName(results.OwnerName)
 	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			// User is fetching/cloning a non-existent repository
+			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
+				Results: results,
+				Err:     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+			})
+			return
+		}
 		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-		ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
+		ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 			Results: results,
 			Err:     fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
 		})
@@ -135,7 +144,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
-					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+					log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
 					ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 						Results: results,
 						Err:     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
@@ -220,8 +229,6 @@ func ServCommand(ctx *context.PrivateContext) {
 	var deployKey *asymkey_model.DeployKey
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
-		results.IsDeployKey = true
-
 		var err error
 		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
 		if err != nil {
@@ -239,6 +246,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			})
 			return
 		}
+		results.DeployKeyID = deployKey.ID
 		results.KeyName = deployKey.Name
 
 		// FIXME: Deploy keys aren't really the owner of the repo pushing changes
@@ -312,7 +320,7 @@ func ServCommand(ctx *context.PrivateContext) {
 				mode = perm.AccessModeRead
 			}
 
-			perm, err := models.GetUserRepoPermission(repo, user)
+			perm, err := models.GetUserRepoPermission(ctx, repo, user)
 			if err != nil {
 				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
@@ -325,7 +333,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			userMode := perm.UnitAccessMode(unitType)
 
 			if userMode < mode {
-				log.Error("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("User: %d:%s with Key: %d:%s is not authorized to %s %s/%s.", user.ID, user.Name, key.ID, key.Name, modeString, ownerName, repoName),
@@ -392,7 +400,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		}
 
 		// Finally if we're trying to touch the wiki we should init it
-		if err = wiki_service.InitWiki(repo); err != nil {
+		if err = wiki_service.InitWiki(ctx, repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
@@ -401,9 +409,9 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 	}
-	log.Debug("Serv Results:\nIsWiki: %t\nIsDeployKey: %t\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
+	log.Debug("Serv Results:\nIsWiki: %t\nDeployKeyID: %d\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
 		results.IsWiki,
-		results.IsDeployKey,
+		results.DeployKeyID,
 		results.KeyID,
 		results.KeyName,
 		results.UserName,

@@ -28,7 +28,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		return nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) error {
-	var needsContentHistory = c.Content != oldContent &&
+	needsContentHistory := c.Content != oldContent &&
 		(c.Type == models.CommentTypeComment || c.Type == models.CommentTypeReview || c.Type == models.CommentTypeCode)
 	if needsContentHistory {
 		hasContentHistory, err := issues.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)

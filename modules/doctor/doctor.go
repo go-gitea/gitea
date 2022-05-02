@@ -20,7 +20,7 @@ type Check struct {
 	Title                      string
 	Name                       string
 	IsDefault                  bool
-	Run                        func(logger log.Logger, autofix bool) error
+	Run                        func(ctx context.Context, logger log.Logger, autofix bool) error
 	AbortIfFailed              bool
 	SkipDatabaseInitialization bool
 	Priority                   int
@@ -77,7 +77,7 @@ func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*C
 		}
 		logger.Info("[%d] %s", log.NewColoredIDValue(i+1), check.Title)
 		logger.Flush()
-		if err := check.Run(&wrappedLogger, autofix); err != nil {
+		if err := check.Run(ctx, &wrappedLogger, autofix); err != nil {
 			if check.AbortIfFailed {
 				logger.Critical("FAIL")
 				return err

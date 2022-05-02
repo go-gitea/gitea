@@ -7,6 +7,7 @@ package templates
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"html"
@@ -24,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -32,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -159,7 +162,16 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
+		"RenderMarkdownToHtml": func(input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -212,7 +224,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
-		"DiffStatsWidth": func(adds int, dels int) string {
+		"DiffStatsWidth": func(adds, dels int) string {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
@@ -255,7 +267,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -285,7 +297,7 @@ func NewFuncMap() []template.FuncMap {
 			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
-			var sum = 0
+			sum := 0
 			for i := 0; i < len(values); i++ {
 				sum += values[i]
 			}
@@ -301,7 +313,7 @@ func NewFuncMap() []template.FuncMap {
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
 		},
-		"containGeneric": func(arr interface{}, v interface{}) bool {
+		"containGeneric": func(arr, v interface{}) bool {
 			arrV := reflect.ValueOf(arr)
 			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
 				return strings.Contains(arr.(string), v.(string))
@@ -378,6 +390,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
+		"DotEscape":   DotEscape,
 	}}
 }
 
@@ -446,7 +459,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -477,7 +490,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			return dict, nil
 		},
 		"percentage": func(n int, values ...int) float32 {
-			var sum = 0
+			sum := 0
 			for i := 0; i < len(values); i++ {
 				sum += values[i]
 			}
@@ -501,8 +514,10 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 	}}
 }
 
-var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
-var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+var (
+	widthRe  = regexp.MustCompile(`width="[0-9]+?"`)
+	heightRe = regexp.MustCompile(`height="[0-9]+?"`)
+)
 
 func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
 	size := defaultSize
@@ -565,7 +580,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Organization:
+	case *organization.Organization:
 		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
@@ -629,23 +644,29 @@ func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
 }
 
+// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
+func DotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
+}
+
 // Sha1 returns sha1 sum of string
 func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(msg, urlPrefix string, metas map[string]string) template.HTML {
-	return RenderCommitMessageLink(msg, urlPrefix, "", metas)
+func RenderCommitMessage(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
+	return RenderCommitMessageLink(ctx, msg, urlPrefix, "", metas)
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
-func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:         ctx,
 		URLPrefix:   urlPrefix,
 		DefaultLink: urlDefault,
 		Metas:       metas,
@@ -663,7 +684,7 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 
 // RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
 // the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -677,6 +698,7 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
 	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
+		Ctx:         ctx,
 		URLPrefix:   urlPrefix,
 		DefaultLink: urlDefault,
 		Metas:       metas,
@@ -689,7 +711,7 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -703,6 +725,7 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	}
 
 	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, template.HTMLEscapeString(msgLine))
@@ -714,8 +737,9 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, template.HTMLEscapeString(text))
@@ -736,7 +760,7 @@ func RenderEmoji(text string) template.HTML {
 	return template.HTML(renderedText)
 }
 
-//ReactionToEmoji renders emoji for use in reactions
+// ReactionToEmoji renders emoji for use in reactions
 func ReactionToEmoji(reaction string) template.HTML {
 	val := emoji.FromCode(reaction)
 	if val != nil {
@@ -750,9 +774,10 @@ func ReactionToEmoji(reaction string) template.HTML {
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
-func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: urlPrefix,
 		Metas:     metas,
 	}, cleanMsg)
@@ -891,10 +916,10 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m repo_model.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a

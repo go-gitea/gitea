@@ -6,6 +6,7 @@
 package repo
 
 import (
+	stdCtx "context"
 	"errors"
 	"net/http"
 
@@ -58,7 +59,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -150,7 +151,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -183,9 +184,9 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx.User, comment, issue.RepoID) {
+		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.User))
+			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.Doer))
 		}
 	}
 
@@ -193,16 +194,16 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
-func isXRefCommentAccessible(user *user_model.User, c *models.Comment, issueRepoID int64) bool {
+func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *models.Comment, issueRepoID int64) bool {
 	// Remove comments that the user has no permissions to see
 	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}
-		perm, err := models.GetUserRepoPermission(c.RefRepo, user)
+		perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}
@@ -253,7 +254,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -347,12 +348,12 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
 		return
 	}
 
-	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := comment_service.CreateIssueComment(ctx.Doer, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueComment", err)
 		return
@@ -534,17 +535,19 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	}
+
+	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
+	if err := comment_service.UpdateComment(comment, ctx.Doer, oldContent); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
@@ -635,7 +638,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
+	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment {
@@ -643,7 +646,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(ctx.User, comment); err != nil {
+	if err = comment_service.DeleteComment(ctx.Doer, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

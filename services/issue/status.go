@@ -8,17 +8,17 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	comment, err := issue.ChangeStatus(doer, closed)
+	comment, err := models.ChangeIssueStatus(issue, doer, closed)
 	if err != nil {
-		// Don't return an error when dependencies are open as this would let the push fail
-		if models.IsErrDependenciesLeft(err) {
-			if closed {
-				return models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue)
+		if models.IsErrDependenciesLeft(err) && closed {
+			if err := models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue); err != nil {
+				log.Error("Unable to stop stopwatch for issue[%d]#%d: %v", issue.ID, issue.Index, err)
 			}
 		}
 		return err

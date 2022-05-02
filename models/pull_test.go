@@ -159,12 +159,12 @@ func TestGetPullRequestByIndex(t *testing.T) {
 
 func TestGetPullRequestByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByID(1)
+	pr, err := GetPullRequestByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.ID)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	_, err = GetPullRequestByID(9223372036854775807)
+	_, err = GetPullRequestByID(db.DefaultContext, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -261,11 +261,15 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", pr.GetDefaultMergeMessage())
+	msg, err := pr.GetDefaultMergeMessage()
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", msg)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
+	msg, err = pr.GetDefaultMergeMessage()
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", msg)
 }
 
 func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
@@ -283,9 +287,13 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 
 	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)
 
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", pr.GetDefaultMergeMessage())
+	msg, err := pr.GetDefaultMergeMessage()
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", msg)
 
 	pr.BaseRepoID = 1
 	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
+	msg, err = pr.GetDefaultMergeMessage()
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", msg)
 }

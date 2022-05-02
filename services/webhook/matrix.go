@@ -53,9 +53,7 @@ type MatrixPayloadUnsafe struct {
 	AccessToken string `json:"access_token"`
 }
 
-var (
-	_ PayloadConvertor = &MatrixPayloadUnsafe{}
-)
+var _ PayloadConvertor = &MatrixPayloadUnsafe{}
 
 // safePayload "converts" a unsafe payload to a safe payload
 func (m *MatrixPayloadUnsafe) safePayload() *MatrixPayloadSafe {

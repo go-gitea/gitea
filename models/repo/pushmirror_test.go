@@ -40,7 +40,7 @@ func TestPushMirrorsIterate(t *testing.T) {
 
 	time.Sleep(1 * time.Millisecond)
 
-	PushMirrorsIterate(func(idx int, bean interface{}) error {
+	PushMirrorsIterate(1, func(idx int, bean interface{}) error {
 		m, ok := bean.(*PushMirror)
 		assert.True(t, ok)
 		assert.Equal(t, "test-1", m.RemoteName)

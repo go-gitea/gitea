@@ -13,7 +13,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -85,7 +84,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		// Are we looking at default webhooks?
 		if ctx.Params(":configType") == "default-hooks" {
 			return &orgRepoCtx{
@@ -106,7 +105,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	return nil, errors.New("Unable to set OrgRepo context")
+	return nil, errors.New("unable to set OrgRepo context")
 }
 
 func checkHookType(ctx *context.Context) string {
@@ -148,7 +147,6 @@ func WebhooksNew(ctx *context.Context) {
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -181,6 +179,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook.HookEvent {
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
 			Repository:           form.Repository,
+			Package:              form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}
@@ -227,7 +226,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -281,7 +280,7 @@ func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind w
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -333,7 +332,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -376,7 +375,7 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -428,7 +427,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -483,7 +482,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -526,7 +525,7 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -586,7 +585,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -629,7 +628,7 @@ func FeishuHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -673,7 +672,60 @@ func WechatworkHooksNewPost(ctx *context.Context) {
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
+// PackagistHooksNewPost response for creating packagist hook
+func PackagistHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
+	ctx.Data["HookType"] = webhook.PACKAGIST
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.PackagistMeta{
+		Username:   form.Username,
+		APIToken:   form.APIToken,
+		PackageURL: form.PackageURL,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w := &webhook.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
+		ContentType:     webhook.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            webhook.PACKAGIST,
+		Meta:            string(meta),
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
@@ -719,6 +771,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
 	case webhook.MATRIX:
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
+	case webhook.PACKAGIST:
+		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -1137,13 +1191,57 @@ func WechatworkHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
+// PackagistHooksEditPost response for editing packagist hook
+func PackagistHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.PackagistMeta{
+		Username:   form.Username,
+		APIToken:   form.APIToken,
+		PackageURL: form.PackageURL,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w.Meta = string(meta)
+	w.URL = fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken))
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
 	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByID: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -1159,7 +1257,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -1187,10 +1285,10 @@ func TestWebhook(ctx *context.Context) {
 	}
 	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 

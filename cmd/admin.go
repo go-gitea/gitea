@@ -25,8 +25,10 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 	repo_service "code.gitea.io/gitea/services/repository"
 	user_service "code.gitea.io/gitea/services/user"
 
@@ -55,6 +57,7 @@ var (
 			microcmdUserList,
 			microcmdUserChangePassword,
 			microcmdUserDelete,
+			microcmdUserGenerateAccessToken,
 		},
 	}
 
@@ -112,6 +115,10 @@ var (
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
 			},
+			cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
+			},
 		},
 	}
 
@@ -153,6 +160,27 @@ var (
 		Action: runDeleteUser,
 	}
 
+	microcmdUserGenerateAccessToken = cli.Command{
+		Name:  "generate-access-token",
+		Usage: "Generate a access token for a specific user",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username",
+			},
+			cli.StringFlag{
+				Name:  "token-name,t",
+				Usage: "Token name",
+				Value: "gitea-admin",
+			},
+			cli.BoolFlag{
+				Name:  "raw",
+				Usage: "Display only the token value",
+			},
+		},
+		Action: runGenerateAccessToken,
+	}
+
 	subcmdRepoSyncReleases = cli.Command{
 		Name:   "repo-sync-releases",
 		Usage:  "Synchronize repository releases with tags",
@@ -190,6 +218,8 @@ var (
 			cmdAuthUpdateLdapBindDn,
 			cmdAuthAddLdapSimpleAuth,
 			cmdAuthUpdateLdapSimpleAuth,
+			microcmdAuthAddSMTP,
+			microcmdAuthUpdateSMTP,
 			microcmdAuthList,
 			microcmdAuthDelete,
 		},
@@ -366,6 +396,72 @@ var (
 			},
 		},
 	}
+
+	smtpCLIFlags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "name",
+			Value: "",
+			Usage: "Application Name",
+		},
+		cli.StringFlag{
+			Name:  "auth-type",
+			Value: "PLAIN",
+			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
+		},
+		cli.StringFlag{
+			Name:  "host",
+			Value: "",
+			Usage: "SMTP Host",
+		},
+		cli.IntFlag{
+			Name:  "port",
+			Usage: "SMTP Port",
+		},
+		cli.BoolTFlag{
+			Name:  "force-smtps",
+			Usage: "SMTPS is always used on port 465. Set this to force SMTPS on other ports.",
+		},
+		cli.BoolTFlag{
+			Name:  "skip-verify",
+			Usage: "Skip TLS verify.",
+		},
+		cli.StringFlag{
+			Name:  "helo-hostname",
+			Value: "",
+			Usage: "Hostname sent with HELO. Leave blank to send current hostname",
+		},
+		cli.BoolTFlag{
+			Name:  "disable-helo",
+			Usage: "Disable SMTP helo.",
+		},
+		cli.StringFlag{
+			Name:  "allowed-domains",
+			Value: "",
+			Usage: "Leave empty to allow all domains. Separate multiple domains with a comma (',')",
+		},
+		cli.BoolTFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Skip 2FA to log on.",
+		},
+		cli.BoolTFlag{
+			Name:  "active",
+			Usage: "This Authentication Source is Activated.",
+		},
+	}
+
+	microcmdAuthAddSMTP = cli.Command{
+		Name:   "add-smtp",
+		Usage:  "Add new SMTP authentication source",
+		Action: runAddSMTP,
+		Flags:  smtpCLIFlags,
+	}
+
+	microcmdAuthUpdateSMTP = cli.Command{
+		Name:   "update-smtp",
+		Usage:  "Update existing SMTP authentication source",
+		Action: runUpdateSMTP,
+		Flags:  append(smtpCLIFlags[:1], append([]cli.Flag{idFlag}, smtpCLIFlags[1:]...)...),
+	}
 )
 
 func runChangePassword(c *cli.Context) error {
@@ -402,7 +498,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -456,7 +552,7 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	// always default to true
-	var changePassword = true
+	changePassword := true
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
@@ -468,17 +564,26 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
+	restricted := util.OptionalBoolNone
+
+	if c.IsSet("restricted") {
+		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+	}
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
-		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
-		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := user_model.CreateUser(u); err != nil {
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:     util.OptionalBoolTrue,
+		IsRestricted: restricted,
+	}
+
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -508,7 +613,6 @@ func runListUsers(c *cli.Context) error {
 	}
 
 	users, err := user_model.GetAllUsers()
-
 	if err != nil {
 		return err
 	}
@@ -532,7 +636,6 @@ func runListUsers(c *cli.Context) error {
 
 	w.Flush()
 	return nil
-
 }
 
 func runDeleteUser(c *cli.Context) error {
@@ -574,6 +677,41 @@ func runDeleteUser(c *cli.Context) error {
 	return user_service.DeleteUser(user)
 }
 
+func runGenerateAccessToken(c *cli.Context) error {
+	if !c.IsSet("username") {
+		return fmt.Errorf("You must provide the username to generate a token for them")
+	}
+
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	user, err := user_model.GetUserByName(c.String("username"))
+	if err != nil {
+		return err
+	}
+
+	t := &models.AccessToken{
+		Name: c.String("token-name"),
+		UID:  user.ID,
+	}
+
+	if err := models.NewAccessToken(t); err != nil {
+		return err
+	}
+
+	if c.Bool("raw") {
+		fmt.Printf("%s\n", t.Token)
+	} else {
+		fmt.Printf("Access token was successfully created: %s\n", t.Token)
+	}
+
+	return nil
+}
+
 func runRepoSyncReleases(_ *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -600,7 +738,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue
@@ -757,7 +895,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("required-claim-name") {
 		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
-
 	}
 	if c.IsSet("required-claim-value") {
 		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
@@ -774,7 +911,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping = &oauth2.CustomURLMapping{}
+	customURLMapping := &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
@@ -804,6 +941,118 @@ func runUpdateOauth(c *cli.Context) error {
 	return auth.UpdateSource(source)
 }
 
+func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
+	if c.IsSet("auth-type") {
+		conf.Auth = c.String("auth-type")
+		validAuthTypes := []string{"PLAIN", "LOGIN", "CRAM-MD5"}
+		if !contains(validAuthTypes, strings.ToUpper(c.String("auth-type"))) {
+			return errors.New("Auth must be one of PLAIN/LOGIN/CRAM-MD5")
+		}
+		conf.Auth = c.String("auth-type")
+	}
+	if c.IsSet("host") {
+		conf.Host = c.String("host")
+	}
+	if c.IsSet("port") {
+		conf.Port = c.Int("port")
+	}
+	if c.IsSet("allowed-domains") {
+		conf.AllowedDomains = c.String("allowed-domains")
+	}
+	if c.IsSet("force-smtps") {
+		conf.ForceSMTPS = c.BoolT("force-smtps")
+	}
+	if c.IsSet("skip-verify") {
+		conf.SkipVerify = c.BoolT("skip-verify")
+	}
+	if c.IsSet("helo-hostname") {
+		conf.HeloHostname = c.String("helo-hostname")
+	}
+	if c.IsSet("disable-helo") {
+		conf.DisableHelo = c.BoolT("disable-helo")
+	}
+	if c.IsSet("skip-local-2fa") {
+		conf.SkipLocalTwoFA = c.BoolT("skip-local-2fa")
+	}
+	return nil
+}
+
+func runAddSMTP(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	if !c.IsSet("name") || len(c.String("name")) == 0 {
+		return errors.New("name must be set")
+	}
+	if !c.IsSet("host") || len(c.String("host")) == 0 {
+		return errors.New("host must be set")
+	}
+	if !c.IsSet("port") {
+		return errors.New("port must be set")
+	}
+	active := true
+	if c.IsSet("active") {
+		active = c.BoolT("active")
+	}
+
+	var smtpConfig smtp.Source
+	if err := parseSMTPConfig(c, &smtpConfig); err != nil {
+		return err
+	}
+
+	// If not set default to PLAIN
+	if len(smtpConfig.Auth) == 0 {
+		smtpConfig.Auth = "PLAIN"
+	}
+
+	return auth.CreateSource(&auth.Source{
+		Type:     auth.SMTP,
+		Name:     c.String("name"),
+		IsActive: active,
+		Cfg:      &smtpConfig,
+	})
+}
+
+func runUpdateSMTP(c *cli.Context) error {
+	if !c.IsSet("id") {
+		return fmt.Errorf("--id flag is missing")
+	}
+
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	source, err := auth.GetSourceByID(c.Int64("id"))
+	if err != nil {
+		return err
+	}
+
+	smtpConfig := source.Cfg.(*smtp.Source)
+
+	if err := parseSMTPConfig(c, smtpConfig); err != nil {
+		return err
+	}
+
+	if c.IsSet("name") {
+		source.Name = c.String("name")
+	}
+
+	if c.IsSet("active") {
+		source.IsActive = c.BoolT("active")
+	}
+
+	source.Cfg = smtpConfig
+
+	return auth.UpdateSource(source)
+}
+
 func runListAuth(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
@@ -813,7 +1062,6 @@ func runListAuth(c *cli.Context) error {
 	}
 
 	authSources, err := auth.Sources()
-
 	if err != nil {
 		return err
 	}

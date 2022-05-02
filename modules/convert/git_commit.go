@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToCommitUser convert a git.Signature to an api.CommitUser
@@ -72,8 +73,7 @@ func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCom
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *repo_model.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
-
+func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -134,7 +134,7 @@ func ToCommit(repo *repo_model.Repository, commit *git.Commit, userCache map[str
 	}
 
 	// Retrieve files affected by the commit
-	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+	fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +145,13 @@ func ToCommit(repo *repo_model.Repository, commit *git.Commit, userCache map[str
 				Filename: filename,
 			})
 		}
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		AfterCommitID: commit.ID.String(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &api.Commit{
@@ -176,10 +183,16 @@ func ToCommit(repo *repo_model.Repository, commit *git.Commit, userCache map[str
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
+			Verification: ToVerification(commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
 		Files:     affectedFileList,
+		Stats: &api.CommitStats{
+			Total:     diff.TotalAddition + diff.TotalDeletion,
+			Additions: diff.TotalAddition,
+			Deletions: diff.TotalDeletion,
+		},
 	}, nil
 }

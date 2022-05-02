@@ -17,7 +17,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -128,6 +130,6 @@ func TestArchive_Basic(t *testing.T) {
 }
 
 func TestErrUnknownArchiveFormat(t *testing.T) {
-	var err = ErrUnknownArchiveFormat{RequestFormat: "master"}
+	err := ErrUnknownArchiveFormat{RequestFormat: "master"}
 	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
 }
