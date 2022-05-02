@@ -343,7 +343,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
+		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
 			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
