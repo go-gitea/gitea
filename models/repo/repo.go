@@ -212,6 +212,7 @@ func (repo *Repository) AfterLoad() {
 	}
 
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
+	repo.NumOpenPrivateIssues = repo.NumPrivateIssues - repo.NumClosedPrivateIssues
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects

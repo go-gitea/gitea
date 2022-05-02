@@ -11,8 +11,8 @@ import (
 
 func addPrivateIssues(x *xorm.Engine) error {
 	type Repository struct {
-		NumPrivateIssues       int
-		NumClosedPrivateIssues int
+		NumPrivateIssues       int `xorm:"NOT NULL DEFAULT 0"`
+		NumClosedPrivateIssues int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	if err := x.Sync2(new(Repository)); err != nil {
