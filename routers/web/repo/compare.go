@@ -144,7 +144,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, err.Error()}
 		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID().String, REPONAME, err)
+			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID.String(), ctx.Repo.Repository.Name, err)
 			return CsvDiffResult{nil, "unable to load file from base commit"}
 		}
 
@@ -156,7 +156,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, err.Error()}
 		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
+			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID.String(), ctx.Repo.Repository.Name, err)
 			return CsvDiffResult{nil, "unable to load file from head commit"}
 		}
 
@@ -165,7 +165,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
 				log.Error("RenderCsvDiff failed: %v", err)
-				return CsvDiffResult{nil, ""}
+				return CsvDiffResult{nil, "unknown csv diff error"}
 			}
 			return CsvDiffResult{nil, errMessage}
 		}
