@@ -54,7 +54,7 @@ function updateDeadline(deadlineString) {
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}/deadline`, {
+  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
     data: JSON.stringify({
       due_date: realDeadline,
     }),
@@ -91,9 +91,9 @@ export function initRepoIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -288,11 +288,44 @@ export function initRepoPullRequestMergeInstruction() {
   });
 }
 
+export function initRepoPullRequestAllowMaintainerEdit() {
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+  $checkbox.popup({content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
+        error: () => {
+          $checkbox.popup({
+            content: promptError,
+            onHidden: () => {
+              // the error popup should be shown only once, then we restore the popup to the default message
+              $checkbox.popup({content: promptTip});
+            },
+          });
+          $checkbox.popup('show');
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
+  });
+}
+
 export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({
       apiSettings: {
-        url: `${appSubUrl}/api/v1/repos/search?q={query}&limit=20`,
+        url: `${appSubUrl}/repo/search?q={query}&limit=20`,
         onResponse(response) {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {

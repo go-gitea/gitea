@@ -124,7 +124,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))

@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -68,7 +70,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(repo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -111,12 +113,12 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
+	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
-	var orgs []*models.Organization
+	var orgs []*organization.Organization
 	for _, org := range ownedOrgs {
 		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
@@ -216,7 +218,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
+		isAllowedToFork, err := organization.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
@@ -226,7 +228,7 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
+	repo, err := repo_service.ForkRepository(ctx, ctx.Doer, ctxUser, repo_service.ForkRepoOptions{
 		BaseRepo:    forkRepo,
 		Name:        form.RepoName,
 		Description: form.Description,
@@ -264,7 +266,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		ctx.ServerError("LoadPoster", err)
 		return nil
 	}
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		ctx.ServerError("LoadRepo", err)
 		return nil
 	}
@@ -281,7 +283,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		return nil
 	}
 
-	if err = issue.PullRequest.LoadHeadRepo(); err != nil {
+	if err = issue.PullRequest.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
@@ -338,7 +340,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunInDir(ctx.Repo.GitRepo.Path)
+			parentCommit, _, err = git.NewCommand(ctx, "rev-list", "-1", "--skip=1", commitSHA).RunStdString(&git.RunOpts{Dir: ctx.Repo.GitRepo.Path})
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
@@ -395,12 +397,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	repo := ctx.Repo.Repository
 	pull := issue.PullRequest
 
-	if err := pull.LoadHeadRepo(); err != nil {
+	if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return nil
 	}
 
-	if err := pull.LoadBaseRepo(); err != nil {
+	if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return nil
 	}
@@ -417,7 +419,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	if pull.BaseRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 		baseGitRepo = ctx.Repo.GitRepo
 	} else {
-		baseGitRepo, err := git.OpenRepositoryCtx(ctx, pull.BaseRepo.RepoPath())
+		baseGitRepo, err := git.OpenRepository(ctx, pull.BaseRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -469,7 +471,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	var headBranchSha string
 	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
-		headGitRepo, err := git.OpenRepositoryCtx(ctx, pull.HeadRepo.RepoPath())
+		headGitRepo, err := git.OpenRepository(ctx, pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -497,7 +499,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	if headBranchExist {
 		var err error
-		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.Doer)
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
@@ -783,16 +785,16 @@ func UpdatePullRequest(ctx *context.Context) {
 
 	rebase := ctx.FormString("style") == "rebase"
 
-	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
+	if err := issue.PullRequest.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
-	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
+	if err := issue.PullRequest.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.Doer)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, issue.PullRequest, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
@@ -857,39 +859,53 @@ func MergePullRequest(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if issue.IsClosed {
-		if issue.IsPull {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
-			ctx.Redirect(issue.Link())
-			return
-		}
-		ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
-		ctx.Redirect(issue.Link())
-		return
-	}
 
 	pr := issue.PullRequest
+	pr.Issue = issue
+	pr.Issue.Repo = ctx.Repo.Repository
+	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("IsUserAllowedToMerge", err)
-		return
-	}
-	if !allowedMerge {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(issue.Link())
-		return
-	}
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+		if errors.Is(err, pull_service.ErrIsClosed) {
+			if issue.IsPull {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
+				ctx.Redirect(issue.Link())
+			} else {
+				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+				ctx.Redirect(issue.Link())
+			}
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrDisallowedToMerge(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.Flash.Error(err.Error()) // has not translation ...
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.Redirect(issue.Link())
+		} else {
+			ctx.ServerError("WebCheck", err)
+		}
 
-	if pr.HasMerged {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-		ctx.Redirect(issue.Link())
 		return
 	}
 
 	// handle manually-merged mark
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+	if manuallMerge {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
@@ -908,72 +924,13 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		ctx.Redirect(issue.Link())
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
-	if pr.IsWorkInProgress() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if !models.IsErrNotAllowedToMerge(err) {
-			ctx.ServerError("Merge PR status", err)
-			return
-		}
-		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-			ctx.ServerError("IsUserRepoAdmin", err)
-			return
-		} else if !isRepoAdmin {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-			ctx.Redirect(issue.Link())
-			return
-		}
-	}
-
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleRebaseMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-			message = pr.GetDefaultSquashMessage()
-		}
-	}
-
-	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	if len(form.MergeMessageField) > 0 {
-		message += "\n\n" + form.MergeMessageField
-	}
-
-	pr.Issue = issue
-	pr.Issue.Repo = ctx.Repo.Repository
-
-	noDeps, err := models.IssueNoDependenciesLeft(issue)
-	if err != nil {
-		return
-	}
-
-	if !noDeps {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-		ctx.Redirect(issue.Link())
-		return
-	}
-
-	if err = pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
@@ -1069,7 +1026,7 @@ func MergePullRequest(ctx *context.Context) {
 		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
-			headRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+			headRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 			if err != nil {
 				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 				return
@@ -1175,14 +1132,15 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID: ci.HeadRepo.ID,
-		BaseRepoID: repo.ID,
-		HeadBranch: ci.HeadBranch,
-		BaseBranch: ci.BaseBranch,
-		HeadRepo:   ci.HeadRepo,
-		BaseRepo:   repo,
-		MergeBase:  ci.CompareInfo.MergeBase,
-		Type:       models.PullRequestGitea,
+		HeadRepoID:          ci.HeadRepo.ID,
+		BaseRepoID:          repo.ID,
+		HeadBranch:          ci.HeadBranch,
+		BaseBranch:          ci.BaseBranch,
+		HeadRepo:            ci.HeadRepo,
+		BaseRepo:            repo,
+		MergeBase:           ci.CompareInfo.MergeBase,
+		Type:                models.PullRequestGitea,
+		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -1245,14 +1203,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
 		return
 	} else if pr.HeadRepo == nil {
 		// Forked repository has already been deleted
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
-	} else if err = pr.LoadBaseRepo(); err != nil {
+	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
 	} else if err = pr.HeadRepo.GetOwner(ctx); err != nil {
@@ -1260,7 +1218,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.HeadRepo, ctx.Doer)
+	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -1279,7 +1237,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitBaseRepo = ctx.Repo.GitRepo
 	} else {
 		// If not just open it
-		gitBaseRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		gitBaseRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 			return
@@ -1294,7 +1252,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		gitRepo = ctx.Repo.GitRepo
 	} else if pr.BaseRepoID != pr.HeadRepoID {
 		// Otherwise just load it up
-		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+		gitRepo, err = git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 			return
@@ -1452,5 +1410,33 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"base_branch": pr.BaseBranch,
+	})
+}
+
+// SetAllowEdits allow edits from maintainers to PRs
+func SetAllowEdits(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
+		} else {
+			ctx.ServerError("GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, form.AllowMaintainerEdit); err != nil {
+		if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+		ctx.ServerError("SetAllowEdits", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"allow_maintainer_edit": pr.AllowMaintainerEdit,
 	})
 }

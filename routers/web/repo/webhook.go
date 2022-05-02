@@ -147,7 +147,6 @@ func WebhooksNew(ctx *context.Context) {
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -180,6 +179,7 @@ func ParseHookEvent(form forms.WebhookForm) *webhook.HookEvent {
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
 			Repository:           form.Repository,
+			Package:              form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}

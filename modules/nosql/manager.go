@@ -5,9 +5,12 @@
 package nosql
 
 import (
+	"context"
 	"strconv"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/process"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -17,7 +20,9 @@ var manager *Manager
 
 // Manager is the nosql connection manager
 type Manager struct {
-	mutex sync.Mutex
+	ctx      context.Context
+	finished context.CancelFunc
+	mutex    sync.Mutex
 
 	RedisConnections   map[string]*redisClientHolder
 	LevelDBConnections map[string]*levelDBHolder
@@ -46,7 +51,10 @@ func init() {
 // GetManager returns a Manager and initializes one as singleton is there's none yet
 func GetManager() *Manager {
 	if manager == nil {
+		ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: NoSQL", process.SystemProcessType, false)
 		manager = &Manager{
+			ctx:                ctx,
+			finished:           finished,
 			RedisConnections:   make(map[string]*redisClientHolder),
 			LevelDBConnections: make(map[string]*levelDBHolder),
 		}

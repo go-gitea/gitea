@@ -7,6 +7,7 @@ package private
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -188,4 +189,26 @@ func RemoveLogger(ctx context.Context, group, name string) (int, string) {
 	}
 
 	return http.StatusOK, "Removed"
+}
+
+// Processes return the current processes from this gitea instance
+func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))
+
+	req := newInternalRequest(ctx, reqURL, "GET")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return http.StatusOK, ""
 }

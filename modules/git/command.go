@@ -14,9 +14,11 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+	"unsafe"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -32,10 +34,11 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name          string
-	args          []string
-	parentContext context.Context
-	desc          string
+	name             string
+	args             []string
+	parentContext    context.Context
+	desc             string
+	globalArgsLength int
 }
 
 func (c *Command) String() string {
@@ -51,9 +54,10 @@ func NewCommand(ctx context.Context, args ...string) *Command {
 	cargs := make([]string, len(globalCommandArgs))
 	copy(cargs, globalCommandArgs)
 	return &Command{
-		name:          GitExecutable,
-		args:          append(cargs, args...),
-		parentContext: ctx,
+		name:             GitExecutable,
+		args:             append(cargs, args...),
+		parentContext:    ctx,
+		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
@@ -90,34 +94,8 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutEnvFullPipeline(env, timeout, dir, stdout, stderr, nil)
-}
-
-// RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
-func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutEnvFullPipelineFunc(env, timeout, dir, stdout, stderr, stdin, nil)
-}
-
-// RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
-func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	return c.RunWithContext(&RunContext{
-		Env:          env,
-		Timeout:      timeout,
-		Dir:          dir,
-		Stdout:       stdout,
-		Stderr:       stderr,
-		Stdin:        stdin,
-		PipelineFunc: fn,
-	})
-}
-
-// RunContext represents parameters to run the command
-type RunContext struct {
+// RunOpts represents parameters to run the command
+type RunOpts struct {
 	Env            []string
 	Timeout        time.Duration
 	Dir            string
@@ -126,31 +104,48 @@ type RunContext struct {
 	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
-// RunWithContext run the command with context
-func (c *Command) RunWithContext(rc *RunContext) error {
-	if rc.Timeout == -1 {
-		rc.Timeout = defaultCommandExecutionTimeout
+// Run runs the command with the RunOpts
+func (c *Command) Run(opts *RunOpts) error {
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+	if opts.Timeout <= 0 {
+		opts.Timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(rc.Dir) == 0 {
+	if len(opts.Dir) == 0 {
 		log.Debug("%s", c)
 	} else {
-		log.Debug("%s: %v", rc.Dir, c)
+		log.Debug("%s: %v", opts.Dir, c)
 	}
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args, " "), rc.Dir)
+		args := c.args[c.globalArgsLength:]
+		var argSensitiveURLIndexes []int
+		for i, arg := range c.args {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
+			args = make([]string, len(c.args))
+			copy(args, c.args)
+			for _, urlArgIndex := range argSensitiveURLIndexes {
+				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
+			}
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
+	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if rc.Env == nil {
+	if opts.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
-		cmd.Env = rc.Env
+		cmd.Env = opts.Env
 	}
 
 	cmd.Env = append(
@@ -162,16 +157,16 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
-	cmd.Dir = rc.Dir
-	cmd.Stdout = rc.Stdout
-	cmd.Stderr = rc.Stderr
-	cmd.Stdin = rc.Stdin
+	cmd.Dir = opts.Dir
+	cmd.Stdout = opts.Stdout
+	cmd.Stderr = opts.Stderr
+	cmd.Stdin = opts.Stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	if rc.PipelineFunc != nil {
-		err := rc.PipelineFunc(ctx, cancel)
+	if opts.PipelineFunc != nil {
+		err := opts.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
@@ -186,90 +181,69 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	return ctx.Err()
 }
 
-// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutEnvPipeline(nil, timeout, dir, stdout, stderr)
+type RunStdError interface {
+	error
+	Stderr() string
 }
 
-// RunInDirTimeoutFullPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer, and stdin from the given io.Reader
-func (c *Command) RunInDirTimeoutFullPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutEnvFullPipeline(nil, timeout, dir, stdout, stderr, stdin)
+type runStdError struct {
+	err    error
+	stderr string
+	errMsg string
 }
 
-// RunInDirTimeout executes the command in given directory with given timeout,
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
-	return c.RunInDirTimeoutEnv(nil, timeout, dir)
-}
-
-// RunInDirTimeoutEnv executes the command in given directory with given timeout,
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir string) ([]byte, error) {
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
-		return nil, ConcatenateError(err, stderr.String())
+func (r *runStdError) Error() string {
+	// the stderr must be in the returned error text, some code only checks `strings.Contains(err.Error(), "git error")`
+	if r.errMsg == "" {
+		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
 	}
-	if stdout.Len() > 0 && log.IsTrace() {
-		tracelen := stdout.Len()
-		if tracelen > 1024 {
-			tracelen = 1024
-		}
-		log.Trace("Stdout:\n %s", stdout.Bytes()[:tracelen])
-	}
-	return stdout.Bytes(), nil
+	return r.errMsg
 }
 
-// RunInDirPipeline executes the command in given directory,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirFullPipeline(dir, stdout, stderr, nil)
+func (r *runStdError) Unwrap() error {
+	return r.err
 }
 
-// RunInDirFullPipeline executes the command in given directory,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirFullPipeline(dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutFullPipeline(-1, dir, stdout, stderr, stdin)
+func (r *runStdError) Stderr() string {
+	return r.stderr
 }
 
-// RunInDirBytes executes the command in given directory
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
-	return c.RunInDirTimeout(-1, dir)
+func bytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
-// RunInDir executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDir(dir string) (string, error) {
-	return c.RunInDirWithEnv(dir, nil)
-}
-
-// RunInDirWithEnv executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
-	stdout, err := c.RunInDirTimeoutEnv(env, -1, dir)
+// RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
+	stdout = bytesToString(stdoutBytes)
+	stderr = bytesToString(stderrBytes)
 	if err != nil {
-		return "", err
+		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
-	return string(stdout), nil
+	// even if there is no err, there could still be some stderr output, so we just return stdout/stderr as they are
+	return stdout, stderr, nil
 }
 
-// RunTimeout executes the command in default working directory with given timeout,
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
-	stdout, err := c.RunInDirTimeout(timeout, "")
+// RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+	if opts.Stdout != nil || opts.Stderr != nil {
+		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
+		panic("stdout and stderr field must be nil when using RunStdBytes")
+	}
+	stdoutBuf := &bytes.Buffer{}
+	stderrBuf := &bytes.Buffer{}
+	opts.Stdout = stdoutBuf
+	opts.Stderr = stderrBuf
+	err := c.Run(opts)
+	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return "", err
+		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
 	}
-	return string(stdout), nil
-}
-
-// Run executes the command in default working directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) Run() (string, error) {
-	return c.RunTimeout(-1)
+	// even if there is no err, there could still be some stderr output
+	return stdoutBuf.Bytes(), stderr, nil
 }
 
 // AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests

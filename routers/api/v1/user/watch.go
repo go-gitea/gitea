@@ -19,7 +19,7 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
 func getWatchedRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
-	watchedRepos, total, err := models.GetWatchedRepos(user.ID, private, listOptions)
+	watchedRepos, total, err := repo_model.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -60,9 +60,8 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	private := user.ID == ctx.Doer.ID
-	repos, total, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
+	private := ctx.ContextUser.ID == ctx.Doer.ID
+	repos, total, err := getWatchedRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}

@@ -8,13 +8,14 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
 
 // InsertMilestones creates milestones of repository.
-func InsertMilestones(ms ...*Milestone) (err error) {
+func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
 	}

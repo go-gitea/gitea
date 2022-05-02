@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -94,7 +95,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		return false
 	}
 
-	in, err := IsUserInTeams(userID, protectBranch.WhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -117,7 +118,7 @@ func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permis
 		return false
 	}
 
-	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -149,7 +150,7 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 		return true, nil
 	}
 
-	inTeam, err := isUserInTeams(db.GetEngine(ctx), user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
+	inTeam, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		return false, err
 	}
@@ -336,43 +337,43 @@ type WhitelistOptions struct {
 // If ID is 0, it creates a new record. Otherwise, updates existing record.
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
-func UpdateProtectBranch(repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
-	if err = repo.GetOwner(db.DefaultContext); err != nil {
+func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
+	if err = repo.GetOwner(ctx); err != nil {
 		return fmt.Errorf("GetOwner: %v", err)
 	}
 
-	whitelist, err := updateUserWhitelist(repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
+	whitelist, err := updateUserWhitelist(ctx, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
+	whitelist, err = updateUserWhitelist(ctx, repo, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
-	whitelist, err = updateApprovalWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	whitelist, err = updateApprovalWhitelist(ctx, repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.ApprovalsWhitelistUserIDs = whitelist
 
 	// if the repo is in an organization
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.WhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
 	if err != nil {
 		return err
 	}
 	protectBranch.MergeWhitelistTeamIDs = whitelist
 
-	whitelist, err = updateTeamWhitelist(repo, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
+	whitelist, err = updateTeamWhitelist(ctx, repo, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
 	if err != nil {
 		return err
 	}
@@ -380,13 +381,13 @@ func UpdateProtectBranch(repo *repo_model.Repository, protectBranch *ProtectedBr
 
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
-		if _, err = db.GetEngine(db.DefaultContext).Insert(protectBranch); err != nil {
+		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 		return nil
 	}
 
-	if _, err = db.GetEngine(db.DefaultContext).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 
@@ -415,7 +416,7 @@ func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have explicit read or write access to the repo.
-func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -423,7 +424,7 @@ func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newW
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := IsRepoReader(repo, userID); err != nil {
+		if reader, err := IsRepoReader(ctx, repo, userID); err != nil {
 			return nil, err
 		} else if !reader {
 			continue
@@ -436,7 +437,7 @@ func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newW
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
-func updateUserWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -444,11 +445,11 @@ func updateUserWhitelist(repo *repo_model.Repository, currentWhitelist, newWhite
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		user, err := user_model.GetUserByID(userID)
+		user, err := user_model.GetUserByIDCtx(ctx, userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
-		perm, err := GetUserRepoPermission(repo, user)
+		perm, err := GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
@@ -465,13 +466,13 @@ func updateUserWhitelist(repo *repo_model.Repository, currentWhitelist, newWhite
 
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
 // the teams from newWhitelist which have write access to the repo.
-func updateTeamWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasTeamsChanged {
 		return currentWhitelist, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}

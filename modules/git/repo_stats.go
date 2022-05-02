@@ -39,12 +39,12 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, err := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunStdString(&RunOpts{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
-	c, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(repo.Ctx, args...).RunWithContext(&RunContext{
-		Env:     []string{},
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  stdoutWriter,
-		Stderr:  stderr,
+	err = NewCommand(repo.Ctx, args...).Run(&RunOpts{
+		Env:    []string{},
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
 		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)

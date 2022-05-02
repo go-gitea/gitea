@@ -8,8 +8,10 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 )
 
 // CommentList defines a list of comments
@@ -22,7 +24,7 @@ func (comments CommentList) getPosterIDs() []int64 {
 			posterIDs[comment.PosterID] = struct{}{}
 		}
 	}
-	return keysInt64(posterIDs)
+	return container.KeysInt64(posterIDs)
 }
 
 func (comments CommentList) loadPosters(e db.Engine) error {
@@ -75,7 +77,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 			ids[comment.LabelID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadLabels(e db.Engine) error {
@@ -125,7 +127,7 @@ func (comments CommentList) getMilestoneIDs() []int64 {
 			ids[comment.MilestoneID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadMilestones(e db.Engine) error {
@@ -138,7 +140,7 @@ func (comments CommentList) loadMilestones(e db.Engine) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -168,7 +170,7 @@ func (comments CommentList) getOldMilestoneIDs() []int64 {
 			ids[comment.OldMilestoneID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadOldMilestones(e db.Engine) error {
@@ -181,7 +183,7 @@ func (comments CommentList) loadOldMilestones(e db.Engine) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -211,7 +213,7 @@ func (comments CommentList) getAssigneeIDs() []int64 {
 			ids[comment.AssigneeID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadAssignees(e db.Engine) error {
@@ -267,7 +269,7 @@ func (comments CommentList) getIssueIDs() []int64 {
 			ids[comment.IssueID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 // Issues returns all the issues of comments
@@ -342,7 +344,7 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 			ids[comment.DependentIssueID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadDependentIssues(ctx context.Context) error {
@@ -386,7 +388,7 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 		if comment.DependentIssue == nil {
 			comment.DependentIssue = issues[comment.DependentIssueID]
 			if comment.DependentIssue != nil {
-				if err := comment.DependentIssue.loadRepo(ctx); err != nil {
+				if err := comment.DependentIssue.LoadRepo(ctx); err != nil {
 					return err
 				}
 			}
@@ -444,7 +446,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 			ids[comment.ReviewID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (comments CommentList) loadReviews(e db.Engine) error {

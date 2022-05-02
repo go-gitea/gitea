@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -83,7 +84,7 @@ func IsUserAllowedModifyTag(pt *ProtectedTag, userID int64) (bool, error) {
 		return false, nil
 	}
 
-	in, err := IsUserInTeams(userID, pt.AllowlistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, pt.AllowlistTeamIDs)
 	if err != nil {
 		return false, err
 	}
