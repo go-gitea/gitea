@@ -4,6 +4,29 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.7](https://github.com/go-gitea/gitea/releases/tag/v1.16.7) - 2022-05-02
+
+* SECURITY
+  * Escape git fetch remote (#19487) (#19490)
+* BUGFIXES
+  * Don't overwrite err with nil (#19572) (#19574)
+  * On Migrations, only write commit-graph if wiki clone was successful (#19563) (#19568)
+  * Respect DefaultUserIsRestricted system default when creating new user (#19310) (#19560)
+  * Don't error when branch's commit doesn't exist (#19547) (#19548)
+  * Support `hostname:port` to pass host matcher's check (#19543) (#19544)
+  * Prevent intermittent race in attribute reader close (#19537) (#19539)
+  * Fix 64-bit atomic operations on 32-bit machines (#19531) (#19532)
+  * Prevent dangling archiver goroutine (#19516) (#19526)
+  * Fix migrate release from github (#19510) (#19523)
+  * When view _Siderbar or _Footer, just display once (#19501) (#19522)
+  * Fix blame page select range error and some typos (#19503)
+  * Fix name of doctor fix "authorized-keys" in hints (#19464) (#19484)
+  * User specific repoID or xorm builder conditions for issue search (#19475) (#19476)
+  * Prevent dangling cat-file calls (goroutine alternative) (#19454) (#19466)
+  * RepoAssignment ensure to close before overwrite (#19449) (#19460)
+  * Set correct PR status on 3way on conflict checking (#19457) (#19458)
+  * Mark TemplateLoading error as "UnprocessableEntity" (#19445) (#19446)
+
 ## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-20
 
 * ENHANCEMENTS
