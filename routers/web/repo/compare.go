@@ -143,6 +143,11 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
+			return CsvDiffResult{nil, "csv diff error"}
+		}
+
 		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.Name}, headCommit)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
@@ -151,7 +156,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, err.Error()}
 		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating reader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
+			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
 			return CsvDiffResult{nil, "csv diff error"}
 		}
 
