@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -726,7 +727,15 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	dbCtx, committer, err := db.TxContext()
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	defer committer.Close()
+	dbCtx = dbCtx.WithContext(ctx)
+
+	pr, err := models.GetPullRequestByIndexCtx(dbCtx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -736,12 +745,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
+	if err := pr.LoadHeadRepoCtx(dbCtx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssueCtx(dbCtx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -749,7 +758,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = pr.Issue.ReadBy(ctx.Doer.ID); err != nil {
+		if err = pr.Issue.ReadBy(dbCtx, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReadBy", err)
 			return
 		}
@@ -758,7 +767,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	force := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+	if err := pull_service.CheckPullMergable(dbCtx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.NotFound()
 		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
@@ -781,7 +790,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -791,6 +800,10 @@ func MergePullRequest(ctx *context.APIContext) {
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
+			return
+		}
+		if err := committer.Commit(); err != nil {
+			ctx.InternalServerError(err)
 			return
 		}
 		ctx.Status(http.StatusOK)
@@ -803,7 +816,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 			return
@@ -834,12 +847,17 @@ func MergePullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Merge", err)
 		return
 	}
+	// commit dbCtx
+	if err := committer.Commit(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when there are other PR's that use this branch as head branch.
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
@@ -873,7 +891,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		if err := models.AddDeletePRBranchComment(ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+		if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 			// Do not fail here as branch has already been deleted
 			log.Error("DeleteBranch: %v", err)
 		}

@@ -43,7 +43,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
 	if err != nil {
 		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 		return err
@@ -68,11 +68,11 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err := pr.SetMerged(); err != nil {
+	if _, err := pr.SetMergedCtx(ctx); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		log.Error("loadIssue [%d]: %v", pr.ID, err)
 	}
 
@@ -89,14 +89,14 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences()
+	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
 		log.Error("ResolveCrossReferences: %v", err)
 		return nil
 	}
 
 	for _, ref := range refs {
-		if err = ref.LoadIssue(); err != nil {
+		if err = ref.LoadIssueCtx(ctx); err != nil {
 			return err
 		}
 		if err = ref.Issue.LoadRepo(ctx); err != nil {
@@ -104,7 +104,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 		}
 		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+			if err = issue_service.ChangeStatusCtx(ctx, ref.Issue, doer, close); err != nil {
 				// Allow ErrDependenciesLeft
 				if !models.IsErrDependenciesLeft(err) {
 					return err
@@ -645,17 +645,17 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 }
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
-func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *user_model.User) (bool, error) {
+func IsUserAllowedToMerge(ctx context.Context, pr *models.PullRequest, p models.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
 
-	err := pr.LoadProtectedBranch()
+	err := pr.LoadProtectedBranchCtx(ctx)
 	if err != nil {
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && models.IsUserMergeWhitelisted(pr.ProtectedBranch, user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && models.IsUserMergeWhitelisted(ctx, pr.ProtectedBranch, user.ID, p)) {
 		return true, nil
 	}
 
@@ -668,7 +668,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	if err = pr.LoadProtectedBranch(); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return fmt.Errorf("LoadProtectedBranch: %v", err)
 	}
 	if pr.ProtectedBranch == nil {
@@ -685,17 +685,17 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 		}
 	}
 
-	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
+	if !pr.ProtectedBranch.HasEnoughApprovals(ctx, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
+	if pr.ProtectedBranch.MergeBlockedByRejectedReview(ctx, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
-	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
+	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(ctx, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
@@ -721,8 +721,8 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) (err error) {
-	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+func MergedManually(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
 	if err != nil {
 		return
 	}

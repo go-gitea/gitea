@@ -64,13 +64,13 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return ErrHasMerged
 	}
 
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		return err
 	} else if pr.Issue.IsClosed {
 		return ErrIsClosed
 	}
 
-	if allowedMerge, err := IsUserAllowedToMerge(pr, *perm, doer); err != nil {
+	if allowedMerge, err := IsUserAllowedToMerge(ctx, pr, *perm, doer); err != nil {
 		return err
 	} else if !allowedMerge {
 		return ErrUserNotAllowedToMerge
@@ -96,7 +96,7 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 	if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 		if models.IsErrDisallowedToMerge(err) {
 			if force {
-				if isRepoAdmin, err2 := models.IsUserRepoAdmin(pr.BaseRepo, doer); err2 != nil {
+				if isRepoAdmin, err2 := models.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
 					return err2
 				} else if !isRepoAdmin {
 					return err
@@ -111,7 +111,7 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return err
 	}
 
-	if noDeps, err := models.IssueNoDependenciesLeft(pr.Issue); err != nil {
+	if noDeps, err := models.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil {
 		return err
 	} else if !noDeps {
 		return ErrDependenciesLeft
@@ -122,7 +122,7 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 

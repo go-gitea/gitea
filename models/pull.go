@@ -372,6 +372,20 @@ func (pr *PullRequest) IsEmpty() bool {
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (bool, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return false, err
+	}
+	defer committer.Close()
+	set, err := pr.SetMergedCtx(ctx)
+	if err != nil {
+		return false, err
+	}
+	return set, committer.Commit()
+}
+
+// SetMergedCtx sets a pull request to merged and closes the corresponding issue
+func (pr *PullRequest) SetMergedCtx(ctx context.Context) (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
@@ -380,12 +394,6 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 	}
 
 	pr.HasMerged = true
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return false, err
-	}
-	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
 	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
@@ -432,9 +440,6 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
-	if err := committer.Commit(); err != nil {
-		return false, fmt.Errorf("Commit: %v", err)
-	}
 	return true, nil
 }
 

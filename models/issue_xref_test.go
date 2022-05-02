@@ -98,7 +98,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
-	_, err := ChangeIssueStatus(i3, d, true)
+	_, err := ChangeIssueStatus(db.DefaultContext, i3, d, true)
 	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
@@ -118,7 +118,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	c4 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i3.Index))
 	r4 := unittest.AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c4.ID}).(*Comment)
 
-	refs, err := pr.ResolveCrossReferences()
+	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, refs, 3)
 	assert.Equal(t, rp.ID, refs[0].ID, "bad ref rp: %+v", refs[0])
