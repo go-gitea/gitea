@@ -144,7 +144,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			return CsvDiffResult{nil, err.Error()}
 		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
+			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID().String, REPONAME, err)
 			return CsvDiffResult{nil, "csv diff error"}
 		}
 
