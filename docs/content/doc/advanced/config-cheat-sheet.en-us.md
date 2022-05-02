@@ -289,7 +289,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the SSH connections. (Set to
   0 to disable all timeouts.)
 - `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
-- `SSH_REDIRECT_PATH`: **username** or **organization**: Gitea will when interacting using git over ssh interface / bearer redirect repos wihtout username or organization prefix use this parameter to redirect such repos to configured user or orginaztion.
+- `SSH_REDIRECT_PATH`: **\<empty\>**: When interacting using git over ssh redirect repositories without username or organization prefix to specified user or organization.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
