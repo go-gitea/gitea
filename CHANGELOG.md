@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Escape git fetch remote (#19487) (#19490)
 * BUGFIXES
+  * Don't overwrite err with nil (#19572) (#19574)
   * On Migrations, only write commit-graph if wiki clone was successful (#19563) (#19568)
   * Respect DefaultUserIsRestricted system default when creating new user (#19310) (#19560)
   * Don't error when branch's commit doesn't exist (#19547) (#19548)
