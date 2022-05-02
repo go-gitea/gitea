@@ -145,7 +145,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		}
 		if err != nil {
 			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID().String, REPONAME, err)
-			return CsvDiffResult{nil, "csv diff error"}
+			return CsvDiffResult{nil, "unable to load file from base commit"}
 		}
 
 		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.Name}, headCommit)
@@ -157,7 +157,7 @@ func setCsvCompareContext(ctx *context.Context) {
 		}
 		if err != nil {
 			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID().String, REPONAME, err)
-			return CsvDiffResult{nil, "csv diff error"}
+			return CsvDiffResult{nil, "unable to load file from head commit"}
 		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
