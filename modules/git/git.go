@@ -22,6 +22,9 @@ import (
 
 var (
 	// GitVersionRequired is the minimum Git version required
+	// At the moment, all code for git 1.x are not changed, if some users want to test with old git client
+	// or bypass the check, they still have a chance to edit this variable manually.
+	// If everything works fine, the code for git 1.x could be removed in a separate PR before 1.17 frozen.
 	GitVersionRequired = "2.0.0"
 
 	// GitExecutable is the command name of git
