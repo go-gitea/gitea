@@ -112,8 +112,8 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
-	ctx.Data["CanSeePrivateIssues"] = ctx.Repo.Permission.CanReadPrivateIssues()
+	ctx.Data["CanWriteProjects"] = ctx.Repo.CanWrite(unit.TypeProjects)
+	ctx.Data["CanSeePrivateIssues"] = ctx.Repo.CanReadPrivateIssues()
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
@@ -131,7 +131,7 @@ func Projects(ctx *context.Context) {
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = project_model.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
