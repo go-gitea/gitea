@@ -13,8 +13,11 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // Repository represents a Git repository.
@@ -24,6 +27,10 @@ type Repository struct {
 	tagCache *ObjectCache
 
 	gpgSettings *GPGSettings
+
+	lock sync.Mutex
+
+	closed bool
 
 	batchCancel context.CancelFunc
 	batchReader *bufio.Reader
@@ -64,29 +71,57 @@ func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error
 	repo.batchWriter, repo.batchReader, repo.batchCancel = CatFileBatch(ctx, repoPath)
 	repo.checkWriter, repo.checkReader, repo.checkCancel = CatFileBatchCheck(ctx, repo.Path)
 
+	runtime.SetFinalizer(repo, (*Repository).finalizer)
+
 	return repo, nil
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
 func (repo *Repository) CatFileBatch(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
-	if repo.batchCancel == nil || repo.batchReader.Buffered() > 0 {
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+
+	if repo.closed || repo.batchReader.Buffered() > 0 {
 		log.Debug("Opening temporary cat file batch for: %s", repo.Path)
 		return CatFileBatch(ctx, repo.Path)
 	}
+
+	if repo.batchCancel == nil {
+		repo.batchWriter, repo.batchReader, repo.batchCancel = CatFileBatch(ctx, repo.Path)
+	}
+
 	return repo.batchWriter, repo.batchReader, func() {}
 }
 
 // CatFileBatchCheck obtains a CatFileBatchCheck for this repository
 func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError, *bufio.Reader, func()) {
-	if repo.checkCancel == nil || repo.checkReader.Buffered() > 0 {
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+
+	if repo.closed || repo.checkReader.Buffered() > 0 {
 		log.Debug("Opening temporary cat file batch-check: %s", repo.Path)
 		return CatFileBatchCheck(ctx, repo.Path)
 	}
+
+	if repo.checkCancel == nil {
+		repo.checkWriter, repo.checkReader, repo.checkCancel = CatFileBatchCheck(ctx, repo.Path)
+	}
+
 	return repo.checkWriter, repo.checkReader, func() {}
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() (err error) {
+	if repo == nil {
+		return
+	}
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+
+	return repo.close()
+}
+
+func (repo *Repository) close() (err error) {
 	if repo == nil {
 		return
 	}
@@ -102,4 +137,26 @@ func (repo *Repository) Close() {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
+	repo.closed = true
+	return
+}
+
+func (repo *Repository) finalizer() (err error) {
+	if repo == nil {
+		return
+	}
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+	if repo.closed {
+		return nil
+	}
+
+	if repo.batchCancel != nil || repo.checkCancel != nil {
+		pid := ""
+		if repo.Ctx != nil {
+			pid = " from PID: " + string(process.GetPID(repo.Ctx))
+		}
+		log.Error("Finalizer running on unclosed repository%s: %s%s", pid, repo.Path)
+	}
+	return repo.close()
 }

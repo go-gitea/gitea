@@ -12,8 +12,12 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"runtime"
+	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	gitealog "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-git/go-billy/v5/osfs"
@@ -27,6 +31,9 @@ type Repository struct {
 	Path string
 
 	tagCache *ObjectCache
+
+	lock   sync.Mutex
+	closed bool
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
@@ -63,23 +70,57 @@ func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error
 		return nil, err
 	}
 
-	return &Repository{
+	repo := &Repository{
 		Path:         repoPath,
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 		Ctx:          ctx,
-	}, nil
+	}
+
+	runtime.SetFinalizer(repo, (*Repository).finalizer)
+
+	return repo, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
-	if repo == nil || repo.gogitStorage == nil {
+func (repo *Repository) Close() (err error) {
+	if repo == nil {
 		return
 	}
-	if err := repo.gogitStorage.Close(); err != nil {
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+	return repo.close()
+}
+
+func (repo *Repository) close() (err error) {
+	repo.closed = true
+	if repo.gogitStorage == nil {
+		return
+	}
+	err = repo.gogitStorage.Close()
+	if err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	return
+}
+
+func (repo *Repository) finalizer() error {
+	if repo == nil {
+		return nil
+	}
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+	if !repo.closed {
+		pid := ""
+		if repo.Ctx != nil {
+			pid = " from PID: " + string(process.GetPID(repo.Ctx))
+		}
+		log.Error("Finalizer running on unclosed repository%s: %s%s", pid, repo.Path)
+	}
+
+	// We still need to run the close fn as it may be possible to reopen the gogitrepo after close
+	return repo.close()
 }
 
 // GoGitRepo gets the go-git repo representation

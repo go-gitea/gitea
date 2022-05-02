@@ -12,8 +12,11 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"runtime"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // Blob represents a Git object.
@@ -54,11 +57,15 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 		return io.NopCloser(bytes.NewReader(bs)), err
 	}
 
-	return &blobReader{
+	br := &blobReader{
+		repo:   b.repo,
 		rd:     rd,
 		n:      size,
 		cancel: cancel,
-	}, nil
+	}
+	runtime.SetFinalizer(br, (*blobReader).finalizer)
+
+	return br, nil
 }
 
 // Size returns the uncompressed size of the blob
@@ -86,6 +93,10 @@ func (b *Blob) Size() int64 {
 }
 
 type blobReader struct {
+	lock   sync.Mutex
+	closed bool
+
+	repo   *Repository
 	rd     *bufio.Reader
 	n      int64
 	cancel func()
@@ -104,27 +115,57 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 }
 
 // Close implements io.Closer
-func (b *blobReader) Close() error {
+func (b *blobReader) Close() (err error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if b.closed {
+		return
+	}
+	return b.close()
+}
+
+func (b *blobReader) close() (err error) {
 	defer b.cancel()
+	b.closed = true
 	if b.n > 0 {
+		var n int
 		for b.n > math.MaxInt32 {
-			n, err := b.rd.Discard(math.MaxInt32)
+			n, err = b.rd.Discard(math.MaxInt32)
 			b.n -= int64(n)
 			if err != nil {
-				return err
+				return
 			}
 			b.n -= math.MaxInt32
 		}
-		n, err := b.rd.Discard(int(b.n))
+		n, err = b.rd.Discard(int(b.n))
 		b.n -= int64(n)
 		if err != nil {
-			return err
+			return
 		}
 	}
 	if b.n == 0 {
-		_, err := b.rd.Discard(1)
+		_, err = b.rd.Discard(1)
 		b.n--
-		return err
+		return
 	}
-	return nil
+	return
+}
+
+func (b *blobReader) finalizer() error {
+	if b == nil {
+		return nil
+	}
+	b.lock.Lock()
+	defer b.lock.Unlock()
+	if b.closed {
+		return nil
+	}
+
+	pid := ""
+	if b.repo.Ctx != nil {
+		pid = " from PID: " + string(process.GetPID(b.repo.Ctx))
+	}
+	log.Error("Finalizer running on unclosed blobReader%s: %s%s", pid, b.repo.Path)
+
+	return b.close()
 }
