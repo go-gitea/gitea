@@ -744,16 +744,25 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	return committer.Commit()
 }
 
-func countUsers(e db.Engine) int64 {
-	count, _ := e.
-		Where("type=0").
-		Count(new(User))
-	return count
+// CountUserFilter represent optional filters for CountUsers
+type CountUserFilter struct {
+	LastLoginSince *int64
 }
 
 // CountUsers returns number of users.
-func CountUsers() int64 {
-	return countUsers(db.GetEngine(db.DefaultContext))
+func CountUsers(opts *CountUserFilter) int64 {
+	return countUsers(db.DefaultContext, opts)
+}
+
+func countUsers(ctx context.Context, opts *CountUserFilter) int64 {
+	sess := db.GetEngine(ctx).Where(builder.Eq{"type": "0"})
+
+	if opts != nil && opts.LastLoginSince != nil {
+		sess = sess.Where(builder.Gte{"last_login_unix": *opts.LastLoginSince})
+	}
+
+	count, _ := sess.Count(new(User))
+	return count
 }
 
 // GetVerifyUser get user by verify code
