@@ -28,12 +28,12 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
-// prQueue represents a queue to handle update pull request tests
-var prQueue queue.UniqueQueue
+// prPatchCheckerQueue represents a queue to handle update pull request tests
+var prPatchCheckerQueue queue.UniqueQueue
 
 var (
-	ErrIsClosed              = errors.New("pull is cosed")
-	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
+	ErrIsClosed              = errors.New("pull is closed")
+	ErrUserNotAllowedToMerge = models.ErrDisallowedToMerge{}
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
@@ -43,7 +43,7 @@ var (
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
-	err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		pr.Status = models.PullRequestStatusChecking
 		err := pr.UpdateColsIfNotMerged("status")
 		if err != nil {
@@ -93,13 +93,13 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return ErrIsChecking
 	}
 
-	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
+	if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 		if models.IsErrDisallowedToMerge(err) {
 			if force {
-				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
-					return err
+				if isRepoAdmin, err2 := models.IsUserRepoAdmin(pr.BaseRepo, doer); err2 != nil {
+					return err2
 				} else if !isRepoAdmin {
-					return ErrUserNotAllowedToMerge
+					return err
 				}
 			}
 		} else {
@@ -144,7 +144,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	// Make sure there is no waiting test to process before leaving the checking status.
-	has, err := prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	if err != nil {
 		log.Error("Unable to check if the queue is waiting to reprocess pr.ID %d. Error: %v", pr.ID, err)
 	}
@@ -293,7 +293,7 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			if err := prQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
+			if err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
 				log.Trace("Adding PR ID: %d to the pull requests patch checking queue", prID)
 				return nil
 			}); err != nil {
@@ -358,13 +358,13 @@ func CheckPrsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName strin
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
+	prPatchCheckerQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
 
-	if prQueue == nil {
+	if prPatchCheckerQueue == nil {
 		return fmt.Errorf("Unable to create pr_patch_checker Queue")
 	}
 
-	go graceful.GetManager().RunWithShutdownFns(prQueue.Run)
+	go graceful.GetManager().RunWithShutdownFns(prPatchCheckerQueue.Run)
 	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
 	return nil
 }
