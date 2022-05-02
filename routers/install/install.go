@@ -134,6 +134,7 @@ func Install(ctx *context.Context) {
 		form.SMTPHost = setting.MailService.Host
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
+		form.SMTPPasswd = setting.MailService.Passwd
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
