@@ -66,7 +66,7 @@ func ListPackages(ctx *context.Context) {
 		if _, has := repositoryAccessMap[pd.Repository.ID]; has {
 			continue
 		}
-		
+
 		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
