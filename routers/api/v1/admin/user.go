@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -81,7 +82,6 @@ func CreateUser(ctx *context.APIContext) {
 		Email:              form.Email,
 		Passwd:             form.Password,
 		MustChangePassword: true,
-		IsActive:           true,
 		LoginType:          auth.Plain,
 	}
 	if form.MustChangePassword != nil {
@@ -107,11 +107,17 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 
-	var overwriteDefault *user_model.CreateUserOverwriteOptions
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive: util.OptionalBoolTrue,
+	}
+
+	if form.Restricted != nil {
+		overwriteDefault.IsRestricted = util.OptionalBoolOf(*form.Restricted)
+	}
+
 	if form.Visibility != "" {
-		overwriteDefault = &user_model.CreateUserOverwriteOptions{
-			Visibility: api.VisibilityModes[form.Visibility],
-		}
+		visibility := api.VisibilityModes[form.Visibility]
+		overwriteDefault.Visibility = &visibility
 	}
 
 	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
