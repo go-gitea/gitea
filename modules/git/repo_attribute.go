@@ -119,12 +119,10 @@ type CheckAttributeReader struct {
 	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc
-	running     chan struct{}
 }
 
 // Init initializes the cmd
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	c.running = make(chan struct{})
 	cmdArgs := []string{"check-attr", "--stdin", "-z"}
 
 	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
@@ -183,14 +181,7 @@ func (c *CheckAttributeReader) Run() error {
 		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunInDirTimeoutEnvFullPipelineFunc(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader, func(_ context.Context, _ context.CancelFunc) error {
-		select {
-		case <-c.running:
-		default:
-			close(c.running)
-		}
-		return nil
-	})
+	err := c.cmd.RunInDirTimeoutEnvFullPipeline(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader)
 	if err != nil && //                      If there is an error we need to return but:
 		c.ctx.Err() != err && //             1. Ignore the context error if the context is cancelled or exceeds the deadline (RunWithContext could return c.ctx.Err() which is Canceled or DeadlineExceeded)
 		err.Error() != "signal: killed" { // 2. We should not pass up errors due to the program being killed
@@ -210,7 +201,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 	select {
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-c.running:
+	default:
 	}
 
 	if _, err = c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
@@ -237,11 +228,6 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 func (c *CheckAttributeReader) Close() error {
 	c.cancel()
 	err := c.stdinWriter.Close()
-	select {
-	case <-c.running:
-	default:
-		close(c.running)
-	}
 	return err
 }
 

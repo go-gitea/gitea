@@ -81,10 +81,9 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		err = nil //nolint
 		hostName = u.Host
 	}
-	addrList, err := net.LookupIP(hostName)
-	if err != nil {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
-	}
+
+	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
+	addrList, _ := net.LookupIP(hostName)
 
 	var ipAllowed bool
 	var ipBlocked bool

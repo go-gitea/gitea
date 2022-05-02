@@ -32,8 +32,8 @@ import (
 var prQueue queue.UniqueQueue
 
 var (
-	ErrIsClosed              = errors.New("pull is cosed")
-	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
+	ErrIsClosed              = errors.New("pull is closed")
+	ErrUserNotAllowedToMerge = models.ErrNotAllowedToMerge{}
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
@@ -96,10 +96,10 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 	if err := CheckPRReadyToMerge(pr, false); err != nil {
 		if models.IsErrNotAllowedToMerge(err) {
 			if force {
-				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
-					return err
+				if isRepoAdmin, err2 := models.IsUserRepoAdmin(pr.BaseRepo, doer); err2 != nil {
+					return err2
 				} else if !isRepoAdmin {
-					return ErrUserNotAllowedToMerge
+					return err
 				}
 			}
 		} else {
