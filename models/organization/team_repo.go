@@ -75,9 +75,9 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 }
 
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
-func GetTeamsWithAccessToRepo(orgID, repoID int64, mode perm.AccessMode) ([]*Team, error) {
+func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode perm.AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
-	return teams, db.GetEngine(db.DefaultContext).Where("team.authorize >= ?", mode).
+	return teams, db.GetEngine(ctx).Where("team.authorize >= ?", mode).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).

@@ -169,7 +169,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.Issue.LoadPullRequest: %v", err)
 		return
 	}
-	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+	if err = comment.Issue.PullRequest.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}
