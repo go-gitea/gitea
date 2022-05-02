@@ -81,13 +81,6 @@ func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.
 		return nil
 	}
 
-	if pr.ProtectedBranch != nil && (!pr.ProtectedBranch.HasEnoughApprovals(ctx, pr) ||
-		pr.ProtectedBranch.MergeBlockedByRejectedReview(ctx, pr) ||
-		pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(ctx, pr) ||
-		pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr)) {
-		return ErrUserNotAllowedToMerge
-	}
-
 	if pr.IsWorkInProgress() {
 		return ErrIsWorkInProgress
 	}
