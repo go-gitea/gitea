@@ -613,7 +613,7 @@ func (f *MergePullRequestForm) SetDefaults(ctx stdContext.Context, pr *models.Pu
 		case "merge", "rebase-merge":
 			f.MergeTitleField, err = pr.GetDefaultMergeMessage(ctx)
 		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage(ctx)
 		}
 	}
 

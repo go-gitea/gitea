@@ -337,14 +337,14 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
-func (pr *PullRequest) GetDefaultSquashMessage() (string, error) {
-	if err := pr.LoadIssue(); err != nil {
+func (pr *PullRequest) GetDefaultSquashMessage(ctx context.Context) (string, error) {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		return "", fmt.Errorf("LoadIssue: %v", err)
 	}
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	}
-	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
 		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index), nil
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index), nil
