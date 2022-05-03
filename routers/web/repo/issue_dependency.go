@@ -184,7 +184,7 @@ func RemoveDependency(ctx *context.Context) {
 	ctx.Redirect(issue.HTMLURL())
 }
 
-func canDepBeLoaded(issue *models.Issue, dep *models.Issue, ctx *context.Context) bool {
+func canDepBeLoaded(issue, dep *models.Issue, ctx *context.Context) bool {
 	if issue.RepoID == dep.RepoID {
 		var userID int64
 		if ctx.IsSigned {

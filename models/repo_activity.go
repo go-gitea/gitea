@@ -326,7 +326,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time, canRead
 }
 
 // FillUnresolvedIssues returns unresolved issue and pull request information for activity page
-func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Time, issues, prs bool, canReadPrivateIssues bool, userID int64) error {
+func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Time, issues, prs, canReadPrivateIssues bool, userID int64) error {
 	// Check if we need to select anything
 	if !issues && !prs {
 		return nil
