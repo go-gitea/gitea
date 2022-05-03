@@ -16,15 +16,9 @@ import (
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	if err := ChangeStatusCtx(ctx, issue, doer, closed); err != nil {
-		return err
-	}
-	return committer.Commit()
+	return db.WithTx(func (ctx context.Context) error {
+		return ChangeStatusCtx(ctx, issue, doer, closed)
+	})
 }
 
 // ChangeStatusCtx changes issue status to open or closed.
