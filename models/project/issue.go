@@ -30,11 +30,37 @@ func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
 	return err
 }
 
-// NumIssues return counter of all issues assigned to a project
+// NumIssues return counter of all non-private issues assigned to a project
 func (p *Project) NumIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_id=?", p.ID).
-		GroupBy("issue_id").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_private=?", p.ID, false).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumPrivateIssues return counter of all private issues assigned to a project
+func (p *Project) NumPrivateIssues() int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_private=?", p.ID, true).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumPrivateOwnIssues return counter of all user created private issues assigned to a project
+func (p *Project) NumPrivateOwnIssues(userID int64) int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_private=? AND issue.poster_id=?", p.ID, true, userID).
 		Cols("issue_id").
 		Count()
 	if err != nil {

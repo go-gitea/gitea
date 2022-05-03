@@ -84,7 +84,13 @@
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">
 						<div class="ui small circular grey label board-card-cnt">
-							{{.NumIssues}}
+							{{if $.CanSeePrivateIssues}}
+								{{Add .NumIssues .NumPrivateIssues}}
+							{{else if (gt $.UserID 0)}}
+								{{Add .NumIssues (.NumPrivateOwnIssues $.UserID)}}
+							{{else}}
+								{{.NumIssues}}
+							{{end}}
 						</div>
 						{{.Title}}
 					</div>

@@ -60,14 +60,22 @@ func (i *Issue) projectBoardID(e db.Engine) int64 {
 	return ip.ProjectBoardID
 }
 
+// LoadIssuesOpts list the options that can be given to load the issues.
+type LoadIssuesOpts struct {
+	UserID              int64
+	CanSeePrivateIssues bool
+}
+
 // LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
+func LoadIssuesFromBoard(b *project_model.Board, opts *LoadIssuesOpts) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
+			UserID:         opts.UserID,
+			CanSeePrivate:  opts.CanSeePrivateIssues,
 		})
 		if err != nil {
 			return nil, err
@@ -79,6 +87,8 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
+			UserID:         opts.UserID,
+			CanSeePrivate:  opts.CanSeePrivateIssues,
 		})
 		if err != nil {
 			return nil, err
@@ -94,10 +104,10 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 }
 
 // LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, error) {
+func LoadIssuesFromBoardList(bs project_model.BoardList, opts *LoadIssuesOpts) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(bs[i])
+		il, err := LoadIssuesFromBoard(bs[i], opts)
 		if err != nil {
 			return nil, err
 		}

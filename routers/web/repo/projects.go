@@ -303,7 +303,20 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := models.LoadIssuesFromBoardList(boards)
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.Doer.ID
+	}
+
+	ctx.Data["UserID"] = userID
+	canSeePrivateIssues := ctx.Repo.CanReadPrivateIssues()
+
+	loadIssueOpt := &models.LoadIssuesOpts{
+		UserID:              userID,
+		CanSeePrivateIssues: canSeePrivateIssues,
+	}
+
+	issuesMap, err := models.LoadIssuesFromBoardList(boards, loadIssueOpt)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
@@ -343,7 +356,8 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	ctx.Data["IsProjectsPage"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.CanWrite(unit.TypeProjects)
+	ctx.Data["CanSeePrivateIssues"] = canSeePrivateIssues
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Boards"] = boards

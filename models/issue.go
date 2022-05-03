@@ -1590,7 +1590,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	opts.setupSessionWithLimit(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
-	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
+	issues := make([]*Issue, 0, opts.PageSize)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("unable to query Issues: %w", err)
 	}

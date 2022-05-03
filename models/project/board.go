@@ -58,12 +58,37 @@ func (Board) TableName() string {
 	return "project_board"
 }
 
-// NumIssues return counter of all issues assigned to the board
+// NumIssues return counter of all non-private issues assigned to the board.
 func (b *Board) NumIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
-		Where("project_id=?", b.ProjectID).
-		And("project_board_id=?", b.ID).
-		GroupBy("issue_id").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_board_id=? AND project_issue.project_id=? AND issue.is_private=?", b.ID, b.ProjectID, false).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumPrivateIssues return counter of all private issues assigned to the board.
+func (b *Board) NumPrivateIssues() int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_board_id=? AND project_issue.project_id=? AND issue.is_private=?", b.ID, b.ProjectID, true).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumPrivateOwnIssues return counter of user created private issues assigned to the board.
+func (b *Board) NumPrivateOwnIssues(userID int64) int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_board_id=? AND project_issue.project_ID=? AND issue.is_private=? AND issue.poster_id=?", b.ID, b.ProjectID, true, userID).
 		Cols("issue_id").
 		Count()
 	if err != nil {
