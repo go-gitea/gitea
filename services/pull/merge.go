@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -34,86 +35,88 @@ import (
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (err error) {
-	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
-		log.Error("LoadHeadRepo: %v", err)
-		return fmt.Errorf("LoadHeadRepo: %v", err)
-	} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return fmt.Errorf("LoadBaseRepo: %v", err)
-	}
+func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (err error) {
+	return db.WithTx(func(ctx context.Context) error {
+		if err = pr.LoadHeadRepoCtx(ctx); err != nil {
+			log.Error("LoadHeadRepo: %v", err)
+			return fmt.Errorf("LoadHeadRepo: %v", err)
+		} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+			log.Error("LoadBaseRepo: %v", err)
+			return fmt.Errorf("LoadBaseRepo: %v", err)
+		}
 
-	prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
-	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-		return err
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
-	// Check if merge style is correct and allowed
-	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
-		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
-	}
-
-	defer func() {
-		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-	}()
-
-	pr.MergedCommitID, err = rawMerge(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
-	if err != nil {
-		return err
-	}
-
-	pr.MergedUnix = timeutil.TimeStampNow()
-	pr.Merger = doer
-	pr.MergerID = doer.ID
-
-	if _, err := pr.SetMerged(ctx); err != nil {
-		log.Error("setMerged [%d]: %v", pr.ID, err)
-	}
-
-	if err := pr.LoadIssueCtx(ctx); err != nil {
-		log.Error("loadIssue [%d]: %v", pr.ID, err)
-	}
-
-	if err := pr.Issue.LoadRepo(ctx); err != nil {
-		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
-	}
-	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
-		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
-	}
-
-	notification.NotifyMergePullRequest(pr, doer)
-
-	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
-	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences(ctx)
-	if err != nil {
-		log.Error("ResolveCrossReferences: %v", err)
-		return nil
-	}
-
-	for _, ref := range refs {
-		if err = ref.LoadIssueCtx(ctx); err != nil {
+		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
+		if err != nil {
+			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 			return err
 		}
-		if err = ref.Issue.LoadRepo(ctx); err != nil {
+		prConfig := prUnit.PullRequestsConfig()
+
+		// Check if merge style is correct and allowed
+		if !prConfig.IsMergeStyleAllowed(mergeStyle) {
+			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+		}
+
+		defer func() {
+			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+		}()
+
+		pr.MergedCommitID, err = rawMerge(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+		if err != nil {
 			return err
 		}
-		close := ref.RefAction == references.XRefActionCloses
-		if close != ref.Issue.IsClosed {
-			if err = issue_service.ChangeStatusCtx(ctx, ref.Issue, doer, close); err != nil {
-				// Allow ErrDependenciesLeft
-				if !models.IsErrDependenciesLeft(err) {
-					return err
+
+		pr.MergedUnix = timeutil.TimeStampNow()
+		pr.Merger = doer
+		pr.MergerID = doer.ID
+
+		if _, err := pr.SetMerged(ctx); err != nil {
+			log.Error("setMerged [%d]: %v", pr.ID, err)
+		}
+
+		if err := pr.LoadIssueCtx(ctx); err != nil {
+			log.Error("loadIssue [%d]: %v", pr.ID, err)
+		}
+
+		if err := pr.Issue.LoadRepo(ctx); err != nil {
+			log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+		}
+		if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
+			log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
+		}
+
+		notification.NotifyMergePullRequest(pr, doer)
+
+		// Reset cached commit count
+		cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
+
+		// Resolve cross references
+		refs, err := pr.ResolveCrossReferences(ctx)
+		if err != nil {
+			log.Error("ResolveCrossReferences: %v", err)
+			return nil
+		}
+
+		for _, ref := range refs {
+			if err = ref.LoadIssueCtx(ctx); err != nil {
+				return err
+			}
+			if err = ref.Issue.LoadRepo(ctx); err != nil {
+				return err
+			}
+			close := ref.RefAction == references.XRefActionCloses
+			if close != ref.Issue.IsClosed {
+				if err = issue_service.ChangeStatusCtx(ctx, ref.Issue, doer, close); err != nil {
+					// Allow ErrDependenciesLeft
+					if !models.IsErrDependenciesLeft(err) {
+						return err
+					}
 				}
 			}
 		}
-	}
 
-	return nil
+		return nil
+	})
 }
 
 // rawMerge perform the merge operation without changing any pull information in database
@@ -721,52 +724,58 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) (err error) {
-	prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
-	if err != nil {
-		return
-	}
-	prConfig := prUnit.PullRequestsConfig()
+func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
+	if err := db.WithTx(func(ctx context.Context) error {
+		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
+		if err != nil {
+			return err
+		}
+		prConfig := prUnit.PullRequestsConfig()
 
-	// Check if merge style is correct and allowed
-	if !prConfig.IsMergeStyleAllowed(repo_model.MergeStyleManuallyMerged) {
-		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
-	}
+		// Check if merge style is correct and allowed
+		if !prConfig.IsMergeStyleAllowed(repo_model.MergeStyleManuallyMerged) {
+			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: repo_model.MergeStyleManuallyMerged}
+		}
 
-	if len(commitID) < 40 {
-		return fmt.Errorf("Wrong commit ID")
-	}
-
-	commit, err := baseGitRepo.GetCommit(commitID)
-	if err != nil {
-		if git.IsErrNotExist(err) {
+		if len(commitID) < 40 {
 			return fmt.Errorf("Wrong commit ID")
 		}
-		return
-	}
 
-	ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
-	if err != nil {
-		return
-	}
-	if !ok {
-		return fmt.Errorf("Wrong commit ID")
-	}
+		commit, err := baseGitRepo.GetCommit(commitID)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				return fmt.Errorf("Wrong commit ID")
+			}
+			return err
+		}
+		commitID = commit.ID.String()
 
-	pr.MergedCommitID = commitID
-	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
-	pr.Status = models.PullRequestStatusManuallyMerged
-	pr.Merger = doer
-	pr.MergerID = doer.ID
+		ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("Wrong commit ID")
+		}
 
-	merged := false
-	if merged, err = pr.SetMerged(ctx); err != nil {
-		return
-	} else if !merged {
-		return fmt.Errorf("SetMerged failed")
+		pr.MergedCommitID = commitID
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+		pr.Status = models.PullRequestStatusManuallyMerged
+		pr.Merger = doer
+		pr.MergerID = doer.ID
+
+		merged := false
+		if merged, err = pr.SetMerged(ctx); err != nil {
+			return err
+		} else if !merged {
+			return fmt.Errorf("SetMerged failed")
+		}
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	notification.NotifyMergePullRequest(pr, doer)
-	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 	return nil
 }

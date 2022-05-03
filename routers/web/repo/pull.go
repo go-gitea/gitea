@@ -905,7 +905,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
@@ -928,7 +928,7 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
