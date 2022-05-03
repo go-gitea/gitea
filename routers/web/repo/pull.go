@@ -937,7 +937,7 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// set defaults to propagate needed fields
-	if err := form.SetDefaults(pr); err != nil {
+	if err := form.SetDefaults(dbCtx, pr); err != nil {
 		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}

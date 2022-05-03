@@ -227,23 +227,23 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
-func (pr *PullRequest) GetDefaultMergeMessage() (string, error) {
+func (pr *PullRequest) GetDefaultMergeMessage(ctx context.Context) (string, error) {
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
 		if err != nil {
 			return "", fmt.Errorf("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 		}
 	}
-	if err := pr.LoadIssue(); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		return "", fmt.Errorf("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 	}
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
 	issueReference := "#"
-	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
 		issueReference = "!"
 	}
 
