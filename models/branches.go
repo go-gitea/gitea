@@ -104,7 +104,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permissionInRepo Permission) bool {
+func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
 		return permissionInRepo.CanWrite(unit.TypeCode)
@@ -118,7 +118,7 @@ func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permis
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.MergeWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -159,16 +159,16 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 }
 
 // HasEnoughApprovals returns true if pr has enough granted approvals.
-func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) HasEnoughApprovals(ctx context.Context, pr *PullRequest) bool {
 	if protectBranch.RequiredApprovals == 0 {
 		return true
 	}
-	return protectBranch.GetGrantedApprovalsCount(pr) >= protectBranch.RequiredApprovals
+	return protectBranch.GetGrantedApprovalsCount(ctx, pr) >= protectBranch.RequiredApprovals
 }
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
-func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	sess := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(ctx context.Context, pr *PullRequest) int64 {
+	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
@@ -185,11 +185,11 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
-func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(ctx context.Context, pr *PullRequest) bool {
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
-	rejectExist, err := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+	rejectExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
 		And("dismissed = ?", false).
@@ -204,11 +204,11 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 
 // MergeBlockedByOfficialReviewRequests block merge because of some review request to official reviewer
 // of from official review
-func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(ctx context.Context, pr *PullRequest) bool {
 	if !protectBranch.BlockOnOfficialReviewRequests {
 		return false
 	}
-	has, err := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+	has, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeRequest).
 		And("official = ?", true).
 		Exist(new(Review))

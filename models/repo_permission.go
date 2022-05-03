@@ -331,10 +331,11 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	return isUserRepoAdmin(db.DefaultContext, repo, user)
+	return IsUserRepoAdminCtx(db.DefaultContext, repo, user)
 }
 
-func isUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+// IsUserRepoAdminCtx return true if user has admin right of a repo
+func IsUserRepoAdminCtx(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
