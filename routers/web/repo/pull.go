@@ -290,7 +290,7 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = issue.ReadBy(ctx.Doer.ID); err != nil {
+		if err = issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil
 		}
@@ -866,6 +866,7 @@ func MergePullRequest(ctx *context.Context) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
+	// start with merging by checking
 	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			if issue.IsPull {
@@ -899,7 +900,6 @@ func MergePullRequest(ctx *context.Context) {
 		} else {
 			ctx.ServerError("WebCheck", err)
 		}
-
 		return
 	}
 
@@ -909,14 +909,12 @@ func MergePullRequest(ctx *context.Context) {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
-				return
 			} else if strings.Contains(err.Error(), "Wrong commit ID") {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
 				ctx.Redirect(issue.Link())
-				return
+			} else {
+				ctx.ServerError("MergedManually", err)
 			}
-
-			ctx.ServerError("MergedManually", err)
 			return
 		}
 
@@ -925,16 +923,15 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// set defaults to propagate needed fields
-	if err := form.SetDefaults(pr); err != nil {
+	if err := form.SetDefaults(ctx, pr); err != nil {
 		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
@@ -948,7 +945,6 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
@@ -962,22 +958,18 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrSHADoesNotMatch(err) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
 			pushrejErr := err.(*git.ErrPushRejected)
@@ -997,11 +989,12 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.Flash.Error(flashError)
 			}
 			ctx.Redirect(issue.Link())
-			return
+		} else {
+			ctx.ServerError("Merge", err)
 		}
-		ctx.ServerError("Merge", err)
 		return
 	}
+	log.Trace("Pull request merged: %d", pr.ID)
 
 	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
@@ -1012,7 +1005,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when other pr use this branch as head branch
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
@@ -1193,7 +1186,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	// Don't cleanup when there are other PR's that use this branch as head branch.
-	exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+	exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 	if err != nil {
 		ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 		return
@@ -1304,7 +1297,7 @@ func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Rep
 		return
 	}
 
-	if err := models.AddDeletePRBranchComment(ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
+	if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
 		log.Error("DeleteBranch: %v", err)
 	}

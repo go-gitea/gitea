@@ -17,7 +17,7 @@ type UserList []*User //revive:disable-line:exported
 
 // GetUserIDs returns a slice of user's id
 func (users UserList) GetUserIDs() []int64 {
-	userIDs := make([]int64, len(users))
+	userIDs := make([]int64, 0, len(users))
 	for _, user := range users {
 		userIDs = append(userIDs, user.ID) // Considering that user id are unique in the list
 	}
