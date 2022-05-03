@@ -191,7 +191,7 @@ func handlePull(pullID int64) {
 	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
 
 	if pr.HeadRepo == nil || !headBranchExist {
-		log.Info("Head branch of auto merge pr does not exist [HeadRepoID: %d, Branch: %s, PRID: %d]", pr.HeadRepoID, pr.HeadBranch, pr.ID)
+		log.Warn("Head branch of auto merge pr does not exist [HeadRepoID: %d, Branch: %s, PR ID: %d]", pr.HeadRepoID, pr.HeadBranch, pr.ID)
 		return
 	}
 
@@ -221,7 +221,7 @@ func handlePull(pullID int64) {
 
 	if err := pull_service.CheckPullMergable(ctx, doer, &perm, pr, false, false); err != nil {
 		if errors.Is(pull_service.ErrUserNotAllowedToMerge, err) {
-			log.Debug("pull[%d] not ready for automerge", pr.ID)
+			log.Info("PR %d was scheduled to automerge by an unauthorized user", pr.ID)
 			return
 		}
 		log.Error(err.Error())
