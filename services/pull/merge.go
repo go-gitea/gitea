@@ -36,64 +36,60 @@ import (
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
-	if err := db.WithTx(func(ctx context.Context) error {
-		if err := pr.LoadHeadRepoCtx(ctx); err != nil {
-			log.Error("LoadHeadRepo: %v", err)
-			return fmt.Errorf("LoadHeadRepo: %v", err)
-		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-			log.Error("LoadBaseRepo: %v", err)
-			return fmt.Errorf("LoadBaseRepo: %v", err)
-		}
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return fmt.Errorf("LoadHeadRepo: %v", err)
+	} else if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return fmt.Errorf("LoadBaseRepo: %v", err)
+	}
 
-		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
-		if err != nil {
-			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-			return err
-		}
-		prConfig := prUnit.PullRequestsConfig()
-
-		// Check if merge style is correct and allowed
-		if !prConfig.IsMergeStyleAllowed(mergeStyle) {
-			return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
-		}
-
-		defer func() {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
-		}()
-
-		pr.MergedCommitID, err = rawMerge(ctx, pr, doer, mergeStyle, expectedHeadCommitID, message)
-		if err != nil {
-			return err
-		}
-
-		pr.MergedUnix = timeutil.TimeStampNow()
-		pr.Merger = doer
-		pr.MergerID = doer.ID
-
-		if _, err := pr.SetMerged(ctx); err != nil {
-			log.Error("setMerged [%d]: %v", pr.ID, err)
-		}
-
-		if err := pr.LoadIssueCtx(ctx); err != nil {
-			log.Error("loadIssue [%d]: %v", pr.ID, err)
-		}
-
-		if err := pr.Issue.LoadRepo(ctx); err != nil {
-			log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
-		}
-		if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
-			log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
-		}
-
-		notification.NotifyMergePullRequest(pr, doer)
-
-		// Reset cached commit count
-		cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
-		return nil
-	}); err != nil {
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
+	if err != nil {
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 		return err
 	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	// Check if merge style is correct and allowed
+	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
+		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
+	}
+
+	defer func() {
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
+	}()
+
+	// TODO: make it able to do this in a database session
+	mergeCtx := context.Background()
+	pr.MergedCommitID, err = rawMerge(mergeCtx, pr, doer, mergeStyle, expectedHeadCommitID, message)
+	if err != nil {
+		return err
+	}
+
+	pr.MergedUnix = timeutil.TimeStampNow()
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	if _, err := pr.SetMerged(db.DefaultContext); err != nil {
+		log.Error("setMerged [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.LoadIssueCtx(db.DefaultContext); err != nil {
+		log.Error("loadIssue [%d]: %v", pr.ID, err)
+	}
+
+	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
+		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
+	}
+	if err := pr.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+
+	// Reset cached commit count
+	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Resolve cross references
 	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
@@ -510,6 +506,8 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	}
 
 	// Push back to upstream.
+	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
+	//       that prevents us from doint the whole merge in one db transaction
 	if err := pushCmd.Run(&git.RunOpts{
 		Env:    env,
 		Dir:    tmpBasePath,
