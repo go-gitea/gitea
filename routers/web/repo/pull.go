@@ -862,21 +862,14 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	dbCtx, committer, err := db.TxContext()
-	if err != nil {
-		ctx.ServerError("db.TxContext", err)
-		return
-	}
-	defer committer.Close()
-	dbCtx = dbCtx.WithContext(ctx)
-
 	pr := issue.PullRequest
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := pull_service.CheckPullMergable(dbCtx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+	// start with merging by checking
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			if issue.IsPull {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
@@ -909,43 +902,36 @@ func MergePullRequest(ctx *context.Context) {
 		} else {
 			ctx.ServerError("WebCheck", err)
 		}
-
 		return
 	}
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
-				return
 			} else if strings.Contains(err.Error(), "Wrong commit ID") {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
 				ctx.Redirect(issue.Link())
-				return
+			} else {
+				ctx.ServerError("MergedManually", err)
 			}
-
-			ctx.ServerError("MergedManually", err)
 			return
 		}
 
-		if err := committer.Commit(); err != nil {
-			ctx.ServerError("committer.Commit", err)
-			return
-		}
 		ctx.Redirect(issue.Link())
 		return
 	}
 
 	// set defaults to propagate needed fields
-	if err := form.SetDefaults(pr); err != nil {
+	if err := form.SetDefaults(ctx, pr); err != nil {
 		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(dbCtx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
@@ -956,21 +942,16 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		} else if scheduled {
 			// nothing more to do ...
-			if err := committer.Commit(); err != nil {
-				ctx.ServerError("committer.Commit", err)
-				return
-			}
 			ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_success"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 			return
 		}
 	}
 
-	if err := pull_service.Merge(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
@@ -984,7 +965,6 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
 			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
@@ -998,22 +978,18 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if models.IsErrSHADoesNotMatch(err) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.Redirect(issue.Link())
-			return
 		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
 			pushrejErr := err.(*git.ErrPushRejected)
@@ -1033,16 +1009,12 @@ func MergePullRequest(ctx *context.Context) {
 				ctx.Flash.Error(flashError)
 			}
 			ctx.Redirect(issue.Link())
-			return
+		} else {
+			ctx.ServerError("Merge", err)
 		}
-		ctx.ServerError("Merge", err)
 		return
 	}
-	// commit dbCtx
-	if err := committer.Commit(); err != nil {
-		ctx.ServerError("Commit", err)
-		return
-	}
+	log.Trace("Pull request merged: %d", pr.ID)
 
 	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -729,15 +728,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
-	dbCtx, committer, err := db.TxContext()
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	defer committer.Close()
-	dbCtx = dbCtx.WithContext(ctx)
 
-	pr, err := models.GetPullRequestByIndexCtx(dbCtx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndexCtx(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -747,12 +739,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.LoadHeadRepoCtx(dbCtx); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
-	if err := pr.LoadIssueCtx(dbCtx); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -760,7 +752,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = pr.Issue.ReadBy(dbCtx, ctx.Doer.ID); err != nil {
+		if err = pr.Issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReadBy", err)
 			return
 		}
@@ -769,7 +761,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	force := form.ForceMerge != nil && *form.ForceMerge
 
-	if err := pull_service.CheckPullMergable(dbCtx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+	// start with merging by checking
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
 		if errors.Is(err, pull_service.ErrIsClosed) {
 			ctx.NotFound()
 		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
@@ -792,7 +785,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	// handle manually-merged mark
 	if manuallMerge {
-		if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -804,22 +797,18 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
 			return
 		}
-		if err := committer.Commit(); err != nil {
-			ctx.InternalServerError(err)
-			return
-		}
 		ctx.Status(http.StatusOK)
 		return
 	}
 
 	// set defaults to propagate needed fields
-	if err := form.SetDefaults(pr); err != nil {
+	if err := form.SetDefaults(ctx, pr); err != nil {
 		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(dbCtx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
@@ -829,19 +818,14 @@ func MergePullRequest(ctx *context.APIContext) {
 			return
 		} else if scheduled {
 			// nothing more to do ...
-			if err := committer.Commit(); err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
 			ctx.Status(http.StatusCreated)
 			return
 		}
 	}
 
-	if err := pull_service.Merge(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
-			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			ctx.JSON(http.StatusConflict, conflictError)
@@ -853,28 +837,20 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
-			return
 		} else if models.IsErrSHADoesNotMatch(err) {
 			ctx.Error(http.StatusConflict, "Merge", "head out of date")
-			return
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
-				return
+			} else {
+				ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
 			}
-			ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
-			return
+		} else {
+			ctx.Error(http.StatusInternalServerError, "Merge", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "Merge", err)
 		return
 	}
-	// commit dbCtx
-	if err := committer.Commit(); err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
