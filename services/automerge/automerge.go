@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -153,17 +152,9 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 }
 
 func handlePull(pullID int64) {
-	stdCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
 		fmt.Sprintf("Handle AutoMerge of PR[%d]", pullID))
 	defer finished()
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-	defer committer.Close()
-	ctx.WithContext(stdCtx)
 
 	pr, err := models.GetPullRequestByID(ctx, pullID)
 	if err != nil {
@@ -254,12 +245,8 @@ func handlePull(pullID int64) {
 		defer baseGitRepo.Close()
 	}
 
-	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
+	if err := pull_service.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
 		log.Error(err.Error())
 		return
-	}
-
-	if err := committer.Commit(); err != nil {
-		log.Error(err.Error())
 	}
 }
