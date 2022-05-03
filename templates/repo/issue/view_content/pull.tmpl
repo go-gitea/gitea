@@ -790,7 +790,7 @@
 									</div>
 								{{end}}
 								<div class="dib">
-									<div class="ui {{if $notAllOverridableChecksOk}}red{{else if .HasPendingPullRequestMerge }}red{{else}}green{{end}} buttons merge-button">
+									<div class="ui {{if or $notAllOverridableChecksOk .HasPendingPullRequestMerge}}red{{else}}green{{end}} buttons merge-button">
 										<button class="ui button" data-do="{{.MergeStyle}}">
 											{{svg "octicon-git-merge" }}
 											<span class="button-text">
