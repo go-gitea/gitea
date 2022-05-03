@@ -1085,6 +1085,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Federation (`federation`)
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
+- `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
 
 ## Packages (`packages`)
 

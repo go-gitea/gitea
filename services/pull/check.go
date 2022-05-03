@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,8 +33,8 @@ import (
 var prPatchCheckerQueue queue.UniqueQueue
 
 var (
-	ErrIsClosed              = errors.New("pull is cosed")
-	ErrUserNotAllowedToMerge = errors.New("user not allowed to merge")
+	ErrIsClosed              = errors.New("pull is closed")
+	ErrUserNotAllowedToMerge = models.ErrDisallowedToMerge{}
 	ErrHasMerged             = errors.New("has already been merged")
 	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
 	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
@@ -59,70 +60,72 @@ func AddToTaskQueue(pr *models.PullRequest) {
 }
 
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
-func CheckPullMergable(ctx context.Context, doer *user_model.User, perm *models.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
-	if pr.HasMerged {
-		return ErrHasMerged
-	}
+func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *models.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
+	return db.WithTx(func(ctx context.Context) error {
+		if pr.HasMerged {
+			return ErrHasMerged
+		}
 
-	if err := pr.LoadIssue(); err != nil {
-		return err
-	} else if pr.Issue.IsClosed {
-		return ErrIsClosed
-	}
+		if err := pr.LoadIssueCtx(ctx); err != nil {
+			return err
+		} else if pr.Issue.IsClosed {
+			return ErrIsClosed
+		}
 
-	if allowedMerge, err := IsUserAllowedToMerge(pr, *perm, doer); err != nil {
-		return err
-	} else if !allowedMerge {
-		return ErrUserNotAllowedToMerge
-	}
+		if allowedMerge, err := IsUserAllowedToMerge(ctx, pr, *perm, doer); err != nil {
+			return err
+		} else if !allowedMerge {
+			return ErrUserNotAllowedToMerge
+		}
 
-	if manuallMerge {
-		// don't check rules to "auto merge", doer is going to mark this pull as merged manually
-		return nil
-	}
+		if manuallMerge {
+			// don't check rules to "auto merge", doer is going to mark this pull as merged manually
+			return nil
+		}
 
-	if pr.IsWorkInProgress() {
-		return ErrIsWorkInProgress
-	}
+		if pr.IsWorkInProgress() {
+			return ErrIsWorkInProgress
+		}
 
-	if !pr.CanAutoMerge() {
-		return ErrNotMergableState
-	}
+		if !pr.CanAutoMerge() {
+			return ErrNotMergableState
+		}
 
-	if pr.IsChecking() {
-		return ErrIsChecking
-	}
+		if pr.IsChecking() {
+			return ErrIsChecking
+		}
 
-	if err := CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if models.IsErrDisallowedToMerge(err) {
-			if force {
-				if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, doer); err != nil {
-					return err
-				} else if !isRepoAdmin {
-					return ErrUserNotAllowedToMerge
+		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
+			if models.IsErrDisallowedToMerge(err) {
+				if force {
+					if isRepoAdmin, err2 := models.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
+						return err2
+					} else if !isRepoAdmin {
+						return err
+					}
 				}
+			} else {
+				return err
 			}
-		} else {
+		}
+
+		if _, err := isSignedIfRequired(ctx, pr, doer); err != nil {
 			return err
 		}
-	}
 
-	if _, err := isSignedIfRequired(ctx, pr, doer); err != nil {
-		return err
-	}
+		if noDeps, err := models.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil {
+			return err
+		} else if !noDeps {
+			return ErrDependenciesLeft
+		}
 
-	if noDeps, err := models.IssueNoDependenciesLeft(pr.Issue); err != nil {
-		return err
-	} else if !noDeps {
-		return ErrDependenciesLeft
-	}
-
-	return nil
+		return nil
+	}, stdCtx)
 }
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranch(); err != nil {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 
@@ -227,7 +230,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
@@ -266,7 +269,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if merged, err := pr.SetMerged(); err != nil {
+		if merged, err := pr.SetMerged(ctx); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		} else if !merged {
@@ -319,7 +322,7 @@ func testPR(id int64) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
-	pr, err := models.GetPullRequestByID(id)
+	pr, err := models.GetPullRequestByID(ctx, id)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", id, err)
 		return

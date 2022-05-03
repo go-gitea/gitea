@@ -4,6 +4,7 @@
   id: 1
   lower_name: user1
   name: user1
+  login_name: user1
   full_name: User One
   email: user1@example.com
   email_notifications_preference: enabled
@@ -21,6 +22,7 @@
   id: 2
   lower_name: user2
   name: user2
+  login_name: user2
   full_name: "   < U<se>r Tw<o > ><  "
   email: user2@example.com
   keep_email_private: true
@@ -42,6 +44,7 @@
   id: 3
   lower_name: user3
   name: user3
+  login_name: user3
   full_name: " <<<< >> >> > >> > >>> >> "
   email: user3@example.com
   email_notifications_preference: onmention
@@ -60,6 +63,7 @@
   id: 4
   lower_name: user4
   name: user4
+  login_name: user4
   full_name: "          "
   email: user4@example.com
   email_notifications_preference: onmention
@@ -78,6 +82,7 @@
   id: 5
   lower_name: user5
   name: user5
+  login_name: user5
   full_name: User Five
   email: user5@example.com
   email_notifications_preference: enabled
@@ -97,6 +102,7 @@
   id: 6
   lower_name: user6
   name: user6
+  login_name: user6
   full_name: User Six
   email: user6@example.com
   email_notifications_preference: enabled
@@ -115,6 +121,7 @@
   id: 7
   lower_name: user7
   name: user7
+  login_name: user7
   full_name: User Seven
   email: user7@example.com
   email_notifications_preference: disabled
@@ -133,6 +140,7 @@
   id: 8
   lower_name: user8
   name: user8
+  login_name: user8
   full_name: User Eight
   email: user8@example.com
   email_notifications_preference: enabled
@@ -152,6 +160,7 @@
   id: 9
   lower_name: user9
   name: user9
+  login_name: user9
   full_name: User Nine
   email: user9@example.com
   email_notifications_preference: onmention
@@ -169,6 +178,7 @@
   id: 10
   lower_name: user10
   name: user10
+  login_name: user10
   full_name: User Ten
   email: user10@example.com
   passwd_hash_algo: argon2
@@ -185,6 +195,7 @@
   id: 11
   lower_name: user11
   name: user11
+  login_name: user11
   full_name: User Eleven
   email: user11@example.com
   passwd_hash_algo: argon2
@@ -201,6 +212,7 @@
   id: 12
   lower_name: user12
   name: user12
+  login_name: user12
   full_name: User 12
   email: user12@example.com
   passwd_hash_algo: argon2
@@ -217,6 +229,7 @@
   id: 13
   lower_name: user13
   name: user13
+  login_name: user13
   full_name: User 13
   email: user13@example.com
   passwd_hash_algo: argon2
@@ -233,6 +246,7 @@
   id: 14
   lower_name: user14
   name: user14
+  login_name: user14
   full_name: User 14
   email: user14@example.com
   passwd_hash_algo: argon2
@@ -249,6 +263,7 @@
   id: 15
   lower_name: user15
   name: user15
+  login_name: user15
   full_name: User 15
   email: user15@example.com
   passwd_hash_algo: argon2
@@ -265,6 +280,7 @@
   id: 16
   lower_name: user16
   name: user16
+  login_name: user16
   full_name: User 16
   email: user16@example.com
   passwd_hash_algo: argon2
@@ -281,6 +297,7 @@
   id: 17
   lower_name: user17
   name: user17
+  login_name: user17
   full_name: User 17
   email: user17@example.com
   passwd_hash_algo: argon2
@@ -299,6 +316,7 @@
   id: 18
   lower_name: user18
   name: user18
+  login_name: user18
   full_name: User 18
   email: user18@example.com
   passwd_hash_algo: argon2
@@ -315,6 +333,7 @@
   id: 19
   lower_name: user19
   name: user19
+  login_name: user19
   full_name: User 19
   email: user19@example.com
   passwd_hash_algo: argon2
@@ -333,6 +352,7 @@
   id: 20
   lower_name: user20
   name: user20
+  login_name: user20
   full_name: User 20
   email: user20@example.com
   passwd_hash_algo: argon2
@@ -349,6 +369,7 @@
   id: 21
   lower_name: user21
   name: user21
+  login_name: user21
   full_name: User 21
   email: user21@example.com
   passwd_hash_algo: argon2
@@ -365,6 +386,7 @@
   id: 22
   lower_name: limited_org
   name: limited_org
+  login_name: limited_org
   full_name: Limited Org
   email: limited_org@example.com
   passwd_hash_algo: argon2
@@ -384,6 +406,7 @@
   id: 23
   lower_name: privated_org
   name: privated_org
+  login_name: privated_org
   full_name: Privated Org
   email: privated_org@example.com
   passwd_hash_algo: argon2
@@ -403,6 +426,7 @@
   id: 24
   lower_name: user24
   name: user24
+  login_name: user24
   full_name: "user24"
   email: user24@example.com
   keep_email_private: true
@@ -423,6 +447,7 @@
   id: 25
   lower_name: org25
   name: org25
+  login_name: org25
   full_name: "org25"
   email: org25@example.com
   passwd_hash_algo: argon2
@@ -440,6 +465,7 @@
   id: 26
   lower_name: org26
   name: org26
+  login_name: org26
   full_name: "Org26"
   email: org26@example.com
   email_notifications_preference: onmention
@@ -459,6 +485,7 @@
   id: 27
   lower_name: user27
   name: user27
+  login_name: user27
   full_name: User Twenty-Seven
   email: user27@example.com
   email_notifications_preference: enabled
@@ -475,6 +502,7 @@
   id: 28
   lower_name: user28
   name: user28
+  login_name: user28
   full_name: "user27"
   email: user28@example.com
   keep_email_private: true
@@ -495,6 +523,7 @@
   id: 29
   lower_name: user29
   name: user29
+  login_name: user29
   full_name: User 29
   email: user29@example.com
   passwd_hash_algo: argon2
@@ -512,6 +541,7 @@
   id: 30
   lower_name: user30
   name: user30
+  login_name: user30
   full_name: User Thirty
   email: user30@example.com
   passwd_hash_algo: argon2
@@ -530,6 +560,7 @@
   id: 31
   lower_name: user31
   name: user31
+  login_name: user31
   full_name: "user31"
   email: user31@example.com
   passwd_hash_algo: argon2
@@ -547,6 +578,7 @@
   id: 32
   lower_name: user32
   name: user32
+  login_name: user32
   full_name: User 32 (U2F test)
   email: user32@example.com
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password

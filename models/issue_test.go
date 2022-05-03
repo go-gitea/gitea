@@ -443,12 +443,12 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	err = CreateIssueDependency(user, issue1, issue2)
 	assert.NoError(t, err)
-	left, err := IssueNoDependenciesLeft(issue1)
+	left, err := IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 	err = DeleteIssue(&Issue{ID: 2})
 	assert.NoError(t, err)
-	left, err = IssueNoDependenciesLeft(issue1)
+	left, err = IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
 }
@@ -589,4 +589,11 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 	assert.NoError(t, milestone.LoadTotalTrackedTime())
 
 	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
+}
+
+func TestCountIssues(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	count, err := CountIssues(&IssuesOptions{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 15, count)
 }

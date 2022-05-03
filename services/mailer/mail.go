@@ -367,6 +367,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
 		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
+		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
 		"X-Gitea-Recipient":         recipient.DisplayName(),
