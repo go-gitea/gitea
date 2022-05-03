@@ -144,16 +144,15 @@ func newMailService() {
 		}
 	}
 
+	// we want to warn if users use SMTP on a non-local IP;
+	// we might as well take the opportunity to check that it has an IP at all
+	ips := tryResolveAddr(MailService.SMTPAddr)
 	if MailService.Protocol == "smtp" {
-		switch MailService.SMTPAddr {
-		case "localhost":
-		case "127.0.0.1":
-		case "::1":
-		case "[::1]":
-			// this is a local address, so, we're fine
-			break
-		default:
-			log.Warn("connect via insecure SMTP to non-local address")
+		for _, ip := range ips {
+			if !ip.IsLoopback() {
+				log.Warn("connect via insecure SMTP to non-local address")
+				break
+			}
 		}
 	}
 
@@ -245,4 +244,22 @@ func newNotifyMailService() {
 	}
 	Service.EnableNotifyMail = true
 	log.Info("Notify Mail Service Enabled")
+}
+
+func tryResolveAddr(addr string) []net.IP {
+	if strings.HasPrefix(addr, "[") && strings.HasSuffix(addr, "]") {
+		addr = addr[1 : len(addr)-1]
+	}
+	ip := net.ParseIP(addr)
+	if ip != nil {
+		ips := make([]net.IP, 1)
+		ips[0] = ip
+		return ips
+	}
+	ips, err := net.LookupIP(addr)
+	if err != nil {
+		log.Warn("could not look up mailer.SMTP_ADDR: %v", err)
+		return make([]net.IP, 0)
+	}
+	return ips
 }
