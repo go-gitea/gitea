@@ -556,7 +556,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(nil); n == 0 {
 		changePassword = false
 	}
 
