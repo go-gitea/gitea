@@ -127,7 +127,7 @@ func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository
 			user.Commits += v.Commits
 		}
 	}
-	v := make([]*ActivityAuthorData, 0)
+	v := make([]*ActivityAuthorData, 0, len(users))
 	for _, u := range users {
 		v = append(v, u)
 	}
