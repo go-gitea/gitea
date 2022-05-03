@@ -16,9 +16,7 @@ import (
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	return db.WithTx(func(ctx context.Context) error {
-		return ChangeStatusCtx(ctx, issue, doer, closed)
-	})
+	return ChangeStatusCtx(db.DefaultContext, issue, doer, closed)
 }
 
 // ChangeStatusCtx changes issue status to open or closed.
