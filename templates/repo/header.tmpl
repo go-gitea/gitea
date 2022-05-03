@@ -183,6 +183,15 @@
 					</a>
 				{{end}}
 
+				{{ if and (not .UnitBuildsGlobalDisabled) (.Permission.CanRead $.UnitTypeBuilds)}}
+					<a class="{{if .PageIsBuildList}}active{{end}} item" href="{{.RepoLink}}/builds">
+						{{svg "octicon-git-builds"}} {{.i18n.Tr "repo.builds"}}
+						{{if .Repository.NumOpenBuilds}}
+							<span class="ui blue small label">{{CountFmt .Repository.NumOpenBuilds}}</span>
+						{{end}}
+					</a>
+				{{end}}
+
 				{{if .Permission.CanRead $.UnitTypePackages}}
 					<a href="{{.RepoLink}}/packages" class="{{if .IsPackagesPage}}active{{end}} item">
 						{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}

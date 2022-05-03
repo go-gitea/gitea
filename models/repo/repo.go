@@ -142,6 +142,9 @@ type Repository struct {
 	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
+	NumBuilds           int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedBuilds     int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenBuilds       int `xorm:"-"`
 
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
@@ -234,6 +237,7 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
+	repo.NumOpenBuilds = repo.NumBuilds - repo.NumClosedBuilds
 }
 
 // LoadAttributes loads attributes of the repository.

@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/routers/web/repo/builds"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -665,6 +666,7 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
+	reqRepoBuildsReader := context.RequireRepoReader(unit.TypeBuilds)
 
 	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
@@ -1168,6 +1170,13 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
+
+		m.Group("/builds", func() {
+			m.Get("", builds.List)
+			m.Group("/{index}", func() {
+				m.Get("", builds.ViewBuild)
+			})
+		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 
 		m.Group("/wiki", func() {
 			m.Combo("/").

@@ -420,6 +420,19 @@
 					</div>
 				</div>
 
+				{{$isBuildsEnabled := .Repository.UnitEnabled $.UnitTypeBuilds}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.builds"}}</label>
+					{{if .UnitTypeBuilds.UnitGlobalDisabled}}
+					<div class="ui checkbox tooltip disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_builds" type="checkbox" {{if $isBuildsEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.builds_desc"}}</label>
+					</div>
+				</div>
+
 				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}

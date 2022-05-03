@@ -39,6 +39,28 @@ func NewNotifier() base.Notifier {
 	return &botsNotifier{}
 }
 
+func detectWorkflows(commit *git.Commit, event webhook.HookEventType, ref string) (bool, error) {
+	tree, err := commit.SubTree(".github/workflows")
+	if _, ok := err.(git.ErrNotExist); ok {
+		tree, err = commit.SubTree(".gitea/workflows")
+	}
+	if _, ok := err.(git.ErrNotExist); ok {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	entries, err := tree.ListEntries()
+	if err != nil {
+		return false, err
+	}
+
+	log.Trace("detected %s has %d entries", commit.ID, len(entries))
+
+	return len(entries) > 0, nil
+}
+
 func notifyIssue(issue *models.Issue, doer *user_model.User, evt webhook.HookEventType, payload string) {
 	err := issue.LoadRepo(db.DefaultContext)
 	if err != nil {
@@ -68,7 +90,18 @@ func notifyIssue(issue *models.Issue, doer *user_model.User, evt webhook.HookEve
 		return
 	}
 
+	hasWorkflows, err := detectWorkflows(commit, evt, ref)
+	if err != nil {
+		log.Error("detectWorkflows: %v", err)
+		return
+	}
+	if !hasWorkflows {
+		log.Trace("repo %s with commit %s couldn't find workflows", issue.Repo.RepoPath(), commit.ID)
+		return
+	}
+
 	task := bots_model.Task{
+		Title:         commit.CommitMessage,
 		RepoID:        issue.RepoID,
 		TriggerUserID: doer.ID,
 		Event:         evt,
@@ -157,6 +190,29 @@ func (a *botsNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_mod
 		return
 	}
 
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetCommit(commits.HeadCommit.Sha1)
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	hasWorkflows, err := detectWorkflows(commit, webhook.HookEventPush, opts.RefFullName)
+	if err != nil {
+		log.Error("detectWorkflows: %v", err)
+		return
+	}
+	if !hasWorkflows {
+		log.Trace("repo %s with commit %s couldn't find workflows", repo.RepoPath(), commit.ID)
+		return
+	}
+
 	payload := &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
@@ -176,6 +232,7 @@ func (a *botsNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_mod
 	}
 
 	task := bots_model.Task{
+		Title:         commit.Message(),
 		RepoID:        repo.ID,
 		TriggerUserID: pusher.ID,
 		Event:         webhook.HookEventPush,

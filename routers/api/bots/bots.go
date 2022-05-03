@@ -37,11 +37,13 @@ var upgrader = websocket.Upgrader{
 var pongWait = 60 * time.Second
 
 type Message struct {
-	Version    int    //
-	Type       int    // message type, 1 register 2 error
-	RunnerUUID string // runner uuid
-	ErrCode    int    // error code
-	ErrContent string // errors message
+	Version      int    //
+	Type         int    // message type, 1 register 2 error 3 task 4 no task
+	RunnerUUID   string // runner uuid
+	ErrCode      int    // error code
+	ErrContent   string // errors message
+	EventName    string
+	EventPayload string
 }
 
 func Serve(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +114,7 @@ MESSAGE_BUMP:
 					Version:    1,
 					Type:       2,
 					ErrCode:    1,
-					ErrContent: "type is not supported",
+					ErrContent: fmt.Sprintf("message type %d is not supported", msg.Type),
 				}
 				bs, err := json.Marshal(&returnMsg)
 				if err != nil {
@@ -145,5 +147,42 @@ MESSAGE_BUMP:
 		}
 
 		// TODO: find new task and send to client
+		task, err := bots_model.GetCurTaskByUUID(msg.RunnerUUID)
+		if err != nil {
+			log.Error("websocket[%s] get task failed: %v", r.RemoteAddr, err)
+			break
+		}
+		if task == nil {
+			returnMsg := Message{
+				Version: 1,
+				Type:    4,
+			}
+			bs, err := json.Marshal(&returnMsg)
+			if err != nil {
+				log.Error("websocket[%s] marshal message failed: %v", r.RemoteAddr, err)
+				break MESSAGE_BUMP
+			}
+			err = c.WriteMessage(mt, bs)
+			if err != nil {
+				log.Error("websocket[%s] sent message failed: %v", r.RemoteAddr, err)
+			}
+		} else {
+			returnMsg := Message{
+				Version:      1,
+				Type:         3,
+				EventName:    task.Event.Event(),
+				EventPayload: task.EventPayload,
+			}
+			bs, err := json.Marshal(&returnMsg)
+			if err != nil {
+				log.Error("websocket[%s] marshal message failed: %v", r.RemoteAddr, err)
+				break
+			}
+			err = c.WriteMessage(mt, bs)
+			if err != nil {
+				log.Error("websocket[%s] sent message failed: %v", r.RemoteAddr, err)
+			}
+		}
+
 	}
 }

@@ -489,6 +489,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 		}
 
+		if form.EnableBuilds && !unit_model.TypeBuilds.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeBuilds,
+			})
+		} else if !unit_model.TypeBuilds.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeBuilds)
+		}
+
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
