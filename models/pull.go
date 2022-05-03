@@ -686,12 +686,6 @@ func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRep
 		Find(&prs); err != nil {
 		return nil, err
 	}
-	if len(prs) == 0 {
-		return nil, ErrPullRequestNotExist{
-			HeadBranch: headBranch,
-			HeadRepoID: headRepoID,
-		}
-	}
 	return prs, nil
 }
 
