@@ -181,6 +181,14 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// HasMigratingTask returns if migrating task exist for repo.
+func HasMigratingTask(repoID int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Exist(&Task{
+		RepoID: repoID,
+		Type:   structs.TaskTypeMigrateRepo,
+	})
+}
+
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
