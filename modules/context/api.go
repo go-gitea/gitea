@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -247,6 +248,7 @@ func APIContexter() func(http.Handler) http.Handler {
 					Resp:   NewResponse(w),
 					Data:   map[string]interface{}{},
 					Locale: locale,
+					Cache:  cache.GetCache(),
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},

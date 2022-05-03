@@ -600,7 +600,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
-	if user_model.CountUsers() == 1 {
+	if user_model.CountUsers(nil) == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()

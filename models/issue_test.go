@@ -590,3 +590,10 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 
 	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
+
+func TestCountIssues(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	count, err := CountIssues(&IssuesOptions{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 15, count)
+}
