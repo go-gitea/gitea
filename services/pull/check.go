@@ -266,7 +266,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if merged, err := pr.SetMerged(); err != nil {
+		if merged, err := pr.SetMerged(ctx); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		} else if !merged {

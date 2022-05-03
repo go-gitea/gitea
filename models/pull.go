@@ -371,17 +371,7 @@ func (pr *PullRequest) IsEmpty() bool {
 }
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (bool, error) {
-	set := false
-	err := db.WithTx(func(ctx context.Context) (err error) {
-		set, err = pr.SetMergedCtx(ctx)
-		return
-	})
-	return set, err
-}
-
-// SetMergedCtx sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMergedCtx(ctx context.Context) (bool, error) {
+func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	if pr.HasMerged {
 		return false, fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}

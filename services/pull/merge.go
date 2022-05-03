@@ -68,7 +68,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err := pr.SetMergedCtx(ctx); err != nil {
+	if _, err := pr.SetMerged(ctx); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
@@ -760,7 +760,7 @@ func MergedManually(ctx context.Context, pr *models.PullRequest, doer *user_mode
 	pr.MergerID = doer.ID
 
 	merged := false
-	if merged, err = pr.SetMerged(); err != nil {
+	if merged, err = pr.SetMerged(ctx); err != nil {
 		return
 	} else if !merged {
 		return fmt.Errorf("SetMerged failed")
