@@ -214,7 +214,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	changed := make([]*structs.NotificationThread, len(nl))
+	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
 		notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
