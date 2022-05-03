@@ -35,12 +35,12 @@ import (
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (err error) {
-	return db.WithTx(func(ctx context.Context) error {
-		if err = pr.LoadHeadRepoCtx(ctx); err != nil {
+func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
+	if err := db.WithTx(func(ctx context.Context) error {
+		if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 			log.Error("LoadHeadRepo: %v", err)
 			return fmt.Errorf("LoadHeadRepo: %v", err)
-		} else if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 			log.Error("LoadBaseRepo: %v", err)
 			return fmt.Errorf("LoadBaseRepo: %v", err)
 		}
@@ -90,33 +90,36 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 		// Reset cached commit count
 		cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
-		// Resolve cross references
-		refs, err := pr.ResolveCrossReferences(ctx)
-		if err != nil {
-			log.Error("ResolveCrossReferences: %v", err)
-			return nil
-		}
+		return nil
+	}); err != nil {
+		return err
+	}
 
-		for _, ref := range refs {
-			if err = ref.LoadIssueCtx(ctx); err != nil {
-				return err
-			}
-			if err = ref.Issue.LoadRepo(ctx); err != nil {
-				return err
-			}
-			close := ref.RefAction == references.XRefActionCloses
-			if close != ref.Issue.IsClosed {
-				if err = issue_service.ChangeStatusCtx(ctx, ref.Issue, doer, close); err != nil {
-					// Allow ErrDependenciesLeft
-					if !models.IsErrDependenciesLeft(err) {
-						return err
-					}
+	// Resolve cross references
+	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
+	if err != nil {
+		log.Error("ResolveCrossReferences: %v", err)
+		return nil
+	}
+
+	for _, ref := range refs {
+		if err = ref.LoadIssueCtx(db.DefaultContext); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(db.DefaultContext); err != nil {
+			return err
+		}
+		close := ref.RefAction == references.XRefActionCloses
+		if close != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+				// Allow ErrDependenciesLeft
+				if !models.IsErrDependenciesLeft(err) {
+					return err
 				}
 			}
 		}
-
-		return nil
-	})
+	}
+	return nil
 }
 
 // rawMerge perform the merge operation without changing any pull information in database

@@ -16,11 +16,12 @@ import (
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
-	return ChangeStatusCtx(db.DefaultContext, issue, doer, closed)
+	return changeStatusCtx(db.DefaultContext, issue, doer, closed)
 }
 
-// ChangeStatusCtx changes issue status to open or closed.
-func ChangeStatusCtx(ctx context.Context, issue *models.Issue, doer *user_model.User, closed bool) error {
+// changeStatusCtx changes issue status to open or closed.
+// TODO: if context is not db.DefaultContext we get a deadlock!!!
+func changeStatusCtx(ctx context.Context, issue *models.Issue, doer *user_model.User, closed bool) error {
 	comment, err := models.ChangeIssueStatus(ctx, issue, doer, closed)
 	if err != nil {
 		if models.IsErrDependenciesLeft(err) && closed {
