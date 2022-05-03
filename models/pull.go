@@ -374,7 +374,7 @@ func (pr *PullRequest) IsEmpty() bool {
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (bool, error) {
-	var set bool
+	set := false
 	err := db.WithTx(func(ctx context.Context) (err error) {
 		set, err = pr.SetMergedCtx(ctx)
 		return
