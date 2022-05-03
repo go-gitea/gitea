@@ -7,7 +7,6 @@
 package repo
 
 import (
-	stdContext "context"
 	"errors"
 	"fmt"
 	"html"
@@ -867,146 +866,135 @@ func MergePullRequest(ctx *context.Context) {
 	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
 	forceMerge := form.ForceMerge != nil && *form.ForceMerge
 
-	// do the whole merge in one db transaction
-	if err := db.WithTx(func(dbCtx stdContext.Context) error {
-		// start with merging by checking
-		if err := pull_service.CheckPullMergable(dbCtx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
-			if errors.Is(err, pull_service.ErrIsClosed) {
-				if issue.IsPull {
-					ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
-					ctx.Redirect(issue.Link())
-				} else {
-					ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
-					ctx.Redirect(issue.Link())
-				}
-			} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-				ctx.Redirect(issue.Link())
-			} else if errors.Is(err, pull_service.ErrHasMerged) {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-				ctx.Redirect(issue.Link())
-			} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
-				ctx.Redirect(issue.Link())
-			} else if errors.Is(err, pull_service.ErrNotMergableState) {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-				ctx.Redirect(issue.Link())
-			} else if models.IsErrDisallowedToMerge(err) {
-				ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-				ctx.Redirect(issue.Link())
-			} else if asymkey_service.IsErrWontSign(err) {
-				ctx.Flash.Error(err.Error()) // has not translation ...
-				ctx.Redirect(issue.Link())
-			} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
-				ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+	// start with merging by checking
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, forceMerge); err != nil {
+		if errors.Is(err, pull_service.ErrIsClosed) {
+			if issue.IsPull {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
 				ctx.Redirect(issue.Link())
 			} else {
-				ctx.ServerError("WebCheck", err)
+				ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
+				ctx.Redirect(issue.Link())
 			}
-			return err
-		}
-
-		// handle manually-merged mark
-		if manuallMerge {
-			if err := pull_service.MergedManually(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
-				if models.IsErrInvalidMergeStyle(err) {
-					ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
-					ctx.Redirect(issue.Link())
-				} else if strings.Contains(err.Error(), "Wrong commit ID") {
-					ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
-					ctx.Redirect(issue.Link())
-				} else {
-					ctx.ServerError("MergedManually", err)
-				}
-				return err
-			}
-
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
 			ctx.Redirect(issue.Link())
-			return nil
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrDisallowedToMerge(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(issue.Link())
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.Flash.Error(err.Error()) // has not translation ...
+			ctx.Redirect(issue.Link())
+		} else if errors.Is(err, pull_service.ErrDependenciesLeft) {
+			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
+			ctx.Redirect(issue.Link())
+		} else {
+			ctx.ServerError("WebCheck", err)
 		}
+		return
+	}
 
-		// set defaults to propagate needed fields
-		if err := form.SetDefaults(dbCtx, pr); err != nil {
-			ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
-			return err
-		}
-
-		if err := pull_service.Merge(dbCtx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	// handle manually-merged mark
+	if manuallMerge {
+		if err := pull_service.MergedManually(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 				ctx.Redirect(issue.Link())
-			} else if models.IsErrMergeConflicts(err) {
-				conflictError := err.(models.ErrMergeConflicts)
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
-					"Message": ctx.Tr("repo.editor.merge_conflict"),
-					"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
-					"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
-				})
-				if err != nil {
-					ctx.ServerError("MergePullRequest.HTMLString", err)
-					return err
-				}
-				ctx.Flash.Error(flashError)
-				ctx.Redirect(issue.Link())
-			} else if models.IsErrRebaseConflicts(err) {
-				conflictError := err.(models.ErrRebaseConflicts)
-				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
-					"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
-					"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
-					"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
-				})
-				if err != nil {
-					ctx.ServerError("MergePullRequest.HTMLString", err)
-					return err
-				}
-				ctx.Flash.Error(flashError)
-				ctx.Redirect(issue.Link())
-			} else if models.IsErrMergeUnrelatedHistories(err) {
-				log.Debug("MergeUnrelatedHistories error: %v", err)
-				ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
-				ctx.Redirect(issue.Link())
-			} else if git.IsErrPushOutOfDate(err) {
-				log.Debug("MergePushOutOfDate error: %v", err)
-				ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
-				ctx.Redirect(issue.Link())
-			} else if models.IsErrSHADoesNotMatch(err) {
-				log.Debug("MergeHeadOutOfDate error: %v", err)
-				ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
-				ctx.Redirect(issue.Link())
-			} else if git.IsErrPushRejected(err) {
-				log.Debug("MergePushRejected error: %v", err)
-				pushrejErr := err.(*git.ErrPushRejected)
-				message := pushrejErr.Message
-				if len(message) == 0 {
-					ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
-				} else {
-					flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
-						"Message": ctx.Tr("repo.pulls.push_rejected"),
-						"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
-						"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
-					})
-					if err != nil {
-						ctx.ServerError("MergePullRequest.HTMLString", err)
-						return err
-					}
-					ctx.Flash.Error(flashError)
-				}
+			} else if strings.Contains(err.Error(), "Wrong commit ID") {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
 				ctx.Redirect(issue.Link())
 			} else {
-				ctx.ServerError("Merge", err)
+				ctx.ServerError("MergedManually", err)
 			}
-			return err
-		}
-
-		log.Trace("Pull request merged: %d", pr.ID)
-		return nil
-	}); err != nil {
-		if ctx.Written() {
 			return
 		}
-		ctx.ServerError("db.WithTX", err)
+
+		ctx.Redirect(issue.Link())
 		return
 	}
+
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(ctx, pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
+		return
+	}
+
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+		if models.IsErrInvalidMergeStyle(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				"Message": ctx.Tr("repo.editor.merge_conflict"),
+				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
+				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+			})
+			if err != nil {
+				ctx.ServerError("MergePullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
+				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+			})
+			if err != nil {
+				ctx.ServerError("MergePullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			log.Debug("MergeUnrelatedHistories error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
+			ctx.Redirect(issue.Link())
+		} else if git.IsErrPushOutOfDate(err) {
+			log.Debug("MergePushOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
+			ctx.Redirect(issue.Link())
+		} else if models.IsErrSHADoesNotMatch(err) {
+			log.Debug("MergeHeadOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
+			ctx.Redirect(issue.Link())
+		} else if git.IsErrPushRejected(err) {
+			log.Debug("MergePushRejected error: %v", err)
+			pushrejErr := err.(*git.ErrPushRejected)
+			message := pushrejErr.Message
+			if len(message) == 0 {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
+			} else {
+				flashError, err := ctx.RenderToString(tplAlertDetails, map[string]interface{}{
+					"Message": ctx.Tr("repo.pulls.push_rejected"),
+					"Summary": ctx.Tr("repo.pulls.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(pushrejErr.Message),
+				})
+				if err != nil {
+					ctx.ServerError("MergePullRequest.HTMLString", err)
+					return
+				}
+				ctx.Flash.Error(flashError)
+			}
+			ctx.Redirect(issue.Link())
+		} else {
+			ctx.ServerError("Merge", err)
+		}
+		return
+	}
+	log.Trace("Pull request merged: %d", pr.ID)
 
 	if err := stopTimerIfAvailable(ctx.Doer, issue); err != nil {
 		ctx.ServerError("CreateOrStopIssueStopwatch", err)
