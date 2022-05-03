@@ -96,29 +96,31 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
-	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
-	if err != nil {
+	return db.WithTx(func(ctx context.Context) error {
+		exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
+		if err != nil {
+			return err
+		} else if !exist {
+			return models.ErrNotExist{ID: pullID}
+		}
+
+		if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{}); err != nil {
+			return err
+		}
+
+		// if pull got merged we don't need to add "auto-merge canceled comment"
+		if !comment || doer == nil {
+			return nil
+		}
+
+		pr, err := models.GetPullRequestByID(ctx, pullID)
+		if err != nil {
+			return err
+		}
+
+		_, err = createAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pr, doer)
 		return err
-	} else if !exist {
-		return models.ErrNotExist{ID: pullID}
-	}
-
-	if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{}); err != nil {
-		return err
-	}
-
-	// if pull got merged we don't need to add "auto-merge canceled comment"
-	if !comment || doer == nil {
-		return nil
-	}
-
-	pr, err := models.GetPullRequestByID(ctx, pullID)
-	if err != nil {
-		return err
-	}
-
-	_, err = createAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pr, doer)
-	return err
+	}, ctx)
 }
 
 // createAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
