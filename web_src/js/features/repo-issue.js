@@ -230,7 +230,7 @@ export function initRepoPullRequestMerge() {
   const $mergeNowButton = $('.merge-now-button > button');
   const mergeClickHandler = function (e) {
     e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
+    $(`.${$(this).attr('data-do')}-fields`).show();
     $(this).parent().hide();
     $('.instruct-toggle').hide();
     $('.instruct-content').hide();
@@ -241,17 +241,17 @@ export function initRepoPullRequestMerge() {
   $mergeNowButton.on('click', mergeClickHandler);
   $('.merge-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
+      if ($choice.attr('data-do')) {
         $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
+        $mergeButton.attr('data-do', $choice.attr('data-do'));
       }
     }
   });
   $('.merge-now-button > .dropdown').dropdown({
     onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
+      if ($choice.attr('data-do')) {
         $mergeNowButton.find('.button-text').text($choice.text());
-        $mergeNowButton.data('do', $choice.data('do'));
+        $mergeNowButton.attr('data-do', $choice.attr('data-do'));
       }
     }
   });
