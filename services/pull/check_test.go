@@ -41,7 +41,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	prQueue = q.(queue.UniqueQueue)
+	prPatchCheckerQueue = q.(queue.UniqueQueue)
 
 	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	AddToTaskQueue(pr)
@@ -51,11 +51,11 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		return pr.Status == models.PullRequestStatusChecking
 	}, 1*time.Second, 100*time.Millisecond)
 
-	has, err := prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	prQueue.Run(func(shutdown func()) {
+	prPatchCheckerQueue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)
@@ -68,7 +68,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
 	}
 
-	has, err = prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	assert.False(t, has)
 	assert.NoError(t, err)
 
@@ -82,5 +82,5 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		callback()
 	}
 
-	prQueue = nil
+	prPatchCheckerQueue = nil
 }

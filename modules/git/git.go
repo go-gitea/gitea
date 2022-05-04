@@ -8,6 +8,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -20,10 +21,11 @@ import (
 )
 
 var (
-	// Prefix the log prefix
-	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
-	GitVersionRequired = "1.7.2"
+	// At the moment, all code for git 1.x are not changed, if some users want to test with old git client
+	// or bypass the check, they still have a chance to edit this variable manually.
+	// If everything works fine, the code for git 1.x could be removed in a separate PR before 1.17 frozen.
+	GitVersionRequired = "2.0.0"
 
 	// GitExecutable is the command name of git
 	// Could be updated to an absolute path while initialization
@@ -87,13 +89,13 @@ func SetExecutablePath(path string) error {
 	}
 	absPath, err := exec.LookPath(GitExecutable)
 	if err != nil {
-		return fmt.Errorf("Git not found: %v", err)
+		return fmt.Errorf("git not found: %w", err)
 	}
 	GitExecutable = absPath
 
 	err = LoadGitVersion()
 	if err != nil {
-		return fmt.Errorf("Git version missing: %v", err)
+		return fmt.Errorf("unable to load git version: %w", err)
 	}
 
 	versionRequired, err := version.NewVersion(GitVersionRequired)
@@ -102,7 +104,15 @@ func SetExecutablePath(path string) error {
 	}
 
 	if gitVersion.LessThan(versionRequired) {
-		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
+		moreHint := "get git: https://git-scm.com/download/"
+		if runtime.GOOS == "linux" {
+			// there are a lot of CentOS/RHEL users using old git, so we add a special hint for them
+			if _, err = os.Stat("/etc/redhat-release"); err == nil {
+				// ius.io is the recommended official(git-scm.com) method to install git
+				moreHint = "get git: https://git-scm.com/download/linux and https://ius.io"
+			}
+		}
+		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), GitVersionRequired, moreHint)
 	}
 
 	return nil

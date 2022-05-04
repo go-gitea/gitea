@@ -21,7 +21,7 @@ import (
 // createTemporaryRepo creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
 func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, error) {
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return "", fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
@@ -29,7 +29,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 		return "", &repo_model.ErrRepoNotExist{
 			ID: pr.HeadRepoID,
 		}
-	} else if err := pr.LoadBaseRepo(); err != nil {
+	} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("LoadBaseRepo: %v", err)
 		return "", fmt.Errorf("LoadBaseRepo: %v", err)
 	} else if pr.BaseRepo == nil {

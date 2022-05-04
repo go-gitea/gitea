@@ -35,6 +35,11 @@
 									({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
+								{{if gt .Poster.ID 0}}
+									<a class="inline-timeline-avatar" href="{{.Poster.HomeLink}}">
+										{{avatar .Poster}}
+									</a>
+								{{end}}
 								<span class="text grey">
 									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 										{{.Poster.GetDisplayName}}
@@ -505,13 +510,13 @@
 					{{ range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
 								<div class="ui segments">
-									<div class="ui segment py-3 df ac sb word-break">
+									<div class="ui segment py-3 df ac sb">
 										{{$invalid := (index $comms 0).Invalidated}}
 										{{$resolved := (index $comms 0).IsResolved}}
 										{{$resolveDoer := (index $comms 0).ResolveDoer}}
 										{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
 										<div class="df ac">
-											<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment ml-3">{{$filename}}</a>
+											<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment ml-3 word-break">{{$filename}}</a>
 											{{if $invalid }}
 												<span class="ui label basic small ml-3">
 													{{$.i18n.Tr "repo.issues.review.outdated"}}

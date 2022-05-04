@@ -62,7 +62,7 @@ func GetStatistic(ctx context.Context, estimate, metrics bool) (stats Statistic)
 		}
 	}
 
-	stats.Counter.User = user_model.CountUsers()
+	stats.Counter.User = user_model.CountUsers(nil)
 	stats.Counter.Org = organization.CountOrganizations()
 	stats.Counter.Repo = repo_model.CountRepositories(true)
 	stats.Counter.PublicKey, _ = countFn(new(asymkey_model.PublicKey))
