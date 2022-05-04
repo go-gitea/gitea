@@ -35,7 +35,6 @@ import (
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-// FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
@@ -44,6 +43,9 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 		log.Error("LoadBaseRepo: %v", err)
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
+
+	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	// Removing an auto merge pull and ignore if not exist
 	if err := pull_model.RemoveScheduledAutoMerge(db.DefaultContext, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
@@ -732,6 +734,9 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 
 // MergedManually mark pr as merged manually
 func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) error {
+	pullWorkingPool.CheckIn(fmt.Sprint(pr.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
+
 	if err := db.WithTx(func(ctx context.Context) error {
 		prUnit, err := pr.BaseRepo.GetUnitCtx(ctx, unit.TypePullRequests)
 		if err != nil {
