@@ -317,6 +317,8 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func testPR(id int64) {
+	pullWorkingPool.CheckIn(fmt.Sprint(id))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
