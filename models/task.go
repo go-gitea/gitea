@@ -181,10 +181,10 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
-// HasNonFinishedMigratingTask returns if a non-finished migrating task exist for the repo.
-func HasNonFinishedMigratingTask(repoID int64) (bool, error) {
+// HasFinishedMigratingTask returns if a finished migration task exists for the repo.
+func HasFinishedMigratingTask(repoID int64) (bool, error) {
 	return db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND type=? AND status<>?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
+		Where("repo_id=? AND type=? AND status=?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
 		Table("task").
 		Exist()
 }
