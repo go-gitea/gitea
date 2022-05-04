@@ -77,7 +77,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		opts.Message = "apply-patch"
 	}
 
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusInternalServerError, "ApplyPatch", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,

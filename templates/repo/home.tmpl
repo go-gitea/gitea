@@ -60,7 +60,7 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
+		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
 			{{template "repo/branch_dropdown" dict "root" .}}
 			{{ $n := len .TreeNames}}
 			{{ $l := Subtract $n 1}}

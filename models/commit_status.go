@@ -232,12 +232,13 @@ type CommitStatusIndex struct {
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	return getLatestCommitStatus(db.GetEngine(db.DefaultContext), repoID, sha, listOptions)
+	return GetLatestCommitStatusCtx(db.DefaultContext, repoID, sha, listOptions)
 }
 
-func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
+// GetLatestCommitStatusCtx returns all statuses with a unique context for a given commit.
+func GetLatestCommitStatusCtx(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
 	ids := make([]int64, 0, 10)
-	sess := e.Table(&CommitStatus{}).
+	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
@@ -252,7 +253,7 @@ func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db
 	if len(ids) == 0 {
 		return statuses, count, nil
 	}
-	return statuses, count, e.In("id", ids).Find(&statuses)
+	return statuses, count, db.GetEngine(ctx).In("id", ids).Find(&statuses)
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts

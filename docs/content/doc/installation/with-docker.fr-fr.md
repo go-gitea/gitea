@@ -43,7 +43,7 @@ Vous devriez avoir une instance fonctionnelle de Gitea. Pour accèder à l'inter
 
 ## Named Volumes
 
-Ce guide aboutira à une installation avec les données Gita et PostgreSQL stockées dans des volumes nommés. Cela permet une sauvegarde, une restauration et des mises à niveau en toute simplicité.
+Ce guide aboutira à une installation avec les données Gitea et PostgreSQL stockées dans des volumes nommés. Cela permet une sauvegarde, une restauration et des mises à niveau en toute simplicité.
 
 ### The Database
 

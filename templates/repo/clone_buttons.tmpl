@@ -10,7 +10,7 @@
 	</button>
 {{end}}
 <!-- the value will be updated by initRepoCloneLink, the code below is used to avoid UI flicking  -->
-<input id="repo-clone-url" value="" readonly>
+<input id="repo-clone-url" value="" size="1" readonly>
 <script>
 	(() => {
 		const proto = localStorage.getItem('repo-clone-protocol') || 'https';

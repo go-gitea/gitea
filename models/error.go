@@ -296,7 +296,6 @@ type ErrInvalidCloneAddr struct {
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
 	LocalPath          bool
-	NotResolvedIP      bool
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
@@ -306,9 +305,6 @@ func IsErrInvalidCloneAddr(err error) bool {
 }
 
 func (err *ErrInvalidCloneAddr) Error() string {
-	if err.NotResolvedIP {
-		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
-	}
 	if err.IsInvalidPath {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
 	}
