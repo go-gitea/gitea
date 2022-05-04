@@ -371,14 +371,14 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 
 	if repo.IsMirror {
 
-		// Check if there's a migrating task.
-		// If it does exist, don't fetch the Mirror from the database as it doesn't exist yet.
-		hasTask, err := models.HasMigratingTask(repo.ID)
+		// Check if the mirror has finsihed migrationg, only then we can
+		// lookup the mirror informtation the database.
+		finishedMigrating, err := models.HasFinishedMigratingTask(repo.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorByRepoID", err)
+			ctx.ServerError("HasFinishedMigratingTask", err)
 			return
 		}
-		if !hasTask {
+		if finishedMigrating {
 			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
 			if err != nil {
 				ctx.ServerError("GetMirrorByRepoID", err)
