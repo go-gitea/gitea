@@ -370,15 +370,24 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-		var err error
-		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+
+		// Check if the mirror has finsihed migrationg, only then we can
+		// lookup the mirror informtation the database.
+		finishedMigrating, err := models.HasFinishedMigratingTask(repo.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorByRepoID", err)
+			ctx.ServerError("HasFinishedMigratingTask", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-		ctx.Data["Mirror"] = ctx.Repo.Mirror
+		if finishedMigrating {
+			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+			if err != nil {
+				ctx.ServerError("GetMirrorByRepoID", err)
+				return
+			}
+			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+			ctx.Data["Mirror"] = ctx.Repo.Mirror
+		}
 	}
 
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
