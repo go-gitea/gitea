@@ -283,6 +283,15 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	}
 }
 
+// reqRepoBranchWriter user should have a permission to write to a branch, or be a site admin
+func reqRepoBranchWriter(ctx *context.APIContext) {
+	options, ok := web.GetForm(ctx).(api.FileOptionInterface)
+	if !ok || (!ctx.Repo.CanWriteToBranch(ctx.Doer, options.Branch()) && !ctx.IsUserSiteAdmin()) {
+		ctx.Error(http.StatusForbidden, "reqRepoBranchWriter", "user should have a permission to write to this branch")
+		return
+	}
+}
+
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -801,9 +810,12 @@ func Routes() *web.Route {
 				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
-					m.Combo("/{collaborator}").Get(reqAnyRepoReader(), repo.IsCollaborator).
-						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
-						Delete(reqAdmin(), repo.DeleteCollaborator)
+					m.Group("/{collaborator}", func() {
+						m.Combo("").Get(reqAnyRepoReader(), repo.IsCollaborator).
+							Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
+							Delete(reqAdmin(), repo.DeleteCollaborator)
+						m.Get("/permission", repo.GetRepoPermissions)
+					}, reqToken())
 				}, reqToken())
 				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
 				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
@@ -1010,7 +1022,7 @@ func Routes() *web.Route {
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
-					})
+					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
@@ -1029,10 +1041,10 @@ func Routes() *web.Route {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
-						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
-						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
-						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
-					}, reqRepoWriter(unit.TypeCode), reqToken())
+						m.Post("", bind(api.CreateFileOptions{}), reqRepoBranchWriter, repo.CreateFile)
+						m.Put("", bind(api.UpdateFileOptions{}), reqRepoBranchWriter, repo.UpdateFile)
+						m.Delete("", bind(api.DeleteFileOptions{}), reqRepoBranchWriter, repo.DeleteFile)
+					}, reqToken())
 				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
@@ -1117,7 +1129,8 @@ func Routes() *web.Route {
 				m.Get("", org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
 					Put(org.AddTeamRepository).
-					Delete(org.RemoveTeamRepository)
+					Delete(org.RemoveTeamRepository).
+					Get(org.GetTeamRepo)
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 

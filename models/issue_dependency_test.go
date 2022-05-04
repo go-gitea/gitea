@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -43,15 +44,15 @@ func TestCreateIssueDependency(t *testing.T) {
 	_ = unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
 	// Check if dependencies left is correct
-	left, err := IssueNoDependenciesLeft(issue1)
+	left, err := IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 
 	// Close #2 and check again
-	_, err = ChangeIssueStatus(issue2, user1, true)
+	_, err = ChangeIssueStatus(db.DefaultContext, issue2, user1, true)
 	assert.NoError(t, err)
 
-	left, err = IssueNoDependenciesLeft(issue1)
+	left, err = IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
 

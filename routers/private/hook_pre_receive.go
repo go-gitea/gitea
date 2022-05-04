@@ -45,6 +45,8 @@ type preReceiveContext struct {
 	env []string
 
 	opts *private.HookOptions
+
+	branchName string
 }
 
 // CanWriteCode returns true if pusher can write code
@@ -53,7 +55,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = ctx.userPerm.CanWriteToBranch(ctx.user, ctx.branchName) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -134,13 +136,15 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+	ctx.branchName = branchName
+
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
@@ -307,7 +311,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.userPerm, ctx.user)
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
 		if err != nil {
 			log.Error("Error calculating if allowed to merge: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -339,7 +343,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
+		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
 			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
