@@ -22,9 +22,7 @@ type indexerNotifier struct {
 	base.NullNotifier
 }
 
-var (
-	_ base.Notifier = &indexerNotifier{}
-)
+var _ base.Notifier = &indexerNotifier{}
 
 // NewNotifier create a new indexerNotifier notifier
 func NewNotifier() base.Notifier {
@@ -32,7 +30,8 @@ func NewNotifier() base.Notifier {
 }
 
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {

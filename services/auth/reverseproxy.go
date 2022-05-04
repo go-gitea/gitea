@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -32,8 +33,7 @@ const ReverseProxyMethodName = "reverse_proxy"
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
 // user in the "setting.ReverseProxyAuthEmail" header.
-type ReverseProxy struct {
-}
+type ReverseProxy struct{}
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
@@ -106,11 +106,15 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	user := &user_model.User{
-		Name:     username,
-		Email:    email,
-		IsActive: true,
+		Name:  username,
+		Email: email,
 	}
-	if err := user_model.CreateUser(user); err != nil {
+
+	overwriteDefault := user_model.CreateUserOverwriteOptions{
+		IsActive: util.OptionalBoolTrue,
+	}
+
+	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

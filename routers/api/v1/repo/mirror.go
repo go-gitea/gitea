@@ -5,8 +5,10 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,6 +47,15 @@ func MirrorSync(ctx *context.APIContext) {
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "MirrorSync", "Mirror feature is disabled")
+		return
+	}
+
+	if _, err := repo_model.GetMirrorByRepoID(repo.ID); err != nil {
+		if errors.Is(err, repo_model.ErrMirrorNotExist) {
+			ctx.Error(http.StatusBadRequest, "MirrorSync", "Repository is not a mirror")
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "MirrorSync", err)
 		return
 	}
 

@@ -67,7 +67,6 @@ func SignInOpenID(ctx *context.Context) {
 
 // Check if the given OpenID URI is allowed by blacklist/whitelist
 func allowedOpenIDURI(uri string) (err error) {
-
 	// In case a Whitelist is present, URI must be in it
 	// in order to be accepted
 	if len(setting.Service.OpenIDWhitelist) != 0 {
@@ -144,13 +143,12 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
-
 	log.Trace("Incoming call to: %s", ctx.Req.URL.String())
 
 	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: %s", fullURL)
 
-	var id, err = openid.Verify(fullURL)
+	id, err := openid.Verify(fullURL)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
@@ -418,19 +416,18 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	if length < 256 {
 		length = 256
 	}
-	password, err := util.RandomString(int64(length))
+	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return
 	}
 
 	u := &user_model.User{
-		Name:     form.UserName,
-		Email:    form.Email,
-		Passwd:   password,
-		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
+		Name:   form.UserName,
+		Email:  form.Email,
+		Passwd: password,
 	}
-	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, false) {
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
 		// error already handled
 		return
 	}

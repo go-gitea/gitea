@@ -193,12 +193,13 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		// admin can associate any LFS object to any repository, and we do not care about errors (eg: duplicated unique key),
 		// even if error occurs, it won't hurt users and won't make things worse
 		for i := range metas {
+			p := lfs.Pointer{Oid: metas[i].Oid, Size: metas[i].Size}
 			_, err = sess.Insert(&LFSMetaObject{
-				Pointer:      lfs.Pointer{Oid: metas[i].Oid, Size: metas[i].Size},
+				Pointer:      p,
 				RepositoryID: repoID,
 			})
 			if err != nil {
-				log.Warn("failed to insert LFS meta object into database, err=%v", err)
+				log.Warn("failed to insert LFS meta object %-v for repo_id: %d into database, err=%v", p, repoID, err)
 			}
 		}
 	}
@@ -209,7 +210,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	var start int
 	const batchSize = 100
-	var e = db.GetEngine(db.DefaultContext)
+	e := db.GetEngine(db.DefaultContext)
 	for {
 		mos := make([]*LFSMetaObject, 0, batchSize)
 		if err := e.Limit(batchSize, start).Find(&mos); err != nil {

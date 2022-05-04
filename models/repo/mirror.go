@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -17,10 +18,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var (
-	// ErrMirrorNotExist mirror does not exist error
-	ErrMirrorNotExist = errors.New("Mirror does not exist")
-)
+// ErrMirrorNotExist mirror does not exist error
+var ErrMirrorNotExist = errors.New("Mirror does not exist")
 
 // RemoteMirrorer defines base methods for pull/push mirrors.
 type RemoteMirrorer interface {
@@ -115,6 +114,13 @@ func UpdateMirror(m *Mirror) error {
 	return updateMirror(db.GetEngine(db.DefaultContext), m)
 }
 
+// TouchMirror updates the mirror updatedUnix
+func TouchMirror(ctx context.Context, m *Mirror) error {
+	m.UpdatedUnix = timeutil.TimeStampNow()
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols("updated_unix").Update(m)
+	return err
+}
+
 // DeleteMirrorByRepoID deletes a mirror by repoID
 func DeleteMirrorByRepoID(repoID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Mirror{RepoID: repoID})
@@ -122,11 +128,12 @@ func DeleteMirrorByRepoID(repoID int64) error {
 }
 
 // MirrorsIterate iterates all mirror repositories.
-func MirrorsIterate(f func(idx int, bean interface{}) error) error {
+func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		OrderBy("updated_unix ASC").
+		Limit(limit).
 		Iterate(new(Mirror), f)
 }
 

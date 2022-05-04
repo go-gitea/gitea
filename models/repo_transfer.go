@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +27,7 @@ type RepoTransfer struct {
 	Recipient   *user_model.User `xorm:"-"`
 	RepoID      int64
 	TeamIDs     []int64
-	Teams       []*Team `xorm:"-"`
+	Teams       []*organization.Team `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
@@ -49,7 +50,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := GetTeamByID(v)
+			team, err := organization.GetTeamByID(v)
 			if err != nil {
 				return err
 			}
@@ -87,7 +88,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	allowed, err := CanCreateOrgRepo(r.RecipientID, u.ID)
+	allowed, err := organization.CanCreateOrgRepo(r.RecipientID, u.ID)
 	if err != nil {
 		log.Error("CanCreateOrgRepo: %v", err)
 		return false
@@ -152,7 +153,7 @@ func TestRepositoryReadyForTransfer(status repo_model.RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*Team) error {
+func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*organization.Team) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -296,7 +297,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		}
 
 		if c.ID != newOwner.ID {
-			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
+			isMember, err := organization.IsOrganizationMember(ctx, newOwner.ID, c.ID)
 			if err != nil {
 				return fmt.Errorf("IsOrgMember: %v", err)
 			} else if !isMember {
@@ -312,19 +313,19 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 
 	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
-		if err := OrgFromUser(oldOwner).removeOrgRepo(sess, repo.ID); err != nil {
+		if err := organization.RemoveOrgRepo(ctx, oldOwner.ID, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		teams, err := OrgFromUser(newOwner).loadTeams(sess)
+		teams, err := organization.FindOrgTeams(ctx, newOwner.ID)
 		if err != nil {
 			return fmt.Errorf("LoadTeams: %v", err)
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := t.addRepository(ctx, repo); err != nil {
+				if err := addRepository(ctx, t, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
 				}
 			}

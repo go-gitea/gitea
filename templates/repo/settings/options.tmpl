@@ -91,7 +91,7 @@
 					{{if .Repository.IsMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress .Mirror).Address}}</td>
+							<td>{{(MirrorRemoteAddress $.Context .Mirror).Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
 							<td class="right aligned">
@@ -119,7 +119,7 @@
 										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
-									{{$address := MirrorRemoteAddress .Mirror}}
+									{{$address := MirrorRemoteAddress $.Context .Mirror}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
@@ -168,7 +168,7 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress .}}
+							{{$address := MirrorRemoteAddress $.Context .}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
@@ -446,6 +446,12 @@
 							<div class="ui checkbox">
 								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
 							</div>
 						</div>
 						<div class="field">

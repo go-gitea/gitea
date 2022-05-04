@@ -13,10 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-var (
-	// ErrInvalidReceiveHook FIXME
-	ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webhook")
-)
+// ErrInvalidReceiveHook FIXME
+var ErrInvalidReceiveHook = errors.New("Invalid JSON payload received over webhook")
 
 // Hook a hook is a web hook when one repository changed
 type Hook struct {
@@ -42,7 +40,7 @@ type CreateHookOptionConfig map[string]string
 // CreateHookOption options when create a hook
 type CreateHookOption struct {
 	// required: true
-	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork
+	// enum: dingtalk,discord,gitea,gogs,msteams,slack,telegram,feishu,wechatwork,packagist
 	Type string `json:"type" binding:"Required"`
 	// required: true
 	Config       CreateHookOptionConfig `json:"config" binding:"Required"`
@@ -112,6 +110,7 @@ var (
 	_ Payloader = &PullRequestPayload{}
 	_ Payloader = &RepositoryPayload{}
 	_ Payloader = &ReleasePayload{}
+	_ Payloader = &PackagePayload{}
 )
 
 // _________                        __
@@ -426,4 +425,28 @@ type RepositoryPayload struct {
 // JSONPayload JSON representation of the payload
 func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", " ")
+}
+
+// HookPackageAction an action that happens to a package
+type HookPackageAction string
+
+const (
+	// HookPackageCreated created
+	HookPackageCreated HookPackageAction = "created"
+	// HookPackageDeleted deleted
+	HookPackageDeleted HookPackageAction = "deleted"
+)
+
+// PackagePayload represents a package payload
+type PackagePayload struct {
+	Action       HookPackageAction `json:"action"`
+	Repository   *Repository       `json:"repository"`
+	Package      *Package          `json:"package"`
+	Organization *User             `json:"organization"`
+	Sender       *User             `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *PackagePayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
 }

@@ -233,12 +233,12 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			language = ""
 		}
 	}
-	var lines = make([]string, 0)
+	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
 	escapeStatus := charset.EscapeStatus{}
 
-	var i = 0
-	var commitCnt = 0
+	i := 0
+	commitCnt := 0
 	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
@@ -255,7 +255,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale.Language())
 
 				var avatar string
 				if commit.User != nil {

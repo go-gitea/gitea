@@ -7,6 +7,7 @@ package doctor
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,7 +20,7 @@ import (
 
 const tplCommentPrefix = `# gitea public key`
 
-func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
+func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) error {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
@@ -71,8 +72,8 @@ func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
 				"authorized_keys file %q is out of date.\nRegenerate it with:\n\t\"%s\"\nor\n\t\"%s\"",
 				fPath,
 				"gitea admin regenerate keys",
-				"gitea doctor --run authorized_keys --fix")
-			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized_keys --fix"`)
+				"gitea doctor --run authorized-keys --fix")
+			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
 		err = asymkey_model.RewriteAllPublicKeys()

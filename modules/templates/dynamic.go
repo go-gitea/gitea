@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !bindata
-// +build !bindata
 
 package templates
 
@@ -71,7 +70,6 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 				}
 
 				content, err := os.ReadFile(path.Join(staticDir, filePath))
-
 				if err != nil {
 					log.Warn("Failed to read static %s template. %v", filePath, err)
 					continue
@@ -100,7 +98,6 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 				}
 
 				content, err := os.ReadFile(path.Join(customDir, filePath))
-
 				if err != nil {
 					log.Warn("Failed to read custom %s template. %v", filePath, err)
 					continue

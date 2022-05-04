@@ -29,6 +29,7 @@ type MarkupRenderer struct {
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
+	DisableSanitizer     bool
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -123,7 +124,7 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	extensionReg := regexp.MustCompile(`\.\w`)
 
 	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-	var exts = make([]string, 0, len(extensions))
+	exts := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
 		if !extensionReg.MatchString(extension) {
 			log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
@@ -144,11 +145,12 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	}
 
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:         sec.Key("ENABLED").MustBool(false),
-		MarkupName:      name,
-		FileExtensions:  exts,
-		Command:         command,
-		IsInputFile:     sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess: sec.Key("NEED_POSTPROCESS").MustBool(true),
+		Enabled:          sec.Key("ENABLED").MustBool(false),
+		MarkupName:       name,
+		FileExtensions:   exts,
+		Command:          command,
+		IsInputFile:      sec.Key("IS_INPUT_FILE").MustBool(false),
+		NeedPostProcess:  sec.Key("NEED_POSTPROCESS").MustBool(true),
+		DisableSanitizer: sec.Key("DISABLE_SANITIZER").MustBool(false),
 	})
 }

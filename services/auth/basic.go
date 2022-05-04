@@ -30,8 +30,7 @@ const BasicMethodName = "basic"
 // Basic implements the Auth interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
-type Basic struct {
-}
+type Basic struct{}
 
 // Name represents the name of auth method
 func (b *Basic) Name() string {
@@ -44,7 +43,7 @@ func (b *Basic) Name() string {
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil
 	}
 

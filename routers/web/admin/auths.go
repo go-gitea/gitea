@@ -93,7 +93,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP
+	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0]
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -145,6 +145,8 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		GroupDN:               form.GroupDN,
 		GroupFilter:           form.GroupFilter,
 		GroupMemberUID:        form.GroupMemberUID,
+		GroupTeamMap:          form.GroupTeamMap,
+		GroupTeamMapRemoval:   form.GroupTeamMapRemoval,
 		UserUID:               form.UserUID,
 		AdminFilter:           form.AdminFilter,
 		RestrictedFilter:      form.RestrictedFilter,
@@ -181,6 +183,14 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	} else {
 		customURLMapping = nil
 	}
+	var scopes []string
+	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			scopes = append(scopes, s)
+		}
+	}
+
 	return &oauth2.Source{
 		Provider:                      form.Oauth2Provider,
 		ClientID:                      form.Oauth2Key,
@@ -188,10 +198,13 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
-		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		Scopes:                        scopes,
 		RequiredClaimName:             form.Oauth2RequiredClaimName,
 		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 		SkipLocalTwoFA:                form.SkipLocalTwoFA,
+		GroupClaimName:                form.Oauth2GroupClaimName,
+		RestrictedGroup:               form.Oauth2RestrictedGroup,
+		AdminGroup:                    form.Oauth2AdminGroup,
 	}
 }
 
@@ -297,7 +310,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Authentication created by admin(%s): %s", ctx.User.Name, form.Name)
+	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.new_success", form.Name))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths")
@@ -390,6 +403,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
+	// FIXME: if the name conflicts, it will result in 500: Error 1062: Duplicate entry 'aa' for key 'login_source.UQE_login_source_name'
 	if err := auth.UpdateSource(source); err != nil {
 		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
@@ -399,7 +413,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + strconv.FormatInt(form.ID, 10))
@@ -424,7 +438,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		})
 		return
 	}
-	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{

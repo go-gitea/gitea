@@ -13,8 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var executablModTime = time.Now()
-var executablModTimeOnce sync.Once
+var (
+	executablModTime     = time.Now()
+	executablModTimeOnce sync.Once
+)
 
 // GetExecutableModTime get executable file modified time of current process.
 func GetExecutableModTime() time.Time {

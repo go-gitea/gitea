@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		{{template "user/settings/security/twofa" .}}
-		{{template "user/settings/security/u2f" .}}
+		{{template "user/settings/security/webauthn" .}}
 		{{template "user/settings/security/accountlinks" .}}
 		{{if .EnableOpenIDSignIn}}
 		{{template "user/settings/security/openid" .}}

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -48,7 +49,7 @@ func NewLabel(ctx *context.Context) {
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(l); err != nil {
+	if err := models.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
@@ -100,9 +101,9 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(db.DefaultContext, ctx.Org.Organization.ID, form.TemplateName, true); err != nil {
-		if models.IsErrIssueLabelTemplateLoad(err) {
-			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
+	if err := repo_module.InitializeLabels(ctx, ctx.Org.Organization.ID, form.TemplateName, true); err != nil {
+		if repo_module.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 			return

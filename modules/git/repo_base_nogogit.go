@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -36,13 +35,13 @@ type Repository struct {
 	Ctx context.Context
 }
 
-// OpenRepository opens the repository at the given path.
-func OpenRepository(repoPath string) (*Repository, error) {
-	return OpenRepositoryCtx(DefaultContext, repoPath)
+// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
+func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
+	return OpenRepository(DefaultContext, repoPath)
 }
 
-// OpenRepositoryCtx opens the repository at the given path with the provided context.
-func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error) {
+// OpenRepository opens the repository at the given path with the provided context.
+func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -86,7 +85,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
-func (repo *Repository) Close() {
+func (repo *Repository) Close() (err error) {
 	if repo == nil {
 		return
 	}
@@ -102,4 +101,5 @@ func (repo *Repository) Close() {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
+	return
 }

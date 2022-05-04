@@ -5,6 +5,8 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -117,12 +119,8 @@ func issueDepExists(e db.Engine, issueID, depID int64) (bool, error) {
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
-func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
-	return issueNoDependenciesLeft(db.GetEngine(db.DefaultContext), issue)
-}
-
-func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
-	exists, err := e.
+func IssueNoDependenciesLeft(ctx context.Context, issue *Issue) (bool, error) {
+	exists, err := db.GetEngine(ctx).
 		Table("issue_dependency").
 		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
