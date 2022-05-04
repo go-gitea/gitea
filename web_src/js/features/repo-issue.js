@@ -288,6 +288,39 @@ export function initRepoPullRequestMergeInstruction() {
   });
 }
 
+export function initRepoPullRequestAllowMaintainerEdit() {
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+  $checkbox.popup({content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
+        error: () => {
+          $checkbox.popup({
+            content: promptError,
+            onHidden: () => {
+              // the error popup should be shown only once, then we restore the popup to the default message
+              $checkbox.popup({content: promptTip});
+            },
+          });
+          $checkbox.popup('show');
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
+  });
+}
+
 export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({

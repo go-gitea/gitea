@@ -302,8 +302,19 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp unit.Type) bool {
-	if err := repo.LoadUnits(db.DefaultContext); err != nil {
+func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) {
+	if err := db.WithContext(func(ctx *db.Context) error {
+		result = repo.UnitEnabledCtx(ctx, tp)
+		return nil
+	}); err != nil {
+		log.Error("repo.UnitEnabled: %v", err)
+	}
+	return
+}
+
+// UnitEnabled if this repository has the given unit enabled
+func (repo *Repository) UnitEnabledCtx(ctx context.Context, tp unit.Type) bool {
+	if err := repo.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
 	for _, unit := range repo.Units {

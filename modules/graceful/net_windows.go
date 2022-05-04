@@ -4,7 +4,6 @@
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build windows
-// +build windows
 
 package graceful
 

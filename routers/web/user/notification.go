@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -394,6 +394,6 @@ func NotificationWatching(c *context.Context) {
 }
 
 // NewAvailable returns the notification counts
-func NewAvailable(ctx *context.APIContext) {
-	ctx.JSON(http.StatusOK, api.NotificationCount{New: models.CountUnread(ctx.Doer)})
+func NewAvailable(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx.Doer)})
 }
