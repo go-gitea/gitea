@@ -67,32 +67,20 @@ type componentStatus struct {
 func Check(w http.ResponseWriter, r *http.Request) {
 	rsp := response{
 		Status:      pass,
-		Description: "Gitea: Git with a cup of tea",
+		Description: setting.AppName,
 		Checks:      make(checks),
 	}
 
 	statuses := make([]status, 0)
-	statuses = append(statuses, checkDatabase(rsp.Checks))
-	statuses = append(statuses, checkCache(rsp.Checks))
-
+	if setting.InstallLock {
+		statuses = append(statuses, checkDatabase(rsp.Checks))
+		statuses = append(statuses, checkCache(rsp.Checks))
+	}
 	for _, s := range statuses {
 		if s != pass {
 			rsp.Status = fail
 			break
 		}
-	}
-
-	data, _ := json.MarshalIndent(rsp, "", "  ")
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(rsp.Status.ToHTTPStatus())
-	_, _ = w.Write(data)
-}
-
-// CheckInstall always return pass. Should only be used in Install routes
-func CheckInstall(w http.ResponseWriter, r *http.Request) {
-	rsp := response{
-		Status:      pass,
-		Description: "Gitea: Installation stage",
 	}
 
 	data, _ := json.MarshalIndent(rsp, "", "  ")

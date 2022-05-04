@@ -107,7 +107,7 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
-	r.Get("/api/healthz", healthcheck.CheckInstall)
+	r.Get("/api/healthz", healthcheck.Check)
 
 	r.NotFound(web.Wrap(installNotFound))
 	return r
