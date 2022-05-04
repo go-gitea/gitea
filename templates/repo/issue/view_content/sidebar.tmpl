@@ -569,12 +569,10 @@
 		{{end}}
 
 		<div class="ui divider"></div>
-		<div class="ui reference equal width compact grid">
-			<div class="row">
-				<span class="text column">References: {{.Issue.ReferenceLink}}</span>
-				<span class="copy-button two wide column" data-clipboard-text="{{.Issue.ReferenceLink}}">
-					{{svg "octicon-copy"}}
-				</span>
+		<div class="ui equal width compact grid">
+			<div class="row ac">
+				<span class="text column truncate">{{.i18n.Tr "repo.issues.reference_link" .Issue.ReferenceLink}}</span>
+				<button class="ui two wide button column p-3" data-clipboard-text="{{.Issue.ReferenceLink}}">{{svg "octicon-copy" 14}}</button>
 			</div>
 		</div>
 
