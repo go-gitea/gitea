@@ -12,7 +12,19 @@ export function initRepoDiffReviewButton() {
     // Watch for the form's submit event.
     e.target.closest('form').addEventListener('submit', () => {
       // Set a zero-timeout, so this would be executed after the network request has finished.
-      setTimeout(() => document.querySelector('#review-box').classList.add('pulse'));
+      setTimeout(() => {
+        const commentCounter = document.querySelector('#review-box .review-comments-counter');
+        // Remove the display: none.
+        commentCounter.style.display = '';
+        // Increase counter by one, in case it's the first review, parseInt will return `NaN`
+        // and default back to '1'.
+        commentCounter.textContent = parseInt(commentCounter.textContent) + 1 || '1';
+
+        // Make the review-box to do a little pulse.
+        document.querySelector('#review-box').classList.add('pulse');
+        // Remove the pulse class once it's done.
+        setTimeout(() => document.querySelector('#review-box').classList.remove('pulse'), 2500);
+      });
     });
   });
 }
