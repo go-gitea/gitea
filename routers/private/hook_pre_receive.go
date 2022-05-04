@@ -126,7 +126,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.AgitPullPrefix):
 			preReceiveAgitPullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
 		case strings.HasPrefix(refFullName, git.PullPrefix) && newCommitID == git.EmptySHA:
-			preReceivePullHead(ourCtx, refFullName)
+			preReceiveDeletePRHeadRef(ourCtx, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -299,9 +299,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// Get the PR, user and permissions for the user in the repository
 		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
-			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
+			log.Error("Unable to get PR #%d in %s Error: %v", ctx.opts.PullRequestID, ctx.Repo.Repository.FullName(), err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err),
+				Err: fmt.Sprintf("Unable to get PR #%d Error: %v", ctx.opts.PullRequestID, err),
 			})
 			return
 		}
@@ -442,12 +442,12 @@ func preReceiveAgitPullRequest(ctx *preReceiveContext, oldCommitID, newCommitID,
 	}
 }
 
-func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
+func preReceiveDeletePRHeadRef(ctx *preReceiveContext, refFullName string) {
 	if !ctx.opts.GitPushOptions.Bool("delete-pull-head-confirm", false) {
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: "Warning: you are going to delete the head ref of pull request: " + refFullName + ".\n" +
-				"only the author of this pull request and the admin of this repository can delete head ref for closed pull request." + "\n" +
-				"if you are sure what you want to do, you can push again with a push option `git push ... -o delete-pull-head-confirm=true` ",
+			Err: "Warning: you are attempting to delete the head reference of a pull request: " + refFullName + ".\n" +
+				"PR head references can only be deleted for closed PRs and only by their author or the repository admin.\n" +
+				"If you are sure what you want to do this, push again with the push option `git push ... -o delete-pull-head-confirm=true` ",
 		})
 		return
 	}
@@ -461,16 +461,16 @@ func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
 
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pullIndex)
 	if err != nil {
-		log.Error("Unable to get pull request index %d Error: %v", pullIndex, err)
+		log.Error("Unable to get PR #%d in %s Error: %v", pullIndex, ctx.Repo.Repository.FullName(), err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get pull request index %d Error: %v", pullIndex, err),
+			Err: fmt.Sprintf("Unable to get PR #%d Error: %v", pullIndex, err),
 		})
 		return
 	}
 
 	if !pr.Issue.IsClosed {
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: "error: Unable delete head ref of opend pull request :" + refFullName,
+			Err: fmt.Sprintf("Error: Head references of open pull request: %s cannot be deleted.", refFullName),
 		})
 		return
 	}
@@ -480,7 +480,7 @@ func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
 	}
 	if !ctx.userPerm.IsAdmin() {
 		ctx.JSON(http.StatusForbidden, private.Response{
-			Err: "error: User permission denied.",
+			Err: "Error: User permission denied.",
 		})
 		return
 	}
