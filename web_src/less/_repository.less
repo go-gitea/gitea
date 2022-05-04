@@ -1201,6 +1201,24 @@
         }
       }
     }
+
+    .ui.reference {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+
+      .text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 1rem;
+      }
+
+      .copy-button {
+        cursor: pointer;
+      }
+    }
   }
 
   .comment.form {

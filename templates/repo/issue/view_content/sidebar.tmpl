@@ -568,6 +568,14 @@
 			{{end}}
 		{{end}}
 
+		<div class="ui divider"></div>
+		<div class="ui reference">
+			<span class="text">References: {{.Issue.ReferenceLink}}</span>
+			<span class="copy-button" data-clipboard-text="{{.Issue.ReferenceLink}}">
+				{{svg "octicon-copy"}}
+			</span>
+		</div>
+
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">

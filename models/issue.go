@@ -430,6 +430,10 @@ func (issue *Issue) PatchURL() string {
 	return ""
 }
 
+func (issue *Issue) ReferenceLink() string {
+	return fmt.Sprintf("%s#%d", issue.Repo.FullName(), issue.Index)
+}
+
 // State returns string representation of issue status.
 func (issue *Issue) State() api.StateType {
 	if issue.IsClosed {
