@@ -5,9 +5,6 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
@@ -29,7 +26,7 @@ func addBotTables(x *xorm.Engine) error {
 		Created     timeutil.TimeStamp `xorm:"created"`
 	}
 
-	type BotsTask struct {
+	type BotsBuild struct {
 		ID            int64
 		Title         string
 		UUID          string `xorm:"CHAR(36)"`
@@ -55,7 +52,7 @@ func addBotTables(x *xorm.Engine) error {
 		NumClosedBuilds int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	type BuildIndex db.ResourceIndex
+	type BotsBuildIndex db.ResourceIndex
 
-	return x.Sync2(new(BotsRunner), new(BotsTask), new(Repository), new(BuildIndex))
+	return x.Sync2(new(BotsRunner), new(BotsBuild), new(Repository), new(BotsBuildIndex))
 }

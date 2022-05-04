@@ -9,13 +9,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-type TaskList []*Task
+type BuildList []*Build
 
 // GetUserIDs returns a slice of user's id
-func (tasks TaskList) GetUserIDs() []int64 {
+func (builds BuildList) GetUserIDs() []int64 {
 	userIDsMap := make(map[int64]struct{})
-	for _, task := range tasks {
-		userIDsMap[task.TriggerUserID] = struct{}{}
+	for _, build := range builds {
+		userIDsMap[build.TriggerUserID] = struct{}{}
 	}
 	userIDs := make([]int64, 0, len(userIDsMap))
 	for userID := range userIDsMap {
@@ -24,13 +24,13 @@ func (tasks TaskList) GetUserIDs() []int64 {
 	return userIDs
 }
 
-func (tasks TaskList) LoadTriggerUser() error {
-	userIDs := tasks.GetUserIDs()
+func (builds BuildList) LoadTriggerUser() error {
+	userIDs := builds.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(db.DefaultContext).In("id", userIDs).Find(&users); err != nil {
 		return err
 	}
-	for _, task := range tasks {
+	for _, task := range builds {
 		task.TriggerUser = users[task.TriggerUserID]
 	}
 	return nil

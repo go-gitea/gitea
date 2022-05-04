@@ -147,7 +147,7 @@ MESSAGE_BUMP:
 		}
 
 		// TODO: find new task and send to client
-		task, err := bots_model.GetCurTaskByUUID(msg.RunnerUUID)
+		task, err := bots_model.GetCurBuildByUUID(msg.RunnerUUID)
 		if err != nil {
 			log.Error("websocket[%s] get task failed: %v", r.RemoteAddr, err)
 			break

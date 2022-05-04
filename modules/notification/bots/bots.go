@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
+	bots_module "code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -39,28 +40,6 @@ func NewNotifier() base.Notifier {
 	return &botsNotifier{}
 }
 
-func detectWorkflows(commit *git.Commit, event webhook.HookEventType, ref string) (bool, error) {
-	tree, err := commit.SubTree(".github/workflows")
-	if _, ok := err.(git.ErrNotExist); ok {
-		tree, err = commit.SubTree(".gitea/workflows")
-	}
-	if _, ok := err.(git.ErrNotExist); ok {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-
-	entries, err := tree.ListEntries()
-	if err != nil {
-		return false, err
-	}
-
-	log.Trace("detected %s has %d entries", commit.ID, len(entries))
-
-	return len(entries) > 0, nil
-}
-
 func notifyIssue(issue *models.Issue, doer *user_model.User, evt webhook.HookEventType, payload string) {
 	err := issue.LoadRepo(db.DefaultContext)
 	if err != nil {
@@ -75,8 +54,11 @@ func notifyIssue(issue *models.Issue, doer *user_model.User, evt webhook.HookEve
 	if ref == "" {
 		ref = issue.Repo.DefaultBranch
 	}
+	notify(issue.Repo, doer, payload, ref, evt)
+}
 
-	gitRepo, err := git.OpenRepository(context.Background(), issue.Repo.RepoPath())
+func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref string, evt webhook.HookEventType) {
+	gitRepo, err := git.OpenRepository(context.Background(), repo.RepoPath())
 	if err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
@@ -90,31 +72,41 @@ func notifyIssue(issue *models.Issue, doer *user_model.User, evt webhook.HookEve
 		return
 	}
 
-	hasWorkflows, err := detectWorkflows(commit, evt, ref)
+	matchedEntries, jobs, err := bots_module.DetectWorkflows(commit, evt)
 	if err != nil {
 		log.Error("detectWorkflows: %v", err)
 		return
 	}
-	if !hasWorkflows {
-		log.Trace("repo %s with commit %s couldn't find workflows", issue.Repo.RepoPath(), commit.ID)
+	log.Trace("detected %s has %d entries", commit.ID, len(matchedEntries))
+	if len(matchedEntries) == 0 {
+		log.Trace("repo %s with commit %s couldn't find workflows", repo.RepoPath(), commit.ID)
 		return
 	}
 
-	task := bots_model.Task{
-		Title:         commit.CommitMessage,
-		RepoID:        issue.RepoID,
+	workflowsStatuses := make(map[string]map[string]bots_model.BuildStatus)
+	for i, entry := range matchedEntries {
+		taskStatuses := make(map[string]bots_model.BuildStatus)
+		for k := range jobs[i] {
+			taskStatuses[k] = bots_model.BuildPending
+		}
+		workflowsStatuses[entry.Name()] = taskStatuses
+	}
+
+	build := bots_model.Build{
+		Title:         commit.Message(),
+		RepoID:        repo.ID,
 		TriggerUserID: doer.ID,
 		Event:         evt,
 		EventPayload:  payload,
-		Status:        bots_model.TaskPending,
+		Status:        bots_model.BuildPending,
 		Ref:           ref,
 		CommitSHA:     commit.ID.String(),
 	}
 
-	if err := bots_model.InsertTask(&task); err != nil {
+	if err := bots_model.InsertBuild(&build, workflowsStatuses); err != nil {
 		log.Error("InsertBotTask: %v", err)
 	} else {
-		bots_service.PushToQueue(&task)
+		bots_service.PushToQueue(&build)
 	}
 }
 
@@ -190,29 +182,6 @@ func (a *botsNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_mod
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
-	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
-		return
-	}
-	defer gitRepo.Close()
-
-	commit, err := gitRepo.GetCommit(commits.HeadCommit.Sha1)
-	if err != nil {
-		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
-		return
-	}
-
-	hasWorkflows, err := detectWorkflows(commit, webhook.HookEventPush, opts.RefFullName)
-	if err != nil {
-		log.Error("detectWorkflows: %v", err)
-		return
-	}
-	if !hasWorkflows {
-		log.Trace("repo %s with commit %s couldn't find workflows", repo.RepoPath(), commit.ID)
-		return
-	}
-
 	payload := &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
@@ -231,20 +200,7 @@ func (a *botsNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_mod
 		return
 	}
 
-	task := bots_model.Task{
-		Title:         commit.Message(),
-		RepoID:        repo.ID,
-		TriggerUserID: pusher.ID,
-		Event:         webhook.HookEventPush,
-		EventPayload:  string(bs),
-		Status:        bots_model.TaskPending,
-	}
-
-	if err := bots_model.InsertTask(&task); err != nil {
-		log.Error("InsertBotTask: %v", err)
-	} else {
-		bots_service.PushToQueue(&task)
-	}
+	notify(repo, pusher, string(bs), opts.RefFullName, webhook.HookEventPush)
 }
 
 func (a *botsNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {

@@ -1,5 +1,5 @@
 <div class="issue list">
-	{{range .Tasks}}
+	{{range .Builds}}
 		<li class="item df py-3">
 			<div class="issue-item-left df">
 				{{if $.CanWriteIssuesOrPulls}}
@@ -8,20 +8,7 @@
 						<label></label>
 					</div>
 				{{end}}
-				<div class="issue-item-icon">
-					{{if .IsPending}}
-						<i class="commit-status circle icon gray"></i>
-					{{end}}
-					{{if .IsRunning}}
-						<i class="commit-status circle icon yellow"></i>
-					{{end}}
-					{{if .IsSuccess}}
-						<i class="commit-status check icon green"></i>
-					{{end}}
-					{{if .IsFailed}}
-						<i class="commit-status warning icon red"></i>
-					{{end}}
-				</div>
+				{{template "repo/builds/status" .Status}}
 			</div>
 			<div class="issue-item-main f1 fc df">
 				<div class="desc issue-item-bottom-row df ac fw my-1">

@@ -1175,6 +1175,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("", builds.List)
 			m.Group("/{index}", func() {
 				m.Get("", builds.ViewBuild)
+				m.Get("/{workflow}/job/{jobname}/logs", builds.GetBuildJobLogs)
 			})
 		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 

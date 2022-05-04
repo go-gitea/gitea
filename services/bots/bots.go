@@ -14,16 +14,16 @@ import (
 	//"code.gitea.io/gitea/modules/json"
 )
 
-// taskQueue is a global queue of tasks
-var taskQueue queue.Queue
+// buildQueue is a global queue of bot build
+var buildQueue queue.Queue
 
 // PushToQueue
-func PushToQueue(task *bots_model.Task) {
-	taskQueue.Push(task)
+func PushToQueue(task *bots_model.Build) {
+	buildQueue.Push(task)
 }
 
 // Dispatch assign a task to a runner
-func Dispatch(task *bots_model.Task) (*bots_model.Runner, error) {
+func Dispatch(task *bots_model.Build) (*bots_model.Runner, error) {
 	runner, err := bots_model.GetUsableRunner(bots_model.GetRunnerOptions{
 		RepoID: task.RepoID,
 	})
@@ -31,17 +31,17 @@ func Dispatch(task *bots_model.Task) (*bots_model.Runner, error) {
 		return nil, err
 	}
 
-	return runner, bots_model.AssignTaskToRunner(task.ID, runner.ID)
+	return runner, bots_model.AssignBuildToRunner(task.ID, runner.ID)
 }
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = queue.CreateQueue("actions_task", handle, &bots_model.Task{})
-	if taskQueue == nil {
+	buildQueue = queue.CreateQueue("actions_task", handle, &bots_model.Build{})
+	if buildQueue == nil {
 		return fmt.Errorf("Unable to create Task Queue")
 	}
 
-	go graceful.GetManager().RunWithShutdownFns(taskQueue.Run)
+	go graceful.GetManager().RunWithShutdownFns(buildQueue.Run)
 
 	return nil
 }
@@ -49,13 +49,13 @@ func Init() error {
 func handle(data ...queue.Data) []queue.Data {
 	var unhandled []queue.Data
 	for _, datum := range data {
-		task := datum.(*bots_model.Task)
-		runner, err := Dispatch(task)
+		build := datum.(*bots_model.Build)
+		runner, err := Dispatch(build)
 		if err != nil {
-			log.Error("Run task failed: %v", err)
-			unhandled = append(unhandled, task)
+			log.Error("Run build failed: %v", err)
+			unhandled = append(unhandled, build)
 		} else {
-			log.Trace("task %v assigned to %s", task.UUID, runner.UUID)
+			log.Trace("build %v assigned to %s", build.UUID, runner.UUID)
 		}
 	}
 	return unhandled
