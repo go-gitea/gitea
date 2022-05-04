@@ -667,5 +667,21 @@
 				</form>
 			</div>
 		{{end}}
+
+		{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed)}}
+			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox" id="allow-edits-from-maintainers"
+							data-url="{{.Issue.Link}}"
+							data-prompt-tip="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
+							data-prompt-error="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
+						>
+						<label><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+					</div>
+				</div>
+			{{end}}
+		{{end}}
 	</div>
 </div>
