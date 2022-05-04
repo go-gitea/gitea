@@ -8,6 +8,12 @@ const {csrfToken} = window.config;
 export function initRepoDiffReviewButton() {
   $(document).on('click', 'button[name="is_review"]', (e) => {
     $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+
+    // Watch for the form's submit event.
+    e.target.closest('form').addEventListener('submit', () => {
+      // Set a zero-timeout, so this would be executed after the network request has finished.
+      setTimeout(() => document.querySelector('#review-box').classList.add('pulse'));
+    });
   });
 }
 
