@@ -35,8 +35,7 @@ func NewContext() error {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}
-		err = Ping()
-		if err != nil {
+		if err = Ping(); err != nil {
 			return err
 		}
 	}
