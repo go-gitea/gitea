@@ -478,7 +478,7 @@ func preReceivePullHead(ctx *preReceiveContext, refFullName string) {
 	if pr.IssueID == ctx.opts.UserID {
 		return
 	}
-	if !ctx.Perm().IsAdmin() {
+	if !ctx.userPerm.IsAdmin() {
 		ctx.JSON(http.StatusForbidden, private.Response{
 			Err: "error: User permission denied.",
 		})
