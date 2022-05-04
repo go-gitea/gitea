@@ -322,9 +322,9 @@
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
 						{{/* We build a custom variable here to not clutter the template with checks if .LatestCommitStatus exists. */}}
-						{{$statusChecksPending := false}}
+						{{$statusChecksPending := true}}
 						{{if .LatestCommitStatus}}
-							{{$statusChecksPending = eq .LatestCommitStatus.State "pending"}}
+							{{$statusChecksPending = not (eq .LatestCommitStatus.State "success")}}
 						{{end}}
 
 						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
