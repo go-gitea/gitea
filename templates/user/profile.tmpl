@@ -16,6 +16,7 @@
 					<div class="content word-break profile-avatar-name">
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
+						<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
 					</div>
 					<div class="extra content word-break">
 						<ul>

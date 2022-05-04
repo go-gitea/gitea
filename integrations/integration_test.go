@@ -112,6 +112,13 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	os.Unsetenv("GIT_AUTHOR_NAME")
+	os.Unsetenv("GIT_AUTHOR_EMAIL")
+	os.Unsetenv("GIT_AUTHOR_DATE")
+	os.Unsetenv("GIT_COMMITTER_NAME")
+	os.Unsetenv("GIT_COMMITTER_EMAIL")
+	os.Unsetenv("GIT_COMMITTER_DATE")
+
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -165,6 +172,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(models.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
@@ -357,6 +365,10 @@ func emptyTestSession(t testing.TB) *TestSession {
 	assert.NoError(t, err)
 
 	return &TestSession{jar: jar}
+}
+
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {

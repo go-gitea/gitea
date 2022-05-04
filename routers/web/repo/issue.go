@@ -7,6 +7,7 @@ package repo
 
 import (
 	"bytes"
+	stdCtx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -36,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates/vars"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -230,7 +233,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:           []int64{repo.ID},
+			RepoID:            repo.ID,
 			AssigneeID:        assigneeID,
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
@@ -267,14 +270,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
-		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
 	}
 
 	ctx.Data["Issues"] = issues
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
 	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
@@ -401,7 +405,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones
-	ctx.Data["Milestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["Milestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
 		State:  api.StateType(ctx.FormString("state")),
 	})
@@ -418,7 +422,7 @@ func Issues(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["OpenMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateOpen,
 	})
@@ -426,7 +430,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["ClosedMilestones"], _, err = issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateClosed,
 	})
@@ -804,7 +808,7 @@ func NewIssue(ctx *context.Context) {
 
 	milestoneID := ctx.FormInt64("milestone")
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
 		} else {
@@ -913,7 +917,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
@@ -1049,8 +1053,8 @@ func NewIssuePost(ctx *context.Context) {
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
-	perm, err := models.GetUserRepoPermission(repo, poster)
+func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
+	perm, err := models.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
 	}
@@ -1291,7 +1295,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = issue.ReadBy(ctx.Doer.ID); err != nil {
+		if err = issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
 		}
@@ -1323,7 +1327,7 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
-					if err = otherIssue.LoadRepo(); err != nil {
+					if err = otherIssue.LoadRepo(ctx); err != nil {
 						ctx.ServerError("LoadRepo", err)
 						return
 					}
@@ -1347,7 +1351,7 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowRole, err = roleDescriptor(repo, issue.Poster, issue); err != nil {
+	if issue.ShowRole, err = roleDescriptor(ctx, repo, issue.Poster, issue); err != nil {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
@@ -1386,7 +1390,7 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 
-			comment.ShowRole, err = roleDescriptor(repo, comment.Poster, issue)
+			comment.ShowRole, err = roleDescriptor(ctx, repo, comment.Poster, issue)
 			if err != nil {
 				ctx.ServerError("roleDescriptor", err)
 				return
@@ -1403,7 +1407,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadMilestone", err)
 				return
 			}
-			ghostMilestone := &models.Milestone{
+			ghostMilestone := &issues_model.Milestone{
 				ID:   -1,
 				Name: ctx.Tr("repo.issues.deleted_milestone"),
 			}
@@ -1485,7 +1489,7 @@ func ViewIssue(ctx *context.Context) {
 							continue
 						}
 
-						c.ShowRole, err = roleDescriptor(repo, c.Poster, issue)
+						c.ShowRole, err = roleDescriptor(ctx, repo, c.Poster, issue)
 						if err != nil {
 							ctx.ServerError("roleDescriptor", err)
 							return
@@ -1523,34 +1527,37 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
-			if err := pull.LoadHeadRepo(); err != nil {
+			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
-			} else if pull.HeadRepo != nil && pull.HeadBranch != pull.HeadRepo.DefaultBranch {
-				perm, err := models.GetUserRepoPermission(pull.HeadRepo, ctx.Doer)
+			} else if pull.HeadRepo != nil {
+				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
 				}
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
-					if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
-						log.Error("IsProtectedBranch: %v", err)
-					} else if !protected {
-						canDelete = true
-						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+					if pull.HeadBranch != pull.HeadRepo.DefaultBranch {
+						if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
+							log.Error("IsProtectedBranch: %v", err)
+						} else if !protected {
+							canDelete = true
+							ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
+						}
 					}
+					ctx.Data["CanWriteToHeadRepo"] = true
 				}
 			}
 
-			if err := pull.LoadBaseRepo(); err != nil {
+			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
-			perm, err := models.GetUserRepoPermission(pull.BaseRepo, ctx.Doer)
+			perm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
-			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.Doer)
+			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(ctx, pull, perm, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("IsUserAllowedToMerge", err)
 				return
@@ -1599,12 +1606,11 @@ func ViewIssue(ctx *context.Context) {
 			if ctx.Doer != nil {
 				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.Doer.ID)
 			}
-			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
-			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
-			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
-			ctx.Data["IsBlockedByOfficialReviewRequests"] = pull.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pull)
+			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(ctx, pull)
+			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(ctx, pull)
+			ctx.Data["IsBlockedByOfficialReviewRequests"] = pull.ProtectedBranch.MergeBlockedByOfficialReviewRequests(ctx, pull)
 			ctx.Data["IsBlockedByOutdatedBranch"] = pull.ProtectedBranch.MergeBlockedByOutdatedBranch(pull)
-			ctx.Data["GrantedApprovals"] = cnt
+			ctx.Data["GrantedApprovals"] = pull.ProtectedBranch.GetGrantedApprovalsCount(ctx, pull)
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
@@ -1634,7 +1640,7 @@ func ViewIssue(ctx *context.Context) {
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		if isPullBranchDeletable && pull.HasMerged {
-			exist, err := models.HasUnmergedPullRequestsByHeadInfo(pull.HeadRepoID, pull.HeadBranch)
+			exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 			if err != nil {
 				ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 				return
@@ -1762,6 +1768,20 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	return issues
 }
 
+// GetIssueInfo get an issue of a repository
+func GetIssueInfo(ctx *context.Context) {
+	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.Error(http.StatusNotFound)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+		}
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
+}
+
 // UpdateIssueTitle change issue's title
 func UpdateIssueTitle(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
@@ -1856,6 +1876,40 @@ func UpdateIssueContent(ctx *context.Context) {
 	})
 }
 
+// UpdateIssueDeadline updates an issue deadline
+func UpdateIssueDeadline(ctx *context.Context) {
+	form := web.GetForm(ctx).(*api.EditDeadlineOption)
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
+		}
+		return
+	}
+
+	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
+		ctx.Error(http.StatusForbidden, "", "Not repo writer")
+		return
+	}
+
+	var deadlineUnix timeutil.TimeStamp
+	var deadline time.Time
+	if form.Deadline != nil && !form.Deadline.IsZero() {
+		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+			23, 59, 59, 0, time.Local)
+		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+	}
+
+	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
+}
+
 // UpdateIssueMilestone change issue's milestone
 func UpdateIssueMilestone(ctx *context.Context) {
 	issues := getActionIssues(ctx)
@@ -1944,7 +1998,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	}
 
 	for _, issue := range issues {
-		if err := issue.LoadRepo(); err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			ctx.ServerError("issue.LoadRepo", err)
 			return
 		}
@@ -1987,7 +2041,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			err = issue_service.IsValidTeamReviewRequest(team, ctx.Doer, action == "attach", issue)
+			err = issue_service.IsValidTeamReviewRequest(ctx, team, ctx.Doer, action == "attach", issue)
 			if err != nil {
 				if models.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -2025,7 +2079,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		err = issue_service.IsValidReviewRequest(reviewer, ctx.Doer, action == "attach", issue, nil)
+		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, action == "attach", issue, nil)
 		if err != nil {
 			if models.IsErrNotValidReviewRequest(err) {
 				log.Warn(
@@ -2050,6 +2104,339 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
+}
+
+// SearchIssues searches for issues across the repositories that the user has access to
+func SearchIssues(ctx *context.Context) {
+	before, since, err := context.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	var isClosed util.OptionalBool
+	switch ctx.FormString("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
+	}
+
+	// find repos user can access (for issue search)
+	opts := &models.SearchRepoOptions{
+		Private:     false,
+		AllPublic:   true,
+		TopicOnly:   false,
+		Collaborate: util.OptionalBoolNone,
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: db.SearchOrderByAlphabetically,
+		Actor:   ctx.Doer,
+	}
+	if ctx.IsSigned {
+		opts.Private = true
+		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err.Error())
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err.Error())
+			}
+			return
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+			return
+		}
+		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Team not found", err.Error())
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err.Error())
+			}
+			return
+		}
+		opts.TeamID = team.ID
+	}
+
+	repoCond := models.SearchRepositoryCondition(opts)
+	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err.Error())
+		return
+	}
+
+	var issues []*models.Issue
+	var filteredCount int64
+
+	keyword := ctx.FormTrim("q")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+	var issueIDs []int64
+	if len(keyword) > 0 && len(repoIDs) > 0 {
+		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, repoIDs, keyword); err != nil {
+			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err.Error())
+			return
+		}
+	}
+
+	var isPull util.OptionalBool
+	switch ctx.FormString("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
+	labels := ctx.FormTrim("labels")
+	var includedLabelNames []string
+	if len(labels) > 0 {
+		includedLabelNames = strings.Split(labels, ",")
+	}
+
+	milestones := ctx.FormTrim("milestones")
+	var includedMilestones []string
+	if len(milestones) > 0 {
+		includedMilestones = strings.Split(milestones, ",")
+	}
+
+	// this api is also used in UI,
+	// so the default limit is set to fit UI needs
+	limit := ctx.FormInt("limit")
+	if limit == 0 {
+		limit = setting.UI.IssuePagingNum
+	} else if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
+	}
+
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
+	// This would otherwise return all issues if no issues were found by the search.
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
+		issuesOpt := &models.IssuesOptions{
+			ListOptions: db.ListOptions{
+				Page:     ctx.FormInt("page"),
+				PageSize: limit,
+			},
+			RepoCond:           repoCond,
+			IsClosed:           isClosed,
+			IssueIDs:           issueIDs,
+			IncludedLabelNames: includedLabelNames,
+			IncludeMilestones:  includedMilestones,
+			SortType:           "priorityrepo",
+			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
+			IsPull:             isPull,
+			UpdatedBeforeUnix:  before,
+			UpdatedAfterUnix:   since,
+		}
+
+		ctxUserID := int64(0)
+		if ctx.IsSigned {
+			ctxUserID = ctx.Doer.ID
+		}
+
+		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
+		if ctx.FormBool("created") {
+			issuesOpt.PosterID = ctxUserID
+		}
+		if ctx.FormBool("assigned") {
+			issuesOpt.AssigneeID = ctxUserID
+		}
+		if ctx.FormBool("mentioned") {
+			issuesOpt.MentionedID = ctxUserID
+		}
+		if ctx.FormBool("review_requested") {
+			issuesOpt.ReviewRequestedID = ctxUserID
+		}
+
+		if issues, err = models.Issues(issuesOpt); err != nil {
+			ctx.Error(http.StatusInternalServerError, "Issues", err.Error())
+			return
+		}
+
+		issuesOpt.ListOptions = db.ListOptions{
+			Page: -1,
+		}
+		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
+			ctx.Error(http.StatusInternalServerError, "CountIssues", err.Error())
+			return
+		}
+	}
+
+	ctx.SetTotalCountHeader(filteredCount)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
+}
+
+func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
+	userName := ctx.FormString(queryName)
+	if len(userName) == 0 {
+		return 0
+	}
+
+	user, err := user_model.GetUserByName(userName)
+	if user_model.IsErrUserNotExist(err) {
+		ctx.NotFound("", err)
+		return 0
+	}
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return 0
+	}
+
+	return user.ID
+}
+
+// ListIssues list the issues of a repository
+func ListIssues(ctx *context.Context) {
+	before, since, err := context.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	var isClosed util.OptionalBool
+	switch ctx.FormString("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
+	}
+
+	var issues []*models.Issue
+	var filteredCount int64
+
+	keyword := ctx.FormTrim("q")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+	var issueIDs []int64
+	var labelIDs []int64
+	if len(keyword) > 0 {
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx, []int64{ctx.Repo.Repository.ID}, keyword)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
+		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	var mileIDs []int64
+	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
+		for i := range part {
+			// uses names and fall back to ids
+			// non existent milestones are discarded
+			mile, err := issues_model.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, part[i])
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if !issues_model.IsErrMilestoneNotExist(err) {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+			id, err := strconv.ParseInt(part[i], 10, 64)
+			if err != nil {
+				continue
+			}
+			mile, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, id)
+			if err == nil {
+				mileIDs = append(mileIDs, mile.ID)
+				continue
+			}
+			if issues_model.IsErrMilestoneNotExist(err) {
+				continue
+			}
+			ctx.Error(http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+	}
+
+	var isPull util.OptionalBool
+	switch ctx.FormString("type") {
+	case "pulls":
+		isPull = util.OptionalBoolTrue
+	case "issues":
+		isPull = util.OptionalBoolFalse
+	default:
+		isPull = util.OptionalBoolNone
+	}
+
+	// FIXME: we should be more efficient here
+	createdByID := getUserIDForFilter(ctx, "created_by")
+	if ctx.Written() {
+		return
+	}
+	assignedByID := getUserIDForFilter(ctx, "assigned_by")
+	if ctx.Written() {
+		return
+	}
+	mentionedByID := getUserIDForFilter(ctx, "mentioned_by")
+	if ctx.Written() {
+		return
+	}
+
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
+	// This would otherwise return all issues if no issues were found by the search.
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+		issuesOpt := &models.IssuesOptions{
+			ListOptions:       listOptions,
+			RepoID:            ctx.Repo.Repository.ID,
+			IsClosed:          isClosed,
+			IssueIDs:          issueIDs,
+			LabelIDs:          labelIDs,
+			MilestoneIDs:      mileIDs,
+			IsPull:            isPull,
+			UpdatedBeforeUnix: before,
+			UpdatedAfterUnix:  since,
+			PosterID:          createdByID,
+			AssigneeID:        assignedByID,
+			MentionedID:       mentionedByID,
+		}
+
+		if issues, err = models.Issues(issuesOpt); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		issuesOpt.ListOptions = db.ListOptions{
+			Page: -1,
+		}
+		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
+			ctx.Error(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	ctx.SetTotalCountHeader(filteredCount)
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 // UpdateIssueStatus change issue's status
@@ -2535,7 +2922,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 			if err != nil {
 				return err
 			}
-			perm, err := models.GetUserRepoPermission(c.RefRepo, ctx.Doer)
+			perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
 			if err != nil {
 				return err
 			}

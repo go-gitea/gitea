@@ -129,12 +129,12 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := createComment(ctx, &CreateCommentOptions{
+		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,

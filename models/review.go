@@ -238,7 +238,7 @@ func isOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(ctx); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -265,7 +265,7 @@ func isOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(ctx); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -427,7 +427,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 		}
 	}
 
-	comm, err := createComment(ctx, &CreateCommentOptions{
+	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -662,7 +662,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, 
 		return nil, err
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -717,7 +717,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Commen
 		}
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -776,7 +776,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		}
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -786,7 +786,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
 	return comment, committer.Commit()
@@ -837,7 +837,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		return nil, committer.Commit()
 	}
 
-	comment, err := createComment(ctx, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -846,7 +846,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *us
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
 	return comment, committer.Commit()
@@ -887,11 +887,11 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 	}
 
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(db.DefaultContext); err != nil {
 			return false, err
 		}
 
-		p, err := GetUserRepoPermission(issue.Repo, doer)
+		p, err := GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}

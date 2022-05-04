@@ -230,7 +230,7 @@ func checkForInvalidation(ctx context.Context, requests models.PullRequestList, 
 	}
 	go func() {
 		// FIXME: graceful: We need to tell the manager we're doing something...
-		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
+		err := requests.InvalidateCodeComments(ctx, doer, gitRepo, branch)
 		if err != nil {
 			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
 		}
@@ -341,14 +341,14 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
 func checkIfPRContentChanged(ctx context.Context, pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		return false, fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
 		// corrupt data assumed changed
 		return true, nil
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		return false, fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
@@ -419,13 +419,13 @@ func PushToBaseRepo(ctx context.Context, pr *models.PullRequest) (err error) {
 func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHeadBranch string) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 	headRepoPath := pr.HeadRepo.RepoPath()
 
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
@@ -474,7 +474,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHea
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *models.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
@@ -726,18 +726,25 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 	return stringBuilder.String()
 }
 
-// GetIssuesLastCommitStatus returns a map
+// GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
 func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (map[int64]*models.CommitStatus, error) {
+	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
+	return lastStatus, err
+}
+
+// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
+func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map[int64][]*models.CommitStatus, map[int64]*models.CommitStatus, error) {
 	if err := issues.LoadPullRequests(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if _, err := issues.LoadRepositories(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var (
 		gitRepos = make(map[int64]*git.Repository)
-		res      = make(map[int64]*models.CommitStatus)
+		res      = make(map[int64][]*models.CommitStatus)
+		lastRes  = make(map[int64]*models.CommitStatus)
 		err      error
 	)
 	defer func() {
@@ -760,34 +767,33 @@ func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (ma
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		status, err := getLastCommitStatus(gitRepo, issue.PullRequest)
+		statuses, lastStatus, err := getAllCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
-			log.Error("getLastCommitStatus: cant get last commit of pull [%d]: %v", issue.PullRequest.ID, err)
+			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
 		}
-		res[issue.PullRequest.ID] = status
+		res[issue.PullRequest.ID] = statuses
+		lastRes[issue.PullRequest.ID] = lastStatus
 	}
-	return res, nil
+	return res, lastRes, nil
 }
 
-// getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
-func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	sha, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-	if err != nil {
-		return nil, err
+// getAllCommitStatus get pr's commit statuses.
+func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statuses []*models.CommitStatus, lastStatus *models.CommitStatus, err error) {
+	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
+	if shaErr != nil {
+		return nil, nil, shaErr
 	}
 
-	statusList, _, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return models.CalcCommitStatus(statusList), nil
+	statuses, _, err = models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	lastStatus = models.CalcCommitStatus(statuses)
+	return statuses, lastStatus, err
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head
 func IsHeadEqualWithBranch(ctx context.Context, pr *models.PullRequest, branchName string) (bool, error) {
 	var err error
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		return false, err
 	}
 	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
@@ -801,7 +807,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *models.PullRequest, branchNa
 		return false, err
 	}
 
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		return false, err
 	}
 	var headGitRepo *git.Repository

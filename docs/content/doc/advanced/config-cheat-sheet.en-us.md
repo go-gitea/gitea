@@ -75,7 +75,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
 - `DISABLE_STARS`: **false**: Disable stars feature.
-- `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
+- `DEFAULT_BRANCH`: **main**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
 
@@ -497,6 +497,7 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    It also enables them to access other resources available to the user on the operating system that is running the
    Gitea instance and perform arbitrary actions in the name of the Gitea OS user.
    This maybe harmful to you website or your operating system.
+   Setting this to true does not change existing hooks in git repos; adjust it before if necessary.
 - `DISABLE_WEBHOOKS`: **false**: Set to `true` to disable webhooks feature.
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to Gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
@@ -1084,6 +1085,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 ## Federation (`federation`)
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
+- `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
 
 ## Packages (`packages`)
 

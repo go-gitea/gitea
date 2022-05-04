@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"sort"
@@ -11,10 +11,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
@@ -25,28 +23,15 @@ func TestMilestone_State(t *testing.T) {
 	assert.Equal(t, api.StateClosed, (&Milestone{IsClosed: true}).State())
 }
 
-func TestNewMilestone(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	milestone := &Milestone{
-		RepoID:  1,
-		Name:    "milestoneName",
-		Content: "milestoneContent",
-	}
-
-	assert.NoError(t, NewMilestone(milestone))
-	unittest.AssertExistsAndLoadBean(t, milestone)
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
-}
-
 func TestGetMilestoneByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	milestone, err := GetMilestoneByRepoID(1, 1)
+	milestone, err := GetMilestoneByRepoID(db.DefaultContext, 1, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, milestone.ID)
 	assert.EqualValues(t, 1, milestone.RepoID)
 
-	_, err = GetMilestoneByRepoID(unittest.NonexistentID, unittest.NonexistentID)
+	_, err = GetMilestoneByRepoID(db.DefaultContext, unittest.NonexistentID, unittest.NonexistentID)
 	assert.True(t, IsErrMilestoneNotExist(err))
 }
 
@@ -160,18 +145,6 @@ func TestGetMilestones(t *testing.T) {
 	})
 }
 
-func TestUpdateMilestone(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-	milestone.Name = " newMilestoneName  "
-	milestone.Content = "newMilestoneContent"
-	assert.NoError(t, UpdateMilestone(milestone, milestone.IsClosed))
-	milestone = unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-	assert.EqualValues(t, "newMilestoneName", milestone.Name)
-	unittest.CheckConsistencyFor(t, &Milestone{})
-}
-
 func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
@@ -204,78 +177,6 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 	count, err := CountRepoClosedMilestones(unittest.NonexistentID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
-}
-
-func TestChangeMilestoneStatus(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-
-	assert.NoError(t, ChangeMilestoneStatus(milestone, true))
-	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=1")
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
-
-	assert.NoError(t, ChangeMilestoneStatus(milestone, false))
-	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=0")
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
-}
-
-func TestUpdateMilestoneCounters(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
-		"is_closed=0").(*Issue)
-
-	issue.IsClosed = true
-	issue.ClosedUnix = timeutil.TimeStampNow()
-	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
-	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
-	unittest.CheckConsistencyFor(t, &Milestone{})
-
-	issue.IsClosed = false
-	issue.ClosedUnix = 0
-	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
-	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.DefaultContext, issue.MilestoneID))
-	unittest.CheckConsistencyFor(t, &Milestone{})
-}
-
-func TestChangeMilestoneAssign(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{RepoID: 1}).(*Issue)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	assert.NotNil(t, issue)
-	assert.NotNil(t, doer)
-
-	oldMilestoneID := issue.MilestoneID
-	issue.MilestoneID = 2
-	assert.NoError(t, ChangeMilestoneAssign(issue, doer, oldMilestoneID))
-	unittest.AssertExistsAndLoadBean(t, &Comment{
-		IssueID:        issue.ID,
-		Type:           CommentTypeMilestone,
-		MilestoneID:    issue.MilestoneID,
-		OldMilestoneID: oldMilestoneID,
-	})
-	unittest.CheckConsistencyFor(t, &Milestone{}, &Issue{})
-}
-
-func TestDeleteMilestoneByRepoID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.NoError(t, DeleteMilestoneByRepoID(1, 1))
-	unittest.AssertNotExistsBean(t, &Milestone{ID: 1})
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: 1})
-
-	assert.NoError(t, DeleteMilestoneByRepoID(unittest.NonexistentID, unittest.NonexistentID))
-}
-
-func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	miles := MilestoneList{
-		unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone),
-	}
-
-	assert.NoError(t, miles.LoadTotalTrackedTimes())
-
-	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
 }
 
 func TestCountMilestonesByRepoIDs(t *testing.T) {
@@ -341,15 +242,6 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	test("soonestduedate", func(milestone *Milestone) int {
 		return int(milestone.DeadlineUnix)
 	})
-}
-
-func TestLoadTotalTrackedTime(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
-
-	assert.NoError(t, milestone.LoadTotalTrackedTime())
-
-	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
 
 func TestGetMilestonesStats(t *testing.T) {

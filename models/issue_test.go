@@ -15,11 +15,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestIssue_ReplaceLabels(t *testing.T) {
@@ -132,7 +134,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, updateIssueCols(db.DefaultContext, issue, "name"))
+	assert.NoError(t, UpdateIssueCols(db.DefaultContext, issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
@@ -156,7 +158,7 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs:  []int64{1, 3},
+				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
 				ListOptions: db.ListOptions{
 					Page:     1,
@@ -343,7 +345,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs: []int64{1, 2},
+				RepoCond: builder.In("repo_id", 1, 2),
 			},
 			[]int64{1, 2},
 		},
@@ -441,12 +443,12 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	err = CreateIssueDependency(user, issue1, issue2)
 	assert.NoError(t, err)
-	left, err := IssueNoDependenciesLeft(issue1)
+	left, err := IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 	err = DeleteIssue(&Issue{ID: 2})
 	assert.NoError(t, err)
-	left, err = IssueNoDependenciesLeft(issue1)
+	left, err = IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
 }
@@ -567,4 +569,31 @@ func TestIssueForeignReference(t *testing.T) {
 	found, err := GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
 	assert.NoError(t, err)
 	assert.EqualValues(t, found.Index, issue.Index)
+}
+
+func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	miles := issues_model.MilestoneList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone),
+	}
+
+	assert.NoError(t, miles.LoadTotalTrackedTimes())
+
+	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
+}
+
+func TestLoadTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone)
+
+	assert.NoError(t, milestone.LoadTotalTrackedTime())
+
+	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
+}
+
+func TestCountIssues(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	count, err := CountIssues(&IssuesOptions{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 15, count)
 }
