@@ -26,7 +26,7 @@ export function initRepoDiffReviewButton() {
         // Force the browser to reflow the DOM. This is to ensure that the browser.
         // Actually removes the 'pulse' class from the DOM. Otherwise the browser
         // is smart enough to de-duplicate these two requests.
-        reviewBox.offsetWidth;
+        const _ = reviewBox.offsetWidth;
         // Add the class again.
         reviewBox.classList.add('pulse');
       });
