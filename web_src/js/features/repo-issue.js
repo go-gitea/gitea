@@ -166,7 +166,7 @@ export function initRepoIssueCommentDelete() {
           // This is a pending comment.
           const commentCounter = document.querySelector('#review-box .review-comments-counter');
           // Decrease the counter by one.
-          commentCounter.textContent = parseInt(commentCounter.textContent) - 1;
+          commentCounter.textContent = String(parseInt(commentCounter.textContent) - 1);
           // If no pending comments remains, don't show the counter.
           if (commentCounter.textContent === '0') {
             commentCounter.style.display = 'none';
