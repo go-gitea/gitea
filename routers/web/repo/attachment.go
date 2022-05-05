@@ -106,7 +106,7 @@ func GetAttachment(ctx *context.Context) {
 			return
 		}
 	} else { // If we have the repository we check access
-		perm, err := models.GetUserRepoPermission(repository, ctx.Doer)
+		perm, err := models.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
 			return

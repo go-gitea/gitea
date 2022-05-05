@@ -125,13 +125,18 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 
 // MatchHostName checks if the host matches an allow/deny(block) list
 func (hl *HostMatchList) MatchHostName(host string) bool {
+	hostname, _, err := net.SplitHostPort(host)
+	if err != nil {
+		hostname = host
+	}
+
 	if hl == nil {
 		return false
 	}
-	if hl.checkPattern(host) {
+	if hl.checkPattern(hostname) {
 		return true
 	}
-	if ip := net.ParseIP(host); ip != nil {
+	if ip := net.ParseIP(hostname); ip != nil {
 		return hl.checkIP(ip)
 	}
 	return false

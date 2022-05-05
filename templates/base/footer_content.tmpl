@@ -10,7 +10,7 @@
 					{{AppVer}}
 				{{end}}
 			{{end}}
-			{{if ShowFooterTemplateLoadTime}}
+			{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
 				{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
 				{{.i18n.Tr "template"}}
 				{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>

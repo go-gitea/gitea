@@ -5,18 +5,14 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addTagComment(x *xorm.Engine) error {
-	type Comment struct {
-		Tag string
+func addAllowMaintainerEdit(x *xorm.Engine) error {
+	// PullRequest represents relation between pull request and repositories.
+	type PullRequest struct {
+		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(PullRequest))
 }

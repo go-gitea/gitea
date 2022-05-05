@@ -38,6 +38,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 		Resp:   context.NewResponse(resp),
 		Locale: &mockLocale{},
 	}
+	defer ctx.Close()
 
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
@@ -60,7 +61,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.Doer)
+	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
 	assert.NoError(t, err)
 }
 

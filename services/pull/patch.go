@@ -27,7 +27,7 @@ import (
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
 func DownloadDiffOrPatch(ctx context.Context, pr *models.PullRequest, w io.Writer, patch, binary bool) error {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}
@@ -444,14 +444,16 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 			},
 		})
 
-	// 9. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
-	if err != nil {
+	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
+	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.
+	if len(pr.ConflictedFiles) > 0 {
 		if conflict {
 			pr.Status = models.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 
 			return true, nil
 		}
+	} else if err != nil {
 		return false, fmt.Errorf("git apply --check: %v", err)
 	}
 	return false, nil

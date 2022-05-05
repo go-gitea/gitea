@@ -147,7 +147,6 @@ func WebhooksNew(ctx *context.Context) {
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -736,8 +735,6 @@ func PackagistHooksNewPost(ctx *context.Context) {
 }
 
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
-	ctx.Data["RequireHighlightJS"] = true
-
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getOrgRepoCtx", err)

@@ -1904,7 +1904,9 @@
             "enum": [
               "composer",
               "conan",
+              "container",
               "generic",
+              "helm",
               "maven",
               "npm",
               "nuget",
@@ -3127,6 +3129,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/collaborators/{collaborator}/permission": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get repository permissions for a user",
+        "operationId": "repoGetRepoPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "username of the collaborator",
+            "name": "collaborator",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/RepoCollaboratorPermission"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/commits": {
       "get": {
         "produces": [
@@ -3666,6 +3714,12 @@
             "name": "filepath",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4557,6 +4611,12 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -8614,7 +8674,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "description": "Returns raw file content."
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -11054,6 +11114,48 @@
       }
     },
     "/teams/{id}/repos/{org}/{repo}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "List a particular repo of team",
+        "operationId": "orgListTeamRepo",
+        "parameters": [
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "organization that owns the repo to list",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo to list",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Repository"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "put": {
         "produces": [
           "application/json"
@@ -14411,6 +14513,10 @@
           "type": "string",
           "x-go-name": "Password"
         },
+        "restricted": {
+          "type": "boolean",
+          "x-go-name": "Restricted"
+        },
         "send_notify": {
           "type": "boolean",
           "x-go-name": "SendNotify"
@@ -14924,6 +15030,10 @@
       "description": "EditPullRequestOption options when modify pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "type": "string",
           "x-go-name": "Assignee"
@@ -15081,6 +15191,11 @@
           "description": "a short description of the repository.",
           "type": "string",
           "x-go-name": "Description"
+        },
+        "enable_prune": {
+          "description": "enable prune - remove obsolete remote-tracking references",
+          "type": "boolean",
+          "x-go-name": "EnablePrune"
         },
         "external_tracker": {
           "$ref": "#/definitions/ExternalTracker"
@@ -17034,6 +17149,10 @@
       "description": "PullRequest represents a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "$ref": "#/definitions/User"
         },
@@ -17428,6 +17547,24 @@
         "zipball_url": {
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepoCollaboratorPermission": {
+      "description": "RepoCollaboratorPermission to get repository permission for a collaborator",
+      "type": "object",
+      "properties": {
+        "permission": {
+          "type": "string",
+          "x-go-name": "Permission"
+        },
+        "role_name": {
+          "type": "string",
+          "x-go-name": "RoleName"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19109,6 +19246,12 @@
         "items": {
           "$ref": "#/definitions/Release"
         }
+      }
+    },
+    "RepoCollaboratorPermission": {
+      "description": "RepoCollaboratorPermission",
+      "schema": {
+        "$ref": "#/definitions/RepoCollaboratorPermission"
       }
     },
     "Repository": {

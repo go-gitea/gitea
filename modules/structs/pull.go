@@ -31,9 +31,10 @@ type PullRequest struct {
 	Mergeable bool `json:"mergeable"`
 	HasMerged bool `json:"merged"`
 	// swagger:strfmt date-time
-	Merged         *time.Time `json:"merged_at"`
-	MergedCommitID *string    `json:"merge_commit_sha"`
-	MergedBy       *User      `json:"merged_by"`
+	Merged              *time.Time `json:"merged_at"`
+	MergedCommitID      *string    `json:"merge_commit_sha"`
+	MergedBy            *User      `json:"merged_by"`
+	AllowMaintainerEdit bool       `json:"allow_maintainer_edit"`
 
 	Base      *PRBranchInfo `json:"base"`
 	Head      *PRBranchInfo `json:"head"`
@@ -90,6 +91,7 @@ type EditPullRequestOption struct {
 	Labels    []int64  `json:"labels"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline       *time.Time `json:"due_date"`
-	RemoveDeadline *bool      `json:"unset_due_date"`
+	Deadline            *time.Time `json:"due_date"`
+	RemoveDeadline      *bool      `json:"unset_due_date"`
+	AllowMaintainerEdit *bool      `json:"allow_maintainer_edit"`
 }
