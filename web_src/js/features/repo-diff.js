@@ -18,7 +18,7 @@ export function initRepoDiffReviewButton() {
         commentCounter.style.display = '';
         // Increase counter by one, in case it's the first review, parseInt will return `NaN`
         // and default back to '1'.
-        commentCounter.textContent = parseInt(commentCounter.textContent) + 1 || '1';
+        commentCounter.textContent = String(parseInt(commentCounter.textContent) + 1 || 1);
 
         // Make the review-box to do a little pulse.
         document.querySelector('#review-box').classList.add('pulse');
