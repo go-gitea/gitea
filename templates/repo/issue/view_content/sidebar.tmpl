@@ -571,8 +571,9 @@
 		<div class="ui divider"></div>
 		<div class="ui equal width compact grid">
 			<div class="row ac">
-				<span class="text column truncate">{{.i18n.Tr "repo.issues.reference_link" .Issue.ReferenceLink}}</span>
-				<button class="ui two wide button column p-3" data-clipboard-text="{{.Issue.ReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+				{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+				<span class="text column truncate">{{.i18n.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
+				<button class="ui two wide button column p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
 			</div>
 		</div>
 
