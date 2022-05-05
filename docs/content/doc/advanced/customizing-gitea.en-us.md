@@ -132,15 +132,18 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 `$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
-{{if .RequireHighlightJS}}
-<script src="https://your-server.com/deflate.js"></script>
-<script src="https://your-server.com/encode.js"></script>
-<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
-  <!-- Replace call with address to your plantuml server-->
-  parsePlantumlCodeBlocks("http://www.plantuml.com/plantuml");
+  $(async () => {
+    if (!$('.language-plantuml').length) return;
+    await Promise.all([
+      $.getScript('https://your-server.com/deflate.js'), 
+      $.getScript('https://your-server.com/encode.js'),
+      $.getScript('https://your-server.com/plantuml_codeblock_parse.js'),
+    ]);
+    // Replace call with address to your plantuml server
+    parsePlantumlCodeBlocks("https://www.plantuml.com/plantuml");
+  });
 </script>
-{{end}}
 ```
 
 You can then add blocks like the following to your markdown:
