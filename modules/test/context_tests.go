@@ -39,6 +39,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 		Resp:   context.NewResponse(resp),
 		Locale: &mockLocale{},
 	}
+	defer ctx.Close()
 
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)

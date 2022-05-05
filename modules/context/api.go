@@ -288,6 +288,7 @@ func APIContexter() func(http.Handler) http.Handler {
 				},
 				Org: &APIOrganization{},
 			}
+			defer ctx.Close()
 
 			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
 			ctx.csrf = Csrfer(csrfOpts, ctx.Context)

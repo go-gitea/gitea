@@ -84,6 +84,8 @@ func Init(next http.Handler) http.Handler {
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
+		defer ctx.Close()
+
 		for _, lang := range translation.AllLangs() {
 			if lang.Lang == locale.Language() {
 				ctx.Data["LangName"] = lang.Name
