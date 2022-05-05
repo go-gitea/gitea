@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/pulls"
+	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -273,18 +273,18 @@ func UpdateViewedFiles(ctx *context.Context) {
 		data.HeadCommitSHA = pull.HeadCommitID
 	}
 
-	updatedFiles := make(map[string]pulls.ViewedState, len(data.Files))
+	updatedFiles := make(map[string]pull_model.ViewedState, len(data.Files))
 	for file, viewed := range data.Files {
 
 		// Only unviewed and viewed are possible, has-changed can not be set from the outside
-		state := pulls.Unviewed
+		state := pull_model.Unviewed
 		if viewed {
-			state = pulls.Viewed
+			state = pull_model.Viewed
 		}
 		updatedFiles[file] = state
 	}
 
-	if err := pulls.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
+	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }

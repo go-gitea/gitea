@@ -22,7 +22,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/pulls"
+	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
@@ -1521,7 +1521,7 @@ func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *models.
 	if err != nil {
 		return nil, err
 	}
-	review, err := pulls.GetNewestReviewState(ctx, userID, pull.ID)
+	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
 	if err != nil || review == nil || review.UpdatedFiles == nil {
 		return diff, err
 	}
@@ -1536,13 +1536,13 @@ func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *models.
 		return diff, err
 	}
 
-	filesChangedSinceLastDiff := make(map[string]pulls.ViewedState)
+	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)
 outer:
 	for _, diffFile := range diff.Files {
 		fileViewedState := review.UpdatedFiles[diffFile.GetDiffFileName()]
 
 		// Check whether it was previously detected that the file has changed since the last review
-		if fileViewedState == pulls.HasChanged {
+		if fileViewedState == pull_model.HasChanged {
 			diffFile.HasChangedSinceLastReview = true
 			continue
 		}
@@ -1553,12 +1553,12 @@ outer:
 		for _, changedFile := range changedFiles {
 			diffFile.HasChangedSinceLastReview = filename == changedFile
 			if diffFile.HasChangedSinceLastReview {
-				filesChangedSinceLastDiff[filename] = pulls.HasChanged
+				filesChangedSinceLastDiff[filename] = pull_model.HasChanged
 				continue outer // We don't want to check if the file is viewed here as that would fold the file, which is in this case unwanted
 			}
 		}
 		// Check whether the file has already been viewed
-		if fileViewedState == pulls.Viewed {
+		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
 			diff.NumViewedFiles++
 		}
@@ -1568,7 +1568,7 @@ outer:
 	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
 	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		err := pulls.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
