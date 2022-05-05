@@ -181,13 +181,3 @@ $(document).ready(() => {
 
   checkAppUrl();
 });
-
-// loading-button this logic used to prevent push one form more than one time
-$(document).on('click', '.button.loading-button', function () {
-  const $btn = $(this);
-  $btn.addClass('loading');
-});
-
-$(document).on('click', '.button.loading-button.loading', (e) => {
-  e.preventDefault();
-});

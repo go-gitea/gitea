@@ -142,6 +142,15 @@ export function initGlobalCommon() {
       window.location = href;
     }
   });
+
+  // loading-button this logic used to prevent push one form more than one time
+  $(document).on('click', '.button.loading-button', function () {
+    const $btn = $(this);
+
+    if ($btn.hasClass('loading')) return false;
+
+    $btn.addClass('loading disabled');
+  });
 }
 
 export function initGlobalDropzone() {
