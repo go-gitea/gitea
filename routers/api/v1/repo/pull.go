@@ -1198,10 +1198,9 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 
 	if err := pull_model.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull.ID, true); err != nil {
 		ctx.InternalServerError(err)
-		return
+	} else {
+		ctx.Status(http.StatusNoContent)
 	}
-	ctx.Status(http.StatusNoContent)
-	return
 }
 
 // GetPullRequestCommits gets all commits associated with a given PR
