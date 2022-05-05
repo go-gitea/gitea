@@ -475,9 +475,10 @@ func preReceiveDeletePRHeadRef(ctx *preReceiveContext, refFullName string) {
 		return
 	}
 
-	if pr.IssueID == ctx.opts.UserID {
+	if pr.Issue.PosterID == ctx.opts.UserID {
 		return
 	}
+
 	if !ctx.userPerm.IsAdmin() {
 		ctx.JSON(http.StatusForbidden, private.Response{
 			Err: "Error: User permission denied.",
