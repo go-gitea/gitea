@@ -115,7 +115,8 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 			prIndex, err := strconv.ParseInt(parts[0], 10, 64)
 			if err != nil {
-				return nil, err
+				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%d]", ref, repo.ID)
+				continue
 			}
 
 			p, err := models.GetPullRequestByIndexCtx(ctx, repo.ID, prIndex)
