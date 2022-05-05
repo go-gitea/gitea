@@ -773,6 +773,9 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 	ctx.Data["CurrentReview"] = currentReview
 	ctx.Data["PendingCodeComments"] = numPendingCodeComments
+	ctx.PageData["prReview"] = map[string]interface{}{
+		"pendingCodeComments": numPendingCodeComments,
+	}
 
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)

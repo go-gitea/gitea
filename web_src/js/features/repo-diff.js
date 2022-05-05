@@ -3,7 +3,8 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 
-const {csrfToken} = window.config;
+const {csrfToken, pageData} = window.config;
+const prReview = pageData.prReview || {};
 
 export function initRepoDiffReviewButton() {
   const reviewBox = document.querySelector('#review-box');
@@ -17,9 +18,10 @@ export function initRepoDiffReviewButton() {
         const commentCounter = document.querySelector('#review-box .review-comments-counter');
         // Remove the display: none.
         commentCounter.style.display = '';
-        // Increase counter by one, in case it's the first review, parseInt will return `NaN`
-        // and default back to '1'.
-        commentCounter.textContent = String(parseInt(commentCounter.textContent) + 1 || 1);
+        // Increase counter by one, in case it's the first review, `pendingCodeComments` will
+        // return undefined so it will default to '1'.
+        prReview.pendingCodeComments = prReview.pendingCodeComments + 1 || 1;
+        commentCounter.textContent = String(prReview.pendingCodeComments);
 
         // Make the review-box to do a little pulse.
         reviewBox.classList.remove('pulse');
