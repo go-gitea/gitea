@@ -45,7 +45,7 @@ func handle(data ...queue.Data) []queue.Data {
 	return nil
 }
 
-func add2Queue(pr *models.PullRequest, sha string) {
+func addToQueue(pr *models.PullRequest, sha string) {
 	if err := prAutoMergeQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
 		return nil
@@ -79,7 +79,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 	}
 
 	for _, pr := range pulls {
-		add2Queue(pr, sha)
+		addToQueue(pr, sha)
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 			prIndex, err := strconv.ParseInt(parts[0], 10, 64)
 			if err != nil {
-				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%d]", ref, repo.ID)
+				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%-v]", ref, repo)
 				continue
 			}
 
