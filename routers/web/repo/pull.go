@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -36,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -929,24 +927,6 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
-				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
-				return
-			}
-			ctx.ServerError("ScheduleAutoMerge", err)
-			return
-		} else if scheduled {
-			// nothing more to do ...
-			ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
-			return
-		}
-	}
-
 	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
@@ -1049,26 +1029,6 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	ctx.Redirect(issue.Link())
-}
-
-// CancelAutoMergePullRequest cancels a scheduled pr
-func CancelAutoMergePullRequest(ctx *context.Context) {
-	issue := checkPullInfo(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if err := pull_model.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest.ID, true); err != nil {
-		if models.IsErrNotExist(err) {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
-			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
-			return
-		}
-		ctx.ServerError("RemoveScheduledAutoMerge", err)
-		return
-	}
-	ctx.Flash.Success(ctx.Tr("repo.pulls.pull_request_schedule_canceled"))
-	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 }
 
 func stopTimerIfAvailable(user *user_model.User, issue *models.Issue) error {
