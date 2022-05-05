@@ -6,6 +6,7 @@ import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
+  const reviewBox = document.querySelector('#review-box');
   $(document).on('click', 'button[name="is_review"]', (e) => {
     $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
 
@@ -21,9 +22,13 @@ export function initRepoDiffReviewButton() {
         commentCounter.textContent = String(parseInt(commentCounter.textContent) + 1 || 1);
 
         // Make the review-box to do a little pulse.
-        document.querySelector('#review-box').classList.add('pulse');
-        // Remove the pulse class once it's done.
-        setTimeout(() => document.querySelector('#review-box').classList.remove('pulse'), 2500);
+        reviewBox.classList.remove('pulse');
+        // Force the browser to reflow the DOM. This is to ensure that the browser.
+        // Actually removes the 'pulse' class from the DOM. Otherwise the browser
+        // is smart enough to de-duplicate these two requests.
+        reviewBox.offsetWidth;
+        // Add the class again.
+        reviewBox.classList.add('pulse');
       });
     });
   });
