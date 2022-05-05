@@ -735,8 +735,6 @@ func PackagistHooksNewPost(ctx *context.Context) {
 }
 
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
-	ctx.Data["RequireHighlightJS"] = true
-
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getOrgRepoCtx", err)
