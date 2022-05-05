@@ -14,6 +14,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -57,7 +58,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
 	issue = unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
-	assert.NoError(t, issue.LoadRepo())
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
 	return
 }
@@ -180,7 +181,7 @@ func TestTemplateSelection(t *testing.T) {
 
 func TestTemplateServices(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
-	assert.NoError(t, issue.LoadRepo())
+	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 
 	expect := func(t *testing.T, issue *models.Issue, comment *models.Comment, doer *user_model.User,
 		actionType models.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,

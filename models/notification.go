@@ -255,7 +255,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 	}
 
-	err = issue.loadRepo(ctx)
+	err = issue.LoadRepo(ctx)
 	if err != nil {
 		return err
 	}

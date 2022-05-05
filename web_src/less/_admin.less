@@ -12,6 +12,7 @@
   .table.segment {
     padding: 0;
     font-size: 13px;
+    overflow-x: scroll;
 
     &:not(.striped) {
       thead {
@@ -62,6 +63,9 @@
 
     dd {
       margin-left: 275px;
+      @media @mediaSm {
+        margin-left: 5%;
+      }
     }
 
     dt {
@@ -72,6 +76,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      @media @mediaSm {
+        width: auto;
+        margin-right: .5em;
+      }
     }
   }
 

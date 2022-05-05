@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -12,13 +12,32 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
+
+// ErrMilestoneNotExist represents a "MilestoneNotExist" kind of error.
+type ErrMilestoneNotExist struct {
+	ID     int64
+	RepoID int64
+	Name   string
+}
+
+// IsErrMilestoneNotExist checks if an error is a ErrMilestoneNotExist.
+func IsErrMilestoneNotExist(err error) bool {
+	_, ok := err.(ErrMilestoneNotExist)
+	return ok
+}
+
+func (err ErrMilestoneNotExist) Error() string {
+	if len(err.Name) > 0 {
+		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
+	}
+	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
 
 // Milestone represents a milestone of repository.
 type Milestone struct {
@@ -105,20 +124,16 @@ func NewMilestone(m *Milestone) (err error) {
 	return committer.Commit()
 }
 
-func getMilestoneByRepoID(e db.Engine, repoID, id int64) (*Milestone, error) {
+// GetMilestoneByRepoID returns the milestone in a repository.
+func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, error) {
 	m := new(Milestone)
-	has, err := e.ID(id).Where("repo_id=?", repoID).Get(m)
+	has, err := db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrMilestoneNotExist{ID: id, RepoID: repoID}
 	}
 	return m, nil
-}
-
-// GetMilestoneByRepoID returns the milestone in a repository.
-func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
-	return getMilestoneByRepoID(db.GetEngine(db.DefaultContext), repoID, id)
 }
 
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
@@ -166,11 +181,11 @@ func updateMilestone(ctx context.Context, m *Milestone) error {
 	if err != nil {
 		return err
 	}
-	return updateMilestoneCounters(ctx, m.ID)
+	return UpdateMilestoneCounters(ctx, m.ID)
 }
 
-// updateMilestoneCounters calculates NumIssues, NumClosesIssues and Completeness
-func updateMilestoneCounters(ctx context.Context, id int64) error {
+// UpdateMilestoneCounters calculates NumIssues, NumClosesIssues and Completeness
+func UpdateMilestoneCounters(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
 	_, err := e.ID(id).
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
@@ -250,65 +265,9 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 	return updateRepoMilestoneNum(ctx, m.RepoID)
 }
 
-func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
-	if err := updateIssueCols(ctx, issue, "milestone_id"); err != nil {
-		return err
-	}
-
-	if oldMilestoneID > 0 {
-		if err := updateMilestoneCounters(ctx, oldMilestoneID); err != nil {
-			return err
-		}
-	}
-
-	if issue.MilestoneID > 0 {
-		if err := updateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
-			return err
-		}
-	}
-
-	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
-		if err := issue.loadRepo(ctx); err != nil {
-			return err
-		}
-
-		opts := &CreateCommentOptions{
-			Type:           CommentTypeMilestone,
-			Doer:           doer,
-			Repo:           issue.Repo,
-			Issue:          issue,
-			OldMilestoneID: oldMilestoneID,
-			MilestoneID:    issue.MilestoneID,
-		}
-		if _, err := createComment(ctx, opts); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = changeMilestoneAssign(ctx, doer, issue, oldMilestoneID); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
-	}
-	return nil
-}
-
 // DeleteMilestoneByRepoID deletes a milestone from a repository.
 func DeleteMilestoneByRepoID(repoID, id int64) error {
-	m, err := GetMilestoneByRepoID(repoID, id)
+	m, err := GetMilestoneByRepoID(db.DefaultContext, repoID, id)
 	if err != nil {
 		if IsErrMilestoneNotExist(err) {
 			return nil

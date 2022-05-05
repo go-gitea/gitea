@@ -61,6 +61,7 @@ type Version struct {
 // update minDBVersion accordingly
 var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
+
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
@@ -380,6 +381,8 @@ var migrations = []Migration{
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
 	// v212 -> v213
 	NewMigration("Add package tables", addPackageTables),
+	// v213 -> v214
+	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -460,7 +463,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Downgrading Gitea's database version not supported
 	if int(v-minDBVersion) > len(migrations) {
-		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gita, you can not use the newer database for this old Gitea release (%d).", v, minDBVersion+len(migrations))
+		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gitea, you can not use the newer database for this old Gitea release (%d).", v, minDBVersion+len(migrations))
 		msg += "\nGitea will exit to keep your database safe and unchanged. Please use the correct Gitea release, do not change the migration version manually (incorrect manual operation may lose data)."
 		if !setting.IsProd {
 			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))

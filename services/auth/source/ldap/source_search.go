@@ -433,14 +433,6 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		isRestricted = checkRestricted(l, ls, userDN)
 	}
 
-	if !directBind && ls.AttributesInBind {
-		// binds user (checking password) after looking-up attributes in BindDN context
-		err = bindUser(l, userDN, passwd)
-		if err != nil {
-			return nil
-		}
-	}
-
 	if isAtributeAvatarSet {
 		Avatar = sr.Entries[0].GetRawAttributeValue(ls.AttributeAvatar)
 	}
@@ -449,6 +441,14 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	teamsToRemove := make(map[string][]string)
 	if ls.GroupsEnabled && (ls.GroupTeamMap != "" || ls.GroupTeamMapRemoval) {
 		teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, uid)
+	}
+
+	if !directBind && ls.AttributesInBind {
+		// binds user (checking password) after looking-up attributes in BindDN context
+		err = bindUser(l, userDN, passwd)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return &SearchResult{

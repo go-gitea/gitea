@@ -59,7 +59,7 @@ type Context struct {
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    CSRF
+	csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
@@ -73,6 +73,16 @@ type Context struct {
 	Repo        *Repository
 	Org         *Organization
 	Package     *Package
+}
+
+// Close frees all resources hold by Context
+func (ctx *Context) Close() error {
+	var err error
+	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
+		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+	}
+	// TODO: close opened repo, and more
+	return err
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
@@ -666,7 +676,9 @@ func Auth(authMethod auth.Method) func(*Context) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
-
+	if !setting.IsProd {
+		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(resp, req)
@@ -691,13 +703,15 @@ func Contexter() func(next http.Handler) http.Handler {
 					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			defer ctx.Close()
+
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = Csrfer(csrfOpts, &ctx)
+			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
@@ -755,7 +769,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
