@@ -34,6 +34,9 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 	}
 
 	for _, act := range actions {
+		if act.Repo == nil {
+			continue
+		}
 		repoOwner, ok := userCache[act.Repo.OwnerID]
 		if !ok {
 			repoOwner, err = user_model.GetUserByID(act.Repo.OwnerID)

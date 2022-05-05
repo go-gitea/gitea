@@ -337,7 +337,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("`action`.created_unix").Where(cond).Join("INNER", "repository", "`repository`.id = `action`.repo_id").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -401,7 +401,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
 	}
 	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"is_private": false})
+		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
@@ -414,8 +414,8 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
 		}
 	}
 
