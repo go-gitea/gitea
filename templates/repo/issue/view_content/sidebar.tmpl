@@ -568,6 +568,15 @@
 			{{end}}
 		{{end}}
 
+		<div class="ui divider"></div>
+		<div class="ui equal width compact grid">
+			<div class="row ac">
+				{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+				<span class="text column truncate">{{.i18n.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
+				<button class="ui two wide button column p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+			</div>
+		</div>
+
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">
@@ -666,6 +675,22 @@
 					</div>
 				</form>
 			</div>
+		{{end}}
+
+		{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed)}}
+			{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
+				<div class="ui divider"></div>
+				<div class="inline field">
+					<div class="ui checkbox" id="allow-edits-from-maintainers"
+							data-url="{{.Issue.Link}}"
+							data-prompt-tip="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
+							data-prompt-error="{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
+						>
+						<label><strong>{{.i18n.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
+						<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+					</div>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>
