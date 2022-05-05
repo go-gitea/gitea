@@ -10,15 +10,17 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -37,7 +39,7 @@ var messageTypeText = map[int]string{
 }
 
 // GetMatrixHook returns Matrix metadata
-func GetMatrixHook(w *models.Webhook) *MatrixMeta {
+func GetMatrixHook(w *webhook_model.Webhook) *MatrixMeta {
 	s := &MatrixMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetMatrixHook(%d): %v", w.ID, err)
@@ -51,9 +53,7 @@ type MatrixPayloadUnsafe struct {
 	AccessToken string `json:"access_token"`
 }
 
-var (
-	_ PayloadConvertor = &MatrixPayloadUnsafe{}
-)
+var _ PayloadConvertor = &MatrixPayloadUnsafe{}
 
 // safePayload "converts" a unsafe payload to a safe payload
 func (m *MatrixPayloadUnsafe) safePayload() *MatrixPayloadSafe {
@@ -85,7 +85,7 @@ func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
 }
 
 // MatrixLinkFormatter creates a link compatible with Matrix
-func MatrixLinkFormatter(url string, text string) string {
+func MatrixLinkFormatter(url, text string) string {
 	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(text))
 }
 
@@ -94,11 +94,11 @@ func MatrixLinkToRef(repoURL, ref string) string {
 	refName := git.RefEndName(ref)
 	switch {
 	case strings.HasPrefix(ref, git.BranchPrefix):
-		return MatrixLinkFormatter(repoURL+"/src/branch/"+refName, refName)
+		return MatrixLinkFormatter(repoURL+"/src/branch/"+util.PathEscapeSegments(refName), refName)
 	case strings.HasPrefix(ref, git.TagPrefix):
-		return MatrixLinkFormatter(repoURL+"/src/tag/"+refName, refName)
+		return MatrixLinkFormatter(repoURL+"/src/tag/"+util.PathEscapeSegments(refName), refName)
 	default:
-		return MatrixLinkFormatter(repoURL+"/src/commit/"+refName, refName)
+		return MatrixLinkFormatter(repoURL+"/src/commit/"+util.PathEscapeSegments(refName), refName)
 	}
 }
 
@@ -185,8 +185,8 @@ func (m *MatrixPayloadUnsafe) PullRequest(p *api.PullRequestPayload) (api.Payloa
 }
 
 // Review implements PayloadConvertor Review method
-func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
-	senderLink := MatrixLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
+	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
@@ -222,7 +222,7 @@ func (m *MatrixPayloadUnsafe) Repository(p *api.RepositoryPayload) (api.Payloade
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayloadUnsafe
-func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetMatrixPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	s := new(MatrixPayloadUnsafe)
 
 	matrix := &MatrixMeta{}
@@ -257,7 +257,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixHookRequest creates a new request which contains an Authorization header.
 // The access_token is removed from t.PayloadContent
-func getMatrixHookRequest(w *models.Webhook, t *models.HookTask) (*http.Request, error) {
+func getMatrixHookRequest(w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, error) {
 	payloadunsafe := MatrixPayloadUnsafe{}
 	if err := json.Unmarshal([]byte(t.PayloadContent), &payloadunsafe); err != nil {
 		log.Error("Matrix Hook delivery failed: %v", err)
@@ -281,7 +281,7 @@ func getMatrixHookRequest(w *models.Webhook, t *models.HookTask) (*http.Request,
 		return nil, fmt.Errorf("getMatrixHookRequest: unable to hash payload: %+v", err)
 	}
 
-	url := fmt.Sprintf("%s/%s", w.URL, txnID)
+	url := fmt.Sprintf("%s/%s", w.URL, url.PathEscape(txnID))
 
 	req, err := http.NewRequest(w.HTTPMethod, url, strings.NewReader(string(payload)))
 	if err != nil {

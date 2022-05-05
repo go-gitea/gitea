@@ -8,36 +8,45 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/org"
 )
 
-func listUserOrgs(ctx *context.APIContext, u *models.User) {
-
+func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
-	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
+	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == u.ID)
 
-	orgs, err := models.GetOrgsByUserID(u.ID, showPrivate)
+	opts := organization.FindOrgOptions{
+		ListOptions:    listOptions,
+		UserID:         u.ID,
+		IncludePrivate: showPrivate,
+	}
+	orgs, err := organization.FindOrgs(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
+		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
 		return
 	}
-
-	maxResults := len(orgs)
-	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
+	maxResults, err := organization.CountOrgs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
+		return
+	}
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
 		apiOrgs[i] = convert.ToOrganization(orgs[i])
 	}
 
-	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(maxResults))
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
@@ -62,7 +71,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	listUserOrgs(ctx, ctx.User)
+	listUserOrgs(ctx, ctx.Doer)
 }
 
 // ListUserOrgs list user's orgs
@@ -90,11 +99,74 @@ func ListUserOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
+	listUserOrgs(ctx, ctx.ContextUser)
+}
+
+// GetUserOrgsPermissions get user permissions in organization
+func GetUserOrgsPermissions(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/orgs/{org}/permissions organization orgGetUserPermissions
+	// ---
+	// summary: Get user permissions in organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationPermissions"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	var o *user_model.User
+	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
 		return
 	}
-	listUserOrgs(ctx, u)
+
+	op := api.OrganizationPermissions{}
+
+	if !organization.HasOrgOrUserVisible(ctx, o, ctx.ContextUser) {
+		ctx.NotFound("HasOrgOrUserVisible", nil)
+		return
+	}
+
+	org := organization.OrgFromUser(o)
+	authorizeLevel, err := org.GetOrgUserMaxAuthorizeLevel(ctx.ContextUser.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
+		return
+	}
+
+	if authorizeLevel > perm.AccessModeNone {
+		op.CanRead = true
+	}
+	if authorizeLevel > perm.AccessModeRead {
+		op.CanWrite = true
+	}
+	if authorizeLevel > perm.AccessModeWrite {
+		op.IsAdmin = true
+	}
+	if authorizeLevel > perm.AccessModeAdmin {
+		op.IsOwner = true
+	}
+
+	op.CanCreateRepository, err = org.CanCreateOrgRepo(ctx.ContextUser.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, op)
 }
 
 // GetAll return list of all public organizations
@@ -120,18 +192,18 @@ func GetAll(ctx *context.APIContext) {
 	vMode := []api.VisibleType{api.VisibleTypePublic}
 	if ctx.IsSigned {
 		vMode = append(vMode, api.VisibleTypeLimited)
-		if ctx.User.IsAdmin {
+		if ctx.Doer.IsAdmin {
 			vMode = append(vMode, api.VisibleTypePrivate)
 		}
 	}
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
-		Actor:       ctx.User,
+	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
 		ListOptions: listOptions,
-		Type:        models.UserTypeOrganization,
-		OrderBy:     models.SearchOrderByAlphabetically,
+		Type:        user_model.UserTypeOrganization,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	})
 	if err != nil {
@@ -140,7 +212,7 @@ func GetAll(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(publicOrgs))
 	for i := range publicOrgs {
-		orgs[i] = convert.ToOrganization(publicOrgs[i])
+		orgs[i] = convert.ToOrganization(organization.OrgFromUser(publicOrgs[i]))
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -170,7 +242,7 @@ func Create(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
 	}
@@ -180,22 +252,22 @@ func Create(ctx *context.APIContext) {
 		visibility = api.VisibilityModes[form.Visibility]
 	}
 
-	org := &models.User{
+	org := &organization.Organization{
 		Name:                      form.UserName,
 		FullName:                  form.FullName,
 		Description:               form.Description,
 		Website:                   form.Website,
 		Location:                  form.Location,
 		IsActive:                  true,
-		Type:                      models.UserTypeOrganization,
+		Type:                      user_model.UserTypeOrganization,
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
-	if err := models.CreateOrganization(org, ctx.User); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
@@ -223,7 +295,7 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Organization"
 
-	if !models.HasOrgOrUserVisible(ctx.Org.Organization, ctx.User) {
+	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -265,7 +337,7 @@ func Edit(ctx *context.APIContext) {
 	if form.RepoAdminChangeTeamAccess != nil {
 		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
 	}
-	if err := models.UpdateUserCols(org,
+	if err := user_model.UpdateUserCols(ctx, org.AsUser(),
 		"full_name", "description", "website", "location",
 		"visibility", "repo_admin_change_team_access",
 	); err != nil {
@@ -276,7 +348,7 @@ func Edit(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToOrganization(org))
 }
 
-//Delete an organization
+// Delete an organization
 func Delete(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org} organization orgDelete
 	// ---
@@ -293,7 +365,7 @@ func Delete(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}

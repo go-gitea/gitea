@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{.Lang}}" class="theme-{{.SignedUser.Theme}}">
-<head data-suburl="{{AppSubUrl}}">
+<html lang="{{.i18n.Lang}}" class="theme-{{.SignedUser.Theme}}">
+<head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	<link rel="manifest" href="data:{{.ManifestData}}"/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="default-theme" content="{{DefaultTheme}}" />
@@ -11,73 +11,28 @@
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
-	<meta name="_csrf" content="{{.CsrfToken}}" />
-	{{if .IsSigned}}
-		<meta name="_uid" content="{{.SignedUser.ID}}" />
-	{{end}}
-	{{if .ContextUser}}
-		<meta name="_context_uid" content="{{.ContextUser.ID}}" />
-	{{end}}
-	{{if .SearchLimit}}
-		<meta name="_search_limit" content="{{.SearchLimit}}" />
-	{{end}}
 {{if .GoGetImport}}
-	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
+	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
-	<script>
-		window.config = {
-			AppVer: '{{AppVer}}',
-			AppSubUrl: '{{AppSubUrl}}',
-			AssetUrlPrefix: '{{AssetUrlPrefix}}',
-			CustomEmojis: {{CustomEmojis}},
-			UseServiceWorker: {{UseServiceWorker}},
-			csrf: '{{.CsrfToken}}',
-			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
-			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
-			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
-			NotificationSettings: {
-				MinTimeout: {{NotificationSettings.MinTimeout}},
-				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
-				MaxTimeout: {{NotificationSettings.MaxTimeout}},
-				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
-			},
-			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
-			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
-			{{if .RequireTribute}}
-			tributeValues: Array.from(new Map([
-				{{ range .Participants }}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
-				{{ end }}
-				{{ range .Assignees }}
-				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
-				{{ end }}
-				{{ range .MentionableTeams }}
-					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
-					name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
-				{{ end }}
-			]).values()),
-			{{end}}
-			MermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-		};
-	</script>
+{{if .FeedURL}}
+	<link rel="alternate" type="application/atom+xml" title="" href="{{.FeedURL}}.atom">
+	<link rel="alternate" type="application/rss+xml" title="" href="{{.FeedURL}}.rss">
+{{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
-{{end}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+
+	{{template "base/head_script" .}}
+
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.Owner.Name}}" />
+	<meta property="og:title" content="{{.Owner.DisplayName}}" />
 	<meta property="og:type" content="profile" />
 	<meta property="og:image" content="{{.Owner.AvatarLink}}" />
 	<meta property="og:url" content="{{.Owner.HTMLURL}}" />
@@ -114,10 +69,10 @@
 <meta property="og:site_name" content="{{AppName}}" />
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>
@@ -130,12 +85,14 @@
 		{{template "custom/body_inner_pre" .}}
 
 		{{if not .PageIsInstall}}
-			<div class="ui top secondary stackable main menu following bar light">
+			<div class="ui top secondary stackable main menu following bar light no-vertical-tabs">
 				{{template "base/head_navbar" .}}
 			</div><!-- end bar -->
 		{{end}}
-{{/*
+
+{{if false}}
+	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
 	</div>
 </body>
 </html>
-*/}}
+{{end}}

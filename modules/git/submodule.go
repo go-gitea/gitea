@@ -52,9 +52,7 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 		urlPrefixHostname = prefixURL.Host
 	}
 
-	if strings.HasSuffix(urlPrefix, "/") {
-		urlPrefix = urlPrefix[:len(urlPrefix)-1]
-	}
+	urlPrefix = strings.TrimSuffix(urlPrefix, "/")
 
 	// FIXME: Need to consider branch - which will require changes in modules/git/commit.go:GetSubModules
 	// Relative url prefix check (according to git submodule documentation)

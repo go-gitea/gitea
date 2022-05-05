@@ -40,7 +40,7 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil {
+	if err := n.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -87,12 +87,12 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+	notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	if err = notif.LoadAttributes(); err != nil {
+	if err = notif.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -109,7 +109,7 @@ func getThread(ctx *context.APIContext) *models.Notification {
 		}
 		return nil
 	}
-	if n.UserID != ctx.User.ID && !ctx.User.IsAdmin {
+	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "GetNotificationByID", fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}

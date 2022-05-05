@@ -7,21 +7,52 @@ package mirror
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/sync"
 )
 
-// mirrorQueue holds an UniqueQueue object of the mirror
-var mirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
+var mirrorQueue queue.UniqueQueue
+
+// SyncType type of sync request
+type SyncType int
+
+const (
+	// PullMirrorType for pull mirrors
+	PullMirrorType SyncType = iota
+	// PushMirrorType for push mirrors
+	PushMirrorType
+)
+
+// SyncRequest for the mirror queue
+type SyncRequest struct {
+	Type        SyncType
+	ReferenceID int64 // RepoID for pull mirror, MirrorID fro push mirror
+}
+
+// doMirrorSync causes this request to mirror itself
+func doMirrorSync(ctx context.Context, req *SyncRequest) {
+	if req.ReferenceID == 0 {
+		log.Warn("Skipping mirror sync request, no mirror ID was specified")
+		return
+	}
+	switch req.Type {
+	case PushMirrorType:
+		_ = SyncPushMirror(ctx, req.ReferenceID)
+	case PullMirrorType:
+		_ = SyncPullMirror(ctx, req.ReferenceID)
+	default:
+		log.Error("Unknown Request type in queue: %v for MirrorID[%d]", req.Type, req.ReferenceID)
+	}
+}
+
+var errLimit = fmt.Errorf("reached limit")
 
 // Update checks and updates mirror repositories.
-func Update(ctx context.Context) error {
+func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	if !setting.Mirror.Enabled {
 		log.Warn("Mirror feature disabled, but cron job enabled: skip update")
 		return nil
@@ -29,66 +60,92 @@ func Update(ctx context.Context) error {
 	log.Trace("Doing: Update")
 
 	handler := func(idx int, bean interface{}) error {
-		var item string
-		if m, ok := bean.(*models.Mirror); ok {
+		var item SyncRequest
+		var repo *repo_model.Repository
+		if m, ok := bean.(*repo_model.Mirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected mirror found: %d", m.ID)
 				return nil
 			}
-			item = fmt.Sprintf("pull %d", m.RepoID)
-		} else if m, ok := bean.(*models.PushMirror); ok {
+			repo = m.Repo
+			item = SyncRequest{
+				Type:        PullMirrorType,
+				ReferenceID: m.RepoID,
+			}
+		} else if m, ok := bean.(*repo_model.PushMirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
 			}
-			item = fmt.Sprintf("push %d", m.ID)
+			repo = m.Repo
+			item = SyncRequest{
+				Type:        PushMirrorType,
+				ReferenceID: m.ID,
+			}
 		} else {
 			log.Error("Unknown bean: %v", bean)
 			return nil
 		}
 
+		// Check we've not been cancelled
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted")
+			return fmt.Errorf("aborted")
 		default:
-			mirrorQueue.Add(item)
+		}
+
+		// Push to the Queue
+		if err := mirrorQueue.Push(&item); err != nil {
+			if err == queue.ErrAlreadyInQueue {
+				if item.Type == PushMirrorType {
+					log.Trace("PushMirrors for %-v already queued for sync", repo)
+				} else {
+					log.Trace("PullMirrors for %-v already queued for sync", repo)
+				}
+				return nil
+			}
+			return err
+		}
+		return nil
+	}
+
+	pullMirrorsRequested := 0
+	if pullLimit != 0 {
+		if err := repo_model.MirrorsIterate(pullLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pullMirrorsRequested++
 			return nil
+		}); err != nil && err != errLimit {
+			log.Error("MirrorsIterate: %v", err)
+			return err
 		}
 	}
 
-	if err := models.MirrorsIterate(handler); err != nil {
-		log.Error("MirrorsIterate: %v", err)
-		return err
+	pushMirrorsRequested := 0
+	if pushLimit != 0 {
+		if err := repo_model.PushMirrorsIterate(pushLimit, func(idx int, bean interface{}) error {
+			if err := handler(idx, bean); err != nil {
+				return err
+			}
+			pushMirrorsRequested++
+			return nil
+		}); err != nil && err != errLimit {
+			log.Error("PushMirrorsIterate: %v", err)
+			return err
+		}
 	}
-	if err := models.PushMirrorsIterate(handler); err != nil {
-		log.Error("PushMirrorsIterate: %v", err)
-		return err
-	}
-	log.Trace("Finished: Update")
+	log.Trace("Finished: Update: %d pull mirrors and %d push mirrors queued", pullMirrorsRequested, pushMirrorsRequested)
 	return nil
 }
 
-// syncMirrors checks and syncs mirrors.
-// FIXME: graceful: this should be a persistable queue
-func syncMirrors(ctx context.Context) {
-	// Start listening on new sync requests.
-	for {
-		select {
-		case <-ctx.Done():
-			mirrorQueue.Close()
-			return
-		case item := <-mirrorQueue.Queue():
-			id, _ := strconv.ParseInt(item[5:], 10, 64)
-			if strings.HasPrefix(item, "pull") {
-				_ = SyncPullMirror(ctx, id)
-			} else if strings.HasPrefix(item, "push") {
-				_ = SyncPushMirror(ctx, id)
-			} else {
-				log.Error("Unknown item in queue: %v", item)
-			}
-			mirrorQueue.Remove(item)
-		}
+func queueHandle(data ...queue.Data) []queue.Data {
+	for _, datum := range data {
+		req := datum.(*SyncRequest)
+		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
 	}
+	return nil
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
@@ -96,7 +153,9 @@ func InitSyncMirrors() {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	go graceful.GetManager().RunWithShutdownContext(syncMirrors)
+	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle, new(SyncRequest))
+
+	go graceful.GetManager().RunWithShutdownFns(mirrorQueue.Run)
 }
 
 // StartToMirror adds repoID to mirror queue
@@ -104,7 +163,16 @@ func StartToMirror(repoID int64) {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	go mirrorQueue.Add(fmt.Sprintf("pull %d", repoID))
+	go func() {
+		err := mirrorQueue.Push(&SyncRequest{
+			Type:        PullMirrorType,
+			ReferenceID: repoID,
+		})
+		if err != nil {
+			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]: Error: %v", repoID, err)
+			return
+		}
+	}()
 }
 
 // AddPushMirrorToQueue adds the push mirror to the queue
@@ -112,5 +180,13 @@ func AddPushMirrorToQueue(mirrorID int64) {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	go mirrorQueue.Add(fmt.Sprintf("push %d", mirrorID))
+	go func() {
+		err := mirrorQueue.Push(&SyncRequest{
+			Type:        PushMirrorType,
+			ReferenceID: mirrorID,
+		})
+		if err != nil {
+			log.Error("Unable to push sync request to the queue for pull mirror repo[%d]: Error: %v", mirrorID, err)
+		}
+	}()
 }

@@ -23,7 +23,7 @@ type CommitTreeOpts struct {
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
-func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
+func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
 	err := LoadGitVersion()
 	if err != nil {
 		return SHA1{}, err
@@ -40,7 +40,7 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	cmd := NewCommand("commit-tree", tree.ID.String())
+	cmd := NewCommand(repo.Ctx, "commit-tree", tree.ID.String())
 
 	for _, parent := range opts.Parents {
 		cmd.AddArguments("-p", parent)
@@ -60,7 +60,13 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
+	err = cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdin:  messageBytes,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
 
 	if err != nil {
 		return SHA1{}, ConcatenateError(err, stderr.String())

@@ -10,13 +10,15 @@
 				<div class="item">
 					{{avatar .Owner}}
 					<div class="link">
-						<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+						<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 						/
-						<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
+						<a href="{{.Link}}">{{.Name}}</a>
 					</div>
 				</div>
 			{{end}}
 		</div>
 	</div>
+
+	{{ template "base/paginate" . }}
 </div>
 {{template "base/footer" .}}

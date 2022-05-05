@@ -10,7 +10,7 @@
 			</div>
 		</h4>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
+			<table class="ui very basic striped table unstackable">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -29,8 +29,8 @@
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{.Name}}</a></td>
 							<td>{{.TypeName}}</td>
 							<td>{{if .IsActive}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td><span class="poping up" data-content="{{.UpdatedUnix.FormatShort}}" data-variation="tiny">{{.UpdatedUnix.FormatShort}}</span></td>
-							<td><span class="poping up" data-content="{{.CreatedUnix.FormatLong}}" data-variation="tiny">{{.CreatedUnix.FormatShort}}</span></td>
+							<td><span class="tooltip" data-content="{{.UpdatedUnix.FormatShort}}">{{.UpdatedUnix.FormatShort}}</span></td>
+							<td><span class="tooltip" data-content="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a href="{{AppSubUrl}}/admin/auths/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ServeBlob download a git.Blob
@@ -42,8 +43,8 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, err := reader.Read(buf)
-	if err != nil && err != io.EOF {
+	n, err := util.ReadAtMost(reader, buf)
+	if err != nil {
 		return err
 	}
 	if n >= 0 {

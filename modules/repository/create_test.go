@@ -10,38 +10,42 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
-		team := db.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
-		assert.NoError(t, team.GetRepositories(&models.SearchTeamOptions{}), "%s: GetRepositories", team.Name)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID}).(*organization.Team)
+		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, team.HasRepository(rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, models.HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
 
 	// Get an admin user.
-	user, err := models.GetUserByID(1)
+	user, err := user_model.GetUserByID(1)
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
-	org := &models.User{
+	org := &organization.Organization{
 		Name:       "All_repo",
 		IsActive:   true,
-		Type:       models.UserTypeOrganization,
+		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, models.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam()
@@ -51,7 +55,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIds := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepository(user, org, models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
@@ -62,30 +66,30 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
-	teams := []*models.Team{
+	teams := []*organization.Team{
 		ownerTeam,
 		{
 			OrgID:                   org.ID,
 			Name:                    "team one",
-			Authorize:               models.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 2",
-			Authorize:               models.AccessModeRead,
+			AccessMode:              perm.AccessModeRead,
 			IncludesAllRepositories: false,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team three",
-			Authorize:               models.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 4",
-			Authorize:               models.AccessModeWrite,
+			AccessMode:              perm.AccessModeWrite,
 			IncludesAllRepositories: false,
 		},
 	}
@@ -113,8 +117,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	org.Teams = nil // Reset teams to allow their reloading.
-	r, err := CreateRepository(user, org, models.CreateRepoOptions{Name: "repo-last"})
+	r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)
@@ -142,5 +145,5 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 			assert.NoError(t, models.DeleteRepository(user, org.ID, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, models.DeleteOrganization(org), "DeleteOrganization")
+	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
 }

@@ -23,10 +23,8 @@ var hookNames = []string{
 	"post-receive",
 }
 
-var (
-	// ErrNotValidHook error when a git hook is not valid
-	ErrNotValidHook = errors.New("not a valid Git hook")
-)
+// ErrNotValidHook error when a git hook is not valid
+var ErrNotValidHook = errors.New("not a valid Git hook")
 
 // IsValidHookName returns true if given name is a valid Git hook.
 func IsValidHookName(name string) bool {
@@ -142,5 +140,5 @@ func SetUpdateHook(repoPath, content string) (err error) {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(hookPath, []byte(content), 0777)
+	return os.WriteFile(hookPath, []byte(content), 0o777)
 }

@@ -169,4 +169,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UserSettingsOptions api.UserSettingsOptions
+
+	// in:body
+	CreateWikiPageOptions api.CreateWikiPageOptions
 }

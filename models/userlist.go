@@ -5,32 +5,22 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
-// UserList is a list of user.
-// This type provide valuable methods to retrieve information for a group of users efficiently.
-type UserList []*User
-
-func (users UserList) getUserIDs() []int64 {
-	userIDs := make([]int64, len(users))
-	for _, user := range users {
-		userIDs = append(userIDs, user.ID) // Considering that user id are unique in the list
-	}
-	return userIDs
-}
-
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
-func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
+func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	ownerMaps, err := users.loadOrganizationOwners(db.GetEngine(db.DefaultContext), orgID)
+	ownerMaps, err := loadOrganizationOwners(db.DefaultContext, users, orgID)
 	if err == nil {
 		for _, owner := range ownerMaps {
 			results[owner.UID] = true
@@ -39,22 +29,22 @@ func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	return results
 }
 
-func (users UserList) loadOrganizationOwners(e db.Engine, orgID int64) (map[int64]*TeamUser, error) {
+func loadOrganizationOwners(ctx context.Context, users user_model.UserList, orgID int64) (map[int64]*organization.TeamUser, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
-	ownerTeam, err := getOwnerTeam(e, orgID)
+	ownerTeam, err := organization.GetOwnerTeam(ctx, orgID)
 	if err != nil {
-		if IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
 			return nil, nil
 		}
 		return nil, err
 	}
 
-	userIDs := users.getUserIDs()
-	ownerMaps := make(map[int64]*TeamUser)
-	err = e.In("uid", userIDs).
+	userIDs := users.GetUserIDs()
+	ownerMaps := make(map[int64]*organization.TeamUser)
+	err = db.GetEngine(ctx).In("uid", userIDs).
 		And("org_id=?", orgID).
 		And("team_id=?", ownerTeam.ID).
 		Find(&ownerMaps)
@@ -62,36 +52,4 @@ func (users UserList) loadOrganizationOwners(e db.Engine, orgID int64) (map[int6
 		return nil, fmt.Errorf("find team users: %v", err)
 	}
 	return ownerMaps, nil
-}
-
-// GetTwoFaStatus return state of 2FA enrollement
-func (users UserList) GetTwoFaStatus() map[int64]bool {
-	results := make(map[int64]bool, len(users))
-	for _, user := range users {
-		results[user.ID] = false // Set default to false
-	}
-	tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext))
-	if err == nil {
-		for _, token := range tokenMaps {
-			results[token.UID] = true
-		}
-	}
-
-	return results
-}
-
-func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*login.TwoFactor, error) {
-	if len(users) == 0 {
-		return nil, nil
-	}
-
-	userIDs := users.getUserIDs()
-	tokenMaps := make(map[int64]*login.TwoFactor, len(userIDs))
-	err := e.
-		In("uid", userIDs).
-		Find(&tokenMaps)
-	if err != nil {
-		return nil, fmt.Errorf("find two factor: %v", err)
-	}
-	return tokenMaps, nil
 }

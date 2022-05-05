@@ -9,24 +9,72 @@ linters:
     - unused
     - structcheck
     - varcheck
-    - golint
     - dupl
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
     - gocritic
+    - bidichk
+    - ineffassign
+    - revive
+    - gofumpt
+    - depguard
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  timeout: 3m
+  go: 1.18
+  timeout: 10m
+  skip-dirs:
+    - node_modules
+    - public
+    - web_src
 
 linters-settings:
   gocritic:
     disabled-checks:
       - ifElseChain
       - singleCaseSwitch # Every time this occurred in the code, there  was no other way.
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 1
+    warningCode: 1
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: duplicated-imports
+      - name: modifies-value-receiver
+  gofumpt:
+    extra-rules: true
+    lang-version: "1.18"
+  depguard:
+    # TODO: use depguard to replace import checks in gitea-vet
+    list-type: denylist
+    # Check the list against standard lib.
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: "use gitea's modules/json instead of encoding/json"
+      - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
   exclude-rules:
@@ -111,3 +159,9 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/user/openid.go
+      linters:
+        - golint
+    - linters:
+        - staticcheck
+      text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."

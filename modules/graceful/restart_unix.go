@@ -4,7 +4,6 @@
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 //go:build !windows
-// +build !windows
 
 package graceful
 
@@ -55,7 +54,9 @@ func RestartProcess() (int, error) {
 			unixListener.SetUnlinkOnClose(false)
 		}
 		// Remember to close these at the end.
-		defer files[i].Close()
+		defer func(i int) {
+			_ = files[i].Close()
+		}(i)
 	}
 
 	// Use the original binary location. This works with symlinks such that if

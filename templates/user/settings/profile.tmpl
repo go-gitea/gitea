@@ -30,7 +30,7 @@
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">
-						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_email_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_email_private"}}</strong></label>
+						<label class="tooltip" data-content="{{.i18n.Tr "settings.keep_email_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
 					</div>
 				</div>
@@ -45,20 +45,6 @@
 				<div class="field">
 					<label for="location">{{.i18n.Tr "settings.location"}}</label>
 					<input id="location" name="location"  value="{{.SignedUser.Location}}">
-				</div>
-
-				<div class="field">
-					<label for="language">{{.i18n.Tr "settings.language"}}</label>
-					<div class="ui language selection dropdown" id="language">
-						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
-						<div class="menu">
-						{{range .AllLangs}}
-							<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-						{{end}}
-						</div>
-					</div>
 				</div>
 
 				<div class="ui divider"></div>
@@ -83,11 +69,11 @@
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -96,7 +82,7 @@
 
 				<div class="field">
 					<div class="ui checkbox" id="keep-activity-private">
-						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_activity_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_activity_private"}}</strong></label>
+						<label class="tooltip" data-content="{{.i18n.Tr "settings.keep_activity_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
 					</div>
 				</div>

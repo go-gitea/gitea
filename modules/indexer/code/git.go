@@ -5,10 +5,11 @@
 package code
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,8 +28,8 @@ type repoChanges struct {
 	RemovedFilenames []string
 }
 
-func getDefaultBranchSha(repo *models.Repository) (string, error) {
-	stdout, err := git.NewCommand("show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
+func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
+	stdout, _, err := git.NewCommand(ctx, "show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil {
 		return "", err
 	}
@@ -36,16 +37,16 @@ func getDefaultBranchSha(repo *models.Repository) (string, error) {
 }
 
 // getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeCode)
+func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
+	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeCode)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(status.CommitSha) == 0 {
-		return genesisChanges(repo, revision)
+		return genesisChanges(ctx, repo, revision)
 	}
-	return nonGenesisChanges(repo, revision)
+	return nonGenesisChanges(ctx, repo, revision)
 }
 
 func isIndexable(entry *git.TreeEntry) bool {
@@ -72,7 +73,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 	if err != nil {
 		return nil, err
 	}
-	var idxCount = 0
+	idxCount := 0
 	updates := make([]fileUpdate, len(entries))
 	for _, entry := range entries {
 		if isIndexable(entry) {
@@ -89,32 +90,34 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
+func genesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
-	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-l", "-r", revision).
-		RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", "-r", revision).RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
+	if runErr != nil {
+		return nil, runErr
 	}
+
+	var err error
 	changes.Updates, err = parseGitLsTreeOutput(stdout)
 	return &changes, err
 }
 
 // nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.CodeIndexerStatus.CommitSha, revision)
-	stdout, err := diffCmd.RunInDir(repo.RepoPath())
-	if err != nil {
+func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
+	diffCmd := git.NewCommand(ctx, "diff", "--name-status", repo.CodeIndexerStatus.CommitSha, revision)
+	stdout, _, runErr := diffCmd.RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
+	if runErr != nil {
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
-		log.Warn("git diff: %v", err)
-		if err = indexer.Delete(repo.ID); err != nil {
+		log.Warn("git diff: %v", runErr)
+		if err := indexer.Delete(repo.ID); err != nil {
 			return nil, err
 		}
-		return genesisChanges(repo, revision)
+		return genesisChanges(ctx, repo, revision)
 	}
+
 	var changes repoChanges
+	var err error
 	updatedFilenames := make([]string, 0, 10)
 	for _, line := range strings.Split(stdout, "\n") {
 		line = strings.TrimSpace(line)
@@ -166,9 +169,9 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		}
 	}
 
-	cmd := git.NewCommand("ls-tree", "--full-tree", "-l", revision, "--")
+	cmd := git.NewCommand(ctx, "ls-tree", "--full-tree", "-l", revision, "--")
 	cmd.AddArguments(updatedFilenames...)
-	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
+	lsTreeStdout, _, err := cmd.RunStdBytes(&git.RunOpts{Dir: repo.RepoPath()})
 	if err != nil {
 		return nil, err
 	}

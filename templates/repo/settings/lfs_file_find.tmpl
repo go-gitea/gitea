@@ -14,7 +14,7 @@
 						<tr>
 							<td>
 								{{svg "octicon-file"}}
-								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
+								<a href="{{$.RepoLink}}/src/commit/{{.SHA}}/{{PathEscapeSegments .Name}}" title="{{.Name}}">{{.Name}}</a>
 							</td>
 							<td class="message">
 								<span class="truncate">
@@ -37,7 +37,7 @@
 								{{$.i18n.Tr "repo.diff.commit"}}
 								<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
-							<td>{{TimeSince .When $.Lang}}</td>
+							<td>{{TimeSince .When $.i18n.Lang}}</td>
 						</tr>
 					{{else}}
 						<tr>

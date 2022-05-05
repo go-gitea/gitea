@@ -5,9 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -56,6 +58,16 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Find(&prs)
+}
+
+// HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
+// by given head information (repo and branch)
+func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
+			repoID, branch, false, false, PullRequestFlowGithub).
+		Join("INNER", "issue", "issue.id = pull_request.issue_id").
+		Exist(&PullRequest{})
 }
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
@@ -147,13 +159,14 @@ func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *User, repo *git.Repository, branch string) error {
+// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
+func (prs PullRequestList) InvalidateCodeComments(ctx context.Context, doer *user_model.User, repo *git.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
 	issueIDs := prs.getIssueIDs()
 	var codeComments []*Comment
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("type = ? and invalidated = ?", CommentTypeCode, false).
 		In("issue_id", issueIDs).
 		Find(&codeComments); err != nil {
@@ -165,9 +178,4 @@ func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *User, repo 
 		}
 	}
 	return nil
-}
-
-// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
-	return prs.invalidateCodeComments(db.GetEngine(db.DefaultContext), doer, repo, branch)
 }

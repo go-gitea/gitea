@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -24,13 +25,15 @@ var (
 	_ Named  = &ReverseProxy{}
 )
 
+// ReverseProxyMethodName is the constant name of the ReverseProxy authentication method
+const ReverseProxyMethodName = "reverse_proxy"
+
 // ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
 // user in the "setting.ReverseProxyAuthEmail" header.
-type ReverseProxy struct {
-}
+type ReverseProxy struct{}
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
@@ -43,7 +46,7 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 
 // Name represents the name of auth method
 func (r *ReverseProxy) Name() string {
-	return "reverse_proxy"
+	return ReverseProxyMethodName
 }
 
 // Verify extracts the username from the "setting.ReverseProxyAuthUser" header
@@ -53,16 +56,16 @@ func (r *ReverseProxy) Name() string {
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(username)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
+		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
 			log.Error("GetUserByName: %v", err)
 			return nil
 		}
@@ -88,7 +91,7 @@ func (r *ReverseProxy) isAutoRegisterAllowed() bool {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (r *ReverseProxy) newUser(req *http.Request) *models.User {
+func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
@@ -102,12 +105,16 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 		}
 	}
 
-	user := &models.User{
-		Name:     username,
-		Email:    email,
-		IsActive: true,
+	user := &user_model.User{
+		Name:  username,
+		Email: email,
 	}
-	if err := models.CreateUser(user); err != nil {
+
+	overwriteDefault := user_model.CreateUserOverwriteOptions{
+		IsActive: util.OptionalBoolTrue,
+	}
+
+	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

@@ -5,9 +5,11 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -39,12 +41,21 @@ func MirrorSync(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+	if !ctx.Repo.CanWrite(unit.TypeCode) {
 		ctx.Error(http.StatusForbidden, "MirrorSync", "Must have write access")
 	}
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "MirrorSync", "Mirror feature is disabled")
+		return
+	}
+
+	if _, err := repo_model.GetMirrorByRepoID(repo.ID); err != nil {
+		if errors.Is(err, repo_model.ErrMirrorNotExist) {
+			ctx.Error(http.StatusBadRequest, "MirrorSync", "Repository is not a mirror")
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "MirrorSync", err)
 		return
 	}
 

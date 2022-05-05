@@ -67,12 +67,20 @@ type AuthenticationForm struct {
 	Oauth2EmailURL                string
 	Oauth2IconURL                 string
 	Oauth2Tenant                  string
+	Oauth2Scopes                  string
+	Oauth2RequiredClaimName       string
+	Oauth2RequiredClaimValue      string
+	Oauth2GroupClaimName          string
+	Oauth2AdminGroup              string
+	Oauth2RestrictedGroup         string
 	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool
 	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
+	GroupTeamMap                  string
+	GroupTeamMapRemoval           bool
 }
 
 // Validate validates fields

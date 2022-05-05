@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -19,14 +19,14 @@ import (
 func TestArchivedIssues(t *testing.T) {
 	// Arrange
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 30)
 	ctx.Req.Form.Set("state", "open")
 
 	// Assume: User 30 has access to two Repos with Issues, one of the Repos being archived.
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctx.User})
+	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctx.Doer})
 	assert.Len(t, repos, 2)
 	IsArchived := make(map[int64]bool)
 	NumIssues := make(map[int64]int)
@@ -52,7 +52,7 @@ func TestArchivedIssues(t *testing.T) {
 
 func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
@@ -68,7 +68,7 @@ func TestIssues(t *testing.T) {
 
 func TestPulls(t *testing.T) {
 	setting.UI.IssuePagingNum = 20
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx := test.MockContext(t, "pulls")
 	test.LoadUser(t, ctx, 2)
@@ -81,7 +81,7 @@ func TestPulls(t *testing.T) {
 
 func TestMilestones(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)
@@ -100,7 +100,7 @@ func TestMilestones(t *testing.T) {
 
 func TestMilestonesForSpecificRepo(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	ctx := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)

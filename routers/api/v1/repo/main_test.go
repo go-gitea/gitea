@@ -8,9 +8,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/setting"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", "..", "..", ".."))
+	setting.LoadForTest()
+	setting.NewQueueService()
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", "..", ".."),
+		SetUp:         webhook_service.Init,
+	})
 }

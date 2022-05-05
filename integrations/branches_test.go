@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/PuerkitoBio/goquery"
+	"code.gitea.io/gitea/modules/translation/i18n"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewBranches(t *testing.T) {
@@ -62,7 +62,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	}
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": getCsrf(t, htmlDoc.doc),
+		"_csrf": htmlDoc.GetCSRF(),
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
@@ -72,10 +72,4 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return NewHTMLParser(t, resp.Body), url.Query().Get("name")
-}
-
-func getCsrf(t *testing.T, doc *goquery.Document) string {
-	csrf, exists := doc.Find("meta[name=\"_csrf\"]").Attr("content")
-	assert.True(t, exists)
-	return csrf
 }

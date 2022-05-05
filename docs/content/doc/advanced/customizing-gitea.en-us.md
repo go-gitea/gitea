@@ -92,7 +92,7 @@ shouldn't be touched without fully understanding these components.
 
 Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/main/templates/home.tmpl) for your version of Gitea from `templates` to `$GITEA_CUSTOM/templates`.
 Edit as you wish.
-Dont forget to restart your gitea to apply the changes.
+Dont forget to restart your Gitea to apply the changes.
 
 ### Adding links and tabs
 
@@ -132,15 +132,18 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 `$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
-{{if .RequireHighlightJS}}
-<script src="https://your-server.com/deflate.js"></script>
-<script src="https://your-server.com/encode.js"></script>
-<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
-  <!-- Replace call with address to your plantuml server-->
-  parsePlantumlCodeBlocks("http://www.plantuml.com/plantuml");
+  $(async () => {
+    if (!$('.language-plantuml').length) return;
+    await Promise.all([
+      $.getScript('https://your-server.com/deflate.js'), 
+      $.getScript('https://your-server.com/encode.js'),
+      $.getScript('https://your-server.com/plantuml_codeblock_parse.js'),
+    ]);
+    // Replace call with address to your plantuml server
+    parsePlantumlCodeBlocks("https://www.plantuml.com/plantuml");
+  });
 </script>
-{{end}}
 ```
 
 You can then add blocks like the following to your markdown:
@@ -248,7 +251,7 @@ $GITEA_CUSTOM/public
            `-- three.min.js
 ```
 
-Then restart gitea and open a STL file on your gitea instance.
+Then restart Gitea and open a STL file on your Gitea instance.
 
 ## Customizing Gitea mails
 
@@ -287,7 +290,7 @@ To add a custom license, add a file with the license text to `$GITEA_CUSTOM/opti
 
 ### Locales
 
-Locales are managed via our [crowdin](https://crowdin.com/project/gitea).
+Locales are managed via our [Crowdin](https://crowdin.com/project/gitea).
 You can override a locale by placing an altered locale file in `$GITEA_CUSTOM/options/locale`.
 Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/main/options/locale) source folder and these should be used as examples for your changes.
 
@@ -298,6 +301,8 @@ To add a completely new locale, as well as placing the file in the above locatio
 LANGS = en-US,foo-BAR
 NAMES = English,FooBar
 ```
+
+The first locale will be used as the default if user browser's language doesn't match any locale in the list.
 
 Locales may change between versions, so keeping track of your customized locales is highly encouraged.
 
@@ -336,6 +341,9 @@ To make a custom theme available to all users:
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
 
 The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
+
+If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
+This allows Gitea to adjust the Monaco code editor's theme accordingly.
 
 ## Customizing fonts
 

@@ -55,7 +55,11 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, args...).RunInDirFullPipeline(repository, stdoutWriter, &stderr, nil)
+		err := NewCommand(ctx, args...).Run(&RunOpts{
+			Dir:    repository,
+			Stdout: stdoutWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -275,7 +279,9 @@ func (g *LogNameStatusRepoParser) Close() {
 }
 
 // WalkGitLog walks the git log --name-status for the head commit in the provided treepath and files
-func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
+func WalkGitLog(ctx context.Context, cache *LastCommitCache, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
+	headRef := head.ID.String()
+
 	tree, err := head.SubTree(treepath)
 	if err != nil {
 		return nil, err
@@ -339,12 +345,18 @@ heaploop:
 	for {
 		select {
 		case <-ctx.Done():
+			if ctx.Err() == context.DeadlineExceeded {
+				break heaploop
+			}
 			g.Close()
 			return nil, ctx.Err()
 		default:
 		}
 		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
 		if err != nil {
+			if err == context.DeadlineExceeded {
+				break heaploop
+			}
 			g.Close()
 			return nil, err
 		}
@@ -360,10 +372,16 @@ heaploop:
 				changed[i] = false
 				if results[i] == "" {
 					results[i] = current.CommitID
+					if err := cache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+						return nil, err
+					}
 					delete(path2idx, paths[i])
 					remaining--
 					if results[0] == "" {
 						results[0] = current.CommitID
+						if err := cache.Put(headRef, treepath, current.CommitID); err != nil {
+							return nil, err
+						}
 						delete(path2idx, "")
 						remaining--
 					}
