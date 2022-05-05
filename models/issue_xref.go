@@ -215,7 +215,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := getUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
+		perm, err := GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}
@@ -249,7 +249,7 @@ func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *user_mo
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
-	if err := comment.loadIssue(db.GetEngine(stdCtx)); err != nil {
+	if err := comment.LoadIssueCtx(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{
@@ -340,9 +340,9 @@ func (comment *Comment) RefIssueIdent() string {
 //                                  \/     \/   |__|           \/     \/
 
 // ResolveCrossReferences will return the list of references to close/reopen by this PR
-func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
+func (pr *PullRequest) ResolveCrossReferences(ctx context.Context) ([]*Comment, error) {
 	unfiltered := make([]*Comment, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").

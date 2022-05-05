@@ -861,6 +861,11 @@
           }
         }
 
+        /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
+        .inline-timeline-avatar {
+          display: none;
+        }
+
         .avatar.image,
         .avatar.image img {
           width: 20px;
@@ -1655,7 +1660,7 @@
       @media (max-width: 480px) {
         padding-top: .25rem;
 
-        .ui.button {
+        .ui.button:not(.btn-submit) {
           padding-left: .5rem;
           padding-right: .5rem;
           display: flex;
@@ -2662,7 +2667,7 @@
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
-  padding: .5rem 1rem !important;
+  padding: .5rem 1rem;
   margin: 0 !important;
   position: relative;
   color: var(--color-text-light-2);
@@ -2956,11 +2961,24 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+
+  @media @mediaSm {
+    + .container {
+      margin-top: 7px;
+    }
+  }
 }
 
 .repo-buttons {
-  display: flex;
   align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  word-break: keep-all;
+
+  @media @mediaSm {
+    margin-top: 1em;
+  }
 }
 
 .repo-buttons .ui.labeled.button > .label:hover {
@@ -2999,6 +3017,11 @@ tbody.commit-list {
 
     > .button {
       pointer-events: none !important;
+    }
+  }
+  @media @mediaSm {
+    .svg {
+      display: none;
     }
   }
 }
@@ -3226,4 +3249,83 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+@media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
+  .issue-list-headers.ui[class].grid {
+    > div:nth-child(1) {
+      order: 1;
+      width: 50%;
+    }
+
+    > div:nth-child(2) {
+      order: 3;
+      width: 100%;
+    }
+
+    > div.column:not(.row):nth-child(3) {
+      order: 2;
+      width: 50%;
+    }
+  }
+
+  .repository.view.issue .comment-list {
+    .timeline,
+    .timeline-item {
+      margin-left: 0;
+    }
+
+    .timeline {
+      &::before {
+        left: 14px;
+      }
+
+      .inline-timeline-avatar {
+        display: flex;
+        margin-bottom: auto;
+
+        img.avatar.image {
+          height: 24px;
+          width: 24px;
+        }
+      }
+
+      .comment-header {
+        &::before,
+        &::after {
+          content: unset;
+        }
+
+        padding-left: 4px;
+      }
+
+      /* Don't show the general avatar, we show the inline avatar on mobile.
+       * And don't show the role labels, there's no place for that. */
+      .timeline-avatar,
+      .comment-header-right .role-label {
+        display: none;
+      }
+    }
+  }
 }

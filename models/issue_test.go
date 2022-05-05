@@ -21,6 +21,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestIssue_ReplaceLabels(t *testing.T) {
@@ -157,7 +158,7 @@ func TestIssues(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs:  []int64{1, 3},
+				RepoCond: builder.In("repo_id", 1, 3),
 				SortType: "oldest",
 				ListOptions: db.ListOptions{
 					Page:     1,
@@ -344,7 +345,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 		},
 		{
 			IssuesOptions{
-				RepoIDs: []int64{1, 2},
+				RepoCond: builder.In("repo_id", 1, 2),
 			},
 			[]int64{1, 2},
 		},
@@ -442,12 +443,12 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	err = CreateIssueDependency(user, issue1, issue2)
 	assert.NoError(t, err)
-	left, err := IssueNoDependenciesLeft(issue1)
+	left, err := IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 	err = DeleteIssue(&Issue{ID: 2})
 	assert.NoError(t, err)
-	left, err = IssueNoDependenciesLeft(issue1)
+	left, err = IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
 }
@@ -588,4 +589,11 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 	assert.NoError(t, milestone.LoadTotalTrackedTime())
 
 	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
+}
+
+func TestCountIssues(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	count, err := CountIssues(&IssuesOptions{})
+	assert.NoError(t, err)
+	assert.EqualValues(t, 15, count)
 }

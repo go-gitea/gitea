@@ -181,7 +181,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			p, err := models.GetUserRepoPermission(repo, ctx.Doer)
+			p, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return

@@ -162,13 +162,9 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 }
 
 // LoadLabels loads labels
-func (issue *Issue) LoadLabels() error {
-	return issue.loadLabels(db.GetEngine(db.DefaultContext))
-}
-
-func (issue *Issue) loadLabels(e db.Engine) (err error) {
+func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(e, issue.ID)
+		issue.Labels, err = getLabelsByIssueID(db.GetEngine(ctx), issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -313,7 +309,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadLabels(e); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return
 	}
 
@@ -493,7 +489,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 		return err
 	}
 
-	perm, err := getUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -539,7 +535,7 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 		return err
 	}
 
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -587,7 +583,7 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.LoadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -595,7 +591,7 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 }
 
 // ReadBy sets issue to be read by given user.
-func (issue *Issue) ReadBy(userID int64) error {
+func (issue *Issue) ReadBy(ctx context.Context, userID int64) error {
 	if err := UpdateIssueUserByRead(userID, issue.ID); err != nil {
 		return err
 	}
@@ -639,7 +635,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	// Check for open dependencies
 	if issue.IsClosed && issue.Repo.IsDependenciesEnabledCtx(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
-		noDeps, err := issueNoDependenciesLeft(e, issue)
+		noDeps, err := IssueNoDependenciesLeft(ctx, issue)
 		if err != nil {
 			return nil, err
 		}
@@ -697,13 +693,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
@@ -711,16 +701,7 @@ func ChangeIssueStatus(issue *Issue, doer *user_model.User, isClosed bool) (*Com
 		return nil, err
 	}
 
-	comment, err := changeIssueStatus(ctx, issue, doer, isClosed, false)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return nil, fmt.Errorf("Commit: %v", err)
-	}
-
-	return comment, nil
+	return changeIssueStatus(ctx, issue, doer, isClosed, false)
 }
 
 // ChangeIssueTitle changes the title of this issue, as the given user.
@@ -791,16 +772,11 @@ func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err err
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
-func AddDeletePRBranchComment(doer *user_model.User, repo *repo_model.Repository, issueID int64, branchName string) error {
-	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), issueID)
+func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issueID int64, branchName string) error {
+	issue, err := getIssueByID(db.GetEngine(ctx), issueID)
 	if err != nil {
 		return err
 	}
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
 	opts := &CreateCommentOptions{
 		Type:   CommentTypeDeleteBranch,
 		Doer:   doer,
@@ -808,11 +784,8 @@ func AddDeletePRBranchComment(doer *user_model.User, repo *repo_model.Repository
 		Issue:  issue,
 		OldRef: branchName,
 	}
-	if _, err = CreateCommentCtx(ctx, opts); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	_, err = CreateCommentCtx(ctx, opts)
+	return err
 }
 
 // UpdateIssueAttachments update attachments by UUIDs for the issue
@@ -1194,7 +1167,8 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
 	db.ListOptions
-	RepoIDs            []int64 // include all repos if empty
+	RepoID             int64 // overwrites RepoCond if not 0
+	RepoCond           builder.Cond
 	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
@@ -1285,15 +1259,15 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if len(opts.RepoIDs) > 0 {
-		applyReposCondition(sess, opts.RepoIDs)
+	if opts.RepoID != 0 {
+		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoID}
+	}
+	if opts.RepoCond != nil {
+		sess.And(opts.RepoCond)
 	}
 
-	switch opts.IsClosed {
-	case util.OptionalBoolTrue:
-		sess.And("issue.is_closed=?", true)
-	case util.OptionalBoolFalse:
-		sess.And("issue.is_closed=?", false)
+	if !opts.IsClosed.IsNone() {
+		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
 	}
 
 	if opts.AssigneeID > 0 {
@@ -1412,10 +1386,6 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyReposCondition(sess *xorm.Session, repoIDs []int64) *xorm.Session {
-	return sess.In("issue.repo_id", repoIDs)
-}
-
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
 	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 		And("issue_assignees.assignee_id = ?", assigneeID)
@@ -1510,20 +1480,10 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 func CountIssues(opts *IssuesOptions) (int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
-	countsSlice := make([]*struct {
-		Count int64
-	}, 0, 1)
-
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
-	if err := sess.Find(&countsSlice); err != nil {
-		return 0, fmt.Errorf("unable to CountIssues: %w", err)
-	}
-	if len(countsSlice) != 1 {
-		return 0, fmt.Errorf("unable to get one row result when CountIssues, row count=%d", len(countsSlice))
-	}
-	return countsSlice[0].Count, nil
+	return sess.Count()
 }
 
 // GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
@@ -2354,9 +2314,9 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := getUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := GetUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
-			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %v", user.ID, err)
 		}
 		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			continue

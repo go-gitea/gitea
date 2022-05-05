@@ -45,7 +45,7 @@
 		</div>
 	{{end}}
 
-	{{if or .PackageDescriptor.Metadata.Keywords}}
+	{{if .PackageDescriptor.Metadata.Keywords}}
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">
 			{{range .PackageDescriptor.Metadata.Keywords}}

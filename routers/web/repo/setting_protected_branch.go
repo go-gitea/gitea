@@ -261,7 +261,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 		protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
-		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+		err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,
 			TeamIDs:          whitelistTeams,
 			MergeUserIDs:     mergeWhitelistUsers,
