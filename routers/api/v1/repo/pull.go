@@ -1131,6 +1131,79 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
+// MergePullRequest cancle a auto merge scheduled for a given PullRequest by index
+func CancelScheduledAutoMerge(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
+	// ---
+	// summary: Cancle a auto merge scheduled for a given PullRequest by index
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to merge
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pullIndex := ctx.ParamsInt64(":index")
+	pull, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pullIndex)
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.InternalServerError(err)
+		return
+	}
+
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if !exist {
+		ctx.NotFound()
+		return
+	}
+
+	if ctx.Doer.ID != autoMerge.DoerID {
+		allowed, err := models.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		if !allowed {
+			ctx.Error(http.StatusForbidden, "No permission to cancle", "user has no permission to cancle the scheduled auto merge")
+			return
+		}
+	}
+
+	if err := pull_model.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull.ID, true); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+	return
+}
+
 // GetPullRequestCommits gets all commits associated with a given PR
 func GetPullRequestCommits(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/commits repository repoGetPullRequestCommits

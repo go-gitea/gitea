@@ -659,11 +659,23 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		)
 		ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
+		// Cancle not existing auto merge
+		ctx.ExpectedCode = http.StatusNotFound
+		t.Run("CancleAutoMergePR", doAPICancleAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
 		// Add auto merge request
 		ctx.ExpectedCode = http.StatusCreated
 		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		// Can not create schedule twice
 		ctx.ExpectedCode = http.StatusConflict
+		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Cancle auto merge request
+		ctx.ExpectedCode = http.StatusNoContent
+		t.Run("CancleAutoMergePR", doAPICancleAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
 		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Check pr status
