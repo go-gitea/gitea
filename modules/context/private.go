@@ -66,6 +66,8 @@ func PrivateContexter() func(http.Handler) http.Handler {
 					Data: map[string]interface{}{},
 				},
 			}
+			defer ctx.Close()
+
 			ctx.Req = WithPrivateContext(req, ctx)
 			ctx.Data["Context"] = ctx
 			next.ServeHTTP(ctx.Resp, ctx.Req)

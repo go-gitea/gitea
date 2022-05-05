@@ -13,24 +13,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func addKeypairToPushMirror(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64            `xorm:"pk autoincr"`
-		RepoID     int64            `xorm:"INDEX"`
-		Repo       *repo.Repository `xorm:"-"`
-		RemoteName string
-
-		PublicKey  string
-		PrivateKey string `xorm:"VARCHAR(400)"`
-
-		Interval       time.Duration
-		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-		LastError      string             `xorm:"text"`
+func addAllowMaintainerEdit(x *xorm.Engine) error {
+	// PullRequest represents relation between pull request and repositories.
+	type PullRequest struct {
+		AllowMaintainerEdit bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(PushMirror)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(PullRequest))
 }
