@@ -12,10 +12,10 @@ func addAutoMergeTable(x *xorm.Engine) error {
 	type MergeStyle string
 	type PullAutoMerge struct {
 		ID          int64      `xorm:"pk autoincr"`
-		PullID      int64      `xorm:"BIGINT"`
-		DoerID      int64      `xorm:"BIGINT"`
-		MergeStyle  MergeStyle `xorm:"varchar(50)"`
-		Message     string     `xorm:"TEXT"`
+		PullID      int64      `xorm:"index UNIQUE"`
+		DoerID      int64      `xorm:"NOT NULL"`
+		MergeStyle  MergeStyle `xorm:"varchar(30)"`
+		Message     string     `xorm:"LONGTEXT"`
 		CreatedUnix int64      `xorm:"created"`
 	}
 
