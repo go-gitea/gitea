@@ -150,7 +150,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 func handlePull(pullID int64) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of PR[%d]", pullID))
+		fmt.Sprintf("Handle AutoMerge of pull[%d]", pullID))
 	defer finished()
 
 	pr, err := models.GetPullRequestByID(ctx, pullID)
@@ -162,7 +162,7 @@ func handlePull(pullID int64) {
 	// Check if there is a scheduled pr in the db
 	exists, scheduledPRM, err := pull_model.GetScheduledMergeByPullID(ctx, pr.ID)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("pull[%d] GetScheduledMergeByPullID: %v", pr.ID, err)
 		return
 	}
 	if !exists {
@@ -174,13 +174,13 @@ func handlePull(pullID int64) {
 	// did not succeed or was not finished yet.
 
 	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
-		log.Error(err.Error())
+		log.Error("pull[%d] LoadHeadRepoCtx: %v", pr.ID, err)
 		return
 	}
 
 	headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("OpenRepository: %v", err)
 		return
 	}
 	defer headGitRepo.Close()
@@ -195,7 +195,7 @@ func handlePull(pullID int64) {
 	// Check if all checks succeeded
 	pass, err := pull_service.IsPullCommitStatusPass(ctx, pr)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("IsPullCommitStatusPass: %v", err)
 		return
 	}
 	if !pass {
@@ -206,13 +206,13 @@ func handlePull(pullID int64) {
 	// Merge if all checks succeeded
 	doer, err := user_model.GetUserByIDCtx(ctx, scheduledPRM.DoerID)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("GetUserByIDCtx: %v", err)
 		return
 	}
 
 	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("GetUserRepoPermission: %v", err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func handlePull(pullID int64) {
 			log.Info("PR %d was scheduled to automerge by an unauthorized user", pr.ID)
 			return
 		}
-		log.Error(err.Error())
+		log.Error("pull[%d] CheckPullMergable: %v", pr.ID, err)
 		return
 	}
 
@@ -230,20 +230,20 @@ func handlePull(pullID int64) {
 		baseGitRepo = headGitRepo
 	} else {
 		if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-			log.Error(err.Error())
+			log.Error("LoadBaseRepoCtx: %v", err)
 			return
 		}
 
 		baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
-			log.Error(err.Error())
+			log.Error("OpenRepository: %v", err)
 			return
 		}
 		defer baseGitRepo.Close()
 	}
 
 	if err := pull_service.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
-		log.Error(err.Error())
+		log.Error("pull_service.Merge: %v", err)
 		return
 	}
 }
