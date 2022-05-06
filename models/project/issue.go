@@ -19,6 +19,9 @@ type ProjectIssue struct { //revive:disable-line:exported
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+
+	// the sorting order on the board
+	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
