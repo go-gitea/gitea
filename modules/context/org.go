@@ -70,12 +70,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	org := ctx.Org.Organization
 	ctx.Data["Org"] = org
 
-	teams, err := org.LoadTeams()
-	if err != nil {
-		ctx.ServerError("LoadTeams", err)
-	}
-	ctx.Data["OrgTeams"] = teams
-
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
 		ctx.Org.IsOwner = true
