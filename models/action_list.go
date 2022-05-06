@@ -80,6 +80,9 @@ func (actions ActionList) loadRepoOwner(e db.Engine, userMap map[int64]*user_mod
 	}
 
 	for _, action := range actions {
+		if action.Repo == nil {
+			continue
+		}
 		repoOwner, ok := userMap[action.Repo.OwnerID]
 		if !ok {
 			repoOwner, err = user_model.GetUserByID(action.Repo.OwnerID)
