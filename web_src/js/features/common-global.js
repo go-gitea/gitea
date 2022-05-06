@@ -144,10 +144,13 @@ export function initGlobalCommon() {
   });
 
   // loading-button this logic used to prevent push one form more than one time
-  $(document).on('click', '.button.loading-button', function () {
+  $(document).on('click', '.button.loading-button', function (e) {
     const $btn = $(this);
 
-    if ($btn.hasClass('loading')) return false;
+    if ($btn.hasClass('loading')) {
+      e.preventDefault();
+      return false;
+    }
 
     $btn.addClass('loading disabled');
   });
