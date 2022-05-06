@@ -46,7 +46,7 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func addToQueue(pr *models.PullRequest, sha string) {
-	if err := prAutoMergeQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+	if err := prAutoMergeQueue.PushFunc(fmt.Sprintf("%d_%s", pr.ID, sha), func() error {
 		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
 		return nil
 	}); err != nil {
