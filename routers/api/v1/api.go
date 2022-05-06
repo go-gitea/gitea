@@ -1014,7 +1014,7 @@ func Routes() *web.Route {
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
-					})
+					}, context.ReferencesGitRepo())
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
@@ -1121,7 +1121,8 @@ func Routes() *web.Route {
 				m.Get("", org.GetTeamRepos)
 				m.Combo("/{org}/{reponame}").
 					Put(org.AddTeamRepository).
-					Delete(org.RemoveTeamRepository)
+					Delete(org.RemoveTeamRepository).
+					Get(org.GetTeamRepo)
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
