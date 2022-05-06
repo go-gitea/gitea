@@ -332,7 +332,7 @@ func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int
 	}
 }
 
-func doAPICancleAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
+func doAPICancelAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)

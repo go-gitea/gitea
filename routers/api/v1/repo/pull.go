@@ -1131,11 +1131,11 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-// MergePullRequest cancle a auto merge scheduled for a given PullRequest by index
+// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
 func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
 	// ---
-	// summary: Cancle a auto merge scheduled for a given PullRequest by index
+	// summary: Cancel the scheduled auto merge for the given pull request
 	// produces:
 	// - application/json
 	// parameters:
@@ -1191,7 +1191,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 			return
 		}
 		if !allowed {
-			ctx.Error(http.StatusForbidden, "No permission to cancle", "user has no permission to cancle the scheduled auto merge")
+			ctx.Error(http.StatusForbidden, "No permission to cancel", "user has no permission to cancel the scheduled auto merge")
 			return
 		}
 	}
