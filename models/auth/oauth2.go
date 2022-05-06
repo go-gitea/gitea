@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -55,10 +54,7 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
-	if setting.OAuth2.EnableRedirectURIWildcard {
-		return util.StringMatchesAnyPattern(redirectURI, app.RedirectURIs, true)
-	}
-	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
+	return util.StringMatchesAnyPattern(redirectURI, app.RedirectURIs, true)
 }
 
 // Base32 characters, but lowercased.
