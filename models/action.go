@@ -328,6 +328,11 @@ type GetFeedsOptions struct {
 	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
+type ExtAction struct {
+	Action
+	Repo *repo_model.Repository `xorm:"extends"`
+}
+
 // GetFeeds returns actions according to the provided options
 func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
@@ -345,10 +350,15 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
-	actions := make([]*Action, 0, opts.PageSize)
-
-	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
+	extActions := make([]*ExtAction, 0, opts.PageSize)
+	if err := sess.Desc("`action`.created_unix").Find(&extActions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
+	}
+
+	actions := make(ActionList, 0, len(extActions))
+	for i := 0; i < len(extActions); i++ {
+		extActions[i].Action.Repo = extActions[i].Repo
+		actions = append(actions, &extActions[i].Action)
 	}
 
 	if err := ActionList(actions).loadAttributes(e); err != nil {

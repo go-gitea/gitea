@@ -49,6 +49,9 @@ func (actions ActionList) loadUsers(e db.Engine) (map[int64]*user_model.User, er
 func (actions ActionList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(actions))
 	for _, action := range actions {
+		if action.Repo != nil {
+			continue
+		}
 		if _, ok := repoIDs[action.RepoID]; !ok {
 			repoIDs[action.RepoID] = struct{}{}
 		}
