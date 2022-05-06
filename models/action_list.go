@@ -65,6 +65,10 @@ func (actions ActionList) loadRepositories(e db.Engine) error {
 	}
 
 	repoIDs := actions.getRepoIDs()
+	if len(repoIDs) <= 0 {
+		return nil
+	}
+
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	err := e.In("id", repoIDs).Find(&repoMaps)
 	if err != nil {
