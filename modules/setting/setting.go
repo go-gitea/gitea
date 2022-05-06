@@ -249,7 +249,6 @@ var (
 			RepoPagingNum   int
 			NoticePagingNum int
 			OrgPagingNum    int
-			EstimateCounts  bool
 			StatisticTTL    time.Duration `ini:"STATISTICS_TTL"`
 		} `ini:"ui.admin"`
 		User struct {
@@ -304,7 +303,6 @@ var (
 			RepoPagingNum   int
 			NoticePagingNum int
 			OrgPagingNum    int
-			EstimateCounts  bool
 			StatisticTTL    time.Duration `ini:"STATISTICS_TTL"`
 		}{
 			UserPagingNum:   50,
@@ -416,7 +414,6 @@ var (
 		Token                    string
 		EnabledIssueByLabel      bool
 		EnabledIssueByRepository bool
-		EstimateCounts           bool
 		StatisticTTL             time.Duration `ini:"STATISTICS_TTL"`
 	}{
 		Enabled:                  false,

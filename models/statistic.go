@@ -51,25 +51,17 @@ type IssueByRepositoryCount struct {
 }
 
 // GetStatistic returns the database statistics
-func GetStatistic(ctx context.Context, estimate, metrics bool) (stats Statistic) {
+func GetStatistic(ctx context.Context, metrics bool) (stats Statistic) {
 	e := db.GetEngine(ctx)
-	countFn := func(bean interface{}) (int64, error) {
-		return e.Context(ctx).Count(bean)
-	}
-	if estimate {
-		countFn = func(bean interface{}) (int64, error) {
-			return db.EstimateCount(ctx, bean)
-		}
-	}
 
 	stats.Counter.User = user_model.CountUsers(nil)
 	stats.Counter.Org = organization.CountOrganizations()
-	stats.Counter.Repo = repo_model.CountRepositories(true)
-	stats.Counter.PublicKey, _ = countFn(new(asymkey_model.PublicKey))
-	stats.Counter.Watch, _ = countFn(new(repo_model.Watch))
-	stats.Counter.Star, _ = countFn(new(repo_model.Star))
-	stats.Counter.Action, _ = countFn(new(Action))
-	stats.Counter.Access, _ = countFn(new(Access))
+	stats.Counter.Repo, _ = db.EstimateCount(ctx, new(repo_model.Repository))
+	stats.Counter.PublicKey, _ = db.EstimateCount(ctx, new(asymkey_model.PublicKey))
+	stats.Counter.Watch, _ = db.EstimateCount(ctx, new(repo_model.Watch))
+	stats.Counter.Star, _ = db.EstimateCount(ctx, new(repo_model.Star))
+	stats.Counter.Action, _ = db.EstimateCount(ctx, new(Action))
+	stats.Counter.Access, _ = db.EstimateCount(ctx, new(Access))
 
 	type IssueCount struct {
 		Count    int64
@@ -109,18 +101,18 @@ func GetStatistic(ctx context.Context, estimate, metrics bool) (stats Statistic)
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = countFn(new(Comment))
-	stats.Counter.Follow, _ = countFn(new(user_model.Follow))
-	stats.Counter.Mirror, _ = countFn(new(repo_model.Mirror))
-	stats.Counter.Release, _ = countFn(new(Release))
-	stats.Counter.Webhook, _ = countFn(new(webhook.Webhook))
-	stats.Counter.Milestone, _ = countFn(new(issues_model.Milestone))
-	stats.Counter.Label, _ = countFn(new(Label))
-	stats.Counter.HookTask, _ = countFn(new(webhook.HookTask))
-	stats.Counter.Team, _ = countFn(new(organization.Team))
-	stats.Counter.Attachment, _ = countFn(new(repo_model.Attachment))
-	stats.Counter.Project, _ = countFn(new(project_model.Project))
-	stats.Counter.ProjectBoard, _ = countFn(new(project_model.Board))
+	stats.Counter.Comment, _ = db.EstimateCount(ctx, new(Comment))
+	stats.Counter.Follow, _ = db.EstimateCount(ctx, new(user_model.Follow))
+	stats.Counter.Mirror, _ = db.EstimateCount(ctx, new(repo_model.Mirror))
+	stats.Counter.Release, _ = db.EstimateCount(ctx, new(Release))
+	stats.Counter.Webhook, _ = db.EstimateCount(ctx, new(webhook.Webhook))
+	stats.Counter.Milestone, _ = db.EstimateCount(ctx, new(issues_model.Milestone))
+	stats.Counter.Label, _ = db.EstimateCount(ctx, new(Label))
+	stats.Counter.HookTask, _ = db.EstimateCount(ctx, new(webhook.HookTask))
+	stats.Counter.Team, _ = db.EstimateCount(ctx, new(organization.Team))
+	stats.Counter.Attachment, _ = db.EstimateCount(ctx, new(repo_model.Attachment))
+	stats.Counter.Project, _ = db.EstimateCount(ctx, new(project_model.Project))
+	stats.Counter.ProjectBoard, _ = db.EstimateCount(ctx, new(project_model.Board))
 	stats.Counter.Oauth = 0
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Time = time.Now()

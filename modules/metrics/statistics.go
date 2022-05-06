@@ -6,7 +6,6 @@ package metrics
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -16,20 +15,26 @@ import (
 )
 
 var (
-	statisticsLock        sync.Mutex
-	statisticsMap         = map[string]*models.Statistic{}
-	statisticsWorkingChan = map[string]chan struct{}{}
+	statisticsLock sync.Mutex
+
+	shortStatistic *models.Statistic
+	fullStatistic  *models.Statistic
+
+	shortStatisticWorkingChan chan struct{}
+	fullStatisticWorkingChan  chan struct{}
 )
 
-func GetStatistic(estimate bool, statisticsTTL time.Duration, metrics bool) <-chan *models.Statistic {
-	cacheKey := "models/statistic.Statistic." + strconv.FormatBool(estimate) + strconv.FormatBool(metrics)
-
+func GetStatistic(statisticsTTL time.Duration, full bool) <-chan *models.Statistic {
 	statisticsLock.Lock() // CAREFUL: no defer!
 	ourChan := make(chan *models.Statistic, 1)
 
 	// Check for a cached statistic
 	if statisticsTTL > 0 {
-		if stats, ok := statisticsMap[cacheKey]; ok && stats.Time.Add(statisticsTTL).After(time.Now()) {
+		stats := fullStatistic
+		if !full && shortStatistic != nil {
+			stats = shortStatistic
+		}
+		if stats != nil && stats.Time.Add(statisticsTTL).After(time.Now()) {
 			// Found a valid cached statistic for these params, so unlock and send this down the channel
 			statisticsLock.Unlock() // Unlock from line 24
 
@@ -42,21 +47,30 @@ func GetStatistic(estimate bool, statisticsTTL time.Duration, metrics bool) <-ch
 	// We need to calculate a statistic - however, we should only do this one at a time (NOTE: we are still within the lock)
 	//
 	// So check if we have a worker already and get a marker channel
-	workingChan, ok := statisticsWorkingChan[cacheKey]
+	var workingChan chan struct{}
+	if full {
+		workingChan = fullStatisticWorkingChan
+	} else {
+		workingChan = shortStatisticWorkingChan
+	}
 
-	if !ok {
+	if workingChan == nil {
 		// we need to make our own worker... (NOTE: we are still within the lock)
 
 		// create a marker channel which will be closed when our worker is finished
 		// and assign it to the working map.
 		workingChan = make(chan struct{})
-		statisticsWorkingChan[cacheKey] = workingChan
+		if full {
+			fullStatisticWorkingChan = workingChan
+		} else {
+			shortStatisticWorkingChan = workingChan
+		}
 
 		// Create the working go-routine
 		go func() {
-			ctx, _, finished := process.GetManager().AddContext(db.DefaultContext, fmt.Sprintf("Statistics: Estimated: %t Metrics: %t", estimate, metrics))
+			ctx, _, finished := process.GetManager().AddContext(db.DefaultContext, fmt.Sprintf("Statistics: Full: %t", full))
 			defer finished()
-			stats := models.GetStatistic(ctx, estimate, metrics)
+			stats := models.GetStatistic(ctx, full)
 			statsPtr := &stats
 			select {
 			case <-ctx.Done():
@@ -68,9 +82,16 @@ func GetStatistic(estimate bool, statisticsTTL time.Duration, metrics bool) <-ch
 			// cache the result, remove this worker and inform anyone waiting we are done
 			statisticsLock.Lock() // Lock within goroutine
 			if statsPtr != nil {
-				statisticsMap[cacheKey] = statsPtr
+				shortStatistic = statsPtr
+				if full {
+					fullStatistic = statsPtr
+				}
 			}
-			delete(statisticsWorkingChan, cacheKey)
+			if full {
+				fullStatisticWorkingChan = nil
+			} else {
+				shortStatisticWorkingChan = nil
+			}
 			close(workingChan)
 			statisticsLock.Unlock() // Unlock within goroutine
 		}()
@@ -84,7 +105,10 @@ func GetStatistic(estimate bool, statisticsTTL time.Duration, metrics bool) <-ch
 
 		// Now lock and get the last stats completed
 		statisticsLock.Lock()
-		stats := statisticsMap[cacheKey]
+		stats := fullStatistic
+		if !full {
+			stats = shortStatistic
+		}
 		statisticsLock.Unlock()
 
 		ourChan <- stats

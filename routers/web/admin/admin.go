@@ -125,14 +125,14 @@ func updateSystemStatus() {
 func getStatistics() *models.Statistic {
 	if setting.UI.Admin.StatisticTTL > 0 {
 		select {
-		case stats := <-metrics.GetStatistic(setting.UI.Admin.EstimateCounts, setting.UI.Admin.StatisticTTL, false):
+		case stats := <-metrics.GetStatistic(setting.UI.Admin.StatisticTTL, false):
 			return stats
 		case <-time.After(1 * time.Second):
 			return nil
 		}
 	}
 
-	return <-metrics.GetStatistic(setting.UI.Admin.EstimateCounts, setting.UI.Admin.StatisticTTL, false)
+	return <-metrics.GetStatistic(setting.UI.Admin.StatisticTTL, false)
 }
 
 // Dashboard show admin panel dashboard

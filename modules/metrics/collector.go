@@ -228,7 +228,7 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect returns the metrics with values
 func (c Collector) Collect(ch chan<- prometheus.Metric) {
-	stats := <-GetStatistic(setting.Metrics.EstimateCounts, setting.Metrics.StatisticTTL, true)
+	stats := <-GetStatistic(setting.Metrics.StatisticTTL, true)
 	if stats == nil {
 		// This will happen if the statistics generation was cancelled midway through
 		stats = &models.Statistic{}
