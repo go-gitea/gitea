@@ -390,6 +390,7 @@ var (
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
 		JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 		MaxTokenLength             int
+		EnableRedirectURIWildcard  bool `ini:"ENABLE_REDIRECT_URI_WILDCARD"`
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
@@ -398,6 +399,7 @@ var (
 		JWTSigningAlgorithm:        "RS256",
 		JWTSigningPrivateKeyFile:   "jwt/private.pem",
 		MaxTokenLength:             math.MaxInt16,
+		EnableRedirectURIWildcard:  false,
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.18.0

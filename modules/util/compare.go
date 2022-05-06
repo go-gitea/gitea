@@ -5,6 +5,7 @@
 package util
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -57,6 +58,46 @@ func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
 			}
 		}
 	}
+	return false
+}
+
+// StringMatchesPattern checks whether the target string matches the wildcard pattern
+func StringMatchesPattern(target string, pattern string) bool {
+	// Compile the wildcards in the pattern to a regular expression
+	var compiled strings.Builder
+	for i, segment := range strings.Split(pattern, "*") {
+		if i > 0 {
+			compiled.WriteString(".*")
+		}
+
+		compiled.WriteString(regexp.QuoteMeta(segment))
+	}
+
+	// Check whether the target matches the compiled pattern
+	result, _ := regexp.MatchString(compiled.String(), target)
+	return result
+}
+
+// StringMatchesAnyPattern sequential searches if target matches any patterns in the slice
+func StringMatchesAnyPattern(target string, patterns []string, insensitive ...bool) bool {
+	caseInsensitive := false
+	if len(insensitive) != 0 && insensitive[0] {
+		caseInsensitive = true
+		target = strings.ToLower(target)
+	}
+
+	for _, pattern := range patterns {
+		if caseInsensitive {
+			if StringMatchesPattern(target, strings.ToLower(pattern)) {
+				return true
+			}
+		} else {
+			if StringMatchesPattern(target, pattern) {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
