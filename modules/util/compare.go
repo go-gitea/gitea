@@ -62,7 +62,7 @@ func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
 }
 
 // StringMatchesPattern checks whether the target string matches the wildcard pattern
-func StringMatchesPattern(target string, pattern string) bool {
+func StringMatchesPattern(target, pattern string) bool {
 	// Compile the wildcards in the pattern to a regular expression
 	var compiled strings.Builder
 	for i, segment := range strings.Split(pattern, "*") {

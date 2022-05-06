@@ -57,9 +57,8 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	if setting.OAuth2.EnableRedirectURIWildcard {
 		return util.StringMatchesAnyPattern(redirectURI, app.RedirectURIs, true)
-	} else {
-		return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 	}
+	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
 // Base32 characters, but lowercased.
