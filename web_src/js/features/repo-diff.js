@@ -3,35 +3,25 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 
-const {csrfToken, pageData} = window.config;
-const prReview = pageData.prReview || {};
+const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
-  const reviewBox = document.querySelector('#review-box');
+  const $reviewBox = $('#review-box');
+  const $counter = $reviewBox.find('.review-comments-counter');
+
   $(document).on('click', 'button[name="is_review"]', (e) => {
-    $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+    const $form = $(e.target).closest('form');
+    $form.append('<input type="hidden" name="is_review" value="true">');
 
     // Watch for the form's submit event.
-    e.target.closest('form').addEventListener('submit', () => {
-      // Set a zero-timeout, so this would be executed after the network request has finished.
-      setTimeout(() => {
-        const commentCounter = document.querySelector('#review-box .review-comments-counter');
-        // Remove the display: none.
-        commentCounter.style.display = '';
-        // Increase counter by one, in case it's the first review, `pendingCodeComments` will
-        // return undefined so it will default to '1'.
-        prReview.pendingCodeComments = prReview.pendingCodeComments + 1 || 1;
-        commentCounter.textContent = String(prReview.pendingCodeComments);
-
-        // Make the review-box to do a little pulse.
-        reviewBox.classList.remove('pulse');
-        // Force the browser to reflow the DOM. This is to ensure that the browser.
-        // Actually removes the 'pulse' class from the DOM. Otherwise the browser
-        // is smart enough to de-duplicate these two requests.
-        const _ = reviewBox.offsetWidth;
-        // Add the class again.
-        reviewBox.classList.add('pulse');
-      });
+    $form.on('submit', () => {
+      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
+      $counter.attr('data-pending-comment-number', num);
+      $counter.text(num);
+      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
+      $reviewBox.removeClass('pulse');
+      $reviewBox.width();
+      $reviewBox.addClass('pulse');
     });
   });
 }

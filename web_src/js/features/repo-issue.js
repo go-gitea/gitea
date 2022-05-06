@@ -5,8 +5,7 @@ import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
-const {appSubUrl, csrfToken, pageData} = window.config;
-const prReview = pageData.prReview || {};
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
@@ -164,15 +163,11 @@ export function initRepoIssueCommentDelete() {
 
         // Check if this was a pending comment.
         if ($conversationHolder.find('.pending-label').length) {
-          // This is a pending comment.
-          const commentCounter = document.querySelector('#review-box .review-comments-counter');
-          // Decrease the counter by one.
-          prReview.pendingCodeComments -= 1;
-          commentCounter.textContent = String(prReview.pendingCodeComments);
-          // If no pending comments remains, don't show the counter.
-          if (commentCounter.textContent === '0') {
-            commentCounter.style.display = 'none';
-          }
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
         }
 
         $(`#${$this.data('comment-id')}`).remove();
