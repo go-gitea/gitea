@@ -649,15 +649,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		commitID := path.Base(commitURL)
 
 		// Call API to add Pending status for commit
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
-			api.CreateStatusOption{
-				State:       api.CommitStatusPending,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			},
-		)
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusPending))
 
 		// Cancel not existing auto merge
 		ctx.ExpectedCode = http.StatusNotFound
@@ -686,15 +678,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.Equal(t, false, pr.HasMerged)
 
 		// Call API to add Failure status for commit
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
-			api.CreateStatusOption{
-				State:       api.CommitStatusFailure,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			},
-		)
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
 
 		// Check pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
@@ -702,15 +686,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.Equal(t, false, pr.HasMerged)
 
 		// Call API to add Success status for commit
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
-			api.CreateStatusOption{
-				State:       api.CommitStatusSuccess,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			},
-		)
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
 
 		// wait to let gitea merge stuff
 		time.Sleep(time.Second)
