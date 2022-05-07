@@ -2,6 +2,7 @@ import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
+import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
 
 const {csrfToken} = window.config;
 
@@ -104,6 +105,13 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+// Will be called when the show more (files) button has been pressed
+function onShowMoreFiles() {
+  initRepoIssueContentHistory();
+  initViewedCheckboxListenerFor();
+  countAndUpdateViewedFiles();
+}
+
 export function initRepoDiffShowMore() {
   $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
     e.preventDefault();
@@ -125,7 +133,7 @@ export function initRepoDiffShowMore() {
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-      initRepoIssueContentHistory();
+      onShowMoreFiles();
     }).fail(() => {
       $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
@@ -151,7 +159,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
-      initRepoIssueContentHistory();
+      onShowMoreFiles();
     }).fail(() => {
       $target.removeClass('disabled');
     });
