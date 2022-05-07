@@ -801,12 +801,6 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	// set defaults to propagate needed fields
-	if err := form.SetDefaults(ctx, pr); err != nil {
-		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
-		return
-	}
-
 	if form.MergeWhenChecksSucceed {
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
 		if err != nil {

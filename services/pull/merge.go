@@ -32,8 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/unknwon/com"
 )
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -60,7 +58,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 		if err != nil {
 			return "", err
 		}
-		templateContent, err := commit.GetFileContent(templateFilepath, 10*1024)
+		templateContent, err := commit.GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
 		if err != nil {
 			if !git.IsErrNotExist(err) {
 				return "", err
@@ -79,7 +77,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
 			}
-			refs, err := pr.ResolveCrossReferences()
+			refs, err := pr.ResolveCrossReferences(context.Background())
 			if err == nil {
 				closeIssueIndexes := make([]string, 0, len(refs))
 				closeWord := "close"
@@ -98,7 +96,9 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				}
 			}
 
-			return com.Expand(templateContent, vars), nil
+			return os.Expand(templateContent, func(s string) string {
+				return vars[s]
+			}), nil
 		}
 	}
 
@@ -116,7 +116,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
+func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) error {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -160,18 +160,18 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err := pr.SetMerged(db.DefaultContext); err != nil {
+	if _, err := pr.SetMerged(ctx); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.LoadIssueCtx(db.DefaultContext); err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		log.Error("loadIssue [%d]: %v", pr.ID, err)
 	}
 
-	if err := pr.Issue.LoadRepo(db.DefaultContext); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		log.Error("loadRepo for issue [%d]: %v", pr.ID, err)
 	}
-	if err := pr.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
+	if err := pr.Issue.Repo.GetOwner(ctx); err != nil {
 		log.Error("GetOwner for issue repo [%d]: %v", pr.ID, err)
 	}
 
@@ -181,17 +181,17 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
 	// Resolve cross references
-	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
+	refs, err := pr.ResolveCrossReferences(ctx)
 	if err != nil {
 		log.Error("ResolveCrossReferences: %v", err)
 		return nil
 	}
 
 	for _, ref := range refs {
-		if err = ref.LoadIssueCtx(db.DefaultContext); err != nil {
+		if err = ref.LoadIssueCtx(ctx); err != nil {
 			return err
 		}
-		if err = ref.Issue.LoadRepo(db.DefaultContext); err != nil {
+		if err = ref.Issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 		close := ref.RefAction == references.XRefActionCloses

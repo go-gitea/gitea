@@ -41,7 +41,7 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 
 	assert.NoError(t, pr.LoadBaseRepo())
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -71,7 +71,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2, BaseRepo: baseRepo}).(*models.PullRequest)
 
 	assert.NoError(t, pr.LoadBaseRepo())
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

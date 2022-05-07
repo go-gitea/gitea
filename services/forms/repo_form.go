@@ -6,7 +6,6 @@
 package forms
 
 import (
-	stdContext "context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -600,31 +599,6 @@ type MergePullRequestForm struct {
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// SetDefaults if not provided for mergestyle and commit message
-func (f *MergePullRequestForm) SetDefaults(ctx stdContext.Context, pr *models.PullRequest) (err error) {
-	if f.Do == "" {
-		f.Do = "merge"
-	}
-
-	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
-	if len(f.MergeTitleField) == 0 {
-		switch f.Do {
-		case "merge", "rebase-merge":
-			f.MergeTitleField, err = pr.GetDefaultMergeMessage(ctx)
-		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage(ctx)
-		}
-	}
-
-	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
-	if len(f.MergeMessageField) > 0 {
-		f.MergeTitleField += "\n\n" + f.MergeMessageField
-		f.MergeMessageField = ""
-	}
-
-	return
 }
 
 // CodeCommentForm form for adding code comments for PRs
