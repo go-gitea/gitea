@@ -45,7 +45,7 @@
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
 				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $.noTag}}{{.root.i18n.Tr "repo.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
+				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $.noTag}}{{.root.i18n.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
 			</div>
 			{{if $showBranchesInDropdown}}
 				<div class="header branch-tag-choice">

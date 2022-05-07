@@ -37,6 +37,8 @@ func createContext(req *http.Request) (*context.Context, *httptest.ResponseRecor
 		Render: rnd,
 		Data:   make(map[string]interface{}),
 	}
+	defer c.Close()
+
 	return c, resp
 }
 
