@@ -675,7 +675,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		ctx.ExpectedCode = 0
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
-		assert.Equal(t, false, pr.HasMerged)
+		assert.False(t, pr.HasMerged)
 
 		// Call API to add Failure status for commit
 		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
@@ -683,7 +683,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		// Check pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
-		assert.Equal(t, false, pr.HasMerged)
+		assert.False(t, pr.HasMerged)
 
 		// Call API to add Success status for commit
 		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
@@ -694,7 +694,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		// test pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
-		assert.Equal(t, true, pr.HasMerged)
+		assert.True(t, pr.HasMerged)
 	}
 }
 
