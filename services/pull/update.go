@@ -23,6 +23,9 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		style repo_model.MergeStyle
 	)
 
+	pullWorkingPool.CheckIn(fmt.Sprint(pull.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pull.ID))
+
 	if rebase {
 		pr = pull
 		style = repo_model.MergeStyleRebaseUpdate
@@ -116,13 +119,13 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, err
 	}
 
-	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
+	mergeAllowed, err = IsUserAllowedToMerge(ctx, pr, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
 	}
 
 	if pull.AllowMaintainerEdit {
-		mergeAllowedMaintainer, err := IsUserAllowedToMerge(pr, baseRepoPerm, user)
+		mergeAllowedMaintainer, err := IsUserAllowedToMerge(ctx, pr, baseRepoPerm, user)
 		if err != nil {
 			return false, false, err
 		}

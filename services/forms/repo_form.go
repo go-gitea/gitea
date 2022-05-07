@@ -6,6 +6,7 @@
 package forms
 
 import (
+	stdContext "context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -591,6 +592,7 @@ type MergePullRequestForm struct {
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
@@ -601,7 +603,7 @@ func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) 
 }
 
 // SetDefaults if not provided for mergestyle and commit message
-func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+func (f *MergePullRequestForm) SetDefaults(ctx stdContext.Context, pr *models.PullRequest) (err error) {
 	if f.Do == "" {
 		f.Do = "merge"
 	}
@@ -610,9 +612,9 @@ func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
 	if len(f.MergeTitleField) == 0 {
 		switch f.Do {
 		case "merge", "rebase-merge":
-			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage(ctx)
 		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage(ctx)
 		}
 	}
 
