@@ -84,7 +84,7 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, nil
 }
 
-// DeleteScheduledAutoMerge cancels a previously scheduled pull request
+// DeleteScheduledAutoMerge delete a scheduled pull request
 func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
 	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
 	if err != nil {
