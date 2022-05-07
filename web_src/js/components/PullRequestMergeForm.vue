@@ -118,8 +118,8 @@ export default {
 };
 </script>
 
-<!-- to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles -->
 <style scoped>
+/* to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles */
 .ui.dropdown .menu.show {
   display: block;
 }

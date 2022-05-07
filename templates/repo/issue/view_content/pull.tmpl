@@ -325,51 +325,53 @@
 
 							<div class="ui divider"></div>
 
-							<script type="module">
+							<script>
 								<!-- /* eslint-disable */ -->
-								const mergeForm = {
-									'baseLink': {{.Link}},
-									'textCancel': {{$.i18n.Tr "cancel"}},
-									'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+								(() => {
+									const mergeForm = {
+										'baseLink': {{.Link}},
+										'textCancel': {{$.i18n.Tr "cancel"}},
+										'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
 
-									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
-									'pullHeadCommitID':{{.PullHeadCommitID}},
-									'mergeTitleFieldText': {{.Issue.PullRequest.GetDefaultMergeMessage $.Context}},
-									'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
-									'mergeMessageFieldText': 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}},
-									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
-									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
-								};
-								mergeForm['mergeStyles'] = [
-									{
-										'name': 'merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
-										'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
-									},
-									{
-										'name': 'rebase',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
-										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
-										'hideMergeMessage': true,
-									},
-									{
-										'name': 'rebase-merge',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
-										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
-									},
-									{
-										'name': 'squash',
-										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
-										'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
-									},
-									{
-										'name': 'manually-merged',
-										'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
-										'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
-										'hideMergeMessage': true,
-									}
-								];
-								window.config.pageData.pullRequestMergeForm = mergeForm;
+										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+										'pullHeadCommitID':{{.PullHeadCommitID}},
+										'mergeTitleFieldText': {{.Issue.PullRequest.GetDefaultMergeMessage $.Context}},
+										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
+										'mergeMessageFieldText': 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}},
+										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+									};
+									mergeForm['mergeStyles'] = [
+										{
+											'name': 'merge',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
+										},
+										{
+											'name': 'rebase',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
+											'hideMergeMessage': true,
+										},
+										{
+											'name': 'rebase-merge',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+										},
+										{
+											'name': 'squash',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
+										},
+										{
+											'name': 'manually-merged',
+											'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
+											'hideMergeMessage': true,
+										}
+									];
+									window.config.pageData.pullRequestMergeForm = mergeForm;
+								})();
 							</script>
 
 							<div id="pull-request-merge-form"></div>
