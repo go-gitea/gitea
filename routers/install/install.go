@@ -79,6 +79,8 @@ func Init(next http.Handler) http.Handler {
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
+		defer ctx.Close()
+
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})

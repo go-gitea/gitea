@@ -23,6 +23,9 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		style repo_model.MergeStyle
 	)
 
+	pullWorkingPool.CheckIn(fmt.Sprint(pull.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pull.ID))
+
 	if rebase {
 		pr = pull
 		style = repo_model.MergeStyleRebaseUpdate

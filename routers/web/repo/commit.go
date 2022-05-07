@@ -253,7 +253,6 @@ func FileHistory(ctx *context.Context) {
 // Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name

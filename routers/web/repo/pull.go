@@ -743,7 +743,6 @@ func ViewPullFiles(ctx *context.Context) {
 
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
@@ -753,11 +752,27 @@ func ViewPullFiles(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.Doer, issue)
+
+	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
+	numPendingCodeComments := int64(0)
+	if currentReview != nil {
+		numPendingCodeComments, err = models.CountComments(&models.FindCommentsOptions{
+			Type:     models.CommentTypeCode,
+			ReviewID: currentReview.ID,
+			IssueID:  issue.ID,
+		})
+		if err != nil {
+			ctx.ServerError("CountComments", err)
+			return
+		}
+	}
+	ctx.Data["CurrentReview"] = currentReview
+	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
+
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
@@ -1050,7 +1065,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
