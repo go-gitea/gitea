@@ -75,14 +75,18 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
 				"BaseRepoName":           pr.BaseRepo.Name,
 				"BaseBranch":             pr.BaseBranch,
-				"HeadRepoOwnerName":      pr.HeadRepo.OwnerName,
-				"HeadRepoName":           pr.HeadRepo.Name,
+				"HeadRepoOwnerName":      "",
+				"HeadRepoName":           "",
 				"HeadBranch":             pr.HeadBranch,
 				"PullRequestTitle":       pr.Issue.Title,
 				"PullRequestDescription": pr.Issue.Content,
 				"PullRequestPosterName":  pr.Issue.Poster.Name,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
+			}
+			if pr.HeadRepo != nil {
+				vars["HeadRepoOwnerName"] = pr.HeadRepo.OwnerName
+				vars["HeadRepoName"] = pr.HeadRepo.Name
 			}
 			refs, err := pr.ResolveCrossReferences(baseGitRepo.Ctx)
 			if err == nil {
@@ -116,6 +120,10 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 
 	if pr.BaseRepoID == pr.HeadRepoID {
 		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
+	}
+
+	if pr.HeadRepo == nil {
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from <deleted>:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
 	}
 
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
