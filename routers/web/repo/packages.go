@@ -62,6 +62,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
+	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")
